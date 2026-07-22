@@ -7,6 +7,12 @@
       "skillPath": "skills/add-stack-context/SKILL.md",
       "computedHash": "88c68ca915cb3ab9193fdb462a21d6902e178d1ae0311bb46e3019ca3f80fc0f"
     },
+    "ai-sdk": {
+      "source": "vercel/ai",
+      "sourceType": "github",
+      "skillPath": "skills/use-ai-sdk/SKILL.md",
+      "computedHash": "da25c27a274ef2b71017c255f95a26350d2519765a75cb54ee1a37872b121dab"
+    },
     "build-prototype": {
       "source": "toy-crane/skills",
       "sourceType": "github",
@@ -126,6 +132,12 @@
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-upgrade/SKILL.md",
       "computedHash": "4e4fe91fc20644ee488dd4c0843f2a7f4fda34818284e18206bd28785e6bb8d1"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "computedHash": "b146008599c31057cef1c145774cea5d5afb30e8f43fa802e47a4b461419aaaf"
     },
     "shape-idea": {
       "source": "toy-crane/skills",
