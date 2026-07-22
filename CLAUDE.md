@@ -20,8 +20,6 @@ src/
 └── server/       # 서버 전용 — src/app/api/*+api.ts만 import 가능
 ```
 
-폴더는 첫 파일이 생길 때 만든다.
-
 ## 규칙
 
 - 재export 전용 barrel(`index.ts`) 금지 — 소스를 직접 import (`@/components/button` O, `@/components` X). 구현을 담는 `index.tsx`는 허용.
