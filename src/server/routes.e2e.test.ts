@@ -13,9 +13,20 @@ import {
   correctionThreadResponseSchema,
   scenarioGenerationResponseSchema,
   scenarioRewriteResponseSchema,
+  storyTurnResponseSchema,
 } from "@/lib/ai-contract";
-import { CORRECTIONS, LEARNER_PROFILE, SCENARIO_SUGGESTIONS } from "@/lib/fixtures";
+import {
+  TURN_ANALYSIS_PART,
+  TURN_NARRATIVE_PART,
+} from "@/lib/ai-stream-contract";
+import {
+  CORRECTIONS,
+  LEARNER_PROFILE,
+  NIGHT_TRAIN_MESSAGES,
+  SCENARIO_SUGGESTIONS,
+} from "@/lib/fixtures";
 import { GENRES } from "@/types/learner";
+import { MAX_TURNS } from "@/types/story";
 
 const BASE = process.env.E2E_BASE_URL;
 const AI_TIMEOUT = 180_000;
@@ -29,6 +40,56 @@ async function post(path: string, body: unknown): Promise<Response> {
 }
 
 const HANGUL = /[가-힣]/;
+
+/** The story turn is the only streaming route — its answer arrives as SSE. */
+type StreamedTurn = {
+  contentType: string | null;
+  /** Latest payload per data part, i.e. after client-side reconciliation. */
+  parts: Record<string, unknown>;
+  /** How many narrative snapshots arrived, to prove it actually streamed. */
+  narrativeWrites: number;
+};
+
+async function postStoryTurn(body: unknown): Promise<StreamedTurn> {
+  const res = await fetch(new URL("/api/story-turn", BASE), {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const parts: Record<string, unknown> = {};
+  let narrativeWrites = 0;
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
+    buffer += decoder.decode(chunk, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const payload = line.slice(6);
+      if (payload === "[DONE]") continue;
+      const event = JSON.parse(payload) as { type: string; data?: unknown };
+      if (event.type === "error") {
+        throw new Error(`stream error: ${JSON.stringify(event)}`);
+      }
+      if (event.type === TURN_NARRATIVE_PART) narrativeWrites += 1;
+      if (event.data !== undefined) parts[event.type] = event.data;
+    }
+  }
+  return {
+    contentType: res.headers.get("content-type"),
+    parts,
+    narrativeWrites,
+  };
+}
+
+/** Client-side assembly: the two parts merge back into the S0 contract shape. */
+function assembleTurn(streamed: StreamedTurn) {
+  return storyTurnResponseSchema.parse({
+    ...(streamed.parts[TURN_ANALYSIS_PART] as object),
+    ...(streamed.parts[TURN_NARRATIVE_PART] as object),
+  });
+}
 
 describe.skipIf(!BASE)("scenario-generate", () => {
   test(
@@ -122,6 +183,90 @@ describe.skipIf(!BASE)("scenario-rewrite", () => {
     },
     AI_TIMEOUT,
   );
+});
+
+describe.skipIf(!BASE)("story-turn", () => {
+  const scenario = SCENARIO_SUGGESTIONS[0]!;
+
+  test(
+    "streams both parts, which merge into a contract story-turn response",
+    async () => {
+      const streamed = await postStoryTurn({
+        profile: LEARNER_PROFILE,
+        scenario,
+        messages: NIGHT_TRAIN_MESSAGES,
+        turnCount: 3,
+        // Two obvious errors: missing auxiliary and a bare past participle.
+        learnerInput: '"Why you not tell me where this photo taken?"',
+      });
+
+      expect(streamed.contentType).toContain("text/event-stream");
+      expect(streamed.narrativeWrites).toBeGreaterThan(1);
+
+      const turn = assembleTurn(streamed);
+      expect(turn.beats.length).toBeGreaterThanOrEqual(1);
+      expect(turn.ending).toBeNull();
+      expect(turn.corrections.length).toBeGreaterThanOrEqual(1);
+
+      const correction = turn.corrections[0]!;
+      expect(correction.reason).toMatch(HANGUL);
+      // Spans must address the learner's message, not the corrected sentence.
+      expect(correction.errorSpans[0]!.end).toBeLessThanOrEqual(
+        '"Why you not tell me where this photo taken?"'.length,
+      );
+
+      expect(turn.achievement.conditions.map((c) => c.id).sort()).toEqual(
+        scenario.achievementConditions.map((c) => c.id).sort(),
+      );
+      expect(turn.achievement.conditions[0]!.evidence).toMatch(HANGUL);
+    },
+    AI_TIMEOUT,
+  );
+
+  test(
+    "a clean input carries no corrections",
+    async () => {
+      const streamed = await postStoryTurn({
+        profile: LEARNER_PROFILE,
+        scenario,
+        messages: NIGHT_TRAIN_MESSAGES,
+        turnCount: 3,
+        learnerInput: '"Where was this photo taken?"',
+      });
+      expect(assembleTurn(streamed).corrections).toEqual([]);
+    },
+    AI_TIMEOUT,
+  );
+
+  test(
+    "the final allowed turn ends the story even mid-conversation",
+    async () => {
+      const streamed = await postStoryTurn({
+        profile: LEARNER_PROFILE,
+        scenario,
+        messages: NIGHT_TRAIN_MESSAGES,
+        turnCount: MAX_TURNS - 1,
+        learnerInput: '"Tell me about the photograph."',
+      });
+      const turn = assembleTurn(streamed);
+      expect(turn.ending).not.toBeNull();
+      expect(["forced", "success", "failure"]).toContain(turn.ending!.kind);
+      expect(turn.ending!.headline).toMatch(HANGUL);
+      expect(turn.ending!.summary).toMatch(HANGUL);
+    },
+    AI_TIMEOUT,
+  );
+
+  test("rejects a turn past the ceiling with 400", async () => {
+    const res = await post("/api/story-turn", {
+      profile: LEARNER_PROFILE,
+      scenario,
+      messages: NIGHT_TRAIN_MESSAGES,
+      turnCount: MAX_TURNS + 1,
+      learnerInput: "hello",
+    });
+    expect(res.status).toBe(400);
+  });
 });
 
 describe.skipIf(!BASE)("correction-thread", () => {

@@ -14,12 +14,15 @@
  * object — the payload schemas are compositions of the S0 contract, never a
  * reshaping of it.
  */
+import type { DeepPartial, UIMessage } from "ai";
 import type { z } from "zod";
 
 import { storyTurnResponseSchema } from "@/lib/ai-contract";
 
 export const TURN_ANALYSIS_PART = "data-turn-analysis";
 export const TURN_NARRATIVE_PART = "data-turn-narrative";
+
+export const TURN_ANALYSIS_PART_ID = "turn-analysis";
 
 /** Reconciliation id shared by the narrative part's repeated writes. */
 export const TURN_NARRATIVE_PART_ID = "turn-narrative";
@@ -36,3 +39,15 @@ export const storyTurnNarrativeSchema = storyTurnResponseSchema.pick({
 
 export type StoryTurnAnalysis = z.infer<typeof storyTurnAnalysisSchema>;
 export type StoryTurnNarrative = z.infer<typeof storyTurnNarrativeSchema>;
+
+/**
+ * The message type the story-turn route streams. Data-part keys drop the
+ * `data-` prefix here; the constants above carry the wire names.
+ */
+export type StoryTurnUIMessage = UIMessage<
+  never,
+  {
+    "turn-analysis": StoryTurnAnalysis;
+    "turn-narrative": DeepPartial<StoryTurnNarrative>;
+  }
+>;
