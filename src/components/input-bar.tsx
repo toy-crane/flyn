@@ -19,7 +19,7 @@ export function InputBar({
   return (
     <View className="flex-row items-center gap-2 bg-background px-3 pt-3 pb-2">
       <TextInput
-        className="min-h-11 flex-1 rounded-full bg-fill px-4 py-3 text-sm text-foreground"
+        className="min-h-11 flex-1 rounded-full bg-fill px-4 py-3 text-[17px] text-foreground"
         placeholder={placeholder}
         placeholderTextColor="#8b95a1"
         value={value}

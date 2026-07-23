@@ -11,14 +11,14 @@ import { splitBySpans } from "@/utils/text-spans";
 export function AiBubble({ text }: { text: string }) {
   return (
     <View className="max-w-[80%] self-start rounded-bubble rounded-bl-[4px] bg-fill px-3.5 py-2.5">
-      <Text className="text-[15px] leading-6 text-foreground">{text}</Text>
+      <Text className="text-[17px] leading-7 text-foreground">{text}</Text>
     </View>
   );
 }
 
 type LearnerBubbleProps = {
   text: string;
-  /** Ranges of `text` the AI flagged — wavy underline only, to stay immersive. */
+  /** Ranges of `text` the AI flagged — an underline only, to stay immersive. */
   errorSpans?: TextSpan[];
   onPress?: () => void;
   /** The correction panel, rendered under the bubble when expanded. */
@@ -38,7 +38,7 @@ export function LearnerBubble({
         onPress={errorSpans.length > 0 ? onPress : undefined}
         className="self-end rounded-bubble rounded-br-[4px] bg-accent px-3.5 py-2.5"
       >
-        <Text className="text-[15px] leading-6 text-white">
+        <Text className="text-[17px] leading-7 text-white">
           {splitBySpans(text, errorSpans).map((segment, index) =>
             segment.flagged ? (
               <Text

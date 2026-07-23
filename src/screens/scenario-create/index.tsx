@@ -43,10 +43,10 @@ function Field({
         </Text>
       </View>
       <SymbolView
-        name="pencil"
-        size={17}
+        name="chevron.right"
+        size={14}
         tintColor="#8b95a1"
-        style={{ marginTop: 2 }}
+        style={{ marginTop: 3 }}
       />
     </Pressable>
   );

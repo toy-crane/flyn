@@ -15,7 +15,9 @@ export function CorrectionPanel({
 }) {
   return (
     <View className="mt-1.5 w-full rounded-cta bg-surface px-3.5 py-2.5">
-      <Text className="mb-1 text-[15px] font-bold text-foreground">
+      {/* The corrected sentence is the thing the learner is here to absorb —
+          it reads at Body, like the bubble it corrects. */}
+      <Text className="mb-1 text-[17px] font-bold leading-7 text-foreground">
         {splitBySpans(correction.correctedText, correction.changedSpans).map(
           (segment, index) =>
             segment.flagged ? (
@@ -27,7 +29,7 @@ export function CorrectionPanel({
             ),
         )}
       </Text>
-      <Text className="mb-1.5 text-[13px] leading-5 text-sub2">
+      <Text className="mb-1.5 text-[15px] leading-6 text-sub2">
         {correction.reason}
       </Text>
       <Pressable

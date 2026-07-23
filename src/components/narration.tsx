@@ -7,7 +7,7 @@ import { Text, View } from "@/tw";
 export function Narration({ text }: { text: string }) {
   return (
     <View className="border-l-2 border-hairline py-0.5 pl-3">
-      <Text className="font-story text-sm italic leading-6 text-sub2">
+      <Text className="font-story text-[17px] italic leading-7 text-sub2">
         {text}
       </Text>
     </View>

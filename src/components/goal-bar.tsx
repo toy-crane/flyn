@@ -34,10 +34,12 @@ export function RolesLine({
   aiRole: string;
 }) {
   return (
-    <Text className="mx-0.5 mb-2.5 text-xs text-muted">
-      <Text className="font-semibold text-sub2">나</Text>
+    // Who is playing whom is meaningful text, not decoration — Footnote, and
+    // the caption gray is reserved for what the spec calls decorative.
+    <Text className="mx-0.5 mb-2.5 text-[13px] text-sub2">
+      <Text className="font-semibold text-foreground">나</Text>
       {` · ${myRole}  `}
-      <Text className="font-semibold text-sub2">AI</Text>
+      <Text className="font-semibold text-foreground">AI</Text>
       {` · ${aiRole}(내레이션 포함)`}
     </Text>
   );

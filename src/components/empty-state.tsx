@@ -4,7 +4,7 @@ import { Text, View } from "@/tw";
 export function EmptyState({ message }: { message: string }) {
   return (
     <View className="rounded-control bg-surface px-3.5 py-6">
-      <Text className="text-center text-sm leading-6 text-muted">
+      <Text className="text-center text-[15px] leading-6 text-muted">
         {message}
       </Text>
     </View>

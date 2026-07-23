@@ -34,7 +34,7 @@ export function CorrectionThreadScreen({
           <Text className="mb-2.5 text-base font-bold text-accent">
             {correction.correctedText}
           </Text>
-          <Text className="text-sm leading-6 text-sub2">
+          <Text className="text-[16px] leading-7 text-sub2">
             {correction.explanation}
           </Text>
         </View>

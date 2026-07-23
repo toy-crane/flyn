@@ -24,7 +24,7 @@ export function ScenarioCard({
       <Text className="mt-2.5 mb-1.5 text-[17px] font-bold text-foreground">
         {scenario.title}
       </Text>
-      <Text className="mb-2.5 text-sm leading-6 text-sub2">
+      <Text className="mb-2.5 text-[16px] leading-6 text-sub2">
         {scenario.intro}
       </Text>
       <Text className="text-[13px] text-muted">
