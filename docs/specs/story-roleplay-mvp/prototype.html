@@ -6,7 +6,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  /* ── project tokens: Toss-inspired (production font: Pretendard) ──── */
+  /* ── project tokens: Toss-inspired ──────────────────────────────── */
   :root {
     --background: #ffffff;
     --surface: #f9fafb;      /* card fill */
@@ -21,9 +21,12 @@
     --danger: #f04452;
     --danger-soft: #fdecec;
     --radius: 16px;
-    --font: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo",
+    /* iOS system fonts, no bundled font: San Francisco + Apple SD Gothic Neo.
+       The story voice is the system serif (New York) — it has no Hangul, so
+       Korean falls back to gothic there. The stacks below approximate both. */
+    --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
             "Malgun Gothic", sans-serif;
-    --font-story: Georgia, "Noto Serif KR", serif;
+    --font-story: ui-serif, Georgia, serif;
   }
 
   /* ── review chrome (sh-*): keep, extend, never strip ─────────────── */
@@ -76,14 +79,23 @@
 
   /* ── prototype structure — Toss-inspired skin ─────────────────────── */
   a { color: inherit }
-  .topbar { display: flex; align-items: center; gap: 10px; padding: 8px 0 12px;
+  /* The native stack header. The back control and bar buttons are the
+     system's own — iOS 26 draws them as glass circles with SF Symbol glyphs,
+     and the title is centered. Never reproduce these by hand: the real ones
+     bring swipe-back, the safe area, and Dynamic Type with them. */
+  .topbar { display: grid; grid-template-columns: 40px 1fr 40px; gap: 10px;
+            align-items: center; padding: 6px 0 12px;
             margin-bottom: 8px; position: sticky; top: -16px;
             background: var(--background); z-index: 5 }
-  .topbar .back { text-decoration: none; font-size: 22px; line-height: 1;
-                  padding: 4px 8px 4px 0; color: var(--foreground) }
-  .topbar .title { font-size: 16px; font-weight: 600; flex: 1;
+  .topbar .back, .topbar .act { width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(25,31,40,.05); color: var(--foreground);
+            display: flex; align-items: center; justify-content: center;
+            text-decoration: none }
+  .topbar .act { justify-self: end }
+  .topbar .back svg { width: 17px; height: 17px }
+  .topbar .act svg { width: 19px; height: 19px }
+  .topbar .title { font-size: 16px; font-weight: 600; text-align: center;
                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-  .topbar .meta { font-size: 12px; color: var(--muted) }
 
   .h1 { font-size: 23px; font-weight: 700; letter-spacing: -0.3px; margin: 14px 0 6px;
         line-height: 1.35 }
@@ -224,8 +236,9 @@
         flex-direction: column; align-items: flex-end }
   .me .bubble { max-width: 100%; align-self: flex-end; background: var(--accent);
                 color: #fff; border-radius: 18px 18px 4px 18px }
-  .err { text-decoration: underline wavy rgba(255,255,255,.85);
-         text-underline-offset: 3px }
+  /* dotted, not wavy: React Native's textDecorationStyle has no wavy option */
+  .err { text-decoration: underline dotted rgba(255,255,255,.9);
+         text-decoration-thickness: 1.5px; text-underline-offset: 3px }
   .fixpanel { background: var(--surface); border-radius: 14px; padding: 10px 14px;
               margin-top: 6px; text-align: left }
   .fixpanel .fp-corr { font-size: 15px; font-weight: 700; margin: 0 0 4px;
@@ -457,10 +470,9 @@
   <section data-screen="create" data-title="⑥ 상황 만들기"
            data-states="기본,아이디어 입력,필드 수정">
     <div class="topbar">
-      <a class="back" href="#home">‹</a>
+      <a class="back" href="#home" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></a>
       <span class="title">새로운 상황</span>
-      <a class="meta" href="#create"
-         style="color:var(--accent);font-weight:600;text-decoration:none">직접 만들기</a>
+      <a class="act" href="#create" aria-label="직접 만들기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 3 21 6.5 11.5 16 7.5 17l1-4z"/><path d="M19.5 13v6a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>
     </div>
 
     <p class="h1">이런 상황은 어때요?</p>
@@ -515,7 +527,7 @@
   <section data-screen="session" data-title="③ 세션"
            data-states="진행중,성공 결말,실패 결말,강제 결말">
     <div class="topbar">
-      <a class="back" href="#home">‹</a>
+      <a class="back" href="#home" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></a>
       <span class="title">Night train to Budapest</span>
     </div>
     <div class="goalbar">
@@ -596,7 +608,7 @@
   <!-- ④ 교정 스레드 -->
   <section data-screen="correction" data-title="④ 교정 스레드">
     <div class="topbar">
-      <a class="back" href="#session">‹</a>
+      <a class="back" href="#session" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></a>
       <span class="title">교정</span>
     </div>
 
@@ -629,7 +641,7 @@
   <!-- ⑤ 결과: 세션 직후 -->
   <section data-screen="summary" data-title="⑤ 결과" data-states="기본,교정 없음">
     <div class="topbar">
-      <a class="back" href="#session">‹</a>
+      <a class="back" href="#session" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></a>
       <span class="title"></span>
     </div>
     <div style="text-align:center">
@@ -686,7 +698,7 @@
   <!-- ⑨ 책 상세: 서재에서 열람 -->
   <section data-screen="book" data-title="⑨ 책 상세">
     <div class="topbar">
-      <a class="back" href="#history">‹</a>
+      <a class="back" href="#history" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></a>
       <span class="title"></span>
     </div>
 
