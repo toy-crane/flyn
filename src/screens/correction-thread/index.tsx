@@ -28,7 +28,7 @@ export function CorrectionThreadScreen({
       <Stack.Screen options={{ title: "교정" }} />
       <View className="px-3 pt-3">
         <View
-          className="rounded-card bg-cell p-4"
+          className="rounded-card bg-card p-4"
           style={{ borderCurve: "continuous" }}
         >
           <Text className="mb-1.5 text-sm text-tertiary line-through">

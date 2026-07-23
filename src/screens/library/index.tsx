@@ -21,6 +21,7 @@ export function LibraryScreen() {
           message={
             "아직 서재가 비어 있어요.\n첫 이야기를 완성하면 첫 책이 생겨요."
           }
+          surface="card"
         />
       ) : (
         <>

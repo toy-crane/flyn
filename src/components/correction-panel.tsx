@@ -15,7 +15,7 @@ export function CorrectionPanel({
 }) {
   return (
     <View
-      className="mt-1.5 w-full rounded-card bg-cell px-3.5 py-2.5"
+      className="mt-1.5 w-full rounded-card bg-card px-3.5 py-2.5"
       style={{ borderCurve: "continuous" }}
     >
       {/* The corrected sentence is the thing the learner is here to absorb —

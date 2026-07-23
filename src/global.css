@@ -12,6 +12,7 @@
     --color-background: #ffffff;
     --color-grouped: #f2f2f7;
     --color-cell: #ffffff;
+    --color-card: #f2f2f7;
     --color-label: #000000;
     --color-secondary: rgba(60, 60, 67, 0.6);
     --color-tertiary: rgba(60, 60, 67, 0.3);
@@ -61,6 +62,7 @@
     --color-background: #000000;
     --color-grouped: #000000;
     --color-cell: #1c1c1e;
+    --color-card: #1c1c1e;
     --color-label: #ffffff;
     --color-secondary: rgba(235, 235, 245, 0.6);
     --color-tertiary: rgba(235, 235, 245, 0.3);

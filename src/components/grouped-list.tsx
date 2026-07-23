@@ -12,11 +12,19 @@ export function GroupedListHeader({ label }: { label: string }) {
   );
 }
 
+type GroupedListProps = {
+  children: ReactNode;
+  /** cell (white/#1c1c1e) on a grouped screen; card (gray/#1c1c1e) on canvas. */
+  surface?: "cell" | "card";
+};
+
 /** iOS inset grouped list — rows share one rounded surface, hairline between. */
-export function GroupedList({ children }: { children: ReactNode }) {
+export function GroupedList({ children, surface = "cell" }: GroupedListProps) {
   return (
     <View
-      className="mb-1 overflow-hidden rounded-card bg-cell"
+      className={`mb-1 overflow-hidden rounded-card ${
+        surface === "card" ? "bg-card" : "bg-cell"
+      }`}
       style={{ borderCurve: "continuous" }}
     >
       {children}

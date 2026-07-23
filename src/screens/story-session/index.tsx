@@ -89,7 +89,7 @@ export function StorySessionScreen({ sessionId }: { sessionId: string }) {
 
         {session.ending ? (
           <View
-            className="mt-1 rounded-card bg-cell px-4 py-5"
+            className="mt-1 rounded-card bg-card px-4 py-5"
             style={{ borderCurve: "continuous" }}
           >
             <Text className="mb-1.5 text-center text-[17px] font-bold text-label">

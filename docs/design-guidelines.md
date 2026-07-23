@@ -27,7 +27,8 @@ Apple HIG 기반. 앱·프로토타입·이후 추가되는 모든 화면에 적
 |---|---|---|---|---|
 | `background` | systemBackground | `#ffffff` | `#000000` | 캔버스형 화면 배경 |
 | `grouped` | systemGroupedBackground | `#f2f2f7` | `#000000` | 리스트·폼형 화면 배경 |
-| `cell` | secondarySystemGroupedBackground | `#ffffff` | `#1c1c1e` | 카드·그룹 리스트 셀 |
+| `cell` | secondarySystemGroupedBackground | `#ffffff` | `#1c1c1e` | `grouped` 화면 위의 카드·그룹 리스트 셀 |
+| `card` | secondarySystemBackground | `#f2f2f7` | `#1c1c1e` | `background`(캔버스) 화면 위의 카드 |
 | `label` | label | `#000000` | `#ffffff` | 본문 텍스트 |
 | `secondary` | secondaryLabel | `rgba(60,60,67,.6)` | `rgba(235,235,245,.6)` | 보조 텍스트 |
 | `tertiary` | tertiaryLabel | `rgba(60,60,67,.3)` | `rgba(235,235,245,.3)` | 플레이스홀더·셰브론·장식 |
@@ -73,8 +74,12 @@ iOS 텍스트 스타일 스케일만 쓴다. 임의 px(예: 23) 금지.
 - **리스트·폼·카드 중심** 화면 → `grouped` 배경 + `cell` 카드: 홈, 프로필,
   온보딩, 상황 만들기, 결과.
 - **캔버스 중심** 화면 → `background`: 스토리 세션, 책 상세, 서재 그리드, 로그인.
-- 카드·셀은 `cell` 색 면으로만 구분 — 테두리·그림자 없음. **흰 배경 위 회색 필
+- 카드·셀은 색 면으로만 구분 — 테두리·그림자 없음. **흰 배경 위 회색 필
   카드(토스 역전 배치)는 쓰지 않는다.**
+- **`cell`과 `card`는 라이트에서 값이 다르다** — `cell`(흰색)은 `grouped`(회색)
+  배경 위에서만 대비가 생긴다. 캔버스 화면에 놓는 카드(교정 패널, 결말 카드,
+  교정 스레드의 원문 카드, 빈 상태, 책 상세의 리스트)는 `card`(연회색)를 쓴다.
+  다크에서는 `cell`·`card`가 같은 값(`#1c1c1e`)이라 구분할 필요가 없다.
 
 ## 컨트롤
 
