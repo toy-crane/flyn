@@ -84,6 +84,18 @@ describe("resolveCorrectionSpans", () => {
     ]);
   });
 
+  test("one unmatched quote does not swallow the ones that matched", () => {
+    const draft = resolveCorrectionSpans(MESSAGE, {
+      originalText: "Why you want to know?",
+      correctedText: "Why do you want to know?",
+      errorQuotes: ["Why you want", "knwo"],
+      changedQuotes: ["do"],
+      reason: "-",
+      explanation: "-",
+    });
+    expect(draft!.errorSpans).toEqual([spanOf(MESSAGE, "Why you want")]);
+  });
+
   test("empty quote lists widen to the whole region", () => {
     const draft = resolveCorrectionSpans(MESSAGE, {
       originalText: "Why you want to know?",

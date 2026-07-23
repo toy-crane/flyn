@@ -80,7 +80,12 @@ function mergeSpans(spans: TextSpan[]): TextSpan[] {
   return merged;
 }
 
-/** Locates quotes inside `region` of `text`, falling back to the whole region. */
+/**
+ * Locates quotes inside `region` of `text`. A quote that cannot be found is
+ * skipped rather than widened, so one bad quote does not swallow the spans its
+ * neighbours located precisely; the whole region is the fallback only when
+ * nothing matched at all.
+ */
 function quotesToSpans(
   text: string,
   region: TextSpan,
@@ -90,11 +95,12 @@ function quotesToSpans(
   const spans: TextSpan[] = [];
   for (const quote of quotes) {
     const local = findSpan(slice, quote);
-    spans.push(
-      local
-        ? { start: region.start + local.start, end: region.start + local.end }
-        : { ...region },
-    );
+    if (local) {
+      spans.push({
+        start: region.start + local.start,
+        end: region.start + local.end,
+      });
+    }
   }
   if (spans.length === 0) spans.push({ ...region });
   return mergeSpans(spans);
