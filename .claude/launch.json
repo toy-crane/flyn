@@ -6,6 +6,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4173", "--directory", "docs/specs/story-roleplay-mvp"],
       "port": 4173
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["expo", "start", "--port", "8083"],
+      "port": 8083
     }
   ]
 }
