@@ -19,6 +19,7 @@ import {
   learnerFragment,
   STORY_LANGUAGE_RULES,
 } from "@/server/prompt-fragments";
+import { renderTranscript } from "@/server/transcript";
 import type { TurnPlan } from "@/server/turn-rules";
 import type { EndingKind } from "@/types/story";
 
@@ -59,22 +60,6 @@ const ENDING_DIRECTION: Record<EndingKind, string> = {
     "턴 상한에 닿아 이야기를 여기서 마무리한다. 상황 자체가 끝나는 외부 사건(도착·종료·이별 등)으로 자연스럽게 닫고, 목표는 이루지 못한 채 여운을 남긴다.",
 };
 
-function transcript(messages: StoryTurnRequest["messages"]): string {
-  if (messages.length === 0) return "(아직 대화 없음 — 첫 턴)";
-  return messages
-    .map((message) =>
-      message.speaker === "ai"
-        ? message.beats
-            .map(
-              (beat) =>
-                `AI [${beat.kind === "narration" ? "내레이션" : "대사"}]: ${beat.text}`,
-            )
-            .join("\n")
-        : `학습자: ${message.text}`,
-    )
-    .join("\n");
-}
-
 function narratorPrompt(
   request: StoryTurnRequest,
   analysis: StoryTurnAnalysis,
@@ -93,7 +78,7 @@ function narratorPrompt(
     `내 역할(학습자): ${scenario.myRole} / 네가 연기할 역할: ${scenario.aiRole}`,
     "",
     "대화록:",
-    transcript(messages),
+    renderTranscript(messages),
     "",
     `학습자의 이번 입력: ${learnerInput}`,
     "",
@@ -107,11 +92,6 @@ function narratorPrompt(
       : "이야기를 이어 간다. 결말을 내지 않는다.",
   ].join("\n");
 }
-
-export type NarratorStream = {
-  partialStream: AsyncIterable<unknown>;
-  output: Promise<{ beats: unknown; ending?: unknown }>;
-};
 
 /** Streams the turn's beats (and its ending, when the plan says the story closes). */
 export function streamNarration(
