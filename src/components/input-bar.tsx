@@ -38,7 +38,15 @@ export function InputBar({
         onPress={onSend}
         className="h-11 w-11 items-center justify-center active:opacity-75"
       >
-        <SymbolView name="arrow.up.circle.fill" size={32} tintColor={tint} />
+        <SymbolView
+          name={{
+            ios: "arrow.up.circle.fill",
+            android: "arrow_circle_up",
+            web: "arrow_circle_up",
+          }}
+          size={32}
+          tintColor={tint}
+        />
       </Pressable>
     </View>
   );

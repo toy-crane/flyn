@@ -37,7 +37,12 @@ export function ChoiceCard({
         <Text className="text-[13px] text-secondary">{detail}</Text>
       </View>
       {selected ? (
-        <SymbolView name="checkmark" size={20} weight="semibold" tintColor={tint} />
+        <SymbolView
+          name={{ ios: "checkmark", android: "check", web: "check" }}
+          size={20}
+          weight="semibold"
+          tintColor={tint}
+        />
       ) : null}
     </Pressable>
   );
