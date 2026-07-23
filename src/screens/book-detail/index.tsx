@@ -28,10 +28,7 @@ export function BookDetailScreen({ sessionId }: { sessionId: string }) {
 
       <View className="items-center">
         <BookCover title={book.title} genre={book.genre} width={104} />
-        <Text
-          role="heading"
-          className="mt-3 text-[23px] font-bold text-foreground"
-        >
+        <Text role="heading" className="mt-3 text-[22px] font-bold text-label">
           {book.title}
         </Text>
         <ScreenSubtitle>
@@ -39,7 +36,7 @@ export function BookDetailScreen({ sessionId }: { sessionId: string }) {
         </ScreenSubtitle>
       </View>
 
-      <GroupedList>
+      <GroupedList surface="card">
         <GroupedListRow
           first
           label="대화 다시 읽기"
@@ -57,6 +54,7 @@ export function BookDetailScreen({ sessionId }: { sessionId: string }) {
             correction.id === "fix-1" ? <Badge label="대화 2" /> : undefined
           }
           onPress={() => router.push(`/correction/${correction.id}`)}
+          surface="card"
         />
       ))}
     </ScreenScroll>

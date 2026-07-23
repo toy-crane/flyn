@@ -9,9 +9,16 @@ export function AppMark({ size = 76 }: { size?: number }) {
   const bubble = { width: 440 * s, height: 270 * s, borderRadius: 135 * s };
 
   return (
+    // Fixed brand blue, matching app-icon.svg — the app mark stays this exact
+    // color regardless of the systemBlue tint or light/dark mode (brand
+    // exception, see docs/design-guidelines.md).
     <View
-      className="bg-accent"
-      style={{ width: size, height: size, borderRadius: size * 0.237 }}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size * 0.237,
+        backgroundColor: "#3182f6",
+      }}
     >
       <View
         style={{

@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { Stack, router } from "expo-router";
 
 import {
   GroupedList,
@@ -29,23 +29,24 @@ export function ProfileScreen() {
   const profile = useStoreData((store) => store.getLearnerProfile());
   const stats = useStoreData((store) => store.getLearnerStats());
 
-  if (!profile || !stats) return <View className="flex-1 bg-background" />;
+  if (!profile || !stats) return <View className="flex-1 bg-grouped" />;
 
   const level = ENGLISH_LEVEL_COPY[profile.englishLevel].short;
 
   return (
-    <ScreenScroll>
+    <ScreenScroll background="grouped">
+      <Stack.Screen options={{ title: "프로필", headerLargeTitle: true }} />
       <View className="my-2 flex-row items-center gap-3.5">
-        <View className="h-16 w-16 items-center justify-center rounded-full bg-accent-soft">
-          <Text className="text-[26px] font-extrabold text-accent">
+        <View className="h-16 w-16 items-center justify-center rounded-full bg-tint-soft">
+          <Text className="text-[26px] font-bold text-tint">
             {profile.nickname?.slice(0, 1) ?? "?"}
           </Text>
         </View>
         <View>
-          <Text className="text-xl font-bold text-foreground">
+          <Text className="text-xl font-bold text-label">
             {profile.nickname ?? "이름 없음"}
           </Text>
-          <Text className="mt-0.5 text-[13px] text-muted">
+          <Text className="mt-0.5 text-[13px] text-secondary">
             {`함께한 지 ${stats.daysSinceJoined}일 · ${level}`}
           </Text>
         </View>
@@ -60,10 +61,13 @@ export function ProfileScreen() {
         <StatTile value={stats.totalCorrections} label="받은 교정" />
       </View>
 
-      <View className="mb-2 rounded-control bg-surface px-4 py-3.5">
-        <Text className="text-[13px] font-bold text-foreground">
+      <View
+        className="mb-2 rounded-card bg-cell px-4 py-3.5"
+        style={{ borderCurve: "continuous" }}
+      >
+        <Text className="text-[13px] font-bold text-label">
           이번 주{" "}
-          <Text className="text-accent">{`${stats.streakDays}일 연속`}</Text>
+          <Text className="text-tint">{`${stats.streakDays}일 연속`}</Text>
         </Text>
         <View className="mt-3 flex-row justify-between">
           {stats.weeklyActivity.map((day) => (
@@ -71,13 +75,13 @@ export function ProfileScreen() {
               <View
                 className={`h-[26px] w-[26px] rounded-full ${
                   day.isToday
-                    ? "border-2 border-accent bg-background"
+                    ? "border-2 border-tint bg-cell"
                     : day.studied
-                      ? "bg-accent"
+                      ? "bg-tint"
                       : "bg-fill"
                 }`}
               />
-              <Text className="text-[11px] text-muted">{day.weekday}</Text>
+              <Text className="text-[11px] text-tertiary">{day.weekday}</Text>
             </View>
           ))}
         </View>

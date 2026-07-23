@@ -3,8 +3,9 @@ import type { ReactNode } from "react";
 import { Text, View } from "@/tw";
 
 /**
- * The sheet body used for 직접 만들기 and field edits. Presentation (how it
- * rises, dimming, detents) belongs to the route; this is only the content.
+ * The sheet body used for 직접 만들기 and field edits. Presentation belongs
+ * to the route — a native formSheet with `sheetGrabberVisible` supplies the
+ * rounded top corners and the grab handle, so this is only the content.
  */
 export function BottomSheet({
   title,
@@ -14,9 +15,8 @@ export function BottomSheet({
   children: ReactNode;
 }) {
   return (
-    <View className="rounded-t-sheet bg-background px-4 pb-4 pt-2">
-      <View className="mx-auto mb-3 h-1 w-9 rounded-full bg-hairline" />
-      <Text className="mb-2.5 text-base font-bold text-foreground">
+    <View className="bg-background px-4 pb-4 pt-2">
+      <Text className="mb-2.5 text-[17px] font-semibold text-label">
         {title}
       </Text>
       {children}

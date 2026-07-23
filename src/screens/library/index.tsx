@@ -1,12 +1,8 @@
-import { router } from "expo-router";
+import { Stack, router } from "expo-router";
 
 import { BookCover } from "@/components/book-cover";
 import { EmptyState } from "@/components/empty-state";
-import {
-  ScreenSubtitle,
-  ScreenTitle,
-  SectionHeading,
-} from "@/components/headings";
+import { ScreenSubtitle, SectionHeading } from "@/components/headings";
 import { ScreenScroll } from "@/components/screen-scroll";
 import { useStoreData } from "@/hooks/use-store-data";
 import { Pressable, Text, View } from "@/tw";
@@ -17,7 +13,7 @@ export function LibraryScreen() {
 
   return (
     <ScreenScroll>
-      <ScreenTitle>서재</ScreenTitle>
+      <Stack.Screen options={{ title: "서재", headerLargeTitle: true }} />
       <ScreenSubtitle>완성한 이야기가 책으로 남아요.</ScreenSubtitle>
 
       {books === undefined ? null : books.length === 0 ? (
@@ -25,6 +21,7 @@ export function LibraryScreen() {
           message={
             "아직 서재가 비어 있어요.\n첫 이야기를 완성하면 첫 책이 생겨요."
           }
+          surface="card"
         />
       ) : (
         <>
@@ -42,7 +39,7 @@ export function LibraryScreen() {
                   genre={book.genre}
                   endingKind={book.endingKind}
                 />
-                <Text className="mt-1.5 text-[11px] text-muted">
+                <Text className="mt-1.5 text-[11px] text-secondary">
                   {`${book.turnCount}턴 · 교정 ${book.correctionCount}`}
                 </Text>
               </Pressable>

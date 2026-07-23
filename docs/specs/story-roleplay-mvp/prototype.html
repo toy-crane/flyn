@@ -1,32 +1,57 @@
 <!--
-  prototype: AI 스토리 롤플레잉 영어 학습 앱 MVP (fill pass — Toss-inspired skin)
+  prototype: AI 스토리 롤플레잉 영어 학습 앱 MVP (Apple HIG pass)
   spec: docs/specs/story-roleplay-mvp/spec.md
+  design: docs/design-guidelines.md
 -->
 <title>AI 스토리 롤플레잉 영어 학습 앱 — 프로토타입</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  /* ── project tokens: Toss-inspired ──────────────────────────────── */
+  /* ── project tokens: Apple HIG semantic palette ───────────────────
+     Mirrors src/global.css. --surface = the "cell" fill for grouped-screen
+     rows/cards, --card = the fill for cards on a canvas (--background)
+     screen — the two are equal in light mode, so canvas cards use --card
+     explicitly, never --surface, or they render white-on-white.
+     --grouped = the gray list-screen backdrop. Dark values below. ──── */
   :root {
     --background: #ffffff;
-    --surface: #f9fafb;      /* card fill */
-    --fill: #f2f4f6;         /* control fill */
-    --foreground: #191f28;
-    --sub2: #4e5968;
-    --muted: #8b95a1;
-    --line: #f2f4f6;
-    --hairline: #e5e8eb;
-    --accent: #3182f6;
-    --accent-soft: #e8f3ff;
-    --danger: #f04452;
-    --danger-soft: #fdecec;
-    --radius: 16px;
+    --grouped: #f2f2f7;      /* list/form screen backdrop */
+    --surface: #ffffff;      /* cell fill, on a --grouped backdrop */
+    --card: #f2f2f7;         /* card fill, on a --background backdrop */
+    --fill: rgba(118, 118, 128, .12);   /* control fill */
+    --foreground: #000000;
+    --sub2: rgba(60, 60, 67, .6);
+    --muted: rgba(60, 60, 67, .3);
+    --hairline: rgba(60, 60, 67, .29);
+    --accent: #007aff;
+    --accent-soft: rgba(0, 122, 255, .15);
+    --danger: #ff3b30;
+    --danger-soft: rgba(255, 59, 48, .15);
+    --radius: 20px;
     /* iOS system fonts, no bundled font: San Francisco + Apple SD Gothic Neo.
        The story voice is the system serif (New York) — it has no Hangul, so
        Korean falls back to gothic there. The stacks below approximate both. */
     --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
             "Malgun Gothic", sans-serif;
     --font-story: ui-serif, Georgia, serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #000000;
+      --grouped: #000000;
+      --surface: #1c1c1e;
+      --card: #1c1c1e;
+      --fill: rgba(118, 118, 128, .24);
+      --foreground: #ffffff;
+      --sub2: rgba(235, 235, 245, .6);
+      --muted: rgba(235, 235, 245, .3);
+      --hairline: rgba(84, 84, 88, .65);
+      --accent: #0a84ff;
+      --accent-soft: rgba(10, 132, 255, .25);
+      --danger: #ff453a;
+      --danger-soft: rgba(255, 69, 58, .25);
+    }
   }
 
   /* ── review chrome (sh-*): keep, extend, never strip ─────────────── */
@@ -77,8 +102,18 @@
   .wf-pic  { border-radius: 4px; background:
              repeating-linear-gradient(45deg, #e9e9e9, #e9e9e9 6px, #f2f2f2 6px, #f2f2f2 12px) }
 
-  /* ── prototype structure — Toss-inspired skin ─────────────────────── */
+  /* ── prototype structure — Apple HIG ───────────────────────────── */
   a { color: inherit }
+  /* Every screen sets its own background: grouped (list/form screens) or
+     background (canvas screens) — see docs/design-guidelines.md. The sticky
+     bars below inherit it so they don't seam against their screen. */
+  section[data-screen] { background: var(--background) }
+  section[data-screen="home"],
+  section[data-screen="onboarding"],
+  section[data-screen="create"],
+  section[data-screen="summary"],
+  section[data-screen="profile"] { background: var(--grouped) }
+
   /* The native stack header. The back control and bar buttons are the
      system's own — iOS 26 draws them as glass circles with SF Symbol glyphs,
      and the title is centered. Never reproduce these by hand: the real ones
@@ -86,50 +121,52 @@
   .topbar { display: grid; grid-template-columns: 40px 1fr 40px; gap: 10px;
             align-items: center; padding: 6px 0 12px;
             margin-bottom: 8px; position: sticky; top: -16px;
-            background: var(--background); z-index: 5 }
+            background: inherit; z-index: 5 }
   .topbar .back, .topbar .act { width: 40px; height: 40px; border-radius: 50%;
-            background: rgba(25,31,40,.05); color: var(--foreground);
+            background: var(--fill); color: var(--foreground);
             display: flex; align-items: center; justify-content: center;
             text-decoration: none }
   .topbar .act { justify-self: end }
   .topbar .back svg { width: 17px; height: 17px }
   .topbar .act svg { width: 19px; height: 19px }
-  .topbar .title { font-size: 16px; font-weight: 600; text-align: center;
+  .topbar .title { font-size: 17px; font-weight: 600; text-align: center;
                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 
-  .h1 { font-size: 23px; font-weight: 700; letter-spacing: -0.3px; margin: 14px 0 6px;
+  .h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; margin: 14px 0 6px;
         line-height: 1.35 }
-  .sub { font-size: 15px; color: var(--muted); margin: 0 0 18px; line-height: 1.5 }
-  .sect { font-size: 15px; font-weight: 700; color: var(--foreground); margin: 22px 0 10px }
+  .sub { font-size: 15px; color: var(--sub2); margin: 0 0 18px; line-height: 1.5 }
+  .sect { font-size: 13px; font-weight: 600; color: var(--sub2); margin: 22px 0 10px }
 
-  .card { background: var(--surface); border-radius: 20px; padding: 18px 16px;
+  .card { background: var(--surface); border-radius: var(--radius); padding: 18px 16px;
           margin: 0 0 12px; display: block; text-decoration: none }
   .tag { display: inline-block; font-size: 12px; font-weight: 600; color: var(--accent);
          background: var(--accent-soft); border-radius: 99px; padding: 3px 10px;
          margin-right: 4px }
   .card .t { font-size: 17px; font-weight: 700; margin: 10px 0 6px; letter-spacing: -0.2px }
   .card .d { font-size: 16px; color: var(--sub2); margin: 0 0 10px; line-height: 1.55 }
-  .card .goal { font-size: 13px; color: var(--muted); margin: 2px 0 }
+  .card .goal { font-size: 13px; color: var(--sub2); margin: 2px 0 }
   .card .goal b { color: var(--accent); font-weight: 600 }
-  .card .goal.roles b { color: var(--sub2) }
+  .card .goal.roles b { color: var(--foreground) }
 
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 }
   .chip { background: var(--fill); border-radius: 99px;
           padding: 10px 16px; font-size: 15px; color: var(--sub2) }
-  .chip.sel { background: var(--accent-soft); color: var(--accent); font-weight: 700 }
+  .chip.sel { background: var(--accent); color: #fff; font-weight: 600 }
 
   .step { font-size: 13px; font-weight: 700; color: var(--accent); margin: 4px 0 0 }
   .step-body { display: flex; flex-direction: column; flex: 1 }
-  .lvl { display: block; background: var(--surface); border-radius: 16px;
-         padding: 16px; margin-bottom: 8px; text-decoration: none }
-  .lvl .lt { font-size: 15px; font-weight: 700; margin: 0 0 3px }
-  .lvl .ld { font-size: 13px; color: var(--muted); margin: 0 }
-  .lvl.sel { background: var(--accent-soft) }
-  .lvl.sel .lt { color: var(--accent) }
-  .lvl.sel .ld { color: var(--sub2) }
+  /* Single-select: a checkmark carries selection, not a tinted fill. */
+  .lvl { position: relative; display: block; background: var(--surface);
+         border-radius: var(--radius); padding: 16px 44px 16px 16px;
+         margin-bottom: 8px; text-decoration: none }
+  .lvl .lt { font-size: 17px; font-weight: 600; margin: 0 0 3px; color: var(--foreground) }
+  .lvl .ld { font-size: 13px; color: var(--sub2); margin: 0 }
+  .lvl.sel::after { content: "✓"; position: absolute; right: 16px; top: 50%;
+                    transform: translateY(-50%); color: var(--accent);
+                    font-size: 19px; font-weight: 700 }
   .skip { display: block; text-align: center; font-size: 14px; color: var(--muted);
           margin-top: 12px; text-decoration: none }
-  .ctabar { position: sticky; bottom: -16px; z-index: 5; background: var(--background);
+  .ctabar { position: sticky; bottom: -16px; z-index: 5; background: inherit;
             display: flex; flex-direction: column; gap: 8px;
             margin: auto -12px -16px; padding: 10px 12px 16px }
   .ctabar .cta { margin-top: 0 }
@@ -141,6 +178,9 @@
             background: rgba(255,255,255,.72); backdrop-filter: blur(14px);
             border: 0.5px solid rgba(25,31,40,.06);
             box-shadow: 0 6px 24px rgba(25,31,40,.12) }
+  @media (prefers-color-scheme: dark) {
+    .tabbar { background: rgba(28,28,30,.72); border-color: rgba(255,255,255,.08) }
+  }
   .tabbar a { display: flex; flex-direction: column; align-items: center; gap: 3px;
               font-size: 11px; font-weight: 600; color: var(--muted);
               text-decoration: none }
@@ -149,12 +189,18 @@
 
   .logincenter { flex: 1; display: flex; flex-direction: column; justify-content: center;
                  align-items: center; text-align: center }
-  .appmark { width: 76px; height: 76px; border-radius: 18px; background: var(--accent);
+  /* Fixed brand blue, matching app-icon.svg — stays this exact color
+     regardless of the systemBlue tint or light/dark mode (brand exception). */
+  .appmark { width: 76px; height: 76px; border-radius: 18px; background: #3182f6;
              color: #fff; display: flex; align-items: center; justify-content: center;
              font-size: 34px; font-weight: 800; margin-bottom: 18px }
+  /* bg/color invert with the system like Apple's own button (black-on-white
+     in light, white-on-black in dark) — closest a placeholder gets before
+     the real AuthenticationServices component. */
   .applebtn { display: flex; align-items: center; justify-content: center; gap: 8px;
-              background: #000; color: #fff; border-radius: 14px; padding: 16px;
-              font-size: 16px; font-weight: 600; text-decoration: none }
+              background: var(--foreground); color: var(--background);
+              border-radius: 999px; padding: 16px;
+              font-size: 17px; font-weight: 600; text-decoration: none }
   .legal { font-size: 11px; color: var(--muted); text-align: center; margin-top: 12px;
            line-height: 1.5 }
   .row .chev { color: var(--muted); font-size: 17px }
@@ -172,49 +218,60 @@
   .cover .bb { margin-top: auto; align-self: flex-start; font-size: 10px;
                font-weight: 600; background: rgba(255,255,255,.24); color: #fff;
                border-radius: 99px; padding: 3px 8px }
-  .book .bm { font-size: 11px; color: var(--muted); margin: 6px 0 0 }
+  .book .bm { font-size: 11px; color: var(--sub2); margin: 6px 0 0 }
 
   .pf-head { display: flex; align-items: center; gap: 14px; margin: 6px 0 16px }
   .avatar { width: 64px; height: 64px; border-radius: 50%; flex: none;
             background: var(--accent-soft); color: var(--accent); display: flex;
             align-items: center; justify-content: center; font-size: 26px;
-            font-weight: 800 }
+            font-weight: 700 }
   .pf-name { font-size: 20px; font-weight: 700; margin: 0 }
-  .pf-meta { font-size: 13px; color: var(--muted); margin: 3px 0 0 }
+  .pf-meta { font-size: 13px; color: var(--sub2); margin: 3px 0 0 }
   .stats2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 8px }
-  .wkcard { background: var(--surface); border-radius: 16px; padding: 14px 16px;
+  .wkcard { background: var(--surface); border-radius: var(--radius); padding: 14px 16px;
             margin-bottom: 8px }
   .wkcard .wt { display: flex; justify-content: space-between; font-size: 13px;
-                font-weight: 700; margin: 0 }
+                font-weight: 700; margin: 0; color: var(--foreground) }
   .wkcard .wt .fire { color: var(--accent) }
   .wkrow { display: flex; justify-content: space-between; margin-top: 12px }
   .wd { display: flex; flex-direction: column; align-items: center; gap: 5px;
         font-size: 11px; color: var(--muted) }
   .wd .dot { width: 26px; height: 26px; border-radius: 50%; background: var(--fill) }
   .wd .dot.on { background: var(--accent) }
-  .wd .dot.today { background: #fff; border: 2px solid var(--accent) }
-  .ghead { font-size: 13px; color: var(--muted); margin: 20px 16px 8px }
-  .glist { background: var(--surface); border-radius: 16px; margin-bottom: 4px;
+  .wd .dot.today { background: var(--surface); border: 2px solid var(--accent) }
+  .ghead { font-size: 13px; font-weight: 600; color: var(--sub2); margin: 20px 16px 8px }
+  .glist { background: var(--surface); border-radius: var(--radius); margin-bottom: 4px;
            overflow: hidden }
-  .glist a { display: flex; align-items: center; gap: 8px; padding: 13px 16px;
-             text-decoration: none; border-top: 0.5px solid var(--hairline) }
-  .glist a:first-child { border-top: 0 }
-  .glist .lab { font-size: 15px; color: var(--foreground); flex: none }
-  .glist .val { font-size: 15px; color: var(--muted); flex: 1; text-align: right;
+  .glist a { position: relative; display: flex; align-items: center; gap: 8px;
+             padding: 13px 16px; text-decoration: none }
+  .glist a:not(:first-child)::before {
+    content: ""; position: absolute; left: 16px; right: 0; top: 0;
+    height: 1px; background: var(--hairline);
+  }
+  .glist a:active { background: var(--fill) }
+  .glist .lab { font-size: 17px; color: var(--foreground); flex: none }
+  .glist .val { font-size: 17px; color: var(--sub2); flex: 1; text-align: right;
                 white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
   .glist .chev { color: var(--muted); font-size: 17px; flex: none }
+  /* .glist also appears on 책 상세 (a --background canvas screen) — --surface
+     is white-on-white there in light mode, so it needs --card instead. */
+  section[data-screen="book"] .glist { background: var(--card) }
 
+  /* Buttons are capsule: filled (primary) or tinted (secondary/ghost) —
+     never the old 14px-radius block. */
   .cta { display: block; text-align: center; background: var(--accent); color: #fff;
-         border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 700;
+         border-radius: 999px; padding: 16px; font-size: 17px; font-weight: 600;
          text-decoration: none; margin-top: auto }
-  .cta.ghost { background: var(--fill); color: var(--sub2) }
+  .cta.ghost { background: var(--accent-soft); color: var(--accent) }
 
   .row { display: flex; align-items: center; gap: 10px; background: var(--surface);
-         border-radius: 16px; padding: 14px 16px;
+         border-radius: var(--radius); padding: 14px 16px;
          margin-bottom: 8px; text-decoration: none }
   .row .grow { flex: 1; min-width: 0 }
   .row .t { font-size: 15px; font-weight: 600; margin: 0 0 3px }
-  .row .m { font-size: 13px; color: var(--muted) }
+  .row .m { font-size: 13px; color: var(--sub2) }
+  /* .row also appears on 책 상세 (canvas) — same --card swap as .glist above. */
+  section[data-screen="book"] .row { background: var(--card) }
   .badge { font-size: 12px; font-weight: 600; border-radius: 99px; padding: 4px 10px;
            background: var(--fill); color: var(--sub2); white-space: nowrap }
   .badge.ok { background: var(--accent-soft); color: var(--accent) }
@@ -222,14 +279,15 @@
 
   .goalbar { display: flex; align-items: center; gap: 8px; background: var(--fill);
              border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px }
-  .goalbar .g { flex: 1 } .goalbar b { font-weight: 700; color: var(--accent) }
-  .goalbar .turns { color: var(--muted); white-space: nowrap }
+  .goalbar .g { flex: 1; color: var(--foreground) } .goalbar b { font-weight: 700; color: var(--accent) }
+  .goalbar .turns { color: var(--sub2); white-space: nowrap; font-variant-numeric: tabular-nums }
 
   .chat { flex: 1; display: flex; flex-direction: column; gap: 12px }
   .narration { font-family: var(--font-story); font-style: italic; font-size: 17px;
                line-height: 1.65; color: var(--sub2);
                border-left: 2px solid var(--hairline); padding: 2px 0 2px 12px }
   .bubble { max-width: 80%; align-self: flex-start; background: var(--fill);
+            color: var(--foreground);
             border-radius: 18px 18px 18px 4px; padding: 10px 14px;
             font-size: 17px; line-height: 1.65 }
   .me { align-self: flex-end; max-width: 80%; display: flex;
@@ -239,7 +297,7 @@
   /* dotted, not wavy: React Native's textDecorationStyle has no wavy option */
   .err { text-decoration: underline dotted rgba(255,255,255,.9);
          text-decoration-thickness: 1.5px; text-underline-offset: 3px }
-  .fixpanel { background: var(--surface); border-radius: 14px; padding: 10px 14px;
+  .fixpanel { background: var(--card); border-radius: var(--radius); padding: 10px 14px;
               margin-top: 6px; text-align: left }
   .fixpanel .fp-corr { font-size: 17px; font-weight: 700; margin: 0 0 4px;
                        color: var(--foreground) }
@@ -250,21 +308,22 @@
                        color: var(--accent); text-decoration: none; text-align: right;
                        padding: 8px 0 2px }
 
-  .endcard { text-align: center; background: var(--surface);
-             border-radius: 20px; padding: 20px 16px; margin-top: 4px }
-  .endcard .e { font-size: 17px; font-weight: 700; margin: 0 0 6px }
-  .endcard .m { font-size: 13px; color: var(--muted); margin: 0 0 14px }
+  .endcard { text-align: center; background: var(--card);
+             border-radius: var(--radius); padding: 20px 16px; margin-top: 4px }
+  .endcard .e { font-size: 17px; font-weight: 700; margin: 0 0 6px; color: var(--foreground) }
+  .endcard .m { font-size: 13px; color: var(--sub2); margin: 0 0 14px }
 
-  .inputbar { display: flex; gap: 8px; padding-top: 12px; margin-top: auto;
-              background: var(--background) }
+  .inputbar { display: flex; align-items: center; gap: 8px; padding-top: 12px; margin-top: auto;
+              background: inherit }
   .inputbar .field { flex: 1; background: var(--fill);
                      border-radius: 99px; padding: 13px 16px; font-size: 17px;
                      color: var(--muted) }
-  .inputbar .send { width: 44px; height: 44px; border-radius: 99px; background: var(--accent);
-                    color: #fff; display: flex; align-items: center; justify-content: center;
+  .inputbar .send { width: 44px; height: 44px; display: flex; align-items: center;
+                    justify-content: center; color: var(--accent);
                     text-decoration: none; flex: none }
+  .inputbar .send svg { width: 32px; height: 32px }
 
-  .fixcard { background: var(--surface); border-radius: 20px; padding: 16px;
+  .fixcard { background: var(--card); border-radius: var(--radius); padding: 16px;
              margin-bottom: 14px }
   .fixcard .orig { font-size: 14px; color: var(--muted); text-decoration: line-through;
                    margin: 0 0 6px }
@@ -277,13 +336,17 @@
 
   .stats { display: flex; gap: 8px; margin: 14px 0 }
   .stat { flex: 1; background: var(--surface);
-          border-radius: 16px; padding: 14px 10px; text-align: center }
-  .stat .n { font-size: 24px; font-weight: 700; letter-spacing: -0.3px }
-  .stat .l { font-size: 12px; color: var(--muted) }
+          border-radius: var(--radius); padding: 14px 10px; text-align: center }
+  .stat .n { font-size: 24px; font-weight: 700; letter-spacing: -0.3px;
+             color: var(--foreground); font-variant-numeric: tabular-nums }
+  .stat .l { font-size: 12px; color: var(--sub2) }
 
-  .empty { text-align: center; color: var(--muted); font-size: 15px;
-           background: var(--surface); border-radius: 16px;
+  .empty { text-align: center; color: var(--sub2); font-size: 15px;
+           background: var(--surface); border-radius: var(--radius);
            padding: 24px 14px; line-height: 1.6 }
+  /* .empty also appears on 서재 (a --background canvas screen) — same --card
+     swap as .glist/.row above. */
+  section[data-screen="history"] .empty { background: var(--card) }
 
   .inputbox { background: var(--fill); border-radius: 12px; padding: 14px;
               min-height: 110px; font-size: 17px; line-height: 1.6;
@@ -295,19 +358,19 @@
   .kv { display: flex; align-items: center; gap: 12px; padding: 14px 0;
         border-top: 1px solid var(--hairline); text-decoration: none }
   .kv .kvtext { flex: 1; min-width: 0 }
-  .kv .k { display: block; font-size: 13px; color: var(--muted); margin: 0 0 4px }
+  .kv .k { display: block; font-size: 13px; color: var(--sub2); margin: 0 0 4px }
   .kv .v { display: block; font-size: 17px; line-height: 1.65; color: var(--sub2) }
   .kv .v b { font-weight: 600; color: var(--foreground) }
   .kv .chev { flex: none; color: var(--muted); display: flex; align-items: center }
   .kv .chev svg { width: 13px; height: 13px }
   /* 상황 만들기's card is the screen's subject, one step below the screen title */
   .card.subject .t { font-size: 20px; line-height: 1.35; margin: 12px 0 10px }
-  .sheet { background: #fff; border-radius: 24px 24px 0 0; padding: 8px 16px 16px;
+  .sheet { background: var(--surface); border-radius: 24px 24px 0 0; padding: 8px 16px 16px;
            margin: auto -12px -16px; box-shadow: 0 -8px 24px rgba(25,31,40,.10);
            position: sticky; bottom: -16px; z-index: 6 }
   .sheet .grab { width: 36px; height: 4px; border-radius: 99px; background: var(--hairline);
                  margin: 0 auto 12px }
-  .sheet .st { font-size: 16px; font-weight: 700; margin: 0 0 10px }
+  .sheet .st { font-size: 16px; font-weight: 700; margin: 0 0 10px; color: var(--foreground) }
   .btnrow { display: flex; gap: 8px; margin-top: 12px }
   .btnrow .cta { flex: 1; margin-top: 0 }
   .rolesline { font-size: 13px; color: var(--sub2); margin: 0 2px 10px }
@@ -458,7 +521,7 @@
       <p class="goal roles"><b>나</b> · 여행자&ensp;<b>AI</b> · 가방을 바꿔 간 승객</p>
     </a>
 
-    <a class="cta ghost" href="#create" style="margin-top:2px">＋ 나만의 상황 만들기</a>
+    <a class="cta ghost" href="#create" style="margin-top:2px">나만의 상황 만들기</a>
 
     <nav class="tabbar">
       <a class="on" href="#home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -559,7 +622,7 @@
         <div class="fixpanel" id="fx1" hidden>
           <p class="fp-corr">Why <b>do</b> you want to know?</p>
           <p class="fp-why">의문문에는 조동사 do가 주어 앞에 와야 해요.</p>
-          <a class="fp-more" href="#correction">더 물어보기 →</a>
+          <a class="fp-more" href="#correction">더 물어보기</a>
         </div>
       </div>
 
@@ -610,7 +673,12 @@
 
     <div class="inputbar" data-when="진행중">
       <span class="field">대사 또는 *행동*을 영어로…</span>
-      <a class="send" href="#session">➤</a>
+      <a class="send" href="#session" aria-label="보내기">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="12" r="11"/>
+          <path d="M12 7.2 16.4 12.4a1 1 0 0 1-1.5 1.3L12.9 11v6a.9.9 0 0 1-1.8 0v-6l-2 2.7a1 1 0 0 1-1.5-1.3L12 7.2z" fill="var(--background)"/>
+        </svg>
+      </a>
     </div>
   </section>
 
@@ -643,7 +711,12 @@
 
     <div class="inputbar">
       <span class="field">이 교정에 대해 물어보세요…</span>
-      <a class="send" href="#correction">➤</a>
+      <a class="send" href="#correction" aria-label="보내기">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="12" r="11"/>
+          <path d="M12 7.2 16.4 12.4a1 1 0 0 1-1.5 1.3L12.9 11v6a.9.9 0 0 1-1.8 0v-6l-2 2.7a1 1 0 0 1-1.5-1.3L12 7.2z" fill="var(--background)"/>
+        </svg>
+      </a>
     </div>
   </section>
 
@@ -861,7 +934,7 @@
       <a href="#profile"><span class="lab">Apple 계정</span><span class="val">t*****e@privaterelay.appleid.com</span></a>
     </div>
     <div class="glist" style="margin-top:8px">
-      <a href="#login"><span class="lab" style="flex:1;text-align:center;color:var(--danger)">로그아웃</span></a>
+      <a href="#login"><span class="lab" style="color:var(--danger)">로그아웃</span></a>
     </div>
 
     <nav class="tabbar">

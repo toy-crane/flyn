@@ -18,23 +18,24 @@ export function ScenarioCard({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      className="rounded-card bg-surface px-4 py-[18px] mb-3"
+      className="rounded-card bg-cell px-4 py-[18px] mb-3 active:bg-fill"
+      style={{ borderCurve: "continuous" }}
     >
       <Tag label={GENRE_LABEL[scenario.genre]} />
-      <Text className="mt-2.5 mb-1.5 text-[17px] font-bold text-foreground">
+      <Text className="mt-2.5 mb-1.5 text-[17px] font-bold text-label">
         {scenario.title}
       </Text>
-      <Text className="mb-2.5 text-[16px] leading-6 text-sub2">
+      <Text className="mb-2.5 text-[16px] leading-6 text-secondary">
         {scenario.intro}
       </Text>
-      <Text className="text-[13px] text-muted">
-        <Text className="font-semibold text-accent">목표</Text>
+      <Text className="text-[13px] text-secondary">
+        <Text className="font-semibold text-tint">목표</Text>
         {` · ${scenario.goal}`}
       </Text>
-      <Text className="mt-0.5 text-[13px] text-muted">
-        <Text className="font-semibold text-sub2">나</Text>
+      <Text className="mt-0.5 text-[13px] text-secondary">
+        <Text className="font-semibold text-label">나</Text>
         {` · ${scenario.myRole}  `}
-        <Text className="font-semibold text-sub2">AI</Text>
+        <Text className="font-semibold text-label">AI</Text>
         {` · ${scenario.aiRole}`}
       </Text>
     </Pressable>

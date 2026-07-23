@@ -8,16 +8,12 @@ type BadgeProps = {
 export function Badge({ label, tone = "neutral" }: BadgeProps) {
   const fill =
     tone === "ok"
-      ? "bg-accent-soft"
+      ? "bg-tint-soft"
       : tone === "bad"
         ? "bg-danger-soft"
         : "bg-fill";
   const text =
-    tone === "ok"
-      ? "text-accent"
-      : tone === "bad"
-        ? "text-danger"
-        : "text-sub2";
+    tone === "ok" ? "text-tint" : tone === "bad" ? "text-danger" : "text-secondary";
 
   return (
     <View className={`self-start rounded-full px-2.5 py-1 ${fill}`}>

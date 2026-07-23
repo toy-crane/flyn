@@ -4,7 +4,7 @@ import { splitBySpans } from "@/utils/text-spans";
 
 /**
  * Step two of the three-step path: the corrected sentence with only the changed
- * words in accent bold, one line of why, and the way into the thread.
+ * words in tint bold, one line of why, and the way into the thread.
  */
 export function CorrectionPanel({
   correction,
@@ -14,14 +14,17 @@ export function CorrectionPanel({
   onAskMore?: () => void;
 }) {
   return (
-    <View className="mt-1.5 w-full rounded-cta bg-surface px-3.5 py-2.5">
+    <View
+      className="mt-1.5 w-full rounded-card bg-card px-3.5 py-2.5"
+      style={{ borderCurve: "continuous" }}
+    >
       {/* The corrected sentence is the thing the learner is here to absorb —
           it reads at Body, like the bubble it corrects. */}
-      <Text className="mb-1 text-[17px] font-bold leading-7 text-foreground">
+      <Text className="mb-1 text-[17px] font-bold leading-7 text-label">
         {splitBySpans(correction.correctedText, correction.changedSpans).map(
           (segment, index) =>
             segment.flagged ? (
-              <Text key={index} className="font-bold text-accent">
+              <Text key={index} className="font-bold text-tint">
                 {segment.text}
               </Text>
             ) : (
@@ -29,15 +32,15 @@ export function CorrectionPanel({
             ),
         )}
       </Text>
-      <Text className="mb-1.5 text-[15px] leading-6 text-sub2">
+      <Text className="mb-1.5 text-[15px] leading-6 text-secondary">
         {correction.reason}
       </Text>
       <Pressable
         accessibilityRole="button"
         onPress={onAskMore}
-        className="min-h-11 justify-center self-end"
+        className="min-h-11 justify-center self-end active:opacity-40"
       >
-        <Text className="text-sm font-semibold text-accent">더 물어보기 →</Text>
+        <Text className="text-sm font-semibold text-tint">더 물어보기</Text>
       </Pressable>
     </View>
   );

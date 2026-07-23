@@ -6,12 +6,13 @@ import { splitBySpans } from "@/utils/text-spans";
 
 /**
  * Alignment and tail carry the speaker — bubbles never wear a name label.
- * The AI sits left in gray, the learner right in accent blue.
+ * The AI sits left in a system fill, the learner right in tint (brand
+ * exception: iMessage-style bubble shape and coloring).
  */
 export function AiBubble({ text }: { text: string }) {
   return (
     <View className="max-w-[80%] self-start rounded-bubble rounded-bl-[4px] bg-fill px-3.5 py-2.5">
-      <Text className="text-[17px] leading-7 text-foreground">{text}</Text>
+      <Text className="text-[17px] leading-7 text-label">{text}</Text>
     </View>
   );
 }
@@ -36,7 +37,7 @@ export function LearnerBubble({
       <Pressable
         accessibilityRole={errorSpans.length > 0 ? "button" : "text"}
         onPress={errorSpans.length > 0 ? onPress : undefined}
-        className="self-end rounded-bubble rounded-br-[4px] bg-accent px-3.5 py-2.5"
+        className="self-end rounded-bubble rounded-br-[4px] bg-tint px-3.5 py-2.5 active:opacity-90"
       >
         <Text className="text-[17px] leading-7 text-white">
           {splitBySpans(text, errorSpans).map((segment, index) =>
