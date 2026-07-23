@@ -3,7 +3,7 @@ import { SymbolView } from "expo-symbols";
 
 import { CtaBar } from "@/components/cta-bar";
 import { CtaButton } from "@/components/cta-button";
-import { ScreenSubtitle, ScreenTitle } from "@/components/headings";
+import { ScreenTitle } from "@/components/headings";
 import { Tag } from "@/components/tag";
 import { DRAFT_SCENARIO } from "@/lib/fixtures";
 import { Pressable, SafeAreaView, ScrollView, Text, View } from "@/tw";
@@ -20,23 +20,35 @@ function Field({
   emphasize?: boolean;
 }) {
   return (
-    <View className="flex-row gap-3 border-t border-hairline py-2.5">
-      <Text className="w-14 text-sm text-muted">{label}</Text>
-      <Text
-        className={`flex-1 text-sm leading-6 ${
-          emphasize ? "font-bold text-foreground" : "text-sub2"
-        }`}
-      >
-        {value}
-      </Text>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${label} 수정`}
-        className="min-h-11 min-w-11 items-center justify-center"
-      >
-        <SymbolView name="pencil" size={18} tintColor="#8b95a1" />
-      </Pressable>
-    </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label} 수정`}
+      className="flex-row items-start gap-3 border-t border-hairline py-3.5"
+    >
+      {/*
+        Label above, value below, both on the same left edge — a label column
+        beside the value cannot align when the two are different sizes, and it
+        boxes the scene description into a narrow gutter. The whole row is the
+        edit target, as it is in Settings, so the glyph needs no hit area of
+        its own. iOS type scale: Footnote label, Body value.
+      */}
+      <View className="flex-1">
+        <Text className="mb-1 text-[13px] text-muted">{label}</Text>
+        <Text
+          className={`text-[17px] leading-7 ${
+            emphasize ? "font-semibold text-foreground" : "text-sub2"
+          }`}
+        >
+          {value}
+        </Text>
+      </View>
+      <SymbolView
+        name="pencil"
+        size={17}
+        tintColor="#8b95a1"
+        style={{ marginTop: 2 }}
+      />
+    </Pressable>
   );
 }
 
@@ -63,13 +75,12 @@ export function ScenarioCreateScreen() {
       </Stack.Toolbar>
       <ScrollView className="flex-1 px-3" contentContainerClassName="pb-4">
         <ScreenTitle>이런 상황은 어때요?</ScreenTitle>
-        <ScreenSubtitle>
-          AI가 즉석에서 만든 상황이에요. 마음에 안 드는 부분만 바꿔도 돼요.
-        </ScreenSubtitle>
 
-        <View className="rounded-card bg-surface px-4 py-[18px]">
+        <View className="mt-3 rounded-card bg-surface px-4 pt-[18px] pb-1.5">
           <Tag label={GENRE_LABEL[scenario.genre]} />
-          <Text className="mt-2.5 mb-1.5 text-[17px] font-bold text-foreground">
+          {/* Title 3 — the card is this screen's subject, one clear step
+              below the screen title. */}
+          <Text className="mt-3 mb-2.5 text-xl font-bold leading-7 text-foreground">
             {scenario.title}
           </Text>
           <Field label="장면" value={scenario.scene} />
