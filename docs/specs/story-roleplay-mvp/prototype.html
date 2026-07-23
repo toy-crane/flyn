@@ -1,0 +1,934 @@
+<!--
+  prototype: AI 스토리 롤플레잉 영어 학습 앱 MVP (fill pass — Toss-inspired skin)
+  spec: docs/specs/story-roleplay-mvp/spec.md
+-->
+<title>AI 스토리 롤플레잉 영어 학습 앱 — 프로토타입</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /* ── project tokens: Toss-inspired (production font: Pretendard) ──── */
+  :root {
+    --background: #ffffff;
+    --surface: #f9fafb;      /* card fill */
+    --fill: #f2f4f6;         /* control fill */
+    --foreground: #191f28;
+    --sub2: #4e5968;
+    --muted: #8b95a1;
+    --line: #f2f4f6;
+    --hairline: #e5e8eb;
+    --accent: #3182f6;
+    --accent-soft: #e8f3ff;
+    --danger: #f04452;
+    --danger-soft: #fdecec;
+    --radius: 16px;
+    --font: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo",
+            "Malgun Gothic", sans-serif;
+    --font-story: Georgia, "Noto Serif KR", serif;
+  }
+
+  /* ── review chrome (sh-*): keep, extend, never strip ─────────────── */
+  * { box-sizing: border-box }
+  body {
+    margin: 0; padding: 0 0 40px;
+    background: var(--background, #f6f6f6); color: var(--foreground, #3a3a3a);
+    font-family: var(--font, system-ui, sans-serif);
+  }
+  .sh-bar {
+    position: sticky; top: 0; z-index: 999;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    padding: 8px 12px; background: #191a1c; color: #d7d7d7;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .sh-bar b { color: #8a8f98; font-weight: 500 }
+  .sh-bar button {
+    border: 1px solid #3a3d42; background: none; color: inherit;
+    font: inherit; padding: 2px 9px; border-radius: 99px; cursor: pointer;
+  }
+  .sh-bar button.on { background: #d7d7d7; color: #191a1c; border-color: #d7d7d7 }
+  #sh-states:not([hidden])::before { content: "state"; color: #8a8f98; margin-right: 4px }
+  .sh-spacer { flex: 1 }
+  .sh-stage { max-width: 960px; margin: 0 auto; padding: 12px 16px 0 }
+  [hidden] { display: none !important }
+
+  .sh-vp-390 .sh-stage {
+    max-width: 390px; background: var(--background, #f6f6f6);
+    border: 10px solid #191a1c; border-radius: 28px;
+    padding: 0; height: 760px; margin-top: 12px;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .sh-vp-390 .sh-stage > section { flex: 1; display: flex; flex-direction: column;
+    overflow-y: auto; padding: 16px 12px; scrollbar-width: none }
+  .sh-vp-390 .sh-stage > section::-webkit-scrollbar { display: none }
+  .sh-vp-390 .sh-stage > section > *,
+  .sh-vp-390 .step-body > * { flex-shrink: 0 }
+  .sh-vp-390 .sh-stage > section:has(> .chat) { overflow: hidden }
+  .sh-vp-390 .sh-stage > section > .chat { flex: 1 1 0; min-height: 0;
+    overflow-y: auto; scrollbar-width: none }
+  .sh-vp-390 .sh-stage > section > .chat::-webkit-scrollbar { display: none }
+  .sh-vp-768 .sh-stage {
+    max-width: 768px; border: 1px solid #c4c4c4; border-radius: 12px;
+    padding: 16px; margin-top: 12px;
+  }
+
+  .wf-line { height: 10px; border-radius: 4px; background: #e3e3e3; margin: 7px 0 }
+  .wf-pic  { border-radius: 4px; background:
+             repeating-linear-gradient(45deg, #e9e9e9, #e9e9e9 6px, #f2f2f2 6px, #f2f2f2 12px) }
+
+  /* ── prototype structure — Toss-inspired skin ─────────────────────── */
+  a { color: inherit }
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 8px 0 12px;
+            margin-bottom: 8px; position: sticky; top: -16px;
+            background: var(--background); z-index: 5 }
+  .topbar .back { text-decoration: none; font-size: 22px; line-height: 1;
+                  padding: 4px 8px 4px 0; color: var(--foreground) }
+  .topbar .title { font-size: 16px; font-weight: 600; flex: 1;
+                   white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+  .topbar .meta { font-size: 12px; color: var(--muted) }
+
+  .h1 { font-size: 23px; font-weight: 700; letter-spacing: -0.3px; margin: 14px 0 6px;
+        line-height: 1.35 }
+  .sub { font-size: 15px; color: var(--muted); margin: 0 0 18px; line-height: 1.5 }
+  .sect { font-size: 15px; font-weight: 700; color: var(--foreground); margin: 22px 0 10px }
+
+  .card { background: var(--surface); border-radius: 20px; padding: 18px 16px;
+          margin: 0 0 12px; display: block; text-decoration: none }
+  .tag { display: inline-block; font-size: 12px; font-weight: 600; color: var(--accent);
+         background: var(--accent-soft); border-radius: 99px; padding: 3px 10px;
+         margin-right: 4px }
+  .card .t { font-size: 17px; font-weight: 700; margin: 10px 0 6px; letter-spacing: -0.2px }
+  .card .d { font-size: 14px; color: var(--sub2); margin: 0 0 10px; line-height: 1.6 }
+  .card .goal { font-size: 13px; color: var(--muted); margin: 2px 0 }
+  .card .goal b { color: var(--accent); font-weight: 600 }
+  .card .goal.roles b { color: var(--sub2) }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 }
+  .chip { background: var(--fill); border-radius: 99px;
+          padding: 10px 16px; font-size: 15px; color: var(--sub2) }
+  .chip.sel { background: var(--accent-soft); color: var(--accent); font-weight: 700 }
+
+  .step { font-size: 13px; font-weight: 700; color: var(--accent); margin: 4px 0 0 }
+  .step-body { display: flex; flex-direction: column; flex: 1 }
+  .lvl { display: block; background: var(--surface); border-radius: 16px;
+         padding: 16px; margin-bottom: 8px; text-decoration: none }
+  .lvl .lt { font-size: 15px; font-weight: 700; margin: 0 0 3px }
+  .lvl .ld { font-size: 13px; color: var(--muted); margin: 0 }
+  .lvl.sel { background: var(--accent-soft) }
+  .lvl.sel .lt { color: var(--accent) }
+  .lvl.sel .ld { color: var(--sub2) }
+  .skip { display: block; text-align: center; font-size: 14px; color: var(--muted);
+          margin-top: 12px; text-decoration: none }
+  .ctabar { position: sticky; bottom: -16px; z-index: 5; background: var(--background);
+            display: flex; flex-direction: column; gap: 8px;
+            margin: auto -12px -16px; padding: 10px 12px 16px }
+  .ctabar .cta { margin-top: 0 }
+  .ctabar .skip { margin-top: 2px }
+
+  .tabbar { display: flex; gap: 34px; align-self: center; margin-top: auto;
+            position: sticky; bottom: 0; z-index: 5;
+            padding: 10px 26px; border-radius: 999px;
+            background: rgba(255,255,255,.72); backdrop-filter: blur(14px);
+            border: 0.5px solid rgba(25,31,40,.06);
+            box-shadow: 0 6px 24px rgba(25,31,40,.12) }
+  .tabbar a { display: flex; flex-direction: column; align-items: center; gap: 3px;
+              font-size: 11px; font-weight: 600; color: var(--muted);
+              text-decoration: none }
+  .tabbar a.on { color: var(--accent) }
+  .tabbar svg { width: 22px; height: 22px }
+
+  .logincenter { flex: 1; display: flex; flex-direction: column; justify-content: center;
+                 align-items: center; text-align: center }
+  .appmark { width: 76px; height: 76px; border-radius: 18px; background: var(--accent);
+             color: #fff; display: flex; align-items: center; justify-content: center;
+             font-size: 34px; font-weight: 800; margin-bottom: 18px }
+  .applebtn { display: flex; align-items: center; justify-content: center; gap: 8px;
+              background: #000; color: #fff; border-radius: 14px; padding: 16px;
+              font-size: 16px; font-weight: 600; text-decoration: none }
+  .legal { font-size: 11px; color: var(--muted); text-align: center; margin-top: 12px;
+           line-height: 1.5 }
+  .row .chev { color: var(--muted); font-size: 17px }
+
+  .bookgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 12px;
+              margin-top: 4px }
+  .book { display: block; text-decoration: none }
+  .cover { aspect-ratio: 2 / 3; border-radius: 6px 14px 14px 6px; padding: 12px;
+           display: flex; flex-direction: column;
+           box-shadow: inset 7px 0 9px -7px rgba(0,0,0,.5) }
+  .cover .g { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.8);
+              text-transform: uppercase; letter-spacing: .5px }
+  .cover .bt { font-family: var(--font-story); font-size: 17px; line-height: 1.3;
+               color: #fff; font-weight: 700; margin: 6px 0 0 }
+  .cover .bb { margin-top: auto; align-self: flex-start; font-size: 10px;
+               font-weight: 600; background: rgba(255,255,255,.24); color: #fff;
+               border-radius: 99px; padding: 3px 8px }
+  .book .bm { font-size: 11px; color: var(--muted); margin: 6px 0 0 }
+
+  .pf-head { display: flex; align-items: center; gap: 14px; margin: 6px 0 16px }
+  .avatar { width: 64px; height: 64px; border-radius: 50%; flex: none;
+            background: var(--accent-soft); color: var(--accent); display: flex;
+            align-items: center; justify-content: center; font-size: 26px;
+            font-weight: 800 }
+  .pf-name { font-size: 20px; font-weight: 700; margin: 0 }
+  .pf-meta { font-size: 13px; color: var(--muted); margin: 3px 0 0 }
+  .stats2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 8px }
+  .wkcard { background: var(--surface); border-radius: 16px; padding: 14px 16px;
+            margin-bottom: 8px }
+  .wkcard .wt { display: flex; justify-content: space-between; font-size: 13px;
+                font-weight: 700; margin: 0 }
+  .wkcard .wt .fire { color: var(--accent) }
+  .wkrow { display: flex; justify-content: space-between; margin-top: 12px }
+  .wd { display: flex; flex-direction: column; align-items: center; gap: 5px;
+        font-size: 11px; color: var(--muted) }
+  .wd .dot { width: 26px; height: 26px; border-radius: 50%; background: var(--fill) }
+  .wd .dot.on { background: var(--accent) }
+  .wd .dot.today { background: #fff; border: 2px solid var(--accent) }
+  .ghead { font-size: 13px; color: var(--muted); margin: 20px 16px 8px }
+  .glist { background: var(--surface); border-radius: 16px; margin-bottom: 4px;
+           overflow: hidden }
+  .glist a { display: flex; align-items: center; gap: 8px; padding: 13px 16px;
+             text-decoration: none; border-top: 0.5px solid var(--hairline) }
+  .glist a:first-child { border-top: 0 }
+  .glist .lab { font-size: 15px; color: var(--foreground); flex: none }
+  .glist .val { font-size: 15px; color: var(--muted); flex: 1; text-align: right;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+  .glist .chev { color: var(--muted); font-size: 17px; flex: none }
+
+  .cta { display: block; text-align: center; background: var(--accent); color: #fff;
+         border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 700;
+         text-decoration: none; margin-top: auto }
+  .cta.ghost { background: var(--fill); color: var(--sub2) }
+
+  .row { display: flex; align-items: center; gap: 10px; background: var(--surface);
+         border-radius: 16px; padding: 14px 16px;
+         margin-bottom: 8px; text-decoration: none }
+  .row .grow { flex: 1; min-width: 0 }
+  .row .t { font-size: 15px; font-weight: 600; margin: 0 0 3px }
+  .row .m { font-size: 13px; color: var(--muted) }
+  .badge { font-size: 12px; font-weight: 600; border-radius: 99px; padding: 4px 10px;
+           background: var(--fill); color: var(--sub2); white-space: nowrap }
+  .badge.ok { background: var(--accent-soft); color: var(--accent) }
+  .badge.bad { background: var(--danger-soft); color: var(--danger) }
+
+  .goalbar { display: flex; align-items: center; gap: 8px; background: var(--fill);
+             border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px }
+  .goalbar .g { flex: 1 } .goalbar b { font-weight: 700; color: var(--accent) }
+  .goalbar .turns { color: var(--muted); white-space: nowrap }
+
+  .chat { flex: 1; display: flex; flex-direction: column; gap: 12px }
+  .narration { font-family: var(--font-story); font-style: italic; font-size: 14px;
+               line-height: 1.7; color: var(--sub2);
+               border-left: 2px solid var(--hairline); padding: 2px 0 2px 12px }
+  .bubble { max-width: 80%; align-self: flex-start; background: var(--fill);
+            border-radius: 18px 18px 18px 4px; padding: 10px 14px;
+            font-size: 15px; line-height: 1.55 }
+  .me { align-self: flex-end; max-width: 80%; display: flex;
+        flex-direction: column; align-items: flex-end }
+  .me .bubble { max-width: 100%; align-self: flex-end; background: var(--accent);
+                color: #fff; border-radius: 18px 18px 4px 18px }
+  .err { text-decoration: underline wavy rgba(255,255,255,.85);
+         text-underline-offset: 3px }
+  .fixpanel { background: var(--surface); border-radius: 14px; padding: 10px 14px;
+              margin-top: 6px; text-align: left }
+  .fixpanel .fp-corr { font-size: 15px; font-weight: 700; margin: 0 0 4px;
+                       color: var(--foreground) }
+  .fixpanel .fp-corr b { color: var(--accent) }
+  .fixpanel .fp-why { font-size: 13px; color: var(--sub2); margin: 0 0 6px;
+                      line-height: 1.5 }
+  .fixpanel .fp-more { display: block; font-size: 14px; font-weight: 600;
+                       color: var(--accent); text-decoration: none; text-align: right;
+                       padding: 8px 0 2px }
+
+  .endcard { text-align: center; background: var(--surface);
+             border-radius: 20px; padding: 20px 16px; margin-top: 4px }
+  .endcard .e { font-size: 17px; font-weight: 700; margin: 0 0 6px }
+  .endcard .m { font-size: 13px; color: var(--muted); margin: 0 0 14px }
+
+  .inputbar { display: flex; gap: 8px; padding-top: 12px; margin-top: auto;
+              background: var(--background) }
+  .inputbar .field { flex: 1; background: var(--fill);
+                     border-radius: 99px; padding: 13px 16px; font-size: 14px;
+                     color: var(--muted) }
+  .inputbar .send { width: 44px; height: 44px; border-radius: 99px; background: var(--accent);
+                    color: #fff; display: flex; align-items: center; justify-content: center;
+                    text-decoration: none; flex: none }
+
+  .fixcard { background: var(--surface); border-radius: 20px; padding: 16px;
+             margin-bottom: 14px }
+  .fixcard .orig { font-size: 14px; color: var(--muted); text-decoration: line-through;
+                   margin: 0 0 6px }
+  .fixcard .corr { font-size: 16px; font-weight: 700; color: var(--accent); margin: 0 0 10px }
+  .fixcard .why { font-size: 14px; line-height: 1.6; margin: 0; color: var(--sub2) }
+
+  .qchips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px }
+  .qchip { font-size: 14px; background: var(--fill);
+           border-radius: 99px; padding: 12px 16px; color: var(--sub2) }
+
+  .stats { display: flex; gap: 8px; margin: 14px 0 }
+  .stat { flex: 1; background: var(--surface);
+          border-radius: 16px; padding: 14px 10px; text-align: center }
+  .stat .n { font-size: 24px; font-weight: 700; letter-spacing: -0.3px }
+  .stat .l { font-size: 12px; color: var(--muted) }
+
+  .empty { text-align: center; color: var(--muted); font-size: 14px;
+           background: var(--surface); border-radius: 16px;
+           padding: 24px 14px; line-height: 1.6 }
+
+  .inputbox { background: var(--fill); border-radius: 12px; padding: 14px;
+              min-height: 110px; font-size: 15px; line-height: 1.6;
+              color: var(--foreground) }
+  .kv { display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid var(--hairline);
+        font-size: 14px; line-height: 1.55 }
+  .kv .k { color: var(--muted); flex: none; width: 52px }
+  .kv .v { flex: 1; color: var(--sub2) }
+  .kv .v b { font-weight: 700; color: var(--foreground) }
+  .kv .act { flex: none; align-self: center; color: var(--muted); font-size: 16px;
+             text-decoration: none; white-space: nowrap; padding: 12px 4px 12px 10px }
+  .sheet { background: #fff; border-radius: 24px 24px 0 0; padding: 8px 16px 16px;
+           margin: auto -12px -16px; box-shadow: 0 -8px 24px rgba(25,31,40,.10);
+           position: sticky; bottom: -16px; z-index: 6 }
+  .sheet .grab { width: 36px; height: 4px; border-radius: 99px; background: var(--hairline);
+                 margin: 0 auto 12px }
+  .sheet .st { font-size: 16px; font-weight: 700; margin: 0 0 10px }
+  .btnrow { display: flex; gap: 8px; margin-top: 12px }
+  .btnrow .cta { flex: 1; margin-top: 0 }
+  .rolesline { font-size: 12px; color: var(--muted); margin: 0 2px 10px }
+  .rolesline b { font-weight: 600; color: var(--sub2) }
+</style>
+
+<header class="sh-bar">
+  <b>proto</b>
+  <nav id="sh-tabs"></nav>
+  <span class="sh-spacer"></span>
+  <span id="sh-states" hidden></span>
+  <button id="sh-vp">vp: full (m)</button>
+</header>
+
+<main class="sh-stage">
+
+  <!-- ⓪ 로그인 -->
+  <section data-screen="login" data-title="⓪ 로그인">
+    <div class="logincenter">
+      <div class="appmark">
+        <svg width="46" height="46" viewBox="0 0 1024 1024" aria-hidden="true">
+          <rect x="180" y="225" width="440" height="270" rx="135" fill="#ffffff"/>
+          <rect x="404" y="535" width="440" height="270" rx="135" fill="#a8ccfa"/>
+        </svg>
+      </div>
+      <p class="h1" style="margin:0">이야기 속에서<br>영어가 늘어요</p>
+    </div>
+    <a class="applebtn" href="#onboarding"> Apple로 로그인</a>
+    <p class="legal">계속하면 서비스 약관과 개인정보 처리방침에<br>동의하는 것으로 간주돼요.</p>
+  </section>
+
+  <!-- ① 온보딩: 학습자 프로필 5스텝 -->
+  <section data-screen="onboarding" data-title="① 온보딩"
+           data-states="1 수준,2 목적,3 장르,4 관심사,5 닉네임">
+
+    <div class="step-body" data-when="1 수준">
+      <p class="step">1 / 5</p>
+      <p class="h1">지금 영어로 말할 때,<br>어느 쪽에 가까워요?</p>
+      <p class="sub">스토리 난이도와 교정 강도를 여기에 맞춰드려요.</p>
+      <span class="lvl">
+        <p class="lt">단어와 짧은 문장으로 말해요</p>
+        <p class="ld">기초 표현 위주로 또박또박 시작해요</p>
+      </span>
+      <span class="lvl sel">
+        <p class="lt">하고 싶은 말을 대충 전달할 수 있어요</p>
+        <p class="ld">문장은 만들지만 중간중간 막혀요</p>
+      </span>
+      <span class="lvl">
+        <p class="lt">대화는 되는데 자연스럽지가 않아요</p>
+        <p class="ld">뉘앙스와 표현을 다듬고 싶어요</p>
+      </span>
+      <div class="ctabar"><a class="cta" style="cursor:pointer"
+        onclick="applyState('2 목적')">다음</a></div>
+    </div>
+
+    <div class="step-body" data-when="2 목적">
+      <p class="step">2 / 5</p>
+      <p class="h1">영어를 어디에 쓰고 싶어요?</p>
+      <p class="sub">상황의 소재를 고르는 데 써요. 여러 개 골라도 돼요.</p>
+      <div class="chips">
+        <span class="chip sel">여행</span>
+        <span class="chip">해외 생활·취업</span>
+        <span class="chip">일·비즈니스</span>
+        <span class="chip">시험 대비</span>
+        <span class="chip sel">영화·드라마 즐기기</span>
+        <span class="chip">그냥 재미로</span>
+      </div>
+      <div class="ctabar"><a class="cta" style="cursor:pointer"
+        onclick="applyState('3 장르')">다음</a></div>
+    </div>
+
+    <div class="step-body" data-when="3 장르">
+      <p class="step">3 / 5</p>
+      <p class="h1">어떤 이야기를 좋아하세요?</p>
+      <p class="sub">고른 장르로 매일 새로운 상황을 만들어 드려요.</p>
+      <div class="chips">
+        <span class="chip sel">미스터리</span>
+        <span class="chip">스릴러</span>
+        <span class="chip sel">SF</span>
+        <span class="chip">판타지</span>
+        <span class="chip">로맨스</span>
+        <span class="chip">일상</span>
+        <span class="chip">코미디</span>
+        <span class="chip">역사</span>
+      </div>
+      <div class="ctabar"><a class="cta" style="cursor:pointer"
+        onclick="applyState('4 관심사')">다음</a></div>
+    </div>
+
+    <div class="step-body" data-when="4 관심사">
+      <p class="step">4 / 5</p>
+      <p class="h1">요즘 관심사는 뭐예요?</p>
+      <p class="sub">스토리 소재로 슬쩍 녹여드려요.</p>
+      <div class="chips">
+        <span class="chip sel">여행</span>
+        <span class="chip">음식·요리</span>
+        <span class="chip sel">영화·드라마</span>
+        <span class="chip">음악</span>
+        <span class="chip">게임</span>
+        <span class="chip">스포츠</span>
+        <span class="chip">책</span>
+        <span class="chip sel">과학·우주</span>
+        <span class="chip">동물</span>
+        <span class="chip">패션</span>
+        <span class="chip">역사</span>
+        <span class="chip">미술</span>
+      </div>
+      <div class="ctabar"><a class="cta" style="cursor:pointer"
+        onclick="applyState('5 닉네임')">다음</a></div>
+    </div>
+
+    <div class="step-body" data-when="5 닉네임">
+      <p class="step">5 / 5</p>
+      <p class="h1">스토리 속에서<br>뭐라고 불러드릴까요?</p>
+      <p class="sub">실명이 아니어도 좋아요.</p>
+      <div class="inputbox" style="min-height:0">Alex</div>
+      <div class="ctabar">
+        <a class="cta" href="#home">시작하기</a>
+        <a class="skip" href="#home">건너뛰기</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ② 홈 -->
+  <section data-screen="home" data-title="② 홈">
+    <p class="h1">오늘의 이야기</p>
+    <p class="sub">마음에 드는 상황을 골라 시작하세요.</p>
+
+    <a class="card" href="#session">
+      <span class="tag">미스터리</span>
+      <p class="t">Night train to Budapest</p>
+      <p class="d">야간열차에서 맞은편 승객이 당신의 낡은 가방을 알아본다. 그녀는 20년 전 사진 한 장을 꺼내는데…</p>
+      <p class="goal"><b>목표</b> · 사진의 출처를 알아내라</p>
+      <p class="goal roles"><b>나</b> · 야간열차 승객&ensp;<b>AI</b> · 회색 코트의 여자</p>
+    </a>
+    <a class="card" href="#session">
+      <span class="tag">SF</span>
+      <p class="t">Signal from Bay 7</p>
+      <p class="d">화성 기지의 통신이 끊겼다. 유일하게 깨어 있는 동료는 패닉에 빠져 격납고 문을 열려 한다.</p>
+      <p class="goal"><b>목표</b> · 동료를 진정시키고 문을 못 열게 막아라</p>
+      <p class="goal roles"><b>나</b> · 정비 엔지니어&ensp;<b>AI</b> · 패닉에 빠진 동료</p>
+    </a>
+    <a class="card" href="#session">
+      <span class="tag">일상</span>
+      <p class="t">The wrong suitcase</p>
+      <p class="d">공항에서 가방이 바뀌었다. 가방 주인은 비행기 탑승 10분 전, 연락처는 가방 안에 있다.</p>
+      <p class="goal"><b>목표</b> · 탑승 전에 가방을 되찾아라</p>
+      <p class="goal roles"><b>나</b> · 여행자&ensp;<b>AI</b> · 가방을 바꿔 간 승객</p>
+    </a>
+
+    <a class="cta ghost" href="#create" style="margin-top:2px">＋ 나만의 상황 만들기</a>
+
+    <nav class="tabbar">
+      <a class="on" href="#home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg>홈</a>
+      <a href="#history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 6c-2-1.5-4.5-2-8-2v14c3.5 0 6 .5 8 2 2-1.5 4.5-2 8-2V4c-3.5 0-6 .5-8 2z"/><path d="M12 6v14"/></svg>서재</a>
+      <a href="#profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>프로필</a>
+    </nav>
+  </section>
+
+  <!-- ⑥ 상황 만들기: AI 랜덤 생성이 기본, 필드별 수정 -->
+  <section data-screen="create" data-title="⑥ 상황 만들기"
+           data-states="기본,아이디어 입력,필드 수정">
+    <div class="topbar">
+      <a class="back" href="#home">‹</a>
+      <span class="title">새로운 상황</span>
+      <a class="meta" href="#create"
+         style="color:var(--accent);font-weight:600;text-decoration:none">직접 만들기</a>
+    </div>
+
+    <p class="h1">이런 상황은 어때요?</p>
+    <p class="sub">AI가 즉석에서 만든 상황이에요. 마음에 안 드는 부분만 바꿔도 돼요.</p>
+
+    <div class="card">
+      <span class="tag">미스터리</span>
+      <p class="t">The lighthouse knock</p>
+      <div class="kv"><span class="k">장면</span>
+        <span class="v">폭풍우 치는 밤, 외딴 등대에서 눈을 뜬다. 자정이 넘은 시각,
+        누군가 문을 세 번씩 규칙적으로 두드리고 있다. 이 섬에 나 말고는 아무도
+        없어야 한다.</span>
+        <a class="act" href="#create">✎</a></div>
+      <div class="kv"><span class="k">목표</span><span class="v"><b>방문자의 정체를
+        알아내고, 문을 열지 결정하라</b></span>
+        <a class="act" href="#create">✎</a></div>
+      <div class="kv"><span class="k">내 역할</span><span class="v">등대지기</span>
+        <a class="act" href="#create">✎</a></div>
+      <div class="kv"><span class="k">AI 역할</span><span class="v">문 밖의 방문자</span>
+        <a class="act" href="#create">✎</a></div>
+    </div>
+
+    <div class="ctabar">
+      <a class="cta" href="#session">이 상황으로 시작</a>
+      <a class="cta ghost" href="#create">다른 상황 보기</a>
+    </div>
+
+    <div class="sheet" data-when="아이디어 입력">
+      <div class="grab"></div>
+      <p class="st">직접 아이디어로 만들기</p>
+      <div class="inputbox" style="color:var(--muted)">예: 한밤중 등대에서 눈을
+      떴는데, 문 밖에서 누가 계속 노크한다… (한국어도 좋아요)</div>
+      <div class="btnrow">
+        <a class="cta ghost" href="#create">닫기</a>
+        <a class="cta" href="#create">만들기</a>
+      </div>
+    </div>
+
+    <div class="sheet" data-when="필드 수정">
+      <div class="grab"></div>
+      <p class="st">목표 수정</p>
+      <div class="inputbox" style="min-height:64px;color:var(--foreground)">방문자의
+      정체를 알아내고, 문을 열지 결정하라</div>
+      <div class="btnrow">
+        <a class="cta ghost" href="#create">AI가 다시 쓰기</a>
+        <a class="cta" href="#create">저장</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ③ 스토리 세션 -->
+  <section data-screen="session" data-title="③ 세션"
+           data-states="진행중,성공 결말,실패 결말,강제 결말">
+    <div class="topbar">
+      <a class="back" href="#home">‹</a>
+      <span class="title">Night train to Budapest</span>
+    </div>
+    <div class="goalbar">
+      <span class="g"><b>목표</b> · 사진의 출처를 알아내라</span>
+      <span class="turns">12 / 30턴</span>
+    </div>
+    <p class="rolesline"><b>나</b> · 야간열차 승객&ensp;<b>AI</b> · 회색 코트의 여자(내레이션 포함)</p>
+
+    <div class="chat">
+      <p class="narration">The train rattles through the dark. Across from you, a woman
+      in a gray coat keeps glancing at your suitcase. She finally leans forward.</p>
+
+      <div class="bubble">"That case… where did you get it?"</div>
+
+      <div class="me">
+        <div class="bubble" style="cursor:pointer"
+             onclick="var x=document.getElementById('fx1'); x.hidden=!x.hidden">
+          *I hold the case tighter* "It's just my luggage.
+          <span class="err">Why you want</span> to know?"</div>
+        <div class="fixpanel" id="fx1" hidden>
+          <p class="fp-corr">Why <b>do</b> you want to know?</p>
+          <p class="fp-why">의문문에는 조동사 do가 주어 앞에 와야 해요.</p>
+          <a class="fp-more" href="#correction">더 물어보기 →</a>
+        </div>
+      </div>
+
+      <div class="bubble">"Because I have seen it before." She slides a photograph
+      across the table. "Twenty years ago. Same case, same scratch on the corner."</div>
+
+      <div class="me">
+        <div class="bubble">"That's impossible. Where was this photo taken?"</div>
+      </div>
+
+      <div data-when="진행중">
+        <p class="narration">She hesitates, fingers tightening around the photograph.
+        Outside, the lights of a small station flash past.</p>
+      </div>
+
+      <div data-when="성공 결말">
+        <p class="narration">She finally exhales. "Vienna station. My father took it —
+        the day he disappeared." The name of the station settles over you both as the
+        train slows. You have your answer, and she has questions of her own.</p>
+        <div class="endcard">
+          <p class="e">이야기 완성 — 목표 달성</p>
+          <p class="m">사진의 출처를 알아냈어요.</p>
+          <a class="cta" href="#summary">요약 보기</a>
+        </div>
+      </div>
+
+      <div data-when="실패 결말">
+        <p class="narration">"Forget it." She snatches the photograph back and moves
+        to another compartment. Whatever she knew about the case leaves with her.</p>
+        <div class="endcard">
+          <p class="e">이야기 끝 — 목표 실패</p>
+          <p class="m">그녀의 신뢰를 잃어 사진의 출처를 듣지 못했어요.</p>
+          <a class="cta" href="#summary">요약 보기</a>
+        </div>
+      </div>
+
+      <div data-when="강제 결말">
+        <p class="narration">"Budapest! Final stop!" The conductor's voice cuts through
+        the compartment. She tucks the photograph away and vanishes into the crowd on
+        the platform — the answer still hers alone.</p>
+        <div class="endcard">
+          <p class="e">이야기 끝 — 열차가 종착역에 도착</p>
+          <p class="m">30턴이 지나 이야기가 마무리됐어요.</p>
+          <a class="cta" href="#summary">요약 보기</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="inputbar" data-when="진행중">
+      <span class="field">대사 또는 *행동*을 영어로…</span>
+      <a class="send" href="#session">➤</a>
+    </div>
+  </section>
+
+  <!-- ④ 교정 스레드 -->
+  <section data-screen="correction" data-title="④ 교정 스레드">
+    <div class="topbar">
+      <a class="back" href="#session">‹</a>
+      <span class="title">교정</span>
+    </div>
+
+    <div class="fixcard">
+      <p class="orig">Why you want to know?</p>
+      <p class="corr">Why do you want to know?</p>
+      <p class="why">의문문에서는 조동사 <b>do</b>가 주어 앞에 와야 해요. 평서문 어순
+      그대로 물으면 어색하게 들려요.</p>
+    </div>
+
+    <div class="chat" style="flex:1">
+      <div class="me">
+        <div class="bubble">왜 do가 꼭 필요해? 드라마에서는 "Why you say that?"처럼 말하던데.</div>
+      </div>
+      <div class="bubble">좋은 관찰이에요. 구어에서는 do를 생략하기도 하지만 매우
+      캐주얼하고 방언적인 느낌이라, 처음 본 사람에게 쓰면 무례하거나 어눌하게 들릴 수
+      있어요. 중립적인 상황에서는 "Why do you…"가 안전해요.</div>
+      <div class="qchips">
+        <span class="qchip">다른 예문 보여줘</span>
+        <span class="qchip">더 캐주얼한 표현은?</span>
+      </div>
+    </div>
+
+    <div class="inputbar">
+      <span class="field">이 교정에 대해 물어보세요…</span>
+      <a class="send" href="#correction">➤</a>
+    </div>
+  </section>
+
+  <!-- ⑤ 결과: 세션 직후 -->
+  <section data-screen="summary" data-title="⑤ 결과" data-states="기본,교정 없음">
+    <div class="topbar">
+      <a class="back" href="#session">‹</a>
+      <span class="title"></span>
+    </div>
+    <div style="text-align:center">
+      <span class="cover" style="background:#22304a;width:104px;margin:0 auto 12px">
+        <span class="g">미스터리</span>
+        <span class="bt" style="font-size:13px">Night train to Budapest</span>
+        <span class="bb">성공</span>
+      </span>
+      <p class="h1" style="margin:0 0 6px;font-family:var(--font-story);font-style:italic">The End</p>
+      <p style="font-size:13px;font-weight:600;color:var(--accent);margin:0 0 8px">6일
+      연속 학습</p>
+      <p class="sub" style="margin:0">그녀를 설득해 사진이 빈 역에서 찍혔다는 것과
+      사라진 아버지의 이야기를 들었다.</p>
+    </div>
+
+    <div class="stats">
+      <span class="stat"><span class="n">14</span><br><span class="l">주고받은 턴</span></span>
+      <span class="stat"><span class="n">3</span><br><span class="l">교정</span></span>
+      <span class="stat"><span class="n">2</span><br><span class="l">교정 대화</span></span>
+    </div>
+
+    <div data-when="기본">
+      <p class="sect">이번 이야기의 교정</p>
+      <a class="row" href="#correction">
+        <span class="grow">
+          <p class="t">Why do you want to know?</p>
+          <p class="m">Why you want to know?</p>
+        </span>
+        <span class="badge">대화 2</span>
+      </a>
+      <a class="row" href="#correction">
+        <span class="grow">
+          <p class="t">I've had this case for years.</p>
+          <p class="m">I have this case since years.</p>
+        </span>
+      </a>
+      <a class="row" href="#correction">
+        <span class="grow">
+          <p class="t">Could you show me the photo?</p>
+          <p class="m">Show me the photo.</p>
+        </span>
+      </a>
+    </div>
+    <div data-when="교정 없음">
+      <p class="sect">이번 이야기의 교정</p>
+      <p class="empty">교정할 문장이 없었어요.<br>완벽한 세션이에요!</p>
+    </div>
+
+    <div class="ctabar">
+      <a class="cta" href="#home">완료</a>
+    </div>
+  </section>
+
+  <!-- ⑨ 책 상세: 서재에서 열람 -->
+  <section data-screen="book" data-title="⑨ 책 상세">
+    <div class="topbar">
+      <a class="back" href="#history">‹</a>
+      <span class="title"></span>
+    </div>
+
+    <div style="text-align:center">
+      <span class="cover" style="background:#22304a;width:104px;margin:2px auto 12px">
+        <span class="g">미스터리</span>
+        <span class="bt" style="font-size:13px">Night train to Budapest</span>
+      </span>
+      <p class="h1" style="margin:0 0 4px">Night train to Budapest</p>
+      <p class="sub" style="margin:0 0 14px">3일 전 완성 · 14턴 · 성공</p>
+    </div>
+
+    <div class="glist">
+      <a href="#session"><span class="lab">대화 다시 읽기</span><span class="val"></span><span class="chev">›</span></a>
+    </div>
+
+    <p class="sect">이 이야기의 교정</p>
+    <a class="row" href="#correction">
+      <span class="grow">
+        <p class="t">Why do you want to know?</p>
+        <p class="m">Why you want to know?</p>
+      </span>
+      <span class="badge">대화 2</span>
+    </a>
+    <a class="row" href="#correction">
+      <span class="grow">
+        <p class="t">I've had this case for years.</p>
+        <p class="m">I have this case since years.</p>
+      </span>
+    </a>
+    <a class="row" href="#correction">
+      <span class="grow">
+        <p class="t">Could you show me the photo?</p>
+        <p class="m">Show me the photo.</p>
+      </span>
+    </a>
+
+    <nav class="tabbar">
+      <a href="#home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg>홈</a>
+      <a class="on" href="#history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 6c-2-1.5-4.5-2-8-2v14c3.5 0 6 .5 8 2 2-1.5 4.5-2 8-2V4c-3.5 0-6 .5-8 2z"/><path d="M12 6v14"/></svg>서재</a>
+      <a href="#profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>프로필</a>
+    </nav>
+  </section>
+
+  <!-- ⑦ 서재 탭 -->
+  <section data-screen="history" data-title="⑦ 서재" data-states="기본,첫 사용">
+    <p class="h1">서재</p>
+    <p class="sub">완성한 이야기가 책으로 남아요.</p>
+
+    <div data-when="기본">
+      <p class="sect">완성한 이야기 12</p>
+      <div class="bookgrid">
+        <a class="book" href="#book">
+          <span class="cover" style="background:#22304a">
+            <span class="g">미스터리</span>
+            <span class="bt">Night train to Budapest</span>
+            <span class="bb">성공</span>
+          </span>
+          <p class="bm">오늘 · 14턴 · 교정 3</p>
+        </a>
+        <a class="book" href="#book">
+          <span class="cover" style="background:#4b3a8f">
+            <span class="g">판타지</span>
+            <span class="bt">The dragon's apprentice</span>
+            <span class="bb">실패</span>
+          </span>
+          <p class="bm">어제 · 18턴 · 교정 4</p>
+        </a>
+        <a class="book" href="#book">
+          <span class="cover" style="background:#0f5e63">
+            <span class="g">SF</span>
+            <span class="bt">Signal from Bay 7</span>
+            <span class="bb">성공</span>
+          </span>
+          <p class="bm">3일 전 · 21턴 · 교정 5</p>
+        </a>
+        <a class="book" href="#book">
+          <span class="cover" style="background:#9a5b12">
+            <span class="g">일상</span>
+            <span class="bt">Elevator with the CEO</span>
+            <span class="bb">강제 결말</span>
+          </span>
+          <p class="bm">지난주 · 30턴 · 교정 2</p>
+        </a>
+      </div>
+    </div>
+    <div data-when="첫 사용">
+      <p class="empty">아직 서재가 비어 있어요.<br>첫 이야기를 완성하면 첫 책이 생겨요.</p>
+    </div>
+
+    <nav class="tabbar">
+      <a href="#home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg>홈</a>
+      <a class="on" href="#history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 6c-2-1.5-4.5-2-8-2v14c3.5 0 6 .5 8 2 2-1.5 4.5-2 8-2V4c-3.5 0-6 .5-8 2z"/><path d="M12 6v14"/></svg>서재</a>
+      <a href="#profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>프로필</a>
+    </nav>
+  </section>
+
+  <!-- ⑧ 프로필 탭 -->
+  <section data-screen="profile" data-title="⑧ 프로필">
+    <div class="pf-head">
+      <div class="avatar">A</div>
+      <div>
+        <p class="pf-name">Alex</p>
+        <p class="pf-meta">함께한 지 32일 · 중급</p>
+      </div>
+    </div>
+
+    <div class="stats2">
+      <span class="stat"><span class="n">6</span><br><span class="l">연속 학습일</span></span>
+      <span class="stat"><span class="n">12</span><br><span class="l">완성한 이야기</span></span>
+      <span class="stat"><span class="n">214</span><br><span class="l">주고받은 턴</span></span>
+      <span class="stat"><span class="n">38</span><br><span class="l">받은 교정</span></span>
+    </div>
+
+    <div class="wkcard">
+      <p class="wt">이번 주 <span class="fire">6일 연속</span></p>
+      <div class="wkrow">
+        <span class="wd"><span class="dot on"></span>월</span>
+        <span class="wd"><span class="dot on"></span>화</span>
+        <span class="wd"><span class="dot on"></span>수</span>
+        <span class="wd"><span class="dot today"></span>목</span>
+        <span class="wd"><span class="dot"></span>금</span>
+        <span class="wd"><span class="dot"></span>토</span>
+        <span class="wd"><span class="dot"></span>일</span>
+      </div>
+    </div>
+
+    <p class="ghead">학습 설정</p>
+    <div class="glist">
+      <a href="#profile"><span class="lab">닉네임</span><span class="val">Alex</span><span class="chev">›</span></a>
+      <a href="#profile"><span class="lab">영어 수준</span><span class="val">중급</span><span class="chev">›</span></a>
+      <a href="#profile"><span class="lab">학습 목적</span><span class="val">여행 외 1</span><span class="chev">›</span></a>
+      <a href="#profile"><span class="lab">장르 취향</span><span class="val">미스터리 외 1</span><span class="chev">›</span></a>
+      <a href="#profile"><span class="lab">관심사</span><span class="val">여행 외 2</span><span class="chev">›</span></a>
+    </div>
+
+    <p class="ghead">계정</p>
+    <div class="glist">
+      <a href="#profile"><span class="lab">Apple 계정</span><span class="val">t*****e@privaterelay.appleid.com</span></a>
+    </div>
+    <div class="glist" style="margin-top:8px">
+      <a href="#login"><span class="lab" style="flex:1;text-align:center;color:var(--danger)">로그아웃</span></a>
+    </div>
+
+    <nav class="tabbar">
+      <a href="#home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg>홈</a>
+      <a href="#history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 6c-2-1.5-4.5-2-8-2v14c3.5 0 6 .5 8 2 2-1.5 4.5-2 8-2V4c-3.5 0-6 .5-8 2z"/><path d="M12 6v14"/></svg>서재</a>
+      <a class="on" href="#profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>프로필</a>
+    </nav>
+  </section>
+
+</main>
+
+<script>
+  const stage = document.querySelector('.sh-stage');
+  const screens = [...stage.querySelectorAll('[data-screen]')];
+  const tabs = document.getElementById('sh-tabs');
+  const statebox = document.getElementById('sh-states');
+  const vpBtn = document.getElementById('sh-vp');
+  let current = null;
+
+  screens.forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s.dataset.title || s.dataset.screen;
+    b.dataset.for = s.dataset.screen;
+    b.onclick = () => show(s.dataset.screen);
+    tabs.append(b);
+  });
+
+  function show(slug) {
+    current = screens.find(s => s.dataset.screen === slug) || screens[0];
+    screens.forEach(s => s.hidden = s !== current);
+    [...tabs.children].forEach(b => b.classList.toggle('on', b.dataset.for === current.dataset.screen));
+    history.replaceState(null, '', '#' + current.dataset.screen);
+    buildStates();
+    scrollChat();
+  }
+
+  function scrollChat() {
+    if (!current) return;
+    current.querySelectorAll('.chat').forEach(c => { c.scrollTop = c.scrollHeight });
+  }
+
+  function buildStates() {
+    const names = (current.dataset.states || '').split(',').map(x => x.trim()).filter(Boolean);
+    statebox.innerHTML = '';
+    statebox.hidden = !names.length;
+    names.forEach(name => {
+      const b = document.createElement('button');
+      b.textContent = name;
+      b.onclick = () => applyState(name);
+      statebox.append(b);
+    });
+    applyState(names[0] || null);
+  }
+
+  function applyState(name) {
+    current.querySelectorAll('[data-when]').forEach(el => {
+      el.hidden = !name || !el.dataset.when.split(',').map(x => x.trim()).includes(name);
+    });
+    [...statebox.children].forEach(b => b.classList.toggle('on', b.textContent === name));
+    scrollChat();
+  }
+
+  const VPS = ['full', '390', '768'];
+  let vp = VPS.find(v => document.body.classList.contains('sh-vp-' + v)) || 'full';
+  function applyVp() {
+    VPS.forEach(v => document.body.classList.toggle('sh-vp-' + v, v === vp && v !== 'full'));
+    vpBtn.textContent = 'vp: ' + vp + ' (m)';
+    vpBtn.classList.toggle('on', vp !== 'full');
+  }
+  vpBtn.onclick = () => { vp = VPS[(VPS.indexOf(vp) + 1) % VPS.length]; applyVp(); };
+  document.body.classList.add('sh-vp-390');
+  vp = '390';
+  applyVp();
+
+  addEventListener('keydown', e => {
+    if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    const i = screens.indexOf(current);
+    if (e.key === 'ArrowRight') show(screens[(i + 1) % screens.length].dataset.screen);
+    if (e.key === 'ArrowLeft') show(screens[(i - 1 + screens.length) % screens.length].dataset.screen);
+    if (e.key === 'm') vpBtn.click();
+  });
+
+  addEventListener('hashchange', () => show(location.hash.slice(1)));
+  show(location.hash.slice(1));
+</script>
