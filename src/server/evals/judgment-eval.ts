@@ -53,7 +53,7 @@ function agreesWithExpectation(
   result: RunResult,
 ): boolean {
   if (result.verdict !== testCase.expected.verdict) return false;
-  if (testCase.verdictOnly || testCase.expected.met === undefined) return true;
+  if (testCase.expected.met === undefined) return true;
   const expected = [...testCase.expected.met].sort();
   return (
     result.met.length === expected.length &&
@@ -72,6 +72,13 @@ if (cases.length === 0) {
   process.exit(1);
 }
 
+// Zero runs would make the unanimity check vacuously true — a gate that
+// passes without asking the model anything.
+if (!Number.isInteger(runs) || runs < 1) {
+  console.error(`--runs는 1 이상의 정수여야 한다 (받은 값: ${parseArg("runs")})`);
+  process.exit(1);
+}
+
 console.log(`판정 하니스 — 케이스 ${cases.length}개 × ${runs}런\n`);
 
 let failed = 0;
@@ -86,14 +93,15 @@ for (const testCase of cases) {
   const unanimous = passes === runs;
   if (!unanimous) failed += 1;
 
-  const scope = testCase.verdictOnly ? "verdict만" : "verdict + 조건";
+  const scope =
+    testCase.expected.met === undefined ? "verdict만" : "verdict + 조건";
   console.log(
     `${unanimous ? "PASS" : "FAIL"}  ${testCase.name}  (${passes}/${runs} 일치, ${scope})`,
   );
   console.log(`      ${testCase.intent}`);
   console.log(
     `      기대: ${testCase.expected.verdict}${
-      testCase.expected.met && !testCase.verdictOnly
+      testCase.expected.met
         ? ` / met=[${[...testCase.expected.met].sort().join(", ")}]`
         : ""
     }`,

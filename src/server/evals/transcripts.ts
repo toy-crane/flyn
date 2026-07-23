@@ -19,11 +19,12 @@ export type JudgmentCase = {
   request: StoryTurnRequest;
   expected: {
     verdict: "in-progress" | "success" | "failure";
-    /** Condition ids that must be met; omitted when the case is ambiguous. */
+    /**
+     * Condition ids that must be met. Omit it for an ambiguous case: the
+     * verdict alone is asserted, because the per-condition flags may drift.
+     */
     met?: string[];
   };
-  /** Ambiguous cases assert the verdict only — per-condition flags may drift. */
-  verdictOnly?: boolean;
 };
 
 function turn(
@@ -191,6 +192,5 @@ export const JUDGMENT_CASES: JudgmentCase[] = [
       4,
     ),
     expected: { verdict: "in-progress" },
-    verdictOnly: true,
   },
 ];
