@@ -96,7 +96,9 @@ export const TouchableOpacity = (
     className?: string;
   },
 ) => {
-  return useCssElementUntyped(RNTouchableOpacity, props, { className: "style" });
+  return useCssElementUntyped(RNTouchableOpacity, props, {
+    className: "style",
+  });
 };
 TouchableOpacity.displayName = "CSS(TouchableOpacity)";
 
@@ -161,7 +163,9 @@ export const TouchableHighlight = (
     className?: string;
   },
 ) => {
-  return useCssElementUntyped(XXTouchableHighlight, props, { className: "style" });
+  return useCssElementUntyped(XXTouchableHighlight, props, {
+    className: "style",
+  });
 };
 TouchableHighlight.displayName = "CSS(TouchableHighlight)";
 

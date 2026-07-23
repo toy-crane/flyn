@@ -10,10 +10,7 @@ import type {
   NewCorrectionThreadMessage,
   NewStoryMessage,
 } from "@/lib/data-store";
-import type {
-  Correction,
-  CorrectionThreadMessage,
-} from "@/types/correction";
+import type { Correction, CorrectionThreadMessage } from "@/types/correction";
 import type { LearnerProfile, LearnerStats } from "@/types/learner";
 import type {
   Book,

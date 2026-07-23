@@ -181,8 +181,9 @@ export function describeDataStoreContract(
         "learner",
         "ai",
       ]);
-      expect((await store.getSessionStats(session.id)).correctionThreadCount)
-        .toBe(1);
+      expect(
+        (await store.getSessionStats(session.id)).correctionThreadCount,
+      ).toBe(1);
     });
 
     test("completing a session closes it and shelves a book", async () => {

@@ -11,13 +11,16 @@ type BookCoverProps = {
   width?: number;
 };
 
+/** Cover width in the two-column grid, used to scale the title on a hero. */
+const GRID_COVER_WIDTH = 170;
+
 /** Genre-colored spine-shadowed cover, serif title — the book of a session. */
-export function BookCover({
-  title,
-  genre,
-  endingKind,
-  width,
-}: BookCoverProps) {
+export function BookCover({ title, genre, endingKind, width }: BookCoverProps) {
+  // A narrow hero cover needs a smaller title or the words break mid-word.
+  const titleSize = width
+    ? Math.max(11, Math.round((17 * width) / GRID_COVER_WIDTH))
+    : 17;
+
   return (
     <View
       className="aspect-[2/3] rounded-l-md rounded-r-2xl p-3"
@@ -32,7 +35,10 @@ export function BookCover({
       <Text className="text-[11px] font-bold uppercase tracking-wider text-white/80">
         {GENRE_LABEL[genre]}
       </Text>
-      <Text className="mt-1.5 font-story text-[17px] font-bold leading-tight text-white">
+      <Text
+        className="mt-1.5 font-story font-bold leading-tight text-white"
+        style={{ fontSize: titleSize }}
+      >
         {title}
       </Text>
       {endingKind ? (

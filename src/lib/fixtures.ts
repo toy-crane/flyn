@@ -3,7 +3,11 @@
  * (empty library, no corrections, three endings). Placeholder screens read
  * these until the real data and AI routes land.
  */
-import type { Correction, CorrectionThread, TextSpan } from "@/types/correction";
+import type {
+  Correction,
+  CorrectionThread,
+  TextSpan,
+} from "@/types/correction";
 import type { LearnerProfile, LearnerStats } from "@/types/learner";
 import type {
   Book,
@@ -74,7 +78,8 @@ export const SCENARIO_SUGGESTIONS: Scenario[] = [
       },
       {
         id: "trust",
-        description: "그녀가 가방과 사진의 관계를 스스로 이야기할 만큼 신뢰한다",
+        description:
+          "그녀가 가방과 사진의 관계를 스스로 이야기할 만큼 신뢰한다",
       },
     ],
   },
@@ -223,7 +228,8 @@ export const ENDINGS: Record<Ending["kind"], Ending> = {
       '"Forget it." She snatches the photograph back and moves to another compartment. Whatever she knew about the case leaves with her.',
     headline: "이야기 끝 — 목표 실패",
     note: "그녀의 신뢰를 잃어 사진의 출처를 듣지 못했어요.",
-    summary: "끝내 그녀의 경계를 풀지 못했고, 사진은 그녀와 함께 객실을 떠났다.",
+    summary:
+      "끝내 그녀의 경계를 풀지 못했고, 사진은 그녀와 함께 객실을 떠났다.",
   },
   forced: {
     kind: "forced",
@@ -231,7 +237,8 @@ export const ENDINGS: Record<Ending["kind"], Ending> = {
       '"Budapest! Final stop!" The conductor\'s voice cuts through the compartment. She tucks the photograph away and vanishes into the crowd on the platform — the answer still hers alone.',
     headline: "이야기 끝 — 열차가 종착역에 도착",
     note: "30턴이 지나 이야기가 마무리됐어요.",
-    summary: "종착역에 닿을 때까지 대화는 이어졌지만, 사진의 출처는 끝내 듣지 못했다.",
+    summary:
+      "종착역에 닿을 때까지 대화는 이어졌지만, 사진의 출처는 끝내 듣지 못했다.",
   },
 };
 
@@ -307,7 +314,7 @@ export const CORRECTION_THREAD: CorrectionThread = {
     {
       id: "thread-2",
       speaker: "ai",
-      text: "좋은 관찰이에요. 구어에서는 do를 생략하기도 하지만 매우 캐주얼하고 방언적인 느낌이라, 처음 본 사람에게 쓰면 무례하거나 어눌하게 들릴 수 있어요. 중립적인 상황에서는 \"Why do you…\"가 안전해요.",
+      text: '좋은 관찰이에요. 구어에서는 do를 생략하기도 하지만 매우 캐주얼하고 방언적인 느낌이라, 처음 본 사람에게 쓰면 무례하거나 어눌하게 들릴 수 있어요. 중립적인 상황에서는 "Why do you…"가 안전해요.',
     },
   ],
   suggestedQuestions: ["다른 예문 보여줘", "더 캐주얼한 표현은?"],

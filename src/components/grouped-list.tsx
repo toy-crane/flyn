@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SymbolView } from "expo-symbols";
 
 import { Pressable, Text, View } from "@/tw";
 
@@ -49,7 +50,7 @@ export function GroupedListRow({
         {value ?? ""}
       </Text>
       {showChevron ? (
-        <Text className="text-[17px] text-muted">›</Text>
+        <SymbolView name="chevron.right" size={14} tintColor="#8b95a1" />
       ) : null}
     </Pressable>
   );

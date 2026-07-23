@@ -9,12 +9,7 @@ export type EnglishLevel = "beginner" | "intermediate" | "advanced";
 
 /** What the learner wants English for (온보딩 2 — 학습 목적). Weights story subject matter. */
 export type LearningGoal =
-  | "travel"
-  | "living-abroad"
-  | "business"
-  | "exam"
-  | "media"
-  | "fun";
+  "travel" | "living-abroad" | "business" | "exam" | "media" | "fun";
 
 /** Story genre (온보딩 3 — 장르 취향). A preference weight, not a strict filter. */
 export type Genre =

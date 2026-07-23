@@ -97,7 +97,8 @@ describe("scenario generation", () => {
       goal: "형사로서 방문자의 정체를 밝혀내라",
     };
     expect(
-      scenarioRewriteResponseSchema.parse({ scenario: rewritten }).scenario.goal,
+      scenarioRewriteResponseSchema.parse({ scenario: rewritten }).scenario
+        .goal,
     ).toBe("형사로서 방문자의 정체를 밝혀내라");
   });
 

@@ -8,10 +8,7 @@
  * Everything here is scoped to the signed-in learner — there is no user id
  * parameter, because the implementation derives it from the session.
  */
-import type {
-  Correction,
-  CorrectionThreadMessage,
-} from "@/types/correction";
+import type { Correction, CorrectionThreadMessage } from "@/types/correction";
 import type { LearnerProfile, LearnerStats } from "@/types/learner";
 import type {
   AiBeat,
@@ -25,14 +22,10 @@ import type {
 
 /** A message before the store assigns it an id. */
 export type NewStoryMessage =
-  | { speaker: "ai"; beats: AiBeat[] }
-  | { speaker: "learner"; text: string };
+  { speaker: "ai"; beats: AiBeat[] } | { speaker: "learner"; text: string };
 
 /** A correction before the store ties it to a message. */
-export type NewCorrection = Omit<
-  Correction,
-  "id" | "sessionId" | "messageId"
->;
+export type NewCorrection = Omit<Correction, "id" | "sessionId" | "messageId">;
 
 export type NewCorrectionThreadMessage = Omit<CorrectionThreadMessage, "id">;
 
