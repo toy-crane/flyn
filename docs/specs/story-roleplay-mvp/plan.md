@@ -18,8 +18,8 @@
 
 ## Order (세션 단위, 각 세션 = 워크트리 → PR, 배치 사이엔 전부 머지)
 
-**사전 준비**(코드 밖, 사용자 작업 — 배치 1 전까지): AI Gateway 키·Supabase URL/anon
-키를 `.env.local`로, Supabase 대시보드에서 Apple 공급자 활성화 + 번들 ID
+**사전 준비**(코드 밖, 사용자 작업 — 배치 1 전까지): AI Gateway 키·Supabase URL/
+publishable 키를 `.env.local`로, Supabase 대시보드에서 Apple 공급자 활성화 + 번들 ID
 `com.toycrane.flyn` 등록, Xcode 준비.
 
 - **S0 기반** (선행, 단독): 토큰·폰트, 프로토타입에서 추출한 공유 컴포넌트, IA 전체
