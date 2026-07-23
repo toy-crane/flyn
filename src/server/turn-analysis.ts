@@ -12,6 +12,7 @@ import { z } from "zod";
 import type { StoryTurnRequest } from "@/lib/ai-contract";
 import { achievementJudgmentSchema } from "@/lib/ai-contract";
 import type { StoryTurnAnalysis } from "@/lib/ai-stream-contract";
+import { reconcileJudgment } from "@/server/achievement";
 import { AI_MODEL } from "@/server/ai";
 import { resolveCorrectionSpans } from "@/server/correction-spans";
 import {
@@ -19,6 +20,7 @@ import {
   learnerFragment,
   STORY_LANGUAGE_RULES,
 } from "@/server/prompt-fragments";
+import { renderTranscript } from "@/server/transcript";
 
 const quotedCorrectionSchema = z.object({
   originalText: z
@@ -68,22 +70,6 @@ const ANALYSIS_SYSTEM = [
   "- 그 외에는 전부 in-progress.",
 ].join("\n");
 
-function transcriptFragment(messages: StoryTurnRequest["messages"]): string {
-  if (messages.length === 0) return "(아직 대화 없음 — 첫 턴)";
-  return messages
-    .map((message) =>
-      message.speaker === "ai"
-        ? message.beats
-            .map(
-              (beat) =>
-                `AI [${beat.kind === "narration" ? "내레이션" : "대사"}]: ${beat.text}`,
-            )
-            .join("\n")
-        : `학습자: ${message.text}`,
-    )
-    .join("\n");
-}
-
 export async function analyzeTurn(
   request: StoryTurnRequest,
   signal?: AbortSignal,
@@ -103,7 +89,7 @@ export async function analyzeTurn(
     ...scenario.achievementConditions.map((c) => `- ${c.id}: ${c.description}`),
     "",
     "대화록:",
-    transcriptFragment(messages),
+    renderTranscript(messages),
     "",
     `학습자의 이번 입력: ${learnerInput}`,
     "",
@@ -124,5 +110,11 @@ export async function analyzeTurn(
     .map((draft) => resolveCorrectionSpans(learnerInput, draft))
     .filter((draft) => draft !== null);
 
-  return { corrections, achievement: result.output.achievement };
+  return {
+    corrections,
+    achievement: reconcileJudgment(
+      scenario.achievementConditions,
+      result.output.achievement,
+    ),
+  };
 }
