@@ -27,4 +27,4 @@ src/
 - 파일명 kebab-case, 컴포넌트는 named export 1개.
 - 타입만 필요하면 `import type`.
 - 새 화면: `src/screens/<name>/index.tsx`, 전용 컴포넌트는 그 안의 `components/`.
-- 기존 파일(`src/tw/`, 현 라우트)은 재배치하지 않는다.
+- `src/tw/`는 재배치하지 않는다.

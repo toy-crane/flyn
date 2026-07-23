@@ -6,7 +6,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  /* ── project tokens: Toss-inspired (production font: Pretendard) ──── */
+  /* ── project tokens: Toss-inspired ──────────────────────────────── */
   :root {
     --background: #ffffff;
     --surface: #f9fafb;      /* card fill */
@@ -21,9 +21,12 @@
     --danger: #f04452;
     --danger-soft: #fdecec;
     --radius: 16px;
-    --font: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo",
+    /* iOS system fonts, no bundled font: San Francisco + Apple SD Gothic Neo.
+       The story voice is the system serif (New York) — it has no Hangul, so
+       Korean falls back to gothic there. The stacks below approximate both. */
+    --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
             "Malgun Gothic", sans-serif;
-    --font-story: Georgia, "Noto Serif KR", serif;
+    --font-story: ui-serif, Georgia, serif;
   }
 
   /* ── review chrome (sh-*): keep, extend, never strip ─────────────── */
@@ -76,14 +79,23 @@
 
   /* ── prototype structure — Toss-inspired skin ─────────────────────── */
   a { color: inherit }
-  .topbar { display: flex; align-items: center; gap: 10px; padding: 8px 0 12px;
+  /* The native stack header. The back control and bar buttons are the
+     system's own — iOS 26 draws them as glass circles with SF Symbol glyphs,
+     and the title is centered. Never reproduce these by hand: the real ones
+     bring swipe-back, the safe area, and Dynamic Type with them. */
+  .topbar { display: grid; grid-template-columns: 40px 1fr 40px; gap: 10px;
+            align-items: center; padding: 6px 0 12px;
             margin-bottom: 8px; position: sticky; top: -16px;
             background: var(--background); z-index: 5 }
-  .topbar .back { text-decoration: none; font-size: 22px; line-height: 1;
-                  padding: 4px 8px 4px 0; color: var(--foreground) }
-  .topbar .title { font-size: 16px; font-weight: 600; flex: 1;
+  .topbar .back, .topbar .act { width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(25,31,40,.05); color: var(--foreground);
+            display: flex; align-items: center; justify-content: center;
+            text-decoration: none }
+  .topbar .act { justify-self: end }
+  .topbar .back svg { width: 17px; height: 17px }
+  .topbar .act svg { width: 19px; height: 19px }
+  .topbar .title { font-size: 16px; font-weight: 600; text-align: center;
                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-  .topbar .meta { font-size: 12px; color: var(--muted) }
 
   .h1 { font-size: 23px; font-weight: 700; letter-spacing: -0.3px; margin: 14px 0 6px;
         line-height: 1.35 }
@@ -96,7 +108,7 @@
          background: var(--accent-soft); border-radius: 99px; padding: 3px 10px;
          margin-right: 4px }
   .card .t { font-size: 17px; font-weight: 700; margin: 10px 0 6px; letter-spacing: -0.2px }
-  .card .d { font-size: 14px; color: var(--sub2); margin: 0 0 10px; line-height: 1.6 }
+  .card .d { font-size: 16px; color: var(--sub2); margin: 0 0 10px; line-height: 1.55 }
   .card .goal { font-size: 13px; color: var(--muted); margin: 2px 0 }
   .card .goal b { color: var(--accent); font-weight: 600 }
   .card .goal.roles b { color: var(--sub2) }
@@ -214,26 +226,27 @@
   .goalbar .turns { color: var(--muted); white-space: nowrap }
 
   .chat { flex: 1; display: flex; flex-direction: column; gap: 12px }
-  .narration { font-family: var(--font-story); font-style: italic; font-size: 14px;
-               line-height: 1.7; color: var(--sub2);
+  .narration { font-family: var(--font-story); font-style: italic; font-size: 17px;
+               line-height: 1.65; color: var(--sub2);
                border-left: 2px solid var(--hairline); padding: 2px 0 2px 12px }
   .bubble { max-width: 80%; align-self: flex-start; background: var(--fill);
             border-radius: 18px 18px 18px 4px; padding: 10px 14px;
-            font-size: 15px; line-height: 1.55 }
+            font-size: 17px; line-height: 1.65 }
   .me { align-self: flex-end; max-width: 80%; display: flex;
         flex-direction: column; align-items: flex-end }
   .me .bubble { max-width: 100%; align-self: flex-end; background: var(--accent);
                 color: #fff; border-radius: 18px 18px 4px 18px }
-  .err { text-decoration: underline wavy rgba(255,255,255,.85);
-         text-underline-offset: 3px }
+  /* dotted, not wavy: React Native's textDecorationStyle has no wavy option */
+  .err { text-decoration: underline dotted rgba(255,255,255,.9);
+         text-decoration-thickness: 1.5px; text-underline-offset: 3px }
   .fixpanel { background: var(--surface); border-radius: 14px; padding: 10px 14px;
               margin-top: 6px; text-align: left }
-  .fixpanel .fp-corr { font-size: 15px; font-weight: 700; margin: 0 0 4px;
+  .fixpanel .fp-corr { font-size: 17px; font-weight: 700; margin: 0 0 4px;
                        color: var(--foreground) }
   .fixpanel .fp-corr b { color: var(--accent) }
-  .fixpanel .fp-why { font-size: 13px; color: var(--sub2); margin: 0 0 6px;
+  .fixpanel .fp-why { font-size: 15px; color: var(--sub2); margin: 0 0 6px;
                       line-height: 1.5 }
-  .fixpanel .fp-more { display: block; font-size: 14px; font-weight: 600;
+  .fixpanel .fp-more { display: block; font-size: 15px; font-weight: 600;
                        color: var(--accent); text-decoration: none; text-align: right;
                        padding: 8px 0 2px }
 
@@ -245,7 +258,7 @@
   .inputbar { display: flex; gap: 8px; padding-top: 12px; margin-top: auto;
               background: var(--background) }
   .inputbar .field { flex: 1; background: var(--fill);
-                     border-radius: 99px; padding: 13px 16px; font-size: 14px;
+                     border-radius: 99px; padding: 13px 16px; font-size: 17px;
                      color: var(--muted) }
   .inputbar .send { width: 44px; height: 44px; border-radius: 99px; background: var(--accent);
                     color: #fff; display: flex; align-items: center; justify-content: center;
@@ -256,10 +269,10 @@
   .fixcard .orig { font-size: 14px; color: var(--muted); text-decoration: line-through;
                    margin: 0 0 6px }
   .fixcard .corr { font-size: 16px; font-weight: 700; color: var(--accent); margin: 0 0 10px }
-  .fixcard .why { font-size: 14px; line-height: 1.6; margin: 0; color: var(--sub2) }
+  .fixcard .why { font-size: 16px; line-height: 1.65; margin: 0; color: var(--sub2) }
 
   .qchips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px }
-  .qchip { font-size: 14px; background: var(--fill);
+  .qchip { font-size: 15px; background: var(--fill);
            border-radius: 99px; padding: 12px 16px; color: var(--sub2) }
 
   .stats { display: flex; gap: 8px; margin: 14px 0 }
@@ -268,20 +281,27 @@
   .stat .n { font-size: 24px; font-weight: 700; letter-spacing: -0.3px }
   .stat .l { font-size: 12px; color: var(--muted) }
 
-  .empty { text-align: center; color: var(--muted); font-size: 14px;
+  .empty { text-align: center; color: var(--muted); font-size: 15px;
            background: var(--surface); border-radius: 16px;
            padding: 24px 14px; line-height: 1.6 }
 
   .inputbox { background: var(--fill); border-radius: 12px; padding: 14px;
-              min-height: 110px; font-size: 15px; line-height: 1.6;
+              min-height: 110px; font-size: 17px; line-height: 1.6;
               color: var(--foreground) }
-  .kv { display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid var(--hairline);
-        font-size: 14px; line-height: 1.55 }
-  .kv .k { color: var(--muted); flex: none; width: 52px }
-  .kv .v { flex: 1; color: var(--sub2) }
-  .kv .v b { font-weight: 700; color: var(--foreground) }
-  .kv .act { flex: none; align-self: center; color: var(--muted); font-size: 16px;
-             text-decoration: none; white-space: nowrap; padding: 12px 4px 12px 10px }
+  /* A label column beside the value cannot align when the two are different
+     sizes, and it boxes a long scene description into a narrow gutter. Label
+     above, value below, both on the same left edge; the whole row is the edit
+     target and the chevron centers on it however tall the row grows. */
+  .kv { display: flex; align-items: center; gap: 12px; padding: 14px 0;
+        border-top: 1px solid var(--hairline); text-decoration: none }
+  .kv .kvtext { flex: 1; min-width: 0 }
+  .kv .k { display: block; font-size: 13px; color: var(--muted); margin: 0 0 4px }
+  .kv .v { display: block; font-size: 17px; line-height: 1.65; color: var(--sub2) }
+  .kv .v b { font-weight: 600; color: var(--foreground) }
+  .kv .chev { flex: none; color: var(--muted); display: flex; align-items: center }
+  .kv .chev svg { width: 13px; height: 13px }
+  /* 상황 만들기's card is the screen's subject, one step below the screen title */
+  .card.subject .t { font-size: 20px; line-height: 1.35; margin: 12px 0 10px }
   .sheet { background: #fff; border-radius: 24px 24px 0 0; padding: 8px 16px 16px;
            margin: auto -12px -16px; box-shadow: 0 -8px 24px rgba(25,31,40,.10);
            position: sticky; bottom: -16px; z-index: 6 }
@@ -290,8 +310,8 @@
   .sheet .st { font-size: 16px; font-weight: 700; margin: 0 0 10px }
   .btnrow { display: flex; gap: 8px; margin-top: 12px }
   .btnrow .cta { flex: 1; margin-top: 0 }
-  .rolesline { font-size: 12px; color: var(--muted); margin: 0 2px 10px }
-  .rolesline b { font-weight: 600; color: var(--sub2) }
+  .rolesline { font-size: 13px; color: var(--sub2); margin: 0 2px 10px }
+  .rolesline b { font-weight: 600; color: var(--foreground) }
 </style>
 
 <header class="sh-bar">
@@ -457,30 +477,31 @@
   <section data-screen="create" data-title="⑥ 상황 만들기"
            data-states="기본,아이디어 입력,필드 수정">
     <div class="topbar">
-      <a class="back" href="#home">‹</a>
+      <a class="back" href="#home" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></a>
       <span class="title">새로운 상황</span>
-      <a class="meta" href="#create"
-         style="color:var(--accent);font-weight:600;text-decoration:none">직접 만들기</a>
+      <a class="act" href="#create" aria-label="직접 만들기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 3 21 6.5 11.5 16 7.5 17l1-4z"/><path d="M19.5 13v6a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>
     </div>
 
     <p class="h1">이런 상황은 어때요?</p>
-    <p class="sub">AI가 즉석에서 만든 상황이에요. 마음에 안 드는 부분만 바꿔도 돼요.</p>
 
-    <div class="card">
+    <div class="card subject" style="margin-top:12px">
       <span class="tag">미스터리</span>
       <p class="t">The lighthouse knock</p>
-      <div class="kv"><span class="k">장면</span>
+      <a class="kv" href="#create"><span class="kvtext">
+        <span class="k">장면</span>
         <span class="v">폭풍우 치는 밤, 외딴 등대에서 눈을 뜬다. 자정이 넘은 시각,
         누군가 문을 세 번씩 규칙적으로 두드리고 있다. 이 섬에 나 말고는 아무도
-        없어야 한다.</span>
-        <a class="act" href="#create">✎</a></div>
-      <div class="kv"><span class="k">목표</span><span class="v"><b>방문자의 정체를
-        알아내고, 문을 열지 결정하라</b></span>
-        <a class="act" href="#create">✎</a></div>
-      <div class="kv"><span class="k">내 역할</span><span class="v">등대지기</span>
-        <a class="act" href="#create">✎</a></div>
-      <div class="kv"><span class="k">AI 역할</span><span class="v">문 밖의 방문자</span>
-        <a class="act" href="#create">✎</a></div>
+        없어야 한다.</span></span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5"/></svg></span></a>
+      <a class="kv" href="#create"><span class="kvtext">
+        <span class="k">목표</span>
+        <span class="v"><b>방문자의 정체를 알아내고, 문을 열지 결정하라</b></span>
+        </span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5"/></svg></span></a>
+      <a class="kv" href="#create"><span class="kvtext">
+        <span class="k">내 역할</span>
+        <span class="v">등대지기</span></span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5"/></svg></span></a>
+      <a class="kv" href="#create"><span class="kvtext">
+        <span class="k">AI 역할</span>
+        <span class="v">문 밖의 방문자</span></span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5"/></svg></span></a>
     </div>
 
     <div class="ctabar">
@@ -515,7 +536,7 @@
   <section data-screen="session" data-title="③ 세션"
            data-states="진행중,성공 결말,실패 결말,강제 결말">
     <div class="topbar">
-      <a class="back" href="#home">‹</a>
+      <a class="back" href="#home" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></a>
       <span class="title">Night train to Budapest</span>
     </div>
     <div class="goalbar">
@@ -596,7 +617,7 @@
   <!-- ④ 교정 스레드 -->
   <section data-screen="correction" data-title="④ 교정 스레드">
     <div class="topbar">
-      <a class="back" href="#session">‹</a>
+      <a class="back" href="#session" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></a>
       <span class="title">교정</span>
     </div>
 
@@ -629,7 +650,7 @@
   <!-- ⑤ 결과: 세션 직후 -->
   <section data-screen="summary" data-title="⑤ 결과" data-states="기본,교정 없음">
     <div class="topbar">
-      <a class="back" href="#session">‹</a>
+      <a class="back" href="#session" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></a>
       <span class="title"></span>
     </div>
     <div style="text-align:center">
@@ -686,7 +707,7 @@
   <!-- ⑨ 책 상세: 서재에서 열람 -->
   <section data-screen="book" data-title="⑨ 책 상세">
     <div class="topbar">
-      <a class="back" href="#history">‹</a>
+      <a class="back" href="#history" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></a>
       <span class="title"></span>
     </div>
 

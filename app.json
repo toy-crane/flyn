@@ -1,18 +1,33 @@
 {
   "expo": {
-    "scheme": "acme",
-    "userInterfaceStyle": "automatic",
-    "orientation": "default",
+    "name": "flyn",
+    "slug": "flyn",
+    "scheme": "flyn",
+    "userInterfaceStyle": "light",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "bundleIdentifier": "com.toycrane.flyn",
+      "usesAppleSignIn": true,
+      "supportsTablet": false
+    },
     "web": {
-      "output": "static"
+      "output": "server"
     },
     "plugins": [
       "expo-router",
       "expo-image",
-      "expo-splash-screen",
-      "expo-status-bar"
-    ],
-    "name": "flyn",
-    "slug": "flyn"
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 120,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      "expo-status-bar",
+      "expo-apple-authentication"
+    ]
   }
 }

@@ -36,3 +36,7 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# Native projects — generated from app.json by prebuild (CNG)
+/ios
+/android

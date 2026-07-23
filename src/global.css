@@ -6,18 +6,44 @@
 
 @layer theme {
   @theme {
-    /* Fonts */
-    --font-rounded: "SF Pro Rounded", "Hiragino Maru Gothic ProN", Meiryo,
-      "MS PGothic", sans-serif;
+    /* Toss-inspired tokens — prototype.html :root is the source of truth */
+    --color-background: #ffffff;
+    --color-surface: #f9fafb;
+    --color-fill: #f2f4f6;
+    --color-foreground: #191f28;
+    --color-sub2: #4e5968;
+    --color-muted: #8b95a1;
+    --color-hairline: #e5e8eb;
+    --color-accent: #3182f6;
+    --color-accent-soft: #e8f3ff;
+    --color-danger: #f04452;
+    --color-danger-soft: #fdecec;
+
+    /* Book cover fills, keyed by genre */
+    --color-genre-mystery: #22304a;
+    --color-genre-fantasy: #4b3a8f;
+    --color-genre-scifi: #0f5e63;
+    --color-genre-daily: #9a5b12;
+
+    /* the book's voice: narration, book covers, "The End".
+       Per-platform values are set in the @media blocks below. */
+    --font-story: Georgia, serif;
+
+    --radius-field: 12px;
+    --radius-cta: 14px;
+    --radius-control: 16px;
+    --radius-bubble: 18px;
+    --radius-card: 20px;
+    --radius-sheet: 24px;
   }
 }
 
 @media android {
   :root {
     --font-mono: monospace;
-    --font-rounded: normal;
     --font-serif: serif;
     --font-sans: normal;
+    --font-story: serif;
   }
 }
 
@@ -26,6 +52,6 @@
     --font-mono: ui-monospace;
     --font-serif: ui-serif;
     --font-sans: system-ui;
-    --font-rounded: ui-rounded;
+    --font-story: ui-serif;
   }
 }
