@@ -23,14 +23,16 @@ function Field({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${label} 수정`}
-      className="flex-row items-start gap-3 border-t border-hairline py-3.5"
+      className="flex-row items-center gap-3 border-t border-hairline py-3.5"
     >
       {/*
         Label above, value below, both on the same left edge — a label column
         beside the value cannot align when the two are different sizes, and it
         boxes the scene description into a narrow gutter. The whole row is the
         edit target, as it is in Settings, so the glyph needs no hit area of
-        its own. iOS type scale: Footnote label, Body value.
+        its own, and it centers on the row the way a table cell's accessory
+        does however tall the cell grows. iOS type scale: Footnote label,
+        Body value.
       */}
       <View className="flex-1">
         <Text className="mb-1 text-[13px] text-muted">{label}</Text>
@@ -42,12 +44,7 @@ function Field({
           {value}
         </Text>
       </View>
-      <SymbolView
-        name="chevron.right"
-        size={14}
-        tintColor="#8b95a1"
-        style={{ marginTop: 3 }}
-      />
+      <SymbolView name="chevron.right" size={14} tintColor="#8b95a1" />
     </Pressable>
   );
 }
