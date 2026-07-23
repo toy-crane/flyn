@@ -9,6 +9,13 @@ import { Image as RNImage } from "expo-image";
 
 const AnimatedExpoImage = Animated.createAnimatedComponent(RNImage);
 
+/** See the note on the matching helper in ./index.tsx. */
+const useCssElementUntyped = useCssElement as (
+  component: React.ComponentType<any>,
+  props: any,
+  mapping: Record<string, string>,
+) => React.ReactElement;
+
 export type ImageProps = React.ComponentProps<typeof Image>;
 
 function CSSImage(props: React.ComponentProps<typeof AnimatedExpoImage>) {
@@ -35,7 +42,7 @@ export const Image = (
     className?: string;
   }
 ) => {
-  return useCssElement(CSSImage, props, {
+  return useCssElementUntyped(CSSImage, props, {
     className: "style",
   });
 };

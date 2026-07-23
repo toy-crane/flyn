@@ -16,14 +16,27 @@ import {
   TextInput as RNTextInput,
   FlatList as RNFlatList,
   StyleSheet,
+  type ViewStyle,
 } from "react-native";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
+
+/**
+ * react-native-css derives a dot-notation prop map from the component type.
+ * For Animated wrappers and generic list components that map exceeds
+ * TypeScript's instantiation depth, so those call sites go through this
+ * widened view of the same function. Runtime behavior is unchanged.
+ */
+const useCssElementUntyped = useCssElement as (
+  component: React.ComponentType<any>,
+  props: any,
+  mapping: Record<string, string>,
+) => React.ReactElement;
 
 // CSS-enabled Link
 export const Link = (
   props: React.ComponentProps<typeof RouterLink> & { className?: string },
 ) => {
-  return useCssElement(RouterLink, props, { className: "style" });
+  return useCssElementUntyped(RouterLink, props, { className: "style" });
 };
 
 Link.Trigger = RouterLink.Trigger;
@@ -43,7 +56,7 @@ export type ViewProps = React.ComponentProps<typeof RNView> & {
 };
 
 export const View = (props: ViewProps) => {
-  return useCssElement(RNView, props, { className: "style" });
+  return useCssElementUntyped(RNView, props, { className: "style" });
 };
 View.displayName = "CSS(View)";
 
@@ -51,7 +64,7 @@ View.displayName = "CSS(View)";
 export const Text = (
   props: React.ComponentProps<typeof RNText> & { className?: string },
 ) => {
-  return useCssElement(RNText, props, { className: "style" });
+  return useCssElementUntyped(RNText, props, { className: "style" });
 };
 Text.displayName = "CSS(Text)";
 
@@ -62,7 +75,7 @@ export const ScrollView = (
     contentContainerClassName?: string;
   },
 ) => {
-  return useCssElement(RNScrollView, props, {
+  return useCssElementUntyped(RNScrollView, props, {
     className: "style",
     contentContainerClassName: "contentContainerStyle",
   });
@@ -73,7 +86,7 @@ ScrollView.displayName = "CSS(ScrollView)";
 export const Pressable = (
   props: React.ComponentProps<typeof RNPressable> & { className?: string },
 ) => {
-  return useCssElement(RNPressable, props, { className: "style" });
+  return useCssElementUntyped(RNPressable, props, { className: "style" });
 };
 Pressable.displayName = "CSS(Pressable)";
 
@@ -83,7 +96,7 @@ export const TouchableOpacity = (
     className?: string;
   },
 ) => {
-  return useCssElement(RNTouchableOpacity, props, { className: "style" });
+  return useCssElementUntyped(RNTouchableOpacity, props, { className: "style" });
 };
 TouchableOpacity.displayName = "CSS(TouchableOpacity)";
 
@@ -91,7 +104,7 @@ TouchableOpacity.displayName = "CSS(TouchableOpacity)";
 export const TextInput = (
   props: React.ComponentProps<typeof RNTextInput> & { className?: string },
 ) => {
-  return useCssElement(RNTextInput, props, { className: "style" });
+  return useCssElementUntyped(RNTextInput, props, { className: "style" });
 };
 TextInput.displayName = "CSS(TextInput)";
 
@@ -99,7 +112,7 @@ TextInput.displayName = "CSS(TextInput)";
 export const AnimatedView = (
   props: React.ComponentProps<typeof Animated.View> & { className?: string },
 ) => {
-  return useCssElement(Animated.View, props, { className: "style" });
+  return useCssElementUntyped(Animated.View, props, { className: "style" });
 };
 AnimatedView.displayName = "CSS(AnimatedView)";
 
@@ -111,7 +124,7 @@ export const AnimatedScrollView = (
     contentContainerClassName?: string;
   },
 ) => {
-  return useCssElement(Animated.ScrollView, props, {
+  return useCssElementUntyped(Animated.ScrollView, props, {
     className: "style",
     contentClassName: "contentContainerStyle",
     contentContainerClassName: "contentContainerStyle",
@@ -123,7 +136,7 @@ AnimatedScrollView.displayName = "CSS(AnimatedScrollView)";
 export const AnimatedText = (
   props: React.ComponentProps<typeof Animated.Text> & { className?: string },
 ) => {
-  return useCssElement(Animated.Text, props, { className: "style" });
+  return useCssElementUntyped(Animated.Text, props, { className: "style" });
 };
 AnimatedText.displayName = "CSS(AnimatedText)";
 
@@ -131,7 +144,9 @@ AnimatedText.displayName = "CSS(AnimatedText)";
 function XXTouchableHighlight(
   props: React.ComponentProps<typeof RNTouchableHighlight>,
 ) {
-  const { underlayColor, ...style } = StyleSheet.flatten(props.style) || {};
+  // NativeWind funnels underlayColor through the style object; peel it back out.
+  const { underlayColor, ...style } = (StyleSheet.flatten(props.style) ||
+    {}) as ViewStyle & { underlayColor?: string };
   return (
     <RNTouchableHighlight
       underlayColor={underlayColor}
@@ -146,7 +161,7 @@ export const TouchableHighlight = (
     className?: string;
   },
 ) => {
-  return useCssElement(XXTouchableHighlight, props, { className: "style" });
+  return useCssElementUntyped(XXTouchableHighlight, props, { className: "style" });
 };
 TouchableHighlight.displayName = "CSS(TouchableHighlight)";
 
@@ -157,7 +172,7 @@ export function FlatList<T>(
     contentContainerClassName?: string;
   },
 ) {
-  return useCssElement(RNFlatList<T>, props, {
+  return useCssElementUntyped(RNFlatList<T>, props, {
     className: "style",
     contentContainerClassName: "contentContainerStyle",
   });
@@ -170,7 +185,7 @@ export const SafeAreaView = (
     className?: string;
   },
 ) => {
-  return useCssElement(RNSafeAreaView, props, { className: "style" });
+  return useCssElementUntyped(RNSafeAreaView, props, { className: "style" });
 };
 SafeAreaView.displayName = "CSS(SafeAreaView)";
 
