@@ -56,6 +56,11 @@ async function postStoryTurn(body: unknown): Promise<StreamedTurn> {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
+  // An error response is not SSE — surface it as itself rather than as a
+  // downstream schema complaint about missing beats.
+  if (!res.ok) {
+    throw new Error(`story-turn ${res.status}: ${await res.text()}`);
+  }
   const parts: Record<string, unknown> = {};
   let narrativeWrites = 0;
   const decoder = new TextDecoder();
@@ -102,7 +107,12 @@ describe.skipIf(!BASE)("scenario-generate", () => {
       });
       expect(res.status).toBe(200);
       const data = scenarioGenerationResponseSchema.parse(await res.json());
-      expect(data.scenarios).toHaveLength(3);
+      // The spec asks for 2~3 cards and the route degrades rather than fails
+      // when a slot's gateway call dies, so the count is a range, not a fact.
+      expect(data.scenarios.length).toBeGreaterThanOrEqual(1);
+      expect(data.scenarios.length).toBeLessThanOrEqual(3);
+      const genres = data.scenarios.map((scenario) => scenario.genre);
+      expect(new Set(genres).size).toBe(genres.length);
       for (const scenario of data.scenarios) {
         expect(GENRES).toContain(scenario.genre);
         expect(scenario.achievementConditions.length).toBeGreaterThanOrEqual(1);
@@ -160,6 +170,30 @@ describe.skipIf(!BASE)("scenario-rewrite", () => {
       expect(data.scenario.achievementConditions.length).toBeGreaterThanOrEqual(
         1,
       );
+    },
+    AI_TIMEOUT,
+  );
+
+  test(
+    "replacing a role rewrites the goal off the role that left",
+    async () => {
+      // The goal names the AI role on purpose: once that role is gone, a goal
+      // still pointing at it is machine-detectable.
+      const scenario = {
+        ...SCENARIO_SUGGESTIONS[0]!,
+        goal: "회색 코트의 여자에게서 사진의 출처를 알아내라",
+      };
+      const res = await post("/api/scenario-rewrite", {
+        profile: LEARNER_PROFILE,
+        scenario,
+        field: "aiRole",
+        replacement: "열차 차장",
+      });
+      expect(res.status).toBe(200);
+      const data = scenarioRewriteResponseSchema.parse(await res.json());
+      expect(data.scenario.aiRole).toBe("열차 차장");
+      expect(data.scenario.goal).not.toContain("회색 코트");
+      expect(data.scenario.goal).not.toBe(scenario.goal);
     },
     AI_TIMEOUT,
   );

@@ -7,7 +7,7 @@
  * the request, and applies the learner's verbatim replacement.
  */
 import { generateText, Output } from "ai";
-import { z } from "zod";
+import type { z } from "zod";
 
 import type { ScenarioGenerationRequest, ScenarioGenerationResponse, ScenarioRewriteRequest, ScenarioRewriteResponse } from "@/lib/ai-contract";
 import { scenarioSchema } from "@/lib/ai-contract";
@@ -44,7 +44,7 @@ const SCENARIO_SYSTEM = [
  * a three-card home never suggests the same genre twice.
  */
 export function genreSlots(profile: LearnerProfile, count: number): Genre[] {
-  const preferred = [...profile.genrePreferences];
+  const preferred = [...new Set(profile.genrePreferences)];
   const rest = GENRES.filter((genre) => !preferred.includes(genre));
   const pool = [...preferred, ...rest];
   return Array.from({ length: count }, (_, i) => pool[i % pool.length]!);
@@ -53,7 +53,9 @@ export function genreSlots(profile: LearnerProfile, count: number): Genre[] {
 /**
  * One call per card rather than one call for all of them: a three-scenario
  * single call runs long enough to hit gateway timeouts, and the slots have no
- * reason to share a generation.
+ * reason to share a generation. Splitting also multiplies the chance that one
+ * call fails, so a partial result is kept — the contract asks for at least one
+ * scenario, and two cards beat an error screen.
  */
 export async function generateScenarios(
   request: ScenarioGenerationRequest,
@@ -62,15 +64,16 @@ export async function generateScenarios(
   const { profile, count, idea } = request;
   const slots = genreSlots(profile, count);
 
-  const scenarios = await Promise.all(
+  const settled = await Promise.allSettled(
     slots.map(async (genre) => {
       const prompt = [
         learnerFragment(profile),
         "",
-        `이번 상황의 장르는 "${GENRE_LABEL[genre]}"(${genre})다. genre 필드에 그대로 넣어라.`,
+        // The learner's own idea carries its own genre; a preference slot must
+        // not relabel a space station as a mystery.
         idea === null
-          ? `학습자 프로필에 어울리는 상황 1개를 만들어라.`
-          : `학습자가 직접 낸 아이디어를 이 장르로 구체화하라. 아이디어(한국어일 수 있음): ${JSON.stringify(idea)}`,
+          ? `이번 상황의 장르는 "${GENRE_LABEL[genre]}"(${genre})다. genre 필드에 그대로 넣어라.\n학습자 프로필에 어울리는 상황 1개를 만들어라.`
+          : `학습자가 직접 낸 아이디어를 상황 1개로 구체화하라. 아이디어(한국어일 수 있음): ${JSON.stringify(idea)}\ngenre는 아이디어의 내용에 가장 맞는 것을 고른다.`,
       ].join("\n");
 
       const result = await generateText({
@@ -81,9 +84,32 @@ export async function generateScenarios(
         abortSignal: signal,
         output: Output.object({ schema: scenarioSchema }),
       });
-      return { ...result.output, genre };
+      return idea === null ? { ...result.output, genre } : result.output;
     }),
   );
+
+  const scenarios = settled
+    .filter((slot) => slot.status === "fulfilled")
+    .map((slot) => slot.value);
+
+  // A dropped slot is invisible to the client, so it has to be visible here.
+  for (const slot of settled) {
+    if (slot.status !== "rejected") continue;
+    const summary =
+      slot.reason instanceof Error
+        ? `${slot.reason.name}: ${slot.reason.message}`
+        : String(slot.reason);
+    console.warn(
+      `[scenario-generate] ${settled.length}개 중 1개 슬롯 실패 — ${summary}`,
+    );
+  }
+
+  if (scenarios.length === 0) {
+    const [first] = settled;
+    throw first?.status === "rejected"
+      ? first.reason
+      : new Error("no scenario generated");
+  }
   return { scenarios };
 }
 
