@@ -16,11 +16,14 @@ export function GoalBar({
 }) {
   return (
     <View className="mb-2 flex-row items-center gap-2 rounded-field bg-fill px-3 py-2.5">
-      <Text className="flex-1 text-[13px] text-foreground">
-        <Text className="font-bold text-accent">목표</Text>
+      <Text className="flex-1 text-[13px] text-label">
+        <Text className="font-bold text-tint">목표</Text>
         {` · ${goal}`}
       </Text>
-      <Text className="text-[13px] text-muted">{`${turnCount} / ${maxTurns}턴`}</Text>
+      <Text
+        className="text-[13px] text-secondary"
+        style={{ fontVariant: ["tabular-nums"] }}
+      >{`${turnCount} / ${maxTurns}턴`}</Text>
     </View>
   );
 }
@@ -35,11 +38,11 @@ export function RolesLine({
 }) {
   return (
     // Who is playing whom is meaningful text, not decoration — Footnote, and
-    // the caption gray is reserved for what the spec calls decorative.
-    <Text className="mx-0.5 mb-2.5 text-[13px] text-sub2">
-      <Text className="font-semibold text-foreground">나</Text>
+    // full contrast since it names the two roles.
+    <Text className="mx-0.5 mb-2.5 text-[13px] text-secondary">
+      <Text className="font-semibold text-label">나</Text>
       {` · ${myRole}  `}
-      <Text className="font-semibold text-foreground">AI</Text>
+      <Text className="font-semibold text-label">AI</Text>
       {` · ${aiRole}(내레이션 포함)`}
     </Text>
   );

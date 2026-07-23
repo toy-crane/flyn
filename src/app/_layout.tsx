@@ -1,7 +1,8 @@
 import "../global.css";
 
+import { useColorScheme } from "react-native";
 import { Stack } from "expo-router";
-import { DefaultTheme, ThemeProvider } from "expo-router/react-navigation";
+import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router/react-navigation";
 
 /**
  * Root stack, and the place the spec's IA tab-bar rule is enforced:
@@ -17,19 +18,17 @@ import { DefaultTheme, ThemeProvider } from "expo-router/react-navigation";
  *
  * Headers are the native stack's own — the back control has to be Apple's, and
  * with it come swipe-back, the safe area, and Dynamic Type. Screens set their
- * titles through Stack.Screen options. Dark mode is deferred, so the light
- * theme is fixed rather than following the system.
+ * titles through Stack.Screen options. Header colors and title size are left
+ * at their native defaults; ThemeProvider follows the system color scheme.
  */
 export default function RootLayout() {
+  const scheme = useColorScheme();
+
   return (
-    <ThemeProvider value={DefaultTheme}>
+    <ThemeProvider value={scheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack
         screenOptions={{
-          headerShadowVisible: false,
           headerBackButtonDisplayMode: "minimal",
-          headerTintColor: "#191f28",
-          headerStyle: { backgroundColor: "#ffffff" },
-          headerTitleStyle: { fontSize: 16, color: "#191f28" },
         }}
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />

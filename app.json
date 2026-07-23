@@ -3,7 +3,7 @@
     "name": "flyn",
     "slug": "flyn",
     "scheme": "flyn",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "ios": {
@@ -23,7 +23,11 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 120,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#000000"
+          }
         }
       ],
       "expo-status-bar",

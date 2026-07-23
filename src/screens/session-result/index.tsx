@@ -22,10 +22,10 @@ export function SessionResultScreen({ sessionId }: { sessionId: string }) {
   const stats = useStoreData((store) => store.getSessionStats(sessionId));
 
   if (!session?.ending || !stats)
-    return <View className="flex-1 bg-background" />;
+    return <View className="flex-1 bg-grouped" />;
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["bottom"]}>
+    <SafeAreaView className="flex-1 bg-grouped" edges={["bottom"]}>
       <Stack.Screen options={{ title: "" }} />
       <ScrollView className="flex-1 px-3" contentContainerClassName="pb-4">
         <View className="items-center">
@@ -37,11 +37,11 @@ export function SessionResultScreen({ sessionId }: { sessionId: string }) {
           />
           <Text
             role="heading"
-            className="mt-3 mb-1.5 font-story text-[23px] font-bold italic text-foreground"
+            className="mt-3 mb-1.5 font-story text-[22px] font-bold italic text-label"
           >
             The End
           </Text>
-          <Text className="mb-2 text-[13px] font-semibold text-accent">
+          <Text className="mb-2 text-[13px] font-semibold text-tint">
             6일 연속 학습
           </Text>
           <ScreenSubtitle>{session.ending.summary}</ScreenSubtitle>
@@ -71,7 +71,7 @@ export function SessionResultScreen({ sessionId }: { sessionId: string }) {
         )}
       </ScrollView>
 
-      <CtaBar>
+      <CtaBar background="grouped">
         <CtaButton label="완료" onPress={() => router.dismissTo("/home")} />
       </CtaBar>
     </SafeAreaView>

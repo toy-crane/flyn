@@ -6,7 +6,7 @@ import { CtaButton } from "@/components/cta-button";
 import { ScreenTitle } from "@/components/headings";
 import { Tag } from "@/components/tag";
 import { DRAFT_SCENARIO } from "@/lib/fixtures";
-import { Pressable, SafeAreaView, ScrollView, Text, View } from "@/tw";
+import { Pressable, SafeAreaView, ScrollView, Text, View, useCSSVariable } from "@/tw";
 import { GENRE_LABEL } from "@/types/learner";
 
 /** One editable row of the draft scenario. */
@@ -19,11 +19,13 @@ function Field({
   value: string;
   emphasize?: boolean;
 }) {
+  const chevronColor = useCSSVariable("--color-tertiary");
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${label} 수정`}
-      className="flex-row items-center gap-3 border-t border-hairline py-3.5"
+      className="flex-row items-center gap-3 border-t border-separator py-3.5 active:bg-fill"
     >
       {/*
         Label above, value below, both on the same left edge — a label column
@@ -35,16 +37,16 @@ function Field({
         Body value.
       */}
       <View className="flex-1">
-        <Text className="mb-1 text-[13px] text-muted">{label}</Text>
+        <Text className="mb-1 text-[13px] text-secondary">{label}</Text>
         <Text
           className={`text-[17px] leading-7 ${
-            emphasize ? "font-semibold text-foreground" : "text-sub2"
+            emphasize ? "font-semibold text-label" : "text-secondary"
           }`}
         >
           {value}
         </Text>
       </View>
-      <SymbolView name="chevron.right" size={14} tintColor="#8b95a1" />
+      <SymbolView name="chevron.right" size={14} tintColor={chevronColor} />
     </Pressable>
   );
 }
@@ -57,7 +59,7 @@ export function ScenarioCreateScreen() {
   const scenario = DRAFT_SCENARIO;
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["bottom"]}>
+    <SafeAreaView className="flex-1 bg-grouped" edges={["bottom"]}>
       <Stack.Screen options={{ title: "새로운 상황" }} />
       {/*
         직접 만들기 is a real bar button, not a text link: a six-character
@@ -73,11 +75,14 @@ export function ScenarioCreateScreen() {
       <ScrollView className="flex-1 px-3" contentContainerClassName="pb-4">
         <ScreenTitle>이런 상황은 어때요?</ScreenTitle>
 
-        <View className="mt-3 rounded-card bg-surface px-4 pt-[18px] pb-1.5">
+        <View
+          className="mt-3 rounded-card bg-cell px-4 pt-[18px] pb-1.5"
+          style={{ borderCurve: "continuous" }}
+        >
           <Tag label={GENRE_LABEL[scenario.genre]} />
           {/* Title 3 — the card is this screen's subject, one clear step
               below the screen title. */}
-          <Text className="mt-3 mb-2.5 text-xl font-bold leading-7 text-foreground">
+          <Text className="mt-3 mb-2.5 text-xl font-bold leading-7 text-label">
             {scenario.title}
           </Text>
           <Field label="장면" value={scenario.scene} />
@@ -87,7 +92,7 @@ export function ScenarioCreateScreen() {
         </View>
       </ScrollView>
 
-      <CtaBar>
+      <CtaBar background="grouped">
         <CtaButton
           label="이 상황으로 시작"
           onPress={() => router.replace("/session/session-night-train")}

@@ -15,13 +15,13 @@ export function Chip({ label, selected = false, onPress }: ChipProps) {
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}
-      className={`min-h-11 justify-center rounded-full px-4 py-2.5 ${
-        selected ? "bg-accent-soft" : "bg-fill"
+      className={`min-h-11 justify-center rounded-full px-4 py-2.5 active:opacity-75 ${
+        selected ? "bg-tint" : "bg-fill"
       }`}
     >
       <Text
         className={`text-[15px] ${
-          selected ? "font-bold text-accent" : "text-sub2"
+          selected ? "font-semibold text-white" : "text-secondary"
         }`}
       >
         {label}

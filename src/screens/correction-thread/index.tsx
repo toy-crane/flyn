@@ -27,14 +27,17 @@ export function CorrectionThreadScreen({
     <SafeAreaView className="flex-1 bg-background" edges={["bottom"]}>
       <Stack.Screen options={{ title: "교정" }} />
       <View className="px-3 pt-3">
-        <View className="rounded-card bg-surface p-4">
-          <Text className="mb-1.5 text-sm text-muted line-through">
+        <View
+          className="rounded-card bg-cell p-4"
+          style={{ borderCurve: "continuous" }}
+        >
+          <Text className="mb-1.5 text-sm text-tertiary line-through">
             {correction.originalText}
           </Text>
-          <Text className="mb-2.5 text-base font-bold text-accent">
+          <Text className="mb-2.5 text-base font-bold text-tint">
             {correction.correctedText}
           </Text>
-          <Text className="text-[16px] leading-7 text-sub2">
+          <Text className="text-[16px] leading-7 text-secondary">
             {correction.explanation}
           </Text>
         </View>

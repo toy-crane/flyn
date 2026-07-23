@@ -1,7 +1,7 @@
-import { router } from "expo-router";
+import { Stack, router } from "expo-router";
 
 import { CtaButton } from "@/components/cta-button";
-import { ScreenSubtitle, ScreenTitle } from "@/components/headings";
+import { ScreenSubtitle } from "@/components/headings";
 import { ScenarioCard } from "@/components/scenario-card";
 import { ScreenScroll } from "@/components/screen-scroll";
 import { SCENARIO_SUGGESTIONS } from "@/lib/fixtures";
@@ -14,8 +14,8 @@ export function HomeScreen() {
   const scenarios = SCENARIO_SUGGESTIONS;
 
   return (
-    <ScreenScroll>
-      <ScreenTitle>오늘의 이야기</ScreenTitle>
+    <ScreenScroll background="grouped">
+      <Stack.Screen options={{ title: "오늘의 이야기", headerLargeTitle: true }} />
       <ScreenSubtitle>마음에 드는 상황을 골라 시작하세요.</ScreenSubtitle>
 
       {scenarios.map((scenario) => (
@@ -28,7 +28,7 @@ export function HomeScreen() {
 
       <View className="mt-0.5">
         <CtaButton
-          label="＋ 나만의 상황 만들기"
+          label="나만의 상황 만들기"
           variant="ghost"
           onPress={() => router.push("/create")}
         />

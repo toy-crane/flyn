@@ -88,11 +88,14 @@ export function StorySessionScreen({ sessionId }: { sessionId: string }) {
         )}
 
         {session.ending ? (
-          <View className="mt-1 rounded-card bg-surface px-4 py-5">
-            <Text className="mb-1.5 text-center text-[17px] font-bold text-foreground">
+          <View
+            className="mt-1 rounded-card bg-cell px-4 py-5"
+            style={{ borderCurve: "continuous" }}
+          >
+            <Text className="mb-1.5 text-center text-[17px] font-bold text-label">
               {session.ending.headline}
             </Text>
-            <Text className="mb-3.5 text-center text-[13px] text-muted">
+            <Text className="mb-3.5 text-center text-[13px] text-secondary">
               {session.ending.note}
             </Text>
             <CtaButton
