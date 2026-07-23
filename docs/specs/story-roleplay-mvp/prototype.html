@@ -54,6 +54,40 @@
     }
   }
 
+  /* The Artifact viewer's light/dark toggle stamps data-theme on :root.
+     Mirror the two palettes here so an explicit choice overrides the OS
+     preference in both directions (these win over the media query above). */
+  :root[data-theme="light"] {
+    --background: #ffffff;
+    --grouped: #f2f2f7;
+    --surface: #ffffff;
+    --card: #f2f2f7;
+    --fill: rgba(118, 118, 128, .12);
+    --foreground: #000000;
+    --sub2: rgba(60, 60, 67, .6);
+    --muted: rgba(60, 60, 67, .3);
+    --hairline: rgba(60, 60, 67, .29);
+    --accent: #007aff;
+    --accent-soft: rgba(0, 122, 255, .15);
+    --danger: #ff3b30;
+    --danger-soft: rgba(255, 59, 48, .15);
+  }
+  :root[data-theme="dark"] {
+    --background: #000000;
+    --grouped: #000000;
+    --surface: #1c1c1e;
+    --card: #1c1c1e;
+    --fill: rgba(118, 118, 128, .24);
+    --foreground: #ffffff;
+    --sub2: rgba(235, 235, 245, .6);
+    --muted: rgba(235, 235, 245, .3);
+    --hairline: rgba(84, 84, 88, .65);
+    --accent: #0a84ff;
+    --accent-soft: rgba(10, 132, 255, .25);
+    --danger: #ff453a;
+    --danger-soft: rgba(255, 69, 58, .25);
+  }
+
   /* ── review chrome (sh-*): keep, extend, never strip ─────────────── */
   * { box-sizing: border-box }
   body {
@@ -79,7 +113,7 @@
   [hidden] { display: none !important }
 
   .sh-vp-390 .sh-stage {
-    max-width: 390px; background: var(--background, #f6f6f6);
+    max-width: min(390px, 100%); background: var(--background, #f6f6f6);
     border: 10px solid #191a1c; border-radius: 28px;
     padding: 0; height: 760px; margin-top: 12px;
     display: flex; flex-direction: column; overflow: hidden;
@@ -181,6 +215,8 @@
   @media (prefers-color-scheme: dark) {
     .tabbar { background: rgba(28,28,30,.72); border-color: rgba(255,255,255,.08) }
   }
+  :root[data-theme="light"] .tabbar { background: rgba(255,255,255,.72); border-color: rgba(25,31,40,.06) }
+  :root[data-theme="dark"] .tabbar { background: rgba(28,28,30,.72); border-color: rgba(255,255,255,.08) }
   .tabbar a { display: flex; flex-direction: column; align-items: center; gap: 3px;
               font-size: 11px; font-weight: 600; color: var(--muted);
               text-decoration: none }
