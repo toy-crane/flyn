@@ -28,3 +28,8 @@ src/
 - 타입만 필요하면 `import type`.
 - 새 화면: `src/screens/<name>/index.tsx`, 전용 컴포넌트는 그 안의 `components/`.
 - `src/tw/`는 재배치하지 않는다.
+
+## 디자인
+
+모든 화면과 프로토타입은 [docs/design-guidelines.md](docs/design-guidelines.md)를
+따른다 (Apple HIG 기반 — 시맨틱 컬러, 캡슐 버튼, grouped 배경 체계, 라이트·다크 필수).
