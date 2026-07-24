@@ -1,6 +1,5 @@
-// 컴파일 타임 RPC 계약 테스트 (DoD #6): 런타임 미실행, tsc만 검사.
-// 응답 타입은 서버에서 파생시킨다 — 손으로 적으면 두 번째 진실이 된다. 이 파일의 값은
-// 계약이 조용히 any로 무너지는 걸 잡는 것이다(워크스페이스 간 hono 버전이 어긋날 때).
+// 런타임 미실행, tsc만 검사한다. 계약이 조용히 any로 무너지는 걸 잡는 게 목적이다
+// (워크스페이스 간 hono 버전이 어긋나면 그렇게 된다).
 import type { InferResponseType } from "hono/client";
 import { rpc } from "./rpc";
 

@@ -12,7 +12,6 @@ import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
 import { Card, CardError } from "./card";
 
-// 화면이 쓰는 컬럼만 가져온다.
 type ScratchNote = Pick<Tables<"scratch_notes">, "id" | "body">;
 
 async function fetchNotes(): Promise<ScratchNote[]> {
@@ -62,8 +61,7 @@ export function ScratchNotes() {
     queryKey: queryKeys.scratchNotes,
   });
 
-  // server-stats(집계)도 함께 무효화 — 두 카드가 어긋나지 않게. 반환하지 않으므로
-  // 리페치가 끝나기를 기다리며 버튼이 잠기지 않는다.
+  // 집계도 함께 무효화. 프로미스를 반환하지 않아야 리페치 동안 버튼이 잠기지 않는다.
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: queryKeys.scratchNotes });
     queryClient.invalidateQueries({ queryKey: queryKeys.serverStats });

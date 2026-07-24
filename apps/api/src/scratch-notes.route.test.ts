@@ -46,13 +46,11 @@ beforeAll(async () => {
   const forged = await generateKeyPair("ES256", { extractable: true });
   forgedKey = forged.privateKey;
 
-  // @supabase/server가 읽는 env — 인라인 JWKS면 검증이 오프라인.
   process.env.SUPABASE_URL = "http://127.0.0.1:54321";
   process.env.SUPABASE_PUBLISHABLE_KEY = "sb_publishable_test";
   process.env.SUPABASE_SECRET_KEY = "sb_secret_test";
   process.env.SUPABASE_JWKS = JSON.stringify({ keys: [publicJwk] });
 
-  // admin select의 fetch만 스텁 — 유효 케이스만 한 번 호출한다.
   fetchSpy = spyOn(globalThis, "fetch").mockResolvedValue(
     new Response(JSON.stringify(ROWS), {
       headers: { "content-type": "application/json" },

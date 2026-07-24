@@ -49,8 +49,7 @@ export type Database = {
   };
 };
 
-// supabase gen types가 생성 파일 끝에 함께 내보내는 헬퍼들. 재생성되면 이 블록도
-// 생성기 판으로 통째로 교체되므로, 소비자는 여기서만 가져간다.
+// 생성기도 이 헬퍼들을 함께 내보낸다. 손으로 따로 정의하면 재생성 때 두 벌이 된다.
 type PublicSchema = Database["public"];
 
 export type Tables<T extends keyof PublicSchema["Tables"]> =
