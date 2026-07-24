@@ -142,9 +142,11 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
 ## 남은 리스크
 
 - **Uniwind 성숙도**: 2025년 출시된 신생 라이브러리. 문제가 생기면 같은
-  className 모델인 NativeWind로 전환 경로가 있다. Uniwind Pro(유료)의 범위를
-  확인하지 못했으므로(가격 페이지 접근 불가) 핵심 기능이 무료 범위인지
-  셋업 시점에 확인할 것.
+  className 모델인 NativeWind로 전환 경로가 있다. Uniwind Pro(유료) 범위는
+  01 세션에서 확인 완료: 기본 className 스타일링·테마·반응형·RN 내장
+  컴포넌트 지원은 전부 무료 범위이고, Pro는 zero-rerender 스타일 업데이트·
+  group variants·Reanimated 연동·네이티브 테마 트랜지션 등 런타임 성능
+  기능만 추가한다. 핵심 기능이 무료 범위이므로 결정 변경 없음.
 - **AI SDK ↔ Expo 폴리필**: 플랫폼에 따라 `@ungap/structured-clone`,
   `@stardazed/streams-text-encoding` 폴리필이 필요하고, 프로덕션에서는
   `EXPO_PUBLIC_API_BASE_URL`을 명시해야 한다.
