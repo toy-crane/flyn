@@ -40,4 +40,15 @@ ensure "expo@expo-plugins" "expo-plugins" "expo/skills" --sparse .claude-plugin 
 ensure "supabase@supabase-agent-skills" "supabase-agent-skills" "supabase/agent-skills"
 ensure "postgres-best-practices@supabase-agent-skills" "supabase-agent-skills" "supabase/agent-skills"
 
+# The web harness loads skills from ~/.claude/skills and does not surface
+# plugin-provided skills on its own (verified: /reload-skills ignores the
+# plugin cache), so symlink each installed plugin skill into that directory.
+skills_dir="$HOME/.claude/skills"
+mkdir -p "$skills_dir"
+for skill in "$HOME"/.claude/plugins/cache/*/*/*/skills/*/; do
+  [ -f "${skill}SKILL.md" ] || continue
+  name=$(basename "$skill")
+  [ -e "$skills_dir/$name" ] || ln -s "${skill%/}" "$skills_dir/$name"
+done
+
 exit 0
