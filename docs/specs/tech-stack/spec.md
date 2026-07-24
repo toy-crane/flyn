@@ -50,6 +50,19 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
 - 클라이언트 초기화는 각 앱에 남긴다(모바일: AsyncStorage 세션 저장,
   서버: service-role 키).
 
+### 7. 결제·구독 — RevenueCat
+
+- 인앱 구독·결제는 RevenueCat(`react-native-purchases`, Expo config plugin).
+- Expo Go에서는 동작하지 않으므로 development build 필요 — Apple/Google
+  네이티브 로그인과 같은 제약이라 추가 부담은 없다.
+- 구독 상태의 서버 반영은 RevenueCat webhook → Hono → Supabase 기록을
+  기본값으로 한다.
+
+### 8. 애널리틱스 — PostHog
+
+- 앱 이벤트는 `posthog-react-native`. 서버 이벤트·AI 호출 관측이 필요해지면
+  `posthog-node`와 PostHog LLM Analytics를 추가한다.
+
 ## 가정 (기본값 — 반증 나오면 뒤집는다)
 
 - TypeScript strict. 린트·포맷은 Biome + Ultracite 프리셋(`biome.jsonc`에서
@@ -67,7 +80,7 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
 
 - 제품 도메인·스키마: flyn이 무엇인지는 이 세션에서 다루지 않았다. 도메인
   셰이핑이 선행되어야 스키마·RLS 설계가 가능.
-- 푸시 알림, 결제/구독(RevenueCat 등), 애널리틱스: 제품 요구 확정 후 결정.
+- 푸시 알림: 제품 요구 확정 후 결정.
 
 ## 남은 리스크
 
