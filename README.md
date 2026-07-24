@@ -14,6 +14,8 @@ iOS 앱과 그 백엔드를 담는 모노레포. 테크 스택 결정과 근거�
 - [bun](https://bun.sh) 1.3 이상 — 패키지 매니저이자 API 로컬 런타임
 - Xcode와 iOS 시뮬레이터 — 타깃은 iOS 전용이라 Android는 다루지 않는다
 - [watchman](https://facebook.github.io/watchman/) — Metro 파일 감시에 권장
+- [Docker](https://www.docker.com/) — Supabase 로컬 스택(`supabase start`) 구동에 필요
+- Supabase CLI는 루트 devDependency다(`bun run db:*` 또는 `bunx supabase …`로 실행)
 
 ## 로컬 루프
 
@@ -38,6 +40,40 @@ API는 <http://localhost:3000/health>에서 `{"service":"flyn-api","status":"ok"
 
 turbo로 한 번에 띄우려면 `bun run dev`.
 
+## Supabase 로컬 스택
+
+로컬 개발은 로컬 Supabase 스택 위에서 돈다(Docker 필요). 최초 1회:
+
+```bash
+bun run db:start   # supabase start — 로컬 스택 기동(Docker 이미지 최초 pull)
+supabase status    # 로컬 URL과 신형 키(sb_publishable_… / sb_secret_…) 확인
+```
+
+`supabase status` 값을 각 앱 `.env.local`에 넣는다(`.env.example` 참고). `apps/mobile`은
+`EXPO_PUBLIC_SUPABASE_URL`·`EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `apps/api`는
+`SUPABASE_URL`·`SUPABASE_PUBLISHABLE_KEY`·`SUPABASE_SECRET_KEY`·`SUPABASE_JWKS_URL`.
+**secret 키는 절대 커밋 금지·`EXPO_PUBLIC_*` 금지.**
+
+```bash
+bun run db:reset   # 마이그레이션+시드 적용 후 @flyn/supabase 타입 재생성
+bun run db:test    # pgTAP로 RLS 정책 검증 (supabase test db)
+```
+
+스키마 변경은 **선언적 스키마 + diff**로 저작한다(손으로 마이그레이션 안 씀):
+
+```bash
+# 1) supabase/schemas/*.sql 에서 원하는 최종 상태를 고친 뒤
+bun run db:diff create_something   # supabase/migrations/에 마이그레이션 생성
+# 2) 생성된 마이그레이션을 리뷰·커밋하고
+bun run db:reset                   # 적용 + 타입 재생성
+```
+
+앱은 익명 세션으로 `scratch_notes`에 RLS 경계 안에서 CRUD 하고(익명 로그인은
+`config.toml`에서 켜짐), 서버 전용 집계는 `@supabase/server` JWT 게이트를 거친다.
+`scratch_notes`는 도메인이 아니라 스택 관통용 **throwaway 예시**다. `@supabase/server`
+검증에 로컬 비대칭 서명이 필요하면 `supabase gen signing-key --algorithm ES256`으로
+서명키를 만든다(gitignore).
+
 ## 검사
 
 ```bash
@@ -55,6 +91,10 @@ bun run check
 [apps/mobile/.env.example](apps/mobile/.env.example) 참고.
 
 `EXPO_PUBLIC_*` 값은 앱 번들에 그대로 노출되므로 공개 가능한 값만 둔다.
+
+Supabase를 쓰는 화면·엔드포인트에는 위 **Supabase 로컬 스택**의 키가 더 필요하다.
+`apps/api`도 `.env.local`을 쓴다([apps/api/.env.example](apps/api/.env.example) 참고) —
+`SUPABASE_SECRET_KEY`는 서버 전용이라 여기에만 두고 절대 커밋하지 않는다.
 
 ## 알아둘 것
 
