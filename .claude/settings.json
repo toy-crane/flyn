@@ -6,7 +6,8 @@
     "postgres-best-practices@supabase-agent-skills": true,
     "vercel-plugin@vercel": true,
     "RevenueCat@RevenueCat": true,
-    "posthog@claude-plugins-official": true
+    "posthog@claude-plugins-official": true,
+    "context7@context7-marketplace": true
   },
   "extraKnownMarketplaces": {
     "toycrane": {
@@ -41,6 +42,12 @@
       "source": {
         "source": "github",
         "repo": "RevenueCat/ai-toolkit"
+      }
+    },
+    "context7-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "upstash/context7"
       }
     }
   }

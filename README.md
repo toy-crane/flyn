@@ -17,6 +17,7 @@
 | `vercel-plugin` | `vercel/vercel-plugin` | Vercel·Next.js·AI SDK·shadcn 공식 스킬 |
 | `RevenueCat` | `RevenueCat/ai-toolkit` | RevenueCat MCP·구독 연동 공식 스킬 |
 | `posthog` | `anthropics/claude-plugins-official` | PostHog 공식 플러그인(MCP·스킬) |
+| `context7` | `upstash/context7` | 라이브러리 최신 문서·코드 예제 조회(MCP) |
 
 수동으로 설치하려면:
 
