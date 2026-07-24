@@ -9,3 +9,10 @@ node_modules/
 
 # Claude Code worktrees
 .claude/worktrees/
+
+# turborepo
+.turbo/
+
+# build outputs
+dist/
+*.tsbuildinfo

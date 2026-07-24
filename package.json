@@ -1,0 +1,21 @@
+{
+  "devDependencies": {
+    "@biomejs/biome": "2.5.3",
+    "turbo": "^2.10.6",
+    "ultracite": "7.9.4"
+  },
+  "name": "flyn",
+  "scripts": {
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "check": "ultracite check",
+    "fix": "ultracite fix"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "private": true,
+  "packageManager": "bun@1.3.6"
+}

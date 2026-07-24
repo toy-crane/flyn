@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/react",
+    "ultracite/biome/jest"
+  ],
+  "overrides": [
+    {
+      "includes": ["**/*.{test,spec}.{ts,tsx,js,jsx}", "**/__tests__/**/*"],
+      "javascript": {
+        "globals": [
+          "describe",
+          "test",
+          "it",
+          "expect",
+          "jest",
+          "beforeAll",
+          "beforeEach",
+          "afterAll",
+          "afterEach"
+        ]
+      }
+    },
+    {
+      "includes": ["**/assets/**"],
+      "formatter": { "enabled": false },
+      "linter": { "enabled": false }
+    }
+  ]
+}
