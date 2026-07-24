@@ -2,8 +2,7 @@ import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { supabase, supabaseConfigured } from "./supabase";
 
-// 익명 로그인 세션 부트스트랩. 마운트 시 기존 세션이 없으면 익명 로그인한다.
-// 네이티브 로그인(Apple/Google)은 Task 03에서 이 훅을 교체/확장한다.
+// 네이티브 로그인(Apple/Google)은 Task 03에서 이 훅을 교체한다.
 type SessionState =
   | { kind: "loading" }
   | { kind: "ready"; session: Session }
@@ -61,8 +60,7 @@ export function useSession(): SessionState {
       if (session) {
         setState({ kind: "ready", session });
       } else if (event === "SIGNED_OUT") {
-        // 초기 null(INITIAL_SESSION)은 무시한다(부트스트랩이 익명 로그인). SIGNED_OUT은
-        // 세션 소실이므로 실패로 표시해 정지된 ready 상태를 막는다.
+        // 초기 null은 무시(부트스트랩이 로그인). SIGNED_OUT만 실패로 — 정지된 ready 방지.
         setState({ kind: "failed", reason: "세션이 만료됐다" });
       }
     });

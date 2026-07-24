@@ -4,7 +4,6 @@ import { queryKeys } from "../lib/query-keys";
 import { rpc } from "../lib/rpc";
 
 async function fetchStats() {
-  // Hono RPC를 거친다 → 라우트·응답이 컴파일 타임에 검증되고, 서버 인증 게이트를 통과한다.
   const res = await rpc.server["scratch-notes"].stats.$get();
 
   if (!res.ok) {

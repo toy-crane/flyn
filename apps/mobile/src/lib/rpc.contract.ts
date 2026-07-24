@@ -1,6 +1,4 @@
-// 컴파일 타임 RPC 계약 테스트 (DoD #6). 파일명이 `.test`가 아니라 jest는 무시하고,
-// tsc(turbo run typecheck)만 검사한다. 계약이 어긋나면 typecheck가 실패한다.
-// 런타임에서 호출되지 않는다 — 타입만 존재한다.
+// 컴파일 타임 RPC 계약 테스트 (DoD #6): 런타임 미실행, tsc만 검사. 계약이 어긋나면 실패.
 import { rpc } from "./rpc";
 
 async function _contract() {
@@ -9,7 +7,6 @@ async function _contract() {
   if (res.ok) {
     const body = await res.json();
 
-    // 존재하는 응답 필드는 이 형태와 타입이 맞아야 한다.
     const shape: {
       you: string | null;
       totalNotes: number;
