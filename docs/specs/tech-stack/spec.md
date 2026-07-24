@@ -73,8 +73,6 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
 - 앱 ↔ Hono 통신은 Hono RPC(`hc`)로 타입 공유.
 - DB 마이그레이션은 supabase CLI(SQL 마이그레이션). 서버 측 쿼리도 우선
   `supabase-js`로 단순하게 가고, ORM(Drizzle 등)은 필요가 증명되면 재검토.
-- 환경은 2단: Supabase dev/prod 프로젝트 분리, Vercel preview/production,
-  EAS 프로필 development/preview/production.
 - 크래시 리포팅은 PostHog error tracking으로 시작(RN 지원, 도구 하나로
   analytics와 통합). 네이티브 심볼리케이션 깊이가 부족하면 Sentry 추가 재검토.
 - 시크릿 규율: `EXPO_PUBLIC_*` 값은 앱 번들에 그대로 노출되므로 공개 가능한
@@ -82,6 +80,27 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
   서버 측(Vercel env)에만 존재.
 - AI 엔드포인트는 1일차부터 사용자별 rate limit을 두고, 유료 기능은
   RevenueCat entitlement로 게이팅한다. AI Gateway에는 지출 한도 설정.
+
+## 환경 구성 (기본값 — 가정과 같은 지위)
+
+3계층. 일상 개발은 전부 로컬에서 돌고, 호스티드 Supabase는 dev·prod
+프로젝트 2개를 둔다.
+
+| 레이어 | 모바일 | API(Hono) | Supabase |
+| --- | --- | --- | --- |
+| 로컬 개발 | Expo dev server | bun 로컬 실행 | `supabase start` 로컬 스택 |
+| dev/preview | EAS preview 빌드(내부 배포) | Vercel preview | 호스티드 dev 프로젝트 |
+| production | 스토어 빌드 | Vercel production | 호스티드 prod 프로젝트 |
+
+- 호스티드 dev 프로젝트가 필요한 이유: EAS 빌드(실기기·TestFlight)와
+  Vercel preview는 localhost의 로컬 스택에 접근할 수 없다.
+- 마이그레이션 흐름: 로컬에서 작성(`supabase migration new`/`db diff`) →
+  저장소 커밋 → dev 프로젝트에 `supabase db push`로 검증 → prod에 push.
+  타입 생성(`packages/supabase`)도 로컬 스키마 기준.
+- 환경 변수는 앱별 `.env.local`(로컬)과 EAS 프로필·Vercel 환경 변수
+  (dev/prod)로 주입. EAS 프로필은 development/preview/production 3개.
+- 훗날 PR 단위 격리가 필요해지면 Supabase 브랜칭(Pro)을 검토하되,
+  지금은 채택하지 않는다.
 
 ## 테스트 전략 (기본값 — 가정과 같은 지위)
 
