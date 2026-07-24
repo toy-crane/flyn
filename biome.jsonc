@@ -6,7 +6,16 @@
     "ultracite/biome/jest"
   ],
   "files": {
-    "includes": ["!!**/uniwind-types.d.ts"]
+    "includes": [
+      // 둘 다 사람이 쓰는 파일이 아니다. uniwind-types.d.ts는 Metro가,
+      // .claude/settings.json은 Claude Code가 런타임에 다시 쓴다 — 린트를
+      // 걸어두면 도구가 파일을 건드릴 때마다 `bun run check`가 깨진다.
+      // .claude는 반드시 루트 기준으로 앵커한다. `**/.claude`로 쓰면 이
+      // 저장소가 워크트리(.../.claude/worktrees/...)로 체크아웃됐을 때 상위
+      // 경로가 걸려 전체 파일이 조용히 린트에서 빠진다.
+      "!!**/uniwind-types.d.ts",
+      "!!.claude"
+    ]
   },
   "overrides": [
     {
