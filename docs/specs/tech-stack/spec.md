@@ -20,8 +20,15 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
 - 빌드·배포는 EAS Build / EAS Update.
 - 개발 중 Expo Go 사용 가능(Uniwind가 지원). 단 Apple/Google 네이티브
   로그인 테스트에는 development build가 필요.
-- 웹은 목표가 아님(모바일 전용). 웹이 필요해지면 모노레포에 Next.js 앱을
+- **타깃은 iOS 전용.** Android는 목표가 아니며, 필요해지면 별도 결정으로
+  다룬다(코드가 RN이라 전환 비용은 낮다).
+- 웹은 목표가 아님. 웹이 필요해지면 모노레포에 Next.js 앱을
   추가하는 별도 결정으로 다룬다.
+- **디자인은 Apple HIG(Human Interface Guidelines) 준수가 중심.** 커스텀
+  디자인 시스템을 만들지 않고 iOS 네이티브 룩앤필을 따른다: 시스템
+  컴포넌트·내비게이션 패턴, SF Symbols(`expo-symbols`)를 우선하고,
+  SwiftUI 기반 `@expo/ui` 같은 네이티브 컴포넌트 활용을 우선 검토한다.
+  Uniwind는 레이아웃·간격·타이포 등 스타일링 유틸리티 역할.
 
 ### 3. API — Hono on Vercel + AI SDK
 
