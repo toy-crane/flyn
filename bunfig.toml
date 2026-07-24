@@ -1,0 +1,5 @@
+# bun 1.3의 기본값은 isolated 설치(node_modules/.bun 스토어 + 심링크)다.
+# React Native 툴체인(jest-expo의 transformIgnorePatterns, Metro 해석)이 평평한
+# node_modules를 전제하므로 hoisted로 고정한다. Expo 모노레포 가이드 권장.
+[install]
+linker = "hoisted"

@@ -19,8 +19,5 @@ apps/*/ios/
 apps/*/android/
 expo-env.d.ts
 
-# uniwind generated types
-apps/mobile/src/uniwind-types.d.ts
-
 # vercel
 .vercel/

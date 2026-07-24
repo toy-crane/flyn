@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "flyn",
+    "slug": "flyn",
+    "scheme": "flyn",
+    "userInterfaceStyle": "automatic",
+    "orientation": "portrait",
+    "ios": {
+      "bundleIdentifier": "com.odd.flyn",
+      "supportsTablet": false
+    },
+    "plugins": ["expo-router", "expo-status-bar"]
+  }
+}

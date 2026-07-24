@@ -1,0 +1,9 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    // 모노레포에서는 루트 node_modules/@types가 통째로 딸려와 apps/api의 bun
+    // 타입까지 섞인다. 이 앱이 실제로 쓰는 것만 명시한다.
+    "types": ["jest"]
+  }
+}

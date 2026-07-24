@@ -1,0 +1,30 @@
+{
+  "name": "@flyn/mobile",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "private": true,
+  "scripts": {
+    "dev": "expo start",
+    "ios": "expo start --ios",
+    "test": "jest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "expo": "^57.0.1",
+    "expo-router": "~57.0.2",
+    "expo-status-bar": "~57.0.0",
+    "react": "19.2.3",
+    "react-native": "0.86.0",
+    "tailwindcss": "^4.3.3",
+    "uniwind": "^1.10.0"
+  },
+  "devDependencies": {
+    "@testing-library/react-native": "^14.0.1",
+    "@types/jest": "^29.5.14",
+    "@types/react": "~19.2.14",
+    "jest": "~29.7.0",
+    "jest-expo": "^57.0.2",
+    "test-renderer": "^1.2.0",
+    "typescript": "~6.0.3"
+  }
+}
