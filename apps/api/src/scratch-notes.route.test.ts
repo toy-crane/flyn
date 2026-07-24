@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, spyOn } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it, spyOn } from "bun:test";
 import { exportJWK, generateKeyPair, type JWK, SignJWT } from "jose";
 
 // 서버를 띄우지 않는 JWT 게이트 테스트. jose로 ES256 키쌍을 만들어 공개키를 인라인
@@ -15,6 +15,7 @@ const ROWS = [{ user_id: SUB }, { user_id: SUB }, { user_id: OTHER_OWNER }];
 let signingKey: CryptoKey;
 let forgedKey: CryptoKey;
 let app: typeof import("./index")["default"];
+let fetchSpy: ReturnType<typeof spyOn>;
 
 function nowSeconds(): number {
   return Math.floor(Date.now() / 1000);
@@ -55,7 +56,7 @@ beforeAll(async () => {
 
   // admin 클라이언트의 select가 부르는 fetch를 스텁한다. 검증은 인라인 JWKS라 fetch를
   // 안 타므로 무효 토큰 케이스는 여기에 도달하지 않고, 유효 케이스만 한 번 호출한다.
-  spyOn(globalThis, "fetch").mockResolvedValue(
+  fetchSpy = spyOn(globalThis, "fetch").mockResolvedValue(
     new Response(JSON.stringify(ROWS), {
       headers: { "content-type": "application/json" },
       status: 200,
@@ -64,6 +65,11 @@ beforeAll(async () => {
 
   // env 세팅 후 앱을 로드해야 미들웨어가 값을 읽는다.
   app = (await import("./index")).default;
+});
+
+afterAll(() => {
+  // bun은 파일 간 프로세스를 공유하므로 전역 fetch 스텁을 복원한다.
+  fetchSpy.mockRestore();
 });
 
 describe("server-only scratch-notes stats 엔드포인트 (JWT 게이트)", () => {

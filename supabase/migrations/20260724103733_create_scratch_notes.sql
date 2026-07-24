@@ -33,3 +33,9 @@ create policy "own rows deletable" on public.scratch_notes
   using ((select auth.uid()) = user_id);
 
 create index scratch_notes_user_id_idx on public.scratch_notes (user_id);
+
+-- Data API 롤에 테이블 권한 부여. auto_expose_new_tables가 unset(신규 클라우드 기본값)이면
+-- RLS만으로는 접근 불가 — 명시 GRANT가 있어야 정책이 적용된다(RLS는 권한 통과 후 행을
+-- 거른다). admin(secret) 클라이언트는 service_role로 접근하므로 함께 부여한다.
+grant select, insert, update, delete on table public.scratch_notes to authenticated;
+grant select, insert, update, delete on table public.scratch_notes to service_role;

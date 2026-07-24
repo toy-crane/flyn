@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ActivityIndicator, Text, View } from "react-native";
+import { queryKeys } from "../lib/query-keys";
 import { rpc } from "../lib/rpc";
 
 async function fetchStats() {
@@ -14,7 +15,10 @@ async function fetchStats() {
 }
 
 export function ServerStats() {
-  const stats = useQuery({ queryFn: fetchStats, queryKey: ["server-stats"] });
+  const stats = useQuery({
+    queryFn: fetchStats,
+    queryKey: queryKeys.serverStats,
+  });
 
   return (
     <View className="w-full gap-1 rounded-2xl bg-white/80 p-5 dark:bg-white/10">

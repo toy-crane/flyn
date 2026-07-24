@@ -9,7 +9,10 @@ export default function SkeletonScreen() {
   const session = useSession();
 
   return (
-    <ScrollView className="flex-1 bg-slate-100 dark:bg-slate-950">
+    <ScrollView
+      className="flex-1 bg-slate-100 dark:bg-slate-950"
+      keyboardShouldPersistTaps="handled"
+    >
       <View className="gap-6 px-6 py-16">
         <View className="gap-2">
           <Text className="font-medium text-sky-600 text-xs uppercase tracking-[3px] dark:text-sky-400">
