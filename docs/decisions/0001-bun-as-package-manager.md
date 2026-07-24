@@ -19,4 +19,5 @@ Bun을 안전하게 쓰기 위한 제약(모두 공식 문서 근거):
 - **`trustedDependencies` 필요.** Bun은 보안상 postinstall 등 라이프사이클 스크립트를 자동 실행하지 않는다. postinstall이 필요한 패키지(예: `@sentry/cli`)는 `package.json`의 `trustedDependencies`에 명시해야 하며, 누락 시 EAS Build가 실패한다.
 - **EAS의 Bun 버전 고정**은 `eas.json` 빌드 프로파일의 `"bun": "1.x.x"`로 한다.
 - **모노레포 + EAS 주의점.** `eas build`/`eas deploy`는 루트가 아니라 대상 패키지 폴더(예: `apps/mobile`)에서 실행한다. `turbo prune`으로 만든 서브셋 lockfile은 Bun 1.3의 Lockfile v3부터 `--frozen-lockfile`과 호환된다.
+- **isolated 레이아웃 탈출구.** Bun은 신규 워크스페이스에서 isolated 레이아웃이 기본(1.3.2+)이라 일부 RN 라이브러리가 resolution/빌드 에러를 낼 수 있으나, `bunfig.toml`의 `[install] linker = "hoisted"`(또는 `bun install --linker hoisted`) 한 줄로 flat 레이아웃으로 되돌릴 수 있다 — pnpm의 `nodeLinker: hoisted`와 동등한 안전판. Expo의 SDK 54+ 통합 autolinking은 pnpm과 Bun의 isolated 설치를 함께 대상으로 설계됐으므로, 이 축에서 pnpm 대비 능력 차이는 없다(차이는 성숙도·검증 축적뿐).
 - **RN 버전 중복 불가.** 모노레포 전체에서 `react-native` 버전을 하나로 dedup해야 한다(어느 매니저를 쓰든 공통).
