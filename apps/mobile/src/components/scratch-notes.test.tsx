@@ -4,8 +4,7 @@ import type { ReactElement } from "react";
 import { queryKeys } from "../lib/query-keys";
 import { ScratchNotes } from "./scratch-notes";
 
-// 캐시를 시드해 첫 렌더에서 동기적으로 나오게 한다(staleTime 무한이라 fetch가 없다).
-// supabase 목은 import를 성립시키기 위한 것으로, 실제로 호출되지 않는다.
+// 시드된 캐시 + staleTime 무한이라 fetch가 없다. 목은 import를 성립시키는 용도.
 jest.mock("../lib/supabase", () => ({ supabase: {} }));
 
 function withSeededClient(ui: ReactElement) {

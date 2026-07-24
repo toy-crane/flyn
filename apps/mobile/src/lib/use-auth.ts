@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase, supabaseConfigured } from "./supabase";
 
-// 네이티브 로그인(Apple/Google)은 Task 03에서 이 훅을 교체한다.
 type AuthState =
   | { kind: "loading" }
   | { kind: "ready"; userId: string }
   | { kind: "failed"; reason: string };
 
-// getClaims는 저장소를 그대로 믿지 않고 서명과 만료를 검증한다(getSession은 안 한다).
-// WebCrypto가 없는 RN에서는 supabase-js가 getUser()로 폴백해 정확성은 유지된다.
+// getSession과 달리 서명·만료를 검증한다. WebCrypto가 없는 RN에서는 getUser()로 폴백한다.
 async function verifiedUserId(): Promise<string | null> {
   const { data, error } = await supabase.auth.getClaims();
 
@@ -34,13 +32,11 @@ export function useAuth(): AuthState {
       return;
     }
 
-    // 구독 직후 INITIAL_SESSION이 한 번 오고, 이후 로그인·토큰 갱신·로그아웃마다
-    // 다시 온다. 그래서 이 리스너 하나가 전체 상태를 몰고 간다.
+    // 구독 직후 INITIAL_SESSION이 한 번 오고 이후 로그인·갱신·로그아웃마다 다시 온다.
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        // INITIAL_SESSION만 저장소에서 복원된 것이라 검증이 필요하다. 나머지 이벤트의
-        // 세션은 방금 Auth 서버가 발급한 것이라 그대로 믿는다 — RN에서는 getClaims가
-        // getUser()로 폴백해 네트워크를 타므로, 매 갱신마다 왕복하지 않도록.
+        // 저장소에서 복원된 INITIAL_SESSION만 검증이 필요하다. 나머지는 방금 발급된
+        // 세션이라, 갱신마다 폴백 왕복을 치르지 않는다.
         if (event !== "INITIAL_SESSION") {
           setState({ kind: "ready", userId: session.user.id });
           return;
@@ -57,7 +53,7 @@ export function useAuth(): AuthState {
       }
 
       if (event === "INITIAL_SESSION") {
-        // 저장된 세션이 없다 → 익명 로그인. 성공하면 SIGNED_IN으로 여기 다시 들어온다.
+        // 성공하면 SIGNED_IN으로 이 리스너에 다시 들어온다.
         supabase.auth.signInAnonymously().then(({ error }) => {
           if (error) {
             setState({ kind: "failed", reason: error.message });
