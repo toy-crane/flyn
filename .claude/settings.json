@@ -1,0 +1,32 @@
+{
+  "enabledPlugins": {
+    "toycrane-skills@toycrane": true,
+    "expo@expo-plugins": true,
+    "supabase@supabase-agent-skills": true,
+    "postgres-best-practices@supabase-agent-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "toycrane": {
+      "source": {
+        "source": "github",
+        "repo": "toy-crane/skills"
+      }
+    },
+    "supabase-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "supabase/agent-skills"
+      }
+    },
+    "expo-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "expo/skills",
+        "sparsePaths": [
+          ".claude-plugin",
+          "plugins"
+        ]
+      }
+    }
+  }
+}

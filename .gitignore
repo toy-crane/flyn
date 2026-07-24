@@ -1,0 +1,11 @@
+# dependencies
+node_modules/
+
+# local env files
+.env*.local
+
+# macOS
+.DS_Store
+
+# Claude Code worktrees
+.claude/worktrees/
