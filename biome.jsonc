@@ -1,7 +1,40 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": ["ultracite/biome/core", "ultracite/biome/react"],
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/react",
+    "ultracite/biome/jest"
+  ],
   "files": {
     "includes": ["!!**/uniwind-types.d.ts"]
-  }
+  },
+  "overrides": [
+    {
+      // Expo·Jest 설정 파일은 CommonJS다. __dirname을 import.meta.dirname으로
+      // 고치면 Node가 ESM으로 파싱해 Metro가 아예 뜨지 않는다.
+      "includes": ["**/metro.config.js", "**/jest.config.js"],
+      "linter": {
+        "rules": {
+          "correctness": { "noGlobalDirnameFilename": "off" }
+        }
+      }
+    },
+    {
+      // jest는 전역 API를 쓴다(apps/api는 bun:test를 import하므로 해당 없음).
+      "includes": ["apps/mobile/**/*.test.tsx", "apps/mobile/jest-setup.js"],
+      "javascript": {
+        "globals": [
+          "afterAll",
+          "afterEach",
+          "beforeAll",
+          "beforeEach",
+          "describe",
+          "expect",
+          "it",
+          "jest",
+          "test"
+        ]
+      }
+    }
+  ]
 }
