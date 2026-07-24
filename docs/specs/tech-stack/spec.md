@@ -99,8 +99,10 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
   타입 생성(`packages/supabase`)도 로컬 스키마 기준.
 - 환경 변수는 앱별 `.env.local`(로컬)과 EAS 프로필·Vercel 환경 변수
   (dev/prod)로 주입. EAS 프로필은 development/preview/production 3개.
-- 훗날 PR 단위 격리가 필요해지면 Supabase 브랜칭(Pro)을 검토하되,
-  지금은 채택하지 않는다.
+- Supabase는 Pro 요금제 사용 중이라 브랜칭을 언제든 켤 수 있다. 다만
+  EAS preview 빌드는 빌드 시점에 URL이 박혀 고정 타깃이 필요하므로 상시
+  dev 프로젝트를 기본으로 유지하고, PR 단위 DB 격리가 실제로 필요해지면
+  브랜칭(브랜치 가동 시간당 과금)을 도입한다.
 
 ## 테스트 전략 (기본값 — 가정과 같은 지위)
 
