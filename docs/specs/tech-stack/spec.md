@@ -75,6 +75,13 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
   `supabase-js`로 단순하게 가고, ORM(Drizzle 등)은 필요가 증명되면 재검토.
 - 환경은 2단: Supabase dev/prod 프로젝트 분리, Vercel preview/production,
   EAS 프로필 development/preview/production.
+- 크래시 리포팅은 PostHog error tracking으로 시작(RN 지원, 도구 하나로
+  analytics와 통합). 네이티브 심볼리케이션 깊이가 부족하면 Sentry 추가 재검토.
+- 시크릿 규율: `EXPO_PUBLIC_*` 값은 앱 번들에 그대로 노출되므로 공개 가능한
+  값(Supabase URL·anon key, PostHog key)만 둔다. AI Gateway 키 등 비밀은
+  서버 측(Vercel env)에만 존재.
+- AI 엔드포인트는 1일차부터 사용자별 rate limit을 두고, 유료 기능은
+  RevenueCat entitlement로 게이팅한다. AI Gateway에는 지출 한도 설정.
 
 ## 테스트 전략 (기본값 — 가정과 같은 지위)
 
@@ -110,3 +117,14 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
   `EXPO_PUBLIC_API_BASE_URL`을 명시해야 한다.
 - **RLS 의존**: 하이브리드 경계에서 RLS 정책 실수가 곧 데이터 노출.
   스키마 작업 시 RLS를 테이블 생성과 동시에 작성하는 규율 필요.
+- **AI 비용 폭주**: 인증만 통과하면 호출되는 AI 엔드포인트는 소수 사용자가
+  비용을 폭주시킬 수 있는 표면. 사용자별 rate limit·entitlement 쿼터·
+  Gateway 지출 한도가 방어선(가정 참조).
+- **스토어 리드타임**: 2023-11 이후 만든 Google Play 개인 계정은 12명이
+  14일 연속 참여하는 비공개 테스트를 통과해야 프로덕션 승격 신청 가능
+  (사업자 계정은 면제). Apple은 인앱 계정 삭제 기능과 개인정보처리방침
+  URL이 심사 필수. 출시일에서 역산해 준비할 것.
+- **Supabase free 플랜은 prod 부적합**: 1주 미사용 시 프로젝트 pause.
+  prod은 Pro 플랜 기준으로 비용 계획.
+- **Vercel 함수 시간 한도**: Fluid 기본 300초(Hobby 최대 300초, Pro 800초).
+  긴 AI 스트림·후처리는 `maxDuration` 설정 확인.
