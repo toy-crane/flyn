@@ -4,7 +4,9 @@
     "expo@expo-plugins": true,
     "supabase@supabase-agent-skills": true,
     "postgres-best-practices@supabase-agent-skills": true,
-    "vercel-plugin@vercel": true
+    "vercel-plugin@vercel": true,
+    "RevenueCat@RevenueCat": true,
+    "posthog@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "toycrane": {
@@ -33,6 +35,12 @@
       "source": {
         "source": "github",
         "repo": "vercel/vercel-plugin"
+      }
+    },
+    "RevenueCat": {
+      "source": {
+        "source": "github",
+        "repo": "RevenueCat/ai-toolkit"
       }
     }
   }
