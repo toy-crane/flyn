@@ -77,10 +77,12 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
 
 ## 가정 (기본값 — 반증 나오면 뒤집는다)
 
-- TypeScript strict. 린트·포맷은 Biome + Ultracite 프리셋(`biome.jsonc`에서
-  `extends: ["ultracite"]`). 에이전트 규칙 파일·편집 후 자동 fix 훅까지
-  `ultracite init`으로 생성한다. 규칙이 과하다고 판단되면 extends 한 줄을
-  빼서 plain Biome으로 복귀(전환 비용 거의 없음).
+- TypeScript strict. 린트·포맷은 Biome + Ultracite 프리셋. ultracite v7에는
+  bare `"ultracite"` config export가 없어 실제 값은
+  `extends: ["ultracite/biome/core", "ultracite/biome/react", "ultracite/biome/jest"]`
+  이다(태스크 01에서 확인). `ultracite init`은 대화형이라 에이전트 세션에서는
+  `biome.jsonc`를 직접 쓰고 `@biomejs/biome`를 devDependency로 넣는다.
+  규칙이 과하다고 판단되면 extends를 빼서 plain Biome으로 복귀(전환 비용 거의 없음).
 - 클라이언트 서버상태는 TanStack Query.
 - 앱 ↔ Hono 통신은 Hono RPC(`hc`)로 타입 공유.
 - DB 마이그레이션은 supabase CLI(SQL 마이그레이션). 서버 측 쿼리도 우선
@@ -126,8 +128,10 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
   검증한다. RLS가 보안 경계이므로 정책을 만들 때마다 테스트를 함께 작성
   — 이 아키텍처에서 가장 가치 높은 테스트.
 - **mobile — jest-expo + React Native Testing Library**: bun test가 RN
-  변환을 지원하지 않아 모바일만 Jest(30)를 쓴다. 러너 2개 공존은 turbo
-  태스크(`turbo run test`) 뒤로 감춘다.
+  변환을 지원하지 않아 모바일만 Jest를 쓴다. 버전은 **29**다 — SDK 57의
+  jest-expo가 babel-jest·@jest/globals·jest-environment-jsdom을 전부 29 계열로
+  물고 있어 `expo install --check`가 `~29.7.0`을 요구한다(태스크 01에서 확인).
+  러너 2개 공존은 turbo 태스크(`turbo run test`) 뒤로 감춘다.
 - **E2E — Maestro**: Expo가 1순위로 지원(EAS Workflows 통합, Detox는 Expo와
   부적합). 화면이 생긴 뒤 핵심 플로우부터 도입.
 - **CI — GitHub Actions**: `turbo run test`를 PR마다 실행. 캐시는 turbo 원격
@@ -142,9 +146,15 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
 ## 남은 리스크
 
 - **Uniwind 성숙도**: 2025년 출시된 신생 라이브러리. 문제가 생기면 같은
-  className 모델인 NativeWind로 전환 경로가 있다. Uniwind Pro(유료)의 범위를
-  확인하지 못했으므로(가격 페이지 접근 불가) 핵심 기능이 무료 범위인지
-  셋업 시점에 확인할 것.
+  className 모델인 NativeWind로 전환 경로가 있다.
+  유료 범위 미확인 항목은 태스크 01에서 해소됐다 — **무료 범위로 충분하다.**
+  무료는 MIT 라이선스에 프로젝트 제한이 없고 Tailwind v4 전체와 Expo Go를
+  지원하며 공식 문서가 프로덕션 준비 상태라고 명시한다. Pro($99/seat/년부터)가
+  더하는 것은 C++ 네이티브 엔진, 제로 리렌더 ShadowTree 갱신, Reanimated 4
+  className 애니메이션, 네이티브 스레드 테마 전환, `group-active:*`
+  변형이다. 전부 성능·애니메이션 계층이고, **Pro는 development build를 요구해
+  Expo Go를 포기해야 하므로** 개발 루프에는 오히려 손해다. 애니메이션 요구가
+  실제로 생기면 그때 별도 결정으로 다룬다.
 - **AI SDK ↔ Expo 폴리필**: 플랫폼에 따라 `@ungap/structured-clone`,
   `@stardazed/streams-text-encoding` 폴리필이 필요하고, 프로덕션에서는
   `EXPO_PUBLIC_API_BASE_URL`을 명시해야 한다.
