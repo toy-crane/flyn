@@ -52,7 +52,10 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
 
 ## 가정 (기본값 — 반증 나오면 뒤집는다)
 
-- TypeScript strict. 린트·포맷은 Biome.
+- TypeScript strict. 린트·포맷은 Biome + Ultracite 프리셋(`biome.jsonc`에서
+  `extends: ["ultracite"]`). 에이전트 규칙 파일·편집 후 자동 fix 훅까지
+  `ultracite init`으로 생성한다. 규칙이 과하다고 판단되면 extends 한 줄을
+  빼서 plain Biome으로 복귀(전환 비용 거의 없음).
 - 클라이언트 서버상태는 TanStack Query.
 - 앱 ↔ Hono 통신은 Hono RPC(`hc`)로 타입 공유.
 - DB 마이그레이션은 supabase CLI(SQL 마이그레이션). 서버 측 쿼리도 우선
