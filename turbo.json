@@ -1,0 +1,21 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "//#lint": {
+      "inputs": ["**/*.{ts,tsx,js,jsx,json,jsonc,css,md}", "biome.jsonc"]
+    },
+    "//#lint:fix": {
+      "cache": false
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "test": {
+      "outputs": []
+    },
+    "typecheck": {
+      "outputs": []
+    }
+  }
+}
