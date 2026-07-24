@@ -46,7 +46,12 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
 ### 5. 데이터 접근 경계 — 하이브리드
 
 - 일반 CRUD는 모바일에서 `supabase-js`로 직접 접근하고 **RLS가 보안 경계**.
-- AI·서버 전용 로직만 Hono API를 거친다. Hono는 요청의 Supabase JWT를 검증.
+- AI·서버 전용 로직만 Hono API를 거친다. Hono의 JWT 검증·클라이언트
+  구성은 공식 `@supabase/server`의 Hono 어댑터를 기본값으로 쓴다:
+  `withSupabase({ auth: 'user' })` 미들웨어가 검증·CORS를 처리하고,
+  RLS 적용 user 클라이언트와 admin 클라이언트를 컨텍스트로 주입한다.
+  이 패키지는 신형 API 키(publishable/secret) 전제이므로 키 관리도
+  legacy anon/service_role 대신 신형 키를 쓴다.
 - 전부 Hono를 경유하는 안은 기각: 초기 속도가 느려지고 Supabase의 강점
   (RLS, 실시간)을 버리게 됨.
 
@@ -145,6 +150,8 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
   `EXPO_PUBLIC_API_BASE_URL`을 명시해야 한다.
 - **RLS 의존**: 하이브리드 경계에서 RLS 정책 실수가 곧 데이터 노출.
   스키마 작업 시 RLS를 테이블 생성과 동시에 작성하는 규율 필요.
+- **`@supabase/server` 베타**: 2026-05 발표된 퍼블릭 베타라 API가 바뀔 수
+  있다. 문제가 생기면 jose 기반 수동 JWT 검증으로 되돌리는 경로가 있다.
 - **AI 비용 폭주**: 인증만 통과하면 호출되는 AI 엔드포인트는 소수 사용자가
   비용을 폭주시킬 수 있는 표면. 사용자별 rate limit·entitlement 쿼터·
   Gateway 지출 한도가 방어선(가정 참조).
