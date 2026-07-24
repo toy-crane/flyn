@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase, supabaseConfigured } from "./supabase";
 
 // 네이티브 로그인(Apple/Google)은 Task 03에서 이 훅을 교체한다.
@@ -24,14 +24,6 @@ async function verifiedUserId(): Promise<string | null> {
 export function useAuth(): AuthState {
   const [state, setState] = useState<AuthState>({ kind: "loading" });
 
-  const settle = useCallback((userId: string | null) => {
-    setState(
-      userId
-        ? { kind: "ready", userId }
-        : { kind: "failed", reason: "세션을 검증하지 못했다" }
-    );
-  }, []);
-
   useEffect(() => {
     if (!supabaseConfigured) {
       setState({
@@ -42,56 +34,35 @@ export function useAuth(): AuthState {
       return;
     }
 
-    let cancelled = false;
-
-    async function bootstrap() {
-      let userId = await verifiedUserId();
-
-      if (!userId) {
-        const { error } = await supabase.auth.signInAnonymously();
-        if (error) {
-          throw error;
-        }
-        userId = await verifiedUserId();
-      }
-
-      if (!cancelled) {
-        settle(userId);
-      }
-    }
-
-    bootstrap().catch((error: unknown) => {
-      if (!cancelled) {
-        setState({
-          kind: "failed",
-          reason: error instanceof Error ? error.message : "알 수 없는 오류",
-        });
-      }
-    });
-
+    // 구독 직후 INITIAL_SESSION이 한 번 오고, 이후 로그인·토큰 갱신·로그아웃마다
+    // 다시 온다. 그래서 이 리스너 하나가 전체 상태를 몰고 간다.
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      if (cancelled) {
+      if (session) {
+        verifiedUserId().then((userId) => {
+          setState(
+            userId
+              ? { kind: "ready", userId }
+              : { kind: "failed", reason: "세션을 검증하지 못했다" }
+          );
+        });
         return;
       }
 
-      if (session) {
-        // 토큰이 갱신됐으므로 새 토큰으로 다시 검증한다.
-        verifiedUserId().then((userId) => {
-          if (!cancelled) {
-            settle(userId);
+      if (event === "INITIAL_SESSION") {
+        // 저장된 세션이 없다 → 익명 로그인. 성공하면 SIGNED_IN으로 여기 다시 들어온다.
+        supabase.auth.signInAnonymously().then(({ error }) => {
+          if (error) {
+            setState({ kind: "failed", reason: error.message });
           }
         });
-      } else if (event === "SIGNED_OUT") {
-        // 초기 null은 무시(부트스트랩이 로그인). SIGNED_OUT만 실패로 — 정지된 ready 방지.
-        setState({ kind: "failed", reason: "세션이 만료됐다" });
+        return;
       }
+
+      setState({ kind: "failed", reason: "세션이 만료됐다" });
     });
 
-    return () => {
-      cancelled = true;
-      data.subscription.unsubscribe();
-    };
-  }, [settle]);
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   return state;
 }
