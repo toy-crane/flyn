@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen } from "@testing-library/react-native";
 import type { ReactElement } from "react";
+import { queryKeys } from "../lib/query-keys";
 import { ScratchNotes } from "./scratch-notes";
 
 // supabase 클라이언트를 목으로 대체 — 컴포넌트 import 시 실제 클라이언트가 env 없이
@@ -29,17 +30,14 @@ function withSeededClient(ui: ReactElement) {
       },
     },
   });
-  client.setQueryData(
-    ["scratch_notes"],
-    [
-      {
-        body: "첫 메모",
-        created_at: "2026-01-01T00:00:00Z",
-        id: "note-1",
-        user_id: "user-1",
-      },
-    ]
-  );
+  client.setQueryData(queryKeys.scratchNotes, [
+    {
+      body: "첫 메모",
+      created_at: "2026-01-01T00:00:00Z",
+      id: "note-1",
+      user_id: "user-1",
+    },
+  ]);
   return <QueryClientProvider client={client}>{ui}</QueryClientProvider>;
 }
 

@@ -1,16 +1,20 @@
 -- 최소 테스트 헬퍼 (basejump supabase_test_helpers의 축소 self-contained 버전).
 --
 -- auth.users 삽입과 인증 컨텍스트(role + request.jwt.claims) 설정을 한 곳에 모은다.
--- auth.users 스키마가 CLI 버전에 따라 흔들리면 여기 한 파일만 고치면 된다. 파일명이
--- `000-`이라 `supabase test db`가 다른 테스트보다 먼저 로드한다.
+-- 함수는 SECURITY DEFINER다 — 호출자의 role이 authenticated로 바뀐 뒤에도 소유자 권한으로
+-- auth.users 접근·role 전환이 되도록. tests 스키마엔 USAGE를 열어 인증된 롤도 호출 가능.
+-- 파일명이 `000-`이라 supabase test db가 다른 테스트보다 먼저 로드한다.
 
 create schema if not exists tests;
+grant usage on schema tests to public;
 
 -- 테스트용 유저를 만들고 uid를 돌려준다. identifier는 raw_user_meta_data에 심어
 -- get_supabase_uid로 되찾는다.
 create or replace function tests.create_supabase_user(identifier text)
 returns uuid
 language plpgsql
+security definer
+set search_path = ''
 as $$
 declare
   uid uuid;
@@ -37,6 +41,8 @@ create or replace function tests.get_supabase_uid(identifier text)
 returns uuid
 language sql
 stable
+security definer
+set search_path = ''
 as $$
   select id
   from auth.users
@@ -49,6 +55,8 @@ $$;
 create or replace function tests.authenticate_as(identifier text)
 returns void
 language plpgsql
+security definer
+set search_path = ''
 as $$
 declare
   uid uuid;
@@ -70,6 +78,8 @@ $$;
 create or replace function tests.clear_authentication()
 returns void
 language plpgsql
+security definer
+set search_path = ''
 as $$
 begin
   perform set_config('role', 'anon', true);

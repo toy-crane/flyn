@@ -8,11 +8,10 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
 
 type ScratchNote = Tables<"scratch_notes">;
-
-const QUERY_KEY = ["scratch_notes"];
 
 async function fetchNotes(): Promise<ScratchNote[]> {
   const { data, error } = await supabase
@@ -74,10 +73,18 @@ export function ScratchNotes() {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState("");
 
-  const notes = useQuery({ queryFn: fetchNotes, queryKey: QUERY_KEY });
+  const notes = useQuery({
+    queryFn: fetchNotes,
+    queryKey: queryKeys.scratchNotes,
+  });
 
+  // scratch_notes와 server-stats(집계) 둘 다 무효화해 두 카드가 어긋나지 않게 한다.
   const invalidate = useCallback(
-    () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+    () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.scratchNotes }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.serverStats }),
+      ]),
     [queryClient]
   );
 
@@ -85,7 +92,7 @@ export function ScratchNotes() {
     mutationFn: insertNote,
     onSuccess: () => {
       setDraft("");
-      invalidate();
+      return invalidate();
     },
   });
 
@@ -121,6 +128,18 @@ export function ScratchNotes() {
           <Text className="font-semibold text-white">추가</Text>
         </Pressable>
       </View>
+
+      {add.isError ? (
+        <Text className="text-rose-600 dark:text-rose-400">
+          추가 실패: {add.error.message}
+        </Text>
+      ) : null}
+
+      {remove.isError ? (
+        <Text className="text-rose-600 dark:text-rose-400">
+          삭제 실패: {remove.error.message}
+        </Text>
+      ) : null}
 
       {notes.isPending ? <ActivityIndicator /> : null}
 
