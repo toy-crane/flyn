@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator } from "react-native";
 import { queryKeys } from "../lib/query-keys";
 import { rpc } from "../lib/rpc";
+import { Card, CardError, CardValue } from "./card";
 
 async function fetchStats() {
   const res = await rpc.server["scratch-notes"].stats.$get();
@@ -20,24 +21,16 @@ export function ServerStats() {
   });
 
   return (
-    <View className="w-full gap-1 rounded-2xl bg-white/80 p-5 dark:bg-white/10">
-      <Text className="text-gray-500 text-xs uppercase tracking-widest dark:text-gray-400">
-        server-only stats · Hono RPC + JWT 게이트
-      </Text>
-
+    <Card label="server-only stats · Hono RPC + JWT 게이트">
       {stats.isPending ? <ActivityIndicator /> : null}
 
-      {stats.isError ? (
-        <Text className="font-semibold text-lg text-rose-600 dark:text-rose-400">
-          {stats.error.message}
-        </Text>
-      ) : null}
+      {stats.isError ? <CardError>{stats.error.message}</CardError> : null}
 
       {stats.data ? (
-        <Text className="font-semibold text-emerald-600 text-lg dark:text-emerald-400">
+        <CardValue>
           전체 {stats.data.totalNotes}개 · 소유자 {stats.data.distinctOwners}명
-        </Text>
+        </CardValue>
       ) : null}
-    </View>
+    </Card>
   );
 }

@@ -15,7 +15,8 @@
       // 경로가 걸려 전체 파일이 조용히 린트에서 빠진다.
       "!!**/uniwind-types.d.ts",
       // supabase gen types 산출물 — 사람이 쓰는 파일이 아니라 재생성되면 덮어써진다.
-      "!!**/database.types.ts",
+      // 글롭이 아니라 정확한 경로로 앵커한다(같은 이름의 다른 파일까지 빠지지 않도록).
+      "!!packages/supabase/src/database.types.ts",
       "!!.claude"
     ]
   },

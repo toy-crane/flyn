@@ -38,6 +38,14 @@ export function useAuth(): AuthState {
     // 다시 온다. 그래서 이 리스너 하나가 전체 상태를 몰고 간다.
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
+        // INITIAL_SESSION만 저장소에서 복원된 것이라 검증이 필요하다. 나머지 이벤트의
+        // 세션은 방금 Auth 서버가 발급한 것이라 그대로 믿는다 — RN에서는 getClaims가
+        // getUser()로 폴백해 네트워크를 타므로, 매 갱신마다 왕복하지 않도록.
+        if (event !== "INITIAL_SESSION") {
+          setState({ kind: "ready", userId: session.user.id });
+          return;
+        }
+
         verifiedUserId().then((userId) => {
           setState(
             userId
