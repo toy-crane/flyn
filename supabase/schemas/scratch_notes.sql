@@ -1,9 +1,5 @@
--- 선언적 스키마(source of truth): scratch_notes throwaway 예시 테이블.
---
--- 제품 도메인이 아니라 스택 관통용 예시다 — 도메인이 확정되면 `scratch_` 접두어를
--- 기준으로 이 파일·마이그레이션·화면을 일괄 제거한다. 이 파일을 고친 뒤
--- `supabase db diff -f <name>`로 마이그레이션을 생성한다(손으로 안 씀). RLS는 보안
--- 경계이므로 테이블과 같은 파일에 정책을 함께 선언한다.
+-- 스택 관통용 throwaway. 도메인 확정 시 scratch_ 접두어로 일괄 제거한다.
+-- 이 파일을 고친 뒤 supabase db diff -f <name>로 마이그레이션을 생성한다.
 
 create table public.scratch_notes (
   id uuid primary key default gen_random_uuid(),
@@ -14,7 +10,6 @@ create table public.scratch_notes (
 
 alter table public.scratch_notes enable row level security;
 
--- 소유자(auth.uid())만 자기 행에 접근. (select auth.uid())는 Supabase RLS 성능 관용구.
 create policy "own rows readable" on public.scratch_notes
   for select to authenticated
   using ((select auth.uid()) = user_id);
@@ -34,8 +29,7 @@ create policy "own rows deletable" on public.scratch_notes
 
 create index scratch_notes_user_id_idx on public.scratch_notes (user_id);
 
--- Data API 롤에 테이블 권한 부여. auto_expose_new_tables가 unset(신규 클라우드 기본값)이면
--- RLS만으로는 접근 불가 — 명시 GRANT가 있어야 정책이 적용된다(RLS는 권한 통과 후 행을
--- 거른다). admin(secret) 클라이언트는 service_role로 접근하므로 함께 부여한다.
+-- auto_expose_new_tables가 unset(신규 기본값)이면 RLS만으로는 접근 불가 — Data API 롤에
+-- 명시 GRANT가 있어야 정책이 적용된다.
 grant select, insert, update, delete on table public.scratch_notes to authenticated;
 grant select, insert, update, delete on table public.scratch_notes to service_role;

@@ -1,10 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it, spyOn } from "bun:test";
 import { exportJWK, generateKeyPair, type JWK, SignJWT } from "jose";
 
-// 서버를 띄우지 않는 JWT 게이트 테스트. jose로 ES256 키쌍을 만들어 공개키를 인라인
-// JWKS(SUPABASE_JWKS)로 넣으면 @supabase/server가 네트워크 없이 로컬 검증한다. 유효/무효
-// 토큰을 app.request()로 흘려 게이트의 통과·거부만 본다(핸들러의 admin .select()가 부르는
-// fetch는 스텁 — 검증 자체는 인라인 JWKS라 fetch를 안 탄다).
+// 서버 기동 없는 JWT 게이트 테스트: jose ES256 키를 인라인 JWKS(SUPABASE_JWKS)로 넣어
+// 오프라인 검증하고, admin .select()의 fetch만 스텁한다(검증은 fetch를 안 탄다).
 
 const SUB = "11111111-1111-1111-1111-111111111111";
 const OTHER_OWNER = "22222222-2222-2222-2222-222222222222";
@@ -54,8 +52,7 @@ beforeAll(async () => {
   process.env.SUPABASE_SECRET_KEY = "sb_secret_test";
   process.env.SUPABASE_JWKS = JSON.stringify({ keys: [publicJwk] });
 
-  // admin 클라이언트의 select가 부르는 fetch를 스텁한다. 검증은 인라인 JWKS라 fetch를
-  // 안 타므로 무효 토큰 케이스는 여기에 도달하지 않고, 유효 케이스만 한 번 호출한다.
+  // admin select의 fetch만 스텁 — 유효 케이스만 한 번 호출한다.
   fetchSpy = spyOn(globalThis, "fetch").mockResolvedValue(
     new Response(JSON.stringify(ROWS), {
       headers: { "content-type": "application/json" },

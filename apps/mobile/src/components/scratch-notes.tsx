@@ -78,7 +78,7 @@ export function ScratchNotes() {
     queryKey: queryKeys.scratchNotes,
   });
 
-  // scratch_notes와 server-stats(집계) 둘 다 무효화해 두 카드가 어긋나지 않게 한다.
+  // server-stats(집계)도 함께 무효화 — 두 카드가 어긋나지 않게.
   const invalidate = useCallback(
     () =>
       Promise.all([

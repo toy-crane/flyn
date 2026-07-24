@@ -1,7 +1,5 @@
-// 이 파일은 보통 `supabase gen types typescript --local`이 생성한다(= bun run db:types).
-// Docker 로컬 스택이 없는 환경에서 최초 작성돼, scratch_notes 스키마에 맞춰 손으로 형태를
-// 맞춰 두었다. 스택이 있는 곳에서 `bun run db:types`로 재생성하면 이 파일이 덮어써진다.
-// 앱·API 양쪽이 여기 한 곳을 소비하므로 플랫폼별 생성 없이 드리프트가 없다.
+// 보통 `bun run db:types`(supabase gen types)가 생성한다. Docker 없는 환경이라 스키마에
+// 맞춰 손으로 작성했고, 스택 있는 곳에서 재생성하면 덮어써진다.
 
 export type Json =
   | string
