@@ -76,6 +76,23 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
 - 환경은 2단: Supabase dev/prod 프로젝트 분리, Vercel preview/production,
   EAS 프로필 development/preview/production.
 
+## 테스트 전략 (기본값 — 가정과 같은 지위)
+
+- **api·packages — `bun test`**: Hono는 `app.request()`로 서버 기동 없이
+  핸들러를 직접 테스트한다. AI 로직은 AI SDK의 mock provider
+  (`MockLanguageModelV2`, `simulateReadableStream`)로 모델 호출 없이
+  결정적으로 검증.
+- **RLS·스키마 — supabase 로컬 스택 + pgTAP**: `supabase test db`로 정책을
+  검증한다. RLS가 보안 경계이므로 정책을 만들 때마다 테스트를 함께 작성
+  — 이 아키텍처에서 가장 가치 높은 테스트.
+- **mobile — jest-expo + React Native Testing Library**: bun test가 RN
+  변환을 지원하지 않아 모바일만 Jest(30)를 쓴다. 러너 2개 공존은 turbo
+  태스크(`turbo run test`) 뒤로 감춘다.
+- **E2E — Maestro**: Expo가 1순위로 지원(EAS Workflows 통합, Detox는 Expo와
+  부적합). 화면이 생긴 뒤 핵심 플로우부터 도입.
+- **CI — GitHub Actions**: `turbo run test`를 PR마다 실행. 캐시는 turbo 원격
+  캐시(Vercel) 사용.
+
 ## 유보된 것
 
 - 제품 도메인·스키마: flyn이 무엇인지는 이 세션에서 다루지 않았다. 도메인
