@@ -14,6 +14,8 @@
       // 저장소가 워크트리(.../.claude/worktrees/...)로 체크아웃됐을 때 상위
       // 경로가 걸려 전체 파일이 조용히 린트에서 빠진다.
       "!!**/uniwind-types.d.ts",
+      // supabase gen types 산출물 — 사람이 쓰는 파일이 아니라 재생성되면 덮어써진다.
+      "!!**/database.types.ts",
       "!!.claude"
     ]
   },
