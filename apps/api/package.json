@@ -5,8 +5,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./src/index.ts"
     },
     "./package.json": "./package.json"
   },
@@ -19,7 +18,7 @@
     "@flyn/supabase": "workspace:*",
     "@supabase/server": "^1.4.1",
     "@supabase/supabase-js": "^2.110.8",
-    "hono": "^4.12.31"
+    "hono": "^4.12.32"
   },
   "devDependencies": {
     "@types/bun": "^1.3.6",
