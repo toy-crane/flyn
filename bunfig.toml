@@ -1,0 +1,4 @@
+[install]
+# React Native 툴체인(babel-preset-expo, @react-native/*)은 isolated 설치에서
+# 해석이 깨진다. Expo가 권장하는 hoisted 레이아웃을 쓴다.
+linker = "hoisted"

@@ -26,10 +26,7 @@
       "source": {
         "source": "github",
         "repo": "expo/skills",
-        "sparsePaths": [
-          ".claude-plugin",
-          "plugins"
-        ]
+        "sparsePaths": [".claude-plugin", "plugins"]
       }
     },
     "vercel": {
@@ -50,5 +47,18 @@
         "repo": "upstash/context7"
       }
     }
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "bun run fix --skip=correctness/noUnusedImports",
+            "type": "command"
+          }
+        ],
+        "matcher": "Write|Edit"
+      }
+    ]
   }
 }

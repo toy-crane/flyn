@@ -1,0 +1,40 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": ["ultracite/biome/core", "ultracite/biome/react"],
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "overrides": [
+    {
+      // Metro 설정은 CommonJS로 로드되므로 __dirname이 맞다.
+      // import.meta.dirname으로 바꾸면 번들러가 뜨지 않는다.
+      "includes": ["**/metro.config.js"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noGlobalDirnameFilename": "off"
+          }
+        }
+      }
+    },
+    {
+      // jest-expo는 테스트 전역을 주입한다(bun test도 동일 이름을 쓴다).
+      "includes": ["**/__tests__/**", "**/*.test.ts", "**/*.test.tsx"],
+      "javascript": {
+        "globals": [
+          "afterAll",
+          "afterEach",
+          "beforeAll",
+          "beforeEach",
+          "describe",
+          "expect",
+          "it",
+          "jest",
+          "test"
+        ]
+      }
+    }
+  ]
+}

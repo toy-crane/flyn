@@ -4,6 +4,16 @@ node_modules/
 # local env files
 .env*.local
 
+# build output
+dist/
+.turbo/
+
+# test output
+coverage/
+
+# typescript
+*.tsbuildinfo
+
 # macOS
 .DS_Store
 
