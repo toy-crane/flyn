@@ -1,0 +1,20 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    // expo/types는 평소 생성 파일(expo-env.d.ts)이 들고 오지만,
+    // 그 파일은 gitignore 대상이라 새 클론에서 typecheck가 깨진다.
+    "types": ["jest", "expo/types"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/assets/*": ["./assets/*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "src/uniwind-types.d.ts"
+  ]
+}
