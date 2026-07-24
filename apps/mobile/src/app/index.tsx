@@ -3,10 +3,10 @@ import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { HealthStatus } from "../components/health-status";
 import { ScratchNotes } from "../components/scratch-notes";
 import { ServerStats } from "../components/server-stats";
-import { useSession } from "../lib/use-session";
+import { useAuth } from "../lib/use-auth";
 
 export default function SkeletonScreen() {
-  const session = useSession();
+  const auth = useAuth();
 
   return (
     <ScrollView
@@ -29,21 +29,21 @@ export default function SkeletonScreen() {
 
         <HealthStatus />
 
-        {session.kind === "loading" ? (
+        {auth.kind === "loading" ? (
           <View className="w-full rounded-2xl bg-white/80 p-5 dark:bg-white/10">
             <ActivityIndicator />
           </View>
         ) : null}
 
-        {session.kind === "failed" ? (
+        {auth.kind === "failed" ? (
           <View className="w-full rounded-2xl bg-white/80 p-5 dark:bg-white/10">
             <Text className="font-semibold text-rose-600 dark:text-rose-400">
-              세션 실패: {session.reason}
+              인증 실패: {auth.reason}
             </Text>
           </View>
         ) : null}
 
-        {session.kind === "ready" ? (
+        {auth.kind === "ready" ? (
           <>
             <ScratchNotes />
             <ServerStats />
