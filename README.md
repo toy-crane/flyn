@@ -14,6 +14,7 @@
 | `expo` | `expo/skills` | Expo·EAS 공식 스킬 |
 | `supabase` | `supabase/agent-skills` | Supabase 전반 |
 | `postgres-best-practices` | `supabase/agent-skills` | Postgres 성능·설계 |
+| `vercel-plugin` | `vercel/vercel-plugin` | Vercel·Next.js·AI SDK·shadcn 공식 스킬 |
 
 수동으로 설치하려면:
 

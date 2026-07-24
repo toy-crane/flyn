@@ -3,7 +3,8 @@
     "toycrane-skills@toycrane": true,
     "expo@expo-plugins": true,
     "supabase@supabase-agent-skills": true,
-    "postgres-best-practices@supabase-agent-skills": true
+    "postgres-best-practices@supabase-agent-skills": true,
+    "vercel-plugin@vercel": true
   },
   "extraKnownMarketplaces": {
     "toycrane": {
@@ -26,6 +27,12 @@
           ".claude-plugin",
           "plugins"
         ]
+      }
+    },
+    "vercel": {
+      "source": {
+        "source": "github",
+        "repo": "vercel/vercel-plugin"
       }
     }
   }
