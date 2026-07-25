@@ -1,6 +1,11 @@
--- 최소 pgTAP 테스트 헬퍼. 함수는 SECURITY DEFINER라 호출자 role이 authenticated로 바뀐
--- 뒤에도 auth.users 접근·role 전환이 되고, tests 스키마엔 USAGE를 열어 호출 가능하다.
+-- 최소 pgTAP 테스트 헬퍼. auth.users를 만지는 함수만 SECURITY DEFINER다 —
+-- role을 바꾸는 함수는 Postgres가 security-definer 안에서 set_config('role')을
+-- 금지하므로 INVOKER로 둔다(테스트 러너가 슈퍼유저라 전환이 된다).
 -- 파일명 000-이라 다른 테스트보다 먼저 로드된다.
+
+-- pg_prove가 TAP plan 없는 파일을 실패로 치므로 형식상의 plan을 선언한다.
+-- DDL은 지속돼야 해서 begin/rollback으로 감싸지 않는다.
+select plan(1);
 
 create schema if not exists tests;
 grant usage on schema tests to public;
@@ -48,7 +53,6 @@ $$;
 create or replace function tests.authenticate_as(identifier text)
 returns void
 language plpgsql
-security definer
 set search_path = ''
 as $$
 declare
@@ -70,7 +74,6 @@ $$;
 create or replace function tests.clear_authentication()
 returns void
 language plpgsql
-security definer
 set search_path = ''
 as $$
 begin
@@ -78,3 +81,6 @@ begin
   perform set_config('request.jwt.claims', null, true);
 end;
 $$;
+
+select ok(true, '테스트 헬퍼 로드 완료');
+select * from finish();

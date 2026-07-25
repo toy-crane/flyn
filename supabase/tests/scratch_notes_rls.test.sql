@@ -19,45 +19,43 @@ select is(
   'alice는 bob 행이 있어도 자기 행만 본다'
 );
 
+-- 변경 시도는 alice로 실행하고, 결과는 bob 관점에서 검증한다.
+-- (데이터 변경 CTE는 최상위 문에서만 허용되어 서브쿼리로 행 수를 셀 수 없다.)
+update public.scratch_notes
+set body = 'hacked'
+where user_id = tests.get_supabase_uid('bob');
+
+select tests.authenticate_as('bob');
 select is(
-  (
-    with updated as (
-      update public.scratch_notes
-      set body = 'hacked'
-      where user_id = tests.get_supabase_uid('bob')
-      returning 1
-    )
-    select count(*)::int from updated
-  ),
+  (select count(*)::int from public.scratch_notes where body = 'hacked'),
   0,
   'alice는 bob 행을 수정할 수 없다'
 );
 
-select is(
-  (
-    with deleted as (
-      delete from public.scratch_notes
-      where user_id = tests.get_supabase_uid('bob')
-      returning 1
-    )
-    select count(*)::int from deleted
-  ),
-  0,
-  'alice는 bob 행을 삭제할 수 없다'
-);
+select tests.authenticate_as('alice');
+delete from public.scratch_notes
+where user_id = tests.get_supabase_uid('bob');
 
 select tests.authenticate_as('bob');
 select is(
   (select count(*)::int from public.scratch_notes),
   1,
+  'alice는 bob 행을 삭제할 수 없다'
+);
+
+select is(
+  (select body from public.scratch_notes),
+  'bob note',
   'bob은 자기 행만 본다'
 );
 
+-- anon에는 GRANT 자체가 없다 — RLS 이전에 테이블 접근이 거부된다.
 select tests.clear_authentication();
-select is(
-  (select count(*)::int from public.scratch_notes),
-  0,
-  '미인증은 아무 행도 못 본다'
+select throws_ok(
+  'select count(*) from public.scratch_notes',
+  '42501',
+  'permission denied for table scratch_notes',
+  '미인증은 테이블 접근 자체가 거부된다'
 );
 
 select * from finish();
