@@ -4,8 +4,11 @@
 > the terrain wins. A divergence at the decision level flows back to
 > spec.md instead of being worked around.
 
-- 블로커: 02 Supabase 경계
-- 상태: 이메일 경로는 검증 완료 · Apple·Google은 코드 완료 후 수동 확인 대기
+- 블로커: 02 Supabase 경계 (완료)
+- 상태: **진행 중 — 이 저장소의 다음 작업이다.** 이메일 경로는 검증 완료 ·
+  Apple·Google은 코드 완료 후 수동 확인 대기. **코드로 할 일은 남아 있지 않고,
+  남은 것은 전부 사용자 자격증명이 필요한 검증이다**(아래 "남은 검증").
+  이것이 닫히기 전에는 03b·04로 넘어가지 않는다 — 근거는 plan.md "현재 위치"
 
 ## 무엇을 만드는가
 
@@ -178,6 +181,21 @@ spec.md에서 기각했던 이메일 수단을 되살려 해결했다 — 테스
 시뮬레이터 dev build에서 로그인 화면·Google 시트·`accounts.google.com`
 동의 화면("to continue to flyn")까지 확인했다. 계정 입력부터는 사람이 해야
 한다. 그 뒤 RLS CRUD·두 계정 격리·로그아웃·세션 복원이 남는다.
+
+**사용자가 먼저 해줘야 하는 것** — 이 세 개가 선행되지 않으면 검증 세션을
+열어도 같은 지점에서 막힌다:
+
+- [ ] Apple Developer 포털에서 App ID `com.odd.flyn`에 **Sign in with Apple**
+      capability 활성
+- [ ] 시뮬레이터 **설정 앱에서 Apple 계정 로그인** — 계정이 없어서
+      `ERR_REQUEST_UNKNOWN`이 난다(포털 등록과는 별개 원인이다)
+- [ ] **Google 계정 2개**(또는 Apple + Google 조합) — 두 계정 격리 확인용
+
+**에이전트가 대신할 수 없는 것**: 계정 자격증명 입력. 그 외 로컬 스택 기동,
+dev build 설치, 시뮬레이터 조작, 로그인 이후의 RLS CRUD·격리·로그아웃·세션
+복원 확인은 에이전트가 몰 수 있다. 즉 검증 세션의 모양은 "에이전트가
+로그인 화면까지 몰아둔 뒤 계정 입력만 사람이 하고, 그 뒤를 다시 에이전트가
+확인"이다.
 
 Apple은 시뮬레이터에 Apple 계정이 없어(`Accounts3.sqlite`에 Apple ID 없음)
 `ERR_REQUEST_UNKNOWN`으로 떨어진다. 포털 capability 등록과 별개 원인이며,

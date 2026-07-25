@@ -5,7 +5,8 @@
 > spec.md instead of being worked around.
 
 - 블로커: 01 모노레포 골격과 로컬 루프
-- 상태: 대기
+- 상태: **완료** (PR #15). 체크박스가 오래 비어 있었던 건 기록 누락이다 —
+  아래는 2026-07-25에 터레인을 보고 채운 것이다
 
 ## 무엇을 만드는가
 
@@ -21,10 +22,17 @@
 
 ## 완료 기준
 
-- [ ] 로컬 스택이 마이그레이션과 시드로 재현 가능하게 구성된다
-- [ ] 익명 로그인으로 앱이 세션을 얻고 예시 테이블에 CRUD 한다
-- [ ] RLS: 본인 행 접근 성공과 타인 행 접근 거부가 pgTAP으로 증명된다
-- [ ] Hono 엔드포인트가 유효/무효 JWT를 옳게 통과/거부하며, 그 동작이
-      서버 기동 없는 테스트로 증명된다
-- [ ] 스키마 변경 → 타입 재생성 → 앱·API 타입 반영이 명령 하나로 돈다
-- [ ] 앱의 API 호출이 Hono RPC를 거쳐 컴파일 타임에 계약을 검증받는다
+- [x] 로컬 스택이 마이그레이션과 시드로 재현 가능하게 구성된다 —
+      `supabase/migrations/`·`supabase/schemas/`·`seed.sql`, `bun run db:reset`
+- [x] 익명 로그인으로 앱이 세션을 얻고 예시 테이블에 CRUD 한다 —
+      당시 확인. **단, 이 수단은 03a에서 제거됐다**(`anonymous_users: false`).
+      기준은 충족한 뒤 폐기된 것이지, 지금 재현되지는 않는다
+- [x] RLS: 본인 행 접근 성공과 타인 행 접근 거부가 pgTAP으로 증명된다 —
+      `bun run db:test` 8건 PASS (2026-07-25 재확인).
+      `supabase/tests/scratch_notes_rls.test.sql`
+- [x] Hono 엔드포인트가 유효/무효 JWT를 옳게 통과/거부하며, 그 동작이
+      서버 기동 없는 테스트로 증명된다 — `app.request()` 5건
+- [x] 스키마 변경 → 타입 재생성 → 앱·API 타입 반영이 명령 하나로 돈다 —
+      `bun run db:reset` = `supabase db reset && bun run db:types`
+- [x] 앱의 API 호출이 Hono RPC를 거쳐 컴파일 타임에 계약을 검증받는다 —
+      `apps/mobile/src/lib/rpc.contract.ts`가 `tsc --noEmit`으로 계약을 지킨다
