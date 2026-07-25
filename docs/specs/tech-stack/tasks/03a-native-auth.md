@@ -5,7 +5,7 @@
 > spec.md instead of being worked around.
 
 - 블로커: 02 Supabase 경계
-- 상태: 대기
+- 상태: 진행 중
 
 ## 무엇을 만드는가
 
@@ -121,3 +121,20 @@ Google 네이티브 사인인이 Expo Go에서 동작하지 않으므로, 이 �
 Apple Developer 포털 capability 설정 · Google Cloud OAuth 클라이언트 2개 생성 ·
 `eas init` · dev build 설치와 실기기 로그인 확인. 여기서 나온 ID를 받아
 파일 작업을 이어간다.
+
+### 진행 중 결정 기록 (2026-07-25)
+
+- **EAS 셋팅은 이 태스크에서 패스**(사용자 결정). dev build는 로컬
+  `expo run:ios`로 만들고, `eas init`·`eas.json`·`cli.appVersionSource`는
+  03b로 이월한다. 완료 기준 1의 "EAS development build"는 "로컬 development
+  build"로 대체.
+- **Apple 포털 capability는 사용자가 나중에 직접 등록**(사용자 결정).
+  시뮬레이터는 포털 등록 없이도 로그인 시트가 뜨는지 확인하고, 실기기
+  검증은 등록 후로 미룬다.
+- "확인이 필요한 것" 중 Apple secret: CLI는
+  `SUPABASE_AUTH_EXTERNAL_APPLE_SECRET` 미설정을 **경고만 하고 강제하지
+  않는다**. `[auth.external.apple]`에서 secret 줄을 제거해도 스택이 뜬다.
+- 테스트 배선이 태스크 예상보다 더 망가져 있었다: pgTAP 헬퍼의
+  SECURITY DEFINER + `set_config('role')` 조합과 서브쿼리 안 데이터 변경
+  CTE는 Postgres가 원천 금지라 `db:test`가 통과한 적이 없는 구조였다.
+  별도 커밋으로 수리했다.

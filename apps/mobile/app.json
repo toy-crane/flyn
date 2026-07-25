@@ -3,12 +3,24 @@
     "name": "flyn",
     "slug": "flyn",
     "scheme": "flyn",
+    "version": "1.0.0",
     "userInterfaceStyle": "automatic",
     "orientation": "portrait",
     "ios": {
       "bundleIdentifier": "com.odd.flyn",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "usesAppleSignIn": true
     },
-    "plugins": ["expo-router", "expo-status-bar"]
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-apple-authentication",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.REPLACE_WITH_IOS_CLIENT_ID"
+        }
+      ]
+    ]
   }
 }

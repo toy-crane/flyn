@@ -4,6 +4,7 @@ import { supabase, supabaseConfigured } from "./supabase";
 type AuthState =
   | { kind: "loading" }
   | { kind: "ready"; userId: string }
+  | { kind: "signedOut" }
   | { kind: "failed"; reason: string };
 
 // getSession과 달리 서명·만료를 검증한다. WebCrypto가 없는 RN에서는 getUser()로 폴백한다.
@@ -42,27 +43,15 @@ export function useAuth(): AuthState {
           return;
         }
 
+        // 검증 실패는 만료된 세션으로 보고 로그인 화면으로 보낸다.
         verifiedUserId().then((userId) => {
-          setState(
-            userId
-              ? { kind: "ready", userId }
-              : { kind: "failed", reason: "세션을 검증하지 못했다" }
-          );
+          setState(userId ? { kind: "ready", userId } : { kind: "signedOut" });
         });
         return;
       }
 
-      if (event === "INITIAL_SESSION") {
-        // 성공하면 SIGNED_IN으로 이 리스너에 다시 들어온다.
-        supabase.auth.signInAnonymously().then(({ error }) => {
-          if (error) {
-            setState({ kind: "failed", reason: error.message });
-          }
-        });
-        return;
-      }
-
-      setState({ kind: "failed", reason: "세션이 만료됐다" });
+      // 세션 없음 — 미로그인·로그아웃·만료 모두 로그인 화면으로 떨어뜨린다.
+      setState({ kind: "signedOut" });
     });
 
     return () => data.subscription.unsubscribe();

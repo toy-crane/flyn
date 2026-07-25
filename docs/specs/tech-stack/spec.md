@@ -18,8 +18,8 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
 
 - Expo 최신 SDK + Expo Router, 스타일링은 Uniwind(Tailwind v4 바인딩).
 - 빌드·배포는 EAS Build / EAS Update.
-- 개발 중 Expo Go 사용 가능(Uniwind가 지원). 단 Apple/Google 네이티브
-  로그인 테스트에는 development build가 필요.
+- 개발 루프는 **development build 기준**(03a부터). Google 네이티브 로그인이
+  Expo Go에서 동작하지 않아 Expo Go는 포기했다.
 - **타깃은 iOS 전용.** Android는 목표가 아니며, 필요해지면 별도 결정으로
   다룬다(코드가 RN이라 전환 비용은 낮다).
 - 웹은 목표가 아님. 웹이 필요해지면 모노레포에 Next.js 앱을
@@ -152,8 +152,10 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
   지원하며 공식 문서가 프로덕션 준비 상태라고 명시한다. Pro($99/seat/년부터)가
   더하는 것은 C++ 네이티브 엔진, 제로 리렌더 ShadowTree 갱신, Reanimated 4
   className 애니메이션, 네이티브 스레드 테마 전환, `group-active:*`
-  변형이다. 전부 성능·애니메이션 계층이고, **Pro는 development build를 요구해
-  Expo Go를 포기해야 하므로** 개발 루프에는 오히려 손해다. 애니메이션 요구가
+  변형이다. 전부 성능·애니메이션 계층이다. 당초 "Pro는 development build를
+  요구해 Expo Go를 포기해야 한다"는 점도 반대 근거였으나, 03a에서 개발 루프가
+  네이티브 로그인 때문에 이미 dev build로 이동해 이 이점은 소멸했다 —
+  **무료 범위로 충분하다는 결론 자체는 유효하다.** 애니메이션 요구가
   실제로 생기면 그때 별도 결정으로 다룬다.
 - **AI SDK ↔ Expo 폴리필**: 플랫폼에 따라 `@ungap/structured-clone`,
   `@stardazed/streams-text-encoding` 폴리필이 필요하고, 프로덕션에서는
