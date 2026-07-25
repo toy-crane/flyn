@@ -15,10 +15,22 @@ import { execFileSync } from "node:child_process";
 const API = process.env.SUPABASE_URL ?? "http://127.0.0.1:54321";
 const MAILPIT = process.env.MAILPIT_URL ?? "http://127.0.0.1:54324";
 
-const LOCAL_HOST = /^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/;
+const LOCAL_HOSTNAMES = new Set(["127.0.0.1", "localhost", "[::1]", "::1"]);
 const SIX_DIGITS = /\b(\d{6})\b/;
 const POLL_ATTEMPTS = 20;
 const POLL_INTERVAL_MS = 250;
+
+/**
+ * 정규식으로 판별하면 userinfo에 속는다 — `http://127.0.0.1:x@ref.supabase.co`는
+ * 호스트가 원격인데도 "127.0.0.1:"로 시작한다. URL 파서에 hostname을 물어본다.
+ */
+function isLocal(raw: string): boolean {
+  try {
+    return LOCAL_HOSTNAMES.has(new URL(raw).hostname);
+  } catch {
+    return false;
+  }
+}
 
 interface Session {
   access_token: string;
@@ -75,8 +87,28 @@ function post(path: string, key: string, body: unknown): Promise<Response> {
   });
 }
 
-/** 메일은 발송 직후 바로 보이지 않을 수 있어 짧게 폴링한다. */
-async function waitForCode(address: string): Promise<string> {
+/** 발송 직전의 최신 메시지 ID. 같은 주소로 다시 부를 때 이전 메일과 구분하는 기준이다. */
+async function newestMessageId(address: string): Promise<string | null> {
+  const query = encodeURIComponent(`to:${address}`);
+
+  return await fetch(`${MAILPIT}/api/v1/search?query=${query}`)
+    .then((res) => (res.ok ? res.json() : null))
+    .then(
+      (body) =>
+        (body as { messages?: MailpitMessage[] } | null)?.messages?.[0]?.ID ??
+        null
+    )
+    .catch(() => null);
+}
+
+/**
+ * 메일은 발송 직후 바로 보이지 않을 수 있어 짧게 폴링한다. `before`와 같은 메시지는
+ * 이전 실행이 남긴 것이므로 건너뛴다 — 안 그러면 이미 소진된 코드를 집어 403이 난다.
+ */
+async function waitForCode(
+  address: string,
+  before: string | null
+): Promise<string> {
   const query = encodeURIComponent(`to:${address}`);
 
   for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
@@ -90,7 +122,7 @@ async function waitForCode(address: string): Promise<string> {
       )
       .catch(() => null);
 
-    if (found) {
+    if (found && found.ID !== before) {
       const detail = await fetch(`${MAILPIT}/api/v1/message/${found.ID}`)
         .then((res) => res.json() as Promise<{ Text?: string }>)
         .catch(() => null);
@@ -105,14 +137,19 @@ async function waitForCode(address: string): Promise<string> {
   }
 
   return fail(
-    `코드가 담긴 메일이 오지 않았다. Mailpit(${MAILPIT})이 떠 있는지, config.toml의 ` +
+    `코드가 담긴 새 메일이 오지 않았다. Mailpit(${MAILPIT})이 떠 있는지, config.toml의 ` +
       "이메일 템플릿이 {{ .Token }}을 내보내는지 확인하라."
   );
 }
 
 async function main(): Promise<void> {
-  if (!LOCAL_HOST.test(API)) {
+  if (!isLocal(API)) {
     fail(`로컬 스택 전용이다 — SUPABASE_URL이 ${API}로 설정돼 있다.`);
+  }
+
+  // 메일함도 마찬가지다 — 원격이면 대상 주소가 새어나가고 코드를 남이 정할 수 있다.
+  if (!isLocal(MAILPIT)) {
+    fail(`로컬 스택 전용이다 — MAILPIT_URL이 ${MAILPIT}로 설정돼 있다.`);
   }
 
   const args = process.argv.slice(2);
@@ -120,6 +157,9 @@ async function main(): Promise<void> {
   const address =
     args.find((arg) => arg.includes("@")) ?? `agent-${Date.now()}@example.test`;
   const key = publishableKey();
+
+  // 발송 전에 찍어둔다 — 같은 주소로 다시 부를 때 이전 메일을 새 메일로 착각하지 않도록.
+  const previous = await newestMessageId(address);
 
   const sent = await post("/auth/v1/otp", key, {
     create_user: true,
@@ -130,7 +170,7 @@ async function main(): Promise<void> {
     fail(`코드 발송 실패 (${sent.status}): ${await sent.text()}`);
   }
 
-  const code = await waitForCode(address);
+  const code = await waitForCode(address, previous);
 
   const verified = await post("/auth/v1/verify", key, {
     email: address,
