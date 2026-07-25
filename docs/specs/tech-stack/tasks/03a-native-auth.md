@@ -5,7 +5,7 @@
 > spec.md instead of being worked around.
 
 - 블로커: 02 Supabase 경계
-- 상태: 진행 중
+- 상태: 코드 완료 · 실제 로그인 검증 보류(계정 입력이 필요해 원격 세션에서 불가)
 
 ## 무엇을 만드는가
 
@@ -23,12 +23,17 @@ Google 네이티브 사인인이 Expo Go에서 동작하지 않으므로, 이 �
 
 ## 완료 기준
 
-- [ ] EAS development build로 실기기/시뮬레이터에서 개발이 가능하다
-- [ ] Apple 로그인으로 세션을 얻고 스크래치 카드가 내 행만 CRUD 한다
-- [ ] Google 로그인으로 같은 경로가 돌고, 두 계정의 행이 서로 보이지 않는다
-- [ ] 익명 로그인이 코드와 `config.toml` 양쪽에서 사라졌다
-- [ ] 로그아웃 → 재로그인, 앱 재실행 시 세션 복원이 동작한다
-- [ ] `bun run check`와 `bun run db:test`가 통과한다
+- [x] development build로 시뮬레이터에서 개발이 가능하다 — 로컬
+      `expo run:ios`로 빌드·설치·구동 확인. EAS는 03b 이월
+- [ ] Apple 로그인으로 세션을 얻고 스크래치 카드가 내 행만 CRUD 한다 —
+      **코드 완료, 검증 보류**
+- [ ] Google 로그인으로 같은 경로가 돌고, 두 계정의 행이 서로 보이지 않는다 —
+      **코드 완료, 검증 보류**(`accounts.google.com` 동의 화면까지 확인)
+- [x] 익명 로그인이 코드와 `config.toml` 양쪽에서 사라졌다 —
+      `/auth/v1/settings`가 `anonymous_users: false` 반환
+- [ ] 로그아웃 → 재로그인, 앱 재실행 시 세션 복원이 동작한다 —
+      **코드 완료, 검증 보류**
+- [x] `bun run check`와 `bun run db:test`가 통과한다
 
 ## 구현 메모
 
@@ -155,3 +160,20 @@ Apple Developer 포털 capability 설정 · Google Cloud OAuth 클라이언트 2
 Apple은 시뮬레이터에 Apple 계정이 없어(`Accounts3.sqlite`에 Apple ID 없음)
 `ERR_REQUEST_UNKNOWN`으로 떨어진다. 포털 capability 등록과 별개 원인이며,
 둘 다 사용자가 처리한 뒤 재검증한다.
+
+**재개 절차** — 로컬(원격 제어가 아닌) 세션에서:
+
+```bash
+bun run db:start                       # 로컬 Supabase
+bun run --filter @flyn/api dev         # API
+cd apps/mobile && bunx expo run:ios    # dev build 설치 + Metro
+```
+
+시뮬레이터 설정에서 Apple 계정 로그인(Apple 검증 시)과 Apple Developer
+포털의 `com.odd.flyn` Sign in with Apple capability 활성이 선행 조건이다.
+두 계정 격리는 Google 계정 2개 또는 Apple + Google 조합으로 확인한다.
+
+**미검증 리스크** — Apple의 `[auth.external.apple].skip_nonce_check`를
+`false`로 뒀다. `signInAsync`에 nonce를 넘기지 않으면 Apple이 nonce claim을
+빼므로 Supabase도 검사를 건너뛴다는 전제인데, 실제 로그인으로 확인하지
+못했다. Apple에서 nonce 관련 거부가 나면 Google처럼 `true`로 바꾼다.
