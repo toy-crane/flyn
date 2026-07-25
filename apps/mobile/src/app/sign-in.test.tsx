@@ -72,8 +72,18 @@ async function pressSettled(label: string) {
   });
 }
 
-afterEach(() => {
-  jest.clearAllMocks();
+async function sendCodeTo(address: string) {
+  await fireEvent.changeText(
+    screen.getByPlaceholderText("이메일 주소"),
+    address
+  );
+  await pressSettled("코드 받기");
+}
+
+beforeEach(() => {
+  // clearAllMocks는 호출 기록만 지우고 mockResolvedValue를 남겨 테스트가 선언 순서에
+  // 묶인다. reset 후 각 테스트가 필요한 구현만 세운다.
+  jest.resetAllMocks();
 });
 
 describe("SignInScreen", () => {
@@ -102,15 +112,26 @@ describe("SignInScreen", () => {
     expect(screen.getByText("로그인 실패: boom")).toBeTruthy();
   });
 
+  it("헬퍼가 던져도 화면이 잠기지 않는다", async () => {
+    // busy 플래그를 try/finally로 풀지 않으면 이후 모든 버튼이 조용히 죽는다.
+    mockSignInAsync.mockRejectedValue(new Error("first"));
+    await render(<SignInScreen />);
+
+    await pressSettled("Sign in with Apple");
+    expect(screen.getByText("로그인 실패: first")).toBeTruthy();
+
+    mockSignInAsync.mockRejectedValue(new Error("second"));
+    await pressSettled("Sign in with Apple");
+
+    expect(screen.getByText("로그인 실패: second")).toBeTruthy();
+    expect(mockSignInAsync).toHaveBeenCalledTimes(2);
+  });
+
   it("코드 발송에 성공하면 코드 입력 단계로 넘어간다", async () => {
     mockAuth.signInWithOtp.mockResolvedValue({ error: null });
     await render(<SignInScreen />);
 
-    await fireEvent.changeText(
-      screen.getByPlaceholderText("이메일 주소"),
-      "me@example.test"
-    );
-    await pressSettled("코드 받기");
+    await sendCodeTo("me@example.test");
 
     expect(screen.getByText(CODE_PROMPT)).toBeTruthy();
     expect(mockAuth.signInWithOtp).toHaveBeenCalledWith({
@@ -125,14 +146,31 @@ describe("SignInScreen", () => {
     });
     await render(<SignInScreen />);
 
-    await fireEvent.changeText(
-      screen.getByPlaceholderText("이메일 주소"),
-      "me@example.test"
-    );
-    await pressSettled("코드 받기");
+    await sendCodeTo("me@example.test");
 
     expect(screen.getByText("로그인 실패: rate limit")).toBeTruthy();
     expect(screen.queryByText(CODE_PROMPT)).toBeNull();
+  });
+
+  it("붙여넣은 코드에서 숫자만 남긴다", async () => {
+    mockAuth.signInWithOtp.mockResolvedValue({ error: null });
+    mockAuth.verifyOtp.mockResolvedValue({ error: null });
+    await render(<SignInScreen />);
+
+    await sendCodeTo("me@example.test");
+
+    // maxLength로 앞부분만 잘리면 6자로 보여도 검증은 실패한다.
+    await fireEvent.changeText(
+      screen.getByPlaceholderText("000000"),
+      "코드: 448183"
+    );
+    await pressSettled("로그인");
+
+    expect(mockAuth.verifyOtp).toHaveBeenCalledWith({
+      email: "me@example.test",
+      token: "448183",
+      type: "email",
+    });
   });
 
   it("6자리를 채워야 코드를 검증한다", async () => {
@@ -140,11 +178,7 @@ describe("SignInScreen", () => {
     mockAuth.verifyOtp.mockResolvedValue({ error: null });
     await render(<SignInScreen />);
 
-    await fireEvent.changeText(
-      screen.getByPlaceholderText("이메일 주소"),
-      "me@example.test"
-    );
-    await pressSettled("코드 받기");
+    await sendCodeTo("me@example.test");
 
     // 5자리에서는 버튼이 잠겨 있어 검증이 일어나지 않는다.
     await fireEvent.changeText(screen.getByPlaceholderText("000000"), "12345");
