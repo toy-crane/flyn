@@ -17,7 +17,8 @@
     "db:diff": "supabase db diff -f",
     "db:types": "bun run --filter @flyn/supabase gen",
     "db:reset": "supabase db reset && bun run db:types",
-    "db:test": "supabase test db"
+    "db:test": "supabase test db",
+    "auth:session": "bun run scripts/auth-session.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.5",

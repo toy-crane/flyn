@@ -23,20 +23,28 @@ iOS 앱과 그 백엔드를 담는 모노레포. 테크 스택 결정과 근거�
 bun install
 ```
 
-터미널 두 개로 나눠 띄우는 쪽이 시뮬레이터를 다루기 편하다.
+앱은 **development build**로 돈다(03a부터 — Google 네이티브 로그인이 Expo Go에서
+동작하지 않는다). 최초 1회, 그리고 네이티브 모듈·config plugin이 바뀔 때마다
+네이티브 빌드가 필요하다:
+
+```bash
+cd apps/mobile && bunx expo run:ios
+```
+
+이후 일상 루프는 터미널 두 개로 나눠 띄우는 쪽이 시뮬레이터를 다루기 편하다.
 
 ```bash
 bun run --filter @flyn/api dev
 ```
 
 ```bash
-bun run --filter @flyn/mobile ios
+bun run --filter @flyn/mobile dev
 ```
 
 API는 <http://localhost:3000/health>에서 `{"service":"flyn-api","status":"ok"}`를
-돌려준다. 앱은 시뮬레이터의 Expo Go로 열리고, 화면의 **API health** 카드에
-같은 응답이 뜨면 앱 ↔ API 연결까지 살아 있는 것이다. iOS 시뮬레이터는 호스트의
-`localhost`에 그대로 접근하므로 별도 설정이 필요 없다.
+돌려준다. 시뮬레이터에 설치된 dev build(flyn 앱)를 열면 Metro에 붙고, 화면의
+**API health** 카드에 같은 응답이 뜨면 앱 ↔ API 연결까지 살아 있는 것이다.
+iOS 시뮬레이터는 호스트의 `localhost`에 그대로 접근하므로 별도 설정이 필요 없다.
 
 turbo로 한 번에 띄우려면 `bun run dev`.
 
@@ -68,8 +76,22 @@ bun run db:diff create_something   # supabase/migrations/에 마이그레이션 
 bun run db:reset                   # 적용 + 타입 재생성
 ```
 
-앱은 익명 세션으로 `scratch_notes`에 RLS 경계 안에서 CRUD 하고(익명 로그인은
-`config.toml`에서 켜짐), 서버 전용 집계는 `@supabase/server` JWT 게이트를 거친다.
+앱은 Apple·Google 네이티브 로그인(`signInWithIdToken`) 또는 이메일 6자리 코드로
+세션을 얻어 `scratch_notes`에 RLS 경계 안에서 CRUD 하고, 서버 전용 집계는
+`@supabase/server` JWT 게이트를 거친다. provider 설정은 `config.toml`의
+`[auth.external.apple]`·`[auth.external.google]`에 있고, Google 클라이언트 ID는
+`.env.local`로 주입한다(`.env.example` 참고). 이메일은 매직링크가 아니라 코드다 —
+`[auth.email.template.*]`가 `supabase/templates/`의 `{{ .Token }}` 템플릿을 쓴다.
+
+로컬에서 보낸 메일은 Mailpit(<http://127.0.0.1:54324>)에 쌓인다. 로그인 이후
+경로를 검증할 세션이 필요하면 소셜 로그인 대신 이 명령을 쓴다:
+
+```bash
+bun run auth:session   # 이메일 OTP로 실제 세션 발급 → access_token 출력
+```
+
+**Apple·Google 로그인은 자동화가 원천 불가하다.** 무엇을 시도했고 왜 막혔는지는
+[docs/auth-verification.md](docs/auth-verification.md)에 근거와 함께 있다.
 `scratch_notes`는 도메인이 아니라 스택 관통용 **throwaway 예시**다. `@supabase/server`
 검증에 로컬 비대칭 서명이 필요하면 `supabase gen signing-key --algorithm ES256`으로
 서명키를 만든다(gitignore).
@@ -108,7 +130,7 @@ Supabase를 쓰는 화면·엔드포인트에는 위 **Supabase 로컬 스택**�
 - `apps/mobile/src/uniwind-types.d.ts`는 Metro가 생성하지만 저장소에 커밋한다.
   새로 클론한 사람이 Metro를 먼저 돌리지 않아도 `bun run check`가 통과해야 하기 때문.
 - **Uniwind는 무료(MIT) 범위로 충분하다.** Pro는 C++ 엔진·Reanimated 4 className
-  애니메이션 같은 성능 계층이고 Expo Go를 포기해야 한다. 판단 근거는
+  애니메이션 같은 성능 계층이다. 판단 근거는
   [spec.md의 리스크 절](docs/specs/tech-stack/spec.md).
 
 ## 에이전트 스킬

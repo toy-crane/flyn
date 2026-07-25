@@ -9,7 +9,14 @@ jest.mock("../lib/supabase", () => ({ supabase: {} }));
 
 function withSeededClient(ui: ReactElement) {
   const client = new QueryClient({
-    defaultOptions: { queries: { staleTime: Number.POSITIVE_INFINITY } },
+    defaultOptions: {
+      queries: {
+        // 기본 gcTime은 5분이다. 캐시에 남은 타이머가 테스트가 끝난 뒤에도
+        // 살아 있어 jest가 그만큼 종료하지 못한다.
+        gcTime: 0,
+        staleTime: Number.POSITIVE_INFINITY,
+      },
+    },
   });
   client.setQueryData(queryKeys.scratchNotes, [
     { body: "첫 메모", id: "note-1" },
