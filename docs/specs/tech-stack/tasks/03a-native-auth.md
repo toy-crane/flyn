@@ -151,6 +151,25 @@ Apple Developer 포털 capability 설정 · Google Cloud OAuth 클라이언트 2
   `1083121475965-csee193iar0c2aoonpms5vmar0imc5fd`, iOS
   `1083121475965-35se6gqqco17rok6cb45b6rcand6gl9a`.
 
+### 범위 확장 — 이메일 OTP 추가 (2026-07-25)
+
+태스크 원안에 없던 작업이다. 소셜 로그인 검증이 사람 손을 타야 한다는 사실이
+드러나면서, 인증 이후 경로 전체가 자동 검증 불가 상태로 남는 게 문제였다.
+spec.md에서 기각했던 이메일 수단을 되살려 해결했다 — 테스트 백도어가 아니라
+**제품 인증 수단**이라 프로덕션 배제 고민이 없고, 검증도 실제 상태 기계를 탄다.
+
+- 매직링크가 아니라 **6자리 코드**다. `supabase/templates/`의 `{{ .Token }}`
+  템플릿을 `[auth.email.template.magic_link|confirmation]`에 연결했다.
+  이유는 spec.md 참조(딥링크·AASA 불필요, 메일 보안 장비 회피).
+- `signInWithOtp`는 이름과 달리 **기본이 매직링크**라 템플릿 교체가 필수다.
+- `bun run auth:session`으로 세션을 얻는다. Mailpit에서 코드를 읽어 교환하고
+  access_token을 출력한다. 로컬 URL이 아니면 거부한다.
+- 소셜 자동화를 다시 시도하지 않도록 막다른 길을 근거와 함께
+  [docs/auth-verification.md](../../../auth-verification.md)에 남기고,
+  CLAUDE.md에서 그 문서를 가리킨다.
+- `[auth.rate_limit] email_sent`를 2 → 100으로 올렸다(로컬 한정).
+  호스티드 값과 SMTP 설정은 **03b가 받는다** — 범위가 그만큼 늘었다.
+
 ### 남은 검증 (사용자 자격증명 필요)
 
 시뮬레이터 dev build에서 로그인 화면·Google 시트·`accounts.google.com`

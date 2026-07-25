@@ -76,11 +76,22 @@ bun run db:diff create_something   # supabase/migrations/에 마이그레이션 
 bun run db:reset                   # 적용 + 타입 재생성
 ```
 
-앱은 Apple·Google 네이티브 로그인(`signInWithIdToken`)으로 세션을 얻어
-`scratch_notes`에 RLS 경계 안에서 CRUD 하고, 서버 전용 집계는 `@supabase/server`
-JWT 게이트를 거친다. provider 설정은 `config.toml`의 `[auth.external.apple]`·
-`[auth.external.google]`에 있고, Google 클라이언트 ID는 `.env.local`로 주입한다
-(`.env.example` 참고).
+앱은 Apple·Google 네이티브 로그인(`signInWithIdToken`) 또는 이메일 6자리 코드로
+세션을 얻어 `scratch_notes`에 RLS 경계 안에서 CRUD 하고, 서버 전용 집계는
+`@supabase/server` JWT 게이트를 거친다. provider 설정은 `config.toml`의
+`[auth.external.apple]`·`[auth.external.google]`에 있고, Google 클라이언트 ID는
+`.env.local`로 주입한다(`.env.example` 참고). 이메일은 매직링크가 아니라 코드다 —
+`[auth.email.template.*]`가 `supabase/templates/`의 `{{ .Token }}` 템플릿을 쓴다.
+
+로컬에서 보낸 메일은 Mailpit(<http://127.0.0.1:54324>)에 쌓인다. 로그인 이후
+경로를 검증할 세션이 필요하면 소셜 로그인 대신 이 명령을 쓴다:
+
+```bash
+bun run auth:session   # 이메일 OTP로 실제 세션 발급 → access_token 출력
+```
+
+**Apple·Google 로그인은 자동화가 원천 불가하다.** 무엇을 시도했고 왜 막혔는지는
+[docs/auth-verification.md](docs/auth-verification.md)에 근거와 함께 있다.
 `scratch_notes`는 도메인이 아니라 스택 관통용 **throwaway 예시**다. `@supabase/server`
 검증에 로컬 비대칭 서명이 필요하면 `supabase gen signing-key --algorithm ES256`으로
 서명키를 만든다(gitignore).
