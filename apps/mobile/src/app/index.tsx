@@ -1,15 +1,24 @@
 import { StatusBar } from "expo-status-bar";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import { CardError } from "../components/card";
 import { HealthStatus } from "../components/health-status";
 import { ScratchNotes } from "../components/scratch-notes";
 import { ServerStats } from "../components/server-stats";
 import { signOut } from "../lib/auth/sign-out";
 
 export default function SkeletonScreen() {
-  // 로그아웃되면 _layout의 가드가 sign-in으로 보낸다.
-  const handleSignOut = useCallback(() => {
-    signOut();
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+
+  // 성공하면 _layout의 가드가 sign-in으로 보낸다. 실패는 아무 일도 안 일어난 것처럼
+  // 보이므로 반드시 표시한다.
+  const handleSignOut = useCallback(async () => {
+    setSignOutError(null);
+    const result = await signOut();
+
+    if (result) {
+      setSignOutError(result.error);
+    }
   }, []);
 
   return (
@@ -39,6 +48,7 @@ export default function SkeletonScreen() {
         <ServerStats />
 
         <Pressable
+          accessibilityRole="button"
           className="items-center rounded-2xl bg-white/80 p-4 dark:bg-white/10"
           onPress={handleSignOut}
         >
@@ -46,6 +56,10 @@ export default function SkeletonScreen() {
             로그아웃
           </Text>
         </Pressable>
+
+        {signOutError ? (
+          <CardError>로그아웃 실패: {signOutError}</CardError>
+        ) : null}
       </View>
 
       <StatusBar style="auto" />
