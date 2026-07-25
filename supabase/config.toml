@@ -337,7 +337,7 @@ email_optional = false
 # GoogleSignin 네이티브 SDK는 nonce를 제어할 수 없어 로컬에서는 nonce 검사를 건너뛴다.
 [auth.external.google]
 enabled = true
-client_id = "REPLACE_WITH_WEB_CLIENT_ID,REPLACE_WITH_IOS_CLIENT_ID"
+client_id = "1083121475965-csee193iar0c2aoonpms5vmar0imc5fd.apps.googleusercontent.com,1083121475965-35se6gqqco17rok6cb45b6rcand6gl9a.apps.googleusercontent.com"
 skip_nonce_check = true
 
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
