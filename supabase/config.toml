@@ -225,7 +225,13 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+# 반드시 true로 둔다. false면 /auth/v1/signup이 메일함 소유를 증명하지 않은 계정을
+# 즉시 confirmed로 만들고, 그러면 GoTrue의 pre-account-takeover 방어인
+# RemoveUnconfirmedIdentities(!user.IsConfirmed() 조건)가 통째로 건너뛰어진다.
+# 공격자가 피해자 주소로 미리 가입해두면, 피해자가 나중에 Google로 로그인할 때
+# 그 계정에 소셜 신원이 링크되어 공격자의 비밀번호 접근이 그대로 남는다.
+# OTP 로그인은 코드 검증 시점에 확인되므로 이 값과 무관하게 동작한다.
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
