@@ -75,11 +75,15 @@ App Store Connect에 `com.odd.flyn` 앱 레코드를 만든 뒤
 
 ### 4. PostHog 계측
 
-`posthog-react-native`(+ `expo-file-system`, `expo-localization`)를 설치하고
+`posthog-react-native`(+ `expo-file-system`, `expo-localization`)를 설치하고 —
+`expo-file-system`은 expo 57에 전이적으로 이미 들어 있지만 `apps/mobile`의 직접
+의존은 아니라서 `expo install`로 명시해야 한다 —
 `src/app/_layout.tsx`의 `QueryClientProvider` 바깥에 `PostHogProvider`를 둔다.
 키가 없으면 provider를 끼우지 않는다 — `supabase.ts`의 `supabaseConfigured`와
 같은 graceful degradation이라 로컬 개발이 프로덕션 이벤트를 오염시키지 않는다.
 로그인 성공 시 `identify(userId)`를 03a의 auth 헬퍼에 얹는다.
+`posthog-react-native`도 jest-expo가 목을 주지 않으므로 `jest.mock` 팩토리가
+필요하다.
 `EXPO_PUBLIC_POSTHOG_API_KEY`·`EXPO_PUBLIC_POSTHOG_HOST`를 `.env.example`과
 `eas.json` env에 추가.
 
@@ -118,7 +122,8 @@ reset 금지, EAS 프로필 3종, Vercel 프로젝트 설정, 환경 변수 표�
 2. Vercel preview `/health` 200, dev JWT로 stats 200, 토큰 없이 401
 3. TestFlight 빌드를 실기기에 설치 → Apple 로그인 → 카드 3종이 **dev
    Supabase와 Vercel preview**를 보고 동작(로컬 스택을 끈 상태에서 확인해야
-   유효하다)
+   유효하다). `health-status.tsx`가 카드 하단에 `API_BASE_URL`을 그대로
+   렌더하므로, 빌드가 어느 백엔드를 보는지는 눈으로 확인된다
 4. PostHog Activity에 그 실행의 이벤트와 `identify`된 user_id가 보인다
 5. PR을 열어 CI가 실행되고 결과가 PR에 표시된다
 6. `rg 'service_role|eyJ'`로 저장소에 legacy 키 문자열이 없음을 확인

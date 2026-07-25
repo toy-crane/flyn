@@ -81,8 +81,26 @@ Google 네이티브 사인인이 Expo Go에서 동작하지 않으므로, 이 �
 `src/lib/auth/{apple,google}.ts`(신규) · `src/app/{_layout,index,sign-in}.tsx` ·
 `supabase/config.toml` · `README.md` · `docs/specs/tech-stack/spec.md`
 
-기존 모바일 테스트는 `../lib/supabase`를 통째로 목하고 있어 대부분 그대로
-통과한다. `sign-in` 스모크와 `use-auth`의 signedOut 전이 테스트를 추가한다.
+### 테스트에서 걸릴 것
+
+`sign-in` 스모크와 `use-auth`의 signedOut 전이 테스트를 추가하는데, 지금
+테스트 배선이 그대로는 안 받는다.
+
+- `scratch-notes.test.tsx`의 `jest.mock("../lib/supabase", () => ({ supabase: {} }))`는
+  named export가 `supabase` 하나뿐이라는 전제다. `supabase.ts`에 컴포넌트가
+  import하는 export가 늘면 이 목이 깨진다
+- `use-auth` 테스트에는 `auth.onAuthStateChange` · `getClaims` ·
+  `signInWithIdToken` · `signOut`을 갖춘 더 두꺼운 목이 필요하다
+- `expo-apple-authentication`과 `@react-native-google-signin/google-signin`은
+  jest-expo가 목을 제공하지 않는다. `jest.mock` 팩토리를 직접 써야 한다
+- `apps/mobile/tsconfig.json`의 `types`는 `["jest"]`뿐이다. 앰비언트 타입이
+  필요한 라이브러리를 넣으면 이 배열을 늘려야 한다
+
+### 그 밖에 지금 없는 것
+
+- 저장소 어디에도 `signOut` 헬퍼가 없다. 로그아웃 버튼과 함께 새로 만든다
+- `app.json`에 `version`/`ios.buildNumber`가 없다.
+  `cli.appVersionSource: "remote"`와 함께 `version`을 넣어야 한다
 
 ### 확인이 필요한 것
 
