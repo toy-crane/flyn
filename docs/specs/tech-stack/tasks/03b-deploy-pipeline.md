@@ -60,8 +60,13 @@ Vercel은 Hono를 zero-config로 인식하고 `src/index.ts`의 default export�
   남지 않는다. 번들 리스크는 낮다
 - 환경 변수를 Preview·Production 스코프에 각각: `SUPABASE_URL` ·
   `SUPABASE_PUBLISHABLE_KEY` · `SUPABASE_SECRET_KEY` · `SUPABASE_JWKS_URL`.
-  `@supabase/server` 미들웨어는 모듈 로드 시점에 env를 읽으므로(라우트
-  테스트가 이 순서에 의존한다) 콜드 스타트 전에 값이 있어야 한다
+  **정정 (2026-07-25)**: 여기 원래 "`@supabase/server` 미들웨어는 모듈 로드
+  시점에 env를 읽는다"고 적혀 있었는데 **v1.4.1에서는 사실이 아니다** —
+  `verifyCredentials`가 요청마다 `resolveEnv()`를 부른다(`dist/verify-auth-*.mjs`).
+  모듈 레벨에 캐시되는 건 원격 JWKS 리졸버 하나뿐이다. 배포에서 값이 있어야
+  하는 건 여전하지만 "콜드 스타트 전"이라는 조건은 아니고,
+  `scratch-notes.route.test.ts`의 "env 세팅 후 동적 import" 순서도 **필수가
+  아니다**(관습으로 남겨둘 뿐 — 그 파일 주석도 같은 오해를 담고 있다)
 
 ### 3. EAS 프로필 3종과 TestFlight
 
@@ -135,7 +140,14 @@ reset 금지, EAS 프로필 3종, Vercel 프로젝트 설정, 환경 변수 표�
   패턴에 추가할 것
 - `turbo.json`에 `env`/`globalEnv` 선언이 없다. 지금은 lint·test·typecheck가
   env와 무관해 문제없지만 빌드 태스크가 생기면 캐시 오염이 된다
-- AI 엔드포인트의 `maxDuration`·rate limit은 04 범위
+- **AI 엔드포인트의 `maxDuration`·사용자별 rate limit은 여기가 받는다** —
+  원래 "04 범위"라고 적었지만 04가 유보했다(04의 "유보" 절). spec.md는 1일차부터
+  rate limit을 요구하는데(비용 폭주 방어선), 서버리스에서 의미 있는 카운터는
+  Postgres·Redis 상태가 필요해 "스택 관통"인 04와 결이 다르다. **배포 전에 반드시
+  닫는다** — 인증만 통과하면 호출되는 엔드포인트를 rate limit 없이 배포하면
+  소수 사용자가 Gateway 비용을 폭주시킬 수 있다
+- AI 관련 환경 변수도 Vercel Preview·Production 스코프에 넣는다:
+  `AI_GATEWAY_API_KEY`(**서버 전용 · `EXPO_PUBLIC_*` 절대 금지**) · `AI_MODEL`
 
 ### 실행 환경
 
