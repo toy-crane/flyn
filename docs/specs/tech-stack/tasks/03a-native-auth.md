@@ -138,3 +138,20 @@ Apple Developer 포털 capability 설정 · Google Cloud OAuth 클라이언트 2
   SECURITY DEFINER + `set_config('role')` 조합과 서브쿼리 안 데이터 변경
   CTE는 Postgres가 원천 금지라 `db:test`가 통과한 적이 없는 구조였다.
   별도 커밋으로 수리했다.
+- 태스크에 없던 함정: expo-router는 `src/app/**`의 모든 `.tsx`를 라우트로
+  스캔한다(`_ctx` 정규식이 `.test.`를 제외하지 않음). `sign-in.test.tsx`가
+  라우트로 잡혀 `@testing-library`가 앱 번들에 끌려와 dev build가 죽었다.
+  Metro `resolver.blockList`로 제외했다.
+- Google Cloud: 새 프로젝트 `flyn-503501`. 웹
+  `1083121475965-csee193iar0c2aoonpms5vmar0imc5fd`, iOS
+  `1083121475965-35se6gqqco17rok6cb45b6rcand6gl9a`.
+
+### 남은 검증 (사용자 자격증명 필요)
+
+시뮬레이터 dev build에서 로그인 화면·Google 시트·`accounts.google.com`
+동의 화면("to continue to flyn")까지 확인했다. 계정 입력부터는 사람이 해야
+한다. 그 뒤 RLS CRUD·두 계정 격리·로그아웃·세션 복원이 남는다.
+
+Apple은 시뮬레이터에 Apple 계정이 없어(`Accounts3.sqlite`에 Apple ID 없음)
+`ERR_REQUEST_UNKNOWN`으로 떨어진다. 포털 capability 등록과 별개 원인이며,
+둘 다 사용자가 처리한 뒤 재검증한다.
