@@ -31,13 +31,19 @@
    테스트), 타입 생성 파이프, 앱의 직접 CRUD, `@supabase/server`로 Hono
    인증 게이트 + Hono RPC 타입 공유. 네이티브 로그인 전이므로 익명
    로그인으로 JWT 경로부터 관통. 끝: "내 행만 보인다"가 테스트로 증명된다.
-3. **네이티브 인증과 배포 파이프** — EAS development build, Apple·Google
-   로그인, EAS 프로필 3종, 호스티드 dev 프로젝트·Vercel preview/production
-   연결, GitHub Actions CI, PostHog 계측 초기화. 끝: TestFlight 내부
-   배포본이 dev 환경을 바라보고 동작한다.
-4. **AI 스트리밍 슬라이스** — AI Gateway 연결, Hono 스트리밍 엔드포인트,
+3. **네이티브 인증** — EAS development build, Apple·Google 로그인으로 02의
+   익명 로그인 교체. 검증은 로컬 Supabase 기준. 끝: dev build에서 두 공급자
+   각각으로 세션을 얻고 RLS·JWT 카드가 그대로 돈다. Google 네이티브
+   사인인 때문에 개발 루프가 Expo Go에서 development build로 이동한다.
+4. **배포 파이프** — 호스티드 dev 프로젝트·Vercel preview 연결, EAS 프로필
+   3종과 TestFlight, GitHub Actions CI, PostHog 계측 초기화. 끝: TestFlight
+   내부 배포본이 dev 환경을 바라보고 동작한다.
+5. **AI 스트리밍 슬라이스** — AI Gateway 연결, Hono 스트리밍 엔드포인트,
    `useChat` + expo/fetch(폴리필 포함). 끝: 시뮬레이터와 배포본 모두에서
    토큰 단위 스트리밍이 보인다.
+
+3·4는 원래 한 세션(태스크 03)이었으나 완료 기준 7개가 한 세션에 담기지
+않아 03a·03b로 쪼갰다.
 
 RevenueCat은 구독 상품이 제품 결정에 의존하므로 이 계획에 넣지 않는다.
 
@@ -78,6 +84,8 @@ Maestro E2E는 화면이 안정된 뒤로 미룬다. 두 경계 아래의 내부
   스펙 변경으로 회귀한다.
 - `@supabase/server`는 베타 — API 변동 시 jose 수동 검증 경로로 후퇴.
 - AI SDK의 Expo 폴리필이 기기·플랫폼 조합에 따라 다르게 필요할 수 있다.
-- 세션 3은 Apple Developer Program 계정과 번들 ID 결정이 전제 — 계정이
-  준비돼 있는지, 앱 이름/번들 ID를 무엇으로 할지는 그 세션 전에 답이
-  필요하다.
+- 세션 3(03a)의 전제는 해소됐다 — Apple Developer Program 계정은 등록 완료,
+  앱 이름·번들 ID는 `flyn`/`com.odd.flyn`으로 확정(태스크 01).
+- Google 네이티브 사인인은 Expo Go에서 동작하지 않는다. 03a에서 개발 루프가
+  development build로 이동하며, 01에 기록한 Expo Go 이점이 소멸한다 —
+  spec.md 회귀 대상.

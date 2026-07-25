@@ -4,7 +4,7 @@
 > the terrain wins. A divergence at the decision level flows back to
 > spec.md instead of being worked around.
 
-- 블로커: 03 네이티브 인증과 배포 파이프
+- 블로커: 03b 배포 파이프
 - 상태: 대기
 
 ## 무엇을 만드는가
@@ -16,7 +16,7 @@
 로컬 API와 배포된 API 양쪽에서 같은 경험이 확인되어야 한다.
 
 기술적 의존은 02까지지만, 배포본 스트리밍 기준을 이 세션 안에서 닫기
-위해 03 뒤에 둔다.
+위해 03b 뒤에 둔다.
 
 ## 완료 기준
 

@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# 같은 브랜치에 새 커밋이 오면 진행 중인 실행을 취소한다.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      # 없으면 turbo가 조용히 로컬 캐시로 돌아간다. secret이 설정되면 원격 캐시 사용.
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # 버전을 명시하지 않으면 루트 package.json의 packageManager를 읽는다.
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install --frozen-lockfile
+
+      # turbo run lint test typecheck — 워크스페이스로 팬아웃한다.
+      # @flyn/api는 bun test, @flyn/mobile은 jest-expo, 셋 다 tsc --noEmit.
+      #
+      # pgTAP(bun run db:test)은 여기에 없다. supabase start에 Docker가 필요해
+      # 잡 시간이 3~5분 늘어난다. RLS가 보안 경계인 만큼 정책을 건드리는 PR은
+      # 로컬에서 `bun run db:test`를 돌리는 규율로 대신한다.
+      - run: bun run check
