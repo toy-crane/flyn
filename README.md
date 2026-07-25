@@ -84,6 +84,10 @@ bun run check
 `bun run lint:fix`. 린트는 Biome + [Ultracite](https://www.ultracite.ai) 프리셋이고
 루트 태스크 하나로 저장소 전체를 훑는다.
 
+같은 명령을 GitHub Actions가 PR마다 실행한다([.github/workflows/ci.yml](.github/workflows/ci.yml)).
+**pgTAP만 CI에 없다** — `supabase start`에 Docker가 필요해서다. RLS 정책을
+건드리는 PR은 로컬에서 `bun run db:test`를 돌리고 결과를 PR에 남긴다.
+
 ## 환경 변수
 
 앱별 `.env.local`로 주입한다. 로컬 시뮬레이터는 기본값으로 동작하므로 파일 없이도

@@ -25,7 +25,8 @@ production 경로(스토어 빌드·prod 프로젝트·Vercel production)는 **�
 - [ ] EAS preview 빌드가 TestFlight 내부 배포되고 dev Supabase·Vercel
       preview를 바라보고 동작한다
 - [ ] 신형 publishable/secret 키만 사용하고 legacy 키는 어디에도 없다
-- [ ] CI가 PR마다 린트·테스트를 실행하고 결과가 PR에 표시된다
+- [x] CI가 PR마다 린트·테스트를 실행하고 결과가 PR에 표시된다 — Docker·Xcode·
+      대시보드가 필요 없는 유일한 항목이라 계획 세션에서 앞당겨 처리했다
 - [ ] PostHog에 배포본에서 발생한 이벤트가 수신된다
 
 ## 구현 메모
@@ -87,10 +88,10 @@ App Store Connect에 `com.odd.flyn` 앱 레코드를 만든 뒤
 `EXPO_PUBLIC_POSTHOG_API_KEY`·`EXPO_PUBLIC_POSTHOG_HOST`를 `.env.example`과
 `eas.json` env에 추가.
 
-### 5. GitHub Actions CI
+### 5. GitHub Actions CI — 완료
 
-`.github/workflows/ci.yml` 신규(저장소에 `.github`가 아예 없다):
-`pull_request` + `push: main`에서 `oven-sh/setup-bun` →
+`.github/workflows/ci.yml`: `pull_request` + `push: main`에서
+`oven-sh/setup-bun`(버전 미지정 → 루트 `packageManager`에서 읽는다) →
 `bun install --frozen-lockfile` → `bun run check`.
 
 이 한 명령이 `turbo run lint test typecheck`이고 `test`가 워크스페이스로
