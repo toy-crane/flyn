@@ -33,9 +33,17 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
 ### 3. API — Hono on Vercel + AI SDK
 
 - Hono 앱을 Vercel에 무설정 배포(Node 런타임, Fluid compute). 스트리밍 지원 확인됨.
-- AI 기능은 AI SDK(v5)로 구현하고, 모델 호출은 **Vercel AI Gateway**를 통한다
+- AI 기능은 AI SDK로 구현하고, 모델 호출은 **Vercel AI Gateway**를 통한다
   — 프로바이더 교체가 모델 문자열 변경 수준이 되고, 토큰 마진 없이 원가 과금.
+  Gateway 프로바이더는 `ai` 패키지에 내장돼 별도 프로바이더 패키지가 필요 없다.
 - 모바일 스트리밍은 `@ai-sdk/react`의 `useChat` + `expo/fetch`(Expo 52+ 공식 지원).
+
+**버전 정정 (2026-07-25)** — 이 절은 원래 "AI SDK(v5)"라고 적었지만 현재 최신은
+**v7**이다(`ai@7.0.37`). 결정 자체(Gateway 경유 · `useChat` + `expo/fetch`)는
+유효하고 버전만 어긋났다. v7에서 이름이 바뀐 것들은 태스크 04의 "조사 결과"에
+표로 있다 — 특히 `toUIMessageStreamResponse()`가 deprecated이고
+`convertToModelMessages()`가 async가 됐다. **기억으로 쓰지 말고 설치된 버전의
+번들 문서(`node_modules/ai/docs/`)를 볼 것.**
 
 ### 4. 데이터·인증 — Supabase
 
@@ -135,8 +143,11 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
 
 - **api·packages — `bun test`**: Hono는 `app.request()`로 서버 기동 없이
   핸들러를 직접 테스트한다. AI 로직은 AI SDK의 mock provider
-  (`MockLanguageModelV2`, `simulateReadableStream`)로 모델 호출 없이
-  결정적으로 검증.
+  (`MockLanguageModelV4` — `ai/test`, `simulateReadableStream` — `ai`)로 모델
+  호출 없이 결정적으로 검증. **`MockLanguageModelV2`라고 적혀 있었으나 그
+  이름은 존재하지 않는다**(2026-07-25 정정. v3/v4만 있다).
+  `app.request()`가 스트리밍 본문을 청크 단위로 돌려주는 것은 확인했으므로,
+  "토큰이 쪼개져 온다"까지 단정하는 테스트가 가능하다.
 - **RLS·스키마 — supabase 로컬 스택 + pgTAP**: `supabase test db`로 정책을
   검증한다. RLS가 보안 경계이므로 정책을 만들 때마다 테스트를 함께 작성
   — 이 아키텍처에서 가장 가치 높은 테스트.
@@ -170,9 +181,16 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
   네이티브 로그인 때문에 이미 dev build로 이동해 이 이점은 소멸했다 —
   **무료 범위로 충분하다는 결론 자체는 유효하다.** 애니메이션 요구가
   실제로 생기면 그때 별도 결정으로 다룬다.
-- **AI SDK ↔ Expo 폴리필**: 플랫폼에 따라 `@ungap/structured-clone`,
-  `@stardazed/streams-text-encoding` 폴리필이 필요하고, 프로덕션에서는
-  `EXPO_PUBLIC_API_BASE_URL`을 명시해야 한다.
+- ~~**AI SDK ↔ Expo 폴리필**~~ — **해소됨 (2026-07-25).** Expo 52 시절의 공식
+  가이드가 `@ungap/structured-clone`·`@stardazed/streams-text-encoding` 수동
+  폴리필을 요구하지만, **설치된 Expo 57은 winter 런타임이 이미 세 개를 다
+  깔아준다** — `node_modules/expo/src/winter/runtime.native.ts`가
+  `structuredClone`·`TextEncoderStream`·`TextDecoderStream`을 `install()`하고,
+  `@ungap/structured-clone`은 이미 `expo`의 의존이다. `ReadableStream`은
+  `expo/virtual/streams`로 들어온다. 이 런타임은 Metro의
+  `getModulesRunBeforeMainModule`에 실려 앱 코드보다 먼저 돈다 —
+  **폴리필 파일을 만들면 오히려 나중에 실행되는 죽은 코드다.**
+  남는 요구사항은 `EXPO_PUBLIC_API_BASE_URL`을 프로덕션에서 명시하는 것 하나뿐이다.
 - **RLS 의존**: 하이브리드 경계에서 RLS 정책 실수가 곧 데이터 노출.
   스키마 작업 시 RLS를 테이블 생성과 동시에 작성하는 규율 필요.
 - **`@supabase/server` 베타**: 2026-05 발표된 퍼블릭 베타라 API가 바뀔 수
