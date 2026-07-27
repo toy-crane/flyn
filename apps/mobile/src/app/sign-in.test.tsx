@@ -44,6 +44,7 @@ jest.mock("@react-native-google-signin/google-signin", () => {
   return {
     GoogleSignin: {
       configure: jest.fn(),
+      getTokens: jest.fn(),
       signIn: jest.fn(),
       signOut: jest.fn(),
     },

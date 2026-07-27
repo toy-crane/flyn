@@ -16,13 +16,13 @@ export async function signInWithGoogle(): Promise<{ error: string } | null> {
       return null;
     }
 
-    const { idToken } = response.data;
-
-    if (!idToken) {
-      return { error: "Google이 ID 토큰을 주지 않았다" };
-    }
+    // signIn() 응답에는 access_token이 없다. Google ID 토큰은 at_hash를 담고 있는데,
+    // access_token을 함께 넘기지 않으면 GoTrue가 그 검증을 통째로 건너뛴다
+    // (SkipAccessTokenCheck). getTokens()가 둘을 한 쌍으로 준다.
+    const { idToken, accessToken } = await GoogleSignin.getTokens();
 
     const { error } = await supabase.auth.signInWithIdToken({
+      access_token: accessToken,
       provider: "google",
       token: idToken,
     });
