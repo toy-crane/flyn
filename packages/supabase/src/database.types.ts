@@ -9,27 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      apple_credentials: {
-        Row: {
-          created_at: string
-          refresh_token: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          refresh_token: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          refresh_token?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           created_at: string
@@ -80,7 +59,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      read_apple_refresh_token: { Args: { p_user_id: string }; Returns: string }
+      store_apple_refresh_token: {
+        Args: { p_refresh_token: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

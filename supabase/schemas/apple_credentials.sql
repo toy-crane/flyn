@@ -1,18 +1,28 @@
 -- Apple 계정 삭제에 쓸 refresh token 보관소(§6). 계정 삭제 전에 이 token으로
 -- Apple에서 사용자 승인을 취소한다 — docs/decisions/store-apple-revocation-token.md.
 --
--- **왜 public에 두면서 서버 전용인가.** 이 저장소가 Data API에 닿는 경로는
--- PostgREST 하나이고, PostgREST가 여는 스키마는 config.toml의
--- `api.schemas = ["public", "graphql_public"]`뿐이다. Hono의 admin 클라이언트도
--- 같은 길로 다니므로, 노출되지 않는 별도 스키마에 두면 서버조차 닿지 못한다.
+-- **자물쇠가 셋이다.**
 --
--- 그래서 스키마를 숨기는 대신 **권한을 비운다.** anon·authenticated에는 grant가
--- 하나도 없어 PostgREST가 테이블 접근 자체를 거부하고, 정책 없는 RLS가 두 번째
--- 자물쇠로 남는다(권한이 실수로 생겨도 보이는 행이 없다). 모바일이 쓰는 두 롤
--- 어느 쪽으로도 이 표에 닿을 수 없다는 뜻이고, 이것이 결정 기록이 "프로필에
--- 저장"을 기각하며 요구한 경계다.
+-- 1. `private`는 config.toml의 `api.schemas`에 없다. PostgREST는 이 스키마를
+--    아예 서비스하지 않는다 — secret 키로 요청해도 PGRST106으로 거절한다.
+--    권한 실수 하나로 뚫리지 않는다는 뜻이고, 이것이 `public`에 두고 grant만
+--    비우는 것과의 결정적 차이다.
+-- 2. Data API 롤에는 스키마 USAGE조차 주지 않는다.
+-- 3. 정책 없는 RLS. 앞의 둘이 무너져도 보이는 행이 없다.
+--
+-- 그러면 서버는 어떻게 닿는가. Hono가 가진 것은 PostgREST를 타는
+-- supabase-js뿐이라 이 스키마에 직접 갈 수 없다. 그래서 `public`에 security
+-- definer 함수 두 개를 두고 EXECUTE를 service_role에만 준다 — Supabase가
+-- 노출하지 않는 스키마를 다루는 표준 방식이다.
+--
+-- 부수 효과가 하나 더 있다. 생성 타입은 `--schema public`만 훑으므로
+-- `refresh_token`이 모바일 타입 표면에서 사라진다. public에 뒀을 때는
+-- `supabase.from("apple_credentials").select("refresh_token")`이 타입 오류 없이
+-- 컴파일됐다 — 런타임에 막히더라도 타입이 그 실수를 권해서는 안 된다.
 
-create table public.apple_credentials (
+create schema private;
+
+create table private.apple_credentials (
   user_id uuid primary key references auth.users (id) on delete cascade,
   -- 절대 UI·로그·분석 이벤트·오류 응답에 싣지 않는다.
   refresh_token text not null,
@@ -20,29 +30,42 @@ create table public.apple_credentials (
   updated_at timestamptz not null default now()
 );
 
-alter table public.apple_credentials enable row level security;
+alter table private.apple_credentials enable row level security;
 
 -- 정책을 하나도 만들지 않는다. 부재가 결정이다 — 이 표를 읽어야 하는 주체는
--- RLS를 우회하는 service_role뿐이다.
+-- RLS를 우회하는 소유자로 도는 아래 두 함수뿐이다.
 
--- profiles_touch와 같은 일을 하지만 따로 둔다. 선언 스키마 파일은 이름 순으로
--- 적용돼 이 파일이 profiles.sql보다 먼저 오고, 남의 함수를 참조하면 그 순서에
--- 묶인다.
-create function public.apple_credentials_touch()
-returns trigger
-language plpgsql
+-- 같은 사용자가 다시 Apple로 로그인하면 새 token으로 갈아끼운다.
+create function public.store_apple_refresh_token(
+  p_user_id uuid,
+  p_refresh_token text
+)
+returns void
+language sql
+security definer
 set search_path = ''
 as $$
-begin
-  new.updated_at := now();
-  return new;
-end;
+  insert into private.apple_credentials (user_id, refresh_token)
+  values (p_user_id, p_refresh_token)
+  on conflict (user_id) do update
+    set refresh_token = excluded.refresh_token,
+        updated_at = now();
 $$;
 
-create trigger apple_credentials_touch
-  before update on public.apple_credentials
-  for each row execute function public.apple_credentials_touch();
+create function public.read_apple_refresh_token(p_user_id uuid)
+returns text
+language sql
+security definer
+stable
+set search_path = ''
+as $$
+  select refresh_token from private.apple_credentials where user_id = p_user_id;
+$$;
 
--- authenticated·anon에는 아무것도 주지 않는다. 명시적 grant가 없으면 Data API
--- 롤은 테이블에 닿지 못한다(auto_expose_new_tables가 unset).
-grant select, insert, update, delete on table public.apple_credentials to service_role;
+-- create function은 EXECUTE를 PUBLIC에 기본으로 준다. 거두지 않으면 anon과
+-- authenticated가 그대로 부를 수 있다 — 이 두 줄이 실제 경계다.
+revoke execute on function public.store_apple_refresh_token(uuid, text) from public;
+revoke execute on function public.read_apple_refresh_token(uuid) from public;
+
+grant execute on function public.store_apple_refresh_token(uuid, text) to service_role;
+grant execute on function public.read_apple_refresh_token(uuid) to service_role;

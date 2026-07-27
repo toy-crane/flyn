@@ -47,14 +47,14 @@ function accountStore(admin: Admin): AccountStore {
       );
     },
 
+    // 표는 Data API가 열지 않는 private 스키마에 있다. 이 정의자 함수가
+    // service_role에게만 열린 유일한 통로다.
     async readAppleRefreshToken(userId) {
-      const { data } = await admin
-        .from("apple_credentials")
-        .select("refresh_token")
-        .eq("user_id", userId)
-        .maybeSingle();
+      const { data } = await admin.rpc("read_apple_refresh_token", {
+        p_user_id: userId,
+      });
 
-      return data?.refresh_token ?? null;
+      return data ?? null;
     },
   };
 }
@@ -120,13 +120,11 @@ const app = new Hono<Env>()
         return c.json({ error: "Apple이 코드를 거부했다" }, 502);
       }
 
-      // 같은 사용자가 다시 로그인하면 새 token으로 갈아끼운다.
-      const { error } = await supabaseAdmin
-        .from("apple_credentials")
-        .upsert(
-          { refresh_token: refreshToken, user_id: userId },
-          { onConflict: "user_id" }
-        );
+      // 같은 사용자가 다시 로그인하면 함수 안에서 새 token으로 갈아끼운다.
+      const { error } = await supabaseAdmin.rpc("store_apple_refresh_token", {
+        p_refresh_token: refreshToken,
+        p_user_id: userId,
+      });
 
       if (error) {
         return c.json({ error: "token을 보관하지 못했다" }, 500);
