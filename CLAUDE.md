@@ -1,7 +1,17 @@
 # flyn
 
-테크 스택: Turborepo(bun) · Expo(Uniwind) · Hono on Vercel(AI SDK + AI Gateway) ·
+테크 스택: Turborepo(bun) · Expo(@expo/ui · Uniwind) · Hono on Vercel(AI SDK + AI Gateway) ·
 Supabase(Auth·Postgres·RLS). 결정과 근거는 [docs/specs/tech-stack/spec.md](docs/specs/tech-stack/spec.md).
+
+## UI
+
+**새 화면은 universal `@expo/ui`로 만든다.** universal에 없는 컴포넌트나 표현이
+필요하면 `@expo/ui/swift-ui`로 내려간다. 벤더 문서는 이 경우 `.ios.tsx` 분리나
+`Platform.OS` 분기를 요구하지만 iOS 전용 앱이라 해당 없으니, universal에 있는
+것으로 대신하지 말고 내려간다. Android·web 폴백도 만들지 않는다.
+
+**`Host` 안에서 Uniwind `className`은 무효다.** Uniwind는 `Host` 바깥에서만 쓰고,
+한 화면에서 두 방식을 섞지 않는다.
 
 ## 인증이 걸린 경로 검증
 
