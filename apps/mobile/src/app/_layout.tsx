@@ -71,7 +71,27 @@ function Routes() {
         <Stack.Protected
           guard={auth.kind === "ready" && profile.kind === "ready"}
         >
-          <Stack.Screen name="index" />
+          {/* 헤더를 켜야 우측 상단 설정 버튼이 설 자리가 생긴다. */}
+          <Stack.Screen
+            name="index"
+            options={{ headerShown: true, title: "" }}
+          />
+          <Stack.Screen
+            name="settings/index"
+            options={{
+              headerBackButtonDisplayMode: "minimal",
+              headerShown: true,
+              title: "설정",
+            }}
+          />
+          <Stack.Screen
+            name="settings/display-name"
+            options={{
+              headerBackButtonDisplayMode: "minimal",
+              headerShown: true,
+              title: "표시 이름",
+            }}
+          />
         </Stack.Protected>
         {/* 온보딩만 마운트한다 — 뒤로 가서 앱에 들어갈 스택 자체를 만들지
             않는 것이 §3의 "뒤로 가서 앱에 진입할 수 없다"이다. */}
