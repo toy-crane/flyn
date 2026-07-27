@@ -1,8 +1,9 @@
 import { FieldGroup, Host, ListItem, Text } from "@expo/ui";
 import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
-import { useCallback } from "react";
-import { Alert } from "react-native";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, Alert, View } from "react-native";
+import { deleteAccount } from "../../lib/account";
 import { signOut } from "../../lib/auth/sign-out";
 import { useProfile } from "../../lib/use-profile";
 import { useUserId } from "../../lib/user-id";
@@ -33,6 +34,7 @@ export default function SettingsScreen() {
   const userId = useUserId();
   const profile = useProfile(userId);
   const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
 
   const openDisplayName = useCallback(() => {
     router.push("/settings/display-name");
@@ -55,33 +57,80 @@ export default function SettingsScreen() {
     ]);
   }, [handleSignOut]);
 
+  // 성공하면 로컬 세션이 사라져 가드가 sign-in으로 보낸다. 실패는 서버가
+  // 중단했다는 뜻이고, 그 이유를 그대로 전한다 — 특히 Apple 취소 실패는
+  // 재시도해야 하는 상태다(§5).
+  const handleDelete = useCallback(async () => {
+    setDeleting(true);
+
+    const result = await deleteAccount();
+
+    if (result) {
+      setDeleting(false);
+      Alert.alert("계정을 삭제하지 못했습니다", result.error);
+    }
+  }, []);
+
+  const confirmDelete = useCallback(() => {
+    Alert.alert(
+      "계정을 삭제할까요?",
+      "계정과 모든 데이터가 영구히 삭제됩니다. 되돌릴 수 없습니다.",
+      [
+        { style: "cancel", text: "취소" },
+        { onPress: handleDelete, style: "destructive", text: "삭제" },
+      ]
+    );
+  }, [handleDelete]);
+
   return (
-    <Host
-      style={{ backgroundColor: colors.systemBackground, flex: 1 }}
-      // Form은 남은 공간을 채워야 한다. 없으면 내용 높이만큼만 잡혀 스크롤이
-      // 생기지 않는다.
-      useViewportSizeMeasurement
+    <View
+      className="flex-1"
+      style={{ backgroundColor: colors.systemBackground }}
     >
-      <FieldGroup>
-        <FieldGroup.Section title="프로필">
-          <ListItem
-            onPress={openDisplayName}
-            trailing={<Value>{profile.data?.display_name ?? ""}</Value>}
-          >
-            표시 이름
-          </ListItem>
+      <Host
+        style={{ backgroundColor: colors.systemBackground, flex: 1 }}
+        // Form은 남은 공간을 채워야 한다. 없으면 내용 높이만큼만 잡혀 스크롤이
+        // 생기지 않는다.
+        useViewportSizeMeasurement
+      >
+        <FieldGroup>
+          <FieldGroup.Section title="프로필">
+            <ListItem
+              onPress={openDisplayName}
+              trailing={<Value>{profile.data?.display_name ?? ""}</Value>}
+            >
+              표시 이름
+            </ListItem>
 
-          {/* 이메일은 읽기 전용이다 — 원본은 auth.users이고 앱에는 update 열
+            {/* 이메일은 읽기 전용이다 — 원본은 auth.users이고 앱에는 update 열
               권한이 없다. onPress를 주지 않아 눌리지 않는 것이 곧 그 표현이다. */}
-          <ListItem trailing={<Value>{profile.data?.email ?? ""}</Value>}>
-            이메일
-          </ListItem>
-        </FieldGroup.Section>
+            <ListItem trailing={<Value>{profile.data?.email ?? ""}</Value>}>
+              이메일
+            </ListItem>
+          </FieldGroup.Section>
 
-        <FieldGroup.Section title="계정">
-          <ListItem onPress={confirmSignOut}>로그아웃</ListItem>
-        </FieldGroup.Section>
-      </FieldGroup>
-    </Host>
+          <FieldGroup.Section title="계정">
+            <ListItem onPress={confirmSignOut}>로그아웃</ListItem>
+
+            {/* 계정 생성이 있는 앱은 앱 안에서 전체 삭제를 시작할 수 있어야
+              한다(§5). destructive 역할은 얼럿 버튼이 들고, 행 자체는 붉은
+              글자로 되돌릴 수 없는 일임을 알린다. */}
+            <ListItem onPress={confirmDelete}>
+              <Text modifiers={[foregroundStyle(colors.systemRed)]}>
+                계정 삭제
+              </Text>
+            </ListItem>
+          </FieldGroup.Section>
+        </FieldGroup>
+      </Host>
+
+      {/* Apple 취소와 hard delete를 서버가 차례로 도는 동안 화면이 멀쩡해
+          보이면 사용자가 다시 누른다. 덮어서 입력을 막는다. */}
+      {deleting ? (
+        <View className="absolute inset-0 items-center justify-center bg-black/10">
+          <ActivityIndicator />
+        </View>
+      ) : null}
+    </View>
   );
 }
