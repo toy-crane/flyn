@@ -36,7 +36,13 @@
     },
     {
       // jest는 전역 API를 쓴다(apps/api는 bun:test를 import하므로 해당 없음).
-      "includes": ["apps/mobile/**/*.test.tsx", "apps/mobile/jest-setup.js"],
+      // .ts와 .tsx를 모두 적는다 — 화면이 아닌 순수 로직 테스트는 JSX가 없어
+      // .test.ts로 저장되고, .tsx만 적으면 그쪽 전역이 통째로 미선언이 된다.
+      "includes": [
+        "apps/mobile/**/*.test.ts",
+        "apps/mobile/**/*.test.tsx",
+        "apps/mobile/jest-setup.js"
+      ],
       "javascript": {
         "globals": [
           "afterAll",
