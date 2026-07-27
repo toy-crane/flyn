@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import { EmailForm } from "../../components/sign-in/email-form";
 import { sendEmailCode } from "../../lib/auth/email";
+import { authFailedFeedback } from "../../lib/haptics";
 import { useAuthAction } from "../../lib/use-auth-action";
 
 /**
@@ -19,6 +20,12 @@ export default function EmailScreen() {
       // 여기 머무른다 — 보내지도 않은 코드의 입력 화면으로 가면 안 된다.
       if (result === null) {
         router.push({ params: { email }, pathname: "/sign-in/code" });
+        return;
+      }
+
+      // IGNORED(재진입)는 실패가 아니다 — 진동시키지 않는다.
+      if (result) {
+        authFailedFeedback();
       }
     },
     [router, run]

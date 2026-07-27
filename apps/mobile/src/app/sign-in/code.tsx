@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { CodeInput } from "../../components/sign-in/code-input";
 import { verifyEmailCode } from "../../lib/auth/email";
+import { authFailedFeedback, authSucceededFeedback } from "../../lib/haptics";
 import { isCodeComplete } from "../../lib/otp-code";
 import { useAuthAction } from "../../lib/use-auth-action";
 import { colors } from "../../theme/colors";
@@ -33,13 +34,23 @@ export default function CodeScreen() {
     [clearFailure]
   );
 
-  const handleVerify = useCallback(() => {
+  const handleVerify = useCallback(async () => {
     // 주소가 없으면 검증할 것이 없다. 딥링크로 이 화면에 바로 온 경우다.
     if (!(email && isCodeComplete(code))) {
       return;
     }
 
-    run(() => verifyEmailCode(email, code), "email:verify");
+    const result = await run(
+      () => verifyEmailCode(email, code),
+      "email:verify"
+    );
+
+    if (result === null) {
+      // 가드가 이 화면을 걷어가기 직전의 마지막 신호다.
+      authSucceededFeedback();
+    } else if (result) {
+      authFailedFeedback();
+    }
   }, [code, email, run]);
 
   const locked = !isCodeComplete(code) || pending;

@@ -55,6 +55,11 @@ jest.mock("expo-apple-authentication", () => {
   };
 });
 
+jest.mock("expo-haptics", () => ({
+  NotificationFeedbackType: { Error: "error", Success: "success" },
+  notificationAsync: jest.fn(() => Promise.resolve()),
+}));
+
 // GoogleSigninButton은 버렸다. GoogleSignin 모듈은 auth/google.ts가 아직 쓴다.
 jest.mock("@react-native-google-signin/google-signin", () => ({
   GoogleSignin: {
@@ -66,10 +71,12 @@ jest.mock("@react-native-google-signin/google-signin", () => ({
 }));
 
 import { signInAsync } from "expo-apple-authentication";
+import { notificationAsync } from "expo-haptics";
 import { routerStub } from "../../test-support/expo-router";
 import SignInScreen from "./index";
 
 const mockSignInAsync = signInAsync as jest.Mock;
+const mockHaptic = notificationAsync as jest.Mock;
 const GOOGLE = "Google로 계속하기";
 const SCAFFOLD_EYEBROW = /walking skeleton/i;
 
@@ -86,6 +93,9 @@ beforeEach(() => {
   jest.spyOn(Alert, "alert").mockImplementation(() => {
     // 얼럿 인자만 본다.
   });
+  // resetAllMocks가 구현을 지우면 notificationAsync가 undefined를 돌려주고
+  // haptics의 .catch가 거기서 터진다. 팩토리의 구현은 리셋을 못 넘긴다.
+  mockHaptic.mockResolvedValue(undefined);
 });
 
 describe("SignInScreen", () => {
@@ -128,6 +138,25 @@ describe("SignInScreen", () => {
       "잠시 후에 다시 시도해 주세요.",
       expect.anything()
     );
+  });
+
+  it("실패에는 진동으로도 알린다", async () => {
+    mockSignInAsync.mockRejectedValue(new Error("boom"));
+    await render(<SignInScreen />);
+
+    await pressSettled(screen.getByTestId("apple-button"));
+
+    expect(mockHaptic).toHaveBeenCalledWith("error");
+  });
+
+  // 취소는 실패가 아니다. 여기서 진동하면 사용자가 자기 행동을 오류로 읽는다.
+  it("취소에는 진동하지 않는다", async () => {
+    mockSignInAsync.mockRejectedValue({ code: "ERR_REQUEST_CANCELED" });
+    await render(<SignInScreen />);
+
+    await pressSettled(screen.getByTestId("apple-button"));
+
+    expect(mockHaptic).not.toHaveBeenCalled();
   });
 
   it("헬퍼가 던져도 화면이 잠기지 않는다", async () => {

@@ -17,6 +17,7 @@ import {
 import { GoogleButton } from "../../components/sign-in/google-button";
 import { signInWithApple } from "../../lib/auth/apple";
 import { signInWithGoogle } from "../../lib/auth/google";
+import { authFailedFeedback } from "../../lib/haptics";
 import { useAuthAction } from "../../lib/use-auth-action";
 import {
   SOCIAL_BUTTON_HEIGHT,
@@ -42,6 +43,7 @@ export default function SignInScreen() {
       return;
     }
 
+    authFailedFeedback();
     Alert.alert(failure.title, failure.message, [
       { onPress: clearFailure, text: "확인" },
     ]);
