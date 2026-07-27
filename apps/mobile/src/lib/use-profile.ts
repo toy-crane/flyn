@@ -47,10 +47,16 @@ export async function saveDisplayName(
   return data;
 }
 
-export function useProfile(userId: string) {
+/**
+ * `userId`가 null이면 조회를 켜지 않는다. 훅은 조건부로 부를 수 없어
+ * `_layout`이 로그인 전에도 이 훅을 부르는데, 그때 조회가 나가면 anon으로
+ * 권한 오류를 받아 게이트가 실패로 떨어진다.
+ */
+export function useProfile(userId: string | null) {
   return useQuery({
-    queryFn: () => fetchProfile(userId),
-    queryKey: queryKeys.profile(userId),
+    enabled: userId !== null,
+    queryFn: () => fetchProfile(userId as string),
+    queryKey: queryKeys.profile(userId ?? "anonymous"),
   });
 }
 
@@ -104,7 +110,7 @@ export function describeProfileGate(query: {
     : { kind: "ready" };
 }
 
-export function useProfileGate(userId: string): ProfileGate {
+export function useProfileGate(userId: string | null): ProfileGate {
   return describeProfileGate(useProfile(userId));
 }
 

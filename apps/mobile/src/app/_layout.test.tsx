@@ -25,8 +25,8 @@ jest.mock("expo-router", () => {
   return { Color: jest.requireActual("expo-router/build/color").Color, Stack };
 });
 
-// launch 화면이 SwiftUI다. 목이 없으면 불투명한 네이티브 뷰 하나로 그려져
-// 아래 failed 단언이 문구를 찾지 못한다.
+// launch·프로필 오류 화면이 SwiftUI다. 목이 없으면 불투명한 네이티브 뷰 하나로
+// 그려져 아래 문구 단언이 아무것도 찾지 못한다.
 jest.mock("@expo/ui", () => require("../test-support/expo-ui").universalMock());
 jest.mock("@expo/ui/swift-ui", () =>
   require("../test-support/expo-ui").swiftUiMock()
@@ -40,20 +40,33 @@ jest.mock("../lib/query-client", () => ({
 }));
 
 jest.mock("../lib/use-auth", () => ({ useAuth: jest.fn() }));
+jest.mock("../lib/use-profile", () => ({ useProfileGate: jest.fn() }));
+jest.mock("../lib/auth/sign-out", () => ({ signOut: jest.fn() }));
 
 import { useAuth } from "../lib/use-auth";
+import { useProfileGate } from "../lib/use-profile";
 import Layout from "./_layout";
 
 const mockUseAuth = useAuth as jest.Mock;
+const mockUseProfileGate = useProfileGate as jest.Mock;
 const MISSING_ENV = /환경변수 없음/;
+const FETCH_FAILED = /계정 정보를 불러오지 못했습니다/;
+const INTEGRITY = /계정 정보가 올바르지 않습니다/;
+
+/** 로그인은 됐고 프로필 판정만 다른 경우가 대부분이라 한 줄로 묶는다. */
+function signedInWith(profile: Record<string, unknown>) {
+  mockUseAuth.mockReturnValue({ kind: "ready", userId: "user-1" });
+  mockUseProfileGate.mockReturnValue(profile);
+}
 
 beforeEach(() => {
   jest.resetAllMocks();
+  mockUseProfileGate.mockReturnValue({ kind: "loading" });
 });
 
-describe("Layout 가드", () => {
+describe("Layout 인증 가드", () => {
   it("ready면 index만 마운트한다", async () => {
-    mockUseAuth.mockReturnValue({ kind: "ready", userId: "user-1" });
+    signedInWith({ kind: "ready" });
 
     await render(<Layout />);
 
@@ -73,6 +86,17 @@ describe("Layout 가드", () => {
     // 여기서 index가 보이면 미로그인 사용자가 인증 화면을 그대로 본다는 뜻이다.
     // getByText는 완전 일치라 "screen:sign-in/index"와 부딪히지 않는다.
     expect(screen.queryByText("screen:index")).toBeNull();
+  });
+
+  // 미로그인 상태에서는 프로필 조회가 꺼져 있어 판정이 영영 loading이다.
+  // 인증보다 프로필을 먼저 보면 로그인 화면 대신 스피너가 남는다.
+  it("미로그인 상태에서는 프로필 판정이 로그인 화면을 가리지 않는다", async () => {
+    mockUseAuth.mockReturnValue({ kind: "signedOut" });
+    mockUseProfileGate.mockReturnValue({ kind: "loading" });
+
+    await render(<Layout />);
+
+    expect(screen.getByText("screen:sign-in/index")).toBeTruthy();
   });
 
   it("loading 동안에는 어느 화면도 마운트하지 않는다", async () => {
@@ -102,5 +126,79 @@ describe("Layout 가드", () => {
     await render(<Layout />);
 
     expect(screen.queryByText("다시 시도")).toBeNull();
+  });
+});
+
+describe("Layout 온보딩 가드", () => {
+  it("표시 이름이 없으면 온보딩만 마운트한다", async () => {
+    signedInWith({ kind: "onboarding" });
+
+    await render(<Layout />);
+
+    expect(screen.getByText("screen:onboarding")).toBeTruthy();
+    // index가 함께 마운트되면 뒤로 가서 앱에 들어갈 수 있다 — §3이 막는 것.
+    expect(screen.queryByText("screen:index")).toBeNull();
+  });
+
+  it("표시 이름이 있으면 온보딩을 마운트하지 않는다", async () => {
+    signedInWith({ kind: "ready" });
+
+    await render(<Layout />);
+
+    expect(screen.queryByText("screen:onboarding")).toBeNull();
+  });
+
+  it("프로필을 불러오는 동안에는 어느 화면도 마운트하지 않는다", async () => {
+    signedInWith({ kind: "loading" });
+
+    await render(<Layout />);
+
+    expect(screen.queryByText("screen:index")).toBeNull();
+    expect(screen.queryByText("screen:onboarding")).toBeNull();
+  });
+});
+
+// 아래 둘을 온보딩으로 흘려보내면 이미 이름을 정한 사용자가 다시 입력하게 되고,
+// 저장은 또 같은 이유로 실패한다.
+describe("Layout 프로필 오류 가드", () => {
+  it("조회 실패는 재시도 가능한 오류로 보여준다", async () => {
+    signedInWith({
+      kind: "failed",
+      retry: jest.fn(),
+      retrying: false,
+    });
+
+    await render(<Layout />);
+
+    expect(screen.getByText(FETCH_FAILED)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "다시 시도" })).toBeTruthy();
+    expect(screen.queryByText("screen:onboarding")).toBeNull();
+  });
+
+  it("재시도 중에는 버튼을 잠근다", async () => {
+    signedInWith({ kind: "failed", retry: jest.fn(), retrying: true });
+
+    await render(<Layout />);
+
+    expect(screen.getByRole("button", { name: "다시 시도" })).toBeDisabled();
+  });
+
+  it("행 없음은 온보딩이 아니라 무결성 오류로 보여준다", async () => {
+    signedInWith({ kind: "missing" });
+
+    await render(<Layout />);
+
+    expect(screen.getByText(INTEGRITY)).toBeTruthy();
+    expect(screen.queryByText("screen:onboarding")).toBeNull();
+    expect(screen.queryByText("screen:index")).toBeNull();
+  });
+
+  // 이 화면에서는 설정에 닿을 수 없다. 탈출구가 없으면 앱이 막다른 길이 된다.
+  it("무결성 오류에는 로그아웃 탈출구를 둔다", async () => {
+    signedInWith({ kind: "missing" });
+
+    await render(<Layout />);
+
+    expect(screen.getByRole("button", { name: "로그아웃" })).toBeTruthy();
   });
 });

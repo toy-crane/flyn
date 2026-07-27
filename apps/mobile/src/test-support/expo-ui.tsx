@@ -14,7 +14,7 @@
  * `*.test.ts(x)`에만 걸려 있어 이 파일에서 쓰면 린트가 미선언으로 잡는다.
  */
 
-import { type ReactNode, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -67,15 +67,19 @@ function Passthrough({ children }: { children?: ReactNode }) {
 
 function MockButton({
   children,
+  disabled: disabledProp,
   label,
   modifiers,
   onPress,
 }: Modifiers & {
   children?: ReactNode;
+  /** universal `Button`은 모디파이어가 아니라 prop으로 받는다. */
+  disabled?: boolean;
   label?: string;
   onPress?: () => void;
 }) {
-  const disabled = (modifiers ?? []).some(isDisabledMark);
+  const disabled =
+    disabledProp === true || (modifiers ?? []).some(isDisabledMark);
 
   return (
     <Pressable
@@ -157,6 +161,93 @@ export function useNativeState<T>(initial: T): ObservableState<T> {
   );
 }
 
+/**
+ * universal `TextInput`은 swift-ui `TextField`와 prop 이름이 다르다 — 값은
+ * `text`가 아니라 `value`, 변경은 `onTextChange`가 아니라 `onChangeText`다.
+ * 제출은 `onSubmitEditing(text)`로 **현재 값을 함께** 넘겨준다.
+ */
+function MockTextInput({
+  autoFocus,
+  maxLength,
+  onChangeText,
+  onSubmitEditing,
+  placeholder,
+  value,
+}: {
+  autoFocus?: boolean;
+  maxLength?: number;
+  onChangeText?: (next: string) => void;
+  onSubmitEditing?: (text: string) => void;
+  placeholder?: string;
+  value?: ObservableState<string>;
+}) {
+  // 실물은 제출 시점의 **네이티브** 값을 넘긴다. React state를 넘기면 목이
+  // 실물보다 관대해져, 미러를 읽는 버그를 테스트가 통과시킨다.
+  const handleSubmitEditing = useCallback(
+    () => onSubmitEditing?.(value ? value.value : ""),
+    [onSubmitEditing, value]
+  );
+
+  return (
+    <TextInput
+      autoFocus={autoFocus}
+      maxLength={maxLength}
+      onChangeText={onChangeText}
+      onSubmitEditing={handleSubmitEditing}
+      placeholder={placeholder}
+      value={value ? value.value : ""}
+    />
+  );
+}
+
+/** 문자열 자식은 실물이 SwiftUI `Text`로 감싼다 — 목도 같이 감싸야 단언이 닿는다. */
+function wrapText(node: ReactNode) {
+  return typeof node === "string" || typeof node === "number" ? (
+    <Text>{node}</Text>
+  ) : (
+    node
+  );
+}
+
+function MockListItem({
+  children,
+  leading,
+  onPress,
+  supportingText,
+  trailing,
+}: {
+  children?: ReactNode;
+  leading?: ReactNode;
+  onPress?: () => void;
+  supportingText?: ReactNode;
+  trailing?: ReactNode;
+}) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress}>
+      {wrapText(leading)}
+      {wrapText(children)}
+      {wrapText(supportingText)}
+      {wrapText(trailing)}
+    </Pressable>
+  );
+}
+
+/** `FieldGroup.Section`의 `title`은 실물에서 헤더로 그려진다. */
+function MockSection({
+  children,
+  title,
+}: {
+  children?: ReactNode;
+  title?: string;
+}) {
+  return (
+    <View>
+      {title === undefined ? null : <Text>{title}</Text>}
+      {children}
+    </View>
+  );
+}
+
 const containers = {
   Form: Passthrough,
   Group: Passthrough,
@@ -185,13 +276,38 @@ export function swiftUiMock() {
   };
 }
 
+// Passthrough를 그대로 Object.assign하면 Host·Group 등 같은 함수를 쓰는 다른
+// 자리까지 슬롯이 달라붙는다. 감싸는 함수를 따로 만든다.
+function MockFieldGroup({ children }: { children?: ReactNode }) {
+  return <View>{children}</View>;
+}
+
+const FieldGroup = Object.assign(MockFieldGroup, {
+  Section: MockSection,
+  SectionFooter: Passthrough,
+  SectionHeader: Passthrough,
+});
+
+const ListItem = Object.assign(MockListItem, {
+  Leading: Passthrough,
+  Supporting: Passthrough,
+  Trailing: Passthrough,
+});
+
 export function universalMock() {
   return {
     ...containers,
     ...leaves,
     Button: MockButton,
+    Column: Passthrough,
+    FieldGroup,
+    Icon: () => <View />,
+    List: Passthrough,
+    ListItem,
+    Row: Passthrough,
+    ScrollView: Passthrough,
     Text,
-    TextInput: MockTextField,
+    TextInput: MockTextInput,
     useNativeState,
   };
 }
