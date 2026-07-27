@@ -10,8 +10,9 @@
   [hybrid-data-access](../../decisions/hybrid-data-access.md).
 - 새 화면은 universal `@expo/ui`가 기본값이다 —
   [expo-ui-by-default](../../decisions/expo-ui-by-default.md).
-- Apple 계정 삭제 token은 서버에 보관한다 —
-  [store-apple-revocation-token](../../decisions/store-apple-revocation-token.md).
+- Apple 계정 삭제 token은 보관하지 않는다 —
+  [no-apple-token-revocation](../../decisions/no-apple-token-revocation.md).
+  *(이 스펙은 반대로 정했다가 구현 중에 뒤집혔다. 아래 §5·§6이 그 결과다.)*
 - 이 스펙의 **프로필**은 공개 사용자 카드가 아니라
   [용어집](../../../GLOSSARY.md)의 비공개 계정 정보다.
 
@@ -94,42 +95,37 @@ flowchart LR
 제품 도메인이 정해지지 않은 지금도 유효한 계정 표면만 담고, 빈 일반 설정 항목을
 미리 만들지 않는다.
 
-### 5. 계정 삭제는 Apple 취소 뒤 Supabase hard delete다
+### 5. 계정 삭제는 Supabase hard delete다
 
 계정 생성 기능이 있는 App Store 앱은 앱 안에서 전체 계정 삭제를 시작할 수
-있어야 한다. 일시 비활성화나 로그아웃으로 대신하지 않는다.
+있어야 한다(Guideline 5.1.1(v)). 일시 비활성화나 로그아웃으로 대신하지 않는다.
 
 삭제 순서는 다음과 같다.
 
 1. 현재 인증 세션과 명시적 destructive 확인으로 요청 의도를 확인한다.
-2. Apple identity가 연결돼 있으면 서버에 보관한 refresh token을 Apple에서
-   취소한다.
-3. 사용자 소유 Storage 객체가 생겼다면 먼저 삭제한다. 현재는 없다.
-4. Hono의 서버 전용 Supabase admin client가 Auth 사용자를 hard delete한다.
-5. `on delete cascade`로 프로필과 현재 사용자 소유 throwaway 데이터가 삭제된다.
-6. 앱은 로컬 세션과 사용자 캐시를 비우고 로그인 화면으로 돌아간다.
+2. 사용자 소유 Storage 객체가 생겼다면 먼저 삭제한다. 현재는 없다.
+3. Hono의 서버 전용 Supabase admin client가 Auth 사용자를 hard delete한다.
+4. `on delete cascade`로 프로필과 현재 사용자 소유 throwaway 데이터가 삭제된다.
+5. 앱은 로컬 세션과 사용자 캐시를 비우고 로그인 화면으로 돌아간다.
 
-- Apple token 취소가 실패하면 Supabase 사용자를 먼저 지우지 않는다. 오류를
-  알리고 재시도 가능하게 둔다.
 - Supabase 삭제가 성공한 뒤 로컬 정리가 실패해도 서버 계정을 되살리지 않는다.
   로컬 데이터를 강제로 버리고 signed-out 상태로 간다.
-- 삭제 endpoint와 Apple token 처리는 Hono를 거친다. secret/admin 권한을
-  모바일에 노출하지 않는다.
+- 삭제 endpoint는 Hono를 거친다. secret/admin 권한을 모바일에 노출하지 않는다.
 - soft delete는 사용하지 않는다.
 
-### 6. Apple 로그인은 삭제 가능한 계정을 만든다
+### 6. Apple 승인 취소는 하지 않는다
 
-Apple 네이티브 credential의 `authorizationCode`는 짧게 살아 있고 서버에서
-검증해야 한다. Apple 계정 생성 때:
+**이 절은 원래 정반대였다.** Apple 로그인 때 authorization code를 서버로 보내
+refresh token으로 교환·보관했다가 삭제 직전에 취소하는 흐름을 정했었고, 실제로
+구현까지 했다가 걷어냈다.
 
-1. 기존처럼 identity token으로 Supabase 세션을 만든다.
-2. authorization code도 인증된 Hono endpoint에 보낸다.
-3. 서버가 Apple에서 code를 검증·교환한다.
-4. 받은 refresh token을 모바일 Data API에 노출되지 않는 서버 전용 저장소에
-   사용자별로 보관한다.
+Apple 문서에서 계정 삭제는 요구(`must`)이고 token 취소는 권고(`should`)인데,
+그 권고를 위해 만든 기계가 취소 실패 시 삭제를 중단시켜 **요구 쪽을 막고
+있었다.** 실제 `.p8` 키가 없는 지금은 Apple 사용자가 계정을 아예 지울 수
+없었다.
 
-token은 UI, 로그, 분석 이벤트, 오류 응답에 절대 포함하지 않는다. 현재 기존
-사용자가 없으므로 token 없는 Apple 사용자를 위한 별도 복구 흐름은 없다.
+근거와 대가는 [no-apple-token-revocation](../../decisions/no-apple-token-revocation.md)에
+있다. 사용자의 Apple ID에 flyn 항목이 남는 것이 받아들인 대가다.
 
 ## 검증 기준
 

@@ -59,11 +59,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      read_apple_refresh_token: { Args: { p_user_id: string }; Returns: string }
-      store_apple_refresh_token: {
-        Args: { p_refresh_token: string; p_user_id: string }
-        Returns: undefined
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never

@@ -1,15 +1,17 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it, spyOn } from "bun:test";
 import { exportJWK, generateKeyPair, type JWK, SignJWT } from "jose";
 
-// 게이트와 입력 검증만 본다. 삭제 순서는 account.test.ts가 따로 증명한다.
+// 서버 기동 없는 계정 삭제 테스트. JWT는 jose로 직접 서명해 인라인 JWKS로
+// 오프라인 검증하고, admin 삭제가 치는 Auth 엔드포인트만 fetch로 가로챈다.
 
 const SUB = "11111111-1111-1111-1111-111111111111";
 const KID = "test-key-1";
 const ACCOUNT_PATH = "/account";
-const APPLE_PATH = "/apple/credentials";
+const DELETE_USER_URL = `http://127.0.0.1:54321/auth/v1/admin/users/${SUB}`;
 
 let signingKey: CryptoKey;
 let app: typeof import("./index")["default"];
+let fetchSpy: ReturnType<typeof spyOn>;
 
 function mintToken(): Promise<string> {
   return new SignJWT({ role: "authenticated" })
@@ -20,6 +22,24 @@ function mintToken(): Promise<string> {
     .setIssuedAt()
     .setExpirationTime(Math.floor(Date.now() / 1000) + 3600)
     .sign(signingKey);
+}
+
+/** admin 삭제만 가로챈다. 나머지 요청은 이 테스트에서 일어나지 않는다. */
+function stubDeleteUser(status: number) {
+  fetchSpy.mockImplementation((input: string | URL | Request) => {
+    const url = input instanceof Request ? input.url : String(input);
+
+    if (url.startsWith(DELETE_USER_URL)) {
+      return Promise.resolve(
+        new Response(status === 200 ? "{}" : '{"message":"boom"}', {
+          headers: { "content-type": "application/json" },
+          status,
+        })
+      );
+    }
+
+    return Promise.resolve(new Response("{}", { status: 200 }));
+  });
 }
 
 beforeAll(async () => {
@@ -37,14 +57,15 @@ beforeAll(async () => {
   process.env.SUPABASE_SECRET_KEY = "sb_secret_test";
   process.env.SUPABASE_JWKS = JSON.stringify({ keys: [publicJwk] });
 
-  // Apple 자격증명이 없는 상태를 일부러 만든다 — 이 저장소에 실제 키가 없고,
-  // "설정되지 않았을 때 조용히 지나가지 않는다"가 검증할 값이다.
-  process.env.APPLE_CLIENT_ID = undefined;
-  process.env.APPLE_KEY_ID = undefined;
-  process.env.APPLE_TEAM_ID = undefined;
-  process.env.APPLE_PRIVATE_KEY = undefined;
+  fetchSpy = spyOn(globalThis, "fetch");
 
+  // env 세팅 후 앱을 로드해야 미들웨어가 값을 읽는다.
   app = (await import("./index")).default;
+});
+
+afterAll(() => {
+  // bun은 파일 간 프로세스를 공유하므로 전역 fetch 스텁을 복원한다.
+  fetchSpy.mockRestore();
 });
 
 describe("계정 삭제 엔드포인트 (JWT 게이트)", () => {
@@ -64,57 +85,40 @@ describe("계정 삭제 엔드포인트 (JWT 게이트)", () => {
   });
 });
 
-describe("Apple 자격증명 엔드포인트", () => {
-  it("Authorization 헤더가 없으면 401", async () => {
-    const res = await app.request(APPLE_PATH, {
-      body: JSON.stringify({ authorizationCode: "code" }),
-      headers: { "content-type": "application/json" },
-      method: "POST",
+describe("계정 삭제 엔드포인트", () => {
+  it("유효한 토큰이면 자기 사용자를 지운다", async () => {
+    stubDeleteUser(200);
+    const token = await mintToken();
+
+    const res = await app.request(ACCOUNT_PATH, {
+      headers: { Authorization: `Bearer ${token}` },
+      method: "DELETE",
     });
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
+    // 토큰의 sub 말고 다른 사용자를 지우면 안 된다.
+    const calls = fetchSpy.mock.calls as unknown as [string | URL | Request][];
+    const deletedSelf = calls.some(([input]) =>
+      String(input instanceof Request ? input.url : input).startsWith(
+        DELETE_USER_URL
+      )
+    );
+
+    expect(deletedSelf).toBe(true);
   });
 
-  it("authorizationCode가 없으면 400", async () => {
+  // 실패를 성공으로 답하면 앱이 로컬 세션을 비우고 로그인 화면으로 가버려,
+  // 사용자는 지워졌다고 믿는데 계정은 그대로 남는다.
+  it("삭제 실패를 성공으로 보고하지 않는다", async () => {
+    stubDeleteUser(500);
     const token = await mintToken();
-    const res = await app.request(APPLE_PATH, {
-      body: JSON.stringify({}),
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "content-type": "application/json",
-      },
-      method: "POST",
+
+    const res = await app.request(ACCOUNT_PATH, {
+      headers: { Authorization: `Bearer ${token}` },
+      method: "DELETE",
     });
 
-    expect(res.status).toBe(400);
-  });
-
-  // 설정이 없는데 성공으로 답하면, 앱은 취소 수단이 보관된 줄 알고 넘어간다.
-  it("Apple 설정이 없으면 성공으로 답하지 않는다", async () => {
-    const token = await mintToken();
-    const res = await app.request(APPLE_PATH, {
-      body: JSON.stringify({ authorizationCode: "code" }),
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "content-type": "application/json",
-      },
-      method: "POST",
-    });
-
-    expect(res.status).toBe(503);
-  });
-
-  it("token을 응답에 담지 않는다", async () => {
-    const token = await mintToken();
-    const res = await app.request(APPLE_PATH, {
-      body: JSON.stringify({ authorizationCode: "code" }),
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "content-type": "application/json",
-      },
-      method: "POST",
-    });
-
-    expect(await res.text()).not.toContain("refresh");
+    expect(res.status).toBe(500);
+    expect(await res.json()).toMatchObject({ retryable: true });
   });
 });

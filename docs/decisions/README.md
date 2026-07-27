@@ -37,9 +37,9 @@
   네이티브 플로우를 세트로 쓰고, 추가 소셜은 채택하지 않는다.
 - [email-otp-code](email-otp-code.md) — 세 번째 수단은 이메일 6자리 코드이며
   매직링크는 기각한다.
-- [store-apple-revocation-token](store-apple-revocation-token.md) — Apple 로그인은
-  계정 생성 때 authorization code를 서버로 보내 refresh token을 보관하고, 계정
-  삭제 전에 Apple에서 취소한다.
+- [no-apple-token-revocation](no-apple-token-revocation.md) — Apple refresh
+  token을 보관하지 않는다. 계정 삭제는 Supabase hard delete만 하고 Apple 승인은
+  취소하지 않는다.
 - [auth-verification](../auth-verification.md) — 소셜 로그인은 자동화가 원천
   불가하므로, 자동 검증은 전부 이메일 OTP 경로로 한다. *(이 한 줄만 기록
   폴더 바깥을 가리킨다 — 같은 문서가 근거이자 실행 절차라 쪼개지 않았다.)*
