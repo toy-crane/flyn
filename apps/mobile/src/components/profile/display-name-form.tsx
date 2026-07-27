@@ -2,6 +2,7 @@ import {
   Button,
   Column,
   Host,
+  Spacer,
   Text,
   TextInput,
   useNativeState,
@@ -10,6 +11,7 @@ import {
   controlSize,
   font,
   foregroundStyle,
+  textFieldStyle,
 } from "@expo/ui/swift-ui/modifiers";
 import { useCallback, useState } from "react";
 import {
@@ -100,6 +102,9 @@ export function DisplayNameForm({
           // 서버가 거부할 길이를 애초에 입력하지 못하게 막는다. 진짜 경계는
           // DB의 profiles_display_name_length다.
           maxLength={DISPLAY_NAME_MAX}
+          // 테두리가 없으면 입력칸인지 알 수 없다. 로그인의 이메일 입력과 같은
+          // 모디파이어를 써서 두 폼의 관용을 맞춘다.
+          modifiers={[textFieldStyle("roundedBorder")]}
           onChangeText={handleChangeText}
           onSubmitEditing={submit}
           placeholder="표시 이름"
@@ -125,6 +130,10 @@ export function DisplayNameForm({
           modifiers={[controlSize("large")]}
           onPress={handlePress}
         />
+
+        {/* 없으면 VStack이 남은 높이 한가운데로 내려앉는다 — 시뮬레이터에서
+            실제로 폼이 화면 중앙에 떠 있었다. */}
+        <Spacer />
       </Column>
     </Host>
   );

@@ -1,4 +1,4 @@
-import { FieldGroup, Host, ListItem, Text } from "@expo/ui";
+import { FieldGroup, Host, Icon, ListItem, Row, Text } from "@expo/ui";
 import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -95,9 +95,26 @@ export default function SettingsScreen() {
       >
         <FieldGroup>
           <FieldGroup.Section title="프로필">
+            {/* SwiftUI가 chevron을 그려 주는 것은 NavigationLink일 때다. 여기는
+                Button이라 직접 그린다 — 없으면 push되는 행인데도 눌리는 것으로
+                읽히지 않는다. */}
             <ListItem
               onPress={openDisplayName}
-              trailing={<Value>{profile.data?.display_name ?? ""}</Value>}
+              trailing={
+                <Row spacing={6}>
+                  <Value>{profile.data?.display_name ?? ""}</Value>
+                  <Icon
+                    modifiers={[
+                      foregroundStyle({
+                        style: "tertiary",
+                        type: "hierarchical",
+                      }),
+                    ]}
+                    name="chevron.right"
+                    size={13}
+                  />
+                </Row>
+              }
             >
               표시 이름
             </ListItem>
