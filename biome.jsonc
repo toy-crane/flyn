@@ -20,7 +20,12 @@
       // HTML이 아니라 Go 템플릿이다({{ .Token }}). 파서가 파싱 에러를 내고,
       // 포매터가 변수를 줄바꿈해 넣으면 발송되는 메일 본문이 그대로 바뀐다.
       "!!supabase/templates",
-      "!!.claude"
+      "!!.claude",
+      // 벤더에서 설치한 스킬(skills-lock.json이 관리한다). 우리가 쓴 코드가 아니고
+      // 업데이트하면 통째로 덮어써지므로 지적을 반영할 방법이 없다 —
+      // templates/shell.html 하나가 38건을 내며 `bun run lint`를 계속 깨뜨렸다.
+      // .claude와 같은 이유로 루트 기준 앵커다(워크트리에서 상위 경로가 걸린다).
+      "!!.agents"
     ]
   },
   "overrides": [
