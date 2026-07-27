@@ -7,6 +7,12 @@
       "skillPath": "skills/add-stack-context/SKILL.md",
       "computedHash": "88c68ca915cb3ab9193fdb462a21d6902e178d1ae0311bb46e3019ca3f80fc0f"
     },
+    "agent-device": {
+      "source": "callstack/agent-device",
+      "sourceType": "github",
+      "skillPath": "skills/agent-device/SKILL.md",
+      "computedHash": "d657c8afba370ee63a838f53b066bbb3d7f113d818c7087f54e818986c8940fc"
+    },
     "build-prototype": {
       "source": "toy-crane/skills",
       "sourceType": "github",
@@ -18,6 +24,12 @@
       "sourceType": "github",
       "skillPath": "skills/compact-decisions/SKILL.md",
       "computedHash": "3d1998e4b48d258ae47fa28c951a474c0fc4d5a3af536abebc9b26680595608f"
+    },
+    "dogfood": {
+      "source": "callstack/agent-device",
+      "sourceType": "github",
+      "skillPath": "skills/dogfood/SKILL.md",
+      "computedHash": "8e6dfbff0633e355210ce7ae109cb39a3e1347946b6e92aaa607271154526b6b"
     },
     "explain-visually": {
       "source": "toy-crane/skills",

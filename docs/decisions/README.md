@@ -10,6 +10,8 @@
 
 - [turborepo-with-bun](turborepo-with-bun.md) — 모노레포는 Turborepo + bun이고,
   설치는 hoisted로 고정한다. 생성 타입은 `packages/supabase` 한 곳에서만 만든다.
+- [agent-device-for-simulator-checks](agent-device-for-simulator-checks.md) —
+  시뮬레이터 검증은 agent-device로 하고, 좌표를 찍는 내장 도구를 쓰지 않는다.
 
 ## 모바일 UI
 
