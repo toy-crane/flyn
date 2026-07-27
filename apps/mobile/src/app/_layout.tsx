@@ -2,7 +2,7 @@ import "../global.css";
 
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import { ActivityIndicator, Text, View } from "react-native";
+import { LaunchChecking, LaunchFailed } from "../components/launch";
 import { queryClient } from "../lib/query-client";
 import { useAuth } from "../lib/use-auth";
 
@@ -11,21 +11,13 @@ function Routes() {
   const auth = useAuth();
 
   if (auth.kind === "loading") {
-    return (
-      <View className="flex-1 items-center justify-center bg-slate-100 dark:bg-slate-950">
-        <ActivityIndicator />
-      </View>
-    );
+    return <LaunchChecking />;
   }
 
   if (auth.kind === "failed") {
-    return (
-      <View className="flex-1 items-center justify-center bg-slate-100 px-6 dark:bg-slate-950">
-        <Text className="text-center text-rose-600 dark:text-rose-400">
-          인증 실패: {auth.reason}
-        </Text>
-      </View>
-    );
+    // "인증 실패:" 접두사를 떼었다. reason이 이미 무엇을 고쳐야 하는지 말하는
+    // 문장이고, 접두사는 사용자가 뭘 잘못한 것처럼 읽히게 한다.
+    return <LaunchFailed reason={auth.reason} />;
   }
 
   return (

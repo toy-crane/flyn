@@ -19,8 +19,21 @@ jest.mock("expo-router", () => {
   Stack.Screen = ({ name }: { name: string }) =>
     React.createElement(Text, null, `screen:${name}`);
 
-  return { Stack };
+  // theme/colors.ts가 Color.ios.<토큰>을 모듈 로드 시점에 읽는다. 여기서 빠뜨리면
+  // Color가 undefined가 되어 색과 무관한 이 테스트가 로드 단계에서 통째로 죽는다.
+  // 실물 색 모듈만 되살린다 — requireActual("expo-router")는 네비게이터까지 끌어온다.
+  return { Color: jest.requireActual("expo-router/build/color").Color, Stack };
 });
+
+// launch 화면이 SwiftUI다. 목이 없으면 불투명한 네이티브 뷰 하나로 그려져
+// 아래 failed 단언이 문구를 찾지 못한다.
+jest.mock("@expo/ui", () => require("../test-support/expo-ui").universalMock());
+jest.mock("@expo/ui/swift-ui", () =>
+  require("../test-support/expo-ui").swiftUiMock()
+);
+jest.mock("@expo/ui/swift-ui/modifiers", () =>
+  require("../test-support/expo-ui").modifiersMock()
+);
 
 jest.mock("../lib/query-client", () => ({
   queryClient: { clear: jest.fn(), mount: jest.fn(), unmount: jest.fn() },
@@ -75,5 +88,15 @@ describe("Layout 가드", () => {
     expect(screen.getByText(MISSING_ENV)).toBeTruthy();
     expect(screen.queryByText("screen:index")).toBeNull();
     expect(screen.queryByText("screen:sign-in")).toBeNull();
+  });
+
+  // 스펙 §8이 요구한 `다시 시도`를 일부러 넣지 않았다. failed는 빌드 타임 상수에서만
+  // 나와 재시도해도 같은 분기로 되돌아온다 — 부재가 결정이므로 여기서 못박는다.
+  it("failed에 다시 시도 버튼을 두지 않는다", async () => {
+    mockUseAuth.mockReturnValue({ kind: "failed", reason: "환경변수 없음" });
+
+    await render(<Layout />);
+
+    expect(screen.queryByText("다시 시도")).toBeNull();
   });
 });
