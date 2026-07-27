@@ -41,6 +41,8 @@
       "includes": [
         "apps/mobile/**/*.test.ts",
         "apps/mobile/**/*.test.tsx",
+        // 테스트에서만 쓰는 공용 대역. 여기서도 jest.fn·jest.requireActual을 쓴다.
+        "apps/mobile/src/test-support/**",
         "apps/mobile/jest-setup.js"
       ],
       "javascript": {

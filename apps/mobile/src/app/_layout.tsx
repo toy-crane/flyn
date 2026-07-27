@@ -26,7 +26,25 @@ function Routes() {
         <Stack.Screen name="index" />
       </Stack.Protected>
       <Stack.Protected guard={auth.kind === "signedOut"}>
-        <Stack.Screen name="sign-in" />
+        <Stack.Screen name="sign-in/index" />
+        {/* 헤더를 켜는 것은 이 둘뿐이다. 그림자·헤어라인을 덮어쓰지 않는다 —
+            iOS 26의 글래스 캡슐 뒤로가기와 scroll edge effect가 손대지 않아야 온다. */}
+        <Stack.Screen
+          name="sign-in/email"
+          options={{
+            headerBackButtonDisplayMode: "minimal",
+            headerShown: true,
+            title: "이메일",
+          }}
+        />
+        <Stack.Screen
+          name="sign-in/code"
+          options={{
+            headerBackButtonDisplayMode: "minimal",
+            headerShown: true,
+            title: "인증 코드",
+          }}
+        />
       </Stack.Protected>
     </Stack>
   );

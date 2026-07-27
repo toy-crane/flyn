@@ -61,13 +61,17 @@ describe("Layout 가드", () => {
     expect(screen.queryByText("screen:sign-in")).toBeNull();
   });
 
-  it("signedOut이면 sign-in만 마운트한다", async () => {
+  it("signedOut이면 sign-in 세 화면만 마운트한다", async () => {
     mockUseAuth.mockReturnValue({ kind: "signedOut" });
 
     await render(<Layout />);
 
-    expect(screen.getByText("screen:sign-in")).toBeTruthy();
+    for (const name of ["sign-in/index", "sign-in/email", "sign-in/code"]) {
+      expect(screen.getByText(`screen:${name}`)).toBeTruthy();
+    }
+
     // 여기서 index가 보이면 미로그인 사용자가 인증 화면을 그대로 본다는 뜻이다.
+    // getByText는 완전 일치라 "screen:sign-in/index"와 부딪히지 않는다.
     expect(screen.queryByText("screen:index")).toBeNull();
   });
 
@@ -77,7 +81,7 @@ describe("Layout 가드", () => {
     await render(<Layout />);
 
     expect(screen.queryByText("screen:index")).toBeNull();
-    expect(screen.queryByText("screen:sign-in")).toBeNull();
+    expect(screen.queryByText("screen:sign-in/index")).toBeNull();
   });
 
   it("failed면 이유를 표시하고 어느 화면도 마운트하지 않는다", async () => {
@@ -87,7 +91,7 @@ describe("Layout 가드", () => {
 
     expect(screen.getByText(MISSING_ENV)).toBeTruthy();
     expect(screen.queryByText("screen:index")).toBeNull();
-    expect(screen.queryByText("screen:sign-in")).toBeNull();
+    expect(screen.queryByText("screen:sign-in/index")).toBeNull();
   });
 
   // 스펙 §8이 요구한 `다시 시도`를 일부러 넣지 않았다. failed는 빌드 타임 상수에서만
