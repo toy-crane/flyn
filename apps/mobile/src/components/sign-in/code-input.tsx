@@ -1,0 +1,101 @@
+import { useCallback } from "react";
+import { StyleSheet, Text, TextInput, View } from "react-native";
+import { CODE_LENGTH, normalizeCode } from "../../lib/otp-code";
+import { colors } from "../../theme/colors";
+
+const SLOTS = Array.from({ length: CODE_LENGTH }, (_, i) => i);
+
+/**
+ * 6칸으로 보이지만 입력을 받는 것은 그 위에 겹친 **투명한 단일 `TextInput`**
+ * 하나다. 칸은 순수한 표시 레이어다.
+ *
+ * 필드를 하나로 두는 이유는 `textContentType="oneTimeCode"` 자동완성이다 —
+ * 칸마다 필드를 두면 키보드 위 코드 제안이 깨진다. 처음에는 "6칸이면 자동완성이
+ * 깨진다"고 봤으나 양자택일이 아니었다.
+ *
+ * 투명하게 만드는 방법도 정해져 있다. `opacity: 0`이나 크기 0이 아니라
+ * **`color: "transparent"`** 다 — iOS는 보이지 않는 필드에 코드를 제안하지 않으므로
+ * 필드는 칸 줄 전체 넓이를 그대로 유지하고 글리프와 캐럿만 감춘다.
+ */
+export function CodeInput({
+  invalid,
+  onChangeText,
+  value,
+}: {
+  invalid?: boolean;
+  onChangeText: (next: string) => void;
+  value: string;
+}) {
+  // maxLength를 걸지 않는 이유는 otp-code.ts의 주석에 있다 — 앞에서 자르면
+  // 스크럽할 원문이 사라진다.
+  const handleChangeText = useCallback(
+    (next: string) => onChangeText(normalizeCode(next)),
+    [onChangeText]
+  );
+
+  const cursor = Math.min(value.length, CODE_LENGTH - 1);
+
+  return (
+    <View className="relative">
+      <View
+        accessibilityElementsHidden
+        className="flex-row gap-2"
+        importantForAccessibility="no-hide-descendants"
+        // 칸이 탭을 가져가면 키보드가 뜨지 않는다.
+        pointerEvents="none"
+        testID="code-input-boxes"
+      >
+        {SLOTS.map((slot) => (
+          <View
+            className="h-14 flex-1 items-center justify-center"
+            key={slot}
+            style={{
+              backgroundColor: colors.secondarySystemBackground,
+              borderColor: borderFor({ cursor, invalid, slot }),
+              borderCurve: "continuous",
+              borderRadius: 12,
+              borderWidth: 2,
+            }}
+          >
+            <Text
+              className="text-2xl"
+              style={{ color: colors.label, fontVariant: ["tabular-nums"] }}
+            >
+              {value[slot] ?? ""}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      {/* 반드시 마지막 형제여야 한다 — RN은 뒤 형제가 위에 그려지고 먼저 히트테스트된다. */}
+      <TextInput
+        accessibilityLabel="인증 코드 6자리"
+        autoComplete="one-time-code"
+        autoFocus
+        caretHidden
+        keyboardType="number-pad"
+        onChangeText={handleChangeText}
+        selectionColor="transparent"
+        style={[StyleSheet.absoluteFill, { color: "transparent" }]}
+        textContentType="oneTimeCode"
+        value={value}
+      />
+    </View>
+  );
+}
+
+function borderFor({
+  cursor,
+  invalid,
+  slot,
+}: {
+  cursor: number;
+  invalid?: boolean;
+  slot: number;
+}) {
+  if (invalid) {
+    return colors.systemRed;
+  }
+
+  return slot === cursor ? colors.systemBlue : "transparent";
+}

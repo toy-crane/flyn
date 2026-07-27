@@ -95,8 +95,11 @@ Google 버튼은 이 비율에서 파생시킨다. 높이를 바꿔도 규칙이
   `buttonStyle`은 라이트 `BLACK` / 다크 `WHITE`.
 - `GoogleSigninButton`은 버린다. `GoogleSignin` 모듈과 `signInWithGoogle()`
   헬퍼는 그대로.
-- G 로고 에셋(PNG @1x/@2x/@3x)을 `apps/mobile/assets/`에 새로 넣어야 한다.
-  현재 이 디렉터리 자체가 없다.
+- **G 로고는 래스터가 아니라 벡터다**(2026-07-27 구현에서 확정). 위에서 로고
+  크기를 버튼 높이의 비율로 정했으므로 Dynamic Type에 따라 크기가 계속 바뀌는데,
+  PNG는 정수배가 아닌 스케일에서 뭉개진다. `react-native-svg`로 그린다 —
+  상표 바이너리를 저장소에 넣지 않아도 되는 것은 덤이다. `apps/mobile/assets/`는
+  만들지 않는다.
 
 ### 3-1. Liquid Glass는 네이티브 크롬에서만 나온다
 
@@ -128,7 +131,14 @@ Apple·Google 버튼은 어차피 벤더가 배경색을 규정해 글래스 대
   버튼이 흰 배경 위에서 `#747775` 헤어라인으로 떠오르는 것이 Google 스펙의 의도다.
   *(변이 비교 목업에는 회색으로 그렸다 — 구성이 쟁점이라 배경은 세 안 공통이었다.)*
 
-### 5. 타이포·레이아웃
+### 5. 타이포·레이아웃 (RN 화면 한정)
+
+**이 절은 `sign-in`·`code`에만 적용된다.** `contentInsetAdjustmentBehavior`·
+`contentContainerClassName`·`borderCurve`는 전부 RN·Uniwind 전용이고 `Host`
+안에서는 무효다. SwiftUI인 `email`·`launch`에서는 `VStack spacing` + `padding()`
+모디파이어가 간격을 맡고, 세이프 에어리어와 키보드 회피는 SwiftUI가 알아서 하며,
+곡률은 `textFieldStyle('roundedBorder')`·`buttonStyle('borderedProminent')`가
+Apple 자신의 값으로 그린다.
 
 - 크기를 임의 지정하지 않고 iOS 텍스트 스타일 계열을 따른다: 워드마크는
   large title, 본문 17, 보조 15, 각주 13. `allowFontScaling` 기본값을 유지해
@@ -183,16 +193,31 @@ Apple·Google 버튼은 어차피 벤더가 배경색을 규정해 글래스 대
   오류 상태에서는 전체 칸에 `systemRed` 링을 준다.
 - `autoFocus`, `keyboardType="number-pad"` 유지.
 
-### 8. 인증 게이트(`launch`)에 빠져나갈 길을 준다
+### 8. 인증 게이트(`launch`) — 재시도 버튼은 넣지 않는다
 
 프로토타입이 드러낸 구멍이다. `_layout.tsx`의 `auth.kind === "failed"` 분기는
-"인증 실패: {reason}" 문장만 띄우고 **사용자가 할 수 있는 일이 없다** — 앱을
-강제 종료하는 것 말고는. 로그인 화면에 도달조차 못 하는 상태다.
+"인증 실패: {reason}" 문장만 띄우고 **사용자가 할 수 있는 일이 없다.**
 
-- `failed` 상태에 **`다시 시도` 버튼**을 넣는다. 세션 복원을 다시 시도한다.
-- `checking` 상태는 지금처럼 스피너만. 문구를 넣지 않는다 — 정상 경로에서는
-  한순간이라 문구가 오히려 깜빡임으로 보인다.
+**앞선 안은 여기 `다시 시도` 버튼을 넣는 것이었으나 뒤집었다(2026-07-27, 구현 중
+확인).** 코드를 보면 `failed`는 **오직 `!supabaseConfigured`에서만** 나오고,
+그 값은 빌드 타임에 인라인되는 `process.env`라 런타임에 바뀔 수 없다. 세션 복원
+실패(`verify()` 거절·네트워크 실패)는 `signedOut`으로 떨어져 **로그인 화면이 이미
+탈출구다.** 그러니 버튼을 눌러도 같은 분기로 돌아올 뿐이고, 복구 가능한 상태라고
+거짓말하게 된다 — 실제로 필요한 것은 환경변수를 채운 재빌드다.
+
+- `failed`는 **문구만.** "인증 실패:" 접두사도 뗀다 — `reason`이 이미 무엇을
+  고쳐야 하는지 말하는 문장인데 접두사가 사용자 잘못처럼 읽히게 한다.
+- `loading` 상태(스펙이 `checking`이라 적었으나 코드의 이름은 `loading`이다)는
+  스피너만. 문구를 넣지 않는다 — 정상 경로에서는 한순간이라 문구가 오히려
+  깜빡임으로 보인다.
 - 이 화면도 §4의 시맨틱 색을 쓴다. 현재의 slate 팔레트를 함께 걷어낸다.
+
+> **여기서 따로 발견한 진짜 버그(이 스펙의 범위 밖).** `use-auth.ts`의
+> `verify()`는 **네트워크 실패로** 실패해도 저장된 세션을 버린다
+> (`discardStoredSession()`). 즉 오프라인에서 앱을 켜면 멀쩡한 세션이
+> 로그아웃되고 리프레시 토큰이 날아간다. 고치려면 "서버가 거절"과 "서버에 못
+> 닿음"을 구분해야 하는데 그건 이 스펙이 동결한 인증 상태 기계를 바꾸는 일이라
+> 후속 과제로 남긴다.
 
 ## 가정 (기본값 — 반증 나오면 뒤집는다)
 
@@ -242,9 +267,20 @@ Apple·Google 버튼은 어차피 벤더가 배경색을 규정해 글래스 대
   따르면 **사용자가 투명도 줄이기를 켠 경우에도 `true`를 반환**한다.
   `AccessibilityInfo.isReduceTransparencyEnabled()`를 따로 확인해야 한다.
   배포 타깃이 16.4라 런타임 가드 자체도 필수다.
-- **`PlatformColor`와 jest.** `Color`는 모듈 로드 시점에 `PlatformColor`를
-  호출한다. jest-expo에서 렌더가 깨지지 않는지 첫 커밋에서 확인할 것. 테스트가
-  색을 단언하지는 않으므로 깨진다면 목 하나로 끝날 문제다.
+- ~~**`PlatformColor`와 jest.**~~ **해소됨(2026-07-27).** 그리고 적어 둔
+  메커니즘이 틀렸다 — `Color`는 모듈 로드 시점에 부르는 게 아니라 `Color.ios`가
+  **`Proxy`** 라 프로퍼티 접근마다 `PlatformColor`를 부른다. jest에서
+  `PlatformColor`는 `PlatformColorValueTypes.ios.js`의 순수 JS
+  (`(...names) => ({semantic: names})`)라 던질 수가 없어 **목이 필요 없었다.**
+  대신 진짜 위험은 따로 있다: `jest.mock("expo-router", …)` 팩토리가 `Color`를
+  빠뜨리면 `theme/colors.ts`가 로드 시점에 죽어 **색과 무관한 테스트가 같이
+  넘어간다.** 팩토리마다
+  `Color: jest.requireActual("expo-router/build/color").Color` 한 줄이 해법이다.
+- **SwiftUI 화면은 RNTL로 안을 들여다볼 수 없다(2026-07-27 확인).** `Host`
+  아래는 jest에서 `ViewManagerAdapter_ExpoUI` 하나로만 그려져 라벨·플레이스홀더·
+  각주가 전부 안 보인다. `src/test-support/expo-ui.tsx`가 `@expo/ui`를 RN
+  프리미티브로 갈아끼운다 — 저장소가 `expo-apple-authentication`을 Pressable로
+  바꾸는 것과 같은 자리의 목이다.
 - **Apple 버튼 로케일 불일치.** 한국어 기기에서는 자연스럽지만 영어 기기에서는
   Apple 버튼만 영어가 된다. 로컬라이제이션을 도입하기 전까지 남는 흠이다.
 - **소셜 경로는 여전히 사람이 눌러 확인해야 한다.** 이 화면을 고쳐도 자동 검증

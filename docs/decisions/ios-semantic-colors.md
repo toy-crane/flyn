@@ -35,6 +35,17 @@ Uniwind와의 공존은 확인됐다: className 스타일이 먼저, `props.styl
 
 - 배경은 `systemGroupedBackground`(연회색)가 아니라 **`systemBackground`**(흰/검)를
   기본으로 둔다. inset grouped 행이 있는 화면이 생기면 그 화면에서 다시 판단한다.
-- `Color`는 모듈 로드 시점에 `PlatformColor`를 호출한다. jest-expo에서 렌더가
-  깨지지 않는지 확인이 필요하다. 테스트가 색을 단언하지는 않으므로 깨진다면
-  목 하나로 끝날 문제다.
+- **jest에서 목이 필요 없다(2026-07-27 확인).** 한때 "`Color`는 모듈 로드 시점에
+  `PlatformColor`를 호출한다"고 적었는데 정확하지 않았다 — `Color.ios`는
+  **`Proxy`** 이고 프로퍼티 접근마다 부른다(`build/color/index.js`). 그리고
+  jest에서 `PlatformColor`는 `PlatformColorValueTypes.ios.js`의 순수 JS
+  (`(...names) => ({semantic: names})`)라 던지지 않는다.
+- **다만 `expo-router`를 부분 목으로 바꾸는 테스트는 `Color`를 함께 넘겨야 한다.**
+  빠뜨리면 `theme/colors.ts`가 로드 시점에 `undefined.ios`로 죽어 **색과 무관한
+  테스트가 통째로 넘어간다.** 팩토리에
+  `Color: jest.requireActual("expo-router/build/color").Color` 한 줄을 넣는다
+  (`requireActual("expo-router")`는 네비게이터까지 끌어오므로 쓰지 않는다).
+- **`Host` 안에는 이 토큰이 들어가지 않는다.** `@expo/ui`의 `foregroundStyle`만
+  `PlatformColor`와 계층 스타일을 받고, `background`·`tint`는 hex 문자열만 받는다.
+  hex를 칠하면 다크 모드가 깨지므로 **SwiftUI 화면은 색을 지정하지 말고 네이티브
+  기본값에 맡긴다** — 기본 `Text`가 곧 `label`, 기본 배경이 `systemBackground`다.
