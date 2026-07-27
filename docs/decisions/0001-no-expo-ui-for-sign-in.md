@@ -1,45 +1,68 @@
-# 로그인 화면은 @expo/ui 대신 RN 프리미티브로 만든다
+# @expo/ui는 화면 단위로 쓴다 — sign-in·code는 RN, email·launch는 SwiftUI
 
 테크 스택 스펙이 "SwiftUI 기반 `@expo/ui` 같은 네이티브 컴포넌트 활용을 우선
-검토한다"고 못박아 두었기 때문에, 로그인 화면이 그 지시를 따르지 **않는** 이유를
-남긴다. 그러지 않으면 다음 세션이 같은 조사를 처음부터 반복한다.
+검토한다"고 지시하므로, 로그인 표면에서 **어디는 쓰고 어디는 안 쓰는지**와 그
+근거를 남긴다. 그러지 않으면 다음 세션이 같은 조사를 반복한다.
 
-## 조사 결과 — @expo/ui는 능력 부족이 아니다
+**이 기록은 2026-07-27에 한 번 다시 쓰였다.** 처음에는 "sign-in에 폼이 없어
+이득이 없다"는 논거로 `@expo/ui`를 통째로 기각했는데, 그 논거를 `email`·`code`까지
+확장한 것이 과했다. 실제 근거는 아래 둘이다 — **경계**와 **스파이크 결과**.
 
-기각 사유가 "기능이 없어서"가 아니라는 점이 중요하다. 설치된 `@expo/ui@57.0.7`의
-SwiftUI 레이어는 로그인 폼에 필요한 것을 전부 가지고 있다. **프로퍼티가 아니라
-modifier로 노출돼 있어서** 프로퍼티만 훑으면 없는 것처럼 보인다:
+## @expo/ui는 진짜 네이티브다 (기각 사유가 아니다)
 
-| 필요한 것 | 있는 곳 |
+설치된 `@expo/ui@57.0.7`에는 SwiftUI를 import하는 Swift 파일이 130개 있고,
+`ios/TextFieldView.swift`는 실제 SwiftUI `TextField(...)`를, `ios/FormView.swift`는
+실제 `Form { }`을 만든다. 능력도 충분하다 — 필요한 것이 프로퍼티가 아니라
+**modifier로** 노출돼 있어 프로퍼티만 훑으면 없는 것처럼 보일 뿐이다:
+`keyboardType`, `textContentType`(**`'oneTimeCode'` 포함**),
+`textInputAutocapitalization`, `autocorrectionDisabled`, `submitLabel`, `onSubmit`.
+
+## 근거 1 — 경계 (Expo 공식 가이드)
+
+가이드가 "keeping SwiftUI layouts self-contained. Interop is possible, but it works
+best when boundaries are clearly defined"라고 못박고, **"Re-entering SwiftUI after
+React Native components requires a new `Host` wrapper"**라고 적는다. `Host`는
+RN↔SwiftUI 경계이고(내부적으로 `UIHostingController`), RN 뷰를 SwiftUI 안에 넣으면
+SwiftUI가 그 뷰의 `center`/`bounds`/`frame`/`transform`을 장악한다.
+
+`sign-in`은 화면을 지배하는 두 버튼이 SwiftUI로 표현 불가한 RN 뷰다 —
+`AppleAuthenticationButton`(벤더 UIKit 컴포넌트)과 Google 버튼(swift-ui `Image`는
+SF Symbol·심볼 세트·동기 블로킹 파일 URI만 받아 **풀컬러 G 로고를 못 쓴다**).
+SwiftUI로 감싸면 텍스트→RN→RN→버튼으로 교차하며 `Host`를 여러 번 열게 된다.
+그래서 `sign-in`은 RN이다.
+
+## 근거 2 — 스파이크 결과 (2026-07-27, iOS 26.5 시뮬레이터)
+
+`code` 화면은 6칸으로 보이되 그 위에 겹친 투명 `TextField` 하나가 입력을 받는
+합성이 필요했다. 실제로 만들어 확인한 결과:
+
+| 확인한 것 | 결과 |
 | --- | --- |
-| `keyboardType` | `modifiers/index.ts` — `'email-address'`, `'numeric'` 등 |
-| `textContentType` | 같은 파일 — **`'oneTimeCode'`, `'emailAddress'` 포함** |
-| 자동 대문자·자동수정 | `textInputAutocapitalization`, `autocorrectionDisabled` |
-| 리턴 키·제출 | `submitLabel`, `onSubmit` |
-| 폼·버튼·스피너 | `Form`, `Section`, `Button(role)`, `ProgressView` |
+| `Host`가 터치를 받는가 | **된다** |
+| SwiftUI `Button`의 `onPress` | **된다** |
+| 맨 `TextField` 탭 → 포커스 | **된다** |
+| `frame` 모디파이어를 건 `TextField` | **탭이 안 먹는다** — 레이아웃·렌더는 되는데 포커스가 안 잡힌다 |
+| `ZStack`에 겹친 투명 `TextField` | **탭이 안 먹는다** |
 
-`Host`에 `useViewportSizeMeasurement`가 있어 `Form`이 뷰포트를 채우는 것도 된다.
+`frame`이 히트 영역을 죽이므로 필드를 칸 줄만큼 넓힐 수단이 없고, `frame` 없이는
+`ZStack`에서 형제인 칸들이 탭을 가져간다. **그래서 `code`는 RN이다.**
 
-## 그럼에도 쓰지 않는 이유
+부수적으로 걸린 두 가지도 남긴다:
 
-화면 구성으로 **소셜 우선(A안)** 을 골랐기 때문에 첫 화면에 폼이 아예 없다.
-버튼 두 개와 텍스트 링크 하나뿐이고, 그 버튼 둘은 `AppleAuthenticationButton`과
-직접 그린 Google 버튼 — 둘 다 SwiftUI가 아닌 UIKit/RN 뷰다. `Host` 안에 넣을 수
-없으므로 SwiftUI를 도입해도 화면이 두 개의 렌더링 세계로 쪼개질 뿐,
-`Form`의 이점은 하위 이메일·코드 화면에서만 발생한다. 그 대가는:
+- **`useNativeState`는 `@expo/ui/swift-ui`에서 가져와야 한다.** 루트 `@expo/ui`가
+  내보내는 `ObservableState`는 구조가 달라(`build/universal/State`) swift-ui
+  `TextField`가 타입 단계에서 거부한다. 반면 **`Host`는 항상 루트에서** 가져온다.
+- **`Button`의 `children`은 `ReactElement`여야 한다.** 문자열을 그대로 넣으면 앱이
+  크래시한다 — 문자열은 `label` prop이다.
 
-- 직접 의존성 추가(현재는 `expo-router`를 통한 전이 의존)
-- jest-expo에 `Host`·`TextField` 목이 없다. `ObservableState`·worklets까지
-  얽혀 있어 기존 sign-in 테스트를 의미 있게 유지하기 어렵다.
-- Uniwind className이 SwiftUI 서브트리 안으로 들어가지 못해 스타일링 규약이
-  화면 안에서 둘로 갈린다.
+## 그래서 어디에 쓰나
 
-즉 **A안에서는 비용이 이점보다 크다.** 이 판단은 구성 선택에 종속되어 있다 —
-설정 화면처럼 행이 여러 개인 진짜 폼이 생기면 그때 다시 저울질할 것.
+| 화면 | 구현 |
+| --- | --- |
+| `sign-in` | RN (근거 1) |
+| `code` | RN (근거 2) |
+| `email` | **SwiftUI** — RN이 하나도 필요 없고, 맨 `TextField`는 스파이크에서 정상 동작했다 |
+| `launch`(`_layout`) | **SwiftUI** — `ProgressView` + `Text` + `Button`, 자명하게 self-contained |
 
-## 대신 무엇을 쓰나
-
-RN 프리미티브 + Uniwind(레이아웃·간격·타이포) + `expo-router`의 `Color`
-(iOS 시맨틱 색). Uniwind는 className에서 만든 스타일을 먼저 깔고 `props.style`을
-뒤에 붙이므로(`node_modules/uniwind/src/components/native/*.tsx`),
-`style={{ color: Color.ios.label }}`이 className 색을 덮는다 — 둘을 섞어 쓸 수 있다.
+`code`의 `frame` 문제는 @expo/ui 쪽 버그로 보인다. SDK가 오르면 다시 볼 가치가
+있고, 그때 `code`를 SwiftUI로 옮기면 `email`과 관용이 통일된다.
