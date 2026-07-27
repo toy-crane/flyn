@@ -5,96 +5,64 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
 
 ## 확정 결정
 
-### 1. 모노레포 — Turborepo + bun
+논거는 **결정 기록**이 들고 있다 — 이 절은 무엇이 정해졌는지만 세운다. 뒤집으려면
+해당 기록을 읽고 새 기록을 쓴다. 전체 색인은
+[docs/decisions/README.md](../../decisions/README.md).
 
-- bun은 패키지 매니저이자 로컬 런타임. 태스크 오케스트레이션은 Turborepo.
-- 레이아웃:
-  - `apps/mobile` — Expo 앱
-  - `apps/api` — Hono API
-  - `packages/supabase` — Supabase 생성 타입 공용 패키지
-  - `packages/*` — 그 외 공유 코드(설정, 유틸)가 생기면 추가
+### 저장소·툴체인
 
-### 2. 모바일 — Expo + Uniwind
+- 모노레포는 Turborepo + bun, 설치는 hoisted 고정, Supabase 생성 타입은
+  `packages/supabase` 한 곳에서만 —
+  [turborepo-with-bun](../../decisions/turborepo-with-bun.md)
 
-- Expo 최신 SDK + Expo Router, 스타일링은 Uniwind(Tailwind v4 바인딩).
-- 빌드·배포는 EAS Build / EAS Update.
-- 개발 루프는 **development build 기준**(03a부터). Google 네이티브 로그인이
-  Expo Go에서 동작하지 않아 Expo Go는 포기했다.
-- **타깃은 iOS 전용.** Android는 목표가 아니며, 필요해지면 별도 결정으로
-  다룬다(코드가 RN이라 전환 비용은 낮다).
-- 웹은 목표가 아님. 웹이 필요해지면 모노레포에 Next.js 앱을
-  추가하는 별도 결정으로 다룬다.
-- **디자인은 Apple HIG(Human Interface Guidelines) 준수가 중심.** 커스텀
-  디자인 시스템을 만들지 않고 iOS 네이티브 룩앤필을 따른다: 시스템
-  컴포넌트·내비게이션 패턴, SF Symbols(`expo-symbols`)를 우선하고,
-  SwiftUI 기반 `@expo/ui` 같은 네이티브 컴포넌트 활용을 우선 검토한다.
-  Uniwind는 레이아웃·간격·타이포 등 스타일링 유틸리티 역할.
+### 모바일
 
-### 3. API — Hono on Vercel + AI SDK
+Expo 최신 SDK + Expo Router. 빌드·배포는 EAS Build / EAS Update.
 
-- Hono 앱을 Vercel에 무설정 배포(Node 런타임, Fluid compute). 스트리밍 지원 확인됨.
-- AI 기능은 AI SDK로 구현하고, 모델 호출은 **Vercel AI Gateway**를 통한다
-  — 프로바이더 교체가 모델 문자열 변경 수준이 되고, 토큰 마진 없이 원가 과금.
-  Gateway 프로바이더는 `ai` 패키지에 내장돼 별도 프로바이더 패키지가 필요 없다.
-- 모바일 스트리밍은 `@ai-sdk/react`의 `useChat` + `expo/fetch`(Expo 52+ 공식 지원).
+- 타깃은 iOS 전용, Android·web 폴백 없음 — [ios-only](../../decisions/ios-only.md)
+- 커스텀 디자인 시스템을 만들지 않고 Apple HIG를 따른다 —
+  [apple-hig-not-a-design-system](../../decisions/apple-hig-not-a-design-system.md)
+- 새 화면은 universal `@expo/ui`, 경계가 막는 화면만 RN —
+  [expo-ui-by-default](../../decisions/expo-ui-by-default.md)
+- 스타일링은 Uniwind(무료 범위로 충분), `Host` 바깥에서만 —
+  [uniwind-for-styling](../../decisions/uniwind-for-styling.md)
+- 색은 iOS 시맨틱 색만, `dark:`는 색에 쓰지 않는다 —
+  [ios-semantic-colors](../../decisions/ios-semantic-colors.md)
+- 개발 루프는 **dev build 기준**(03a부터). Expo Go는 포기했다 —
+  [native-social-login](../../decisions/native-social-login.md)
 
-**버전 정정 (2026-07-25)** — 이 절은 원래 "AI SDK(v5)"라고 적었지만 현재 최신은
-**v7**이다(`ai@7.0.37`). 결정 자체(Gateway 경유 · `useChat` + `expo/fetch`)는
-유효하고 버전만 어긋났다. v7에서 이름이 바뀐 것들은 태스크 04의 "조사 결과"에
-표로 있다 — 특히 `toUIMessageStreamResponse()`가 deprecated이고
-`convertToModelMessages()`가 async가 됐다. **기억으로 쓰지 말고 설치된 버전의
-번들 문서(`node_modules/ai/docs/`)를 볼 것.**
+### API·AI
 
-### 4. 데이터·인증 — Supabase
+- API는 Vercel 위의 Hono — [hono-on-vercel](../../decisions/hono-on-vercel.md)
+- 모델 호출은 AI SDK로 하되 반드시 Vercel AI Gateway를 경유 —
+  [ai-gateway-for-model-calls](../../decisions/ai-gateway-for-model-calls.md)
 
-- Supabase Auth + Postgres. 로그인은 **Apple + Google** 네이티브 플로우
-  (iOS에서 소셜 로그인 제공 시 Apple 로그인이 심사 필수라 세트로 채택).
-- **이메일 OTP를 세 번째 수단으로 채택한다**(03a에서 회귀 — 당초 "채택하지
-  않음"이었다). 이유는 두 가지가 겹친다. 소셜 계정이 없는 사용자에게 경로를
-  열어주고, **소셜 로그인은 자동 검증이 원천 불가**해서 이메일이 없으면
-  로그인 이후 경로 전체를 사람 손 없이는 한 줄도 확인할 수 없다
-  (근거: [docs/auth-verification.md](../../auth-verification.md)).
-- 이메일은 **매직링크가 아니라 6자리 코드**다. 링크 방식은 딥링크 핸들러와
-  AASA 호스팅을 요구하는데, 메일 보안 장비가 링크를 미리 열어 일회용 토큰을
-  소모하고 URL을 자기 도메인으로 재작성해 **AASA 매칭 자체를 깨뜨린다**.
-  같은 이유로 Magic·WorkOS·Clerk(Expo)·Auth0·Cognito가 모바일 매직링크를
-  지원하지 않거나 폐기했다. 코드 방식은 이 실패 모드가 전부 없고 앱을
-  떠나지도 않는다.
-- 카카오 등 추가 소셜은 여전히 채택하지 않음(필요 시 별도 결정).
-- 이메일을 넣어도 **Apple 4.8은 계속 적용된다.** 면제 조항이 "전적으로 자사
-  계정 시스템만 사용"이라, Google을 쓰는 한 Sign in with Apple은 필수다.
+### 인증·데이터
 
-### 5. 데이터 접근 경계 — 하이브리드
+- 소셜은 Apple + Google 네이티브 세트, 추가 소셜 미채택 —
+  [native-social-login](../../decisions/native-social-login.md)
+- 세 번째 수단은 이메일 6자리 코드, 매직링크 기각 —
+  [email-otp-code](../../decisions/email-otp-code.md)
+- 일반 CRUD는 앱이 Supabase에 직접 가고 RLS가 보안 경계, AI·서버 전용만 Hono —
+  [hybrid-data-access](../../decisions/hybrid-data-access.md)
+- 로그인 이후를 자동 검증하는 경로는 이메일 OTP 하나뿐 —
+  [auth-verification](../../auth-verification.md)
 
-- 일반 CRUD는 모바일에서 `supabase-js`로 직접 접근하고 **RLS가 보안 경계**.
-- AI·서버 전용 로직만 Hono API를 거친다. Hono의 JWT 검증·클라이언트
-  구성은 공식 `@supabase/server`의 Hono 어댑터를 기본값으로 쓴다:
-  `withSupabase({ auth: 'user' })` 미들웨어가 검증·CORS를 처리하고,
-  RLS 적용 user 클라이언트와 admin 클라이언트를 컨텍스트로 주입한다.
-  이 패키지는 신형 API 키(publishable/secret) 전제이므로 키 관리도
-  legacy anon/service_role 대신 신형 키를 쓴다.
-- 전부 Hono를 경유하는 안은 기각: 초기 속도가 느려지고 Supabase의 강점
-  (RLS, 실시간)을 버리게 됨.
+### 결제·구독 — RevenueCat
 
-### 6. Supabase 타입 — 공용 패키지
+인앱 구독·결제는 RevenueCat(`react-native-purchases`, Expo config plugin).
+구독 상태의 서버 반영은 RevenueCat webhook → Hono → Supabase 기록을 기본값으로
+한다. Expo Go에서 동작하지 않지만 네이티브 로그인과 같은 제약이라 추가 부담은
+없다.
 
-- `supabase gen types typescript` 산출물을 `packages/supabase` 한 곳에만 생성,
-  mobile·api 양쪽이 소비한다. 플랫폼별 생성은 드리프트 위험으로 기각.
-- 클라이언트 초기화는 각 앱에 남긴다(모바일: AsyncStorage 세션 저장,
-  서버: service-role 키).
+**기록을 따로 두지 않았다** — 착수 전이고 구독 상품이 제품 결정에 의존해서,
+아직 저울질한 대안이 없다. 실제로 붙일 때 대안을 기각했다면 그때 기록을 만든다.
 
-### 7. 결제·구독 — RevenueCat
+### 애널리틱스 — PostHog
 
-- 인앱 구독·결제는 RevenueCat(`react-native-purchases`, Expo config plugin).
-- Expo Go에서는 동작하지 않으므로 development build 필요 — Apple/Google
-  네이티브 로그인과 같은 제약이라 추가 부담은 없다.
-- 구독 상태의 서버 반영은 RevenueCat webhook → Hono → Supabase 기록을
-  기본값으로 한다.
-
-### 8. 애널리틱스 — PostHog
-
-- 앱 이벤트는 `posthog-react-native`. 서버 이벤트·AI 호출 관측이 필요해지면
-  `posthog-node`와 PostHog LLM Analytics를 추가한다.
+앱 이벤트는 `posthog-react-native`. 서버 이벤트·AI 호출 관측이 필요해지면
+`posthog-node`와 PostHog LLM Analytics를 추가한다. 위와 같은 이유로 기록을
+두지 않았다.
 
 ## 가정 (기본값 — 반증 나오면 뒤집는다)
 
@@ -169,18 +137,10 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
 
 ## 남은 리스크
 
-- **Uniwind 성숙도**: 2025년 출시된 신생 라이브러리. 문제가 생기면 같은
-  className 모델인 NativeWind로 전환 경로가 있다.
-  유료 범위 미확인 항목은 태스크 01에서 해소됐다 — **무료 범위로 충분하다.**
-  무료는 MIT 라이선스에 프로젝트 제한이 없고 Tailwind v4 전체와 Expo Go를
-  지원하며 공식 문서가 프로덕션 준비 상태라고 명시한다. Pro($99/seat/년부터)가
-  더하는 것은 C++ 네이티브 엔진, 제로 리렌더 ShadowTree 갱신, Reanimated 4
-  className 애니메이션, 네이티브 스레드 테마 전환, `group-active:*`
-  변형이다. 전부 성능·애니메이션 계층이다. 당초 "Pro는 development build를
-  요구해 Expo Go를 포기해야 한다"는 점도 반대 근거였으나, 03a에서 개발 루프가
-  네이티브 로그인 때문에 이미 dev build로 이동해 이 이점은 소멸했다 —
-  **무료 범위로 충분하다는 결론 자체는 유효하다.** 애니메이션 요구가
-  실제로 생기면 그때 별도 결정으로 다룬다.
+- **Uniwind 성숙도**: 2025년 출시된 신생 라이브러리. 유료 범위 미확인 항목은
+  태스크 01에서 해소됐고(무료로 충분), 문제가 생기면 NativeWind로 전환하는
+  경로가 있다 — 근거와 탈출 경로는
+  [uniwind-for-styling](../../decisions/uniwind-for-styling.md).
 - ~~**AI SDK ↔ Expo 폴리필**~~ — **해소됨 (2026-07-25).** Expo 52 시절의 공식
   가이드가 `@ungap/structured-clone`·`@stardazed/streams-text-encoding` 수동
   폴리필을 요구하지만, **설치된 Expo 57은 winter 런타임이 이미 세 개를 다
@@ -191,18 +151,18 @@ flyn의 기술 스택 결정. 제품 도메인은 이 스펙의 범위가 아니
   `getModulesRunBeforeMainModule`에 실려 앱 코드보다 먼저 돈다 —
   **폴리필 파일을 만들면 오히려 나중에 실행되는 죽은 코드다.**
   남는 요구사항은 `EXPO_PUBLIC_API_BASE_URL`을 프로덕션에서 명시하는 것 하나뿐이다.
-- **RLS 의존**: 하이브리드 경계에서 RLS 정책 실수가 곧 데이터 노출.
-  스키마 작업 시 RLS를 테이블 생성과 동시에 작성하는 규율 필요.
-- **`@supabase/server` 베타**: 2026-05 발표된 퍼블릭 베타라 API가 바뀔 수
-  있다. 문제가 생기면 jose 기반 수동 JWT 검증으로 되돌리는 경로가 있다.
+- **RLS 의존**과 **`@supabase/server` 베타**: 둘 다 하이브리드 경계가 안고 가는
+  대가다. 규율과 후퇴 경로는
+  [hybrid-data-access](../../decisions/hybrid-data-access.md).
 - **AI 비용 폭주**: 인증만 통과하면 호출되는 AI 엔드포인트는 소수 사용자가
   비용을 폭주시킬 수 있는 표면. 사용자별 rate limit·entitlement 쿼터·
   Gateway 지출 한도가 방어선(가정 참조).
-- **스토어 리드타임**: 2023-11 이후 만든 Google Play 개인 계정은 12명이
-  14일 연속 참여하는 비공개 테스트를 통과해야 프로덕션 승격 신청 가능
-  (사업자 계정은 면제). Apple은 인앱 계정 삭제 기능과 개인정보처리방침
-  URL이 심사 필수. 출시일에서 역산해 준비할 것.
+- **스토어 리드타임**: Apple은 인앱 계정 삭제 기능과 개인정보처리방침 URL이
+  심사 필수. 출시일에서 역산해 준비할 것. *(2023-11 이후 만든 Google Play 개인
+  계정의 12명·14일 비공개 테스트 요건도 적어 뒀었다 —
+  [ios-only](../../decisions/ios-only.md)이라 지금은 해당 없고, Android를
+  채택하는 별도 결정이 나오면 되살아난다.)*
 - **Supabase free 플랜은 prod 부적합**: 1주 미사용 시 프로젝트 pause.
   prod은 Pro 플랜 기준으로 비용 계획.
-- **Vercel 함수 시간 한도**: Fluid 기본 300초(Hobby 최대 300초, Pro 800초).
-  긴 AI 스트림·후처리는 `maxDuration` 설정 확인.
+- **Vercel 함수 시간 한도**: 긴 AI 스트림·후처리는 `maxDuration` 확인 —
+  수치는 [hono-on-vercel](../../decisions/hono-on-vercel.md).

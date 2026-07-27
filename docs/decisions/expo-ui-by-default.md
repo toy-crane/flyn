@@ -1,8 +1,17 @@
-# @expo/ui는 화면 단위로 쓴다 — sign-in·code는 RN, email·launch는 SwiftUI
+# 새 화면은 universal `@expo/ui`가 기본값, 경계가 막는 화면만 RN
 
-테크 스택 스펙이 "SwiftUI 기반 `@expo/ui` 같은 네이티브 컴포넌트 활용을 우선
-검토한다"고 지시하므로, 로그인 표면에서 **어디는 쓰고 어디는 안 쓰는지**와 그
-근거를 남긴다. 그러지 않으면 다음 세션이 같은 조사를 반복한다.
+**새 화면은 universal `@expo/ui`로 만든다.** universal에 없는 컴포넌트나 표현이
+필요하면 `@expo/ui/swift-ui`로 내려간다 — universal에 있는 것으로 대신하지
+말고 내려간다. 벤더 문서는 이 경우 `.ios.tsx` 분리나 `Platform.OS` 분기를
+요구하지만 iOS 전용 앱이라 해당 없고([ios-only](ios-only.md)), Android·web
+폴백도 만들지 않는다.
+
+`Host` 안에서 Uniwind `className`은 무효다. Uniwind는 `Host` 바깥에서만 쓰고,
+한 화면에서 두 방식을 섞지 않는다([uniwind-for-styling](uniwind-for-styling.md)).
+
+**RN으로 내려가려면 근거가 있어야 한다.** 아래가 그 근거의 형태이자, 로그인
+표면 네 화면에 실제로 적용한 결과다. 근거를 남기지 않으면 다음 세션이 같은
+조사를 반복한다.
 
 **이 기록은 2026-07-27에 한 번 다시 쓰였다.** 처음에는 "sign-in에 폼이 없어
 이득이 없다"는 논거로 `@expo/ui`를 통째로 기각했는데, 그 논거를 `email`·`code`까지
