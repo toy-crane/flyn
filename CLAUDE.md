@@ -27,8 +27,8 @@ Supabase(Auth·Postgres·RLS).
 
 **화면을 눈으로 확인할 일은 `agent-device`로 한다** — 스크린샷을 보고 좌표를
 찍는 내장 시뮬레이터 도구를 쓰지 않는다. `@expo/ui` 화면은 진짜 SwiftUI라
-접근성 트리로 요소를 지목하는 쪽이 맞다. MCP는 붙이지 않았고 CLI로 쓰며,
-명령은 `agent-device help`가 버전에 맞게 들고 있다 —
+접근성 트리로 요소를 지목하는 쪽이 맞다. MCP 도구와 CLI 중 무엇을 써도 되고
+(같은 데몬이다), 명령은 `agent-device help`가 버전에 맞게 들고 있다 —
 [agent-device-for-simulator-checks](docs/decisions/agent-device-for-simulator-checks.md)
 
 ## 인증이 걸린 경로 검증
