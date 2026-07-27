@@ -65,7 +65,12 @@ export default function SignInScreen() {
     <ScrollView
       className="flex-1"
       // 세이프 에어리어를 여기서 잡는다 — py 하드코딩과 justify-center를 걷어냈다.
-      contentContainerClassName="grow justify-between gap-12 px-5 pb-6 pt-10"
+      //
+      // grow와 justify-between을 함께 쓰지 않는다. grow가 minHeight를 프레임
+      // 높이로 잡는데 contentInsetAdjustmentBehavior가 그 위에 상단 인셋을 더해서,
+      // 두 블록을 양 끝으로 벌리면 아래 블록이 인셋만큼 화면 밖으로 밀린다 —
+      // 시뮬레이터에서 `이메일로 계속하기`가 실제로 잘려 나갔다.
+      contentContainerClassName="gap-10 px-5 pb-6 pt-10"
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: colors.systemBackground }}
     >

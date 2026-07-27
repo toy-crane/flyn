@@ -5,6 +5,7 @@ import { Stack } from "expo-router";
 import { LaunchChecking, LaunchFailed } from "../components/launch";
 import { queryClient } from "../lib/query-client";
 import { useAuth } from "../lib/use-auth";
+import { colors } from "../theme/colors";
 
 // useAuth 구독은 여기 한 곳뿐이다 — 화면들은 가드 결과만 받는다.
 function Routes() {
@@ -21,7 +22,15 @@ function Routes() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    // 화면 배경은 네비게이터가 칠한다. 여기서 정하지 않으면 react-native-screens
+    // 기본값(grouped 회색)이 깔려 §4의 systemBackground를 어긴다 — SwiftUI 화면은
+    // 자기 배경을 그리지 않아 이 색이 그대로 비친다.
+    <Stack
+      screenOptions={{
+        contentStyle: { backgroundColor: colors.systemBackground },
+        headerShown: false,
+      }}
+    >
       <Stack.Protected guard={auth.kind === "ready"}>
         <Stack.Screen name="index" />
       </Stack.Protected>
