@@ -49,6 +49,7 @@ function Routes() {
       return (
         <ProfileUnavailable
           onRetry={profile.retry}
+          onSignOut={discardSession}
           retrying={profile.retrying}
         />
       );

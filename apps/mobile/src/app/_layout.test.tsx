@@ -183,6 +183,16 @@ describe("Layout 프로필 오류 가드", () => {
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeDisabled();
   });
 
+  // 이 판정에는 권한 오류도 들어온다(세션이 서버에서 폐기된 경우 등). 다시
+  // 눌러도 영원히 같은 실패라, 재시도만 두면 강제 종료 말고 나갈 길이 없다.
+  it("조회 실패 화면에도 로그아웃 탈출구를 둔다", async () => {
+    signedInWith({ kind: "failed", retry: jest.fn(), retrying: false });
+
+    await render(<Layout />);
+
+    expect(screen.getByRole("button", { name: "로그아웃" })).toBeTruthy();
+  });
+
   it("행 없음은 온보딩이 아니라 무결성 오류로 보여준다", async () => {
     signedInWith({ kind: "missing" });
 

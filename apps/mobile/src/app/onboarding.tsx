@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
+import { Button } from "@expo/ui";
+import { useCallback, useEffect, useState } from "react";
+import { Alert } from "react-native";
 import { LaunchChecking } from "../components/launch";
 import { DisplayNameForm } from "../components/profile/display-name-form";
 import { fetchNameCandidate } from "../lib/auth/name-candidate";
+import { signOut } from "../lib/auth/sign-out";
 import { useSaveDisplayName } from "../lib/use-profile";
 import { useUserId } from "../lib/user-id";
 
@@ -16,6 +19,16 @@ import { useUserId } from "../lib/user-id";
 export default function OnboardingScreen() {
   const userId = useUserId();
   const save = useSaveDisplayName(userId);
+
+  // 이 화면만 마운트되므로 뒤로 갈 곳도, 설정에 닿을 길도 없다. 저장이 계속
+  // 실패하는 사용자에게 나갈 문이 없으면 앱이 막다른 길이 된다 —
+  // ProfileMissing에 로그아웃을 둔 것과 같은 이유다.
+  const confirmSignOut = useCallback(() => {
+    Alert.alert("로그아웃할까요?", "이름은 다음에 정할 수 있어요.", [
+      { style: "cancel", text: "취소" },
+      { onPress: () => signOut(), style: "default", text: "로그아웃" },
+    ]);
+  }, []);
   // null은 "아직 모른다", ""는 "후보가 없다"(이메일 OTP)로 서로 다르다.
   const [candidate, setCandidate] = useState<string | null>(null);
 
@@ -50,6 +63,9 @@ export default function OnboardingScreen() {
       initialValue={candidate}
       onSubmit={save.mutate}
       pending={save.isPending}
+      secondaryAction={
+        <Button label="로그아웃" onPress={confirmSignOut} variant="text" />
+      }
       submitLabel="시작하기"
     />
   );

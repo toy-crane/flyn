@@ -13,7 +13,7 @@ import {
   foregroundStyle,
   textFieldStyle,
 } from "@expo/ui/swift-ui/modifiers";
-import { useCallback, useState } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 import {
   DISPLAY_NAME_MAX,
   isDisplayNameSubmittable,
@@ -42,6 +42,7 @@ export function DisplayNameForm({
   initialValue,
   onSubmit,
   pending,
+  secondaryAction,
   submitLabel,
 }: {
   description: string;
@@ -49,6 +50,8 @@ export function DisplayNameForm({
   initialValue: string;
   onSubmit: (name: string) => void;
   pending?: boolean;
+  /** 제출 말고 이 화면에서 할 수 있는 다른 일. 온보딩의 탈출구가 여기 온다. */
+  secondaryAction?: ReactNode;
   submitLabel: string;
 }) {
   const name = useNativeState(initialValue);
@@ -99,8 +102,9 @@ export function DisplayNameForm({
 
         <TextInput
           autoFocus
-          // 서버가 거부할 길이를 애초에 입력하지 못하게 막는다. 진짜 경계는
-          // DB의 profiles_display_name_length다.
+          // **길이 규칙은 여기 하나뿐이다.** 네이티브가 사람이 세는
+          // 단위(grapheme)로 막는다. 앱 검증에서 다시 세지 않는 이유는
+          // display-name.ts에 있다.
           maxLength={DISPLAY_NAME_MAX}
           // 테두리가 없으면 입력칸인지 알 수 없다. 로그인의 이메일 입력과 같은
           // 모디파이어를 써서 두 폼의 관용을 맞춘다.
@@ -130,6 +134,8 @@ export function DisplayNameForm({
           modifiers={[controlSize("large")]}
           onPress={handlePress}
         />
+
+        {secondaryAction}
 
         {/* 없으면 VStack이 남은 높이 한가운데로 내려앉는다 — 시뮬레이터에서
             실제로 폼이 화면 중앙에 떠 있었다. */}
