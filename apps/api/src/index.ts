@@ -54,9 +54,22 @@ const app = new Hono<Env>()
 
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
-    if (error) {
+    // 404는 목표가 이미 달성된 상태다. 첫 요청이 서버에서 성공했는데 응답이
+    // 유실되면 앱에는 세션이 남아 사용자가 다시 누르는데, 그때마다 404를 실패로
+    // 답하면 **영원히 지울 수 없다** — 앱 안에서 계정을 지울 수 있어야 한다는
+    // 요구를 정확히 어긴다. 이 엔드포인트는 멱등이어야 한다.
+    if (error && error.status !== 404) {
       // 실패를 성공으로 답하면 앱이 로컬 세션을 비우고 로그인 화면으로 가버려,
       // 사용자는 지워졌다고 믿는데 계정은 그대로 남는다.
+      //
+      // 원문은 응답이 아니라 여기로 보낸다. 버리면 프로덕션에서 키가 잘못된
+      // 것(403)인지 다른 이유인지 구분할 방법이 없다.
+      // biome-ignore lint/suspicious/noConsole: 서버 진단 로그
+      console.error("[account] delete failed", {
+        message: error.message,
+        status: error.status,
+      });
+
       return c.json(
         { error: "계정을 삭제하지 못했습니다.", retryable: true },
         500

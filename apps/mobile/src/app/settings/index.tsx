@@ -40,14 +40,11 @@ export default function SettingsScreen() {
     router.push("/settings/display-name");
   }, [router]);
 
-  // 성공하면 _layout의 가드가 sign-in으로 보낸다. 실패는 아무 일도 안 일어난
-  // 것처럼 보이므로 반드시 알린다.
-  const handleSignOut = useCallback(async () => {
-    const result = await signOut();
-
-    if (result) {
-      Alert.alert("로그아웃하지 못했습니다", result.error);
-    }
+  // 알릴 실패가 없다. auth-js는 요청이 실패해도 로컬 세션을 지우고 SIGNED_OUT을
+  // 쏘므로, 어느 경우든 _layout의 가드가 sign-in으로 보낸다 — 여기서 얼럿을
+  // 띄우면 방금 도착한 로그인 화면 위에 거짓말이 겹친다(sign-out.ts 참고).
+  const handleSignOut = useCallback(() => {
+    signOut();
   }, []);
 
   const confirmSignOut = useCallback(() => {
@@ -58,16 +55,21 @@ export default function SettingsScreen() {
   }, [handleSignOut]);
 
   // 성공하면 로컬 세션이 사라져 가드가 sign-in으로 보낸다. 실패는 서버가
-  // 중단했다는 뜻이고, 그 이유를 그대로 전한다 — 특히 Apple 취소 실패는
-  // 재시도해야 하는 상태다(§5).
+  // 지우지 못했다는 뜻이라 이유를 그대로 전한다.
+  //
+  // 해제를 finally에 둔다. 언마운트에 기대면, 로컬 정리가 어긋나 가드가 안
+  // 뒤집히는 순간 오버레이가 영영 남는다 — 실제로 그 경로가 있었다.
   const handleDelete = useCallback(async () => {
     setDeleting(true);
 
-    const result = await deleteAccount();
+    try {
+      const result = await deleteAccount();
 
-    if (result) {
+      if (result) {
+        Alert.alert("계정을 삭제하지 못했습니다", result.error);
+      }
+    } finally {
       setDeleting(false);
-      Alert.alert("계정을 삭제하지 못했습니다", result.error);
     }
   }, []);
 
@@ -141,8 +143,7 @@ export default function SettingsScreen() {
         </FieldGroup>
       </Host>
 
-      {/* Apple 취소와 hard delete를 서버가 차례로 도는 동안 화면이 멀쩡해
-          보이면 사용자가 다시 누른다. 덮어서 입력을 막는다. */}
+      {/* 서버가 지우는 동안 화면이 멀쩡해 보이면 사용자가 다시 누른다. */}
       {deleting ? (
         <View className="absolute inset-0 items-center justify-center bg-black/10">
           <ActivityIndicator />

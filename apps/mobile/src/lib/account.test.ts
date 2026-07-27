@@ -53,7 +53,21 @@ describe("deleteAccount — 서버가 지웠을 때", () => {
 
   // §5 — 로컬 정리가 실패해도 서버 계정을 되살리지 않는다. 강제로 버리고
   // signed-out으로 간다.
-  it("로컬 정리가 실패해도 성공으로 끝낸다", async () => {
+  //
+  // signOut은 던지지 않고 `{ error }`로 resolve한다. 예전 `.catch`가 이걸
+  // 못 잡아 실패가 조용히 지나갔으므로, 두 모양을 다 확인한다.
+  it("로컬 로그아웃이 오류를 돌려줘도 캐시는 비운다", async () => {
+    respond(true, { deleted: true });
+    mockSupabaseSignOut.mockResolvedValue({
+      error: { message: "storage unavailable" },
+    });
+
+    await expect(deleteAccount()).resolves.toBeNull();
+
+    expect(mockClear).toHaveBeenCalled();
+  });
+
+  it("로컬 정리가 던져도 성공으로 끝내고 캐시를 비운다", async () => {
     respond(true, { deleted: true });
     mockSupabaseSignOut.mockRejectedValue(new Error("storage unavailable"));
     mockGoogleSignOut.mockRejectedValue(new Error("not signed in"));
@@ -65,13 +79,12 @@ describe("deleteAccount — 서버가 지웠을 때", () => {
 });
 
 describe("deleteAccount — 서버가 중단했을 때", () => {
-  // 로컬 세션을 지우면 사용자는 다시 시도할 방법을 잃는다. Apple 취소 실패가
-  // 정확히 그 상황이다.
+  // 로컬 세션을 지우면 사용자는 다시 시도할 방법을 잃는다.
   it("로컬 세션을 건드리지 않는다", async () => {
-    respond(false, { error: "Apple 로그인 해제에 실패했습니다." });
+    respond(false, { error: "계정을 삭제하지 못했습니다." });
 
     await expect(deleteAccount()).resolves.toEqual({
-      error: "Apple 로그인 해제에 실패했습니다.",
+      error: "계정을 삭제하지 못했습니다.",
     });
 
     expect(mockSupabaseSignOut).not.toHaveBeenCalled();

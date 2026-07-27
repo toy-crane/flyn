@@ -64,7 +64,7 @@ beforeEach(() => {
   jest.resetAllMocks();
   jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
   mockUseProfile.mockReturnValue({ data: PROFILE });
-  mockSignOut.mockResolvedValue(null);
+  mockSignOut.mockResolvedValue(undefined);
   mockDeleteAccount.mockResolvedValue(null);
 });
 
@@ -123,19 +123,15 @@ describe("설정 — 계정", () => {
     expect(mockSignOut).not.toHaveBeenCalled();
   });
 
-  // 실패하면 화면이 그대로 남아 아무 일도 안 일어난 것처럼 보인다.
-  it("로그아웃 실패를 알린다", async () => {
-    mockSignOut.mockResolvedValue({ error: "Network request failed" });
-
+  // auth-js는 요청이 실패해도 로컬 세션을 지우고 SIGNED_OUT을 쏜다. 그래서
+  // 실패 얼럿은 방금 도착한 로그인 화면 위에 거짓말을 겹치는 짓이었다.
+  it("로그아웃 실패 얼럿을 띄우지 않는다", async () => {
     await render(<SettingsScreen />);
     await fireEvent.press(screen.getByText("로그아웃"));
 
     await pressAlertButton("로그아웃");
 
-    expect(Alert.alert).toHaveBeenLastCalledWith(
-      "로그아웃하지 못했습니다",
-      "Network request failed"
-    );
+    expect(Alert.alert).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -189,10 +185,10 @@ describe("설정 — 계정 삭제", () => {
     expect(mockDeleteAccount).toHaveBeenCalled();
   });
 
-  // Apple 취소 실패가 정확히 이 경우다 — 사용자는 왜 멈췄는지 알아야 한다.
+  // 서버가 지우지 못했으면 사용자는 왜 멈췄는지 알아야 한다.
   it("서버가 중단한 이유를 그대로 전한다", async () => {
     mockDeleteAccount.mockResolvedValue({
-      error: "Apple 로그인 해제에 실패했습니다.",
+      error: "계정을 삭제하지 못했습니다.",
     });
 
     await render(<SettingsScreen />);
@@ -202,7 +198,7 @@ describe("설정 — 계정 삭제", () => {
 
     expect(Alert.alert).toHaveBeenLastCalledWith(
       "계정을 삭제하지 못했습니다",
-      "Apple 로그인 해제에 실패했습니다."
+      "계정을 삭제하지 못했습니다."
     );
   });
 });

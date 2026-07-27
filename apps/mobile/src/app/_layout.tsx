@@ -14,6 +14,8 @@ import { useProfileGate } from "../lib/use-profile";
 import { UserIdProvider } from "../lib/user-id";
 import { colors } from "../theme/colors";
 
+// signOut은 실패를 스스로 콘솔에 남기고, 어느 경우든 로컬 세션은 지워진다 —
+// 여기서 돌려받아 처리할 것이 없다.
 function discardSession() {
   signOut();
 }

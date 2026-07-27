@@ -121,4 +121,22 @@ describe("계정 삭제 엔드포인트", () => {
     expect(res.status).toBe(500);
     expect(await res.json()).toMatchObject({ retryable: true });
   });
+
+  /**
+   * 첫 요청이 서버에서 성공했는데 응답이 유실되면 앱에는 세션이 남아 사용자가
+   * 다시 누른다. 그때 404를 실패로 답하면 **영원히 지울 수 없다** — 앱 안에서
+   * 계정을 지울 수 있어야 한다는 요구를 정확히 어긴다.
+   */
+  it("이미 없는 사용자는 성공으로 답한다 — 재시도가 막히지 않는다", async () => {
+    stubDeleteUser(404);
+    const token = await mintToken();
+
+    const res = await app.request(ACCOUNT_PATH, {
+      headers: { Authorization: `Bearer ${token}` },
+      method: "DELETE",
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ deleted: true });
+  });
 });
