@@ -79,7 +79,13 @@ export function ProfileUnavailable({
             modifiers={[controlSize("large")]}
             onPress={onRetry}
           />
-          <Button label="로그아웃" onPress={onSignOut} variant="text" />
+          <Button
+            label="로그아웃"
+            // 틴트가 없으면 라벨 색으로 그려져 버튼으로 읽히지 않는다.
+            modifiers={[foregroundStyle(colors.systemBlue)]}
+            onPress={onSignOut}
+            variant="text"
+          />
         </>
       }
       message="계정 정보를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요."

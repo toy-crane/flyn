@@ -1,4 +1,5 @@
 import { Button } from "@expo/ui";
+import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
 import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
 import { LaunchChecking } from "../components/launch";
@@ -7,6 +8,7 @@ import { fetchNameCandidate } from "../lib/auth/name-candidate";
 import { signOut } from "../lib/auth/sign-out";
 import { useSaveDisplayName } from "../lib/use-profile";
 import { useUserId } from "../lib/user-id";
+import { colors } from "../theme/colors";
 
 /**
  * 표시 이름이 없으면 앱보다 먼저 오는 화면(§3). 저장이 성공하면 캐시의
@@ -64,7 +66,14 @@ export default function OnboardingScreen() {
       onSubmit={save.mutate}
       pending={save.isPending}
       secondaryAction={
-        <Button label="로그아웃" onPress={confirmSignOut} variant="text" />
+        <Button
+          label="로그아웃"
+          // 틴트가 없으면 SwiftUI가 라벨 색으로 그려 버튼이 아니라 문구처럼
+          // 보인다 — 로그인의 `이메일로 계속하기`와 같은 색을 준다.
+          modifiers={[foregroundStyle(colors.systemBlue)]}
+          onPress={confirmSignOut}
+          variant="text"
+        />
       }
       submitLabel="시작하기"
     />
