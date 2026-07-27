@@ -27,9 +27,8 @@ export async function fetchNameCandidate(): Promise<string> {
 
     const candidate = normalizeDisplayName(raw);
 
-    // 규칙을 통과하지 못하는 후보는 없는 것으로 친다. 잘라서 채우면 사용자가
-    // 자기 이름이 잘린 줄 모르고 제출하고, 그대로 채우면 버튼이 잠긴 채
-    // 이유를 알 수 없다.
+    // 보이지 않는 문자뿐인 후보는 없는 것으로 친다. 길이는 거르지 않는다 —
+    // 상한은 입력칸이 정하고, 여기서 또 재면 규칙이 두 곳으로 갈린다.
     return isDisplayNameSubmittable(candidate) ? candidate : "";
   } catch {
     return "";

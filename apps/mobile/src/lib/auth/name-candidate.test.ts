@@ -54,10 +54,16 @@ describe("fetchNameCandidate", () => {
     await expect(fetchNameCandidate()).resolves.toBe("김한울");
   });
 
-  // 잘라서 채우면 사용자가 자기 이름이 잘린 줄 모르고 제출하고, 그대로 채우면
-  // 버튼이 잠긴 채 이유를 알 수 없다.
-  it("규칙을 통과하지 못하는 후보는 없는 것으로 친다", async () => {
-    withMetadata({ full_name: "가".repeat(DISPLAY_NAME_MAX + 1) });
+  // 길이는 입력칸이 정한다 — 여기서 또 재면 규칙이 두 곳으로 갈린다.
+  it("긴 후보를 길이만으로 버리지 않는다", async () => {
+    const long = "가".repeat(DISPLAY_NAME_MAX + 1);
+    withMetadata({ full_name: long });
+
+    await expect(fetchNameCandidate()).resolves.toBe(long);
+  });
+
+  it("보이지 않는 문자뿐인 후보는 없는 것으로 친다", async () => {
+    withMetadata({ full_name: "\u200b\u3000" });
 
     await expect(fetchNameCandidate()).resolves.toBe("");
   });

@@ -11,7 +11,7 @@ create table public.profiles (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint profiles_display_name_length
-    check (char_length(display_name) between 1 and 50)
+    check (char_length(display_name) between 1 and 500)
 );
 
 create function public.profiles_normalize()
@@ -19,8 +19,16 @@ returns trigger
 language plpgsql
 set search_path = ''
 as $$
+declare
+  invisible constant text :=
+    '[[:cntrl:] ' || U&'\00a0\1680\2000-\200d\2028\2029\202f\205f\3000\feff' || ']';
 begin
-  new.display_name := btrim(new.display_name);
+  new.display_name := regexp_replace(
+    new.display_name,
+    '^' || invisible || '+|' || invisible || '+$',
+    '',
+    'g'
+  );
   return new;
 end;
 $$;

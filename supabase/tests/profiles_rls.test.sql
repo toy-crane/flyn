@@ -8,7 +8,7 @@
 -- 자기 표시 이름을 바꿀 수 있다는 양성 대조를 함께 둔다.
 
 begin;
-select plan(20);
+select plan(25);
 
 select tests.create_supabase_user('alice');
 select tests.create_supabase_user('bob');
@@ -79,28 +79,71 @@ select throws_ok(
   '빈 문자열은 거부된다'
 );
 
--- 공백만 남은 이름은 트리거가 ''로 만들고 check가 거부한다. null로 조용히
--- 바꾸지 않는다 — 그러면 사용자가 영문도 모른 채 온보딩으로 되돌아간다.
+-- 보이지 않는 문자만 남은 이름은 트리거가 ''로 만들고 check가 거부한다. null로
+-- 조용히 바꾸지 않는다 — 그러면 사용자가 영문도 모른 채 온보딩으로 되돌아간다.
+--
+-- **스페이스 하나만 보면 안 된다.** 예전 btrim(x)는 ASCII 스페이스만 지워서
+-- 아래 넷을 전부 통과시켰고, 그중 제로폭 공백은 앱 UI로도 저장됐다. 그때도 이
+-- 파일은 초록이었다 — 스페이스 케이스 하나만 있었기 때문이다.
 select throws_ok(
   $$update public.profiles set display_name = '   '$$,
   '23514',
   null,
-  '공백뿐인 이름은 거부된다'
+  '스페이스뿐인 이름은 거부된다'
 );
 
 select throws_ok(
-  $$update public.profiles set display_name = repeat('a', 51)$$,
+  $$update public.profiles set display_name = E'\t\t\t'$$,
   '23514',
   null,
-  '51자 이름은 거부된다'
+  '탭뿐인 이름은 거부된다'
 );
 
--- 경계의 양성 대조: 상한을 잘못 잡으면 여기서 걸린다.
-update public.profiles set display_name = repeat('a', 50);
+select throws_ok(
+  $$update public.profiles set display_name = U&'\00a0\00a0'$$,
+  '23514',
+  null,
+  'NBSP뿐인 이름은 거부된다'
+);
+
+select throws_ok(
+  $$update public.profiles set display_name = U&'\3000'$$,
+  '23514',
+  null,
+  '전각 공백뿐인 이름은 거부된다'
+);
+
+select throws_ok(
+  $$update public.profiles set display_name = U&'\200b\feff'$$,
+  '23514',
+  null,
+  '제로폭 문자뿐인 이름은 거부된다'
+);
+
+-- 양성 대조 1: 잘라내기가 과하면 여기서 걸린다. 앞뒤에 보이지 않는 문자를
+-- 두르고도 알맹이는 그대로 남아야 한다.
+update public.profiles set display_name = U&'\00a0' || '김 한울' || E'\t';
 select is(
-  (select char_length(display_name) from public.profiles),
-  50,
-  '50자 이름은 통과한다'
+  (select display_name from public.profiles),
+  '김 한울',
+  '앞뒤만 잘라내고 가운데 공백은 보존한다'
+);
+
+-- 양성 대조 2: U+200D(ZWJ)를 가운데에서까지 걷어내면 가족 이모지가 쪼개진다.
+update public.profiles set display_name = '👨‍👩‍👧';
+select is(
+  (select display_name from public.profiles),
+  '👨‍👩‍👧',
+  'ZWJ로 이어진 이모지는 쪼개지지 않는다'
+);
+
+-- 상한은 UX 규칙이 아니라 남용 방지 backstop이다. 사람이 보는 길이는 입력칸이
+-- grapheme 단위로 막으므로, 여기서는 터무니없는 크기만 거른다.
+select throws_ok(
+  $$update public.profiles set display_name = repeat('a', 501)$$,
+  '23514',
+  null,
+  '상한을 넘는 이름은 거부된다'
 );
 
 -- 열 권한 — 정책은 행만 가르고, 여기서부터는 grant가 막는다.

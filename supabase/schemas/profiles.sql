@@ -15,20 +15,40 @@ create table public.profiles (
   updated_at timestamptz not null default now(),
   -- display_name이 null인 상태가 곧 "온보딩 전"이다. null에는 이 check가 걸리지
   -- 않는다(null은 constraint를 통과한다).
+  --
+  -- 상한 500은 UX 규칙이 아니라 **남용 방지 backstop**이다. 사람이 보는 길이는
+  -- 입력칸의 maxLength가 grapheme 단위로 막는데, 여기서 같은 숫자를 코드 포인트로
+  -- 다시 세면 단위가 달라 영원히 어긋난다 — 그래서 여기는 넉넉히 두고 다투지
+  -- 않는다. 50 grapheme이 만들 수 있는 최대치보다 크게 잡았다.
   constraint profiles_display_name_length
-    check (char_length(display_name) between 1 and 50)
+    check (char_length(display_name) between 1 and 500)
 );
 
--- 저장 값은 앞뒤 공백을 제거한 값이다. 공백뿐인 이름은 여기서 ''가 되어 위
--- check가 거부한다 — null로 바꾸지 않는다. 조용히 이름을 지우면 사용자가 다음
--- 실행에서 영문도 모른 채 온보딩으로 되돌아간다.
+-- 저장 값은 앞뒤의 보이지 않는 문자를 잘라낸 값이다. 그것뿐인 이름은 여기서
+-- ''가 되어 위 check가 거부한다 — null로 바꾸지 않는다. 조용히 이름을 지우면
+-- 사용자가 다음 실행에서 영문도 모른 채 온보딩으로 되돌아간다.
+--
+-- **앱의 display-name.ts와 같은 집합이어야 한다.** 한쪽만 바뀌면 앱이 막는
+-- 이름을 DB가 받거나 그 반대가 된다. `btrim(x)`는 인자가 하나면 ASCII 스페이스
+-- 하나만 지워서, 탭·NBSP·전각공백은 물론 제로폭 공백까지 통과시켰다.
+--
+-- 잘라내는 것은 **양 끝뿐이다.** 가운데는 둔다 — U+200D(ZWJ)가 이모지를 잇는
+-- 문자라 걷어내면 가족 이모지가 쪼개진다.
 create function public.profiles_normalize()
 returns trigger
 language plpgsql
 set search_path = ''
 as $$
+declare
+  invisible constant text :=
+    '[[:cntrl:] ' || U&'\00a0\1680\2000-\200d\2028\2029\202f\205f\3000\feff' || ']';
 begin
-  new.display_name := btrim(new.display_name);
+  new.display_name := regexp_replace(
+    new.display_name,
+    '^' || invisible || '+|' || invisible || '+$',
+    '',
+    'g'
+  );
   return new;
 end;
 $$;
