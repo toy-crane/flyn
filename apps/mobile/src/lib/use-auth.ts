@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { forgetProviderName } from "./auth/name-candidate";
 import { queryClient } from "./query-client";
 import { supabase, supabaseConfigured } from "./supabase";
 
@@ -56,6 +57,9 @@ export function useAuth(): AuthState {
     // 행을 그대로 본다(RLS는 서버 경계라 클라이언트 캐시를 막지 못한다).
     const signOutState = () => {
       queryClient.clear();
+      // 기기에 기억해 둔 provider 이름도 함께 버린다 — 안 그러면 다음 사용자의
+      // 온보딩에 앞 사용자의 이름이 미리 채워진다.
+      forgetProviderName();
       setState({ kind: "signedOut" });
     };
 
