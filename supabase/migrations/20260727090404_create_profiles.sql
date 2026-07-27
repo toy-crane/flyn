@@ -98,5 +98,5 @@ $$;
 create trigger on_auth_user_email_changed
   after update of email on auth.users
   for each row
-  when (new.email is distinct from old.email)
+  when (new.email is not null and new.email is distinct from old.email)
   execute function public.sync_profile_email();

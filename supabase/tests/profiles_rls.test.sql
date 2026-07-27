@@ -8,7 +8,7 @@
 -- 자기 표시 이름을 바꿀 수 있다는 양성 대조를 함께 둔다.
 
 begin;
-select plan(25);
+select plan(26);
 
 select tests.create_supabase_user('alice');
 select tests.create_supabase_user('bob');
@@ -202,6 +202,17 @@ select is(
   (select email from public.profiles where id = tests.get_supabase_uid('alice')),
   'alice2@test.example',
   'Auth 이메일이 바뀌면 프로필 복제본이 따라간다'
+);
+
+-- auth.users.email은 nullable인데 profiles.email은 not null이다. 트리거가
+-- 그대로 따라가면 23502로 **auth 작업 전체가 실패한다** — 마지막 이메일 신원을
+-- 푸는 것 같은 흐름이 정체불명의 "Database error"로 막힌다.
+update auth.users set email = null
+where id = tests.get_supabase_uid('alice');
+select is(
+  (select email from public.profiles where id = tests.get_supabase_uid('alice')),
+  'alice2@test.example',
+  'Auth 이메일이 null이 돼도 트랜잭션을 깨지 않고 직전 값을 남긴다'
 );
 
 -- §5의 5단계. 계정 삭제가 프로필을 남기지 않는다는 뜻이다. 지운 뒤에는

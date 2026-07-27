@@ -117,6 +117,14 @@ create trigger on_auth_user_created
   for each row execute function public.create_profile_for_new_user();
 
 -- 이메일 변경 UI는 만들지 않지만(§가정) Auth 원본이 바뀌면 복제본이 따라간다.
+--
+-- **null은 따라가지 않는다.** auth.users.email은 nullable인데 profiles.email은
+-- not null이라, 마지막 이메일 신원이 풀리는 등으로 원본이 null이 되면 이
+-- 트리거가 23502를 일으켜 **그 auth 작업 전체가 실패한다** — 사용자에게는
+-- 정체불명의 "Database error"로 보인다.
+--
+-- 대가는 프로필에 직전 이메일이 남는 것이다. 열의 not null을 지키면서
+-- 인증 트랜잭션을 깨지 않는 최소 선택이라 이쪽을 택한다.
 create function public.sync_profile_email()
 returns trigger
 language plpgsql
@@ -132,5 +140,5 @@ $$;
 create trigger on_auth_user_email_changed
   after update of email on auth.users
   for each row
-  when (new.email is distinct from old.email)
+  when (new.email is not null and new.email is distinct from old.email)
   execute function public.sync_profile_email();
