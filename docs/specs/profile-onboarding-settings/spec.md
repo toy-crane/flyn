@@ -10,8 +10,9 @@
   [hybrid-data-access](../../decisions/hybrid-data-access.md).
 - 새 화면은 universal `@expo/ui`가 기본값이다 —
   [expo-ui-by-default](../../decisions/expo-ui-by-default.md).
-- Apple 계정 삭제 token은 서버에 보관한다 —
-  [store-apple-revocation-token](../../decisions/store-apple-revocation-token.md).
+- Apple 계정 삭제 token은 보관하지 않는다 —
+  [no-apple-token-revocation](../../decisions/no-apple-token-revocation.md).
+  *(이 스펙은 반대로 정했다가 구현 중에 뒤집혔다. 아래 §5·§6이 그 결과다.)*
 - 이 스펙의 **프로필**은 공개 사용자 카드가 아니라
   [용어집](../../../GLOSSARY.md)의 비공개 계정 정보다.
 
@@ -31,8 +32,14 @@
 
 - `email`의 원본은 `auth.users`다. 생성 때 복사하고, Auth 이메일이 바뀌면
   프로필도 따라간다. 앱은 수정할 수 없다.
-- `display_name`은 중복을 허용한다. 앞뒤 공백을 제거한 뒤 1~50자이며, 사용자만
-  자기 값을 수정할 수 있다.
+- `display_name`은 중복을 허용하고, 사용자만 자기 값을 수정할 수 있다.
+  **앞뒤의 보이지 않는 문자를 잘라낸 뒤 무언가 남아야 한다** — 제어 문자,
+  유니코드 공백류, zero-width가 그 대상이다. 가운데는 건드리지 않는다(U+200D를
+  걷어내면 이모지가 쪼개진다).
+- **길이는 입력칸이 정한다**(50, 네이티브가 grapheme 단위로 센다). DB의 상한
+  500자는 UX 규칙이 아니라 남용 방지 backstop이다. 세는 곳을 하나로 두는 것이
+  요점이다 — 앱과 DB가 각자 세면 단위가 달라(grapheme vs 코드 포인트) 입력은
+  되는데 버튼만 죽는 상태가 생긴다.
 - `updated_at`은 클라이언트가 보내지 않고 DB가 변경 때 갱신한다.
 - RLS와 열 권한을 함께 쓴다. 인증 사용자는 자기 행을 조회하고
   `display_name`만 수정한다. 생성·삭제·이메일 변경은 클라이언트 권한이 아니다.
@@ -94,49 +101,46 @@ flowchart LR
 제품 도메인이 정해지지 않은 지금도 유효한 계정 표면만 담고, 빈 일반 설정 항목을
 미리 만들지 않는다.
 
-### 5. 계정 삭제는 Apple 취소 뒤 Supabase hard delete다
+### 5. 계정 삭제는 Supabase hard delete다
 
 계정 생성 기능이 있는 App Store 앱은 앱 안에서 전체 계정 삭제를 시작할 수
-있어야 한다. 일시 비활성화나 로그아웃으로 대신하지 않는다.
+있어야 한다(Guideline 5.1.1(v)). 일시 비활성화나 로그아웃으로 대신하지 않는다.
 
 삭제 순서는 다음과 같다.
 
 1. 현재 인증 세션과 명시적 destructive 확인으로 요청 의도를 확인한다.
-2. Apple identity가 연결돼 있으면 서버에 보관한 refresh token을 Apple에서
-   취소한다.
-3. 사용자 소유 Storage 객체가 생겼다면 먼저 삭제한다. 현재는 없다.
-4. Hono의 서버 전용 Supabase admin client가 Auth 사용자를 hard delete한다.
-5. `on delete cascade`로 프로필과 현재 사용자 소유 throwaway 데이터가 삭제된다.
-6. 앱은 로컬 세션과 사용자 캐시를 비우고 로그인 화면으로 돌아간다.
+2. 사용자 소유 Storage 객체가 생겼다면 먼저 삭제한다. 현재는 없다.
+3. Hono의 서버 전용 Supabase admin client가 Auth 사용자를 hard delete한다.
+4. `on delete cascade`로 프로필과 현재 사용자 소유 throwaway 데이터가 삭제된다.
+5. 앱은 로컬 세션과 사용자 캐시를 비우고 로그인 화면으로 돌아간다.
 
-- Apple token 취소가 실패하면 Supabase 사용자를 먼저 지우지 않는다. 오류를
-  알리고 재시도 가능하게 둔다.
 - Supabase 삭제가 성공한 뒤 로컬 정리가 실패해도 서버 계정을 되살리지 않는다.
   로컬 데이터를 강제로 버리고 signed-out 상태로 간다.
-- 삭제 endpoint와 Apple token 처리는 Hono를 거친다. secret/admin 권한을
-  모바일에 노출하지 않는다.
+- 삭제 endpoint는 Hono를 거친다. secret/admin 권한을 모바일에 노출하지 않는다.
 - soft delete는 사용하지 않는다.
 
-### 6. Apple 로그인은 삭제 가능한 계정을 만든다
+### 6. Apple 승인 취소는 하지 않는다
 
-Apple 네이티브 credential의 `authorizationCode`는 짧게 살아 있고 서버에서
-검증해야 한다. Apple 계정 생성 때:
+**이 절은 원래 정반대였다.** Apple 로그인 때 authorization code를 서버로 보내
+refresh token으로 교환·보관했다가 삭제 직전에 취소하는 흐름을 정했었고, 실제로
+구현까지 했다가 걷어냈다.
 
-1. 기존처럼 identity token으로 Supabase 세션을 만든다.
-2. authorization code도 인증된 Hono endpoint에 보낸다.
-3. 서버가 Apple에서 code를 검증·교환한다.
-4. 받은 refresh token을 모바일 Data API에 노출되지 않는 서버 전용 저장소에
-   사용자별로 보관한다.
+Apple 문서에서 계정 삭제는 요구(`must`)이고 token 취소는 권고(`should`)인데,
+그 권고를 위해 만든 기계가 취소 실패 시 삭제를 중단시켜 **요구 쪽을 막고
+있었다.** 실제 `.p8` 키가 없는 지금은 Apple 사용자가 계정을 아예 지울 수
+없었다.
 
-token은 UI, 로그, 분석 이벤트, 오류 응답에 절대 포함하지 않는다. 현재 기존
-사용자가 없으므로 token 없는 Apple 사용자를 위한 별도 복구 흐름은 없다.
+근거와 대가는 [no-apple-token-revocation](../../decisions/no-apple-token-revocation.md)에
+있다. 사용자의 Apple ID에 flyn 항목이 남는 것이 받아들인 대가다.
 
 ## 검증 기준
 
 - DB trigger가 새 Auth 사용자와 1:1 프로필을 만들고 삭제 cascade가 동작한다.
 - 본인은 자기 프로필을 읽고 표시 이름만 수정할 수 있다.
 - 타인과 anon은 이메일을 포함한 프로필을 읽거나 바꿀 수 없다.
-- 빈 문자열·공백뿐인 이름·51자 이름은 거부되고, 유효한 이름은 trim돼 저장된다.
+- 빈 문자열과 보이지 않는 문자뿐인 이름(스페이스·탭·NBSP·전각 공백·zero-width)은
+  거부되고, 유효한 이름은 앞뒤가 잘려 저장된다. 가운데 공백과 ZWJ로 이어진
+  이모지는 보존된다.
 - 이메일 OTP 첫 가입은 온보딩으로, 같은 사용자의 다음 로그인은 앱으로 간다.
 - Apple·Google 이름 후보는 저장 전 사용자가 확인하고, 이후 로그인이 덮어쓰지 않는다.
 - 프로필 조회 오류와 행 없음이 온보딩으로 잘못 분류되지 않는다.

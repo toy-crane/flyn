@@ -28,6 +28,7 @@ describe("colors", () => {
       "separator",
       "systemBackground",
       "systemBlue",
+      "systemFill",
       "systemGray5",
       "systemRed",
       "tertiaryLabel",
