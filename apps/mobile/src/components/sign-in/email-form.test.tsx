@@ -88,3 +88,25 @@ describe("EmailForm", () => {
     );
   });
 });
+
+// 실물에서 TextField의 값은 네이티브 쪽에서 동기로 갱신되어 React 렌더보다
+// 앞선다. 제출을 React 미러에서 읽으면 마지막 글자를 놓친 주소가 나간다 —
+// 시뮬레이터에서 verify@example.test가 verify@example.tes로 발송됐다.
+// changeText와 press 사이에 React를 flush하지 않아 그 어긋남을 재현한다.
+describe("EmailForm — 네이티브 값과 React 미러가 어긋날 때", () => {
+  it("React가 아직 못 따라잡았어도 입력한 주소 전체를 제출한다", async () => {
+    const onSubmit = jest.fn();
+
+    await render(<EmailForm onSubmit={onSubmit} />);
+
+    const field = screen.getByPlaceholderText(FIELD);
+
+    await fireEvent.changeText(field, "me@example.tes");
+    // 여기서 await하지 않는다 — 마지막 글자가 네이티브에만 있고 React state에는
+    // 아직 반영되지 않은 순간을 만든다.
+    fireEvent.changeText(field, "me@example.test");
+    fireEvent.press(screen.getByText(SUBMIT));
+
+    expect(onSubmit).toHaveBeenCalledWith("me@example.test");
+  });
+});

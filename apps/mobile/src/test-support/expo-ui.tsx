@@ -14,7 +14,7 @@
  * `*.test.ts(x)`에만 걸려 있어 이 파일에서 쓰면 린트가 미선언으로 잡는다.
  */
 
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -130,20 +130,30 @@ function MockProgressView() {
   return <ActivityIndicator />;
 }
 
-/** 실물과 같은 모양의 관찰 가능 상태. 목에서는 React state로 재렌더를 만든다. */
+/**
+ * 실물과 같은 모양의 관찰 가능 상태.
+ *
+ * **ref가 진실이고 React state는 재렌더 트리거일 뿐이다.** 실물에서 이 값은
+ * 네이티브 쪽에서 동기로 갱신되므로 React 렌더보다 앞선다. 목이 React state만
+ * 쓰면 둘이 절대 어긋나지 않아, "React 미러를 읽어서 마지막 글자를 놓치는" 버그를
+ * 테스트가 통과시킨다 — 실제로 시뮬레이터에서 이메일 주소 끝 글자가 잘려
+ * 발송됐다.
+ */
 export function useNativeState<T>(initial: T): ObservableState<T> {
-  const [value, setValue] = useState(initial);
+  const ref = useRef(initial);
+  const [, forceRender] = useState(initial);
 
   return useMemo(
     () => ({
       get value() {
-        return value;
+        return ref.current;
       },
       set value(next: T) {
-        setValue(next);
+        ref.current = next;
+        forceRender(next);
       },
     }),
-    [value]
+    []
   );
 }
 

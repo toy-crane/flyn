@@ -25,6 +25,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { useCallback, useState } from "react";
 import { isEmailSubmittable } from "../../lib/otp-code";
+import { colors } from "../../theme/colors";
 
 /**
  * 이메일 입력만 하는 화면. SwiftUI로 만든다 —
@@ -35,9 +36,13 @@ import { isEmailSubmittable } from "../../lib/otp-code";
  * `frame`은 히트 영역을 죽여 탭이 포커스를 잡지 못하게 한다. 크기가 필요하면
  * 바깥 `VStack`에 건다.
  *
- * 색을 지정하지 않는다. SwiftUI 기본값이 이미 시맨틱 색이고(`Text`는 `label`,
- * 배경은 `systemBackground`), `background` 모디파이어는 hex만 받아 다크 모드를
- * 깬다 — theme/colors.ts는 여기 들어오지 않는다.
+ * 색은 두 자리에서만 준다. 나머지는 SwiftUI 기본값이 이미 시맨틱 색이다.
+ *
+ * - **배경은 `Host`에.** `Host`는 경계의 RN 쪽이라 `PlatformColor`가 통한다.
+ *   안 주면 네이티브 기본값이 grouped 회색이라 §4를 어긴다.
+ * - **글자색은 `foregroundStyle`로.** 이 모디파이어만 `PlatformColor`와 계층
+ *   스타일을 받는다. `background`·`tint`는 hex만 받으므로 쓰지 않는다 —
+ *   hex를 칠하면 다크 모드가 굳는다.
  */
 export function EmailForm({
   failure,
@@ -49,8 +54,9 @@ export function EmailForm({
   pending?: boolean;
 }) {
   const email = useNativeState("");
-  // 네이티브 상태는 워클릿 쪽에서 갱신되므로 버튼 잠금 판단용으로 React 상태에
-  // 한 번 더 비춘다.
+  // 버튼 잠금을 판단하려면 렌더가 필요해서 React 상태에 한 번 더 비춘다.
+  // **이 미러는 잠금 판단에만 쓴다.** 한 프레임 늦어도 잠금은 곧 따라잡지만,
+  // 제출값을 여기서 읽으면 마지막 글자가 빠진 주소가 나간다.
   const [typed, setTyped] = useState("");
 
   const handleTextChange = useCallback(
@@ -62,17 +68,24 @@ export function EmailForm({
   );
 
   const submit = useCallback(() => {
-    const address = typed.trim();
+    // 진실은 네이티브 상태다. 값은 네이티브 쪽에서 동기로 갱신되어 React 렌더보다
+    // 앞서므로, 미러를 읽으면 방금 친 글자를 놓친다 — 시뮬레이터에서
+    // verify@example.test가 verify@example.tes로 발송됐다.
+    const address = email.value.trim();
 
     if (isEmailSubmittable(address) && !pending) {
       onSubmit(address);
     }
-  }, [onSubmit, pending, typed]);
+  }, [email, onSubmit, pending]);
 
   const locked = !isEmailSubmittable(typed) || Boolean(pending);
 
   return (
-    <Host style={{ flex: 1 }}>
+    // 배경은 `Host`에 준다. `Host`는 경계의 RN 쪽이라 `PlatformColor`가 통하고,
+    // 안쪽 SwiftUI의 `background` 모디파이어는 hex만 받아 다크 모드를 깬다.
+    // 지정하지 않으면 네이티브 기본값이 grouped 회색이라 §4의 systemBackground를
+    // 어긴다 — 시뮬레이터에서 실제로 회색으로 나왔다.
+    <Host style={{ backgroundColor: colors.systemBackground, flex: 1 }}>
       <VStack
         alignment="leading"
         modifiers={[padding({ horizontal: 20, top: 24 })]}
@@ -108,7 +121,8 @@ export function EmailForm({
           <Text
             modifiers={[
               font({ textStyle: "footnote" }),
-              foregroundStyle("#FF3B30"),
+              // hex가 아니라 토큰이다 — foregroundStyle은 PlatformColor를 받는다.
+              foregroundStyle(colors.systemRed),
             ]}
           >
             {failure}
