@@ -87,7 +87,12 @@ export function describeProfileGate(query: {
   isPending: boolean;
   refetch: () => void;
 }): ProfileGate {
-  if (query.isError) {
+  // **캐시된 프로필이 있으면 실패로 보지 않는다.** react-query는 백그라운드
+  // 리페치가 실패해도 status를 'error'로 두면서 이전 data를 그대로 남긴다
+  // (그 조합이 곧 isRefetchError다). data를 보지 않고 isError만 보면, 설정을
+  // 여는 순간의 리페치 한 번이 실패했다고 _layout이 네비게이터를 통째로
+  // 언마운트한다 — 알아야 할 것은 이미 손에 있는데도.
+  if (query.isError && query.data === undefined) {
     return {
       kind: "failed",
       retry: () => {

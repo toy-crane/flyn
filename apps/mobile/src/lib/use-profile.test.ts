@@ -82,6 +82,29 @@ describe("describeProfileGate", () => {
     expect(query({ isError: true }).kind).toBe("failed");
   });
 
+  /**
+   * react-query는 백그라운드 리페치가 실패해도 이전 data를 남긴 채 status만
+   * 'error'로 바꾼다. data를 보지 않으면 설정을 여는 순간의 리페치 한 번이
+   * 실패했다고 앱 전체가 오류 화면으로 바뀐다 — 알아야 할 것은 이미 캐시에 있다.
+   *
+   * 이 테스트가 없던 이유가 곧 결함의 절반이었다: query 헬퍼의 data 기본값이
+   * undefined라 이 조합을 **구성할 수조차 없었다.**
+   */
+  it("캐시된 프로필이 있으면 리페치 실패로 오류 화면에 가지 않는다", () => {
+    expect(query({ data: PROFILE, isError: true }).kind).toBe("ready");
+  });
+
+  it("캐시된 프로필이 온보딩 전이면 리페치가 실패해도 온보딩을 유지한다", () => {
+    expect(
+      query({ data: { ...PROFILE, display_name: null }, isError: true }).kind
+    ).toBe("onboarding");
+  });
+
+  // 행이 없다는 사실이 캐시돼 있으면 그것도 확정된 답이다.
+  it("행 없음이 캐시돼 있으면 리페치 실패로 판정을 뒤집지 않는다", () => {
+    expect(query({ data: null, isError: true }).kind).toBe("missing");
+  });
+
   it("실패 판정은 재시도 수단을 들고 있다", () => {
     const refetch = jest.fn();
     const gate = query({ isError: true, refetch });
