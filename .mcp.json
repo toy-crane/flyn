@@ -3,9 +3,7 @@
     "agent-device": {
       "type": "stdio",
       "command": "agent-device",
-      "args": [
-        "mcp"
-      ],
+      "args": ["mcp"],
       "env": {}
     }
   }
