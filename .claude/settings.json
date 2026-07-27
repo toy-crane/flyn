@@ -1,6 +1,5 @@
 {
   "enabledPlugins": {
-    "toycrane-skills@toycrane": true,
     "expo@expo-plugins": true,
     "supabase@supabase-agent-skills": true,
     "postgres-best-practices@supabase-agent-skills": true,
@@ -10,12 +9,6 @@
     "context7@context7-marketplace": true
   },
   "extraKnownMarketplaces": {
-    "toycrane": {
-      "source": {
-        "source": "github",
-        "repo": "toy-crane/skills"
-      }
-    },
     "supabase-agent-skills": {
       "source": {
         "source": "github",
