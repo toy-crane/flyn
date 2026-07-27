@@ -22,6 +22,8 @@ export const colors = {
   separator: Color.ios.separator,
   systemBackground: Color.ios.systemBackground,
   systemBlue: Color.ios.systemBlue,
+  // 콘텐츠 위에 덮는 용도의 시맨틱 색. 라이트·다크에 맞춰 적응한다.
+  systemFill: Color.ios.systemFill,
   systemGray5: Color.ios.systemGray5,
   systemRed: Color.ios.systemRed,
   tertiaryLabel: Color.ios.tertiaryLabel,

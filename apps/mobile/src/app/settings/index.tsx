@@ -1,8 +1,9 @@
 import { FieldGroup, Host, Icon, ListItem, Row, Text } from "@expo/ui";
+import { ProgressView } from "@expo/ui/swift-ui";
 import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, View } from "react-native";
+import { Alert, View } from "react-native";
 import { deleteAccount } from "../../lib/account";
 import { signOut } from "../../lib/auth/sign-out";
 import { useProfile } from "../../lib/use-profile";
@@ -143,10 +144,17 @@ export default function SettingsScreen() {
         </FieldGroup>
       </Host>
 
-      {/* 서버가 지우는 동안 화면이 멀쩡해 보이면 사용자가 다시 누른다. */}
+      {/* 서버가 지우는 동안 화면이 멀쩡해 보이면 사용자가 다시 누른다.
+          색은 시맨틱 systemFill이다 — bg-black/10은 팔레트 금지를 어길 뿐
+          아니라 다크 모드에서 검정 위 10% 검정이라 아예 보이지 않았다. */}
       {deleting ? (
-        <View className="absolute inset-0 items-center justify-center bg-black/10">
-          <ActivityIndicator />
+        <View
+          className="absolute inset-0 items-center justify-center"
+          style={{ backgroundColor: colors.systemFill }}
+        >
+          <Host matchContents>
+            <ProgressView />
+          </Host>
         </View>
       ) : null}
     </View>

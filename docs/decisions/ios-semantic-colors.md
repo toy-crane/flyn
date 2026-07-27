@@ -19,6 +19,7 @@
 | 플레이스홀더 | `placeholderText` |
 | 구분선 | `separator` |
 | 에러 | `systemRed` |
+| 콘텐츠 위를 덮는 막 | `systemFill` |
 
 ## 되돌리지 말 것 — `dark:`는 색에 쓰지 않는다
 
