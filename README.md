@@ -1,7 +1,9 @@
 # flyn
 
-iOS 앱과 그 백엔드를 담는 모노레포. 테크 스택 결정과 근거는
-[docs/specs/tech-stack/spec.md](docs/specs/tech-stack/spec.md)에 있다.
+iOS 앱과 그 백엔드를 담는 모노레포. 이 저장소가 지금 서 있는 위치는
+[docs/decisions/README.md](docs/decisions/README.md)에 한 줄씩 있고, 논거는 거기
+링크된 기록들이 들고 있다. 뜻이 갈리는 말은 [GLOSSARY.md](GLOSSARY.md), 스택
+전체 그림은 [docs/specs/tech-stack/spec.md](docs/specs/tech-stack/spec.md).
 
 | 워크스페이스 | 내용 | 러너 |
 | --- | --- | --- |
@@ -131,7 +133,7 @@ Supabase를 쓰는 화면·엔드포인트에는 위 **Supabase 로컬 스택**�
   새로 클론한 사람이 Metro를 먼저 돌리지 않아도 `bun run check`가 통과해야 하기 때문.
 - **Uniwind는 무료(MIT) 범위로 충분하다.** Pro는 C++ 엔진·Reanimated 4 className
   애니메이션 같은 성능 계층이다. 판단 근거는
-  [spec.md의 리스크 절](docs/specs/tech-stack/spec.md).
+  [uniwind-for-styling](docs/decisions/uniwind-for-styling.md).
 
 ## 에이전트 스킬
 

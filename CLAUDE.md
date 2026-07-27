@@ -1,17 +1,27 @@
 # flyn
 
 테크 스택: Turborepo(bun) · Expo(@expo/ui · Uniwind) · Hono on Vercel(AI SDK + AI Gateway) ·
-Supabase(Auth·Postgres·RLS). 결정과 근거는 [docs/specs/tech-stack/spec.md](docs/specs/tech-stack/spec.md).
+Supabase(Auth·Postgres·RLS).
+
+**이 저장소가 지금 서 있는 위치는 [docs/decisions/README.md](docs/decisions/README.md)에
+한 줄씩 있다.** 뜻이 갈리는 말은 [GLOSSARY.md](GLOSSARY.md).
 
 ## UI
 
-**새 화면은 universal `@expo/ui`로 만든다.** universal에 없는 컴포넌트나 표현이
-필요하면 `@expo/ui/swift-ui`로 내려간다. 벤더 문서는 이 경우 `.ios.tsx` 분리나
-`Platform.OS` 분기를 요구하지만 iOS 전용 앱이라 해당 없으니, universal에 있는
-것으로 대신하지 말고 내려간다. Android·web 폴백도 만들지 않는다.
+아래는 규칙만 적는다 — 근거는 각 기록에 있고, 어기려면 그 기록을 읽고 새 기록을
+쓴다.
 
-**`Host` 안에서 Uniwind `className`은 무효다.** Uniwind는 `Host` 바깥에서만 쓰고,
-한 화면에서 두 방식을 섞지 않는다.
+- **새 화면은 universal `@expo/ui`로 만든다.** 없으면 `@expo/ui/swift-ui`로
+  내려간다(universal에 있는 것으로 대신하지 않는다). iOS 전용이라
+  `.ios.tsx`·`Platform.OS` 분기도, Android·web 폴백도 만들지 않는다 —
+  [expo-ui-by-default](docs/decisions/expo-ui-by-default.md),
+  [ios-only](docs/decisions/ios-only.md)
+- **`Host` 안에서 Uniwind `className`은 무효다.** Uniwind는 `Host` 바깥에서만
+  쓰고 한 화면에서 두 방식을 섞지 않는다. Uniwind가 맡는 것은 레이아웃·간격·
+  타이포뿐 — [uniwind-for-styling](docs/decisions/uniwind-for-styling.md)
+- **색은 iOS 시맨틱 색만 쓰고 `dark:` 변형을 색에 붙이지 않는다.** Tailwind
+  팔레트를 쓰지 않는다 —
+  [ios-semantic-colors](docs/decisions/ios-semantic-colors.md)
 
 ## 인증이 걸린 경로 검증
 

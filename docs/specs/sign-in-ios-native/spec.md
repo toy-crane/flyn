@@ -4,8 +4,10 @@
 **인증 로직은 건드리지 않는다** — `src/lib/auth/*` 헬퍼와 그 규약(성공은 `null`,
 실패만 `{ error }`)은 그대로다. 바뀌는 것은 화면 구성·라우트·표현이다.
 
-테크 스택 결정은 [../tech-stack/spec.md](../tech-stack/spec.md), 특히 §2의
-"디자인은 Apple HIG 준수가 중심"이 이 스펙의 상위 근거다.
+이 스펙의 상위 근거는 커스텀 디자인 시스템을 만들지 않고 Apple HIG를 따른다는
+결정이다 —
+[apple-hig-not-a-design-system](../../decisions/apple-hig-not-a-design-system.md).
+스택 전체는 [../tech-stack/spec.md](../tech-stack/spec.md).
 
 ## 지금 무엇이 문제인가 (시뮬레이터 실측, iPhone 17 / iOS 26.5)
 
@@ -114,33 +116,17 @@ Apple·Google 버튼은 어차피 벤더가 배경색을 규정해 글래스 대
 
 ### 4. 색 — iOS 시맨틱 색으로 전면 교체
 
-`expo-router`의 `Color` API를 쓴다(`expo-router@57.0.8`에 실재함을 확인:
-`build/color/index.d.ts`의 `export declare const Color: ColorType`). 이것은
-`PlatformColor`의 타입 안전 래퍼라 라이트/다크는 물론 **손쉬운 접근성 설정
-(대비 증가 등)까지 OS가 알아서 반영**한다.
+이 화면들이 Tailwind slate/sky 팔레트를 버리고 iOS 시맨틱 색으로 넘어가는
+첫 표면이다. 토큰 표·`dark:` 금지 규칙·Uniwind와의 공존은 화면을 넘어 적용되므로
+결정 기록이 들고 있다 —
+[ios-semantic-colors](../../decisions/ios-semantic-colors.md).
 
-`apps/mobile/src/theme/colors.ts` 한 곳에 모으고 전부 거기서 import 한다.
-
-| 쓰임 | 토큰 |
-| --- | --- |
-| 화면 배경 | `systemBackground` |
-| 제목·본문 | `label` |
-| 보조 문구 | `secondaryLabel` |
-| 비활성 라벨 | `tertiaryLabel` |
-| 채운 버튼 | `systemBlue` / 비활성 `systemGray5` |
-| 입력 필드 배경 | `secondarySystemBackground` |
-| 플레이스홀더 | `placeholderText` |
-| 구분선 | `separator` |
-| 에러 | `systemRed` |
+이 화면에만 해당하는 것 하나:
 
 - 배경은 `systemGroupedBackground`(연회색)가 아니라 **`systemBackground`**(흰/검)다.
   inset grouped 행이 하나도 없는 화면이라 회색 캔버스를 쓸 근거가 없고, 흰 Google
   버튼이 흰 배경 위에서 `#747775` 헤어라인으로 떠오르는 것이 Google 스펙의 의도다.
   *(변이 비교 목업에는 회색으로 그렸다 — 구성이 쟁점이라 배경은 세 안 공통이었다.)*
-- **색에는 더 이상 `dark:` 변형을 쓰지 않는다.** 시맨틱 색이 스스로 뒤집는다.
-  Uniwind의 `dark:`는 색이 아닌 용도에만 남는다.
-- Uniwind와의 공존은 확인됨: className 스타일이 먼저, `props.style`이 나중에
-  붙으므로 `style`이 이긴다.
 
 ### 5. 타이포·레이아웃
 
@@ -181,7 +167,7 @@ Apple·Google 버튼은 어차피 벤더가 배경색을 규정해 글래스 대
 **구현은 RN이다.** SwiftUI로 만들려 했으나 스파이크에서 막혔다 — `frame`
 모디파이어를 건 `TextField`는 탭을 먹지 않고, `frame` 없이는 `ZStack`에서 칸들이
 탭을 가져간다. 근거와 측정은
-[../../decisions/0001-no-expo-ui-for-sign-in.md](../../decisions/0001-no-expo-ui-for-sign-in.md).
+[expo-ui-by-default](../../decisions/expo-ui-by-default.md).
 아래 설계 자체는 그대로 유효하다.
 
 
@@ -210,9 +196,9 @@ Apple·Google 버튼은 어차피 벤더가 배경색을 규정해 글래스 대
 
 ## 가정 (기본값 — 반증 나오면 뒤집는다)
 
-- **`@expo/ui`는 이 화면에 쓰지 않는다.** 능력 부족이 아니라 A안에서 이점이
-  발생하지 않기 때문. 조사 결과와 근거는
-  [../../decisions/0001-no-expo-ui-for-sign-in.md](../../decisions/0001-no-expo-ui-for-sign-in.md).
+- **`@expo/ui`는 화면마다 갈린다.** `sign-in`·`code`는 RN이고(경계와 스파이크
+  결과 때문), `email`·`launch`는 SwiftUI다. 능력 부족이 이유가 아니다. 조사
+  결과와 근거는 [expo-ui-by-default](../../decisions/expo-ui-by-default.md).
 - **약관·개인정보처리방침 각주는 넣지 않는다.** 문서가 실제로 없기 때문이다.
   없는 곳을 가리키는 링크가 링크 없는 것보다 나쁘다. Apple 심사가 요구하는 것은
   App Store Connect의 URL이지 이 화면의 문장이 아니다. 문서가 생기면 그때 넣는다.
@@ -222,8 +208,9 @@ Apple·Google 버튼은 어차피 벤더가 배경색을 규정해 글래스 대
 - **`expo-haptics`를 새로 넣는다.** 로그인 성공·실패에 가벼운 피드백. Expo
   1st-party 패키지이고, 네이티브 감각의 상당 부분이 여기서 온다.
 - SF Symbols가 필요해지면 `expo-symbols`가 아니라 **`expo-image`의 `source="sf:…"`**
-  를 쓴다(Expo 공식 스킬 지침). 테크 스택 스펙 §2의 `expo-symbols` 언급은 이 점에서
-  낡았다. 이 화면 자체는 심볼이 필요 없다.
+  를 쓴다 — 이 정정은
+  [apple-hig-not-a-design-system](../../decisions/apple-hig-not-a-design-system.md)이
+  들고 있다. 이 화면 자체는 심볼이 필요 없다.
 - 기존 `sign-in.test.tsx`는 라우트가 셋으로 갈라지므로 파일도 갈라진다. 테스트가
   검증하던 **행동**(취소는 에러 아님 / 던져도 안 잠김 / 발송 실패 시 머무름 /
   붙여넣기 스크럽 / 6자리 게이트)은 하나도 잃지 않는다.
