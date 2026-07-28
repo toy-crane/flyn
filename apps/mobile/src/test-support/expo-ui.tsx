@@ -72,12 +72,22 @@ function Passthrough({ children }: { children?: ReactNode }) {
 
 function MockColumn({
   children,
+  modifiers,
   testID,
-}: {
+}: Modifiers & {
   children?: ReactNode;
   testID?: string;
 }) {
-  return <View testID={testID}>{children}</View>;
+  return (
+    <View
+      accessibilityHint={JSON.stringify(modifiers, (_key, value) =>
+        value === Number.POSITIVE_INFINITY ? "Infinity" : value
+      )}
+      testID={testID}
+    >
+      {children}
+    </View>
+  );
 }
 
 function MockButton({

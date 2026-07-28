@@ -85,6 +85,43 @@ describe("설정 — 프로필", () => {
     expect(within(header).getByText("me@example.test")).toBeTruthy();
   });
 
+  it("프로필 헤더가 Dynamic Type과 iOS 16 전체 너비를 지원한다", async () => {
+    await render(<SettingsScreen />);
+
+    const header = screen.getByTestId("settings-profile-header");
+    const headerModifiers = JSON.parse(header.props.accessibilityHint);
+    const headerScope = within(header);
+
+    expect(headerModifiers).toContainEqual(
+      expect.objectContaining({
+        $modifier: "frame",
+        args: [{ maxWidth: "Infinity" }],
+      })
+    );
+    expect(headerScope.getByText("한울").props.modifiers).toContainEqual(
+      expect.objectContaining({
+        $modifier: "font",
+        args: [{ textStyle: "title", weight: "bold" }],
+      })
+    );
+    expect(
+      headerScope.getByText("me@example.test").props.modifiers
+    ).toContainEqual(
+      expect.objectContaining({
+        $modifier: "font",
+        args: [{ textStyle: "callout" }],
+      })
+    );
+    expect(
+      headerScope.getByText("me@example.test").props.modifiers
+    ).toContainEqual(
+      expect.objectContaining({
+        $modifier: "multilineTextAlignment",
+        args: ["center"],
+      })
+    );
+  });
+
   it("현재 표시 이름과 이메일을 보여준다", async () => {
     await render(<SettingsScreen />);
 

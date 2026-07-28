@@ -1,12 +1,13 @@
 import { Column, FieldGroup, Host, Icon, ListItem, Row, Text } from "@expo/ui";
 import { ProgressView } from "@expo/ui/swift-ui";
 import {
-  containerRelativeFrame,
   font,
   foregroundStyle,
+  frame,
   listRowBackground,
   listRowInsets,
   listRowSeparator,
+  multilineTextAlignment,
 } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -44,7 +45,9 @@ function ProfileHeader({
     <Column
       alignment="center"
       modifiers={[
-        containerRelativeFrame({ axes: "horizontal" }),
+        // containerRelativeFrame은 iOS 17부터라 16에서는 no-op이다. SwiftUI의
+        // maxWidth .infinity에 대응하는 frame은 전체 지원 범위에서 동작한다.
+        frame({ maxWidth: Number.POSITIVE_INFINITY }),
         listRowBackground("clear"),
         listRowInsets({ bottom: 20, leading: 0, top: 20, trailing: 0 }),
         listRowSeparator("hidden"),
@@ -57,10 +60,21 @@ function ProfileHeader({
       <ProfileAvatar name={displayName} testID="settings-profile-avatar" />
 
       <Column alignment="center" spacing={2}>
-        <Text modifiers={[font({ size: 26, weight: "bold" })]}>
+        <Text
+          modifiers={[
+            font({ textStyle: "title", weight: "bold" }),
+            multilineTextAlignment("center"),
+          ]}
+        >
           {displayName}
         </Text>
-        <Text modifiers={[foregroundStyle(mutedColor), font({ size: 16 })]}>
+        <Text
+          modifiers={[
+            foregroundStyle(mutedColor),
+            font({ textStyle: "callout" }),
+            multilineTextAlignment("center"),
+          ]}
+        >
           {email}
         </Text>
       </Column>
