@@ -70,6 +70,16 @@ function Passthrough({ children }: { children?: ReactNode }) {
   return <View>{children}</View>;
 }
 
+function MockColumn({
+  children,
+  testID,
+}: {
+  children?: ReactNode;
+  testID?: string;
+}) {
+  return <View testID={testID}>{children}</View>;
+}
+
 function MockButton({
   children,
   disabled: disabledProp,
@@ -339,7 +349,7 @@ export function universalMock() {
     ...containers,
     ...leaves,
     Button: MockButton,
-    Column: Passthrough,
+    Column: MockColumn,
     FieldGroup,
     Icon: MockIcon,
     List: Passthrough,

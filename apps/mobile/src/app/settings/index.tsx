@@ -1,6 +1,13 @@
-import { FieldGroup, Host, Icon, ListItem, Row, Text } from "@expo/ui";
+import { Column, FieldGroup, Host, Icon, ListItem, Row, Text } from "@expo/ui";
 import { ProgressView } from "@expo/ui/swift-ui";
-import { font, foregroundStyle } from "@expo/ui/swift-ui/modifiers";
+import {
+  containerRelativeFrame,
+  font,
+  foregroundStyle,
+  listRowBackground,
+  listRowInsets,
+  listRowSeparator,
+} from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, View } from "react-native";
@@ -23,6 +30,43 @@ function Value({ children }: { children: string }) {
   );
 }
 
+function ProfileHeader({
+  displayName,
+  email,
+  mutedColor,
+}: {
+  displayName: string;
+  email: string;
+  mutedColor: string;
+}) {
+  return (
+    <Column
+      alignment="center"
+      modifiers={[
+        containerRelativeFrame({ axes: "horizontal" }),
+        listRowBackground("clear"),
+        listRowInsets({ bottom: 20, leading: 0, top: 20, trailing: 0 }),
+        listRowSeparator("hidden"),
+      ]}
+      spacing={14}
+      testID="settings-profile-header"
+    >
+      {/* 아직 프로필 사진 도메인은 없다. 임의의 OAuth 메타데이터에 기대지 않고,
+          실제 사진 필드가 생길 때 이 SF Symbol만 교체할 수 있게 둔다. */}
+      <Icon color={mutedColor} name="person.crop.circle.fill" size={88} />
+
+      <Column alignment="center" spacing={2}>
+        <Text modifiers={[font({ size: 26, weight: "bold" })]}>
+          {displayName}
+        </Text>
+        <Text modifiers={[foregroundStyle(mutedColor), font({ size: 16 })]}>
+          {email}
+        </Text>
+      </Column>
+    </Column>
+  );
+}
+
 /**
  * 프로필과 계정 수명 주기를 한곳에 모은 화면. iOS 네이티브 Form 관용으로
  * 만든다 — universal `FieldGroup`이 iOS에서 SwiftUI `Form`이고,
@@ -37,6 +81,8 @@ export default function SettingsScreen() {
   const profile = useProfile(userId);
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  const displayName = profile.data?.display_name ?? "";
+  const email = profile.data?.email ?? "";
 
   const openDisplayName = useCallback(() => {
     router.push("/settings/display-name");
@@ -96,6 +142,12 @@ export default function SettingsScreen() {
         useViewportSizeMeasurement
       >
         <FieldGroup>
+          <ProfileHeader
+            displayName={displayName}
+            email={email}
+            mutedColor={app.mutedForeground}
+          />
+
           <FieldGroup.Section title="프로필">
             {/* SwiftUI가 chevron을 그려 주는 것은 NavigationLink일 때다. 여기는
                 Button이라 직접 그린다 — 없으면 push되는 행인데도 눌리는 것으로
@@ -105,7 +157,7 @@ export default function SettingsScreen() {
               onPress={openDisplayName}
               trailing={
                 <Row alignment="center" spacing={6}>
-                  <Value>{profile.data?.display_name ?? ""}</Value>
+                  <Value>{displayName}</Value>
                   <Icon
                     color={app.mutedForeground}
                     modifiers={[font({ size: 14, weight: "medium" })]}
@@ -119,9 +171,7 @@ export default function SettingsScreen() {
 
             {/* 이메일은 읽기 전용이다 — 원본은 auth.users이고 앱에는 update 열
               권한이 없다. onPress를 주지 않아 눌리지 않는 것이 곧 그 표현이다. */}
-            <ListItem trailing={<Value>{profile.data?.email ?? ""}</Value>}>
-              이메일
-            </ListItem>
+            <ListItem trailing={<Value>{email}</Value>}>이메일</ListItem>
           </FieldGroup.Section>
 
           <FieldGroup.Section title="계정">

@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native";
 import { Alert } from "react-native";
 
 jest.mock("@expo/ui", () =>
@@ -68,13 +74,25 @@ beforeEach(() => {
 });
 
 describe("설정 — 프로필", () => {
+  it("상단 프로필 헤더에 기본 아바타와 계정 정보를 보여준다", async () => {
+    await render(<SettingsScreen />);
+
+    const header = screen.getByTestId("settings-profile-header");
+
+    expect(
+      within(header).getByLabelText("person.crop.circle.fill")
+    ).toBeTruthy();
+    expect(within(header).getByText("한울")).toBeTruthy();
+    expect(within(header).getByText("me@example.test")).toBeTruthy();
+  });
+
   it("현재 표시 이름과 이메일을 보여준다", async () => {
     await render(<SettingsScreen />);
 
     expect(screen.getByText("표시 이름")).toBeTruthy();
-    expect(screen.getByText("한울")).toBeTruthy();
+    expect(screen.getAllByText("한울")).toHaveLength(2);
     expect(screen.getByText("이메일")).toBeTruthy();
-    expect(screen.getByText("me@example.test")).toBeTruthy();
+    expect(screen.getAllByText("me@example.test")).toHaveLength(2);
   });
 
   it("표시 이름을 누르면 편집 화면으로 push한다", async () => {
