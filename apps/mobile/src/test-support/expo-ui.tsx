@@ -35,6 +35,11 @@ const isDisabledMark = (m: unknown): boolean =>
   (m as ModifierMark).$modifier === "disabled" &&
   (m as ModifierMark).args[0] !== false;
 
+const modifierArg = <T,>(modifiers: unknown[] | undefined, name: string) =>
+  (modifiers as ModifierMark[] | undefined)?.find(
+    (modifier) => modifier?.$modifier === name
+  )?.args[0] as T | undefined;
+
 /** 모디파이어는 이름과 인자만 남기는 표식으로 바꾼다 — Button이 disabled를 읽는다. */
 export function modifiersMock() {
   return new Proxy(
@@ -80,6 +85,8 @@ function MockButton({
 }) {
   const disabled =
     disabledProp === true || (modifiers ?? []).some(isDisabledMark);
+  const foreground = modifierArg<unknown>(modifiers, "foregroundStyle");
+  const labelColor = typeof foreground === "string" ? foreground : undefined;
 
   return (
     <Pressable
@@ -88,7 +95,13 @@ function MockButton({
       disabled={disabled}
       onPress={onPress}
     >
-      {label === undefined ? children : <Text>{label}</Text>}
+      {label === undefined ? (
+        children
+      ) : (
+        <Text style={labelColor ? { color: labelColor } : undefined}>
+          {label}
+        </Text>
+      )}
     </Pressable>
   );
 }

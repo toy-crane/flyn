@@ -7,8 +7,15 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 // native bridge를 통과할 수 있도록 실제 색과 무관한 결정적 값만 제공한다.
 jest.mock("uniwind", () => ({
   useCSSVariable: (name) => {
-    const value = (variable) =>
-      variable === "--app-overlay" ? "rgba(0, 0, 0, 0.5)" : "#111111";
+    const value = (variable) => {
+      if (variable === "--app-overlay") {
+        return "rgba(0, 0, 0, 0.5)";
+      }
+
+      // foreground 배선은 배경/tint와 다른 값이어야 테스트가 두 역할을
+      // 실수로 맞바꿔도 잡아낸다.
+      return variable === "--app-primary-foreground" ? "#fefefe" : "#111111";
+    };
 
     return Array.isArray(name) ? name.map(value) : value(name);
   },

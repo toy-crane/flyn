@@ -134,7 +134,13 @@ export function DisplayNameForm({
           // 비활성 외형을 손으로 칠하지 않는다 — iOS가 알아서 준다.
           disabled={locked}
           label={submitLabel}
-          modifiers={[controlSize("large")]}
+          // borderedProminent의 기본 라벨은 다크 모드에서도 흰색이라, 흰
+          // primary 배경과 겹치면 사라진다. 활성일 때만 시맨틱 on-primary를
+          // 넘기고 비활성 외형은 계속 iOS에 맡긴다.
+          modifiers={[
+            controlSize("large"),
+            ...(locked ? [] : [foregroundStyle(app.primaryForeground)]),
+          ]}
           onPress={handlePress}
         />
 
