@@ -260,6 +260,18 @@ function MockListItem({
   );
 }
 
+function MockRow({
+  alignment = "start",
+  children,
+}: {
+  alignment?: "center" | "end" | "start";
+  children?: ReactNode;
+}) {
+  return (
+    <View accessibilityHint={`row-alignment:${alignment}`}>{children}</View>
+  );
+}
+
 /** `FieldGroup.Section`의 `title`은 실물에서 헤더로 그려진다. */
 function MockSection({
   children,
@@ -332,7 +344,7 @@ export function universalMock() {
     Icon: MockIcon,
     List: Passthrough,
     ListItem,
-    Row: Passthrough,
+    Row: MockRow,
     ScrollView: Passthrough,
     Text,
     TextInput: MockTextInput,

@@ -89,6 +89,7 @@ describe("설정 — 프로필", () => {
 
     const indicator = screen.getByLabelText("chevron.right");
 
+    expect(screen.getByHintText("row-alignment:center")).toBeTruthy();
     expect(JSON.parse(indicator.props.accessibilityHint)).toContainEqual(
       expect.objectContaining({
         $modifier: "font",

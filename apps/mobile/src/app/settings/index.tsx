@@ -104,7 +104,7 @@ export default function SettingsScreen() {
             <ListItem
               onPress={openDisplayName}
               trailing={
-                <Row spacing={6}>
+                <Row alignment="center" spacing={6}>
                   <Value>{profile.data?.display_name ?? ""}</Value>
                   <Icon
                     color={app.mutedForeground}
