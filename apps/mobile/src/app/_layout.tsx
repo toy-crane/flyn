@@ -119,7 +119,7 @@ function Routes() {
           {/* 헤더를 켜야 우측 상단 설정 버튼이 설 자리가 생긴다. */}
           <Stack.Screen
             name="index"
-            options={{ headerShown: true, title: "flyn" }}
+            options={{ headerShown: true, title: "채팅" }}
           />
           <Stack.Screen
             name="settings/index"

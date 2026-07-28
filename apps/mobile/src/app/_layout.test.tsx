@@ -113,7 +113,7 @@ describe("Layout native stack header", () => {
 
     expect(mockRouteOptions.index).toMatchObject({
       headerShown: true,
-      title: "flyn",
+      title: "채팅",
     });
     expect(mockRouteOptions["settings/index"]).toMatchObject({
       headerShown: true,
