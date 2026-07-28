@@ -17,6 +17,23 @@ mobile·api 양쪽이 소비한다. **플랫폼별 생성은 드리프트 위험
 클라이언트 초기화는 각 앱에 남긴다(모바일은 AsyncStorage 세션 저장, 서버는
 secret 키).
 
+## `supabase/`는 루트에 남기고 워크스페이스로 올리지 않는다
+
+CLI는 실행한 자리에서 **부모 방향으로 거슬러** `supabase/`를 찾는다 —
+`apps/mobile`에서 `supabase status`를 쳐도 `Using workdir <저장소 루트>`가 찍힌다.
+그래서 `packages/db/supabase/`처럼 아래로 내리면 루트에서 친 명령이 그 폴더를
+영영 찾지 못하고, 모든 호출에 `--workdir`가 붙는다.
+
+자리를 옮기지 않고 **워크스페이스 자격만** 주는 것(`supabase/package.json` +
+루트 `workspaces`에 추가)은 가능하고 Supabase + Turborepo 글들이 흔히 권한다.
+그래도 기각한다 — `import`할 것이 없어서 얻는 것은 스크립트를 매달 자리뿐인데,
+그건 이미 루트 `db:*`에 있다. 승격의 진짜 이유인 turbo `dependsOn`으로 pgTAP
+앞에 스택을 세우는 것도 여기선 무효다: `db:test`는 Docker가 필요해
+[의도적으로 CI 밖](../../README.md#검사)에 있다.
+
+`packages/supabase`와 이름이 겹치지만 다른 물건이다. 그쪽은 앱과 API가
+`import`하는 생성 타입이고, 이쪽은 CLI가 읽는 설정·SQL·메일 템플릿이다.
+
 ## bun은 hoisted 설치로 고정한다 — 기본값으로 되돌리지 말 것
 
 bun 1.3의 기본값인 isolated 설치(`node_modules/.bun` 스토어 + 심링크)는 React

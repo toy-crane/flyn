@@ -30,6 +30,12 @@ Expo Go 대신 쓰는, 네이티브 모듈이 포함된 개발용 앱 빌드. �
 config plugin이 바뀌면 다시 빌드해야 한다.
 _Avoid_: 개발 빌드, 커스텀 빌드, 로컬 빌드
 
+**`supabase/`**:
+CLI가 읽는 프로젝트 폴더 — `config.toml`, 선언적 스키마, 마이그레이션, 메일
+템플릿. 워크스페이스가 아니고 루트에 있어야 한다. 앱과 API가 `import`하는 생성
+타입 패키지 **`packages/supabase`와 다른 것**을 가리킨다.
+_Avoid_: supabase 패키지, DB 워크스페이스
+
 **dev 환경**:
 3계층 환경 중 가운데 층 — 호스티드 dev Supabase 프로젝트 + Vercel preview +
 EAS preview 빌드. **EAS 프로필 이름 `development`와 다른 것을 가리킨다**;
