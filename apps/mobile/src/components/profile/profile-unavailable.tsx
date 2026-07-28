@@ -94,7 +94,7 @@ export function ProfileUnavailable({
 }
 
 /**
- * 프로필 행이 없다. 트리거가 사용자 생성과 같은 경계에서 만들었어야 하므로(§2)
+ * 프로필 행이 없다. 트리거가 사용자 생성과 같은 경계에서 만들었어야 하므로
  * 이것은 재시도로 낫는 상태가 아니라 데이터 무결성 오류다.
  */
 export function ProfileMissing({ onSignOut }: { onSignOut: () => void }) {

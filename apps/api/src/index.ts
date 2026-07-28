@@ -36,7 +36,7 @@ const app = new Hono<Env>()
     }
   )
   /**
-   * 전체 계정 삭제(§5). Auth 사용자를 hard delete하면 프로필과 사용자 소유
+   * 전체 계정 삭제. Auth 사용자를 hard delete하면 프로필과 사용자 소유
    * throwaway 데이터가 `on delete cascade`로 함께 사라진다.
    *
    * Apple 승인 취소는 하지 않는다 —

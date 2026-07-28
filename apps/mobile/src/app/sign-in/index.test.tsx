@@ -106,7 +106,7 @@ describe("SignInScreen", () => {
     expect(screen.getByText(GOOGLE)).toBeTruthy();
   });
 
-  // SIGN_IN이 아니라 CONTINUE다(스펙 §3). 코너는 Google 버튼과 맞춘 16.
+  // SIGN_IN이 아니라 CONTINUE다. 코너는 Google 버튼과 맞춘 16.
   it("Apple 버튼을 CONTINUE와 코너 16으로 세운다", async () => {
     await render(<SignInScreen />);
 
@@ -125,7 +125,7 @@ describe("SignInScreen", () => {
     expect(Alert.alert).not.toHaveBeenCalled();
   });
 
-  // 소셜 실패는 모달 흐름의 결과라 인라인이 아니라 얼럿이다(스펙 §6). 그리고
+  // 소셜 실패는 모달 흐름의 결과라 인라인이 아니라 얼럿이다. 그리고
   // 벤더 원문("boom")이 아니라 한국어 문장이 나가야 한다.
   it("로그인 실패는 얼럿으로 알리되 원문을 노출하지 않는다", async () => {
     mockSignInAsync.mockRejectedValue(new Error("boom"));

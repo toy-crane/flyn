@@ -5,7 +5,7 @@ import { rpc } from "./rpc";
 import { supabase } from "./supabase";
 
 /**
- * 전체 계정 삭제(§5). 서버가 Auth 사용자를 hard delete하고, 앱은 요청과 로컬
+ * 전체 계정 삭제. 서버가 Auth 사용자를 hard delete하고, 앱은 요청과 로컬
  * 정리만 한다 — secret·admin 권한은 모바일에 오지 않는다.
  *
  * 다른 auth 헬퍼와 같은 규약: 성공은 null, 실패만 `{ error }`.
@@ -34,7 +34,7 @@ async function describeFailure(response: {
 
 /**
  * 서버 계정이 사라진 뒤의 정리. **여기서 실패해도 서버 계정을 되살리지
- * 않는다**(§5) — 로컬 데이터를 버리고 signed-out 상태로 간다.
+ * 않는다** — 로컬 데이터를 버리고 signed-out 상태로 간다.
  *
  * `scope: "local"`을 쓰는 이유는 서버에 폐기를 요청할 세션이 남아 있지 않기
  * 때문이다. 사용자가 지워지면 세션·리프레시 토큰도 cascade로 함께 사라져,
@@ -79,7 +79,7 @@ export async function deleteAccount(): Promise<{ error: string } | null> {
     return { error: e instanceof Error ? e.message : GENERIC_ERROR };
   }
 
-  // 서버 계정은 사라졌다. 여기서부터는 실패해도 되돌리지 않는다(§5).
+  // 서버 계정은 사라졌다. 여기서부터는 실패해도 되돌리지 않는다.
   await discardLocalState();
 
   return null;

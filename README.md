@@ -2,14 +2,13 @@
 
 iOS 앱과 그 백엔드를 담는 모노레포. 이 저장소가 지금 서 있는 위치는
 [docs/decisions/README.md](docs/decisions/README.md)에 한 줄씩 있고, 논거는 거기
-링크된 기록들이 들고 있다. 뜻이 갈리는 말은 [GLOSSARY.md](GLOSSARY.md), 스택
-전체 그림은 [docs/specs/tech-stack/spec.md](docs/specs/tech-stack/spec.md).
+링크된 기록들이 들고 있다. 뜻이 갈리는 말은 [GLOSSARY.md](GLOSSARY.md).
 
 | 워크스페이스 | 내용 | 러너 |
 | --- | --- | --- |
 | `apps/mobile` | Expo(Expo Router + Uniwind), iOS 전용 | jest-expo |
 | `apps/api` | Hono API (로컬은 bun, 배포는 Vercel) | bun test |
-| `packages/*` | 공유 코드 (아직 없음) | bun test |
+| `packages/supabase` | 앱·API가 공유하는 Supabase 생성 타입 | tsc |
 
 ## 요구 사항
 
@@ -25,8 +24,8 @@ iOS 앱과 그 백엔드를 담는 모노레포. 이 저장소가 지금 서 있
 bun install
 ```
 
-앱은 **development build**로 돈다(03a부터 — Google 네이티브 로그인이 Expo Go에서
-동작하지 않는다). 최초 1회, 그리고 네이티브 모듈·config plugin이 바뀔 때마다
+앱은 Google 네이티브 로그인이 Expo Go에서 동작하지 않으므로 **development
+build**로 돈다. 최초 1회, 그리고 네이티브 모듈·config plugin이 바뀔 때마다
 네이티브 빌드가 필요하다:
 
 ```bash

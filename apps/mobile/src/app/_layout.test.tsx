@@ -118,8 +118,8 @@ describe("Layout 인증 가드", () => {
     expect(screen.queryByText("screen:sign-in/index")).toBeNull();
   });
 
-  // 스펙 §8이 요구한 `다시 시도`를 일부러 넣지 않았다. failed는 빌드 타임 상수에서만
-  // 나와 재시도해도 같은 분기로 되돌아온다 — 부재가 결정이므로 여기서 못박는다.
+  // `다시 시도`를 일부러 넣지 않았다. failed는 빌드 타임 상수에서만 나와
+  // 재시도해도 같은 분기로 되돌아온다 — 부재가 결정이므로 여기서 못박는다.
   it("failed에 다시 시도 버튼을 두지 않는다", async () => {
     mockUseAuth.mockReturnValue({ kind: "failed", reason: "환경변수 없음" });
 
@@ -136,7 +136,7 @@ describe("Layout 온보딩 가드", () => {
     await render(<Layout />);
 
     expect(screen.getByText("screen:onboarding")).toBeTruthy();
-    // index가 함께 마운트되면 뒤로 가서 앱에 들어갈 수 있다 — §3이 막는 것.
+    // index가 함께 마운트되면 뒤로 가서 앱에 들어갈 수 있다.
     expect(screen.queryByText("screen:index")).toBeNull();
   });
 

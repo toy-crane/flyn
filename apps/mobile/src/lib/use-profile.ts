@@ -11,7 +11,7 @@ const COLUMNS = "id, email, display_name";
 /**
  * 행이 없으면 `null`, 조회가 실패하면 던진다. **이 둘을 섞지 않는 것이 이 함수의
  * 일이다** — 실패를 `null`로 뭉개면 네트워크가 끊긴 사용자가 온보딩 화면을 보고
- * 이미 정한 이름을 다시 입력하게 된다(§2).
+ * 이미 정한 이름을 다시 입력하게 된다.
  *
  * RLS가 이미 자기 행으로 좁히지만 `eq`를 명시한다. 정책이 느슨해지는 날
  * `maybeSingle`이 여러 행을 만나 던지는 대신, 여기서 계속 한 행만 본다.
@@ -29,8 +29,8 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
 
 /**
  * 온보딩과 설정의 편집이 함께 쓰는 저장 규칙. 한 곳에만 있어야 두 경로가
- * 갈라지지 않는다(§4). 진짜 경계는 DB의 check와 트리거이고, 여기서는 보내는
- * 값을 저장될 값과 같게 맞춘다.
+ * 갈라지지 않는다. 진짜 경계는 DB의 check와 트리거이고, 여기서는 보내는 값을
+ * 저장될 값과 같게 맞춘다.
  */
 export async function saveDisplayName(
   userId: string,
@@ -61,7 +61,7 @@ export function useProfile(userId: string | null) {
 }
 
 /**
- * §3의 네 갈래. 화면들은 이 판정만 받고 조회의 사정은 모른다.
+ * 프로필 게이트의 네 갈래. 화면들은 이 판정만 받고 조회의 사정은 모른다.
  *
  * - `failed` 조회 실패 — 네트워크·권한. 재시도할 수 있어야 한다.
  * - `missing` 행 없음 — 트리거가 만들었어야 할 행이 없다. 온보딩으로 가장하지

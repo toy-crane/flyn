@@ -36,12 +36,6 @@ CLI가 읽는 프로젝트 폴더 — `config.toml`, 선언적 스키마, 마이
 타입 패키지 **`packages/supabase`와 다른 것**을 가리킨다.
 _Avoid_: supabase 패키지, DB 워크스페이스
 
-**dev 환경**:
-3계층 환경 중 가운데 층 — 호스티드 dev Supabase 프로젝트 + Vercel preview +
-EAS preview 빌드. **EAS 프로필 이름 `development`와 다른 것을 가리킨다**;
-그 프로필은 로컬 dev build를 만드는 데 쓴다.
-_Avoid_: 스테이징, preview 환경
-
 ## 작업 문서
 
 **확정 결정**:

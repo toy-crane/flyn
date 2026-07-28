@@ -75,7 +75,7 @@ describe("CodeScreen", () => {
     expect(screen.queryByText(RAW_VENDOR_COPY)).toBeNull();
   });
 
-  // 헤더 뒤로가기가 그 역할을 한다(스펙 §2).
+  // 헤더 뒤로가기가 그 역할을 한다.
   it("다른 이메일로 받기 버튼을 두지 않는다", async () => {
     await render(<CodeScreen />);
 

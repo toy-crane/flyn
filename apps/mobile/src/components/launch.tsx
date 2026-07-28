@@ -39,11 +39,11 @@ export function LaunchChecking() {
 }
 
 /**
- * 스펙 §8은 여기 `다시 시도` 버튼을 요구했으나 넣지 않는다. `failed`는 오직
- * `!supabaseConfigured`에서만 나오고(use-auth.ts), 그 값은 빌드 타임에
- * 인라인되는 `process.env`라(supabase.ts) 런타임에 바뀔 수 없다. 세션 복원
- * 실패는 `signedOut`으로 떨어져 로그인 화면이 이미 탈출구다. 버튼을 두면
- * 복구 가능한 상태라고 거짓말하게 된다 — 실제로 필요한 것은 재빌드다.
+ * `다시 시도` 버튼을 두지 않는다. `failed`는 오직 `!supabaseConfigured`에서만
+ * 나오고(use-auth.ts), 그 값은 빌드 타임에 인라인되는 `process.env`라
+ * (supabase.ts) 런타임에 바뀔 수 없다. 세션 복원 실패는 `signedOut`으로 떨어져
+ * 로그인 화면이 이미 탈출구다. 버튼을 두면 복구 가능한 상태라고 거짓말하게
+ * 된다 — 실제로 필요한 것은 재빌드다.
  */
 export function LaunchFailed({ reason }: { reason: string }) {
   return (

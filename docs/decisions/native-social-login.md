@@ -13,9 +13,9 @@ iOS에서 다른 소셜 로그인을 제공하면 **Sign in with Apple이 심사
 
 ## 이 결정이 개발 루프를 바꿨다
 
-Google 네이티브 사인인은 **Expo Go에서 동작하지 않는다.** 그래서 03a부터 개발
-루프가 Expo Go → **development build**로 이동했다. 최초 1회, 그리고 네이티브
-모듈·config plugin이 바뀔 때마다 `bunx expo run:ios`가 필요하다.
+Google 네이티브 사인인은 **Expo Go에서 동작하지 않는다.** 그래서 이 로그인을
+도입하면서 개발 루프가 Expo Go → **development build**로 이동했다. 최초 1회,
+그리고 네이티브 모듈·config plugin이 바뀔 때마다 `bunx expo run:ios`가 필요하다.
 
 RevenueCat도 Expo Go에서 동작하지 않으므로, 나중에 붙일 때 추가 부담은 없다.
 

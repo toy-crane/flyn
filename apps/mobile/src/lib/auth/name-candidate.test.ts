@@ -47,7 +47,7 @@ describe("fetchNameCandidate", () => {
     await expect(fetchNameCandidate()).resolves.toBe("김한울");
   });
 
-  // 이메일 OTP 경로 — 빈 입력칸으로 시작하는 것이 §3이 정한 동작이다.
+  // 이메일 OTP 경로는 provider 이름이 없으므로 빈 입력칸으로 시작한다.
   it("이름을 주는 provider가 없으면 빈 문자열이다", async () => {
     withMetadata({ email: "me@example.test" });
 

@@ -8,7 +8,7 @@ create table public.profiles (
   -- not null이 무엇을 거는가: 이메일 없는 사용자가 생기면 가입 자체가 실패한다.
   -- 지금 세 경로가 모두 이메일을 보장하고(config.toml의 apple email_optional =
   -- false, auth.sms enable_signup = false), 빈 문자열을 조용히 채우는 것보다
-  -- 크게 깨지는 쪽이 §2의 의도다 — 프로필 없는 사용자를 만들지 않는다.
+  -- 크게 깨지는 쪽을 택한다 — 프로필 없는 사용자를 만들지 않는다.
   email text not null,
   display_name text,
   created_at timestamptz not null default now(),
@@ -90,10 +90,10 @@ grant select on table public.profiles to authenticated;
 grant update (display_name) on table public.profiles to authenticated;
 
 -- 생성·삭제는 클라이언트 권한이 아니다. 생성은 auth.users 트리거가, 삭제는
--- on delete cascade가 맡는다(§1).
+-- on delete cascade가 맡는다.
 grant select, insert, update, delete on table public.profiles to service_role;
 
--- 프로필 행은 사용자 생성과 같은 경계에서 생긴다(§2). 세션이 앱에 돌아왔을 때
+-- 프로필 행은 사용자 생성과 같은 경계에서 생긴다. 세션이 앱에 돌아왔을 때
 -- 행은 이미 존재해야 하며, 앱은 행이 없으면 온보딩으로 가장하지 않고 무결성
 -- 오류를 낸다.
 --
@@ -116,7 +116,7 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.create_profile_for_new_user();
 
--- 이메일 변경 UI는 만들지 않지만(§가정) Auth 원본이 바뀌면 복제본이 따라간다.
+-- 이메일 변경 UI는 없지만 Auth 원본이 바뀌면 복제본이 따라간다.
 --
 -- **null은 따라가지 않는다.** auth.users.email은 nullable인데 profiles.email은
 -- not null이라, 마지막 이메일 신원이 풀리는 등으로 원본이 null이 되면 이

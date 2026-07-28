@@ -51,7 +51,7 @@ describe("deleteAccount — 서버가 지웠을 때", () => {
     expect(mockSupabaseSignOut).toHaveBeenCalledWith({ scope: "local" });
   });
 
-  // §5 — 로컬 정리가 실패해도 서버 계정을 되살리지 않는다. 강제로 버리고
+  // 로컬 정리가 실패해도 서버 계정을 되살리지 않는다. 강제로 버리고
   // signed-out으로 간다.
   //
   // signOut은 던지지 않고 `{ error }`로 resolve한다. 예전 `.catch`가 이걸
