@@ -47,5 +47,7 @@
 
 ## 데이터
 
+- [private-auth-profiles](private-auth-profiles.md) — 프로필은 인증 사용자와
+  1:1인 비공개 계정 정보이고, `display_name is null`만 첫 온보딩을 뜻한다.
 - [hybrid-data-access](hybrid-data-access.md) — 일반 CRUD는 앱이 Supabase에 직접
   가고 RLS가 보안 경계다. AI·서버 전용 로직만 Hono를 거친다.
