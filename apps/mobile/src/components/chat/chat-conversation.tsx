@@ -4,9 +4,9 @@ import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { SymbolView } from "expo-symbols";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import {
+  KeyboardAvoidingView,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  KeyboardAvoidingView,
   Pressable,
   Text,
   TextInput,
@@ -253,10 +253,7 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
     <View className="flex-1 bg-background">
       <KeyboardAvoidingView
         behavior="padding"
-        keyboardVerticalOffset={Math.max(
-          insets.bottom - COMPOSER_MARGIN,
-          0
-        )}
+        keyboardVerticalOffset={Math.max(insets.bottom - COMPOSER_MARGIN, 0)}
         style={{ flex: 1 }}
         testID="chat-keyboard-layout"
       >
