@@ -6,15 +6,13 @@ import { type ReactNode, useCallback, useRef, useState } from "react";
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  KeyboardAvoidingView,
   Pressable,
   Text,
   TextInput,
   View,
 } from "react-native";
-import {
-  KeyboardGestureArea,
-  KeyboardStickyView,
-} from "react-native-keyboard-controller";
+import { KeyboardGestureArea } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "../../theme/app-theme";
 import { ChatMarkdown } from "./chat-markdown";
@@ -23,6 +21,8 @@ import type { StreamingStore } from "./streaming-store";
 
 const COMPOSER_NATIVE_ID = "chat-composer";
 const BOTTOM_THRESHOLD = 72;
+const COMPOSER_MIN_HEIGHT = 52;
+const COMPOSER_MARGIN = 8;
 
 export interface DisplayChatMessage {
   content: string;
@@ -251,46 +251,56 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
 
   return (
     <View className="flex-1 bg-background">
-      <KeyboardGestureArea
-        interpolator="ios"
+      <KeyboardAvoidingView
+        behavior="padding"
+        keyboardVerticalOffset={Math.max(
+          insets.bottom - COMPOSER_MARGIN,
+          0
+        )}
         style={{ flex: 1 }}
-        textInputNativeID={COMPOSER_NATIVE_ID}
+        testID="chat-keyboard-layout"
       >
-        <LegendList
-          contentContainerStyle={{
-            paddingBottom: 8,
-            paddingHorizontal: 16,
-            paddingTop: 16,
-          }}
-          data={chat.messages}
-          estimatedItemSize={84}
-          keyboardDismissMode="interactive"
-          keyboardShouldPersistTaps="handled"
-          keyExtractor={messageKey}
-          ListEmptyComponent={
-            <View className="flex-1 items-center justify-center gap-2 px-6 py-24">
-              <Text className="font-semibold text-[22px] text-foreground">
-                무엇이든 물어보세요
-              </Text>
-              <Text className="text-center text-[15px] text-muted-foreground leading-6">
-                메시지는 이 채팅방에 안전하게 저장됩니다.
-              </Text>
-            </View>
-          }
-          maintainVisibleContentPosition
-          onContentSizeChange={handleContentSizeChange}
-          onScroll={handleScroll}
-          recycleItems
-          ref={listRef}
-          renderItem={renderMessage}
-          scrollEventThrottle={16}
-          testID="chat-message-list"
-        />
+        <KeyboardGestureArea
+          interpolator="ios"
+          offset={COMPOSER_MIN_HEIGHT}
+          style={{ flex: 1 }}
+          textInputNativeID={COMPOSER_NATIVE_ID}
+        >
+          <LegendList
+            contentContainerStyle={{
+              paddingBottom: 8,
+              paddingHorizontal: 16,
+              paddingTop: 16,
+            }}
+            data={chat.messages}
+            estimatedItemSize={84}
+            keyboardDismissMode="interactive"
+            keyboardShouldPersistTaps="handled"
+            keyExtractor={messageKey}
+            ListEmptyComponent={
+              <View className="flex-1 items-center justify-center gap-2 px-6 py-24">
+                <Text className="font-semibold text-[22px] text-foreground">
+                  무엇이든 물어보세요
+                </Text>
+                <Text className="text-center text-[15px] text-muted-foreground leading-6">
+                  메시지는 이 채팅방에 안전하게 저장됩니다.
+                </Text>
+              </View>
+            }
+            maintainVisibleContentPosition
+            onContentSizeChange={handleContentSizeChange}
+            onScroll={handleScroll}
+            recycleItems
+            ref={listRef}
+            renderItem={renderMessage}
+            scrollEventThrottle={16}
+            style={{ flex: 1, minHeight: 0 }}
+            testID="chat-message-list"
+          />
 
-        <KeyboardStickyView>
           <Composer bottomInset={insets.bottom} chat={chat} />
-        </KeyboardStickyView>
-      </KeyboardGestureArea>
+        </KeyboardGestureArea>
+      </KeyboardAvoidingView>
 
       {showScrollButton ? (
         <Pressable

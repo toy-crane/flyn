@@ -155,6 +155,19 @@ describe("채팅방 상세 대화", () => {
     expect(list.props.maintainVisibleContentPosition).toBeTruthy();
   });
 
+  it("composer가 키보드에 가려지지 않도록 화면 높이를 조정한다", async () => {
+    await render(<ChatConversation chat={controller()} />);
+
+    const keyboardLayout = screen.getByTestId("chat-keyboard-layout");
+
+    expect(keyboardLayout.props.style).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ flex: 1 }),
+        expect.objectContaining({ paddingBottom: 0 }),
+      ])
+    );
+  });
+
   it("composer는 텍스트만 4,000자까지 받고 내용을 컨트롤러에 전한다", async () => {
     const setInput = jest.fn();
     await render(<ChatConversation chat={controller({ setInput })} />);
