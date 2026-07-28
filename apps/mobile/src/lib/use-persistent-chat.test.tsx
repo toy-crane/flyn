@@ -180,7 +180,7 @@ describe("영구 채팅 controller", () => {
     expect(result.current.input).toBe("");
   });
 
-  it("오류 재시도와 생성 중단을 AI SDK controller에 위임한다", async () => {
+  it("오류 상태를 유지한 채 재시도하고 생성 중단을 위임한다", async () => {
     mockUseChat.mockReturnValue(
       chatState({ error: new Error("failed"), status: "error" })
     );
@@ -193,7 +193,7 @@ describe("영구 채팅 controller", () => {
       result.current.stop();
     });
 
-    expect(clearError).toHaveBeenCalled();
+    expect(clearError).not.toHaveBeenCalled();
     expect(regenerate).toHaveBeenCalled();
     expect(stop).toHaveBeenCalled();
   });

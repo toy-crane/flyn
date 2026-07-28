@@ -206,7 +206,6 @@ export function usePersistentChat(
   }, [chat, input, isGenerating]);
 
   const onRetry = useCallback(() => {
-    chat.clearError();
     chat.regenerate();
   }, [chat]);
 
