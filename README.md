@@ -33,22 +33,24 @@ bun install
 cd apps/mobile && bunx expo run:ios
 ```
 
-이후 일상 루프는 터미널 두 개로 나눠 띄우는 쪽이 시뮬레이터를 다루기 편하다.
+이후 일상 루프는 이 한 줄이 전부다.
 
 ```bash
-bun run --filter @flyn/api dev
+bun run dev
 ```
 
-```bash
-bun run --filter @flyn/mobile dev
-```
+turbo가 순서를 잡는다. 먼저 `//#dev:setup`이 `supabase start`로 로컬 스택을
+세우고(이미 떠 있으면 그냥 통과한다), 그다음 `bun --hot`과 `expo start --ios`가
+동시에 뜬다. `--ios`가 시뮬레이터를 깨워 설치된 dev build까지 열어주므로 앱을
+손으로 열 필요가 없다.
 
 API는 <http://localhost:3000/health>에서 `{"service":"flyn-api","status":"ok"}`를
-돌려준다. 시뮬레이터에 설치된 dev build(flyn 앱)를 열면 Metro에 붙고, 화면의
-**API health** 카드에 같은 응답이 뜨면 앱 ↔ API 연결까지 살아 있는 것이다.
-iOS 시뮬레이터는 호스트의 `localhost`에 그대로 접근하므로 별도 설정이 필요 없다.
+돌려준다. 앱 화면의 **API health** 카드에 같은 응답이 뜨면 앱 ↔ API 연결까지
+살아 있는 것이다. iOS 시뮬레이터는 호스트의 `localhost`에 그대로 접근하므로
+별도 설정이 필요 없다.
 
-turbo로 한 번에 띄우려면 `bun run dev`.
+한쪽만 띄우려면 `turbo run dev --filter=@flyn/api`처럼 turbo로 거른다 —
+`bun run --filter`로 부르면 turbo를 건너뛰어 스택 기동도 함께 빠진다.
 
 ## Supabase 로컬 스택
 

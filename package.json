@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
+    "dev:setup": "supabase start > /dev/null",
     "lint": "ultracite check",
     "lint:fix": "ultracite fix",
     "test": "turbo run test",
