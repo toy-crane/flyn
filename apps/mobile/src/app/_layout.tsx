@@ -2,13 +2,6 @@ import "../global.css";
 
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "expo-router/react-navigation";
-import { type ReactNode, useMemo } from "react";
-import { useColorScheme } from "react-native";
 import { LaunchChecking, LaunchFailed } from "../components/launch";
 import {
   ProfileMissing,
@@ -19,7 +12,7 @@ import { queryClient } from "../lib/query-client";
 import { useAuth } from "../lib/use-auth";
 import { useProfileGate } from "../lib/use-profile";
 import { UserIdProvider } from "../lib/user-id";
-import { useAppTheme } from "../theme/app-theme";
+import { colors } from "../theme/colors";
 
 // signOut은 실패를 스스로 콘솔에 남기고, 어느 경우든 로컬 세션은 지워진다 —
 // 여기서 돌려받아 처리할 것이 없다.
@@ -27,43 +20,8 @@ function discardSession() {
   signOut();
 }
 
-/**
- * Expo Router 내부와 native stack header도 화면과 같은 CSS 원본을 쓴다.
- * UIKit의 navigation bar와 back button은 그대로 두고 색 역할만 연결한다.
- */
-function AppNavigationTheme({ children }: { children: ReactNode }) {
-  const app = useAppTheme();
-  const dark = useColorScheme() === "dark";
-  const value = useMemo(() => {
-    const base = dark ? DarkTheme : DefaultTheme;
-
-    return {
-      ...base,
-      colors: {
-        ...base.colors,
-        background: app.background,
-        border: app.border,
-        card: app.background,
-        notification: app.danger,
-        primary: app.primary,
-        text: app.foreground,
-      },
-    };
-  }, [
-    app.background,
-    app.border,
-    app.danger,
-    app.foreground,
-    app.primary,
-    dark,
-  ]);
-
-  return <ThemeProvider value={value}>{children}</ThemeProvider>;
-}
-
 // useAuth 구독은 여기 한 곳뿐이다 — 화면들은 가드 결과만 받는다.
 function Routes() {
-  const app = useAppTheme();
   const auth = useAuth();
   const userId = auth.kind === "ready" ? auth.userId : null;
   // 훅은 조건부로 부를 수 없다. 로그인 전에는 userId가 null이라 조회가 꺼져
@@ -104,16 +62,13 @@ function Routes() {
 
   return (
     <UserIdProvider userId={userId}>
-      {/* native stack header(UINavigationBar)는 유지하고 앱 테마의 색만 건넨다. */}
+      {/* 화면 배경은 네비게이터가 칠한다. 여기서 정하지 않으면 react-native-screens
+          기본값인 grouped 회색이 깔린다. SwiftUI 화면은 자기 배경을 그리지 않아
+          이 색이 그대로 비치므로 systemBackground를 명시한다. */}
       <Stack
         screenOptions={{
-          contentStyle: { backgroundColor: app.background },
-          headerBackButtonDisplayMode: "minimal",
-          headerShadowVisible: false,
+          contentStyle: { backgroundColor: colors.systemBackground },
           headerShown: false,
-          headerStyle: { backgroundColor: app.background },
-          headerTintColor: app.foreground,
-          headerTitleStyle: { color: app.foreground, fontWeight: "500" },
         }}
       >
         <Stack.Protected
@@ -122,11 +77,12 @@ function Routes() {
           {/* 헤더를 켜야 우측 상단 설정 버튼이 설 자리가 생긴다. */}
           <Stack.Screen
             name="index"
-            options={{ headerShown: true, title: "flyn" }}
+            options={{ headerShown: true, title: "" }}
           />
           <Stack.Screen
             name="settings/index"
             options={{
+              headerBackButtonDisplayMode: "minimal",
               headerShown: true,
               title: "설정",
             }}
@@ -134,6 +90,7 @@ function Routes() {
           <Stack.Screen
             name="settings/display-name"
             options={{
+              headerBackButtonDisplayMode: "minimal",
               headerShown: true,
               title: "표시 이름",
             }}
@@ -155,6 +112,7 @@ function Routes() {
           <Stack.Screen
             name="sign-in/email"
             options={{
+              headerBackButtonDisplayMode: "minimal",
               headerShown: true,
               title: "이메일",
             }}
@@ -162,6 +120,7 @@ function Routes() {
           <Stack.Screen
             name="sign-in/code"
             options={{
+              headerBackButtonDisplayMode: "minimal",
               headerShown: true,
               title: "인증 코드",
             }}
@@ -175,9 +134,7 @@ function Routes() {
 export default function Layout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppNavigationTheme>
-        <Routes />
-      </AppNavigationTheme>
+      <Routes />
     </QueryClientProvider>
   );
 }
