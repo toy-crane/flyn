@@ -7,7 +7,7 @@
 폴백도 만들지 않는다.
 
 `Host` 안에서 Uniwind `className`은 무효다. Uniwind는 `Host` 바깥에서만 쓰고,
-한 화면에서 두 방식을 섞지 않는다([uniwind-for-styling](uniwind-for-styling.md)).
+한 화면에서 두 방식을 섞지 않는다([uniwind-css-theme](uniwind-css-theme.md)).
 
 **RN으로 내려가려면 근거가 있어야 한다.** 아래가 그 근거의 형태이자, 로그인
 표면 네 화면에 실제로 적용한 결과다. 근거를 남기지 않으면 다음 세션이 같은
