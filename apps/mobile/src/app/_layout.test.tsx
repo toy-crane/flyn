@@ -234,6 +234,7 @@ describe("Layout 프로필 오류 가드", () => {
 
     expect(screen.getByText(FETCH_FAILED)).toBeTruthy();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeTruthy();
+    expect(screen.getByText("다시 시도")).toHaveStyle({ color: "#fefefe" });
     expect(screen.queryByText("screen:onboarding")).toBeNull();
   });
 
@@ -272,5 +273,6 @@ describe("Layout 프로필 오류 가드", () => {
     await render(<Layout />);
 
     expect(screen.getByRole("button", { name: "로그아웃" })).toBeTruthy();
+    expect(screen.getByText("로그아웃")).toHaveStyle({ color: "#fefefe" });
   });
 });

@@ -82,7 +82,12 @@ export function ProfileUnavailable({
           <Button
             disabled={retrying}
             label="다시 시도"
-            modifiers={[controlSize("large")]}
+            // 활성 filled 버튼은 흰 primary 배경 위에서 검은 라벨을 쓴다.
+            // 비활성 외형은 계속 iOS가 결정한다.
+            modifiers={[
+              controlSize("large"),
+              ...(retrying ? [] : [foregroundStyle(app.primaryForeground)]),
+            ]}
             onPress={onRetry}
           />
           <Button
@@ -104,12 +109,17 @@ export function ProfileUnavailable({
  * 이것은 재시도로 낫는 상태가 아니라 데이터 무결성 오류다.
  */
 export function ProfileMissing({ onSignOut }: { onSignOut: () => void }) {
+  const app = useAppTheme();
+
   return (
     <ProfileProblem
       actions={
         <Button
           label="로그아웃"
-          modifiers={[controlSize("large")]}
+          modifiers={[
+            controlSize("large"),
+            foregroundStyle(app.primaryForeground),
+          ]}
           onPress={onSignOut}
         />
       }

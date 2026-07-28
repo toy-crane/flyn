@@ -132,6 +132,9 @@ export function EmailForm({
             controlSize("large"),
             // 비활성 외형을 손으로 칠하지 않는다 — iOS가 알아서 준다.
             disabled(locked),
+            // borderedProminent의 기본 라벨은 다크 모드에서도 흰색이라, 흰
+            // primary 배경과 겹치면 사라진다. 활성일 때만 on-primary를 준다.
+            ...(locked ? [] : [foregroundStyle(app.primaryForeground)]),
           ]}
           onPress={submit}
         />
