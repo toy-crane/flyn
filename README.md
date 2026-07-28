@@ -58,10 +58,15 @@ API는 <http://localhost:3000/health>에서 `{"service":"flyn-api","status":"ok"
 
 ```bash
 bun run db:start   # supabase start — 로컬 스택 기동(Docker 이미지 최초 pull)
-supabase status    # 로컬 URL과 신형 키(sb_publishable_… / sb_secret_…) 확인
+bun run db:status  # 로컬 URL과 신형 키(sb_publishable_… / sb_secret_…) 확인
 ```
 
-`supabase status` 값을 각 앱 `.env.local`에 넣는다(`.env.example` 참고). `apps/mobile`은
+**`supabase`를 맨손으로 부르지 않는다.** PATH에 다른 경로로 깔린 CLI가 있으면
+그쪽이 잡히고, 버전이 낮으면 `config.toml`의 새 키를 몰라
+`'config.config' has invalid keys: …`로 죽는다. `bun run db:*`는 devDependency에
+고정된 버전을 쓴다.
+
+`bun run db:status` 값을 각 앱 `.env.local`에 넣는다(`.env.example` 참고). `apps/mobile`은
 `EXPO_PUBLIC_SUPABASE_URL`·`EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `apps/api`는
 `SUPABASE_URL`·`SUPABASE_PUBLISHABLE_KEY`·`SUPABASE_SECRET_KEY`·`SUPABASE_JWKS_URL`.
 **secret 키는 절대 커밋 금지·`EXPO_PUBLIC_*` 금지.**
