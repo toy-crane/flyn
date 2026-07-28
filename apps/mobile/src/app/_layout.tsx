@@ -10,6 +10,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { type ReactNode, useMemo } from "react";
 import { useColorScheme } from "react-native";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { LaunchChecking, LaunchFailed } from "../components/launch";
 import {
   ProfileMissing,
@@ -122,6 +123,10 @@ function Routes() {
             options={{ headerShown: true, title: "채팅" }}
           />
           <Stack.Screen
+            name="chats/[id]"
+            options={{ headerShown: true, title: "새 채팅" }}
+          />
+          <Stack.Screen
             name="settings/index"
             options={{
               headerShown: true,
@@ -170,10 +175,12 @@ function Routes() {
 export default function Layout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppNavigationTheme>
-        <Routes />
-        <StatusBar style="auto" />
-      </AppNavigationTheme>
+      <KeyboardProvider>
+        <AppNavigationTheme>
+          <Routes />
+          <StatusBar style="auto" />
+        </AppNavigationTheme>
+      </KeyboardProvider>
     </QueryClientProvider>
   );
 }

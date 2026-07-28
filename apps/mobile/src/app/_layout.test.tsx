@@ -47,6 +47,9 @@ jest.mock("expo-router/react-navigation", () => ({
   DefaultTheme: { colors: {}, dark: false },
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
+jest.mock("react-native-keyboard-controller", () => ({
+  KeyboardProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
 
 // launch·프로필 오류 화면이 SwiftUI다. 목이 없으면 불투명한 네이티브 뷰 하나로
 // 그려져 아래 문구 단언이 아무것도 찾지 못한다.
@@ -114,6 +117,10 @@ describe("Layout native stack header", () => {
     expect(mockRouteOptions.index).toMatchObject({
       headerShown: true,
       title: "채팅",
+    });
+    expect(mockRouteOptions["chats/[id]"]).toMatchObject({
+      headerShown: true,
+      title: "새 채팅",
     });
     expect(mockRouteOptions["settings/index"]).toMatchObject({
       headerShown: true,
