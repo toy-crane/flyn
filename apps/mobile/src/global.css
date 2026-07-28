@@ -1,2 +1,53 @@
+/* biome-ignore-all lint/suspicious/noDuplicateCustomProperties: light/dark variants intentionally define the same semantic roles */
 @import "tailwindcss";
 @import "uniwind";
+
+:root {
+  @variant light {
+    --app-background: #f7f7f5;
+    --app-surface: #ffffff;
+    --app-foreground: #171719;
+    --app-muted-foreground: #6e6e73;
+    --app-disabled-foreground: #8e8e93;
+    --app-placeholder: #8e8e93;
+    --app-border: #d1d1d6;
+    --app-primary: #171719;
+    --app-primary-foreground: #ffffff;
+    --app-disabled: #e5e5ea;
+    --app-overlay: rgba(0, 0, 0, 0.18);
+    --app-danger: #d70015;
+    --app-success: #248a3d;
+  }
+
+  @variant dark {
+    --app-background: #000000;
+    --app-surface: #1c1c1e;
+    --app-foreground: #f5f5f7;
+    --app-muted-foreground: #98989d;
+    --app-disabled-foreground: #636366;
+    --app-placeholder: #636366;
+    --app-border: #38383a;
+    --app-primary: #ffffff;
+    --app-primary-foreground: #000000;
+    --app-disabled: #2c2c2e;
+    --app-overlay: rgba(0, 0, 0, 0.62);
+    --app-danger: #ff453a;
+    --app-success: #32d74b;
+  }
+}
+
+@theme {
+  --color-background: var(--app-background);
+  --color-surface: var(--app-surface);
+  --color-foreground: var(--app-foreground);
+  --color-muted-foreground: var(--app-muted-foreground);
+  --color-disabled-foreground: var(--app-disabled-foreground);
+  --color-placeholder: var(--app-placeholder);
+  --color-border: var(--app-border);
+  --color-primary: var(--app-primary);
+  --color-primary-foreground: var(--app-primary-foreground);
+  --color-disabled: var(--app-disabled);
+  --color-overlay: var(--app-overlay);
+  --color-danger: var(--app-danger);
+  --color-success: var(--app-success);
+}
