@@ -11,6 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, View } from "react-native";
+import { ProfileAvatar } from "../../components/profile/profile-avatar";
 import { deleteAccount } from "../../lib/account";
 import { signOut } from "../../lib/auth/sign-out";
 import { useProfile } from "../../lib/use-profile";
@@ -51,9 +52,9 @@ function ProfileHeader({
       spacing={14}
       testID="settings-profile-header"
     >
-      {/* 아직 프로필 사진 도메인은 없다. 임의의 OAuth 메타데이터에 기대지 않고,
-          실제 사진 필드가 생길 때 이 SF Symbol만 교체할 수 있게 둔다. */}
-      <Icon color={mutedColor} name="person.crop.circle.fill" size={88} />
+      {/* 아직 프로필 사진 도메인은 없다. 임의의 OAuth 메타데이터 대신 표시
+          이름으로 항상 같은 색의 기본 아바타를 만든다. */}
+      <ProfileAvatar name={displayName} testID="settings-profile-avatar" />
 
       <Column alignment="center" spacing={2}>
         <Text modifiers={[font({ size: 26, weight: "bold" })]}>

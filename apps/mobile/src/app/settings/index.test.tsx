@@ -74,14 +74,13 @@ beforeEach(() => {
 });
 
 describe("설정 — 프로필", () => {
-  it("상단 프로필 헤더에 기본 아바타와 계정 정보를 보여준다", async () => {
+  it("상단 프로필 헤더에 이름 기반 아바타와 계정 정보를 보여준다", async () => {
     await render(<SettingsScreen />);
 
     const header = screen.getByTestId("settings-profile-header");
 
-    expect(
-      within(header).getByLabelText("person.crop.circle.fill")
-    ).toBeTruthy();
+    expect(within(header).getByTestId("settings-profile-avatar")).toBeTruthy();
+    expect(within(header).getByText("한")).toBeTruthy();
     expect(within(header).getByText("한울")).toBeTruthy();
     expect(within(header).getByText("me@example.test")).toBeTruthy();
   });
