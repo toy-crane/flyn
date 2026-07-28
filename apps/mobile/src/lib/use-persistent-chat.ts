@@ -95,11 +95,17 @@ function toDisplayMessages({
         isGenerating &&
         message.role === "assistant" &&
         index === messages.length - 1;
+      const content = messageText(message);
+
+      if (message.role === "assistant" && !streaming && content.length === 0) {
+        return [];
+      }
+
       const storedStatus = message.metadata?.status;
 
       return [
         {
-          content: streaming ? "" : messageText(message),
+          content: streaming ? "" : content,
           id: message.id,
           role: message.role,
           status:

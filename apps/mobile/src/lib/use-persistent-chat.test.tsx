@@ -232,4 +232,21 @@ describe("영구 채팅 controller", () => {
     });
     expect(mockInvalidateQueries).toHaveBeenCalled();
   });
+
+  it("본문 없이 abort된 assistant는 화면에 남기지 않는다", async () => {
+    const emptyAssistant = {
+      id: "empty-assistant",
+      parts: [{ text: "", type: "text" }],
+      role: "assistant",
+    };
+    mockUseChat.mockReturnValue(
+      chatState({ messages: [emptyAssistant], status: "ready" })
+    );
+
+    const { result } = await renderHook(() =>
+      usePersistentChat("room-1", "account-1", STORED_MESSAGES)
+    );
+
+    expect(result.current.messages).toEqual([]);
+  });
 });
