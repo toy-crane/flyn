@@ -22,8 +22,9 @@
   만들고, 경계가 막는다는 근거가 있는 화면만 RN으로 내려간다.
 - [uniwind-for-styling](uniwind-for-styling.md) — 스타일링은 Uniwind 무료 범위로
   충분하고, `Host` 바깥에서만 쓴다.
-- [ios-semantic-colors](ios-semantic-colors.md) — 색은 iOS 시맨틱 색만 쓰고
-  `dark:` 변형을 색에 쓰지 않는다.
+- [shared-ios-semantic-theme](shared-ios-semantic-theme.md) — 앱 테마는 iOS
+  시맨틱 역할 한 벌을 RN과 `@expo/ui`가 공유하며, 시스템 appearance를 그대로
+  따른다.
 
 ## API·AI
 
