@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native";
 import { Alert } from "react-native";
 
 jest.mock("@expo/ui", () =>
@@ -10,7 +16,6 @@ jest.mock("@expo/ui/swift-ui/modifiers", () =>
 
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
-  Color: jest.requireActual("expo-router/build/color").Color,
   useRouter: () => ({ push: mockPush }),
 }));
 
@@ -69,13 +74,61 @@ beforeEach(() => {
 });
 
 describe("설정 — 프로필", () => {
+  it("상단 프로필 헤더에 이름 기반 아바타와 계정 정보를 보여준다", async () => {
+    await render(<SettingsScreen />);
+
+    const header = screen.getByTestId("settings-profile-header");
+
+    expect(within(header).getByTestId("settings-profile-avatar")).toBeTruthy();
+    expect(within(header).getByText("한")).toBeTruthy();
+    expect(within(header).getByText("한울")).toBeTruthy();
+    expect(within(header).getByText("me@example.test")).toBeTruthy();
+  });
+
+  it("프로필 헤더가 Dynamic Type과 iOS 16 전체 너비를 지원한다", async () => {
+    await render(<SettingsScreen />);
+
+    const header = screen.getByTestId("settings-profile-header");
+    const headerModifiers = JSON.parse(header.props.accessibilityHint);
+    const headerScope = within(header);
+
+    expect(headerModifiers).toContainEqual(
+      expect.objectContaining({
+        $modifier: "frame",
+        args: [{ maxWidth: "Infinity" }],
+      })
+    );
+    expect(headerScope.getByText("한울").props.modifiers).toContainEqual(
+      expect.objectContaining({
+        $modifier: "font",
+        args: [{ textStyle: "title", weight: "bold" }],
+      })
+    );
+    expect(
+      headerScope.getByText("me@example.test").props.modifiers
+    ).toContainEqual(
+      expect.objectContaining({
+        $modifier: "font",
+        args: [{ textStyle: "callout" }],
+      })
+    );
+    expect(
+      headerScope.getByText("me@example.test").props.modifiers
+    ).toContainEqual(
+      expect.objectContaining({
+        $modifier: "multilineTextAlignment",
+        args: ["center"],
+      })
+    );
+  });
+
   it("현재 표시 이름과 이메일을 보여준다", async () => {
     await render(<SettingsScreen />);
 
     expect(screen.getByText("표시 이름")).toBeTruthy();
-    expect(screen.getByText("한울")).toBeTruthy();
+    expect(screen.getAllByText("한울")).toHaveLength(2);
     expect(screen.getByText("이메일")).toBeTruthy();
-    expect(screen.getByText("me@example.test")).toBeTruthy();
+    expect(screen.getAllByText("me@example.test")).toHaveLength(2);
   });
 
   it("표시 이름을 누르면 편집 화면으로 push한다", async () => {
@@ -83,6 +136,20 @@ describe("설정 — 프로필", () => {
     await fireEvent.press(screen.getByText("표시 이름"));
 
     expect(mockPush).toHaveBeenCalledWith("/settings/display-name");
+  });
+
+  it("표시 이름 행은 Evan의 iOS disclosure 패턴을 사용한다", async () => {
+    await render(<SettingsScreen />);
+
+    const indicator = screen.getByLabelText("chevron.right");
+
+    expect(screen.getByHintText("row-alignment:center")).toBeTruthy();
+    expect(JSON.parse(indicator.props.accessibilityHint)).toContainEqual(
+      expect.objectContaining({
+        $modifier: "font",
+        args: [{ size: 14, weight: "medium" }],
+      })
+    );
   });
 
   // 원본은 auth.users이고 앱에는 update 열 권한이 없다. 누를 수 있게 두면

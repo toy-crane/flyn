@@ -67,6 +67,12 @@ describe("DisplayNameForm", () => {
     expect(onSubmit).toHaveBeenCalledWith("김한울");
   });
 
+  it("활성 제출 버튼 라벨에 primary foreground 색을 적용한다", async () => {
+    await renderForm({ initialValue: "한울" });
+
+    expect(screen.getByText(SUBMIT)).toHaveStyle({ color: "#fefefe" });
+  });
+
   // provider가 준 이름은 미리 채우되 자동 저장하지 않는다.
   it("미리 채운 값을 저절로 저장하지 않는다", async () => {
     const onSubmit = jest.fn();

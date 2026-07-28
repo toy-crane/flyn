@@ -19,11 +19,11 @@ import { signInWithApple } from "../../lib/auth/apple";
 import { signInWithGoogle } from "../../lib/auth/google";
 import { authFailedFeedback } from "../../lib/haptics";
 import { useAuthAction } from "../../lib/use-auth-action";
+import { useAppTheme } from "../../theme/app-theme";
 import {
   SOCIAL_BUTTON_HEIGHT,
   SOCIAL_BUTTON_RADIUS,
 } from "../../theme/buttons";
-import { colors } from "../../theme/colors";
 
 /**
  * 소셜 우선. 화면을 지배하는 두 버튼이 SwiftUI로 표현할 수 없는 RN 뷰라
@@ -32,6 +32,7 @@ import { colors } from "../../theme/colors";
  * 성공하면 onAuthStateChange가 가드를 뒤집어 스택째 벗어난다 — 여기선 실패만 다룬다.
  */
 export default function SignInScreen() {
+  const app = useAppTheme();
   const { clearFailure, failure, pending, run } = useAuthAction();
   const router = useRouter();
   const dark = useColorScheme() === "dark";
@@ -63,7 +64,7 @@ export default function SignInScreen() {
 
   return (
     <ScrollView
-      className="flex-1"
+      className="flex-1 bg-background"
       // 세이프 에어리어를 여기서 잡는다 — py 하드코딩과 justify-center를 걷어냈다.
       //
       // grow와 justify-between을 함께 쓰지 않는다. grow가 minHeight를 프레임
@@ -72,17 +73,13 @@ export default function SignInScreen() {
       // 시뮬레이터에서 `이메일로 계속하기`가 실제로 잘려 나갔다.
       contentContainerClassName="gap-10 px-5 pb-6 pt-10"
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: colors.systemBackground }}
     >
       {/* 헤더가 없는 화면이라 워드마크는 스택 타이틀이 아니라 본문 Text다. */}
       <View className="gap-2">
-        <Text
-          className="font-bold text-4xl tracking-tight"
-          style={{ color: colors.label }}
-        >
+        <Text className="font-bold text-4xl text-foreground tracking-tight">
           flyn
         </Text>
-        <Text className="text-[17px]" style={{ color: colors.secondaryLabel }}>
+        <Text className="text-[17px] text-muted-foreground">
           로그인하고 시작하세요.
         </Text>
       </View>
@@ -111,15 +108,13 @@ export default function SignInScreen() {
           className="items-center py-3"
           onPress={handleEmail}
         >
-          <Text className="text-[17px]" style={{ color: colors.systemBlue }}>
-            이메일로 계속하기
-          </Text>
+          <Text className="text-[17px] text-primary">이메일로 계속하기</Text>
         </Pressable>
 
         {/* 라벨을 갈아끼우지 않고 위에 얹는다. */}
         {pending ? (
-          <View className="absolute inset-0 items-center justify-center">
-            <ActivityIndicator />
+          <View className="absolute inset-0 items-center justify-center rounded-2xl bg-overlay">
+            <ActivityIndicator color={app.primary} />
           </View>
         ) : null}
       </View>

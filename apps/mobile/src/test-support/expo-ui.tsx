@@ -35,6 +35,11 @@ const isDisabledMark = (m: unknown): boolean =>
   (m as ModifierMark).$modifier === "disabled" &&
   (m as ModifierMark).args[0] !== false;
 
+const modifierArg = <T,>(modifiers: unknown[] | undefined, name: string) =>
+  (modifiers as ModifierMark[] | undefined)?.find(
+    (modifier) => modifier?.$modifier === name
+  )?.args[0] as T | undefined;
+
 /** 모디파이어는 이름과 인자만 남기는 표식으로 바꾼다 — Button이 disabled를 읽는다. */
 export function modifiersMock() {
   return new Proxy(
@@ -65,6 +70,26 @@ function Passthrough({ children }: { children?: ReactNode }) {
   return <View>{children}</View>;
 }
 
+function MockColumn({
+  children,
+  modifiers,
+  testID,
+}: Modifiers & {
+  children?: ReactNode;
+  testID?: string;
+}) {
+  return (
+    <View
+      accessibilityHint={JSON.stringify(modifiers, (_key, value) =>
+        value === Number.POSITIVE_INFINITY ? "Infinity" : value
+      )}
+      testID={testID}
+    >
+      {children}
+    </View>
+  );
+}
+
 function MockButton({
   children,
   disabled: disabledProp,
@@ -80,6 +105,8 @@ function MockButton({
 }) {
   const disabled =
     disabledProp === true || (modifiers ?? []).some(isDisabledMark);
+  const foreground = modifierArg<unknown>(modifiers, "foregroundStyle");
+  const labelColor = typeof foreground === "string" ? foreground : undefined;
 
   return (
     <Pressable
@@ -88,7 +115,13 @@ function MockButton({
       disabled={disabled}
       onPress={onPress}
     >
-      {label === undefined ? children : <Text>{label}</Text>}
+      {label === undefined ? (
+        children
+      ) : (
+        <Text style={labelColor ? { color: labelColor } : undefined}>
+          {label}
+        </Text>
+      )}
     </Pressable>
   );
 }
@@ -132,6 +165,21 @@ function MockTextField({
 
 function MockProgressView() {
   return <ActivityIndicator />;
+}
+
+/** 아이콘 자체는 그리지 않되, 화면 테스트가 name·color·modifier 배선을 본다. */
+function MockIcon({
+  color,
+  modifiers,
+  name,
+}: Modifiers & { color?: string; name: unknown }) {
+  return (
+    <View
+      accessibilityHint={JSON.stringify(modifiers)}
+      accessibilityLabel={typeof name === "string" ? name : undefined}
+      style={color === undefined ? undefined : { backgroundColor: color }}
+    />
+  );
 }
 
 /**
@@ -232,6 +280,18 @@ function MockListItem({
   );
 }
 
+function MockRow({
+  alignment = "start",
+  children,
+}: {
+  alignment?: "center" | "end" | "start";
+  children?: ReactNode;
+}) {
+  return (
+    <View accessibilityHint={`row-alignment:${alignment}`}>{children}</View>
+  );
+}
+
 /** `FieldGroup.Section`의 `title`은 실물에서 헤더로 그려진다. */
 function MockSection({
   children,
@@ -299,12 +359,12 @@ export function universalMock() {
     ...containers,
     ...leaves,
     Button: MockButton,
-    Column: Passthrough,
+    Column: MockColumn,
     FieldGroup,
-    Icon: () => <View />,
+    Icon: MockIcon,
     List: Passthrough,
     ListItem,
-    Row: Passthrough,
+    Row: MockRow,
     ScrollView: Passthrough,
     Text,
     TextInput: MockTextInput,

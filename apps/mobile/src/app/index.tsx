@@ -1,13 +1,13 @@
 import { Stack, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { useCallback } from "react";
 import { ScrollView, Text, View } from "react-native";
-import { HealthStatus } from "../components/health-status";
-import { ScratchNotes } from "../components/scratch-notes";
-import { ServerStats } from "../components/server-stats";
+import { useProfile } from "../lib/use-profile";
+import { useUserId } from "../lib/user-id";
 
-export default function SkeletonScreen() {
+export default function HomeScreen() {
   const router = useRouter();
+  const userId = useUserId();
+  const profile = useProfile(userId);
 
   const openSettings = useCallback(() => {
     router.push("/settings");
@@ -27,32 +27,19 @@ export default function SkeletonScreen() {
       </Stack.Toolbar>
 
       <ScrollView
-        className="flex-1 bg-slate-100 dark:bg-slate-950"
+        className="flex-1 bg-background"
+        contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
       >
-        <View className="gap-6 px-6 py-16">
-          <View className="gap-2">
-            <Text className="font-medium text-sky-600 text-xs uppercase tracking-[3px] dark:text-sky-400">
-              walking skeleton
-            </Text>
-            <Text className="font-bold text-4xl text-slate-900 tracking-tight dark:text-slate-50">
-              flyn
-            </Text>
-            <Text className="text-base text-slate-600 leading-relaxed dark:text-slate-400">
-              Apple·Google 또는 이메일 로그인으로 세션을 얻고, 아래 카드가 RLS로
-              내 행만 CRUD 한다. 서버 전용 집계는 Hono 인증 게이트를 거친다.
-              제품 화면은 아직 없다.
-            </Text>
-          </View>
-
-          <HealthStatus />
-
-          <ScratchNotes />
-
-          <ServerStats />
+        <View className="gap-3 px-6 pt-12">
+          <Text className="font-semibold text-[34px] text-foreground leading-[41px] tracking-tight">
+            안녕하세요,{"\n"}
+            {profile.data?.display_name ?? ""}님.
+          </Text>
+          <Text className="text-[17px] text-muted-foreground leading-6">
+            오늘도 가볍게 시작해 보세요.
+          </Text>
         </View>
-
-        <StatusBar style="auto" />
       </ScrollView>
     </>
   );

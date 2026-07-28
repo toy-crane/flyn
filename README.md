@@ -42,9 +42,8 @@ bun run dev
 설치된 dev build까지 연다. 한쪽만 띄우려면 `turbo run dev --filter=@flyn/api`.
 
 API는 <http://localhost:3000/health>에서 `{"service":"flyn-api","status":"ok"}`를
-돌려준다. 앱 화면의 **API health** 카드에 같은 응답이 뜨면 앱 ↔ API 연결까지
-살아 있는 것이다. iOS 시뮬레이터는 호스트의 `localhost`에 그대로 접근하므로
-별도 설정이 필요 없다.
+돌려준다. iOS 시뮬레이터는 호스트의 `localhost`에 그대로 접근하므로 별도
+설정이 필요 없다.
 
 ## Supabase 로컬 스택
 
@@ -75,7 +74,7 @@ bun run db:reset                   # 적용 + 타입 재생성
 ```
 
 앱은 Apple·Google 네이티브 로그인(`signInWithIdToken`) 또는 이메일 6자리 코드로
-세션을 얻어 `scratch_notes`에 RLS 경계 안에서 CRUD 하고, 서버 전용 집계는
+세션을 얻고, 비공개 프로필의 표시 이름을 관리한다. 계정 삭제는
 `@supabase/server` JWT 게이트를 거친다. provider 설정은 `config.toml`의
 `[auth.external.apple]`·`[auth.external.google]`에 있고, Google 클라이언트 ID는
 `.env.local`로 주입한다(`.env.example` 참고). 이메일은 매직링크가 아니라 코드다 —
@@ -90,9 +89,8 @@ bun run auth:session   # 이메일 OTP로 실제 세션 발급 → access_token 
 
 **Apple·Google 로그인은 자동화가 원천 불가하다.** 무엇을 시도했고 왜 막혔는지는
 [docs/auth-verification.md](docs/auth-verification.md)에 근거와 함께 있다.
-`scratch_notes`는 도메인이 아니라 스택 관통용 **throwaway 예시**다. `@supabase/server`
-검증에 로컬 비대칭 서명이 필요하면 `supabase gen signing-key --algorithm ES256`으로
-서명키를 만든다(gitignore).
+`@supabase/server` 검증에 로컬 비대칭 서명이 필요하면
+`supabase gen signing-key --algorithm ES256`으로 서명키를 만든다(gitignore).
 
 ## 검사
 

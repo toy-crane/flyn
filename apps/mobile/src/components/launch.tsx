@@ -7,7 +7,7 @@ import {
   padding,
 } from "@expo/ui/swift-ui/modifiers";
 import { View } from "react-native";
-import { colors } from "../theme/colors";
+import { useAppTheme } from "../theme/app-theme";
 
 /**
  * 세션을 복원하는 동안, 그리고 복원조차 못 할 때 나오는 두 화면.
@@ -15,17 +15,21 @@ import { colors } from "../theme/colors";
  * SwiftUI로 만든다(docs/decisions/expo-ui-by-default.md의 판정표). RN이 하나도
  * 필요 없고 자명하게 self-contained라 `Host` 경계가 한 번만 열린다.
  *
- * 색은 `Host` 바깥의 RN 뷰에만 준다 — 안쪽 SwiftUI는 기본값이 이미 시맨틱
- * 색이고, `background` 모디파이어는 hex만 받아 다크 모드를 깬다.
+ * background와 interactive tint는 CSS 앱 테마에서 받고, 안쪽 SwiftUI 텍스트는
+ * 네이티브 계층 표현을 그대로 쓴다.
  */
 
 function Screen({ children }: { children: React.ReactNode }) {
+  const app = useAppTheme();
+
   return (
     <View
       className="flex-1 items-center justify-center px-8"
-      style={{ backgroundColor: colors.systemBackground }}
+      style={{ backgroundColor: app.background }}
     >
-      <Host matchContents>{children}</Host>
+      <Host matchContents seedColor={app.primary}>
+        {children}
+      </Host>
     </View>
   );
 }

@@ -12,7 +12,7 @@ import { verifyEmailCode } from "../../lib/auth/email";
 import { authFailedFeedback, authSucceededFeedback } from "../../lib/haptics";
 import { isCodeComplete } from "../../lib/otp-code";
 import { useAuthAction } from "../../lib/use-auth-action";
-import { colors } from "../../theme/colors";
+import { useAppTheme } from "../../theme/app-theme";
 
 /**
  * 코드 입력. 6칸 합성이 RN이라 이 화면도 RN이다
@@ -21,6 +21,7 @@ import { colors } from "../../theme/colors";
  * `다른 이메일로 받기`는 없다 — 헤더의 뒤로가기가 그 역할을 한다.
  */
 export default function CodeScreen() {
+  const app = useAppTheme();
   const params = useLocalSearchParams<{ email?: string }>();
   const email = typeof params.email === "string" ? params.email : "";
   const { clearFailure, failure, pending, run } = useAuthAction();
@@ -58,14 +59,13 @@ export default function CodeScreen() {
   return (
     <ScrollView
       automaticallyAdjustKeyboardInsets
-      className="flex-1"
+      className="flex-1 bg-background"
       contentContainerClassName="gap-6 px-5 pt-6"
       contentInsetAdjustmentBehavior="automatic"
       // CodeInput을 다시 탭해 키보드를 되부를 수 있어야 한다.
       keyboardShouldPersistTaps="handled"
-      style={{ backgroundColor: colors.systemBackground }}
     >
-      <Text className="text-[15px]" style={{ color: colors.secondaryLabel }}>
+      <Text className="text-[15px] text-muted-foreground">
         {email}로 보낸 6자리 코드를 입력해 주세요.
       </Text>
 
@@ -77,34 +77,29 @@ export default function CodeScreen() {
 
       {/* 입력에 붙은 검증 결과라 얼럿이 아니라 인라인 각주다. */}
       {failure ? (
-        <Text className="text-[13px]" style={{ color: colors.systemRed }}>
-          {failure.message}
-        </Text>
+        <Text className="text-[13px] text-danger">{failure.message}</Text>
       ) : null}
 
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ disabled: locked }}
-        className="items-center justify-center"
+        className={`h-[50px] items-center justify-center rounded-[14px] ${
+          locked ? "bg-disabled" : "bg-primary"
+        }`}
         disabled={locked}
         onPress={handleVerify}
-        style={{
-          // opacity-40은 iOS 관용이 아니다. 채운 버튼의 비활성은 회색 배경이다.
-          backgroundColor: locked ? colors.systemGray5 : colors.systemBlue,
-          borderCurve: "continuous",
-          borderRadius: 14,
-          height: 50,
-        }}
+        style={{ borderCurve: "continuous" }}
       >
         <Text
-          className="font-semibold text-[17px]"
-          style={{ color: locked ? colors.tertiaryLabel : "#FFFFFF" }}
+          className={`font-semibold text-[17px] ${
+            locked ? "text-disabled-foreground" : "text-primary-foreground"
+          }`}
         >
           로그인
         </Text>
       </Pressable>
 
-      {pending ? <ActivityIndicator /> : null}
+      {pending ? <ActivityIndicator color={app.primary} /> : null}
 
       <View />
     </ScrollView>

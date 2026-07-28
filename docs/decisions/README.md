@@ -16,14 +16,12 @@
 ## 모바일 UI
 
 - [ios-only](ios-only.md) — 타깃은 iOS 전용이고 Android·web 폴백을 만들지 않는다.
-- [apple-hig-not-a-design-system](apple-hig-not-a-design-system.md) — 커스텀
-  디자인 시스템을 만들지 않고 Apple HIG를 따른다.
+- [apple-hig-with-app-theme](apple-hig-with-app-theme.md) — 네이티브 컴포넌트와
+  상호작용은 Apple HIG를 따르되, 색은 앱이 소유하는 시맨틱 테마로 관리한다.
 - [expo-ui-by-default](expo-ui-by-default.md) — 새 화면은 universal `@expo/ui`로
   만들고, 경계가 막는다는 근거가 있는 화면만 RN으로 내려간다.
-- [uniwind-for-styling](uniwind-for-styling.md) — 스타일링은 Uniwind 무료 범위로
-  충분하고, `Host` 바깥에서만 쓴다.
-- [ios-semantic-colors](ios-semantic-colors.md) — 색은 iOS 시맨틱 색만 쓰고
-  `dark:` 변형을 색에 쓰지 않는다.
+- [uniwind-css-theme](uniwind-css-theme.md) — 앱 테마의 단일 원본은 Uniwind
+  CSS 변수이고, RN은 시맨틱 className을, 네이티브 경계는 같은 변수 값을 쓴다.
 
 ## API·AI
 

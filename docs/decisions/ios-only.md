@@ -8,7 +8,7 @@ React Native 위에 있지만 **Android는 목표가 아니고 web도 목표가 
 - 벤더 문서가 플랫폼 분기(`.ios.tsx` 분리, `Platform.OS` 검사)를 요구해도 이
   저장소에서는 해당 없다. 분기 대신 iOS 경로 하나만 만든다.
 - iOS 전용이므로 iOS 네이티브 표현으로 곧장 내려가는 선택이 가능하다 —
-  [expo-ui-by-default](expo-ui-by-default.md)와 [ios-semantic-colors](ios-semantic-colors.md)가
+  [expo-ui-by-default](expo-ui-by-default.md)와 [uniwind-css-theme](uniwind-css-theme.md)가
   이 결정 위에 서 있다.
 
 전환 비용은 낮다. 코드가 RN이라 Android가 필요해지면 별도 결정으로 다룬다.

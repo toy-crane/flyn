@@ -1,14 +1,23 @@
-import { FieldGroup, Host, Icon, ListItem, Row, Text } from "@expo/ui";
+import { Column, FieldGroup, Host, Icon, ListItem, Row, Text } from "@expo/ui";
 import { ProgressView } from "@expo/ui/swift-ui";
-import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
+import {
+  font,
+  foregroundStyle,
+  frame,
+  listRowBackground,
+  listRowInsets,
+  listRowSeparator,
+  multilineTextAlignment,
+} from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, View } from "react-native";
+import { ProfileAvatar } from "../../components/profile/profile-avatar";
 import { deleteAccount } from "../../lib/account";
 import { signOut } from "../../lib/auth/sign-out";
 import { useProfile } from "../../lib/use-profile";
 import { useUserId } from "../../lib/user-id";
-import { colors } from "../../theme/colors";
+import { useAppTheme } from "../../theme/app-theme";
 
 /** 값 표시는 두 행이 같은 모양이어야 한다 — 하나는 누를 수 있을 뿐이다. */
 function Value({ children }: { children: string }) {
@@ -23,6 +32,56 @@ function Value({ children }: { children: string }) {
   );
 }
 
+function ProfileHeader({
+  displayName,
+  email,
+  mutedColor,
+}: {
+  displayName: string;
+  email: string;
+  mutedColor: string;
+}) {
+  return (
+    <Column
+      alignment="center"
+      modifiers={[
+        // containerRelativeFrame은 iOS 17부터라 16에서는 no-op이다. SwiftUI의
+        // maxWidth .infinity에 대응하는 frame은 전체 지원 범위에서 동작한다.
+        frame({ maxWidth: Number.POSITIVE_INFINITY }),
+        listRowBackground("clear"),
+        listRowInsets({ bottom: 20, leading: 0, top: 20, trailing: 0 }),
+        listRowSeparator("hidden"),
+      ]}
+      spacing={14}
+      testID="settings-profile-header"
+    >
+      {/* 아직 프로필 사진 도메인은 없다. 임의의 OAuth 메타데이터 대신 표시
+          이름으로 항상 같은 색의 기본 아바타를 만든다. */}
+      <ProfileAvatar name={displayName} testID="settings-profile-avatar" />
+
+      <Column alignment="center" spacing={2}>
+        <Text
+          modifiers={[
+            font({ textStyle: "title", weight: "bold" }),
+            multilineTextAlignment("center"),
+          ]}
+        >
+          {displayName}
+        </Text>
+        <Text
+          modifiers={[
+            foregroundStyle(mutedColor),
+            font({ textStyle: "callout" }),
+            multilineTextAlignment("center"),
+          ]}
+        >
+          {email}
+        </Text>
+      </Column>
+    </Column>
+  );
+}
+
 /**
  * 프로필과 계정 수명 주기를 한곳에 모은 화면. iOS 네이티브 Form 관용으로
  * 만든다 — universal `FieldGroup`이 iOS에서 SwiftUI `Form`이고,
@@ -32,10 +91,13 @@ function Value({ children }: { children: string }) {
  * 항목을 미리 만들지 않는다.
  */
 export default function SettingsScreen() {
+  const app = useAppTheme();
   const userId = useUserId();
   const profile = useProfile(userId);
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  const displayName = profile.data?.display_name ?? "";
+  const email = profile.data?.email ?? "";
 
   const openDisplayName = useCallback(() => {
     router.push("/settings/display-name");
@@ -86,35 +148,35 @@ export default function SettingsScreen() {
   }, [handleDelete]);
 
   return (
-    <View
-      className="flex-1"
-      style={{ backgroundColor: colors.systemBackground }}
-    >
+    <View className="flex-1" style={{ backgroundColor: app.background }}>
       <Host
-        style={{ backgroundColor: colors.systemBackground, flex: 1 }}
+        seedColor={app.primary}
+        style={{ backgroundColor: app.background, flex: 1 }}
         // Form은 남은 공간을 채워야 한다. 없으면 내용 높이만큼만 잡혀 스크롤이
         // 생기지 않는다.
         useViewportSizeMeasurement
       >
         <FieldGroup>
+          <ProfileHeader
+            displayName={displayName}
+            email={email}
+            mutedColor={app.mutedForeground}
+          />
+
           <FieldGroup.Section title="프로필">
             {/* SwiftUI가 chevron을 그려 주는 것은 NavigationLink일 때다. 여기는
                 Button이라 직접 그린다 — 없으면 push되는 행인데도 눌리는 것으로
-                읽히지 않는다. */}
+                읽히지 않는다. Evan Bacon의 chat-template처럼 iOS SF Symbol의
+                chevron.right를 medium 굵기와 muted 색으로 둔다. */}
             <ListItem
               onPress={openDisplayName}
               trailing={
-                <Row spacing={6}>
-                  <Value>{profile.data?.display_name ?? ""}</Value>
+                <Row alignment="center" spacing={6}>
+                  <Value>{displayName}</Value>
                   <Icon
-                    modifiers={[
-                      foregroundStyle({
-                        style: "tertiary",
-                        type: "hierarchical",
-                      }),
-                    ]}
+                    color={app.mutedForeground}
+                    modifiers={[font({ size: 14, weight: "medium" })]}
                     name="chevron.right"
-                    size={13}
                   />
                 </Row>
               }
@@ -124,9 +186,7 @@ export default function SettingsScreen() {
 
             {/* 이메일은 읽기 전용이다 — 원본은 auth.users이고 앱에는 update 열
               권한이 없다. onPress를 주지 않아 눌리지 않는 것이 곧 그 표현이다. */}
-            <ListItem trailing={<Value>{profile.data?.email ?? ""}</Value>}>
-              이메일
-            </ListItem>
+            <ListItem trailing={<Value>{email}</Value>}>이메일</ListItem>
           </FieldGroup.Section>
 
           <FieldGroup.Section title="계정">
@@ -136,23 +196,19 @@ export default function SettingsScreen() {
               destructive 역할은 얼럿 버튼이 들고, 행 자체는 붉은 글자로 되돌릴
               수 없는 일임을 알린다. */}
             <ListItem onPress={confirmDelete}>
-              <Text modifiers={[foregroundStyle(colors.systemRed)]}>
-                계정 삭제
-              </Text>
+              <Text modifiers={[foregroundStyle(app.danger)]}>계정 삭제</Text>
             </ListItem>
           </FieldGroup.Section>
         </FieldGroup>
       </Host>
 
-      {/* 서버가 지우는 동안 화면이 멀쩡해 보이면 사용자가 다시 누른다.
-          색은 시맨틱 systemFill이다 — bg-black/10은 팔레트 금지를 어길 뿐
-          아니라 다크 모드에서 검정 위 10% 검정이라 아예 보이지 않았다. */}
+      {/* 서버가 지우는 동안 화면이 멀쩡해 보이면 사용자가 다시 누른다. */}
       {deleting ? (
         <View
           className="absolute inset-0 items-center justify-center"
-          style={{ backgroundColor: colors.systemFill }}
+          style={{ backgroundColor: app.overlay }}
         >
-          <Host matchContents>
+          <Host matchContents seedColor={app.primary}>
             <ProgressView />
           </Host>
         </View>

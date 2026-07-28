@@ -33,27 +33,6 @@ export type Database = {
         }
         Relationships: []
       }
-      scratch_notes: {
-        Row: {
-          body: string
-          created_at: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          body: string
-          created_at?: string
-          id?: string
-          user_id?: string
-        }
-        Update: {
-          body?: string
-          created_at?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never

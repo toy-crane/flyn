@@ -1,12 +1,24 @@
 import { render, screen } from "@testing-library/react-native";
 
+const mockNavigatorOptions: { current?: Record<string, unknown> } = {};
+const mockRouteOptions: Record<string, Record<string, unknown> | undefined> =
+  {};
+
 // 실제 네비게이터 대신 가드 배선만 드러내는 최소 대역. guard가 참인 쪽의 자식만 남긴다.
 jest.mock("expo-router", () => {
   const React = require("react");
   const { Text } = require("react-native");
 
-  const Stack = ({ children }: { children: React.ReactNode }) =>
-    React.createElement(React.Fragment, null, children);
+  const Stack = ({
+    children,
+    screenOptions,
+  }: {
+    children: React.ReactNode;
+    screenOptions?: Record<string, unknown>;
+  }) => {
+    mockNavigatorOptions.current = screenOptions;
+    return React.createElement(React.Fragment, null, children);
+  };
 
   Stack.Protected = ({
     guard,
@@ -16,14 +28,25 @@ jest.mock("expo-router", () => {
     children: React.ReactNode;
   }) => (guard ? React.createElement(React.Fragment, null, children) : null);
 
-  Stack.Screen = ({ name }: { name: string }) =>
-    React.createElement(Text, null, `screen:${name}`);
+  Stack.Screen = ({
+    name,
+    options,
+  }: {
+    name: string;
+    options?: Record<string, unknown>;
+  }) => {
+    mockRouteOptions[name] = options;
+    return React.createElement(Text, null, `screen:${name}`);
+  };
 
-  // theme/colors.ts가 Color.ios.<토큰>을 모듈 로드 시점에 읽는다. 여기서 빠뜨리면
-  // Color가 undefined가 되어 색과 무관한 이 테스트가 로드 단계에서 통째로 죽는다.
-  // 실물 색 모듈만 되살린다 — requireActual("expo-router")는 네비게이터까지 끌어온다.
-  return { Color: jest.requireActual("expo-router/build/color").Color, Stack };
+  return { Stack };
 });
+
+jest.mock("expo-router/react-navigation", () => ({
+  DarkTheme: { colors: {}, dark: true },
+  DefaultTheme: { colors: {}, dark: false },
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
 
 // launch·프로필 오류 화면이 SwiftUI다. 목이 없으면 불투명한 네이티브 뷰 하나로
 // 그려져 아래 문구 단언이 아무것도 찾지 못한다.
@@ -61,7 +84,46 @@ function signedInWith(profile: Record<string, unknown>) {
 
 beforeEach(() => {
   jest.resetAllMocks();
+  mockNavigatorOptions.current = undefined;
+  for (const name of Object.keys(mockRouteOptions)) {
+    delete mockRouteOptions[name];
+  }
   mockUseProfileGate.mockReturnValue({ kind: "loading" });
+});
+
+describe("Layout native stack header", () => {
+  it("공통 header는 앱 테마를 쓰고 system back과 hairline 없는 외형을 유지한다", async () => {
+    signedInWith({ kind: "ready" });
+
+    await render(<Layout />);
+
+    expect(mockNavigatorOptions.current).toMatchObject({
+      contentStyle: { backgroundColor: "#111111" },
+      headerBackButtonDisplayMode: "minimal",
+      headerShadowVisible: false,
+      headerStyle: { backgroundColor: "#111111" },
+      headerTintColor: "#111111",
+    });
+  });
+
+  it("홈과 push 화면의 native title을 라우트에서 선언한다", async () => {
+    signedInWith({ kind: "ready" });
+
+    await render(<Layout />);
+
+    expect(mockRouteOptions.index).toMatchObject({
+      headerShown: true,
+      title: "flyn",
+    });
+    expect(mockRouteOptions["settings/index"]).toMatchObject({
+      headerShown: true,
+      title: "설정",
+    });
+    expect(mockRouteOptions["settings/display-name"]).toMatchObject({
+      headerShown: true,
+      title: "표시 이름",
+    });
+  });
 });
 
 describe("Layout 인증 가드", () => {
@@ -172,6 +234,7 @@ describe("Layout 프로필 오류 가드", () => {
 
     expect(screen.getByText(FETCH_FAILED)).toBeTruthy();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeTruthy();
+    expect(screen.getByText("다시 시도")).toHaveStyle({ color: "#fefefe" });
     expect(screen.queryByText("screen:onboarding")).toBeNull();
   });
 
@@ -210,5 +273,6 @@ describe("Layout 프로필 오류 가드", () => {
     await render(<Layout />);
 
     expect(screen.getByRole("button", { name: "로그아웃" })).toBeTruthy();
+    expect(screen.getByText("로그아웃")).toHaveStyle({ color: "#fefefe" });
   });
 });
