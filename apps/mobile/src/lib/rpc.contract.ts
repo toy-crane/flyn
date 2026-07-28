@@ -3,18 +3,15 @@
 import type { InferResponseType } from "hono/client";
 import { rpc } from "./rpc";
 
-type Stats = InferResponseType<
-  (typeof rpc.server)["scratch-notes"]["stats"]["$get"],
-  200
->;
+type AccountDeletion = InferResponseType<(typeof rpc.account)["$delete"], 200>;
 
 async function _contract() {
-  const res = await rpc.server["scratch-notes"].stats.$get();
+  const res = await rpc.account.$delete();
 
   if (res.ok) {
-    const body: Stats = await res.json();
+    const body: AccountDeletion = await res.json();
 
-    // @ts-expect-error nope 필드는 stats 응답에 없다
+    // @ts-expect-error nope 필드는 계정 삭제 응답에 없다
     const { nope } = body;
 
     return nope;

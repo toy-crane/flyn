@@ -1,8 +1,8 @@
 -- schemas/profiles.sql와 동일 상태. db diff 출력에서 Supabase 기본 권한이 만든
 -- 줄(anon·authenticated의 MAINTAIN/REFERENCES/TRIGGER/TRUNCATE, service_role의
 -- ALL)은 걷어냈다 — create table이 alter default privileges로 자동으로 붙이는
--- 것이라 우리 결정으로 커밋하면 잘못된 신호가 된다(scratch_notes도 이미 같은
--- 권한을 갖고 있다). 남은 grant만이 이 테이블이 실제로 정한 것이다.
+-- 것이라 우리 결정으로 커밋하면 잘못된 신호가 된다. 남은 grant만이 이 테이블이
+-- 실제로 정한 것이다.
 
 create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,

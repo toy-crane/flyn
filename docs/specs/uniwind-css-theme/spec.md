@@ -96,10 +96,7 @@ TypeScript light/dark 값 표는 두지 않는다.
 - 로그인, 이메일, 인증 코드
 - launch·실패·프로필 누락 상태
 - 온보딩과 설정
-- walking skeleton의 화면 배경, 카드, 입력, 메모, health·stats 상태
 - Expo Router navigation과 앱 system background
-
-walking skeleton도 없어질 때까지 같은 테마를 소비한다.
 
 ## 손대지 않는 것
 
@@ -120,7 +117,7 @@ walking skeleton도 없어질 때까지 같은 테마를 소비한다.
    TypeScript 팔레트를 갖지 않는다.
 4. 모든 `Host`의 interactive control이 공통 primary를 상속한다.
 5. system light와 dark에서 로그인(RN), 이메일(`@expo/ui`), 인증 코드(RN),
-   설정(`@expo/ui`), walking skeleton(RN)의 역할이 일관돼 보인다.
+   설정(`@expo/ui`), 홈(RN)의 역할이 일관돼 보인다.
 6. Apple·Google 로그인 버튼의 branding과 appearance가 유지된다.
 7. 앱 소유 foreground/background 조합이 WCAG AA 대비를 만족한다.
 8. test, typecheck, lint가 통과한다.

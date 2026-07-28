@@ -15,29 +15,9 @@ interface Env {
 const app = new Hono<Env>()
   .use("*", cors())
   .get("/health", (c) => c.json({ service: "flyn-api", status: "ok" }))
-  .get(
-    "/server/scratch-notes/stats",
-    withSupabase<Database>({ auth: "user" }),
-    async (c) => {
-      const { supabaseAdmin, userClaims } = c.var.supabaseContext;
-      const { data, error } = await supabaseAdmin
-        .from("scratch_notes")
-        .select("user_id");
-
-      if (error) {
-        return c.json({ error: error.message }, 500);
-      }
-
-      return c.json({
-        distinctOwners: new Set(data.map((row) => row.user_id)).size,
-        totalNotes: data.length,
-        you: userClaims?.id ?? null,
-      });
-    }
-  )
   /**
    * 전체 계정 삭제. Auth 사용자를 hard delete하면 프로필과 사용자 소유
-   * throwaway 데이터가 `on delete cascade`로 함께 사라진다.
+   * 데이터가 `on delete cascade`로 함께 사라진다.
    *
    * Apple 승인 취소는 하지 않는다 —
    * docs/decisions/no-apple-token-revocation.md.
@@ -64,7 +44,6 @@ const app = new Hono<Env>()
       //
       // 원문은 응답이 아니라 여기로 보낸다. 버리면 프로덕션에서 키가 잘못된
       // 것(403)인지 다른 이유인지 구분할 방법이 없다.
-      // biome-ignore lint/suspicious/noConsole: 서버 진단 로그
       console.error("[account] delete failed", {
         message: error.message,
         status: error.status,
