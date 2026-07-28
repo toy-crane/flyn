@@ -10,7 +10,6 @@ jest.mock("@expo/ui/swift-ui/modifiers", () =>
 
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
-  Color: jest.requireActual("expo-router/build/color").Color,
   useRouter: () => ({ push: mockPush }),
 }));
 

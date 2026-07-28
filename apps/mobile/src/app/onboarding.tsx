@@ -8,7 +8,7 @@ import { fetchNameCandidate } from "../lib/auth/name-candidate";
 import { signOut } from "../lib/auth/sign-out";
 import { useSaveDisplayName } from "../lib/use-profile";
 import { useUserId } from "../lib/user-id";
-import { colors } from "../theme/colors";
+import { useAppTheme } from "../theme/app-theme";
 
 /**
  * 표시 이름이 없으면 앱보다 먼저 오는 화면. 저장이 성공하면 캐시의
@@ -19,6 +19,7 @@ import { colors } from "../theme/colors";
  * 돌아갈 곳 자체가 없다.
  */
 export default function OnboardingScreen() {
+  const app = useAppTheme();
   const userId = useUserId();
   const save = useSaveDisplayName(userId);
 
@@ -70,7 +71,7 @@ export default function OnboardingScreen() {
           label="로그아웃"
           // 틴트가 없으면 SwiftUI가 라벨 색으로 그려 버튼이 아니라 문구처럼
           // 보인다 — 로그인의 `이메일로 계속하기`와 같은 색을 준다.
-          modifiers={[foregroundStyle(colors.systemBlue)]}
+          modifiers={[foregroundStyle(app.primary)]}
           onPress={confirmSignOut}
           variant="text"
         />

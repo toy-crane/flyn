@@ -7,15 +7,19 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import type { ReactNode } from "react";
 import { View } from "react-native";
-import { colors } from "../../theme/colors";
+import { useAppTheme } from "../../theme/app-theme";
 
 function Screen({ children }: { children: ReactNode }) {
+  const app = useAppTheme();
+
   return (
     <View
       className="flex-1 items-center justify-center px-8"
-      style={{ backgroundColor: colors.systemBackground }}
+      style={{ backgroundColor: app.background }}
     >
-      <Host matchContents>{children}</Host>
+      <Host matchContents seedColor={app.primary}>
+        {children}
+      </Host>
     </View>
   );
 }
@@ -69,6 +73,8 @@ export function ProfileUnavailable({
   onSignOut: () => void;
   retrying: boolean;
 }) {
+  const app = useAppTheme();
+
   return (
     <ProfileProblem
       actions={
@@ -82,7 +88,7 @@ export function ProfileUnavailable({
           <Button
             label="로그아웃"
             // 틴트가 없으면 라벨 색으로 그려져 버튼으로 읽히지 않는다.
-            modifiers={[foregroundStyle(colors.systemBlue)]}
+            modifiers={[foregroundStyle(app.primary)]}
             onPress={onSignOut}
             variant="text"
           />

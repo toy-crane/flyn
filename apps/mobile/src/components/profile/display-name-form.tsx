@@ -19,7 +19,7 @@ import {
   isDisplayNameSubmittable,
   normalizeDisplayName,
 } from "../../lib/display-name";
-import { colors } from "../../theme/colors";
+import { useAppTheme } from "../../theme/app-theme";
 
 /**
  * 온보딩과 설정의 편집이 **같은 화면을 쓴다**. 검증·저장 규칙이 갈리지 않게
@@ -27,9 +27,8 @@ import { colors } from "../../theme/colors";
  *
  * universal `@expo/ui`로 만든다 — RN 경계가 필요한 것이 하나도 없다.
  *
- * 색은 두 자리뿐이다. 배경은 `Host`에 주고(경계의 RN 쪽이라 `PlatformColor`가
- * 통한다), 글자색은 `foregroundStyle` 모디파이어로만 준다 — `textStyle.color`는
- * CSS 문자열만 받아 hex를 칠하게 되고 그러면 다크 모드가 굳는다.
+ * background와 interactive tint는 `Host`에 CSS 앱 테마를 전달하고, 나머지
+ * 텍스트와 control 상태는 SwiftUI의 기본 계층 표현을 유지한다.
  *
  * **`initialValue`는 마운트 때 한 번만 읽는다.** 온보딩은 provider가 준 이름
  * 후보를, 편집은 지금 저장된 이름을 미리 채우는데, 둘 다 사용자가 고치는 중에
@@ -54,6 +53,7 @@ export function DisplayNameForm({
   secondaryAction?: ReactNode;
   submitLabel: string;
 }) {
+  const app = useAppTheme();
   const name = useNativeState(initialValue);
   // 버튼 잠금을 판단하려면 렌더가 필요해서 React 상태에 한 번 더 비춘다.
   // **이 미러는 잠금 판단에만 쓴다** — 제출값을 여기서 읽으면 네이티브 쪽이
@@ -85,7 +85,10 @@ export function DisplayNameForm({
   const locked = !isDisplayNameSubmittable(typed) || Boolean(pending);
 
   return (
-    <Host style={{ backgroundColor: colors.systemBackground, flex: 1 }}>
+    <Host
+      seedColor={app.primary}
+      style={{ backgroundColor: app.background, flex: 1 }}
+    >
       <Column
         alignment="start"
         spacing={12}
@@ -120,7 +123,7 @@ export function DisplayNameForm({
           <Text
             modifiers={[
               font({ textStyle: "footnote" }),
-              foregroundStyle(colors.systemRed),
+              foregroundStyle(app.danger),
             ]}
           >
             {failure}

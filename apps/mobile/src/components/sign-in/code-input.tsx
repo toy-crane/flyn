@@ -1,9 +1,16 @@
 import { useCallback } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { CODE_LENGTH, normalizeCode } from "../../lib/otp-code";
-import { colors } from "../../theme/colors";
 
 const SLOTS = Array.from({ length: CODE_LENGTH }, (_, i) => i);
+
+function borderClassName(invalid: boolean | undefined, active: boolean) {
+  if (invalid) {
+    return "border-danger";
+  }
+
+  return active ? "border-primary" : "border-transparent";
+}
 
 /**
  * 6칸으로 보이지만 입력을 받는 것은 그 위에 겹친 **투명한 단일 `TextInput`**
@@ -47,19 +54,18 @@ export function CodeInput({
       >
         {SLOTS.map((slot) => (
           <View
-            className="h-14 flex-1 items-center justify-center"
+            className={`h-14 flex-1 items-center justify-center rounded-xl border-2 bg-surface ${borderClassName(
+              invalid,
+              slot === cursor
+            )}`}
             key={slot}
             style={{
-              backgroundColor: colors.secondarySystemBackground,
-              borderColor: borderFor({ cursor, invalid, slot }),
               borderCurve: "continuous",
-              borderRadius: 12,
-              borderWidth: 2,
             }}
           >
             <Text
-              className="text-2xl"
-              style={{ color: colors.label, fontVariant: ["tabular-nums"] }}
+              className="text-2xl text-foreground"
+              style={{ fontVariant: ["tabular-nums"] }}
             >
               {value[slot] ?? ""}
             </Text>
@@ -82,20 +88,4 @@ export function CodeInput({
       />
     </View>
   );
-}
-
-function borderFor({
-  cursor,
-  invalid,
-  slot,
-}: {
-  cursor: number;
-  invalid?: boolean;
-  slot: number;
-}) {
-  if (invalid) {
-    return colors.systemRed;
-  }
-
-  return slot === cursor ? colors.systemBlue : "transparent";
 }

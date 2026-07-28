@@ -6,7 +6,30 @@
  * 헤더 **설정**이라 아무것도 그리면 안 된다.
  */
 
+import type { ReactNode } from "react";
+import { Pressable } from "react-native";
+
 const NOTHING = () => null;
+
+function Toolbar({ children }: { children?: ReactNode }) {
+  return children;
+}
+
+function ToolbarButton({
+  accessibilityLabel,
+  onPress,
+}: {
+  accessibilityLabel: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      onPress={onPress}
+    />
+  );
+}
 
 /** 화면들이 부르는 라우터. 메서드만 jest.fn이라 resetAllMocks에 안전하다. */
 export const routerStub = {
@@ -24,12 +47,14 @@ export function setSearchParams(next: Record<string, string>) {
 }
 
 export function expoRouterMock() {
+  const Stack = Object.assign(NOTHING, {
+    Protected: NOTHING,
+    Screen: NOTHING,
+    Toolbar: Object.assign(Toolbar, { Button: ToolbarButton }),
+  });
+
   return {
-    // theme/colors.ts가 모듈 로드 시점에 Color.ios를 읽는다. 빠뜨리면 색과 무관한
-    // 테스트가 로드 단계에서 죽는다. 실물 색 모듈만 되살린다 —
-    // requireActual("expo-router")는 네비게이터까지 끌어온다.
-    Color: jest.requireActual("expo-router/build/color").Color,
-    Stack: Object.assign(NOTHING, { Protected: NOTHING, Screen: NOTHING }),
+    Stack,
     // jest.fn이 아니라 맨 함수다. 저장소가 beforeEach에서 resetAllMocks를 쓰는데,
     // 그게 구현을 지워 useRouter()가 undefined를 돌려주게 된다.
     useLocalSearchParams: () => searchParams,

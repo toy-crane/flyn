@@ -25,7 +25,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { useCallback, useState } from "react";
 import { isEmailSubmittable } from "../../lib/otp-code";
-import { colors } from "../../theme/colors";
+import { useAppTheme } from "../../theme/app-theme";
 
 /**
  * 이메일 입력만 하는 화면. SwiftUI로 만든다 —
@@ -36,13 +36,8 @@ import { colors } from "../../theme/colors";
  * `frame`은 히트 영역을 죽여 탭이 포커스를 잡지 못하게 한다. 크기가 필요하면
  * 바깥 `VStack`에 건다.
  *
- * 색은 두 자리에서만 준다. 나머지는 SwiftUI 기본값이 이미 시맨틱 색이다.
- *
- * - **배경은 `Host`에.** `Host`는 경계의 RN 쪽이라 `PlatformColor`가 통한다.
- *   안 주면 네이티브 기본값이 grouped 회색이라 systemBackground를 잃는다.
- * - **글자색은 `foregroundStyle`로.** 이 모디파이어만 `PlatformColor`와 계층
- *   스타일을 받는다. `background`·`tint`는 hex만 받으므로 쓰지 않는다 —
- *   hex를 칠하면 다크 모드가 굳는다.
+ * background와 interactive tint는 `Host`에 CSS 앱 테마를 전달한다. 나머지
+ * 텍스트와 control 상태는 SwiftUI의 기본 계층 표현을 유지한다.
  */
 export function EmailForm({
   failure,
@@ -53,6 +48,7 @@ export function EmailForm({
   onSubmit: (email: string) => void;
   pending?: boolean;
 }) {
+  const app = useAppTheme();
   const email = useNativeState("");
   // 버튼 잠금을 판단하려면 렌더가 필요해서 React 상태에 한 번 더 비춘다.
   // **이 미러는 잠금 판단에만 쓴다.** 한 프레임 늦어도 잠금은 곧 따라잡지만,
@@ -81,11 +77,12 @@ export function EmailForm({
   const locked = !isEmailSubmittable(typed) || Boolean(pending);
 
   return (
-    // 배경은 `Host`에 준다. `Host`는 경계의 RN 쪽이라 `PlatformColor`가 통하고,
-    // 안쪽 SwiftUI의 `background` 모디파이어는 hex만 받아 다크 모드를 깬다.
-    // 지정하지 않으면 네이티브 기본값이 grouped 회색이라 systemBackground를
-    // 어긴다 — 시뮬레이터에서 실제로 회색으로 나왔다.
-    <Host style={{ backgroundColor: colors.systemBackground, flex: 1 }}>
+    // Host가 RN과 SwiftUI의 경계다. background와 tint만 공통 CSS 테마에서 주고
+    // 안쪽 control의 상태 표현은 SwiftUI에 맡긴다.
+    <Host
+      seedColor={app.primary}
+      style={{ backgroundColor: app.background, flex: 1 }}
+    >
       <VStack
         alignment="leading"
         modifiers={[padding({ horizontal: 20, top: 24 })]}
@@ -121,8 +118,7 @@ export function EmailForm({
           <Text
             modifiers={[
               font({ textStyle: "footnote" }),
-              // hex가 아니라 토큰이다 — foregroundStyle은 PlatformColor를 받는다.
-              foregroundStyle(colors.systemRed),
+              foregroundStyle(app.danger),
             ]}
           >
             {failure}

@@ -8,7 +8,7 @@ import { deleteAccount } from "../../lib/account";
 import { signOut } from "../../lib/auth/sign-out";
 import { useProfile } from "../../lib/use-profile";
 import { useUserId } from "../../lib/user-id";
-import { colors } from "../../theme/colors";
+import { useAppTheme } from "../../theme/app-theme";
 
 /** 값 표시는 두 행이 같은 모양이어야 한다 — 하나는 누를 수 있을 뿐이다. */
 function Value({ children }: { children: string }) {
@@ -32,6 +32,7 @@ function Value({ children }: { children: string }) {
  * 항목을 미리 만들지 않는다.
  */
 export default function SettingsScreen() {
+  const app = useAppTheme();
   const userId = useUserId();
   const profile = useProfile(userId);
   const router = useRouter();
@@ -86,12 +87,10 @@ export default function SettingsScreen() {
   }, [handleDelete]);
 
   return (
-    <View
-      className="flex-1"
-      style={{ backgroundColor: colors.systemBackground }}
-    >
+    <View className="flex-1" style={{ backgroundColor: app.background }}>
       <Host
-        style={{ backgroundColor: colors.systemBackground, flex: 1 }}
+        seedColor={app.primary}
+        style={{ backgroundColor: app.background, flex: 1 }}
         // Form은 남은 공간을 채워야 한다. 없으면 내용 높이만큼만 잡혀 스크롤이
         // 생기지 않는다.
         useViewportSizeMeasurement
@@ -136,23 +135,19 @@ export default function SettingsScreen() {
               destructive 역할은 얼럿 버튼이 들고, 행 자체는 붉은 글자로 되돌릴
               수 없는 일임을 알린다. */}
             <ListItem onPress={confirmDelete}>
-              <Text modifiers={[foregroundStyle(colors.systemRed)]}>
-                계정 삭제
-              </Text>
+              <Text modifiers={[foregroundStyle(app.danger)]}>계정 삭제</Text>
             </ListItem>
           </FieldGroup.Section>
         </FieldGroup>
       </Host>
 
-      {/* 서버가 지우는 동안 화면이 멀쩡해 보이면 사용자가 다시 누른다.
-          색은 시맨틱 systemFill이다 — bg-black/10은 팔레트 금지를 어길 뿐
-          아니라 다크 모드에서 검정 위 10% 검정이라 아예 보이지 않았다. */}
+      {/* 서버가 지우는 동안 화면이 멀쩡해 보이면 사용자가 다시 누른다. */}
       {deleting ? (
         <View
           className="absolute inset-0 items-center justify-center"
-          style={{ backgroundColor: colors.systemFill }}
+          style={{ backgroundColor: app.overlay }}
         >
-          <Host matchContents>
+          <Host matchContents seedColor={app.primary}>
             <ProgressView />
           </Host>
         </View>
