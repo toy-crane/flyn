@@ -84,6 +84,19 @@ describe("설정 — 프로필", () => {
     expect(mockPush).toHaveBeenCalledWith("/settings/display-name");
   });
 
+  it("표시 이름 행은 Evan의 iOS disclosure 패턴을 사용한다", async () => {
+    await render(<SettingsScreen />);
+
+    const indicator = screen.getByLabelText("chevron.right");
+
+    expect(JSON.parse(indicator.props.accessibilityHint)).toContainEqual(
+      expect.objectContaining({
+        $modifier: "font",
+        args: [{ size: 14, weight: "medium" }],
+      })
+    );
+  });
+
   // 원본은 auth.users이고 앱에는 update 열 권한이 없다. 누를 수 있게 두면
   // 서버가 거부할 일을 UI가 약속하는 셈이다.
   it("이메일 행은 눌러도 아무 데도 가지 않는다", async () => {

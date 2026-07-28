@@ -1,6 +1,6 @@
 import { FieldGroup, Host, Icon, ListItem, Row, Text } from "@expo/ui";
 import { ProgressView } from "@expo/ui/swift-ui";
-import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
+import { font, foregroundStyle } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, View } from "react-native";
@@ -99,21 +99,17 @@ export default function SettingsScreen() {
           <FieldGroup.Section title="프로필">
             {/* SwiftUI가 chevron을 그려 주는 것은 NavigationLink일 때다. 여기는
                 Button이라 직접 그린다 — 없으면 push되는 행인데도 눌리는 것으로
-                읽히지 않는다. */}
+                읽히지 않는다. Evan Bacon의 chat-template처럼 iOS SF Symbol의
+                chevron.right를 medium 굵기와 muted 색으로 둔다. */}
             <ListItem
               onPress={openDisplayName}
               trailing={
                 <Row spacing={6}>
                   <Value>{profile.data?.display_name ?? ""}</Value>
                   <Icon
-                    modifiers={[
-                      foregroundStyle({
-                        style: "tertiary",
-                        type: "hierarchical",
-                      }),
-                    ]}
+                    color={app.mutedForeground}
+                    modifiers={[font({ size: 14, weight: "medium" })]}
                     name="chevron.right"
-                    size={13}
                   />
                 </Row>
               }

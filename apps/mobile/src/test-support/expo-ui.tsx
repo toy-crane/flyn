@@ -147,6 +147,21 @@ function MockProgressView() {
   return <ActivityIndicator />;
 }
 
+/** 아이콘 자체는 그리지 않되, 화면 테스트가 name·color·modifier 배선을 본다. */
+function MockIcon({
+  color,
+  modifiers,
+  name,
+}: Modifiers & { color?: string; name: unknown }) {
+  return (
+    <View
+      accessibilityHint={JSON.stringify(modifiers)}
+      accessibilityLabel={typeof name === "string" ? name : undefined}
+      style={color === undefined ? undefined : { backgroundColor: color }}
+    />
+  );
+}
+
 /**
  * 실물과 같은 모양의 관찰 가능 상태.
  *
@@ -314,7 +329,7 @@ export function universalMock() {
     Button: MockButton,
     Column: Passthrough,
     FieldGroup,
-    Icon: () => <View />,
+    Icon: MockIcon,
     List: Passthrough,
     ListItem,
     Row: Passthrough,
