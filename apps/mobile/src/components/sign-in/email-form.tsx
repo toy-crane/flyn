@@ -39,7 +39,7 @@ import { colors } from "../../theme/colors";
  * 색은 두 자리에서만 준다. 나머지는 SwiftUI 기본값이 이미 시맨틱 색이다.
  *
  * - **배경은 `Host`에.** `Host`는 경계의 RN 쪽이라 `PlatformColor`가 통한다.
- *   안 주면 네이티브 기본값이 grouped 회색이라 §4를 어긴다.
+ *   안 주면 네이티브 기본값이 grouped 회색이라 systemBackground를 잃는다.
  * - **글자색은 `foregroundStyle`로.** 이 모디파이어만 `PlatformColor`와 계층
  *   스타일을 받는다. `background`·`tint`는 hex만 받으므로 쓰지 않는다 —
  *   hex를 칠하면 다크 모드가 굳는다.
@@ -83,7 +83,7 @@ export function EmailForm({
   return (
     // 배경은 `Host`에 준다. `Host`는 경계의 RN 쪽이라 `PlatformColor`가 통하고,
     // 안쪽 SwiftUI의 `background` 모디파이어는 hex만 받아 다크 모드를 깬다.
-    // 지정하지 않으면 네이티브 기본값이 grouped 회색이라 §4의 systemBackground를
+    // 지정하지 않으면 네이티브 기본값이 grouped 회색이라 systemBackground를
     // 어긴다 — 시뮬레이터에서 실제로 회색으로 나왔다.
     <Host style={{ backgroundColor: colors.systemBackground, flex: 1 }}>
       <VStack
@@ -108,7 +108,7 @@ export function EmailForm({
             textContentType("emailAddress"),
             textInputAutocapitalization("never"),
             autocorrectionDisabled(),
-            // §2가 이메일을 한 탭 뒤로 밀었으니 리턴 키로도 제출되게 한다.
+            // 이메일 경로가 한 탭 뒤에 있으니 리턴 키로도 제출되게 한다.
             submitLabel("continue"),
             onSubmitModifier(submit),
           ]}

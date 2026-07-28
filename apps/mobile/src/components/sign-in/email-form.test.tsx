@@ -68,7 +68,7 @@ describe("EmailForm", () => {
     expect(screen.getByRole("button", { name: SUBMIT })).toBeDisabled();
   });
 
-  // 스펙 §6 — email·code는 얼럿이 아니라 인라인 각주다.
+  // email·code는 얼럿이 아니라 인라인 각주다.
   it("실패는 인라인 각주로 보여준다", async () => {
     await render(
       <EmailForm

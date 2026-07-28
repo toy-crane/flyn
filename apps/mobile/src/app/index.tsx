@@ -15,7 +15,7 @@ export default function SkeletonScreen() {
 
   return (
     <>
-      {/* 설정 진입은 네이티브 헤더 버튼이다(§4). RN 뷰를 헤더에 얹지 않으므로
+      {/* 설정 진입은 네이티브 헤더 버튼이다. RN 뷰를 헤더에 얹지 않으므로
           글래스 효과와 눌림 반응을 iOS가 그대로 준다. 스크롤 콘텐츠 안이 아니라
           형제로 둔다 — 화면에 그려지는 것이 아니라 헤더에 등록되는 것이다. */}
       <Stack.Toolbar placement="right">

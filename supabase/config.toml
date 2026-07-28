@@ -197,7 +197,8 @@ password_requirements = ""
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
 # 기본값 2는 로컬 반복 검증에 바로 걸린다. 메일이 Mailpit에만 쌓이는 로컬
-# 한정 값이며, 호스티드 값은 03b에서 별도로 정한다(발송량·비용이 실재하므로).
+# 한정 값이다. 호스티드 환경을 다시 설계할 때는 발송량·비용을 기준으로 별도
+# 값을 정한다.
 email_sent = 100
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30

@@ -63,8 +63,8 @@ function Routes() {
   return (
     <UserIdProvider userId={userId}>
       {/* 화면 배경은 네비게이터가 칠한다. 여기서 정하지 않으면 react-native-screens
-          기본값(grouped 회색)이 깔려 §4의 systemBackground를 어긴다 — SwiftUI 화면은
-          자기 배경을 그리지 않아 이 색이 그대로 비친다. */}
+          기본값인 grouped 회색이 깔린다. SwiftUI 화면은 자기 배경을 그리지 않아
+          이 색이 그대로 비치므로 systemBackground를 명시한다. */}
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: colors.systemBackground },
@@ -96,8 +96,7 @@ function Routes() {
             }}
           />
         </Stack.Protected>
-        {/* 온보딩만 마운트한다 — 뒤로 가서 앱에 들어갈 스택 자체를 만들지
-            않는 것이 §3의 "뒤로 가서 앱에 진입할 수 없다"이다. */}
+        {/* 온보딩만 마운트한다 — 뒤로 가서 앱에 들어갈 스택 자체를 만들지 않는다. */}
         <Stack.Protected
           guard={auth.kind === "ready" && profile.kind === "onboarding"}
         >

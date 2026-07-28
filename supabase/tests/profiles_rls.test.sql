@@ -13,7 +13,7 @@ select plan(26);
 select tests.create_supabase_user('alice');
 select tests.create_supabase_user('bob');
 
--- §2. 세션이 앱에 돌아왔을 때 행은 이미 존재해야 한다.
+-- 세션이 앱에 돌아왔을 때 행은 이미 존재해야 한다.
 --
 -- 개수는 이 테스트가 만든 둘로 한정한다. seed.sql의 데모 사용자에게도 같은
 -- 트리거가 프로필을 만들어, 전체 개수로 세면 시드가 바뀔 때마다 깨진다.
@@ -215,7 +215,7 @@ select is(
   'Auth 이메일이 null이 돼도 트랜잭션을 깨지 않고 직전 값을 남긴다'
 );
 
--- §5의 5단계. 계정 삭제가 프로필을 남기지 않는다는 뜻이다. 지운 뒤에는
+-- 계정 삭제가 프로필을 남기지 않는다는 뜻이다. 지운 뒤에는
 -- get_supabase_uid가 null을 돌려주므로 동기화된 email로 찾는다.
 delete from auth.users where id = tests.get_supabase_uid('alice');
 select is(

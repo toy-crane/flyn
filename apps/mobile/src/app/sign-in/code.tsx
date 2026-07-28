@@ -75,7 +75,7 @@ export default function CodeScreen() {
         value={code}
       />
 
-      {/* 입력에 붙은 검증 결과라 얼럿이 아니라 인라인 각주다(스펙 §6). */}
+      {/* 입력에 붙은 검증 결과라 얼럿이 아니라 인라인 각주다. */}
       {failure ? (
         <Text className="text-[13px]" style={{ color: colors.systemRed }}>
           {failure.message}

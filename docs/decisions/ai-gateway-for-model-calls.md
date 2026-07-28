@@ -17,9 +17,8 @@ AI 기능은 AI SDK로 구현하고, 모델 호출은 프로바이더 SDK를 직
 
 이 결정은 원래 "AI SDK(v5)"로 적혔으나 **현재 최신은 v7이다**(`ai@7.0.37`,
 2026-07-25 정정). 결정 자체(Gateway 경유 · `useChat` + `expo/fetch`)는 유효하고
-버전만 어긋나 있었다. v7에서 이름이 바뀐 것들은 태스크
-[04-ai-streaming](../specs/tech-stack/tasks/04-ai-streaming.md)의 "조사 결과"에
-표로 있다 — 특히 `toUIMessageStreamResponse()`가 deprecated이고
+버전만 어긋나 있었다. v7에서는 `toUIMessageStreamResponse()`가 deprecated이고
 `convertToModelMessages()`가 async가 됐다.
 
-**설치된 버전의 번들 문서(`node_modules/ai/docs/`)를 볼 것.**
+구현은 나중에 다시 설계한다. 그때 이 버전 메모를 현재 사실로 간주하지 말고
+**실제로 설치한 버전의 번들 문서(`node_modules/ai/docs/`)를 볼 것.**

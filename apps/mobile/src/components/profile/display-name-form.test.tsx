@@ -67,7 +67,7 @@ describe("DisplayNameForm", () => {
     expect(onSubmit).toHaveBeenCalledWith("김한울");
   });
 
-  // §3 — provider가 준 이름은 미리 채우되 자동 저장하지 않는다.
+  // provider가 준 이름은 미리 채우되 자동 저장하지 않는다.
   it("미리 채운 값을 저절로 저장하지 않는다", async () => {
     const onSubmit = jest.fn();
 

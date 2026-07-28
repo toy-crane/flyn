@@ -24,7 +24,7 @@ function Value({ children }: { children: string }) {
 }
 
 /**
- * 프로필과 계정 수명 주기를 한곳에 모은 화면(§4). iOS 네이티브 Form 관용으로
+ * 프로필과 계정 수명 주기를 한곳에 모은 화면. iOS 네이티브 Form 관용으로
  * 만든다 — universal `FieldGroup`이 iOS에서 SwiftUI `Form`이고,
  * `FieldGroup.Section`이 `Section`이다.
  *
@@ -132,9 +132,9 @@ export default function SettingsScreen() {
           <FieldGroup.Section title="계정">
             <ListItem onPress={confirmSignOut}>로그아웃</ListItem>
 
-            {/* 계정 생성이 있는 앱은 앱 안에서 전체 삭제를 시작할 수 있어야
-              한다(§5). destructive 역할은 얼럿 버튼이 들고, 행 자체는 붉은
-              글자로 되돌릴 수 없는 일임을 알린다. */}
+            {/* 계정 생성이 있는 앱은 앱 안에서 전체 삭제를 시작할 수 있어야 한다.
+              destructive 역할은 얼럿 버튼이 들고, 행 자체는 붉은 글자로 되돌릴
+              수 없는 일임을 알린다. */}
             <ListItem onPress={confirmDelete}>
               <Text modifiers={[foregroundStyle(colors.systemRed)]}>
                 계정 삭제
