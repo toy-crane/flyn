@@ -39,18 +39,13 @@ cd apps/mobile && bunx expo run:ios
 bun run dev
 ```
 
-turbo가 순서를 잡는다. 먼저 `//#dev:setup`이 `supabase start`로 로컬 스택을
-세우고(이미 떠 있으면 그냥 통과한다), 그다음 `bun --hot`과 `expo start --ios`가
-동시에 뜬다. `--ios`가 시뮬레이터를 깨워 설치된 dev build까지 열어주므로 앱을
-손으로 열 필요가 없다.
+로컬 Supabase 스택을 세운 뒤 API(`:3000`)와 Metro(`:8081`)를 띄우고, 시뮬레이터에
+설치된 dev build까지 연다. 한쪽만 띄우려면 `turbo run dev --filter=@flyn/api`.
 
 API는 <http://localhost:3000/health>에서 `{"service":"flyn-api","status":"ok"}`를
 돌려준다. 앱 화면의 **API health** 카드에 같은 응답이 뜨면 앱 ↔ API 연결까지
 살아 있는 것이다. iOS 시뮬레이터는 호스트의 `localhost`에 그대로 접근하므로
 별도 설정이 필요 없다.
-
-한쪽만 띄우려면 `turbo run dev --filter=@flyn/api`처럼 turbo로 거른다 —
-`bun run --filter`로 부르면 turbo를 건너뛰어 스택 기동도 함께 빠진다.
 
 ## Supabase 로컬 스택
 
@@ -60,11 +55,6 @@ API는 <http://localhost:3000/health>에서 `{"service":"flyn-api","status":"ok"
 bun run db:start   # supabase start — 로컬 스택 기동(Docker 이미지 최초 pull)
 bun run db:status  # 로컬 URL과 신형 키(sb_publishable_… / sb_secret_…) 확인
 ```
-
-**`supabase`를 맨손으로 부르지 않는다.** PATH에 다른 경로로 깔린 CLI가 있으면
-그쪽이 잡히고, 버전이 낮으면 `config.toml`의 새 키를 몰라
-`'config.config' has invalid keys: …`로 죽는다. `bun run db:*`는 devDependency에
-고정된 버전을 쓴다.
 
 `bun run db:status` 값을 각 앱 `.env.local`에 넣는다(`.env.example` 참고). `apps/mobile`은
 `EXPO_PUBLIC_SUPABASE_URL`·`EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `apps/api`는
