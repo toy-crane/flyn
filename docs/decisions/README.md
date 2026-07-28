@@ -48,3 +48,6 @@
   1:1인 비공개 계정 정보이고, `display_name is null`만 첫 온보딩을 뜻한다.
 - [hybrid-data-access](hybrid-data-access.md) — 일반 CRUD는 앱이 Supabase에 직접
   가고 RLS가 보안 경계다. AI·서버 전용 로직만 Hono를 거친다.
+- [server-owned-chat-messages](server-owned-chat-messages.md) — 채팅방 CRUD와
+  메시지 조회는 앱이 RLS 안에서 직접 하지만, 사용자·AI 메시지 쓰기는 인증된
+  Hono 스트리밍 경계만 맡는다.
