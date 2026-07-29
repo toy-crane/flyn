@@ -13,10 +13,29 @@ System-owned examples include:
 - Apple authentication controls and other vendor-complete controls;
 - native scrolling, deceleration, pull-to-refresh, and keyboard presentation.
 
-## Default decision
+## Configure at the owner layer
 
-Preserve the system behavior. Prefer supported Expo Router or component
-configuration over wrapping the surface in Reanimated.
+System-owned does not mean fixed. Inventory the system's supported
+configuration before preserving or changing the default.
+
+For the standard Expo Router `Stack`, inspect the installed version's options:
+
+- `animation` selects supported native push and pop styles.
+- `animationDuration` adjusts only the iOS transition types documented as
+  configurable; it does not retime every native transition.
+- `presentation` selects card, modal, sheet, or other native presentation
+  semantics. Do not change semantics merely to get a different animation.
+- `gestureEnabled`, `gestureDirection`, `fullScreenGestureEnabled`, and
+  `animationMatchesGesture` shape interactive dismissal on supported iOS
+  versions.
+- Source-linked transitions such as `Link.AppleZoom` are candidates only when
+  the installed Expo Router and deployment target support them and the source
+  and destination have a real visual identity relationship.
+
+Also inspect native component configuration such as sheet detents, drag
+indicators, toolbar state, context-menu behavior, and picker style where
+relevant. Preserve the default after this comparison when it already expresses
+the relationship.
 
 Do not:
 
@@ -27,20 +46,22 @@ Do not:
   vendor owns;
 - apply a web timing rule to platform navigation.
 
-## When customization is justified
+## Select configuration deliberately
 
-Customize only when there is concrete product evidence that the default fails
-the intended relationship, accessibility requirement, or state explanation.
-Before changing it:
+Before changing a system-owned motion:
 
 1. Check the installed Expo Router and component version.
 2. Read the current official option or modifier documentation.
-3. Verify that the behavior is configurable at the current owner.
-4. If not, reconsider the surface ownership rather than layering an
+3. Name the relationship the default fails to express.
+4. Compare the native configuration with the current default on device,
+   including interactive dismissal and Reduce Motion.
+5. If the behavior is not configurable at the current owner, reconsider the
+   surface ownership rather than layering an
    uncontrolled animation over it.
 
 ## Review evidence
 
-A system-owned finding must cite the route or configuration that selects the
-native behavior. The absence of Reanimated code is not a missing animation when
-the platform already supplies it.
+A system-owned finding must cite the route and the relevant configurable
+surface, even when the final decision is to keep the default. The absence of
+Reanimated code is not a missing animation when the platform already supplies
+or configures it.

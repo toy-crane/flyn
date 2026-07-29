@@ -4,16 +4,17 @@
     {
       "id": 1,
       "prompt": "/native-motion Settings의 @expo/ui ListItem이 밋밋해 보여. 누를 때마다 scale 0.97 애니메이션을 넣어서 더 살아있게 만들어줘.",
-      "expected_output": "The response identifies the ListItem as an @expo/ui native control, inspects the Host boundary and existing native feedback, and rejects generic RN press scaling unless device evidence establishes a missing state signal.",
+      "expected_output": "The response identifies the ListItem as an @expo/ui native control, inspects the Host boundary, existing native feedback, and supported control or SwiftUI modifier surface, then rejects generic RN press scaling unless device evidence establishes a missing state signal.",
       "files": [
         "apps/mobile/src/app/settings/index.tsx",
         "docs/decisions/self-contained-native-ui-boundaries.md"
       ],
       "expectations": [
         "It classifies the ListItem and its containing subtree as @expo/ui-owned rather than React Native-owned.",
-        "It inspects or cites the current Host boundary and native control behavior before proposing code.",
+        "It inspects or cites the current Host boundary, native control behavior, and installed @expo/ui capability surface before proposing code.",
         "It does not blindly apply the web-style scale 0.97 recipe.",
-        "It preserves native feedback unless a concrete product or device observation justifies additional motion."
+        "It does not equate native ownership with an absence of configurable motion.",
+        "It preserves native feedback unless a concrete product or device observation justifies a supported owner-local change."
       ]
     },
     {
@@ -34,15 +35,16 @@
     {
       "id": 3,
       "prompt": "/native-motion 채팅방을 열 때 화면 전환이 조금 느린 것 같아. Reanimated로 감싸서 더 빠르게 고쳐줘.",
-      "expected_output": "The response recognizes the route transition as native-stack-owned, inspects Expo Router configuration and the running transition, and does not add a second Reanimated wrapper around it.",
+      "expected_output": "The response recognizes the route transition as native-stack-owned, inspects supported Expo Router animation, duration, presentation, and gesture configuration plus the running transition, and does not add a second Reanimated wrapper around it.",
       "files": [
         "apps/mobile/src/app/_layout.tsx",
         "apps/mobile/src/app/index.tsx"
       ],
       "expectations": [
         "It classifies push and interactive back behavior as system-owned.",
-        "It investigates current Expo Router options and runtime evidence before accepting the speed diagnosis.",
+        "It investigates current Expo Router animation, duration, presentation, and gesture options plus runtime evidence before accepting the speed diagnosis.",
         "It rejects layering an RN transition around the native stack.",
+        "It treats supported owner-level configuration as a real candidate rather than declaring the route untouchable.",
         "If a real issue remains, it limits changes to supported owner-level configuration."
       ]
     },
@@ -57,7 +59,7 @@
         "apps/mobile/src/app/settings/index.tsx"
       ],
       "expectations": [
-        "It inventories system, @expo/ui, RN, and mixed boundaries before proposing motion.",
+        "It inventories system, @expo/ui, RN, and mixed boundaries plus each owner's configuration or modifier surface before proposing motion.",
         "It keeps the audit read-only because the user asked to inspect rather than implement.",
         "It reports purpose, frequency, owner, and reduced-motion behavior for surviving candidates.",
         "It includes rejected candidates and does not turn the request into an animation wishlist."
@@ -106,6 +108,22 @@
         "It does not add haptics to every message without a meaningful event distinction.",
         "It preserves virtualized-list and user-away-from-bottom behavior.",
         "Any surviving motion has a named purpose and a Reduce Motion alternative."
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "/native-motion FormSubmitButton의 label 옆 ProgressView가 갑자기 나타나. @expo/ui니까 시스템 기본만 유지하고 끝내면 되는지 검토해줘.",
+      "expected_output": "The response identifies a self-contained @expo/ui Host subtree, inspects the installed SwiftUI animation, withAnimation, and related modifier capabilities, and decides whether the pending-state change needs owner-local continuity without using Reanimated through the boundary.",
+      "files": [
+        "apps/mobile/src/components/forms/form-submit-button.tsx",
+        "apps/mobile/src/components/profile/display-name-form.tsx"
+      ],
+      "expectations": [
+        "It classifies the Button, Row, Text, and ProgressView state change as @expo/ui-owned.",
+        "It inspects exact installed @expo/ui animation APIs before deciding what is possible.",
+        "It does not reject the opportunity merely because native controls already animate.",
+        "It keeps any surviving animation within the existing Host subtree and does not wrap SwiftUI leaves in Reanimated.",
+        "It names a Reduce Motion alternative and requires simulator verification for layout stability."
       ]
     }
   ]

@@ -1,13 +1,15 @@
 ---
 name: native-motion
-description: Design, review, audit, and implement motion in Expo apps that mix Expo Router system transitions, @expo/ui Host subtrees, and React Native surfaces using Reanimated and React Native Gesture Handler. Use for animations, gestures, press feedback, transitions, native feel, motion performance, reduced motion, or motion-focused code review.
+description: Design, review, audit, and implement motion in Expo apps that mix Expo Router system transitions, @expo/ui Host subtrees, and React Native surfaces. Inspect renderer-owned configuration, SwiftUI modifiers and animation transactions, or Reanimated and React Native Gesture Handler before choosing custom motion. Use for animations, gestures, press feedback, transitions, native feel, motion performance, reduced motion, or motion-focused code review.
 ---
 
 # Native Motion
 
 Assign motion to the renderer that owns the surface before judging or changing
-it. Expo Router, `@expo/ui`, and React Native are peers with different motion
-mechanisms; React Native is not a fallback hidden behind `@expo/ui`.
+it. Ownership is not a veto: it identifies the first configuration, modifier,
+or API surface to inspect. Expo Router, `@expo/ui`, and React Native are peers
+with different motion mechanisms; React Native is not a fallback hidden behind
+`@expo/ui`.
 
 ## Start from project evidence
 
@@ -50,8 +52,8 @@ Classify every affected surface before selecting an API:
 
 | Owner | Typical evidence | Default action |
 | --- | --- | --- |
-| System | Expo Router native stack, back gesture, system sheet, alert, vendor control | Keep platform motion; change supported configuration only when evidence requires it |
-| `@expo/ui` | One self-contained `Host` subtree rendering SwiftUI controls and layout | Use native control behavior or SwiftUI modifiers inside the subtree |
+| System | Expo Router native stack, back gesture, system sheet, alert, vendor control | Inspect supported transition, gesture, and presentation configuration; keep or tune the native behavior |
+| `@expo/ui` | One self-contained `Host` subtree rendering SwiftUI controls and layout | Inspect control configuration and supported SwiftUI modifiers; keep motion inside the subtree |
 | React Native | RN primitives, custom composition, virtualized list, bespoke input, app-owned gesture | Use `Pressable`, Reanimated, RNGH, and existing native-aware libraries |
 | Mixed boundary | RN wrapper or overlay beside a complete `Host` subtree | Assign each motion to its owner; never animate through the boundary as if it were one renderer |
 
@@ -68,13 +70,31 @@ Read only the references needed for the identified owner:
 - Read [verification.md](references/verification.md) before claiming a
   visible or interactive motion change complete.
 
+## Inspect the owner's capability surface
+
+For every candidate, compare these levels in order:
+
+1. **Existing behavior**: identify the feedback or transition the owner already
+   supplies.
+2. **Supported configuration**: inspect current route options, component
+   properties, native presentation settings, and exported modifiers.
+3. **Owner-local custom motion**: use Reanimated only for RN, and supported
+   SwiftUI animation APIs only inside an `@expo/ui` subtree.
+4. **Ownership change**: consider replacing or crossing a renderer only when a
+   documented capability gap is more important than the boundary cost.
+
+Do not reject a system or `@expo/ui` opportunity merely because the owner
+already animates something. First determine whether its supported
+configuration can better express the intended relationship. Conversely, the
+existence of an option or modifier is not sufficient reason to use it.
+
 ## Pass the motion gate
 
 Reject or revise a candidate unless all applicable questions have concrete
 answers:
 
-1. **Ownership**: Is the platform, a native control, SwiftUI, or RN already
-   providing the behavior?
+1. **Ownership**: Which platform, control, SwiftUI, or RN surface owns the
+   behavior, and what configuration does that owner expose?
 2. **Purpose**: Does motion provide feedback, spatial continuity, state
    indication, explanation, or protection from a jarring change?
 3. **Frequency**: Will repetition make the motion feel slow or ornamental?
@@ -91,14 +111,19 @@ answers:
 
 Do not add scale feedback to every pressable, impose one duration on system
 navigation, or treat `transform` and `opacity` as absolute rules for native
-layout engines. Those are useful RN defaults, not cross-renderer laws.
+layout engines. Those are useful RN defaults, not cross-renderer laws. Do not
+equate "native-owned" with "not configurable."
 
 ## Execute at the owner's layer
 
 - Preserve platform defaults when they already express the intended
-  relationship.
-- Prefer the existing native control over a hand-built imitation.
-- Keep `@expo/ui` animation and state inside its complete `Host` subtree.
+  relationship; otherwise use the owner's documented option before adding
+  another animation layer.
+- Prefer the existing native control and its configuration over a hand-built
+  imitation.
+- Keep `@expo/ui` animation and state inside its complete `Host` subtree, using
+  supported modifiers or native animation transactions from the installed
+  version.
 - Keep app-owned continuous gestures and custom transitions in RN with
   Reanimated and RNGH.
 - Reuse project motion conventions before creating new timing or spring
@@ -112,8 +137,8 @@ layout engines. Those are useful RN defaults, not cross-renderer laws.
 
 For design, review, and audit work, make ownership visible:
 
-| Surface | Owner | Evidence | Decision | Verification |
-| --- | --- | --- | --- | --- |
+| Surface | Owner | Capability surface | Evidence | Decision | Verification |
+| --- | --- | --- | --- | --- | --- |
 
 For opportunity-finding, follow the output and rejection requirements in
 [review-and-opportunities.md](references/review-and-opportunities.md). For
