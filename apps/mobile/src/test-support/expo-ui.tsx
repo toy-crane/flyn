@@ -14,7 +14,14 @@
  * `*.test.ts(x)`에만 걸려 있어 이 파일에서 쓰면 린트가 미선언으로 잡는다.
  */
 
-import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
+import {
+  type ComponentProps,
+  type ReactNode,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -170,13 +177,25 @@ function MockProgressView({ testID }: { testID?: string }) {
 function MockText({
   children,
   modifiers,
+  style,
+  ...props
 }: Modifiers & {
   children?: ReactNode;
+  style?: ComponentProps<typeof Text>["style"];
+  textStyle?: unknown;
+  testID?: string;
 }) {
   const foreground = modifierArg<unknown>(modifiers, "foregroundStyle");
   const color = typeof foreground === "string" ? foreground : undefined;
+  const observableProps = { ...props, modifiers } as ComponentProps<
+    typeof Text
+  >;
 
-  return <Text style={color ? { color } : undefined}>{children}</Text>;
+  return (
+    <Text {...observableProps} style={color ? [style, { color }] : style}>
+      {children}
+    </Text>
+  );
 }
 
 /** 아이콘 자체는 그리지 않되, 화면 테스트가 name·color·modifier 배선을 본다. */

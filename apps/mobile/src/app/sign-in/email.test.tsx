@@ -30,7 +30,7 @@ const RATE_LIMIT_COPY = /요청이 너무 잦습니다/;
 const RAW_VENDOR_COPY = /rate limit/;
 
 async function sendCodeTo(address: string) {
-  await fireEvent.changeText(screen.getByPlaceholderText(FIELD), address);
+  await fireEvent.changeText(screen.getByLabelText(FIELD), address);
   await fireEvent.press(screen.getByText(SUBMIT));
   await act(async () => {
     await Promise.resolve();
@@ -100,10 +100,7 @@ describe("EmailScreen", () => {
     );
     await render(<EmailScreen />);
 
-    await fireEvent.changeText(
-      screen.getByPlaceholderText(FIELD),
-      "me@example.test"
-    );
+    await fireEvent.changeText(screen.getByLabelText(FIELD), "me@example.test");
     await fireEvent.press(screen.getByText(SUBMIT));
     await fireEvent.press(screen.getByText(SUBMIT));
 
