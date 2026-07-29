@@ -2,6 +2,7 @@ import { LegendList } from "@legendapp/list/react-native";
 import { Stack, useRouter } from "expo-router";
 import { type ReactNode, useCallback } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
+import { RNSymbol } from "../components/symbols/rn-symbol";
 import {
   type ChatRoom,
   useChatRooms,
@@ -9,6 +10,7 @@ import {
   useDeleteChatRoom,
 } from "../lib/use-chat-rooms";
 import { useUserId } from "../lib/user-id";
+import { useAppTheme } from "../theme/app-theme";
 
 const TIME_FORMAT = new Intl.DateTimeFormat("ko-KR", {
   hour: "numeric",
@@ -35,10 +37,12 @@ function roomKey(room: ChatRoom) {
 }
 
 function ChatRoomRow({
+  disclosureColor,
   onDelete,
   onOpen,
   room,
 }: {
+  disclosureColor: string;
   onDelete: (room: ChatRoom) => void;
   onOpen: (roomId: string) => void;
   room: ChatRoom;
@@ -73,12 +77,7 @@ function ChatRoomRow({
           {formatUpdatedAt(room.updated_at)}
         </Text>
       </View>
-      <Text
-        accessibilityElementsHidden
-        className="text-[20px] text-disabled-foreground"
-      >
-        ›
-      </Text>
+      <RNSymbol color={disclosureColor} symbol="disclosure" />
     </Pressable>
   );
 }
@@ -107,6 +106,7 @@ function EmptyRooms({ onCreate }: { onCreate: () => void }) {
 }
 
 export default function HomeScreen() {
+  const app = useAppTheme();
   const router = useRouter();
   const userId = useUserId();
   const rooms = useChatRooms(userId);
@@ -166,9 +166,14 @@ export default function HomeScreen() {
 
   const renderRoom = useCallback(
     ({ item }: { item: ChatRoom }) => (
-      <ChatRoomRow onDelete={confirmDelete} onOpen={openRoom} room={item} />
+      <ChatRoomRow
+        disclosureColor={app.mutedForeground}
+        onDelete={confirmDelete}
+        onOpen={openRoom}
+        room={item}
+      />
     ),
-    [confirmDelete, openRoom]
+    [app.mutedForeground, confirmDelete, openRoom]
   );
   const retryRooms = useCallback(() => {
     rooms.refetch();
