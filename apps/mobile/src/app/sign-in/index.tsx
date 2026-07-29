@@ -97,34 +97,37 @@ export default function SignInScreen() {
 
           <View className="min-h-10 flex-1" testID="sign-in-flex-spacer" />
 
-          <View className="gap-3" testID="sign-in-actions">
-            {/* Apple이 기준이고 Google을 여기 맞춘다. cornerRadius와 buttonStyle 말고는
-                우리가 건드릴 수 있는 손잡이가 없다 — style의 배경·모서리는 동작하지
-                않을뿐더러 App Store 가이드라인 위반이다. */}
-            <View pointerEvents={pending ? "none" : "auto"}>
-              <AppleAuthenticationButton
-                buttonStyle={
-                  dark
-                    ? AppleAuthenticationButtonStyle.WHITE
-                    : AppleAuthenticationButtonStyle.BLACK
-                }
-                buttonType={AppleAuthenticationButtonType.CONTINUE}
-                cornerRadius={SOCIAL_BUTTON_RADIUS}
-                onPress={handleApple}
-                // 명시적 크기는 선택이 아니다 — 없으면 버튼이 아예 렌더되지 않는다.
-                style={{ height: SOCIAL_BUTTON_HEIGHT, width: "100%" }}
-              />
-            </View>
+          <View testID="sign-in-actions">
+            <View className="gap-3" testID="sign-in-social-actions">
+              {/* Apple이 기준이고 Google을 여기 맞춘다. cornerRadius와 buttonStyle 말고는
+                  우리가 건드릴 수 있는 손잡이가 없다 — style의 배경·모서리는 동작하지
+                  않을뿐더러 App Store 가이드라인 위반이다. */}
+              <View pointerEvents={pending ? "none" : "auto"}>
+                <AppleAuthenticationButton
+                  buttonStyle={
+                    dark
+                      ? AppleAuthenticationButtonStyle.WHITE
+                      : AppleAuthenticationButtonStyle.BLACK
+                  }
+                  buttonType={AppleAuthenticationButtonType.CONTINUE}
+                  cornerRadius={SOCIAL_BUTTON_RADIUS}
+                  onPress={handleApple}
+                  // 명시적 크기는 선택이 아니다 — 없으면 버튼이 아예 렌더되지 않는다.
+                  style={{ height: SOCIAL_BUTTON_HEIGHT, width: "100%" }}
+                />
+              </View>
 
-            <GoogleButton disabled={pending} onPress={handleGoogle} />
+              <GoogleButton disabled={pending} onPress={handleGoogle} />
+            </View>
 
             <Pressable
               accessibilityRole="button"
               className="items-center py-3"
               disabled={pending}
               onPress={handleEmail}
+              style={{ marginTop: 4 }}
             >
-              <Text className="text-[17px] text-primary">
+              <Text className="text-[17px] text-muted-foreground">
                 이메일로 계속하기
               </Text>
             </Pressable>

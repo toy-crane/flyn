@@ -189,6 +189,18 @@ describe("SignInScreen", () => {
     expect(screen.queryByText(SCAFFOLD_EYEBROW)).toBeNull();
   });
 
+  it("이메일 로그인은 소셜 버튼 가까이의 보조 action으로 표시한다", async () => {
+    await render(<SignInScreen />);
+
+    expect(screen.getByTestId("sign-in-social-actions")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "이메일로 계속하기" }).props.style
+    ).toMatchObject({ marginTop: 4 });
+    expect(screen.getByText("이메일로 계속하기").props.className).toContain(
+      "text-muted-foreground"
+    );
+  });
+
   it("로그인 동작은 화면 하단 action 영역에 모은다", async () => {
     await render(<SignInScreen />);
 
