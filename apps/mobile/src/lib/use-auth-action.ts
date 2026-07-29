@@ -19,8 +19,6 @@ export interface AuthAction {
   failure: AuthErrorInfo | null;
   /** 표시용. 중복 제출 차단은 ref가 따로 맡는다. */
   pending: boolean;
-  /** 여러 action이 한 화면에 있을 때 어느 action이 진행 중인지 구분한다. */
-  pendingContext: string | null;
   run: (
     action: () => Promise<{ error: string } | null>,
     context: string
@@ -32,7 +30,6 @@ export function useAuthAction(): AuthAction {
   // 렌더에 쓰이는 게 아니라 중복 제출만 막는다. 표시용은 pending이 담당한다.
   const busy = useRef(false);
   const [pending, setPending] = useState(false);
-  const [pendingContext, setPendingContext] = useState<string | null>(null);
 
   const clearFailure = useCallback(() => {
     setFailure(null);
@@ -49,7 +46,6 @@ export function useAuthAction(): AuthAction {
 
       busy.current = true;
       setPending(true);
-      setPendingContext(context);
       setFailure(null);
 
       try {
@@ -70,11 +66,10 @@ export function useAuthAction(): AuthAction {
       } finally {
         busy.current = false;
         setPending(false);
-        setPendingContext(null);
       }
     },
     []
   );
 
-  return { clearFailure, failure, pending, pendingContext, run };
+  return { clearFailure, failure, pending, run };
 }

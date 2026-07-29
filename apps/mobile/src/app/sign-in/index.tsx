@@ -20,6 +20,7 @@ import { signInWithApple } from "../../lib/auth/apple";
 import { signInWithGoogle } from "../../lib/auth/google";
 import { authFailedFeedback } from "../../lib/haptics";
 import { useAuthAction } from "../../lib/use-auth-action";
+import { useAppTheme } from "../../theme/app-theme";
 import {
   SOCIAL_BUTTON_HEIGHT,
   SOCIAL_BUTTON_RADIUS,
@@ -32,13 +33,11 @@ import {
  * 성공하면 onAuthStateChange가 가드를 뒤집어 스택째 벗어난다 — 여기선 실패만 다룬다.
  */
 export default function SignInScreen() {
-  const { clearFailure, failure, pending, pendingContext, run } =
-    useAuthAction();
+  const app = useAppTheme();
+  const { clearFailure, failure, pending, run } = useAuthAction();
   const router = useRouter();
   const dark = useColorScheme() === "dark";
   const insets = useSafeAreaInsets();
-  const applePending = pendingContext === "apple";
-  const googlePending = pendingContext === "google";
 
   // 소셜 실패는 폼 검증이 아니라 OS 시트가 닫히면서 돌아오는 모달 흐름의 결과다.
   // 시트가 사라진 자리에서 버튼 아래 작은 빨간 줄은 놓치기 쉬워 iOS 관용은 얼럿이다.
@@ -81,7 +80,11 @@ export default function SignInScreen() {
         contentInsetAdjustmentBehavior="never"
         testID="sign-in-scroll"
       >
-        <View className="flex-1">
+        <View
+          accessibilityElementsHidden={pending}
+          className="flex-1"
+          importantForAccessibility={pending ? "no-hide-descendants" : "auto"}
+        >
           {/* 헤더가 없는 화면이라 워드마크는 스택 타이틀이 아니라 본문 Text다. */}
           <View className="gap-2">
             <Text className="font-bold text-4xl text-foreground tracking-tight">
@@ -98,52 +101,22 @@ export default function SignInScreen() {
             {/* Apple이 기준이고 Google을 여기 맞춘다. cornerRadius와 buttonStyle 말고는
                 우리가 건드릴 수 있는 손잡이가 없다 — style의 배경·모서리는 동작하지
                 않을뿐더러 App Store 가이드라인 위반이다. */}
-            <View style={{ position: "relative" }}>
-              <View pointerEvents={pending ? "none" : "auto"}>
-                <AppleAuthenticationButton
-                  accessibilityLabel={
-                    applePending ? "Apple로 로그인 중" : "Apple로 계속하기"
-                  }
-                  accessibilityState={{
-                    busy: applePending,
-                    disabled: pending,
-                  }}
-                  buttonStyle={
-                    dark
-                      ? AppleAuthenticationButtonStyle.WHITE
-                      : AppleAuthenticationButtonStyle.BLACK
-                  }
-                  buttonType={AppleAuthenticationButtonType.CONTINUE}
-                  cornerRadius={SOCIAL_BUTTON_RADIUS}
-                  onPress={handleApple}
-                  // 명시적 크기는 선택이 아니다 — 없으면 버튼이 아예 렌더되지 않는다.
-                  style={{ height: SOCIAL_BUTTON_HEIGHT, width: "100%" }}
-                />
-              </View>
-              {applePending ? (
-                <View
-                  accessibilityElementsHidden
-                  importantForAccessibility="no-hide-descendants"
-                  pointerEvents="none"
-                  style={{
-                    bottom: 0,
-                    justifyContent: "center",
-                    position: "absolute",
-                    right: 16,
-                    top: 0,
-                  }}
-                  testID="apple-button-progress"
-                >
-                  <ActivityIndicator color={dark ? "#000000" : "#FFFFFF"} />
-                </View>
-              ) : null}
+            <View pointerEvents={pending ? "none" : "auto"}>
+              <AppleAuthenticationButton
+                buttonStyle={
+                  dark
+                    ? AppleAuthenticationButtonStyle.WHITE
+                    : AppleAuthenticationButtonStyle.BLACK
+                }
+                buttonType={AppleAuthenticationButtonType.CONTINUE}
+                cornerRadius={SOCIAL_BUTTON_RADIUS}
+                onPress={handleApple}
+                // 명시적 크기는 선택이 아니다 — 없으면 버튼이 아예 렌더되지 않는다.
+                style={{ height: SOCIAL_BUTTON_HEIGHT, width: "100%" }}
+              />
             </View>
 
-            <GoogleButton
-              disabled={pending}
-              onPress={handleGoogle}
-              pending={googlePending}
-            />
+            <GoogleButton disabled={pending} onPress={handleGoogle} />
 
             <Pressable
               accessibilityRole="button"
@@ -158,6 +131,18 @@ export default function SignInScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {pending ? (
+        <View
+          accessibilityLabel="로그인 중"
+          accessibilityRole="progressbar"
+          accessibilityViewIsModal
+          className="absolute inset-0 items-center justify-center bg-overlay"
+          testID="sign-in-loading-overlay"
+        >
+          <ActivityIndicator color={app.primary} />
+        </View>
+      ) : null}
     </View>
   );
 }

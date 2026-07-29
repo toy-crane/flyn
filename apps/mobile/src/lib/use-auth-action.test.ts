@@ -98,31 +98,5 @@ describe("useAuthAction", () => {
     });
 
     expect(result.current.pending).toBe(false);
-    expect(result.current.pendingContext).toBeNull();
-  });
-
-  it("진행 중인 action의 context를 노출한다", async () => {
-    const { result } = await renderHook(() => useAuthAction());
-    let release: (() => void) | undefined;
-    const slow = () =>
-      new Promise<null>((resolve) => {
-        release = () => resolve(null);
-      });
-
-    let request = Promise.resolve<unknown>(undefined);
-    await act(async () => {
-      request = result.current.run(slow, "apple");
-      await Promise.resolve();
-    });
-
-    expect(result.current.pending).toBe(true);
-    expect(result.current.pendingContext).toBe("apple");
-
-    await act(async () => {
-      release?.();
-      await request;
-    });
-
-    expect(result.current.pendingContext).toBeNull();
   });
 });

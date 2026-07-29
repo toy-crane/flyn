@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   type PressableStateCallbackType,
   Text,
@@ -58,16 +57,13 @@ function GoogleMark({ size }: { size: number }) {
 export function GoogleButton({
   onPress,
   disabled,
-  pending,
 }: {
   onPress: () => void;
   disabled?: boolean;
-  pending?: boolean;
 }) {
   const palette = useColorScheme() === "dark" ? GOOGLE.dark : GOOGLE.light;
   const glyph = socialGlyphSize();
   const gap = socialGapSize();
-  const locked = Boolean(disabled || pending);
 
   const style = useCallback(
     ({ pressed }: PressableStateCallbackType): ViewStyle => ({
@@ -90,10 +86,10 @@ export function GoogleButton({
 
   return (
     <Pressable
-      accessibilityLabel={pending ? "Google로 로그인 중" : "Google로 계속하기"}
+      accessibilityLabel="Google로 계속하기"
       accessibilityRole="button"
-      accessibilityState={{ busy: Boolean(pending), disabled: locked }}
-      disabled={locked}
+      accessibilityState={{ disabled: Boolean(disabled) }}
+      disabled={disabled}
       onPress={onPress}
       style={style}
     >
@@ -110,14 +106,6 @@ export function GoogleButton({
       >
         Google로 계속하기
       </Text>
-      {pending ? (
-        <ActivityIndicator
-          color={palette.label}
-          pointerEvents="none"
-          style={{ position: "absolute", right: 16 }}
-          testID="google-button-progress"
-        />
-      ) : null}
     </Pressable>
   );
 }
