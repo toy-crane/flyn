@@ -43,6 +43,12 @@ Apple HIG가 navigation, keyboard, accessibility, Dynamic Type와 시스템 cont
 - [Button loading](https://tossmini-docs.toss.im/tds-mobile/components/button/)
 - [Design motivation](https://toss.tech/article/design-motivation)
 
+OTP 입력과 재전송은 다음 자료의 보편적인 pattern을 따른다.
+
+- [Apple One-time codes](https://developer.apple.com/documentation/security/one-time-codes)
+- [Auth0 Universal Login OTP 문구](https://auth0.com/docs/customize/login-pages/universal-login/customize-templates)
+- [Twilio verification best practices](https://www.twilio.com/docs/verify/developer-best-practices)
+
 ## 화면 구조
 
 ### Root sign-in
@@ -67,9 +73,26 @@ progress는 button-local 상태로 표현하고 화면 전체 overlay를 사용�
 
 ### 이메일 OTP code
 
-현재 RN code input과 6개 slot 합성을 유지한다. 이번 작업에서 renderer나 입력
-모델을 바꾸지 않는다. 하단 CTA 원칙을 이 surface에 확장할지는 code 입력의
-자동 제출·재전송 흐름과 함께 별도 결정한다.
+현재 RN code input과 6개 slot 합성을 유지한다. 6자리가 완성되면 별도 CTA를
+누르지 않아도 즉시 한 번 검증한다. 검증 중에는 input과 재전송을 잠가 중복
+요청을 막는다. 검증이 실패하면 inline 오류를 보여 주고 값을 비운 뒤 input에
+다시 focus한다.
+
+재전송은 input 바로 아래에 낮은 위계의 inline action으로 둔다.
+
+```text
+코드가 안 왔나요?  27초 후 다시 받기
+```
+
+최초 발송과 재전송 성공 직후에는 30초 cooldown을 시작한다. 남은 시간을 초
+단위로 보여 주고, 0초가 되면 같은 자리의 문구를 `코드 다시 받기` action으로
+바꾼다. 재전송 중에는 action을 잠그며, 성공하면 code와 검증 오류를 비우고 새
+30초 cooldown을 시작한다. 실패하면 기존 입력값과 만료된 cooldown 상태를
+보존하고 inline 실패 문구를 보여 다시 시도할 수 있게 한다.
+
+뒤로가기가 이메일 변경 역할을 하므로 별도의 `이메일 변경` action은 만들지
+않는다. 재전송을 하단 full-width button으로 키우거나 header action으로
+옮기지 않는다.
 
 ### 표시 이름 온보딩·수정
 
@@ -118,10 +141,16 @@ submit, loading과 route 이동은 각 form이 소유한다. React Hook Form은 
 | form pending | 같은 자리에 있는 CTA의 local progress, 중복 제출 차단 |
 | root sign-in pending | 중앙 progress overlay, 모든 로그인 action 차단 |
 | keyboard visible | 입력 field와 하단 CTA가 동시에 접근 가능 |
+| OTP entering | code input focus와 활성 AutoFill, CTA 없음 |
+| OTP complete | 즉시 한 번 검증하고 input·재전송 잠금 |
+| OTP invalid | inline 오류, code 초기화, input 재focus |
+| OTP resend cooldown | input 아래 남은 초 표시, 재전송 잠금 |
+| OTP resend available | 같은 자리의 `코드 다시 받기` action |
 
-오류가 발생해도 입력값을 지우지 않는다. 오류와 비활성은 색만으로 표현하지
-않는다. button label이 progress로 바뀌더라도 button width와 화면 배치는
-유지한다.
+일반 form은 오류가 발생해도 입력값을 지우지 않는다. 자동 제출된 OTP가
+유효하지 않을 때만 다시 입력할 수 있도록 code를 비운다. 오류와 비활성은
+색만으로 표현하지 않는다. button label이 progress로 바뀌더라도 button width와
+화면 배치는 유지한다.
 
 ## 접근성
 
@@ -141,6 +170,7 @@ submit, loading과 route 이동은 각 form이 소유한다. React Hook Form은 
 | --- | --- |
 | root sign-in | 기본, 각 provider pending, failure, light/dark |
 | email | empty, valid, failure, pending, keyboard, return key |
+| OTP code | 직접 입력, AutoFill, 자동 제출, invalid, 30초 cooldown, 재전송 성공·실패 |
 | onboarding display name | empty, valid, pending, keyboard, secondary action |
 | Settings display name | initial value, edit, failure, pending, keyboard, back |
 
@@ -152,6 +182,8 @@ submit, loading과 route 이동은 각 form이 소유한다. React Hook Form은 
 4. 서버 실패 뒤 입력값을 수정하고 다시 제출할 수 있다.
 5. 큰 Dynamic Type과 VoiceOver에서 읽기·탐색 순서가 유지된다.
 6. Apple·Google button의 vendor appearance가 변하지 않는다.
+7. OTP 6자리 완성은 한 번만 검증하고 pending 중 중복 요청이 없다.
+8. background 복귀 뒤에도 재전송 남은 시간이 실제 경과시간과 일치한다.
 
 ## 범위 밖
 
@@ -174,3 +206,6 @@ submit, loading과 route 이동은 각 form이 소유한다. React Hook Form은 
   필요하다.
 - 하단 CTA의 keyboard avoidance가 Dynamic Type과 긴 오류 문구에서도 content를
   가리지 않는지 simulator에서 확인해야 한다.
+- OTP cooldown은 interval 횟수가 아니라 만료 시각을 기준으로 계산해야 한다.
+  앱이 background에 머문 뒤 돌아와도 시간이 늘어나거나 재시작되지 않는지
+  검증해야 한다.
