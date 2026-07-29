@@ -203,18 +203,45 @@ describe("SignInScreen", () => {
     });
   });
 
-  it("로그인 중에는 action을 없애지 않고 전체 화면 중앙 progress로 잠근다", async () => {
+  it("Apple 로그인 중에는 전체 화면 대신 Apple 버튼 내부에 progress를 표시한다", async () => {
     mockSignInAsync.mockReturnValue(new Promise(() => undefined));
     await render(<SignInScreen />);
 
     await fireEvent.press(screen.getByTestId("apple-button"));
 
-    expect(screen.getByTestId("sign-in-loading-overlay")).toBeTruthy();
     expect(
-      screen.getByTestId("apple-button", { includeHiddenElements: true })
+      screen.getByTestId("apple-button-progress", {
+        includeHiddenElements: true,
+      })
     ).toBeTruthy();
     expect(
+      screen.getByTestId("apple-button", { includeHiddenElements: true })
+    ).toHaveTextContent("Apple");
+    expect(screen.queryByTestId("sign-in-loading-overlay")).toBeNull();
+    expect(
       screen.getByText(GOOGLE, { includeHiddenElements: true })
+    ).toBeTruthy();
+    expect(
+      screen.getByText("이메일로 계속하기", {
+        includeHiddenElements: true,
+      })
+    ).toBeTruthy();
+  });
+
+  it("Google 로그인 중에는 Google 버튼 내부에 progress를 표시한다", async () => {
+    const {
+      GoogleSignin,
+    } = require("@react-native-google-signin/google-signin");
+    GoogleSignin.signIn.mockReturnValue(new Promise(() => undefined));
+    await render(<SignInScreen />);
+
+    await fireEvent.press(screen.getByText(GOOGLE));
+
+    expect(screen.getByTestId("google-button-progress")).toBeTruthy();
+    expect(screen.getByText(GOOGLE)).toBeTruthy();
+    expect(screen.queryByTestId("sign-in-loading-overlay")).toBeNull();
+    expect(
+      screen.getByTestId("apple-button", { includeHiddenElements: true })
     ).toBeTruthy();
     expect(
       screen.getByText("이메일로 계속하기", {
