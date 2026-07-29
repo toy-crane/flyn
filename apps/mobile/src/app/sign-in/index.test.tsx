@@ -184,4 +184,31 @@ describe("SignInScreen", () => {
     expect(screen.queryByText("또는")).toBeNull();
     expect(screen.queryByText(SCAFFOLD_EYEBROW)).toBeNull();
   });
+
+  it("로그인 동작은 화면 하단 action 영역에 모은다", async () => {
+    await render(<SignInScreen />);
+
+    expect(screen.getByTestId("sign-in-flex-spacer")).toBeTruthy();
+    expect(screen.getByTestId("sign-in-actions")).toBeTruthy();
+  });
+
+  it("로그인 중에는 action을 없애지 않고 전체 화면 중앙 progress로 잠근다", async () => {
+    mockSignInAsync.mockReturnValue(new Promise(() => undefined));
+    await render(<SignInScreen />);
+
+    await fireEvent.press(screen.getByTestId("apple-button"));
+
+    expect(screen.getByTestId("sign-in-loading-overlay")).toBeTruthy();
+    expect(
+      screen.getByTestId("apple-button", { includeHiddenElements: true })
+    ).toBeTruthy();
+    expect(
+      screen.getByText(GOOGLE, { includeHiddenElements: true })
+    ).toBeTruthy();
+    expect(
+      screen.getByText("이메일로 계속하기", {
+        includeHiddenElements: true,
+      })
+    ).toBeTruthy();
+  });
 });
