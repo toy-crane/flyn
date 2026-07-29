@@ -15,6 +15,7 @@ import {
 } from "ai";
 
 export const NEW_CHAT_TITLE = "새 채팅";
+export const CHAT_MODEL_ID = "inclusionai/ling-3.0-flash-free";
 
 const SYSTEM_INSTRUCTIONS =
   "간결하고 유용하게 답하세요. 사용자가 쓴 언어와 같은 언어로 답하세요.";
@@ -86,6 +87,10 @@ export interface ChatModel {
 export interface ChatDependencies {
   createRepository: (context: SupabaseContext<Database>) => ChatRepository;
   model: ChatModel;
+}
+
+export function selectChatModel(model?: LanguageModel): LanguageModel | string {
+  return model ?? CHAT_MODEL_ID;
 }
 
 interface ChatRequest {
@@ -511,11 +516,7 @@ class GatewayChatModel implements ChatModel {
     onFinish,
     signal,
   }: ChatModelGenerateOptions) {
-    const model = this.configuredModel ?? process.env.AI_MODEL?.trim();
-
-    if (!model) {
-      throw new Error("AI_MODEL is not configured");
-    }
+    const model = selectChatModel(this.configuredModel);
 
     const startedAt = this.now();
     const requestId = this.createRequestId();

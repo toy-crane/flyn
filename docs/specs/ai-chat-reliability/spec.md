@@ -81,8 +81,8 @@ Vercel의 구조화 로그로 실제 실패율, 지연, 사용량을 확인한�
 - 모바일은 마지막 사용자 메시지 ID와 본문만 보내고, 서버는 과거 기록을 DB에서
   읽는다.
 - 사용자와 AI 메시지 쓰기는 인증된 Hono 스트리밍 경계가 계속 소유한다.
-- 모델은 AI SDK를 통해 Vercel AI Gateway로 호출하고 `AI_MODEL` 환경 변수로만
-  선택한다.
+- 모델은 AI SDK를 통해 Vercel AI Gateway로 호출하고 코드에
+  `inclusionai/ling-3.0-flash-free`로 고정한다.
 - `useChat`, `expo/fetch`, iOS용 streaming response header와 abort 전달은
   유지한다.
 - 메시지는 계속 text content와 `complete | stopped` 상태만 저장한다.

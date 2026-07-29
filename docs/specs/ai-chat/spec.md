@@ -86,7 +86,8 @@
   본문을 하나도 받지 못한 실패는 AI 메시지를 만들지 않는다.
 - iOS 스트리밍 응답은 `Content-Type: application/octet-stream`과
   `Content-Encoding: none`을 명시한다.
-- 모델은 Vercel AI Gateway를 통하고 `AI_MODEL` 환경 변수로만 선택한다.
+- 모델은 Vercel AI Gateway를 통하고 코드에
+  `inclusionai/ling-3.0-flash-free`로 고정한다.
 - 시스템 지침은 간결하고 유용하게, 사용자가 쓴 언어로 답하도록 고정한다.
 
 ## 제외 범위
@@ -110,6 +111,6 @@
 ## 가정과 남은 위험
 
 - 빈 채팅방은 목록에 남고 사용자가 직접 삭제한다.
-- 모델은 UI에 노출하지 않으며 운영자가 `AI_MODEL`을 바꾼다.
+- 모델은 UI나 환경 변수에 노출하지 않는다. 변경은 코드 리뷰와 배포를 거친다.
 - Gateway key가 없는 환경은 자동 테스트의 가짜 모델 경계까지만 검증한다.
 - Liquid Glass와 keyboard controller는 dev build 재빌드가 필요할 수 있다.

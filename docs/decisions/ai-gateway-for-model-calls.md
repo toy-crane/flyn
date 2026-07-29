@@ -13,6 +13,15 @@ AI 기능은 AI SDK로 구현하고, 모델 호출은 프로바이더 SDK를 직
 모바일 스트리밍은 `@ai-sdk/react`의 `useChat` + `expo/fetch`(Expo 52+ 공식
 지원)로 받는다.
 
+## 현재 제품 모델은 코드에 고정한다
+
+채팅 모델은 `inclusionai/ling-3.0-flash-free`로 고정한다. 운영 환경의
+`AI_MODEL`이나 모바일의 model picker로 선택하지 않는다. 모델을 바꾸는 일은
+동작·비용·품질을 함께 바꾸는 코드 변경이므로 리뷰와 배포 이력이 남아야 한다.
+
+프로덕션 경로만 고정하며, 자동 테스트가 가짜 `LanguageModel`을 주입하는 경계는
+유지한다. 모델 호출에 필요한 secret은 계속 `AI_GATEWAY_API_KEY` 하나다.
+
 ## 버전 — 기억으로 쓰지 말 것
 
 이 결정은 원래 "AI SDK(v5)"로 적혔으나 **현재 최신은 v7이다**(`ai@7.0.37`,
