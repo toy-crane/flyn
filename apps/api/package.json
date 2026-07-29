@@ -18,6 +18,7 @@
     "@flyn/supabase": "workspace:*",
     "@supabase/server": "^1.4.1",
     "@supabase/supabase-js": "^2.110.8",
+    "ai": "^7.0.40",
     "hono": "^4.12.32"
   },
   "devDependencies": {

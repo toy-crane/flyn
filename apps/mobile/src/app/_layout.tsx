@@ -10,6 +10,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { type ReactNode, useMemo } from "react";
 import { useColorScheme } from "react-native";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { LaunchChecking, LaunchFailed } from "../components/launch";
 import {
   ProfileMissing,
@@ -119,7 +120,11 @@ function Routes() {
           {/* 헤더를 켜야 우측 상단 설정 버튼이 설 자리가 생긴다. */}
           <Stack.Screen
             name="index"
-            options={{ headerShown: true, title: "flyn" }}
+            options={{ headerShown: true, title: "채팅" }}
+          />
+          <Stack.Screen
+            name="chats/[id]"
+            options={{ headerShown: true, title: "새 채팅" }}
           />
           <Stack.Screen
             name="settings/index"
@@ -170,10 +175,12 @@ function Routes() {
 export default function Layout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppNavigationTheme>
-        <Routes />
-        <StatusBar style="auto" />
-      </AppNavigationTheme>
+      <KeyboardProvider>
+        <AppNavigationTheme>
+          <Routes />
+          <StatusBar style="auto" />
+        </AppNavigationTheme>
+      </KeyboardProvider>
     </QueryClientProvider>
   );
 }
