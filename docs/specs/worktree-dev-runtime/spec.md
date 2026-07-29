@@ -55,8 +55,13 @@
   `metro-cache` 직접 의존성을 추가하지 않는다.
 - `expo start --clear`는 새 설정을 처음 적용할 때 기존 공용 캐시를 버리는 1회
   복구 절차다. 정상적인 `dev:worktree` 실행에는 붙이지 않는다.
-- 이 변경을 위해 `react-native-reanimated`나 `react-native-worklets` 버전을
-  올리거나 맞추지 않는다.
+- 현재 Expo SDK 57 기준 `react-native-reanimated` `4.5.0`과
+  `react-native-worklets` `0.10.0`은 `package.json`과 `bun.lock`에 정확히
+  고정한다. 새 워크트리는 `bun install --frozen-lockfile`로 같은 조합을
+  재현한다.
+- 이후 두 패키지를 업그레이드할 때는 manifest와 lockfile을 한 변경에서 함께
+  갱신하고 각 Simulator의 development build를 다시 만든다. 개발 런타임
+  스크립트는 특정 버전을 별도로 강제하거나 호환표를 재구현하지 않는다.
 
 ### API와 Metro
 
@@ -137,7 +142,7 @@ bun run dev:worktree -- --dry-run
 - 워크트리별 Supabase stack, DB volume, Auth, Mailpit, project ID
 - Supabase의 자동 시작·중지·reset과 `.env.local` 생성
 - 워크트리별 bundle identifier, 앱 이름, scheme, Apple·Google OAuth variant
-- Reanimated·Worklets·Expo SDK 버전 변경
+- Reanimated·Worklets·Expo SDK 업그레이드
 - 한 시뮬레이터에 여러 flyn variant 설치
 - production, EAS, Vercel 배포 동작 변경
 - 채팅 홈의 background refetch와 pull-to-refresh 표현 변경
@@ -146,8 +151,10 @@ bun run dev:worktree -- --dry-run
 
 - 서로 다른 두 워크트리의 `dev:worktree --dry-run`이 서로 다른 API·Metro 포트와
   각 워크트리 내부의 Metro 캐시 경로를 보고한다.
-- Worklets `0.10.0` 워크트리와 `0.11.2` 워크트리를 별도 시뮬레이터에서 동시에
-  실행해도 Babel/plugin mismatch나 공용 Metro cache 재사용이 없다.
+- 현재 커밋에서 새로 만든 워크트리가 frozen lockfile 설치 후
+  Reanimated `4.5.0`과 Worklets `0.10.0`을 동일하게 사용한다.
+- 서로 다른 워크트리를 별도 시뮬레이터에서 동시에 실행해도 Babel/plugin
+  mismatch나 공용 Metro cache 재사용이 없다.
 - 두 워크트리에서 API `/health`와 인증된 실제 채팅 요청이 각각 자기 포트로
   성공한다.
 - 한 `dev:worktree`를 종료해도 다른 워크트리와 공유 Supabase는 계속 동작한다.

@@ -23,11 +23,17 @@ iOS 앱과 그 백엔드를 담는 모노레포. 이 저장소가 지금 서 있
 ## 로컬 루프
 
 ```bash
-bun install
+bun install --frozen-lockfile
 bun run db:start                   # 저장소당 한 번
 bun run dev -- --device "iPhone 17" # 이 worktree의 첫 실행
 bun run dev                        # 이후 저장된 slot·Simulator 재사용
 ```
+
+새 워크트리도 커밋된 `bun.lock` 그대로 설치한다. 현재 Expo SDK 57 기준 네이티브
+런타임 조합은 `react-native-reanimated` `4.5.0`과
+`react-native-worklets` `0.10.0`으로 정확히 고정돼 있다. 두 패키지를
+업그레이드할 때는 `package.json`과 `bun.lock`을 같은 변경에서 갱신하고
+development build를 다시 만든다.
 
 `dev`는 Supabase를 시작하거나 멈추지 않고, 실행 상태와 환경 변수만 확인한다.
 선택한 Simulator에 `com.odd.flyn` development build가 없으면 자동 빌드하지 않고

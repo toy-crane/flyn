@@ -188,8 +188,10 @@ bunx expo start --clear
 1. 저장소당 한 번 `bun run db:start`.
 2. 각 워크트리에 동일한 공유 Supabase `.env.local` 값과
    `AI_GATEWAY_API_KEY`가 준비돼 있다.
-3. Worklets `0.10.0` 워크트리용 시뮬레이터와 `0.11.2` 워크트리용
-   시뮬레이터에 각 development build가 설치돼 있다.
+3. 현재 커밋에서 만든 두 워크트리가 `bun install --frozen-lockfile`로
+   Reanimated `4.5.0`과 Worklets `0.10.0`을 동일하게 설치한다.
+4. 두 워크트리용 Simulator에 현재 dependency 조합의 development build가
+   각각 설치돼 있다.
 
 검증 순서:
 
@@ -204,6 +206,8 @@ bunx expo start --clear
 7. 한 runtime을 종료하고 다른 앱의 채팅과 공유 Supabase가 계속 동작하는지
    확인한다.
 8. 종료한 runtime을 재실행해 같은 slot과 simulator를 재사용하는지 확인한다.
+9. dependency 업그레이드는 이 검증과 분리해 manifest와 lockfile을 함께 바꾸고
+   development build를 다시 만든다.
 
 최종 게이트:
 
