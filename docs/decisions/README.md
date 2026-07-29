@@ -34,6 +34,9 @@
 
 - [native-social-login](native-social-login.md) — 소셜 로그인은 Apple + Google
   네이티브 플로우를 세트로 쓰고, 추가 소셜은 채택하지 않는다.
+- [social-sign-in-presentation](social-sign-in-presentation.md) — Apple·Google은
+  브랜드 버튼 한 세트로 유지하고, 이메일은 보조 경로로, provider pending은
+  전체 화면 progress로 표현한다.
 - [email-otp-code](email-otp-code.md) — 세 번째 수단은 이메일 6자리 코드이며
   매직링크는 기각한다.
 - [no-apple-token-revocation](no-apple-token-revocation.md) — Apple refresh

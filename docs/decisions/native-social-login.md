@@ -29,3 +29,6 @@ RevenueCat도 Expo Go에서 동작하지 않으므로, 나중에 붙일 때 추�
 
 Apple·Google 둘 다 2026-07-27 시뮬레이터(iPhone 17, iOS 26.5)에서 사람이 눌러
 통과했다.
+
+두 provider의 버튼 모양, 화면 위계와 pending 표현은
+[social-sign-in-presentation](social-sign-in-presentation.md)이 소유한다.

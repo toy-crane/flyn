@@ -2,9 +2,10 @@
 
 ## 상태
 
-- 로그인, 이메일 입력, 표시 이름 온보딩·수정의 확정 UX를 기록한 구현 스펙이다.
+- 로그인, 이메일 입력, 표시 이름 온보딩·수정 구현은 반영됐다.
 - 기존 인증·프로필 데이터 흐름과 네이티브 navigation은 유지한다.
-- 구현은 이 문서 승인 뒤 별도 작업으로 진행한다.
+- Dynamic Type, 긴 오류 문구와 light/dark 전체 검증표가 아직 남아 있어 이
+  스펙은 해당 acceptance가 끝날 때까지 유지한다.
 
 ## 목적
 
@@ -23,6 +24,7 @@ native interaction은 유지하면서 다음 일관성을 만든다.
 - [Self-contained native UI boundaries](../../decisions/self-contained-native-ui-boundaries.md)
 - [Uniwind CSS 앱 테마](../../decisions/uniwind-css-theme.md)
 - [네이티브 소셜 로그인](../../decisions/native-social-login.md)
+- [소셜 로그인 버튼 표현](../../decisions/social-sign-in-presentation.md)
 - [이메일 OTP code](../../decisions/email-otp-code.md)
 
 ## UX 원칙
@@ -56,6 +58,9 @@ OTP 입력과 재전송은 다음 자료의 보편적인 pattern을 따른다.
 root sign-in은 RN surface로 유지한다. 상단에는 wordmark와 짧은 설명을 두고,
 Apple·Google·이메일 진입 action 묶음은 safe area를 존중해 화면 하단에 둔다.
 Apple과 Google button의 vendor appearance는 변경하지 않는다.
+두 소셜 버튼은 12pt 간격의 같은 위계로 묶는다. 이메일은 Google 아래 4pt에
+17pt `muted-foreground` text action으로 두되, 최소 44pt hit target은 유지한다.
+배경, border, icon과 `또는` 구분선은 추가하지 않는다.
 
 로그인 요청 중에는 기존 button 묶음을 그대로 둔 채 화면 interaction을
 차단하는 overlay를 표시한다. progress는 button 사이에 삽입하지 않고 화면
