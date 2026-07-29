@@ -12,6 +12,9 @@
   CLI가 읽는 `supabase/`는 루트에 남긴다.
 - [agent-device-for-simulator-checks](agent-device-for-simulator-checks.md) —
   시뮬레이터 검증은 agent-device로 하고, 좌표를 찍는 내장 도구를 쓰지 않는다.
+- [worktree-isolated-mobile-runtime](worktree-isolated-mobile-runtime.md) —
+  병렬 모바일 개발은 워크트리별 API·Metro 포트, Metro 캐시, iOS 시뮬레이터를
+  격리하고 Supabase 하나를 공유한다.
 
 ## 모바일 UI
 
