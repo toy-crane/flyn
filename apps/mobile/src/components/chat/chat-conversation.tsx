@@ -21,7 +21,9 @@ import {
 import {
   KeyboardGestureArea,
   KeyboardStickyView,
+  useReanimatedKeyboardAnimation,
 } from "react-native-keyboard-controller";
+import Reanimated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "../../theme/app-theme";
 import { ChatMarkdown } from "./chat-markdown";
@@ -220,9 +222,19 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
   const listRef = useRef<LegendListRef>(null);
   const composerRef = useRef<View>(null);
   const [listViewportHeight, setListViewportHeight] = useState(0);
-  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(true);
   const { contentInsetEndAdjustment, onComposerLayout } =
     useKeyboardChatComposerInset(listRef, composerRef);
+  const { height: keyboardHeight, progress: keyboardProgress } =
+    useReanimatedKeyboardAnimation();
+  const keyboardOffset = Math.max(insets.bottom - COMPOSER_MARGIN, 0);
+  const emptyStateStyle = useAnimatedStyle(() => ({
+    bottom:
+      contentInsetEndAdjustment.value -
+      keyboardHeight.value -
+      keyboardProgress.value * keyboardOffset,
+  }));
+  const showScrollButton = !isAtBottom;
   const maintainScrollAtEndThreshold =
     listViewportHeight > 0
       ? Math.min(1, BOTTOM_THRESHOLD / listViewportHeight)
@@ -238,13 +250,16 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const { contentOffset, contentSize, layoutMeasurement } =
+      const { contentInset, contentOffset, contentSize, layoutMeasurement } =
         event.nativeEvent;
       const distance =
-        contentSize.height - layoutMeasurement.height - contentOffset.y;
+        contentSize.height +
+        (contentInset?.bottom ?? 0) -
+        layoutMeasurement.height -
+        contentOffset.y;
       const nextAtBottom = distance <= BOTTOM_THRESHOLD;
 
-      setShowScrollButton(!nextAtBottom);
+      setIsAtBottom(nextAtBottom);
     },
     []
   );
@@ -297,8 +312,8 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
             estimatedItemSize={84}
             initialScrollAtEnd
             keyboardDismissMode="interactive"
-            keyboardLiftBehavior="whenAtEnd"
-            keyboardOffset={Math.max(insets.bottom - COMPOSER_MARGIN, 0)}
+            keyboardLiftBehavior={isAtBottom ? "always" : "never"}
+            keyboardOffset={keyboardOffset}
             keyboardShouldPersistTaps="handled"
             keyExtractor={messageKey}
             maintainScrollAtEnd={{
@@ -320,9 +335,10 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
           />
 
           {chat.messages.length === 0 ? (
-            <View
-              className="absolute inset-0 items-center justify-center gap-2 px-6"
+            <Reanimated.View
+              className="absolute top-0 right-0 left-0 items-center justify-center gap-2 px-6"
               pointerEvents="none"
+              style={emptyStateStyle}
               testID="chat-empty-state"
             >
               <Text className="font-semibold text-[22px] text-foreground">
@@ -331,13 +347,13 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
               <Text className="text-center text-[15px] text-muted-foreground leading-6">
                 메시지는 이 채팅방에 안전하게 저장돼요.
               </Text>
-            </View>
+            </Reanimated.View>
           ) : null}
         </View>
 
         <KeyboardStickyView
           offset={{
-            opened: Math.max(insets.bottom - COMPOSER_MARGIN, 0),
+            opened: keyboardOffset,
           }}
           style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
           testID="chat-composer-sticky"

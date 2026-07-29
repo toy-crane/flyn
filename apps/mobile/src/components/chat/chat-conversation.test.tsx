@@ -8,6 +8,8 @@ import {
 const mockScrollToEnd = jest.fn();
 const mockContentInsetEndAdjustment = { value: 0 };
 const mockOnComposerLayout = jest.fn();
+const mockKeyboardHeight = { value: 0 };
+const mockKeyboardProgress = { value: 0 };
 
 jest.mock(
   "@legendapp/list/keyboard",
@@ -62,10 +64,23 @@ jest.mock(
     return {
       KeyboardGestureArea: NativeView,
       KeyboardStickyView: NativeView,
+      useReanimatedKeyboardAnimation: () => ({
+        height: mockKeyboardHeight,
+        progress: mockKeyboardProgress,
+      }),
     };
   },
   { virtual: true }
 );
+jest.mock("react-native-reanimated", () => {
+  const { View: NativeView } = require("react-native");
+
+  return {
+    __esModule: true,
+    default: { View: NativeView },
+    useAnimatedStyle: (style: () => object) => style(),
+  };
+});
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
@@ -149,6 +164,9 @@ function controller(overrides: Partial<ChatController> = {}): ChatController {
 
 describe("채팅방 상세 대화", () => {
   beforeEach(() => {
+    mockContentInsetEndAdjustment.value = 0;
+    mockKeyboardHeight.value = 0;
+    mockKeyboardProgress.value = 0;
     mockScrollToEnd.mockClear();
     mockOnComposerLayout.mockClear();
   });
@@ -198,6 +216,41 @@ describe("채팅방 상세 대화", () => {
     expect(
       screen.getByTestId("chat-message-list").props.maintainScrollAtEndThreshold
     ).toBeCloseTo(0.2);
+  });
+
+  it("키보드 전환과 하단 버튼은 inset을 포함한 같은 72pt 경계를 따른다", async () => {
+    await render(<ChatConversation chat={controller()} />);
+
+    const list = screen.getByTestId("chat-message-list");
+    const stickyComposer = screen.getByTestId("chat-composer-sticky");
+
+    await fireEvent(list, "onScroll", {
+      nativeEvent: {
+        contentInset: { bottom: 96, left: 0, right: 0, top: 0 },
+        contentOffset: { x: 0, y: 496 },
+        contentSize: { height: 1000, width: 390 },
+        layoutMeasurement: { height: 500, width: 390 },
+      },
+    });
+
+    expect(list.props.keyboardLiftBehavior).toBe("never");
+    expect(
+      within(stickyComposer).getByRole("button", { name: "맨 아래로" })
+    ).toBeTruthy();
+
+    await fireEvent(list, "onScroll", {
+      nativeEvent: {
+        contentInset: { bottom: 96, left: 0, right: 0, top: 0 },
+        contentOffset: { x: 0, y: 536 },
+        contentSize: { height: 1000, width: 390 },
+        layoutMeasurement: { height: 500, width: 390 },
+      },
+    });
+
+    expect(list.props.keyboardLiftBehavior).toBe("always");
+    expect(
+      within(stickyComposer).queryByRole("button", { name: "맨 아래로" })
+    ).toBeNull();
   });
 
   it("중앙 버튼으로 맨 아래에 도착한 뒤 자동 추적 상태로 돌아간다", async () => {
@@ -261,12 +314,25 @@ describe("채팅방 상세 대화", () => {
     expect(screen.queryByTestId("chat-empty-state")).toBeNull();
   });
 
+  it("빈 안내는 키보드와 composer를 제외한 영역 안에서 중앙 정렬된다", async () => {
+    mockContentInsetEndAdjustment.value = 96;
+    mockKeyboardHeight.value = -300;
+    mockKeyboardProgress.value = 1;
+
+    await render(<ChatConversation chat={controller({ messages: [] })} />);
+
+    const emptyState = screen.getByTestId("chat-empty-state");
+
+    expect(emptyState).toHaveStyle({ bottom: 396 });
+    expect(emptyState.props.className).toContain("top-0");
+  });
+
   it("맨 아래에서는 목록과 composer가 같은 키보드 전환을 따른다", async () => {
     await render(<ChatConversation chat={controller()} />);
 
     const list = screen.getByTestId("chat-message-list");
 
-    expect(list.props.keyboardLiftBehavior).toBe("whenAtEnd");
+    expect(list.props.keyboardLiftBehavior).toBe("always");
     expect(list.props.keyboardOffset).toBe(0);
     expect(list.props.contentInsetEndAdjustment).toBe(
       mockContentInsetEndAdjustment
