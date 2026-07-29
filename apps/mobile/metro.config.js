@@ -1,4 +1,5 @@
 const { getDefaultConfig } = require("expo/metro-config");
+const path = require("node:path");
 const { withUniwindConfig } = require("uniwind/metro"); // make sure this import exists
 
 /** @type {import('expo/metro-config').MetroConfig} */
@@ -13,6 +14,8 @@ config.resolver.blockList = [
   /\/src\/app\/.*\.(test|spec)\.[tj]sx?$/,
 ];
 
+config.fileMapCacheDirectory = path.join(__dirname, ".expo", "metro-file-map");
+
 // Apply uniwind modifications before exporting
 const uniwindConfig = withUniwindConfig(config, {
   // relative path to your global.css file
@@ -20,5 +23,26 @@ const uniwindConfig = withUniwindConfig(config, {
   // optional: path to typings
   dtsFile: "./src/uniwind-types.d.ts",
 });
+
+// Uniwind가 만든 config는 cacheStores를 공용 os.tmpdir() store로 덮는다.
+// 최종 config에서 워크트리 경로를 다시 지정하되, Uniwind의 skipCache 의미는
+// 그대로 보존한다.
+uniwindConfig.cacheStores = ({ FileStore }) => {
+  class UniwindFileStore extends FileStore {
+    set(key, value) {
+      if (value?.output?.[0]?.data?.css?.skipCache) {
+        return Promise.resolve();
+      }
+
+      return super.set(key, value);
+    }
+  }
+
+  return [
+    new UniwindFileStore({
+      root: path.join(__dirname, ".expo", "metro-cache"),
+    }),
+  ];
+};
 
 module.exports = uniwindConfig;
