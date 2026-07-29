@@ -157,6 +157,9 @@ Supabase를 쓰는 화면·엔드포인트에는 위 **Supabase 로컬 스택**�
 - Metro transformer와 file-map cache는 각 워크트리의 `apps/mobile/.expo/` 아래에
   격리된다. 전환 전에 남은 공용 캐시 때문에 Worklets mismatch가 한 번 보이면 해당
   워크트리에서 `bunx expo start --clear`로 정리한 뒤 다시 `bun run dev`를 쓴다.
+- 채팅 상세에서 뒤로 온 뒤 pull-to-refresh spinner가 남으면
+  [iOS 뒤로가기 후 채팅 목록 스피너 고착](docs/ios-refresh-control-navigation.md)의
+  상태 경계와 회귀 절차부터 확인한다.
 - **Uniwind는 무료(MIT) 범위로 충분하다.** Pro는 C++ 엔진·Reanimated 4 className
   애니메이션 같은 성능 계층이다. 판단 근거는
   [uniwind-for-styling](docs/decisions/uniwind-for-styling.md).

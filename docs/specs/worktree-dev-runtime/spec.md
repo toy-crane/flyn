@@ -170,7 +170,8 @@ bun run dev:worktree -- --dry-run
 - 네이티브 앱은 빌드 시점의 Worklets 버전을 포함한다. 캐시를 격리해도 해당
   워크트리의 JavaScript 의존성과 development build 자체가 다르면 재빌드가
   필요하다.
-- 뒤로 가기 시 홈 중앙에 보이는 spinner는 현재
-  `rooms.isFetching`에 연결된 background refetch 표현이다. 런타임/API hang이
-  사라진 뒤에도 짧게 보일 수 있다. 계속 멈춰 있거나 오류 상태를 설명하지 못하면
-  별도 UI 신뢰성 스펙으로 다룬다.
+- 뒤로 가기 시 홈에 남던 spinner는 background refetch를
+  `RefreshControl.refreshing`에 직접 연결한 별도 UI 문제였고 2026-07-29
+  해결했다. 원인, 상태 경계, 회귀 검증은
+  [iOS 뒤로가기 후 채팅 목록 스피너 고착](../../ios-refresh-control-navigation.md)에
+  남긴다.
