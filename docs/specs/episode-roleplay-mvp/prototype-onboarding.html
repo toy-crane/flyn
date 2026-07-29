@@ -137,10 +137,12 @@
     background: var(--surface); border-radius: var(--radius); padding: 13px 14px }
   .with-prefix .prefix { color: var(--muted); font-size: 15px; margin-right: 2px }
   .with-prefix .val { font-size: 15px; flex: 1 }
+  /* 문제일 때만 테두리를 칠한다. 사용 가능은 사건이 아니라 기본 상태라
+     체크 하나로 알린다 — 색만으로 구분하지 않도록 모양이 신호를 진다. */
   .with-prefix.bad { border-color: var(--app-danger) }
-  .with-prefix.ok { border-color: var(--app-success) }
+  .with-prefix .ck { color: var(--app-success); font-weight: 600 }
+  .with-prefix .mk { color: var(--app-danger); font-weight: 600 }
   .avail { font-size: 13px; margin-top: 6px }
-  .avail.ok { color: var(--app-success) }
   .avail.bad { color: var(--app-danger) }
   .suggests { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px }
   .suggests .s { border: 1px solid var(--line); background: var(--surface);
@@ -267,15 +269,14 @@
     <div class="field" data-component="new:UsernameField">
       <div class="field-label">아이디</div>
 
-      <div class="with-prefix ok" data-when="사용 가능,저장 실패">
-        <span class="prefix">@</span><span class="val">alwaysfun2183</span><span>✓</span>
+      <div class="with-prefix" data-when="사용 가능,저장 실패">
+        <span class="prefix">@</span><span class="val">alwaysfun2183</span><span class="ck">✓</span>
       </div>
-      <div class="avail ok" data-when="사용 가능,저장 실패">쓸 수 있는 아이디예요.</div>
 
       <div class="with-prefix bad" data-when="중복">
-        <span class="prefix">@</span><span class="val">hanul</span><span>!</span>
+        <span class="prefix">@</span><span class="val">hanul</span><span class="mk">!</span>
       </div>
-      <div class="avail bad" data-when="중복">이미 쓰고 있는 아이디예요.</div>
+      <div class="avail bad" data-when="중복">이미 쓰고 있어요.</div>
       <div class="suggests" data-when="중복" data-component="new:UsernameSuggestions">
         <span class="s">@hanul-2</span>
         <span class="s">@hanul-kim</span>
