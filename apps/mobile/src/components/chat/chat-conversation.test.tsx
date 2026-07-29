@@ -151,6 +151,9 @@ describe("채팅방 상세 대화", () => {
 
     const list = screen.getByTestId("chat-message-list");
 
+    expect(list.props.contentContainerStyle).toEqual(
+      expect.objectContaining({ paddingBottom: 16 })
+    );
     expect(list.props.keyboardDismissMode).toBe("interactive");
     expect(list.props.maintainVisibleContentPosition).toBeTruthy();
   });

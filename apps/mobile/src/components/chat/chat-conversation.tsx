@@ -281,7 +281,7 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
         >
           <LegendList
             contentContainerStyle={{
-              paddingBottom: 8,
+              paddingBottom: 16,
               paddingHorizontal: 16,
               paddingTop: 16,
             }}
