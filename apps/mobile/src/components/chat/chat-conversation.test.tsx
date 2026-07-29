@@ -106,7 +106,6 @@ function controller(overrides: Partial<ChatController> = {}): ChatController {
   return {
     error: null,
     input: "",
-    isGenerating: false,
     messages: [
       {
         content: "사용자 질문",
@@ -124,6 +123,7 @@ function controller(overrides: Partial<ChatController> = {}): ChatController {
     onRetry: jest.fn(),
     onSend: jest.fn(),
     setInput: jest.fn(),
+    status: "ready",
     stop: jest.fn(),
     streamingStore: {
       get: () => "",
@@ -151,6 +151,9 @@ describe("채팅방 상세 대화", () => {
 
     const list = screen.getByTestId("chat-message-list");
 
+    expect(list.props.contentContainerStyle).toEqual(
+      expect.objectContaining({ paddingBottom: 16 })
+    );
     expect(list.props.keyboardDismissMode).toBe("interactive");
     expect(list.props.maintainVisibleContentPosition).toBeTruthy();
   });
@@ -190,12 +193,11 @@ describe("채팅방 상세 대화", () => {
     expect(onSend).toHaveBeenCalled();
   });
 
-  it("생성 중에는 전송 대신 중단 action을 보여준다", async () => {
+  it("스트리밍 중에는 전송 대신 중단 action을 보여준다", async () => {
     const stop = jest.fn();
     await render(
       <ChatConversation
         chat={controller({
-          isGenerating: true,
           messages: [
             {
               content: "질문",
@@ -210,6 +212,7 @@ describe("채팅방 상세 대화", () => {
               status: "complete",
             },
           ],
+          status: "streaming",
           stop,
         })}
       />
@@ -219,6 +222,77 @@ describe("채팅방 상세 대화", () => {
 
     expect(stop).toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: "메시지 보내기" })).toBeNull();
+  });
+
+  it("첫 AI 텍스트 전에는 대화 영역에 응답 생성 스피너를 보여준다", async () => {
+    await render(
+      <ChatConversation
+        chat={controller({
+          messages: [
+            {
+              content: "",
+              id: "assistant-stream",
+              role: "assistant",
+              status: "complete",
+            },
+          ],
+          status: "submitted",
+        })}
+      />
+    );
+
+    expect(screen.getByLabelText("응답 생성 중")).toHaveStyle({
+      alignSelf: "flex-start",
+      marginLeft: 8,
+    });
+    expect(screen.queryByText("…")).toBeNull();
+    expect(screen.queryByText("\u258c")).toBeNull();
+  });
+
+  it("요청 대기 중에는 composer 스피너로 중단 action을 제공한다", async () => {
+    const stop = jest.fn();
+    await render(
+      <ChatConversation
+        chat={controller({
+          status: "submitted",
+          stop,
+        })}
+      />
+    );
+
+    expect(screen.getByTestId("composer-submit-spinner")).toBeTruthy();
+    fireEvent.press(screen.getByRole("button", { name: "응답 중단" }));
+
+    expect(stop).toHaveBeenCalled();
+    expect(screen.queryByText("stop.fill")).toBeNull();
+  });
+
+  it("첫 AI 텍스트가 오면 대화 스피너와 cursor 없이 응답만 보여준다", async () => {
+    await render(
+      <ChatConversation
+        chat={controller({
+          messages: [
+            {
+              content: "",
+              id: "assistant-stream",
+              role: "assistant",
+              status: "complete",
+            },
+          ],
+          status: "streaming",
+          streamingStore: {
+            get: () => "첫 응답",
+            set: jest.fn(),
+            subscribe: () => () => undefined,
+          },
+        })}
+      />
+    );
+
+    expect(screen.getByText("첫 응답")).toBeTruthy();
+    expect(screen.queryByTestId("assistant-response-spinner")).toBeNull();
+    expect(screen.queryByText("\u258c")).toBeNull();
+    expect(screen.getByText("stop.fill")).toBeTruthy();
   });
 
   it("중단 저장된 AI 응답에는 중단됨을 표시한다", async () => {
@@ -255,5 +329,24 @@ describe("채팅방 상세 대화", () => {
     fireEvent.press(screen.getByRole("button", { name: "다시 시도" }));
 
     expect(onRetry).toHaveBeenCalled();
+  });
+
+  it("모델 오류 중에도 새 입력은 일반 전송 버튼으로 보낼 수 있다", async () => {
+    const onSend = jest.fn();
+    await render(
+      <ChatConversation
+        chat={controller({
+          error: new Error("gateway failed"),
+          input: "새 질문",
+          onSend,
+          status: "error",
+        })}
+      />
+    );
+
+    expect(screen.queryByTestId("composer-submit-spinner")).toBeNull();
+    fireEvent.press(screen.getByRole("button", { name: "메시지 보내기" }));
+
+    expect(onSend).toHaveBeenCalled();
   });
 });
