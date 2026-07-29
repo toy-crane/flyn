@@ -13,6 +13,9 @@ node_modules/
 # turborepo
 .turbo/
 
+# local QA artifacts
+dogfood-output/
+
 # expo
 .expo/
 apps/*/ios/
