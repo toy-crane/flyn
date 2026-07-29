@@ -13,6 +13,12 @@
       "skillPath": "skills/agent-device/SKILL.md",
       "computedHash": "d657c8afba370ee63a838f53b066bbb3d7f113d818c7087f54e818986c8940fc"
     },
+    "ai-sdk": {
+      "source": "vercel/ai",
+      "sourceType": "github",
+      "skillPath": "skills/use-ai-sdk/SKILL.md",
+      "computedHash": "da25c27a274ef2b71017c255f95a26350d2519765a75cb54ee1a37872b121dab"
+    },
     "build-prototype": {
       "source": "toy-crane/skills",
       "sourceType": "github",
