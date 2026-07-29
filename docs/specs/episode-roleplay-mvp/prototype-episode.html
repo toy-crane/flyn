@@ -1,9 +1,10 @@
 <!--
-  flyn 에피소드 롤플레이 MVP 프로토타입 — 스켈레톤 패스(회색).
+  flyn 에피소드 프로토타입. 홈(날짜별 기록) → 위저드 → 대화·첨삭 → 총평.
+  온보딩은 prototype-onboarding.html 에 따로 있다.
   spec: docs/specs/episode-roleplay-mvp/spec.md
 -->
 <meta charset="utf-8">
-<title>flyn proto</title>
+<title>flyn 에피소드</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   /* ── project tokens ───────────────────────────────────────────────
@@ -116,6 +117,10 @@
     font-size: 14px; color: var(--muted) }
 
   .step-no { font-size: 12px; color: var(--muted) }
+  .field-label { font-size: 13px; color: var(--muted); margin-bottom: 6px }
+  .text-input { border: 1px solid var(--line); background: var(--surface);
+    border-radius: var(--radius); padding: 13px 14px; font-size: 15px;
+    color: var(--placeholder) }
   .big-title { font-size: 22px; font-weight: 700; line-height: 1.3; margin: 2px 0 0 }
   .sub { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 0 }
 
@@ -124,6 +129,10 @@
     margin-top: auto }
   .ghost { display: block; text-align: center; background: none; color: var(--muted);
     border: 1px dashed var(--line); border-radius: var(--radius); padding: 11px; font-size: 13px }
+  .bottom-actions { margin-top: auto; display: flex; flex-direction: column; gap: 4px }
+  .bottom-actions .cta { margin-top: 0 }
+  .text-action { display: block; text-align: center; color: var(--accent);
+    font-size: 17px; padding: 12px }
 
   .card { background: var(--surface); border: 1px solid var(--line);
     border-radius: var(--radius); padding: 14px }
@@ -205,43 +214,6 @@
 </header>
 
 <main class="sh-stage">
-
-  <!-- ── 온보딩 · 관심 분야 ─────────────────────────────────────────── -->
-  <section data-screen="ob-interests" data-title="온보딩·관심" class="screen">
-    <div class="topbar"><span class="step-no">온보딩 2/3</span></div>
-    <h1 class="big-title">어떤 이야기가<br>재밌나요?</h1>
-    <p class="sub">고른 분야에서 에피소드 스토리를 만들어요. 여러 개 골라도 돼요.</p>
-    <div class="chip-grid" data-component="new:InterestChips">
-      <span class="chip">로맨스</span>
-      <span class="chip sel">미스터리·스릴러</span>
-      <span class="chip sel">판타지·SF</span>
-      <span class="chip">오피스 드라마</span>
-      <span class="chip">여행 어드벤처</span>
-      <span class="chip">스포츠</span>
-      <span class="chip">연예·덕질</span>
-      <span class="chip">일상 코미디</span>
-    </div>
-    <a class="cta" href="#ob-level" data-component="Button">레벨 고르기</a>
-  </section>
-
-  <!-- ── 온보딩 · 레벨 ──────────────────────────────────────────────── -->
-  <section data-screen="ob-level" data-title="온보딩·레벨" class="screen">
-    <div class="topbar"><a class="back" href="#ob-interests">←</a><span class="step-no">온보딩 3/3</span></div>
-    <h1 class="big-title">영어, 지금<br>어디쯤인가요?</h1>
-    <p class="sub">에피소드 난이도와 첨삭 말투에만 써요. 언제든 바꿀 수 있어요.</p>
-    <a class="option-card" href="#home" data-component="new:LevelOption">
-      <div class="name">이제 시작</div>
-      <div class="desc">영어로 문장을 만드는 게 아직 어려워요.</div>
-    </a>
-    <a class="option-card" href="#home" data-component="new:LevelOption">
-      <div class="name">간단한 문장</div>
-      <div class="desc">하고 싶은 말을 단순하게는 쓸 수 있어요.</div>
-    </a>
-    <a class="option-card" href="#home" data-component="new:LevelOption">
-      <div class="name">표현 다듬기</div>
-      <div class="desc">뜻은 통하는데 표현을 다듬고 싶어요.</div>
-    </a>
-  </section>
 
   <!-- ── 홈 · 날짜별 기록 ───────────────────────────────────────────── -->
   <section data-screen="home" data-title="홈" data-states="기본,진행중,빈날" class="screen">
