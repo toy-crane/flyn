@@ -223,8 +223,9 @@ DB schema를 바꾸지 않으므로 `db:reset`과 `db:test`는 이 변경의 필
 - 캐시 격리 뒤에도 Worklets mismatch가 재현되면 JavaScript 의존성과 해당
   simulator의 native development build 버전을 먼저 대조한다. 확인 없이
   Worklets 버전을 올리지 않는다.
-- API 응답은 정상인데 홈 spinner만 계속 남으면
-  `rooms.isFetching`을 전체 중앙 spinner와 pull-to-refresh에 함께 쓰는 현재 UI를
-  별도 신뢰성 작업으로 분리한다.
+- API 응답은 정상인데 홈 spinner만 계속 남던 문제는 별도 신뢰성 작업에서
+  해결했다. 재현 조건과 회귀 진단은
+  [iOS 뒤로가기 후 채팅 목록 스피너 고착](../../ios-refresh-control-navigation.md)을
+  따른다.
 - 공유 Supabase에서 데이터 경합이 실제 반복되면 그 증거로만 워크트리별
   Supabase 스펙을 다시 연다. 이번 구현에는 미리 넣지 않는다.
