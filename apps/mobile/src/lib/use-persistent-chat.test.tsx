@@ -233,6 +233,54 @@ describe("영구 채팅 controller", () => {
     expect(mockInvalidateQueries).toHaveBeenCalled();
   });
 
+  it("오류 응답을 다시 시도하면 같은 ID의 중단 표시를 제거한다", async () => {
+    const assistant = {
+      id: "new-assistant",
+      parts: [{ text: "실패한 부분 응답", type: "text" }],
+      role: "assistant",
+    };
+    let state = chatState({
+      messages: [assistant],
+      status: "streaming",
+    });
+    mockUseChat.mockImplementation(() => state);
+    const { rerender, result } = await renderHook(() =>
+      usePersistentChat("room-1", "account-1", STORED_MESSAGES)
+    );
+    const options = mockUseChat.mock.calls[0]?.[0];
+
+    await act(async () => {
+      options.onFinish({
+        isAbort: false,
+        isDisconnect: false,
+        isError: true,
+        message: assistant,
+        messages: [assistant],
+      });
+      state = chatState({
+        error: new Error("failed"),
+        messages: [assistant],
+        status: "error",
+      });
+      await rerender({});
+    });
+
+    expect(result.current.messages[0]).toMatchObject({
+      id: "new-assistant",
+      status: "stopped",
+    });
+
+    await act(() => {
+      result.current.onRetry();
+    });
+
+    expect(regenerate).toHaveBeenCalled();
+    expect(result.current.messages[0]).toMatchObject({
+      id: "new-assistant",
+      status: "complete",
+    });
+  });
+
   it("본문 없이 abort된 assistant는 화면에 남기지 않는다", async () => {
     const emptyAssistant = {
       id: "empty-assistant",

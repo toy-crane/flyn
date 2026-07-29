@@ -42,6 +42,10 @@ export interface ChatMessage {
 }
 
 export interface ChatRepository {
+  deleteStoppedAssistantMessage: (
+    roomId: string,
+    messageId: string
+  ) => Promise<void>;
   findMessage: (
     roomId: string,
     messageId: string
@@ -223,7 +227,7 @@ export async function respondToChatMessage({
     }
   }
 
-  const messages = await repository.listMessages(roomId);
+  let messages = await repository.listMessages(roomId);
   const firstUserMessage = messages.find((message) => message.role === "user");
 
   if (
@@ -250,13 +254,18 @@ export async function respondToChatMessage({
       throw new ChatHttpError(409, "응답 메시지 ID가 충돌했습니다.");
     }
 
-    return withStreamingHeaders(
-      await dependencies.model.replay({
-        assistantMessageId,
-        status: existingAssistant.status,
-        text: existingAssistant.content,
-      })
-    );
+    if (existingAssistant.status === "complete") {
+      return withStreamingHeaders(
+        await dependencies.model.replay({
+          assistantMessageId,
+          status: existingAssistant.status,
+          text: existingAssistant.content,
+        })
+      );
+    }
+
+    await repository.deleteStoppedAssistantMessage(roomId, assistantMessageId);
+    messages = messages.filter((message) => message.id !== assistantMessageId);
   }
 
   try {
@@ -296,6 +305,20 @@ class SupabaseChatRepository implements ChatRepository {
 
   constructor(client: SupabaseContext<Database>["supabaseAdmin"]) {
     this.client = client;
+  }
+
+  async deleteStoppedAssistantMessage(roomId: string, messageId: string) {
+    const { error } = await this.client
+      .from("chat_messages")
+      .delete()
+      .eq("chat_room_id", roomId)
+      .eq("id", messageId)
+      .eq("role", "assistant")
+      .eq("status", "stopped");
+
+    if (error) {
+      throw error;
+    }
   }
 
   async findOwnedRoom(roomId: string, userId: string) {
