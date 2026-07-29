@@ -178,15 +178,18 @@ export function usePersistentChat(
   });
   const isGenerating =
     chat.status === "submitted" || chat.status === "streaming";
+  const lastMessage = chat.messages.at(-1);
+  const activeAssistant =
+    lastMessage?.role === "assistant" ? lastMessage : undefined;
   const lastAssistant = chat.messages.findLast(
     (message) => message.role === "assistant"
   );
 
   useEffect(() => {
     if (isGenerating) {
-      streamingStore.set(lastAssistant ? messageText(lastAssistant) : "");
+      streamingStore.set(activeAssistant ? messageText(activeAssistant) : "");
     }
-  }, [isGenerating, lastAssistant, streamingStore]);
+  }, [activeAssistant, isGenerating, streamingStore]);
 
   const messages = useMemo(
     () =>
@@ -233,11 +236,11 @@ export function usePersistentChat(
   return {
     error: chat.error ?? null,
     input,
-    isGenerating,
     messages,
     onRetry,
     onSend,
     setInput,
+    status: chat.status,
     stop,
     streamingStore,
   };

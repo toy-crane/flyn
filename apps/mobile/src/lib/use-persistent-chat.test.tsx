@@ -129,6 +129,40 @@ describe("영구 채팅 transport", () => {
 });
 
 describe("영구 채팅 controller", () => {
+  it("요청 대기 상태를 보존하고 이전 AI 응답을 새 대기 행에 재사용하지 않는다", async () => {
+    mockUseChat.mockReturnValue(
+      chatState({
+        messages: [
+          {
+            id: "old-assistant",
+            parts: [{ text: "이전 답변", type: "text" }],
+            role: "assistant",
+          },
+          {
+            id: "new-user",
+            parts: [{ text: "새 질문", type: "text" }],
+            role: "user",
+          },
+        ],
+        status: "submitted",
+      })
+    );
+
+    const { result } = await renderHook(() =>
+      usePersistentChat("room-1", "account-1", STORED_MESSAGES)
+    );
+
+    await waitFor(() => {
+      expect(result.current.streamingStore.get()).toBe("");
+    });
+    expect(result.current.status).toBe("submitted");
+    expect(result.current.messages.at(-1)).toMatchObject({
+      content: "",
+      id: "pending-assistant-new-user",
+      role: "assistant",
+    });
+  });
+
   it("생성 중에는 streaming store만 갱신한다", async () => {
     const state = chatState({
       messages: [

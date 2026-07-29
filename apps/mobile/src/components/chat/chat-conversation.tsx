@@ -1,9 +1,11 @@
 import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
+import type { ChatStatus } from "ai";
 import { BlurView } from "expo-blur";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { SymbolView } from "expo-symbols";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -34,17 +36,21 @@ export interface DisplayChatMessage {
 export interface ChatController {
   error: Error | null;
   input: string;
-  isGenerating: boolean;
   messages: DisplayChatMessage[];
   onRetry: () => void;
   onSend: () => void;
   setInput: (value: string) => void;
+  status: ChatStatus;
   stop: () => void;
   streamingStore: StreamingStore;
 }
 
 function messageKey(message: DisplayChatMessage) {
   return message.id;
+}
+
+function isGeneratingStatus(status: ChatStatus) {
+  return status === "submitted" || status === "streaming";
 }
 
 function UserMessage({ content }: { content: string }) {
@@ -79,7 +85,7 @@ function AssistantMessage({
       {streaming ? (
         <StreamingMessage store={streamingStore} />
       ) : (
-        <ChatMarkdown>{content || "…"}</ChatMarkdown>
+        <ChatMarkdown>{content}</ChatMarkdown>
       )}
       {status === "stopped" ? (
         <Text className="mt-1 text-[12px] text-muted-foreground">중단됨</Text>
@@ -121,9 +127,10 @@ function Composer({
 }) {
   const theme = useAppTheme();
   const canSend = chat.input.trim().length > 0;
-  const actionLabel = chat.isGenerating ? "응답 중단" : "메시지 보내기";
-  const disabled = !(chat.isGenerating || canSend);
-  const handleAction = chat.isGenerating ? chat.stop : chat.onSend;
+  const isGenerating = isGeneratingStatus(chat.status);
+  const actionLabel = isGenerating ? "응답 중단" : "메시지 보내기";
+  const disabled = !(isGenerating || canSend);
+  const handleAction = isGenerating ? chat.stop : chat.onSend;
 
   return (
     <View
@@ -177,14 +184,23 @@ function Composer({
             opacity: disabled ? 0.7 : 1,
           }}
         >
-          <SymbolView
-            name={chat.isGenerating ? "stop.fill" : "arrow.up"}
-            size={17}
-            tintColor={
-              disabled ? theme.disabledForeground : theme.primaryForeground
-            }
-            weight="semibold"
-          />
+          {chat.status === "submitted" ? (
+            <ActivityIndicator
+              accessible={false}
+              color={theme.primaryForeground}
+              size="small"
+              testID="composer-submit-spinner"
+            />
+          ) : (
+            <SymbolView
+              name={chat.status === "streaming" ? "stop.fill" : "arrow.up"}
+              size={17}
+              tintColor={
+                disabled ? theme.disabledForeground : theme.primaryForeground
+              }
+              weight="semibold"
+            />
+          )}
         </Pressable>
       </ComposerSurface>
     </View>
@@ -233,7 +249,7 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
       }
 
       const streaming =
-        chat.isGenerating &&
+        isGeneratingStatus(chat.status) &&
         index === chat.messages.length - 1 &&
         item.content.length === 0;
 
@@ -246,7 +262,7 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
         />
       );
     },
-    [chat.isGenerating, chat.messages.length, chat.streamingStore]
+    [chat.messages.length, chat.status, chat.streamingStore]
   );
 
   return (
