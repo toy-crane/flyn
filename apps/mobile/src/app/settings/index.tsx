@@ -1,4 +1,4 @@
-import { Column, FieldGroup, Host, Icon, ListItem, Row, Text } from "@expo/ui";
+import { Column, FieldGroup, Host, ListItem, Row, Text } from "@expo/ui";
 import { ProgressView } from "@expo/ui/swift-ui";
 import {
   font,
@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, View } from "react-native";
 import { ProfileAvatar } from "../../components/profile/profile-avatar";
+import { NativeSymbol } from "../../components/symbols/native-symbol";
 import { deleteAccount } from "../../lib/account";
 import { signOut } from "../../lib/auth/sign-out";
 import { useProfile } from "../../lib/use-profile";
@@ -173,10 +174,9 @@ export default function SettingsScreen() {
               trailing={
                 <Row alignment="center" spacing={6}>
                   <Value>{displayName}</Value>
-                  <Icon
+                  <NativeSymbol
                     color={app.mutedForeground}
-                    modifiers={[font({ size: 14, weight: "medium" })]}
-                    name="chevron.right"
+                    symbol="disclosure"
                   />
                 </Row>
               }
