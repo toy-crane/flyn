@@ -33,7 +33,8 @@
 4. 사용자 메시지는 즉시 우측 말풍선에 보이고 AI 응답은 전체 폭 Markdown으로
    스트리밍된다.
 5. 사용자가 위쪽 기록을 읽고 있으면 새 토큰이 위치를 빼앗지 않는다. 맨 아래에
-   있을 때만 스트림을 따라간다.
+   있을 때만 스트림을 따라가며, 구체적인 화면 동작은
+   [AI 채팅 스트리밍 스크롤 안정화](../ai-chat-scroll-stability/spec.md)를 따른다.
 6. 생성 상태는 [AI 채팅 생성 상태 피드백](../ai-chat-generation-feedback/spec.md)에
    따라 전송, 첫 응답 대기와 스트리밍 중단을 구분한다. 중단 시 이미 받은 내용은
    `중단됨` 메시지로 저장된다.
@@ -105,8 +106,9 @@
 - 자기 채팅방 생성·목록·상세·삭제와 메시지 영구 저장이 동작한다.
 - AI 응답이 실제 Gateway에서 스트리밍되고 중단·오류 상태가 정의대로 남는다.
 - 다른 사용자의 방과 메시지는 읽거나 바꿀 수 없다.
-- light/dark, keyboard interactive dismissal, 자동 스크롤, 설정 진입이 실제
-  iOS 시뮬레이터에서 확인된다.
+- light/dark, keyboard interactive dismissal,
+  [자동 스크롤](../ai-chat-scroll-stability/spec.md), 설정 진입이 실제 iOS
+  시뮬레이터에서 확인된다.
 - `bun run check`, `bun run db:reset`, `bun run db:test`가 통과한다.
 
 ## 가정과 남은 위험
