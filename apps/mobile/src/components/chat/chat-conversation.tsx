@@ -7,6 +7,7 @@ import { type ReactNode, useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
@@ -211,15 +212,19 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
   const listRef = useRef<LegendListRef>(null);
-  const atBottom = useRef(true);
+  const [listViewportHeight, setListViewportHeight] = useState(0);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const maintainScrollAtEndThreshold =
+    listViewportHeight > 0
+      ? Math.min(1, BOTTOM_THRESHOLD / listViewportHeight)
+      : 0.1;
 
   const scrollToBottom = useCallback(() => {
-    atBottom.current = true;
-    setShowScrollButton(false);
-    requestAnimationFrame(() => {
-      listRef.current?.scrollToEnd({ animated: true });
-    });
+    listRef.current?.scrollToEnd({ animated: true });
+  }, []);
+
+  const handleViewportLayout = useCallback((event: LayoutChangeEvent) => {
+    setListViewportHeight(event.nativeEvent.layout.height);
   }, []);
 
   const handleScroll = useCallback(
@@ -230,17 +235,10 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
         contentSize.height - layoutMeasurement.height - contentOffset.y;
       const nextAtBottom = distance <= BOTTOM_THRESHOLD;
 
-      atBottom.current = nextAtBottom;
       setShowScrollButton(!nextAtBottom);
     },
     []
   );
-
-  const handleContentSizeChange = useCallback(() => {
-    if (atBottom.current) {
-      scrollToBottom();
-    }
-  }, [scrollToBottom]);
 
   const renderMessage = useCallback(
     ({ item, index }: { index: number; item: DisplayChatMessage }) => {
@@ -279,19 +277,47 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
           style={{ flex: 1 }}
           textInputNativeID={COMPOSER_NATIVE_ID}
         >
-          <LegendList
-            contentContainerStyle={{
-              paddingBottom: 16,
-              paddingHorizontal: 16,
-              paddingTop: 16,
-            }}
-            data={chat.messages}
-            estimatedItemSize={84}
-            keyboardDismissMode="interactive"
-            keyboardShouldPersistTaps="handled"
-            keyExtractor={messageKey}
-            ListEmptyComponent={
-              <View className="flex-1 items-center justify-center gap-2 px-6 py-24">
+          <View
+            className="min-h-0 flex-1"
+            onLayout={handleViewportLayout}
+            testID="chat-message-viewport"
+          >
+            <LegendList
+              contentContainerStyle={{
+                paddingBottom: 16,
+                paddingHorizontal: 16,
+                paddingTop: 16,
+              }}
+              data={chat.messages}
+              estimatedItemSize={84}
+              initialScrollAtEnd
+              keyboardDismissMode="interactive"
+              keyboardShouldPersistTaps="handled"
+              keyExtractor={messageKey}
+              maintainScrollAtEnd={{
+                animated: false,
+                on: {
+                  dataChange: true,
+                  itemLayout: true,
+                  layout: true,
+                },
+              }}
+              maintainScrollAtEndThreshold={maintainScrollAtEndThreshold}
+              onScroll={handleScroll}
+              recycleItems
+              ref={listRef}
+              renderItem={renderMessage}
+              scrollEventThrottle={16}
+              style={{ flex: 1, minHeight: 0 }}
+              testID="chat-message-list"
+            />
+
+            {chat.messages.length === 0 ? (
+              <View
+                className="absolute inset-0 items-center justify-center gap-2 px-6"
+                pointerEvents="none"
+                testID="chat-empty-state"
+              >
                 <Text className="font-semibold text-[22px] text-foreground">
                   무엇이든 물어보세요
                 </Text>
@@ -299,38 +325,33 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
                   메시지는 이 채팅방에 안전하게 저장돼요.
                 </Text>
               </View>
-            }
-            maintainVisibleContentPosition
-            onContentSizeChange={handleContentSizeChange}
-            onScroll={handleScroll}
-            recycleItems
-            ref={listRef}
-            renderItem={renderMessage}
-            scrollEventThrottle={16}
-            style={{ flex: 1, minHeight: 0 }}
-            testID="chat-message-list"
-          />
+            ) : null}
+
+            {showScrollButton ? (
+              <Pressable
+                accessibilityLabel="맨 아래로"
+                accessibilityRole="button"
+                className="absolute min-h-11 min-w-11 items-center justify-center rounded-full bg-surface"
+                onPress={scrollToBottom}
+                style={{
+                  bottom: 16,
+                  left: "50%",
+                  transform: [{ translateX: -22 }],
+                }}
+              >
+                <SymbolView
+                  name="chevron.down"
+                  size={16}
+                  tintColor={theme.mutedForeground}
+                  weight="semibold"
+                />
+              </Pressable>
+            ) : null}
+          </View>
 
           <Composer bottomInset={insets.bottom} chat={chat} />
         </KeyboardGestureArea>
       </KeyboardAvoidingView>
-
-      {showScrollButton ? (
-        <Pressable
-          accessibilityLabel="맨 아래로"
-          accessibilityRole="button"
-          className="absolute right-4 min-h-11 min-w-11 items-center justify-center rounded-full bg-surface"
-          onPress={scrollToBottom}
-          style={{ bottom: Math.max(insets.bottom, 8) + 76 }}
-        >
-          <SymbolView
-            name="chevron.down"
-            size={16}
-            tintColor={theme.mutedForeground}
-            weight="semibold"
-          />
-        </Pressable>
-      ) : null}
     </View>
   );
 }

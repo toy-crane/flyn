@@ -1,4 +1,11 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native";
+
+const mockScrollToEnd = jest.fn();
 
 jest.mock(
   "@legendapp/list/react-native",
@@ -22,7 +29,7 @@ jest.mock(
           ref: unknown
         ) => {
           ReactRuntime.useImperativeHandle(ref, () => ({
-            scrollToEnd: jest.fn(),
+            scrollToEnd: mockScrollToEnd,
           }));
 
           return ReactRuntime.createElement(
@@ -135,6 +142,10 @@ function controller(overrides: Partial<ChatController> = {}): ChatController {
 }
 
 describe("채팅방 상세 대화", () => {
+  beforeEach(() => {
+    mockScrollToEnd.mockClear();
+  });
+
   it("사용자 말풍선과 전체 폭 AI 응답을 함께 보여준다", async () => {
     await render(<ChatConversation chat={controller()} />);
 
@@ -146,7 +157,7 @@ describe("채팅방 상세 대화", () => {
     expect(screen.getByTestId("assistant-message")).toBeTruthy();
   });
 
-  it("메시지 목록은 가상화·interactive keyboard dismissal 설정을 가진다", async () => {
+  it("맨 아래에서는 목록이 스트리밍 높이 변화를 애니메이션 없이 따라간다", async () => {
     await render(<ChatConversation chat={controller()} />);
 
     const list = screen.getByTestId("chat-message-list");
@@ -155,7 +166,92 @@ describe("채팅방 상세 대화", () => {
       expect.objectContaining({ paddingBottom: 16 })
     );
     expect(list.props.keyboardDismissMode).toBe("interactive");
-    expect(list.props.maintainVisibleContentPosition).toBeTruthy();
+    expect(list.props.initialScrollAtEnd).toBe(true);
+    expect(list.props.maintainScrollAtEnd).toEqual({
+      animated: false,
+      on: {
+        dataChange: true,
+        itemLayout: true,
+        layout: true,
+      },
+    });
+    expect(list.props.maintainVisibleContentPosition).toBeUndefined();
+    expect(list.props.onContentSizeChange).toBeUndefined();
+  });
+
+  it("목록 높이에 상관없이 맨 아래 72pt를 자동 추적 범위로 사용한다", async () => {
+    await render(<ChatConversation chat={controller()} />);
+
+    await fireEvent(screen.getByTestId("chat-message-viewport"), "onLayout", {
+      nativeEvent: {
+        layout: { height: 360, width: 390, x: 0, y: 0 },
+      },
+    });
+
+    expect(
+      screen.getByTestId("chat-message-list").props.maintainScrollAtEndThreshold
+    ).toBeCloseTo(0.2);
+  });
+
+  it("중앙 버튼으로 맨 아래에 도착한 뒤 자동 추적 상태로 돌아간다", async () => {
+    await render(<ChatConversation chat={controller()} />);
+
+    const list = screen.getByTestId("chat-message-list");
+    await fireEvent(list, "onScroll", {
+      nativeEvent: {
+        contentOffset: { x: 0, y: 0 },
+        contentSize: { height: 500, width: 390 },
+        layoutMeasurement: { height: 300, width: 390 },
+      },
+    });
+
+    const viewport = screen.getByTestId("chat-message-viewport");
+    const button = within(viewport).getByRole("button", {
+      name: "맨 아래로",
+    });
+
+    expect(button).toHaveStyle({
+      bottom: 16,
+      left: "50%",
+      transform: [{ translateX: -22 }],
+    });
+
+    await fireEvent.press(button);
+
+    expect(mockScrollToEnd).toHaveBeenCalledWith({ animated: true });
+    expect(
+      within(viewport).getByRole("button", { name: "맨 아래로" })
+    ).toBeTruthy();
+
+    await fireEvent(list, "onScroll", {
+      nativeEvent: {
+        contentOffset: { x: 0, y: 150 },
+        contentSize: { height: 500, width: 390 },
+        layoutMeasurement: { height: 300, width: 390 },
+      },
+    });
+
+    expect(
+      within(viewport).queryByRole("button", { name: "맨 아래로" })
+    ).toBeNull();
+  });
+
+  it("빈 안내는 목록 높이에 참여하지 않는 overlay로 표시한다", async () => {
+    const { rerender } = await render(
+      <ChatConversation chat={controller({ messages: [] })} />
+    );
+
+    const list = screen.getByTestId("chat-message-list");
+    const viewport = screen.getByTestId("chat-message-viewport");
+    const emptyState = within(viewport).getByTestId("chat-empty-state");
+
+    expect(list.props.ListEmptyComponent).toBeUndefined();
+    expect(emptyState.props.pointerEvents).toBe("none");
+    expect(screen.getByText("무엇이든 물어보세요")).toBeTruthy();
+
+    await rerender(<ChatConversation chat={controller()} />);
+
+    expect(screen.queryByTestId("chat-empty-state")).toBeNull();
   });
 
   it("composer가 키보드에 가려지지 않도록 화면 높이를 조정한다", async () => {
