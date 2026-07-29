@@ -5,6 +5,7 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   isTextUIPart,
+  type LanguageModel,
   type ModelMessage,
   streamText,
   toUIMessageStream,
@@ -18,6 +19,11 @@ const SYSTEM_INSTRUCTIONS =
 const MAX_USER_MESSAGE_LENGTH = 4000;
 const MAX_MESSAGE_ID_LENGTH = 128;
 const FIRST_LINE_BREAK = /\r?\n/u;
+const DEFAULT_MODEL_LIMITS = {
+  chunkMs: 20_000,
+  firstChunkMs: 20_000,
+  totalMs: 90_000,
+};
 const STREAM_HEADERS = {
   "Content-Encoding": "none",
   "Content-Type": "application/octet-stream",
@@ -448,14 +454,34 @@ function toUiMessages(messages: ChatMessage[]): UIMessage[] {
   }));
 }
 
+interface GatewayChatModelOptions {
+  limits?: {
+    chunkMs: number;
+    firstChunkMs: number;
+    totalMs: number;
+  };
+  model?: LanguageModel;
+}
+
 class GatewayChatModel implements ChatModel {
+  private readonly configuredModel: LanguageModel | undefined;
+  private readonly limits: NonNullable<GatewayChatModelOptions["limits"]>;
+
+  constructor({
+    limits = DEFAULT_MODEL_LIMITS,
+    model,
+  }: GatewayChatModelOptions = {}) {
+    this.configuredModel = model;
+    this.limits = limits;
+  }
+
   generate({
     assistantMessageId,
     messages,
     onFinish,
     signal,
   }: ChatModelGenerateOptions) {
-    const model = process.env.AI_MODEL?.trim();
+    const model = this.configuredModel ?? process.env.AI_MODEL?.trim();
 
     if (!model) {
       throw new Error("AI_MODEL is not configured");
@@ -464,8 +490,10 @@ class GatewayChatModel implements ChatModel {
     const result = streamText({
       abortSignal: signal,
       instructions: SYSTEM_INSTRUCTIONS,
+      maxOutputTokens: 4000,
       messages: toModelMessages(messages),
       model,
+      timeout: this.limits,
     });
     const stream = toUIMessageStream({
       generateMessageId: () => assistantMessageId,
@@ -519,10 +547,14 @@ class GatewayChatModel implements ChatModel {
   }
 }
 
+export function createGatewayChatModel(options: GatewayChatModelOptions = {}) {
+  return new GatewayChatModel(options);
+}
+
 export function createProductionChatDependencies(): ChatDependencies {
   return {
     createRepository: (context) =>
       new SupabaseChatRepository(context.supabaseAdmin),
-    model: new GatewayChatModel(),
+    model: createGatewayChatModel(),
   };
 }
