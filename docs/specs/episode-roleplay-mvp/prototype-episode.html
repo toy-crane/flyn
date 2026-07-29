@@ -254,7 +254,10 @@
       <p class="sub" style="margin:20px 0">이 날에는 기록이 없어요.</p>
     </div>
 
-    <a class="fab" href="#wz-story" data-component="new:NewEpisodeFab">에피소드 만들기</a>
+    <!-- 진행 중인 에피소드는 하나뿐이라, 있으면 버튼이 그리로 데려간다.
+         막고 알리는 대신 할 수 있는 일을 그대로 보여준다. -->
+    <a class="fab" href="#wz-story" data-when="기본,빈날" data-component="new:NewEpisodeFab">에피소드 만들기</a>
+    <a class="fab" href="#chat" data-when="진행중" data-component="new:NewEpisodeFab">이어서 하기</a>
   </section>
 
   <!-- ── 위저드 1 · 스토리 ─────────────────────────────────────────── -->
