@@ -17,6 +17,10 @@ jest.mock("expo-router", () =>
   require("../../test-support/expo-router").expoRouterMock()
 );
 
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 34, left: 0, right: 0, top: 59 }),
+}));
+
 // jest-expo가 목을 제공하지 않는 네이티브 모듈 — 버튼은 Pressable로 대체한다.
 // buttonType과 cornerRadius를 그대로 실어 보낸다: CONTINUE와 16은 App Store
 // 가이드라인·세트감 요구라 "값이 넘어갔는가"를 단언할 수 있어야 한다.
@@ -190,6 +194,13 @@ describe("SignInScreen", () => {
 
     expect(screen.getByTestId("sign-in-flex-spacer")).toBeTruthy();
     expect(screen.getByTestId("sign-in-actions")).toBeTruthy();
+    expect(screen.getByTestId("sign-in-scroll").props).toMatchObject({
+      contentContainerStyle: {
+        paddingBottom: 42,
+        paddingTop: 83,
+      },
+      contentInsetAdjustmentBehavior: "never",
+    });
   });
 
   it("로그인 중에는 action을 없애지 않고 전체 화면 중앙 progress로 잠근다", async () => {

@@ -14,6 +14,7 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GoogleButton } from "../../components/sign-in/google-button";
 import { signInWithApple } from "../../lib/auth/apple";
 import { signInWithGoogle } from "../../lib/auth/google";
@@ -36,6 +37,7 @@ export default function SignInScreen() {
   const { clearFailure, failure, pending, run } = useAuthAction();
   const router = useRouter();
   const dark = useColorScheme() === "dark";
+  const insets = useSafeAreaInsets();
 
   // 소셜 실패는 폼 검증이 아니라 OS 시트가 닫히면서 돌아오는 모달 흐름의 결과다.
   // 시트가 사라진 자리에서 버튼 아래 작은 빨간 줄은 놓치기 쉬워 iOS 관용은 얼럿이다.
@@ -70,8 +72,13 @@ export default function SignInScreen() {
     <View className="flex-1 bg-background">
       <ScrollView
         className="flex-1"
-        contentContainerClassName="flex-grow px-5 pb-6 pt-10"
-        contentInsetAdjustmentBehavior="automatic"
+        contentContainerClassName="flex-grow px-5"
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 8,
+          paddingTop: insets.top + 24,
+        }}
+        contentInsetAdjustmentBehavior="never"
+        testID="sign-in-scroll"
       >
         <View
           accessibilityElementsHidden={pending}
