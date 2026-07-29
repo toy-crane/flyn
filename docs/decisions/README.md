@@ -18,8 +18,9 @@
 - [ios-only](ios-only.md) — 타깃은 iOS 전용이고 Android·web 폴백을 만들지 않는다.
 - [apple-hig-with-app-theme](apple-hig-with-app-theme.md) — 네이티브 컴포넌트와
   상호작용은 Apple HIG를 따르되, 색은 앱이 소유하는 시맨틱 테마로 관리한다.
-- [expo-ui-by-default](expo-ui-by-default.md) — 새 화면은 universal `@expo/ui`로
-  만들고, 경계가 막는다는 근거가 있는 화면만 RN으로 내려간다.
+- [self-contained-native-ui-boundaries](self-contained-native-ui-boundaries.md) —
+  화면 로직은 React가 소유하고, 네이티브 UI는 하나의 완결된 `Host` subtree로
+  구성하며, 경계가 막는다는 근거가 있는 surface만 RN으로 만든다.
 - [uniwind-css-theme](uniwind-css-theme.md) — 앱 테마의 단일 원본은 Uniwind
   CSS 변수이고, RN은 시맨틱 className을, 네이티브 경계는 같은 변수 값을 쓴다.
 
