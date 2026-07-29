@@ -84,6 +84,10 @@ export function parseDevWorktreeArgs(argv: string[]): DevWorktreeArgs {
       continue;
     }
 
+    if (argument === "--") {
+      continue;
+    }
+
     if (argument === "--slot") {
       const rawSlot = argv[index + 1];
       const slot = Number(rawSlot);

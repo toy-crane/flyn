@@ -59,6 +59,10 @@ describe("dev:worktree 명령 계약", () => {
       dryRun: true,
       slot: 7,
     });
+    expect(parseDevWorktreeArgs(["--", "--slot", "1"])).toEqual({
+      dryRun: false,
+      slot: 1,
+    });
   });
 
   test("잘못된 slot과 알 수 없는 옵션을 거부한다", () => {

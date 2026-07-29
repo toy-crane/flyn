@@ -15,12 +15,8 @@
       "inputs": ["scripts/**/*.ts", "tsconfig.scripts.json"],
       "outputs": []
     },
-    "//#dev:setup": {
-      "cache": false
-    },
     "dev": {
       "cache": false,
-      "dependsOn": ["//#dev:setup"],
       "persistent": true
     },
     "test": {
