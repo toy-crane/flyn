@@ -1,0 +1,519 @@
+<!--
+  flyn 에피소드 롤플레이 MVP 프로토타입 — 스켈레톤 패스(회색).
+  spec: docs/specs/episode-roleplay-mvp/spec.md
+-->
+<meta charset="utf-8">
+<title>flyn proto</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /* ── project tokens: replace this block in the fill pass ─────────── */
+  :root {
+    --background: #f6f6f6;
+    --surface: #ffffff;
+    --foreground: #3a3a3a;
+    --muted: #9a9a9a;
+    --line: #dcdcdc;
+    --accent: #6b6b6b;
+    --radius: 6px;
+    --font: system-ui, sans-serif;
+  }
+
+  /* ── review chrome (sh-*): keep, extend, never strip ─────────────── */
+  * { box-sizing: border-box }
+  body {
+    margin: 0; padding: 0 0 40px;
+    background: var(--background, #f6f6f6); color: var(--foreground, #3a3a3a);
+    font-family: var(--font, system-ui, sans-serif);
+  }
+  .sh-bar {
+    position: sticky; top: 0; z-index: 999;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    padding: 8px 12px; background: #191a1c; color: #d7d7d7;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .sh-bar b { color: #8a8f98; font-weight: 500 }
+  .sh-bar button {
+    border: 1px solid #3a3d42; background: none; color: inherit;
+    font: inherit; padding: 2px 9px; border-radius: 99px; cursor: pointer;
+  }
+  .sh-bar button.on { background: #d7d7d7; color: #191a1c; border-color: #d7d7d7 }
+  #sh-states:not([hidden])::before { content: "state"; color: #8a8f98; margin-right: 4px }
+  .sh-spacer { flex: 1 }
+  .sh-stage { max-width: 960px; margin: 0 auto; padding: 12px 16px 0 }
+  [hidden] { display: none !important }
+
+  .sh-vp-390 .sh-stage {
+    max-width: 390px; background: var(--background, #f6f6f6);
+    border: 10px solid #191a1c; border-radius: 28px;
+    padding: 16px 12px; min-height: 660px; margin-top: 12px;
+  }
+  .sh-vp-768 .sh-stage {
+    max-width: 768px; border: 1px solid #c4c4c4; border-radius: 12px;
+    padding: 16px; margin-top: 12px;
+  }
+
+  .wf-line { height: 10px; border-radius: 4px; background: #e3e3e3; margin: 7px 0 }
+  .wf-pic  { border-radius: 4px; background:
+             repeating-linear-gradient(45deg, #e9e9e9, #e9e9e9 6px, #f2f2f2 6px, #f2f2f2 12px) }
+
+  /* ── prototype structure (skin lives in tokens only) ─────────────── */
+  .screen { display: flex; flex-direction: column; min-height: 620px; gap: 12px }
+  a { color: inherit; text-decoration: none }
+
+  .topbar { display: flex; align-items: center; gap: 10px; min-height: 32px }
+  .topbar .back { font-size: 20px; line-height: 1; padding: 4px 8px 4px 0 }
+  .topbar .bar-title { font-size: 15px; font-weight: 600; flex: 1;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+  .topbar .bar-act { font-size: 13px; color: var(--accent);
+    border: 1px solid var(--line); border-radius: 99px; padding: 4px 10px; background: var(--surface) }
+  .iconbtn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line);
+    background: var(--surface); display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--muted) }
+
+  .step-no { font-size: 12px; color: var(--muted) }
+  .big-title { font-size: 22px; font-weight: 700; line-height: 1.3; margin: 2px 0 0 }
+  .sub { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 0 }
+
+  .cta { display: block; text-align: center; background: var(--accent); color: var(--surface);
+    border: none; border-radius: var(--radius); padding: 14px; font-size: 15px; font-weight: 600;
+    margin-top: auto }
+  .ghost { display: block; text-align: center; background: none; color: var(--muted);
+    border: 1px dashed var(--line); border-radius: var(--radius); padding: 11px; font-size: 13px }
+
+  .card { background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px }
+  .card-label { font-size: 11px; color: var(--muted); margin-bottom: 6px }
+
+  .chip-grid { display: flex; flex-wrap: wrap; gap: 8px }
+  .chip { border: 1px solid var(--line); background: var(--surface); border-radius: 99px;
+    padding: 9px 14px; font-size: 14px }
+  .chip.sel { border-color: var(--foreground); font-weight: 600 }
+
+  .option-card { display: block; background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px }
+  .option-card .tag { font-size: 11px; color: var(--muted); margin-bottom: 4px }
+  .option-card .name { font-size: 15px; font-weight: 600; margin-bottom: 4px }
+  .option-card .desc { font-size: 13px; color: var(--muted); line-height: 1.5 }
+
+  .weekstrip { display: flex; gap: 6px; justify-content: space-between }
+  .day { flex: 1; text-align: center; border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 7px 0; background: var(--surface) }
+  .day .dow { font-size: 10px; color: var(--muted) }
+  .day .num { font-size: 14px; font-weight: 600 }
+  .day.dim { opacity: .45 }
+  .day.on { border-color: var(--foreground) }
+  .date-head { font-size: 12px; color: var(--muted); margin-top: 6px }
+  .epi-meta { font-size: 11px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap }
+  .epi-title { font-size: 15px; font-weight: 600; margin: 5px 0 3px }
+  .epi-sum { font-size: 13px; color: var(--muted); line-height: 1.4 }
+  .badge { font-size: 10px; border: 1px solid var(--line); border-radius: 99px; padding: 2px 8px }
+  .fab { position: sticky; bottom: 12px; margin-left: auto; margin-top: auto;
+    background: var(--foreground); color: var(--surface); border-radius: 99px;
+    padding: 13px 20px; font-size: 15px; font-weight: 600; width: max-content;
+    display: block }
+
+  .goalbar { display: flex; align-items: center; gap: 8px; font-size: 12px }
+  .goalpill { border: 1px solid var(--line); background: var(--surface); border-radius: 99px;
+    padding: 4px 10px; font-weight: 600 }
+  .goal-list { display: flex; flex-direction: column; gap: 8px; font-size: 13px }
+  .goal-list .done { color: var(--muted); text-decoration: line-through }
+
+  .msgs { display: flex; flex-direction: column; gap: 10px; flex: 1 }
+  .bubble { max-width: 82%; padding: 10px 12px; border-radius: 14px; font-size: 14px; line-height: 1.5 }
+  .bubble.ai { align-self: flex-start; background: var(--surface); border: 1px solid var(--line) }
+  .bubble.user { align-self: flex-end; background: var(--accent); color: var(--surface) }
+  .u-wrap { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end;
+    gap: 4px; max-width: 88% }
+  .annot { align-self: flex-end; border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    background: var(--surface); border-radius: var(--radius); padding: 8px 10px; font-size: 12px;
+    line-height: 1.5; color: var(--foreground); display: block }
+  .annot .a-kind { font-size: 10px; color: var(--muted); margin-bottom: 2px }
+  .annot s { color: var(--muted) }
+  .pass-ico { align-self: flex-end; width: 18px; height: 18px; border-radius: 50%;
+    border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+    font-size: 11px; display: flex; align-items: center; justify-content: center }
+  .typing { color: var(--muted); letter-spacing: 3px }
+
+  .inputbar { display: flex; gap: 8px; margin-top: 8px }
+  .inputbar .field { flex: 1; border: 1px solid var(--line); border-radius: 99px;
+    background: var(--surface); padding: 11px 14px; font-size: 13px; color: var(--muted) }
+  .inputbar .send { width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
+    color: var(--surface); display: flex; align-items: center; justify-content: center }
+
+  .kv { display: flex; flex-direction: column; gap: 10px }
+  .kv .row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px }
+  .kv .row .en { font-weight: 600 }
+  .kv .row .ko { color: var(--muted); text-align: right }
+  .fix-row { font-size: 13px; line-height: 1.6 }
+  .note { font-size: 11px; color: var(--muted); text-align: center }
+</style>
+
+<body class="sh-vp-390">
+<header class="sh-bar">
+  <b>proto</b>
+  <nav id="sh-tabs"></nav>
+  <span class="sh-spacer"></span>
+  <span id="sh-states" hidden></span>
+  <button id="sh-vp">vp: full (m)</button>
+</header>
+
+<main class="sh-stage">
+
+  <!-- ── 온보딩 · 관심 분야 ─────────────────────────────────────────── -->
+  <section data-screen="ob-interests" data-title="온보딩·관심" class="screen">
+    <div class="topbar"><span class="step-no">온보딩 2/3</span></div>
+    <h1 class="big-title">어떤 이야기가<br>재밌으세요?</h1>
+    <p class="sub">고른 취향에서 에피소드 스토리가 나와요. 여러 개 골라도 돼요.</p>
+    <div class="chip-grid" data-component="new:InterestChips">
+      <span class="chip">로맨스</span>
+      <span class="chip sel">미스터리·스릴러</span>
+      <span class="chip sel">판타지·SF</span>
+      <span class="chip">오피스 드라마</span>
+      <span class="chip">여행 어드벤처</span>
+      <span class="chip">스포츠</span>
+      <span class="chip">연예·덕질</span>
+      <span class="chip">일상 코미디</span>
+    </div>
+    <a class="cta" href="#ob-level" data-component="Button">다음</a>
+  </section>
+
+  <!-- ── 온보딩 · 레벨 ──────────────────────────────────────────────── -->
+  <section data-screen="ob-level" data-title="온보딩·레벨" class="screen">
+    <div class="topbar"><a class="back" href="#ob-interests">←</a><span class="step-no">온보딩 3/3</span></div>
+    <h1 class="big-title">영어, 지금<br>어디쯤이세요?</h1>
+    <p class="sub">에피소드 난이도와 첨삭 말투에만 써요. 언제든 바꿀 수 있어요.</p>
+    <a class="option-card" href="#home" data-component="new:LevelOption">
+      <div class="name">이제 시작해요</div>
+      <div class="desc">영어 문장을 만드는 게 아직 어려워요</div>
+    </a>
+    <a class="option-card" href="#home" data-component="new:LevelOption">
+      <div class="name">문장은 만들어요</div>
+      <div class="desc">하고 싶은 말을 단순하게는 쓸 수 있어요</div>
+    </a>
+    <a class="option-card" href="#home" data-component="new:LevelOption">
+      <div class="name">자연스럽게 쓰고 싶어요</div>
+      <div class="desc">뜻은 통하는데 표현을 다듬고 싶어요</div>
+    </a>
+  </section>
+
+  <!-- ── 홈 · 날짜별 기록 ───────────────────────────────────────────── -->
+  <section data-screen="home" data-title="홈" data-states="기본,진행중,빈날" class="screen">
+    <div class="topbar">
+      <span class="bar-title">flyn</span>
+      <span class="iconbtn" data-component="Button">⚙</span>
+    </div>
+    <h1 class="big-title">7월 29일</h1>
+    <div class="weekstrip" data-component="new:WeekStrip">
+      <span class="day dim"><div class="dow">월</div><div class="num">27</div></span>
+      <span class="day dim"><div class="dow">화</div><div class="num">28</div></span>
+      <span class="day on"><div class="dow">수</div><div class="num">29</div></span>
+      <span class="day"><div class="dow">목</div><div class="num">30</div></span>
+      <span class="day"><div class="dow">금</div><div class="num">31</div></span>
+      <span class="day"><div class="dow">토</div><div class="num">1</div></span>
+      <span class="day"><div class="dow">일</div><div class="num">2</div></span>
+    </div>
+
+    <div class="date-head" data-when="기본,진행중">오늘 · 7월 29일 수요일</div>
+    <a class="card" href="#chat" data-when="진행중" data-component="new:EpisodeCard">
+      <div class="epi-meta"><span>9:41</span><span class="badge">진행 중</span><span>미스터리·스릴러</span><span>목표 1/3</span></div>
+      <div class="epi-title">심야 편의점의 수상한 손님</div>
+      <div class="epi-sum">이어서 하려면 탭하세요</div>
+    </a>
+    <a class="card" href="#wrapup" data-when="기본,진행중" data-component="new:EpisodeCard">
+      <div class="epi-meta"><span>8:12</span><span>일상 코미디</span><span>목표 3/3</span></div>
+      <div class="epi-title">카페에서 생긴 일: 주문이 꼬였다</div>
+      <div class="epi-sum">주문 정정 표현과 사과 표현 두 개를 배웠어요</div>
+    </a>
+    <div class="date-head" data-when="기본,진행중">어제 · 7월 28일 화요일</div>
+    <a class="card" href="#wrapup" data-when="기본,진행중" data-component="new:EpisodeCard">
+      <div class="epi-meta"><span>22:30</span><span>판타지·SF</span><span>목표 2/3</span></div>
+      <div class="epi-title">드래곤 조련사 채용 면접</div>
+      <div class="epi-sum">경험을 과거형으로 말하는 연습을 했어요</div>
+    </a>
+
+    <div class="card" data-when="빈날" style="text-align:center">
+      <p class="sub" style="margin:20px 0">이 날의 기록이 없어요.<br>새 에피소드로 오늘 몫을 채워볼까요?</p>
+    </div>
+
+    <a class="fab" href="#wz-story" data-component="new:NewEpisodeFab">+ 새 에피소드</a>
+  </section>
+
+  <!-- ── 위저드 1 · 스토리 ─────────────────────────────────────────── -->
+  <section data-screen="wz-story" data-title="위저드1" data-states="선택지,생성중" class="screen">
+    <div class="topbar"><a class="back" href="#home">←</a><span class="step-no">새 에피소드 1/3</span></div>
+    <h1 class="big-title">오늘의 스토리를<br>골라주세요</h1>
+    <p class="sub">관심 분야에서 골라 왔어요. 마음에 없으면 다시 뽑기.</p>
+
+    <div data-when="선택지" style="display:flex;flex-direction:column;gap:12px">
+      <a class="option-card" href="#wz-partner" data-component="new:StoryOption">
+        <div class="tag">미스터리·스릴러</div>
+        <div class="name">심야 편의점의 수상한 손님</div>
+        <div class="desc">밤 11시, 매일 같은 시간에 오던 손님이 오늘은 계산대에 쪽지를 두고 갔다.</div>
+      </a>
+      <a class="option-card" href="#wz-partner" data-component="new:StoryOption">
+        <div class="tag">판타지·SF</div>
+        <div class="name">마법 물약 가게의 리콜 사태</div>
+        <div class="desc">어제 판 사랑의 물약에서 부작용이 신고됐다. 손님들이 몰려오기 시작한다.</div>
+      </a>
+      <a class="option-card" href="#wz-partner" data-component="new:StoryOption">
+        <div class="tag">미스터리·스릴러</div>
+        <div class="name">한밤의 기차, 사라진 가방</div>
+        <div class="desc">종착역 두 정거장 전, 옆자리 승객의 가방이 통째로 사라졌다.</div>
+      </a>
+      <a class="ghost" href="#wz-story" data-component="Button">↻ 다시 뽑기</a>
+    </div>
+
+    <div data-when="생성중" style="display:flex;flex-direction:column;gap:12px">
+      <div class="option-card"><div class="wf-line" style="width:30%"></div><div class="wf-line" style="width:70%"></div><div class="wf-line" style="width:95%"></div></div>
+      <div class="option-card"><div class="wf-line" style="width:25%"></div><div class="wf-line" style="width:60%"></div><div class="wf-line" style="width:90%"></div></div>
+      <div class="option-card"><div class="wf-line" style="width:35%"></div><div class="wf-line" style="width:65%"></div><div class="wf-line" style="width:85%"></div></div>
+      <p class="note">스토리를 만들고 있어요…</p>
+    </div>
+  </section>
+
+  <!-- ── 위저드 2 · 상대 역할 ──────────────────────────────────────── -->
+  <section data-screen="wz-partner" data-title="위저드2" class="screen">
+    <div class="topbar"><a class="back" href="#wz-story">←</a><span class="step-no">새 에피소드 2/3</span></div>
+    <h1 class="big-title">누구와<br>이야기할까요?</h1>
+    <p class="sub">「심야 편의점의 수상한 손님」의 상대예요.</p>
+    <a class="option-card" href="#wz-me" data-component="new:RoleOption">
+      <div class="name">단골 손님 ‘레오’</div>
+      <div class="desc">매일 밤 11시에 오는 미대생. 오늘따라 어딘가 초조해 보인다.</div>
+    </a>
+    <a class="option-card" href="#wz-me" data-component="new:RoleOption">
+      <div class="name">야간 매니저 ‘해나’</div>
+      <div class="desc">12년 차 베테랑. 모든 손님의 패턴을 외우고 있다.</div>
+    </a>
+    <a class="option-card" href="#wz-me" data-component="new:RoleOption">
+      <div class="name">옆 가게 사장 ‘준’</div>
+      <div class="desc">24시 분식집 사장. 골목 소문에 누구보다 밝다.</div>
+    </a>
+    <a class="ghost" href="#wz-partner" data-component="Button">↻ 다시 뽑기</a>
+  </section>
+
+  <!-- ── 위저드 3 · 내 역할 ────────────────────────────────────────── -->
+  <section data-screen="wz-me" data-title="위저드3" class="screen">
+    <div class="topbar"><a class="back" href="#wz-partner">←</a><span class="step-no">새 에피소드 3/3</span></div>
+    <h1 class="big-title">당신은<br>누구인가요?</h1>
+    <p class="sub">이 역할로 영어 대화를 하게 돼요.</p>
+    <a class="option-card" href="#briefing" data-component="new:RoleOption">
+      <div class="name">야간 알바 3개월 차</div>
+      <div class="desc">이제 단골들 얼굴을 다 외우기 시작한 참이다.</div>
+    </a>
+    <a class="option-card" href="#briefing" data-component="new:RoleOption">
+      <div class="name">첫 주 신입 알바</div>
+      <div class="desc">아직 포스기도 서툴다. 오늘 처음 야간 근무를 맡았다.</div>
+    </a>
+    <a class="option-card" href="#briefing" data-component="new:RoleOption">
+      <div class="name">점장 대타 뛰는 사촌</div>
+      <div class="desc">오늘 하루만 가게를 맡았다. 아는 게 없다.</div>
+    </a>
+    <a class="ghost" href="#wz-me" data-component="Button">↻ 다시 뽑기</a>
+  </section>
+
+  <!-- ── 브리핑 ────────────────────────────────────────────────────── -->
+  <section data-screen="briefing" data-title="브리핑" class="screen">
+    <div class="topbar"><a class="back" href="#wz-me">←</a><span class="step-no">새 에피소드</span></div>
+    <h1 class="big-title">이런 에피소드예요</h1>
+    <div class="card" data-component="new:BriefingCard">
+      <div class="card-label">스토리 · 미스터리·스릴러</div>
+      <div class="epi-title">심야 편의점의 수상한 손님</div>
+      <div class="epi-sum">밤 11시, 매일 같은 시간에 오던 손님이 오늘은 계산대에 쪽지를 두고 갔다.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">상대 역할</div>
+      <div class="fix-row"><b>단골 손님 ‘레오’</b> — 매일 밤 오는 미대생, 오늘따라 초조하다</div>
+      <div class="card-label" style="margin-top:10px">내 역할</div>
+      <div class="fix-row"><b>야간 알바 3개월 차</b> — 단골들 얼굴을 외우기 시작한 참</div>
+    </div>
+    <div class="card" data-component="new:GoalChecklist">
+      <div class="card-label">이번 목표</div>
+      <div class="goal-list">
+        <div>1. 쪽지를 발견했다고 알리기</div>
+        <div>2. 레오가 초조한 이유 알아내기</div>
+        <div>3. 도움을 제안하기</div>
+      </div>
+    </div>
+    <a class="cta" href="#chat" data-component="Button">시작하기</a>
+  </section>
+
+  <!-- ── 롤플레이 대화 ─────────────────────────────────────────────── -->
+  <section data-screen="chat" data-title="대화" data-states="기본,응답중" class="screen">
+    <div class="topbar">
+      <a class="back" href="#home">←</a>
+      <span class="bar-title">심야 편의점의 수상한 손님</span>
+      <a class="bar-act" href="#wrapup" data-component="Button">마치기</a>
+    </div>
+    <div class="goalbar" data-component="new:GoalBar">
+      <span class="goalpill">목표 2/3 ▾</span>
+      <span class="note">탭하면 체크리스트가 접히고 펴져요</span>
+    </div>
+    <div class="card" data-component="new:GoalChecklist">
+      <div class="goal-list">
+        <div class="done">✓ 쪽지를 발견했다고 알리기</div>
+        <div class="done">✓ 레오가 초조한 이유 알아내기</div>
+        <div>3. 도움을 제안하기</div>
+      </div>
+    </div>
+
+    <div class="msgs">
+      <div class="bubble ai" data-component="new:ChatBubble">Hey... um, is the night manager here today? I think I left something behind last night.</div>
+
+      <div class="u-wrap">
+        <div class="bubble user">She is not here now. Did you lost something?</div>
+        <a class="annot" href="#tutor" data-component="new:AnnotCard">
+          <div class="a-kind">교정 · 탭하면 해설 챗</div>
+          Did you <s>lost</s> → <b>lose</b> something? — did가 과거를 맡아서 동사는 원형이에요.
+        </a>
+      </div>
+
+      <div class="bubble ai">Oh no. It was a small note... kind of important. Did anyone find it?</div>
+
+      <div class="u-wrap">
+        <div class="bubble user">Actually, I found a note under the counter this morning.</div>
+        <span class="pass-ico" title="통과" data-component="new:AnnotPassIcon">✓</span>
+      </div>
+
+      <div class="u-wrap">
+        <div class="bubble user">그 쪽지, 네가 쓴 거야? 오늘 좀 긴장돼 보여서.</div>
+        <a class="annot" href="#tutor" data-when="기본" data-component="new:AnnotCard">
+          <div class="a-kind">이렇게 말해요 · 탭하면 해설 챗</div>
+          “Did you write this note? You seem a bit nervous today.”
+        </a>
+        <span class="annot" data-when="응답중" style="border-left-color:var(--line)">
+          <div class="a-kind">첨삭 만드는 중…</div>
+        </span>
+      </div>
+
+      <div class="bubble ai typing" data-when="응답중">● ● ●</div>
+    </div>
+
+    <div class="inputbar" data-component="TextField">
+      <span class="field">영어로 써보세요. 막히면 한글도 괜찮아요</span>
+      <span class="send">↑</span>
+    </div>
+  </section>
+
+  <!-- ── 해설 챗 ───────────────────────────────────────────────────── -->
+  <section data-screen="tutor" data-title="해설챗" class="screen">
+    <div class="topbar">
+      <a class="back" href="#chat">←</a>
+      <span class="bar-title">해설 챗</span>
+    </div>
+    <div class="card" data-component="new:AnnotContextCard">
+      <div class="card-label">이 첨삭 이야기예요</div>
+      <div class="fix-row"><s>Did you lost something?</s><br><b>Did you lose something?</b></div>
+    </div>
+    <div class="msgs">
+      <div class="bubble ai">did가 이미 ‘과거’를 표시하고 있어서, 뒤에 오는 동사는 원형으로 돌아가요. Did you <b>lose</b>…처럼요. Do you lost라고는 안 하는 것과 같은 원리예요.</div>
+      <div class="u-wrap"><div class="bubble user">lose는 변화형이 lose–lost–lost 맞지?</div></div>
+      <div class="bubble ai">맞아요. 그래서 “I lost my keys”처럼 did 없이 과거를 말할 땐 lost를 그대로 써요. 헷갈리면 did가 있는지부터 보면 돼요.</div>
+    </div>
+    <p class="note">이 대화는 이 첨삭에 붙어 저장돼요</p>
+    <div class="inputbar" data-component="TextField">
+      <span class="field">한국어로 물어봐도 돼요</span>
+      <span class="send">↑</span>
+    </div>
+  </section>
+
+  <!-- ── 총평 ──────────────────────────────────────────────────────── -->
+  <section data-screen="wrapup" data-title="총평" class="screen">
+    <div class="topbar"><span class="step-no">에피소드 끝</span></div>
+    <h1 class="big-title">오늘의 총평</h1>
+    <p class="sub">심야 편의점의 수상한 손님 · 9:41 · 유저 11턴</p>
+    <div class="card" data-component="new:GoalResult">
+      <div class="card-label">목표</div>
+      <div class="goal-list">
+        <div class="done">✓ 쪽지를 발견했다고 알리기</div>
+        <div class="done">✓ 레오가 초조한 이유 알아내기</div>
+        <div>· 도움을 제안하기 — 다음엔 “Can I help?” 한마디면 돼요</div>
+      </div>
+    </div>
+    <div class="card" data-component="new:LearnedExpressions">
+      <div class="card-label">배운 표현</div>
+      <div class="kv">
+        <div class="row"><span class="en">Did you lose something?</span><span class="ko">뭐 잃어버리셨어요?</span></div>
+        <div class="row"><span class="en">You seem a bit nervous.</span><span class="ko">좀 긴장돼 보여요</span></div>
+        <div class="row"><span class="en">under the counter</span><span class="ko">계산대 밑에</span></div>
+        <div class="row"><span class="en">kind of important</span><span class="ko">꽤 중요한</span></div>
+      </div>
+    </div>
+    <div class="card" data-component="new:FixSummary">
+      <div class="card-label">주요 교정</div>
+      <div class="fix-row">Did you <s>lost</s> → <b>lose</b> — did 뒤엔 동사원형</div>
+      <div class="fix-row">She <s>is not here now</s> → <b>isn’t in yet</b> — 더 자연스러운 표현</div>
+    </div>
+    <div class="card">
+      <div class="card-label">홈 카드에는 이렇게 남아요</div>
+      <div class="epi-sum">did 의문문과 감정 표현 두 개를 배웠어요</div>
+    </div>
+    <a class="cta" href="#home" data-component="Button">홈으로</a>
+  </section>
+
+</main>
+
+<script>
+  const stage = document.querySelector('.sh-stage');
+  const screens = [...stage.querySelectorAll('[data-screen]')];
+  const tabs = document.getElementById('sh-tabs');
+  const statebox = document.getElementById('sh-states');
+  const vpBtn = document.getElementById('sh-vp');
+  let current = null;
+
+  screens.forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s.dataset.title || s.dataset.screen;
+    b.dataset.for = s.dataset.screen;
+    b.onclick = () => show(s.dataset.screen);
+    tabs.append(b);
+  });
+
+  function show(slug) {
+    current = screens.find(s => s.dataset.screen === slug) || screens[0];
+    screens.forEach(s => s.hidden = s !== current);
+    [...tabs.children].forEach(b => b.classList.toggle('on', b.dataset.for === current.dataset.screen));
+    history.replaceState(null, '', '#' + current.dataset.screen);
+    buildStates();
+  }
+
+  function buildStates() {
+    const names = (current.dataset.states || '').split(',').map(x => x.trim()).filter(Boolean);
+    statebox.innerHTML = '';
+    statebox.hidden = !names.length;
+    names.forEach(name => {
+      const b = document.createElement('button');
+      b.textContent = name;
+      b.onclick = () => applyState(name);
+      statebox.append(b);
+    });
+    applyState(names[0] || null);
+  }
+
+  function applyState(name) {
+    current.querySelectorAll('[data-when]').forEach(el => {
+      el.hidden = !name || !el.dataset.when.split(',').map(x => x.trim()).includes(name);
+    });
+    [...statebox.children].forEach(b => b.classList.toggle('on', b.textContent === name));
+  }
+
+  const VPS = ['full', '390', '768'];
+  let vp = VPS.find(v => document.body.classList.contains('sh-vp-' + v)) || 'full';
+  function applyVp() {
+    VPS.forEach(v => document.body.classList.toggle('sh-vp-' + v, v === vp && v !== 'full'));
+    vpBtn.textContent = 'vp: ' + vp + ' (m)';
+    vpBtn.classList.toggle('on', vp !== 'full');
+  }
+  vpBtn.onclick = () => { vp = VPS[(VPS.indexOf(vp) + 1) % VPS.length]; applyVp(); };
+  applyVp();
+
+  addEventListener('keydown', e => {
+    if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    const i = screens.indexOf(current);
+    if (e.key === 'ArrowRight') show(screens[(i + 1) % screens.length].dataset.screen);
+    if (e.key === 'ArrowLeft') show(screens[(i - 1 + screens.length) % screens.length].dataset.screen);
+    if (e.key === 'm') vpBtn.click();
+  });
+
+  addEventListener('hashchange', () => show(location.hash.slice(1)));
+  show(location.hash.slice(1));
+</script>
