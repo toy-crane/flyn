@@ -1,18 +1,5 @@
-import {
-  Button,
-  Column,
-  Host,
-  Spacer,
-  Text,
-  TextInput,
-  useNativeState,
-} from "@expo/ui";
-import {
-  controlSize,
-  font,
-  foregroundStyle,
-  textFieldStyle,
-} from "@expo/ui/swift-ui/modifiers";
+import { Column, Host, ScrollView, Text, useNativeState } from "@expo/ui";
+import { font, foregroundStyle, frame } from "@expo/ui/swift-ui/modifiers";
 import { type ReactNode, useCallback, useState } from "react";
 import {
   DISPLAY_NAME_MAX,
@@ -20,6 +7,8 @@ import {
   normalizeDisplayName,
 } from "../../lib/display-name";
 import { useAppTheme } from "../../theme/app-theme";
+import { FormSubmitButton } from "../forms/form-submit-button";
+import { FormTextField } from "../forms/form-text-field";
 
 /**
  * 온보딩과 설정의 편집이 **같은 화면을 쓴다**. 검증·저장 규칙이 갈리지 않게
@@ -82,8 +71,6 @@ export function DisplayNameForm({
   // 버튼에서는 네이티브 상태가 진실이다. 리턴 키는 현재 값을 함께 준다.
   const handlePress = useCallback(() => submit(name.value), [name, submit]);
 
-  const locked = !isDisplayNameSubmittable(typed) || Boolean(pending);
-
   return (
     <Host
       seedColor={app.primary}
@@ -91,64 +78,66 @@ export function DisplayNameForm({
     >
       <Column
         alignment="start"
+        modifiers={[
+          frame({
+            alignment: "topLeading",
+            maxHeight: Number.POSITIVE_INFINITY,
+            maxWidth: Number.POSITIVE_INFINITY,
+          }),
+        ]}
         spacing={12}
-        style={{ paddingHorizontal: 20, paddingTop: 24 }}
+        style={{
+          paddingBottom: 12,
+          paddingHorizontal: 20,
+          paddingTop: 24,
+        }}
       >
-        <Text
+        <ScrollView
           modifiers={[
-            font({ textStyle: "subheadline" }),
-            foregroundStyle({ style: "secondary", type: "hierarchical" }),
+            frame({
+              alignment: "topLeading",
+              maxHeight: Number.POSITIVE_INFINITY,
+              maxWidth: Number.POSITIVE_INFINITY,
+            }),
           ]}
+          showsIndicators={false}
         >
-          {description}
-        </Text>
+          <Column alignment="start" spacing={16}>
+            <Text
+              modifiers={[
+                font({ textStyle: "subheadline" }),
+                foregroundStyle({
+                  style: "secondary",
+                  type: "hierarchical",
+                }),
+              ]}
+            >
+              {description}
+            </Text>
 
-        <TextInput
-          autoFocus
-          // **길이 규칙은 여기 하나뿐이다.** 네이티브가 사람이 세는
-          // 단위(grapheme)로 막는다. 앱 검증에서 다시 세지 않는 이유는
-          // display-name.ts에 있다.
-          maxLength={DISPLAY_NAME_MAX}
-          // 테두리가 없으면 입력칸인지 알 수 없다. 로그인의 이메일 입력과 같은
-          // 모디파이어를 써서 두 폼의 관용을 맞춘다.
-          modifiers={[textFieldStyle("roundedBorder")]}
-          onChangeText={handleChangeText}
-          onSubmitEditing={submit}
-          placeholder="표시 이름"
-          returnKeyType="done"
-          value={name}
-        />
-
-        {failure ? (
-          <Text
-            modifiers={[
-              font({ textStyle: "footnote" }),
-              foregroundStyle(app.danger),
-            ]}
-          >
-            {failure}
-          </Text>
-        ) : null}
-
-        <Button
-          // 비활성 외형을 손으로 칠하지 않는다 — iOS가 알아서 준다.
-          disabled={locked}
-          label={submitLabel}
-          // borderedProminent의 기본 라벨은 다크 모드에서도 흰색이라, 흰
-          // primary 배경과 겹치면 사라진다. 활성일 때만 시맨틱 on-primary를
-          // 넘기고 비활성 외형은 계속 iOS에 맡긴다.
-          modifiers={[
-            controlSize("large"),
-            ...(locked ? [] : [foregroundStyle(app.primaryForeground)]),
-          ]}
-          onPress={handlePress}
-        />
+            <FormTextField
+              autoComplete="nickname"
+              autoFocus
+              error={failure}
+              label="표시 이름"
+              maxLength={DISPLAY_NAME_MAX}
+              onChangeText={handleChangeText}
+              onSubmitEditing={submit}
+              placeholder="이름을 입력해 주세요"
+              returnKeyType="done"
+              value={name}
+            />
+          </Column>
+        </ScrollView>
 
         {secondaryAction}
 
-        {/* 없으면 VStack이 남은 높이 한가운데로 내려앉는다 — 시뮬레이터에서
-            실제로 폼이 화면 중앙에 떠 있었다. */}
-        <Spacer />
+        <FormSubmitButton
+          disabled={!isDisplayNameSubmittable(typed)}
+          label={submitLabel}
+          onPress={handlePress}
+          pending={pending}
+        />
       </Column>
     </Host>
   );

@@ -1,4 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native";
 
 jest.mock("@expo/ui", () =>
   require("../../test-support/expo-ui").universalMock()
@@ -25,10 +30,7 @@ describe("EmailForm", () => {
     const onSubmit = jest.fn();
 
     await render(<EmailForm onSubmit={onSubmit} />);
-    await fireEvent.changeText(
-      screen.getByPlaceholderText(FIELD),
-      "me@example.test"
-    );
+    await fireEvent.changeText(screen.getByLabelText(FIELD), "me@example.test");
     await fireEvent.press(screen.getByText(SUBMIT));
 
     expect(onSubmit).toHaveBeenCalledWith("me@example.test");
@@ -41,7 +43,7 @@ describe("EmailForm", () => {
 
     await render(<EmailForm onSubmit={onSubmit} />);
     await fireEvent.changeText(
-      screen.getByPlaceholderText(FIELD),
+      screen.getByLabelText(FIELD),
       "  me@example.test  "
     );
     await fireEvent.press(screen.getByText(SUBMIT));
@@ -54,20 +56,14 @@ describe("EmailForm", () => {
 
     expect(screen.getByRole("button", { name: SUBMIT })).toBeDisabled();
 
-    await fireEvent.changeText(
-      screen.getByPlaceholderText(FIELD),
-      "me@example.test"
-    );
+    await fireEvent.changeText(screen.getByLabelText(FIELD), "me@example.test");
 
     expect(screen.getByRole("button", { name: SUBMIT })).not.toBeDisabled();
   });
 
   it("활성 제출 버튼 라벨에 primary foreground 색을 적용한다", async () => {
     await render(<EmailForm onSubmit={noop} />);
-    await fireEvent.changeText(
-      screen.getByPlaceholderText(FIELD),
-      "me@example.test"
-    );
+    await fireEvent.changeText(screen.getByLabelText(FIELD), "me@example.test");
 
     expect(screen.getByText(SUBMIT)).toHaveStyle({ color: "#fefefe" });
   });
@@ -75,7 +71,10 @@ describe("EmailForm", () => {
   it("보내는 중에는 다시 누를 수 없다", async () => {
     await render(<EmailForm onSubmit={noop} pending />);
 
-    expect(screen.getByRole("button", { name: SUBMIT })).toBeDisabled();
+    const submit = screen.getByRole("button", { name: SUBMIT });
+
+    expect(submit).toBeDisabled();
+    expect(within(submit).getByTestId("form-submit-progress")).toBeTruthy();
   });
 
   // email·code는 얼럿이 아니라 인라인 각주다.
@@ -93,9 +92,13 @@ describe("EmailForm", () => {
   it("이메일 자동완성을 켠다", async () => {
     await render(<EmailForm onSubmit={noop} />);
 
-    expect(screen.getByPlaceholderText(FIELD).props.textContentType).toBe(
-      "emailAddress"
-    );
+    expect(screen.getByLabelText(FIELD).props.autoComplete).toBe("email");
+  });
+
+  it("입력창 밖에 label을 보여준다", async () => {
+    await render(<EmailForm onSubmit={noop} />);
+
+    expect(screen.getByText(FIELD)).toBeTruthy();
   });
 });
 
@@ -109,7 +112,7 @@ describe("EmailForm — 네이티브 값과 React 미러가 어긋날 때", () =
 
     await render(<EmailForm onSubmit={onSubmit} />);
 
-    const field = screen.getByPlaceholderText(FIELD);
+    const field = screen.getByLabelText(FIELD);
 
     await fireEvent.changeText(field, "me@example.tes");
     // 여기서 await하지 않는다 — 마지막 글자가 네이티브에만 있고 React state에는

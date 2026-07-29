@@ -1,4 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native";
 
 jest.mock("@expo/ui", () =>
   require("../../test-support/expo-ui").universalMock()
@@ -37,7 +42,7 @@ describe("DisplayNameForm", () => {
     const onSubmit = jest.fn();
 
     await renderForm({ onSubmit });
-    await fireEvent.changeText(screen.getByPlaceholderText(FIELD), "한울");
+    await fireEvent.changeText(screen.getByLabelText(FIELD), "한울");
     await fireEvent.press(screen.getByText(SUBMIT));
 
     expect(onSubmit).toHaveBeenCalledWith("한울");
@@ -49,7 +54,7 @@ describe("DisplayNameForm", () => {
     const onSubmit = jest.fn();
 
     await renderForm({ onSubmit });
-    await fireEvent.changeText(screen.getByPlaceholderText(FIELD), "  한울  ");
+    await fireEvent.changeText(screen.getByLabelText(FIELD), "  한울  ");
     await fireEvent.press(screen.getByText(SUBMIT));
 
     expect(onSubmit).toHaveBeenCalledWith("한울");
@@ -60,7 +65,7 @@ describe("DisplayNameForm", () => {
 
     await renderForm({ initialValue: "김한울", onSubmit });
 
-    expect(screen.getByPlaceholderText(FIELD).props.value).toBe("김한울");
+    expect(screen.getByLabelText(FIELD).props.value).toBe("김한울");
 
     await fireEvent.press(screen.getByText(SUBMIT));
 
@@ -87,14 +92,14 @@ describe("DisplayNameForm", () => {
 
     expect(screen.getByRole("button", { name: SUBMIT })).toBeDisabled();
 
-    await fireEvent.changeText(screen.getByPlaceholderText(FIELD), "한울");
+    await fireEvent.changeText(screen.getByLabelText(FIELD), "한울");
 
     expect(screen.getByRole("button", { name: SUBMIT })).not.toBeDisabled();
   });
 
   it("공백뿐인 이름에는 제출 버튼이 잠겨 있다", async () => {
     await renderForm();
-    await fireEvent.changeText(screen.getByPlaceholderText(FIELD), "   ");
+    await fireEvent.changeText(screen.getByLabelText(FIELD), "   ");
 
     expect(screen.getByRole("button", { name: SUBMIT })).toBeDisabled();
   });
@@ -102,15 +107,16 @@ describe("DisplayNameForm", () => {
   it("저장하는 중에는 다시 누를 수 없다", async () => {
     await renderForm({ initialValue: "한울", pending: true });
 
-    expect(screen.getByRole("button", { name: SUBMIT })).toBeDisabled();
+    const submit = screen.getByRole("button", { name: SUBMIT });
+
+    expect(submit).toBeDisabled();
+    expect(within(submit).getByTestId("form-submit-progress")).toBeTruthy();
   });
 
   it("서버가 거부할 길이는 애초에 입력되지 않게 막는다", async () => {
     await renderForm();
 
-    expect(screen.getByPlaceholderText(FIELD).props.maxLength).toBe(
-      DISPLAY_NAME_MAX
-    );
+    expect(screen.getByLabelText(FIELD).props.maxLength).toBe(DISPLAY_NAME_MAX);
   });
 
   it("실패는 인라인 각주로 보여준다", async () => {
@@ -124,12 +130,18 @@ describe("DisplayNameForm", () => {
 
     await renderForm({ onSubmit });
 
-    const field = screen.getByPlaceholderText(FIELD);
+    const field = screen.getByLabelText(FIELD);
 
     await fireEvent.changeText(field, "한울");
     await fireEvent(field, "submitEditing");
 
     expect(onSubmit).toHaveBeenCalledWith("한울");
+  });
+
+  it("입력창 밖에 label을 보여준다", async () => {
+    await renderForm();
+
+    expect(screen.getByText(FIELD)).toBeTruthy();
   });
 });
 
@@ -142,7 +154,7 @@ describe("DisplayNameForm — 네이티브 값과 React 미러가 어긋날 때"
 
     await renderForm({ onSubmit });
 
-    const field = screen.getByPlaceholderText(FIELD);
+    const field = screen.getByLabelText(FIELD);
 
     await fireEvent.changeText(field, "한울이");
     // 여기서 await하지 않는다 — 마지막 글자가 네이티브에만 있고 React state에는

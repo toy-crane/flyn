@@ -163,8 +163,20 @@ function MockTextField({
   );
 }
 
-function MockProgressView() {
-  return <ActivityIndicator />;
+function MockProgressView({ testID }: { testID?: string }) {
+  return <ActivityIndicator testID={testID} />;
+}
+
+function MockText({
+  children,
+  modifiers,
+}: Modifiers & {
+  children?: ReactNode;
+}) {
+  const foreground = modifierArg<unknown>(modifiers, "foregroundStyle");
+  const color = typeof foreground === "string" ? foreground : undefined;
+
+  return <Text style={color ? { color } : undefined}>{children}</Text>;
 }
 
 /** 아이콘 자체는 그리지 않되, 화면 테스트가 name·color·modifier 배선을 본다. */
@@ -215,18 +227,34 @@ export function useNativeState<T>(initial: T): ObservableState<T> {
  * 제출은 `onSubmitEditing(text)`로 **현재 값을 함께** 넘겨준다.
  */
 function MockTextInput({
+  autoCapitalize,
+  autoComplete,
+  autoCorrect,
   autoFocus,
+  editable,
+  keyboardType,
   maxLength,
+  modifiers,
   onChangeText,
   onSubmitEditing,
   placeholder,
+  returnKeyType,
   value,
-}: {
-  autoFocus?: boolean;
-  maxLength?: number;
+}: Pick<
+  TextInputProps,
+  | "autoCapitalize"
+  | "autoComplete"
+  | "autoCorrect"
+  | "autoFocus"
+  | "editable"
+  | "keyboardType"
+  | "maxLength"
+  | "placeholder"
+  | "returnKeyType"
+> & {
+  modifiers?: unknown[];
   onChangeText?: (next: string) => void;
   onSubmitEditing?: (text: string) => void;
-  placeholder?: string;
   value?: ObservableState<string>;
 }) {
   // 실물은 제출 시점의 **네이티브** 값을 넘긴다. React state를 넘기면 목이
@@ -238,11 +266,18 @@ function MockTextInput({
 
   return (
     <TextInput
+      accessibilityLabel={modifierArg<string>(modifiers, "accessibilityLabel")}
+      autoCapitalize={autoCapitalize}
+      autoComplete={autoComplete}
+      autoCorrect={autoCorrect}
       autoFocus={autoFocus}
+      editable={editable}
+      keyboardType={keyboardType}
       maxLength={maxLength}
       onChangeText={onChangeText}
       onSubmitEditing={handleSubmitEditing}
       placeholder={placeholder}
+      returnKeyType={returnKeyType}
       value={value ? value.value : ""}
     />
   );
@@ -330,7 +365,7 @@ export function swiftUiMock() {
     ...leaves,
     Button: MockButton,
     SecureField: MockTextField,
-    Text,
+    Text: MockText,
     TextField: MockTextField,
     useNativeState,
   };
@@ -366,7 +401,7 @@ export function universalMock() {
     ListItem,
     Row: MockRow,
     ScrollView: Passthrough,
-    Text,
+    Text: MockText,
     TextInput: MockTextInput,
     useNativeState,
   };

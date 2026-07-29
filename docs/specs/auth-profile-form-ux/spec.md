@@ -105,10 +105,10 @@ progress는 button-local 상태로 표현하고 화면 전체 overlay를 사용�
 온보딩에 이미 있는 로그아웃 탈출구는 primary CTA와 경쟁하지 않는 약한
 secondary action으로 남긴다.
 
-## `SoftTextInput`
+## `FormTextField`
 
 일반 single-line input은 universal `@expo/ui` `TextInput`을 감싼 TSX
-`SoftTextInput`으로 같은 appearance를 사용한다. iOS leaf는 SwiftUI
+`FormTextField`로 같은 appearance를 사용한다. iOS leaf는 SwiftUI
 `TextField`다.
 
 확정 appearance:
