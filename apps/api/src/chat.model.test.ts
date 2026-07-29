@@ -2,9 +2,11 @@ import { describe, expect, it } from "bun:test";
 import { simulateReadableStream } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import {
+  CHAT_MODEL_ID,
   type ChatMessage,
   type ChatModel,
   createGatewayChatModel,
+  selectChatModel,
 } from "./chat";
 
 const MESSAGES: ChatMessage[] = [
@@ -127,6 +129,31 @@ async function generate(
 
   return finish;
 }
+
+describe("Gateway 채팅 모델 선택", () => {
+  it("환경 변수와 무관하게 제품 모델을 고정한다", () => {
+    const previousModel = process.env.AI_MODEL;
+
+    try {
+      process.env.AI_MODEL = "ignored/provider-model";
+
+      expect(selectChatModel()).toBe("inclusionai/ling-3.0-flash-free");
+      expect(CHAT_MODEL_ID).toBe("inclusionai/ling-3.0-flash-free");
+    } finally {
+      if (previousModel === undefined) {
+        delete process.env.AI_MODEL;
+      } else {
+        process.env.AI_MODEL = previousModel;
+      }
+    }
+  });
+
+  it("자동 테스트가 주입한 모델을 유지한다", () => {
+    const model = createTextModel();
+
+    expect(selectChatModel(model)).toBe(model);
+  });
+});
 
 describe("Gateway 채팅 모델 제한", () => {
   it("출력을 4,000 tokens로 제한하고 length 응답을 완료로 보존한다", async () => {
