@@ -40,10 +40,16 @@ export const routerStub = {
 };
 
 let searchParams: Record<string, string> = {};
+let isFocused = true;
 
 /** `useLocalSearchParams`가 돌려줄 값. beforeEach에서 세운다. */
 export function setSearchParams(next: Record<string, string>) {
   searchParams = next;
+}
+
+/** `useIsFocused`가 돌려줄 값. 화면 이탈/복귀 테스트에서 세운다. */
+export function setIsFocused(next: boolean) {
+  isFocused = next;
 }
 
 export function expoRouterMock() {
@@ -57,6 +63,7 @@ export function expoRouterMock() {
     Stack,
     // jest.fn이 아니라 맨 함수다. 저장소가 beforeEach에서 resetAllMocks를 쓰는데,
     // 그게 구현을 지워 useRouter()가 undefined를 돌려주게 된다.
+    useIsFocused: () => isFocused,
     useLocalSearchParams: () => searchParams,
     useRouter: () => routerStub,
   };

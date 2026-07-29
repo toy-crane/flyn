@@ -8,19 +8,28 @@ import { Alert } from "react-native";
 
 jest.mock("@legendapp/list/react-native", () => {
   const ReactRuntime = require("react");
-  const { View } = require("react-native");
+  const { Pressable, View } = require("react-native");
 
   return {
     LegendList: ({
       data,
+      onRefresh,
+      refreshing,
       renderItem,
     }: {
       data: unknown[];
+      onRefresh: () => void;
+      refreshing: boolean;
       renderItem: (info: { item: unknown }) => unknown;
     }) =>
       ReactRuntime.createElement(
         View,
         null,
+        ReactRuntime.createElement(Pressable, {
+          accessibilityState: { busy: refreshing },
+          onPress: onRefresh,
+          testID: "chat-room-list-refresh-control",
+        }),
         data.map((item, index) =>
           ReactRuntime.createElement(
             ReactRuntime.Fragment,
@@ -49,7 +58,7 @@ import {
   useCreateChatRoom,
   useDeleteChatRoom,
 } from "../lib/use-chat-rooms";
-import { routerStub } from "../test-support/expo-router";
+import { routerStub, setIsFocused } from "../test-support/expo-router";
 import HomeScreen from "./index";
 
 const mockUseChatRooms = useChatRooms as jest.Mock;
@@ -88,6 +97,7 @@ function alertButtons() {
 
 beforeEach(() => {
   jest.resetAllMocks();
+  setIsFocused(true);
   jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
   createRoom.mockResolvedValue({ id: "new-room" });
   mockUseChatRooms.mockReturnValue({
@@ -205,5 +215,81 @@ describe("채팅방 목록", () => {
     fireEvent.press(screen.getByRole("button", { name: "다시 시도" }));
 
     expect(retry).toHaveBeenCalled();
+  });
+
+  it("백그라운드 재조회는 당겨서 새로고침하는 표시를 켜지 않는다", async () => {
+    mockUseChatRooms.mockReturnValue({
+      data: ROOMS,
+      isError: false,
+      isFetching: true,
+      isPending: false,
+      refetch: retry,
+    });
+
+    await render(<HomeScreen />);
+
+    expect(
+      screen.getByTestId("chat-room-list-refresh-control").props
+        .accessibilityState.busy
+    ).toBe(false);
+  });
+
+  it("사용자가 당긴 새로고침 요청이 끝날 때까지만 표시한다", async () => {
+    let finishRefresh: (() => void) | undefined;
+    retry.mockReturnValue(
+      new Promise<void>((resolve) => {
+        finishRefresh = resolve;
+      })
+    );
+    await render(<HomeScreen />);
+
+    fireEvent.press(screen.getByTestId("chat-room-list-refresh-control"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("chat-room-list-refresh-control").props
+          .accessibilityState.busy
+      ).toBe(true);
+    });
+
+    finishRefresh?.();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("chat-room-list-refresh-control").props
+          .accessibilityState.busy
+      ).toBe(false);
+    });
+  });
+
+  it("새로고침 중 화면을 나가면 복귀해도 표시를 다시 켜지 않는다", async () => {
+    retry.mockReturnValue(new Promise<void>(() => undefined));
+    const view = await render(<HomeScreen />);
+    const refreshControl = screen.getByTestId("chat-room-list-refresh-control");
+
+    fireEvent.press(refreshControl);
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("chat-room-list-refresh-control").props
+          .accessibilityState.busy
+      ).toBe(true);
+    });
+
+    setIsFocused(false);
+    await view.rerender(<HomeScreen />);
+    expect(
+      screen.getByTestId("chat-room-list-refresh-control").props
+        .accessibilityState.busy
+    ).toBe(false);
+
+    setIsFocused(true);
+    await view.rerender(<HomeScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("chat-room-list-refresh-control").props
+          .accessibilityState.busy
+      ).toBe(false);
+    });
   });
 });

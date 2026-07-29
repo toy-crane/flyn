@@ -1,6 +1,6 @@
 import { LegendList } from "@legendapp/list/react-native";
-import { Stack, useRouter } from "expo-router";
-import { type ReactNode, useCallback } from "react";
+import { Stack, useIsFocused, useRouter } from "expo-router";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { RNSymbol } from "../components/symbols/rn-symbol";
 import {
@@ -107,11 +107,19 @@ function EmptyRooms({ onCreate }: { onCreate: () => void }) {
 
 export default function HomeScreen() {
   const app = useAppTheme();
+  const isFocused = useIsFocused();
   const router = useRouter();
   const userId = useUserId();
   const rooms = useChatRooms(userId);
   const createRoom = useCreateChatRoom(userId);
   const deleteRoom = useDeleteChatRoom(userId);
+  const [manualRefreshing, setManualRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setManualRefreshing(false);
+    }
+  }, [isFocused]);
 
   const openSettings = useCallback(() => {
     router.push("/settings");
@@ -178,6 +186,15 @@ export default function HomeScreen() {
   const retryRooms = useCallback(() => {
     rooms.refetch();
   }, [rooms.refetch]);
+  const refreshRooms = useCallback(async () => {
+    setManualRefreshing(true);
+
+    try {
+      await rooms.refetch();
+    } finally {
+      setManualRefreshing(false);
+    }
+  }, [rooms.refetch]);
 
   let content: ReactNode;
   if (rooms.isPending && !rooms.data) {
@@ -214,9 +231,9 @@ export default function HomeScreen() {
         data={rooms.data ?? []}
         keyExtractor={roomKey}
         maintainVisibleContentPosition
-        onRefresh={retryRooms}
+        onRefresh={refreshRooms}
         recycleItems
-        refreshing={rooms.isFetching}
+        refreshing={isFocused && manualRefreshing}
         renderItem={renderRoom}
       />
     );
