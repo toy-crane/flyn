@@ -7,6 +7,14 @@
     "//#lint:fix": {
       "cache": false
     },
+    "//#test:scripts": {
+      "inputs": ["scripts/**/*.ts", "apps/mobile/metro.config.js"],
+      "outputs": []
+    },
+    "//#typecheck:scripts": {
+      "inputs": ["scripts/**/*.ts", "tsconfig.scripts.json"],
+      "outputs": []
+    },
     "//#dev:setup": {
       "cache": false
     },
@@ -16,9 +24,11 @@
       "persistent": true
     },
     "test": {
+      "dependsOn": ["//#test:scripts"],
       "outputs": []
     },
     "typecheck": {
+      "dependsOn": ["//#typecheck:scripts"],
       "outputs": []
     }
   }

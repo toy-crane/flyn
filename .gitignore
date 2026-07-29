@@ -16,6 +16,9 @@ node_modules/
 # local QA artifacts
 dogfood-output/
 
+# worktree-local runtime assignment
+.flyn-runtime/
+
 # expo
 .expo/
 apps/*/ios/
