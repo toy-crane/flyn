@@ -19,9 +19,6 @@ Supabase(Auth·Postgres·RLS).
 - **`Host` 안에서 Uniwind `className`은 무효다.** Uniwind는 `Host` 바깥에서만
   쓰고 한 화면에서 두 방식을 섞지 않는다. Uniwind가 맡는 것은 레이아웃·간격·
   타이포뿐 — [uniwind-for-styling](docs/decisions/uniwind-for-styling.md)
-- **색은 iOS 시맨틱 색만 쓰고 `dark:` 변형을 색에 붙이지 않는다.** Tailwind
-  팔레트를 쓰지 않는다 —
-  [ios-semantic-colors](docs/decisions/ios-semantic-colors.md)
 
 ## 시뮬레이터 검증
 
