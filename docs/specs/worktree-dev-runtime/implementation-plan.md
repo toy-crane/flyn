@@ -159,8 +159,10 @@ bunx expo start --clear
    그 공개 CLI를 adapter로 감싼다.
 2. `--device` 값의 name/UDID 해석, assignment 저장, 다른 live slot의 device
    중복 검사를 구현한다.
-3. development build 유무를 확인하고 없으면 정확한 `expo run:ios` 복구 명령과
-   선택된 port를 출력한다.
+3. development build 유무를 확인하고 없으면
+   `expo run:ios --device <UDID> --no-bundler` 복구 명령을 출력한다. Expo 57은
+   `--port`와 `--no-bundler`를 함께 받지 않으므로 Metro port는 이후 runtime
+   실행에서 주입한다.
 4. `agent-device` 0.20.0은 `--device`를 이름 selector로만 해석하므로, 내부
    adapter는 확정된 Simulator ID를 `--udid`로 전달한다.
 5. Metro가 준비된 뒤 `--metro-host`·`--metro-port`와

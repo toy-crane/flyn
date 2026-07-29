@@ -107,10 +107,7 @@ async function main() {
   try {
     await assertDevelopmentBuildAvailable({
       check: () => hasDevelopmentBuild(plan.device.id),
-      missingBuildMessage: `Simulator에 com.odd.flyn development build가 없습니다.\n${developmentBuildCommand(
-        plan.device.id,
-        plan.metroPort
-      )}`,
+      missingBuildMessage: `Simulator에 com.odd.flyn development build가 없습니다.\n${developmentBuildCommand(plan.device.id)}`,
       reservation,
     });
 

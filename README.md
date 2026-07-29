@@ -31,12 +31,13 @@ bun run dev                        # 이후 저장된 slot·Simulator 재사용
 
 `dev`는 Supabase를 시작하거나 멈추지 않고, 실행 상태와 환경 변수만 확인한다.
 선택한 Simulator에 `com.odd.flyn` development build가 없으면 자동 빌드하지 않고
-다음처럼 그 Simulator와 배정된 Metro port에 맞는 명령을 출력한다. 한 번 실행한
-뒤 같은 `bun run dev` 명령을 다시 실행한다.
+다음 명령을 출력한다. Expo 57에서는 `--port`와 `--no-bundler`를 함께 쓸 수 없고,
+Metro port는 이후 `bun run dev`가 agent-device에 주입한다. 한 번 빌드한 뒤 같은
+`bun run dev` 명령을 다시 실행한다.
 
 ```bash
 cd apps/mobile &&
-bunx expo run:ios --device "<UDID>" --port <metro-port> --no-bundler
+bunx expo run:ios --device "<UDID>" --no-bundler
 ```
 
 워크트리마다 `.flyn-runtime/assignment.json`에 slot과 Simulator를 저장한다.

@@ -75,8 +75,8 @@ export function createSimulatorSessionName(repoId: string, slot: number) {
   return `flyn-${repoId}-slot-${slot}`;
 }
 
-export function developmentBuildCommand(deviceId: string, metroPort: number) {
-  return `cd apps/mobile && bunx expo run:ios --device "${deviceId}" --port ${metroPort} --no-bundler`;
+export function developmentBuildCommand(deviceId: string) {
+  return `cd apps/mobile && bunx expo run:ios --device "${deviceId}" --no-bundler`;
 }
 
 export function agentDeviceAppsArgs(deviceId: string) {

@@ -56,8 +56,8 @@ describe("dev:worktree agent-device adapter", () => {
 
   test("session 이름과 수동 development build 명령을 만든다", () => {
     expect(createSimulatorSessionName("abc123", 4)).toBe("flyn-abc123-slot-4");
-    expect(developmentBuildCommand("SIM-1", 8085)).toBe(
-      'cd apps/mobile && bunx expo run:ios --device "SIM-1" --port 8085 --no-bundler'
+    expect(developmentBuildCommand("SIM-1")).toBe(
+      'cd apps/mobile && bunx expo run:ios --device "SIM-1" --no-bundler'
     );
     expect(agentDeviceAppsArgs("SIM-1")).toContain("--udid");
     expect(agentDeviceAppsArgs("SIM-1")).not.toContain("--device");

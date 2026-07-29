@@ -88,7 +88,9 @@
   선택 화면에 머물지 않고 해당 워크트리 bundle을 연다.
 - 선택한 시뮬레이터에 development build가 없으면 자동으로 네이티브 빌드를
   시작하지 않는다. 실행해야 할
-  `expo run:ios --device <device> --port <metro-port>` 명령을 정확히 안내한다.
+  `expo run:ios --device <device> --no-bundler` 명령을 정확히 안내한다.
+  Expo 57에서 `--port`와 `--no-bundler`는 함께 쓸 수 없으며 runtime port는
+  다음 `dev:worktree` 실행이 agent-device에 주입한다.
 - 네이티브 의존성이나 config plugin이 달라진 워크트리는 자기 시뮬레이터의
   development build를 다시 만든다.
 
