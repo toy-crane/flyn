@@ -1,11 +1,16 @@
 import { act, renderHook } from "@testing-library/react-native";
-import { useResendCooldown } from "./use-resend-cooldown";
+import { AppState, type AppStateStatus } from "react-native";
+import {
+  DEFAULT_COOLDOWN_SECONDS,
+  useResendCooldown,
+} from "./use-resend-cooldown";
 
 beforeEach(() => {
   jest.useFakeTimers();
 });
 
 afterEach(() => {
+  jest.restoreAllMocks();
   jest.useRealTimers();
 });
 
@@ -18,6 +23,13 @@ function advance(seconds: number) {
 }
 
 describe("useResendCooldown", () => {
+  it("기본 cooldown은 30초다", async () => {
+    const { result } = await renderHook(() => useResendCooldown());
+
+    expect(DEFAULT_COOLDOWN_SECONDS).toBe(30);
+    expect(result.current.remaining).toBe(30);
+  });
+
   it("도착하자마자 쿨다운이 돌고 있다", async () => {
     const { result } = await renderHook(() => useResendCooldown(60));
 
@@ -52,13 +64,20 @@ describe("useResendCooldown", () => {
   });
 
   it("백그라운드로 틱이 멈춰도 남은 시간을 실제 경과로 계산한다", async () => {
-    // 카운터로 세면 틱이 안 돈 만큼 남았다고 우긴다. 마감 시각 역산이면 정확하다.
+    let onAppStateChange: ((state: AppStateStatus) => void) | undefined;
+    jest
+      .spyOn(AppState, "addEventListener")
+      .mockImplementation((_type, listener) => {
+        onAppStateChange = listener;
+        return { remove: jest.fn() };
+      });
+
     const { result } = await renderHook(() => useResendCooldown(60));
 
-    // 틱은 한 번만 돌지만 실제 시계는 60초를 넘어간다.
+    // interval은 돌리지 않은 채 실제 시계만 이동시켜 background 정지를 재현한다.
     await act(async () => {
       jest.setSystemTime(Date.now() + 61_000);
-      jest.advanceTimersByTime(1000);
+      onAppStateChange?.("active");
       await Promise.resolve();
     });
 

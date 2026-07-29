@@ -1,5 +1,11 @@
-import { useCallback } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { type Ref, useCallback, useImperativeHandle, useRef } from "react";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  type TextInput as TextInputInstance,
+  View,
+} from "react-native";
 import { CODE_LENGTH, normalizeCode } from "../../lib/otp-code";
 
 const SLOTS = Array.from({ length: CODE_LENGTH }, (_, i) => i);
@@ -24,15 +30,35 @@ function borderClassName(invalid: boolean | undefined, active: boolean) {
  * **`color: "transparent"`** 다 — iOS는 보이지 않는 필드에 코드를 제안하지 않으므로
  * 필드는 칸 줄 전체 넓이를 그대로 유지하고 글리프와 캐럿만 감춘다.
  */
-export function CodeInput({
-  invalid,
-  onChangeText,
-  value,
-}: {
+export interface CodeInputRef {
+  focus: () => void;
+}
+
+export interface CodeInputProps {
+  disabled?: boolean;
   invalid?: boolean;
   onChangeText: (next: string) => void;
+  ref?: Ref<CodeInputRef>;
   value: string;
-}) {
+}
+
+export function CodeInput({
+  disabled,
+  invalid,
+  onChangeText,
+  ref,
+  value,
+}: CodeInputProps) {
+  const inputRef = useRef<TextInputInstance>(null);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => inputRef.current?.focus(),
+    }),
+    []
+  );
+
   // maxLength를 걸지 않는 이유는 otp-code.ts의 주석에 있다 — 앞에서 자르면
   // 스크럽할 원문이 사라진다.
   const handleChangeText = useCallback(
@@ -76,11 +102,14 @@ export function CodeInput({
       {/* 반드시 마지막 형제여야 한다 — RN은 뒤 형제가 위에 그려지고 먼저 히트테스트된다. */}
       <TextInput
         accessibilityLabel="인증 코드 6자리"
+        accessibilityState={{ disabled }}
         autoComplete="one-time-code"
         autoFocus
         caretHidden
+        editable={!disabled}
         keyboardType="number-pad"
         onChangeText={handleChangeText}
+        ref={inputRef}
         selectionColor="transparent"
         style={[StyleSheet.absoluteFill, { color: "transparent" }]}
         textContentType="oneTimeCode"

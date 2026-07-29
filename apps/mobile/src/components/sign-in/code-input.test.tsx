@@ -58,4 +58,10 @@ describe("CodeInput", () => {
       screen.getByTestId("code-input-boxes", HIDDEN).props.pointerEvents
     ).toBe("none");
   });
+
+  it("검증 중에는 입력을 잠근다", async () => {
+    await render(<CodeInput disabled onChangeText={noop} value="123456" />);
+
+    expect(screen.getByLabelText(FIELD)).toBeDisabled();
+  });
 });

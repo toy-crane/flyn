@@ -13,33 +13,50 @@ import { supabase } from "../../lib/supabase";
 import { setSearchParams } from "../../test-support/expo-router";
 import CodeScreen from "./code";
 
-const mockAuth = supabase.auth as unknown as { verifyOtp: jest.Mock };
+const mockAuth = supabase.auth as unknown as {
+  signInWithOtp: jest.Mock;
+  verifyOtp: jest.Mock;
+};
 const FIELD = "인증 코드 6자리";
-const SUBMIT = "로그인";
 const EMAIL = "me@example.test";
 const INVALID_CODE_COPY = /코드가 올바르지 않거나 만료/;
+const NETWORK_COPY = /인터넷에 연결/;
+const RATE_LIMIT_COPY = /요청이 너무 잦습니다/;
 const RAW_VENDOR_COPY = /Token has expired/;
+const RESEND = "코드 다시 받기";
 
-async function typeAndSubmit(code: string) {
+async function typeCode(code: string) {
   await fireEvent.changeText(screen.getByLabelText(FIELD), code);
-  await fireEvent.press(screen.getByText(SUBMIT));
   await act(async () => {
+    await Promise.resolve();
     await Promise.resolve();
   });
 }
 
 beforeEach(() => {
+  jest.useFakeTimers();
   jest.resetAllMocks();
   setSearchParams({ email: EMAIL });
 });
 
+afterEach(() => {
+  jest.useRealTimers();
+});
+
+async function finishCooldown() {
+  await act(async () => {
+    jest.advanceTimersByTime(30_000);
+    await Promise.resolve();
+  });
+}
+
 describe("CodeScreen", () => {
-  it("붙여넣은 코드에서 숫자만 남긴다", async () => {
+  it("붙여넣은 코드에서 숫자만 남기고 즉시 검증한다", async () => {
     mockAuth.verifyOtp.mockResolvedValue({ error: null });
     await render(<CodeScreen />);
 
     // maxLength로 앞부분만 잘리면 6자로 보여도 검증은 실패한다.
-    await typeAndSubmit("코드: 448183");
+    await typeCode("코드: 448183");
 
     expect(mockAuth.verifyOtp).toHaveBeenCalledWith({
       email: EMAIL,
@@ -52,10 +69,10 @@ describe("CodeScreen", () => {
     mockAuth.verifyOtp.mockResolvedValue({ error: null });
     await render(<CodeScreen />);
 
-    await typeAndSubmit("12345");
+    await typeCode("12345");
     expect(mockAuth.verifyOtp).not.toHaveBeenCalled();
 
-    await typeAndSubmit("123456");
+    await typeCode("123456");
     expect(mockAuth.verifyOtp).toHaveBeenCalledWith({
       email: EMAIL,
       token: "123456",
@@ -69,17 +86,22 @@ describe("CodeScreen", () => {
     });
     await render(<CodeScreen />);
 
-    await typeAndSubmit("123456");
+    await typeCode("123456");
 
     expect(screen.getByText(INVALID_CODE_COPY)).toBeTruthy();
     expect(screen.queryByText(RAW_VENDOR_COPY)).toBeNull();
+    expect(screen.getByLabelText(FIELD).props.value).toBe("");
   });
 
-  // 헤더 뒤로가기가 그 역할을 한다.
-  it("다른 이메일로 받기 버튼을 두지 않는다", async () => {
+  it("별도 로그인 CTA 없이 여섯 자리에서 한 번만 자동 제출한다", async () => {
+    mockAuth.verifyOtp.mockResolvedValue({ error: null });
     await render(<CodeScreen />);
 
-    expect(screen.queryByText("다른 이메일로 받기")).toBeNull();
+    await typeCode("123456");
+    await typeCode("123456");
+
+    expect(screen.queryByText("로그인")).toBeNull();
+    expect(mockAuth.verifyOtp).toHaveBeenCalledTimes(1);
   });
 
   // 딥링크로 이 화면에 바로 오면 주소가 없다. 그대로 보내면 email: undefined로
@@ -88,8 +110,96 @@ describe("CodeScreen", () => {
     setSearchParams({});
     await render(<CodeScreen />);
 
-    await typeAndSubmit("123456");
+    await typeCode("123456");
 
     expect(mockAuth.verifyOtp).not.toHaveBeenCalled();
+    expect(screen.getByText("이메일 주소를 다시 입력해 주세요.")).toBeTruthy();
+  });
+
+  it("검증 중에는 입력과 재전송을 잠그고 inline progress를 보여준다", async () => {
+    let settle: ((value: { error: null }) => void) | undefined;
+    mockAuth.verifyOtp.mockReturnValue(
+      new Promise((resolve) => {
+        settle = resolve;
+      })
+    );
+    await render(<CodeScreen />);
+
+    await typeCode("123456");
+
+    expect(screen.getByLabelText(FIELD)).toBeDisabled();
+    expect(screen.getByText("확인 중…")).toBeTruthy();
+
+    await act(async () => {
+      settle?.({ error: null });
+      await Promise.resolve();
+    });
+  });
+
+  it("첫 30초 동안 남은 시간을 보이고 끝나면 재전송을 연다", async () => {
+    await render(<CodeScreen />);
+
+    expect(screen.getByText("30초 후 다시 받기")).toBeTruthy();
+
+    await finishCooldown();
+
+    expect(screen.getByRole("button", { name: RESEND })).not.toBeDisabled();
+  });
+
+  it("재전송에 성공하면 입력을 비우고 cooldown을 다시 시작한다", async () => {
+    mockAuth.signInWithOtp.mockResolvedValue({ error: null });
+    await render(<CodeScreen />);
+    await typeCode("123");
+    await finishCooldown();
+
+    await fireEvent.press(screen.getByRole("button", { name: RESEND }));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(mockAuth.signInWithOtp).toHaveBeenCalledWith({
+      email: EMAIL,
+      options: { shouldCreateUser: true },
+    });
+    expect(screen.getByLabelText(FIELD).props.value).toBe("");
+    expect(screen.getByText("30초 후 다시 받기")).toBeTruthy();
+  });
+
+  it("서버가 더 긴 retry-after를 주면 그 시간으로 재전송을 잠근다", async () => {
+    mockAuth.signInWithOtp.mockResolvedValue({
+      error: {
+        message:
+          "For security purposes, you can only request this after 47 seconds.",
+      },
+    });
+    await render(<CodeScreen />);
+    await finishCooldown();
+
+    await fireEvent.press(screen.getByRole("button", { name: RESEND }));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("47초 후 다시 받기")).toBeTruthy();
+    expect(screen.getByText(RATE_LIMIT_COPY)).toBeTruthy();
+  });
+
+  it("재전송 자체가 실패하면 만료된 action을 열어 둔다", async () => {
+    mockAuth.signInWithOtp.mockResolvedValue({
+      error: { message: "Network request failed" },
+    });
+    await render(<CodeScreen />);
+    await finishCooldown();
+
+    await fireEvent.press(screen.getByRole("button", { name: RESEND }));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole("button", { name: RESEND })).not.toBeDisabled();
+    expect(screen.getByText(NETWORK_COPY)).toBeTruthy();
   });
 });

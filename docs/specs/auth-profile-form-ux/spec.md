@@ -88,7 +88,9 @@ progress는 button-local 상태로 표현하고 화면 전체 overlay를 사용�
 단위로 보여 주고, 0초가 되면 같은 자리의 문구를 `코드 다시 받기` action으로
 바꾼다. 재전송 중에는 action을 잠그며, 성공하면 code와 검증 오류를 비우고 새
 30초 cooldown을 시작한다. 실패하면 기존 입력값과 만료된 cooldown 상태를
-보존하고 inline 실패 문구를 보여 다시 시도할 수 있게 한다.
+보존하고 inline 실패 문구를 보여 다시 시도할 수 있게 한다. 다만 서버가 현재
+표시보다 긴 `retry-after`를 알려주면 실제 요청 가능 시각과 맞도록 그 시간까지
+action을 다시 잠근다.
 
 뒤로가기가 이메일 변경 역할을 하므로 별도의 `이메일 변경` action은 만들지
 않는다. 재전송을 하단 full-width button으로 키우거나 header action으로

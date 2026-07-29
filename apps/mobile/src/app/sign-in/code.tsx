@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -7,11 +7,16 @@ import {
   Text,
   View,
 } from "react-native";
-import { CodeInput } from "../../components/sign-in/code-input";
-import { verifyEmailCode } from "../../lib/auth/email";
+import {
+  CodeInput,
+  type CodeInputRef,
+} from "../../components/sign-in/code-input";
+import { sendEmailCode, verifyEmailCode } from "../../lib/auth/email";
+import { describeAuthError } from "../../lib/auth/errors";
 import { authFailedFeedback, authSucceededFeedback } from "../../lib/haptics";
 import { isCodeComplete } from "../../lib/otp-code";
-import { useAuthAction } from "../../lib/use-auth-action";
+import { IGNORED, useAuthAction } from "../../lib/use-auth-action";
+import { useResendCooldown } from "../../lib/use-resend-cooldown";
 import { useAppTheme } from "../../theme/app-theme";
 
 /**
@@ -24,37 +29,152 @@ export default function CodeScreen() {
   const app = useAppTheme();
   const params = useLocalSearchParams<{ email?: string }>();
   const email = typeof params.email === "string" ? params.email : "";
-  const { clearFailure, failure, pending, run } = useAuthAction();
+  const {
+    clearFailure: clearVerifyFailure,
+    failure: verifyFailure,
+    pending: verifyPending,
+    run: runVerification,
+  } = useAuthAction();
+  const {
+    failure: resendFailure,
+    pending: resendPending,
+    run: runResend,
+  } = useAuthAction();
+  const { canResend, remaining, restart } = useResendCooldown();
   const [code, setCode] = useState("");
+  const codeInputRef = useRef<CodeInputRef>(null);
+  const lastSubmittedCode = useRef<string | null>(null);
+  const locked = verifyPending || resendPending;
+
+  const focusCodeInput = useCallback(() => {
+    requestAnimationFrame(() => codeInputRef.current?.focus());
+  }, []);
+
+  const handleVerify = useCallback(
+    async (nextCode: string) => {
+      // 주소가 없으면 검증할 것이 없다. 딥링크로 이 화면에 바로 온 경우다.
+      if (
+        !(email && isCodeComplete(nextCode)) ||
+        locked ||
+        lastSubmittedCode.current === nextCode
+      ) {
+        return;
+      }
+
+      lastSubmittedCode.current = nextCode;
+
+      const result = await runVerification(
+        () => verifyEmailCode(email, nextCode),
+        "email:verify"
+      );
+
+      if (result === null) {
+        // 가드가 이 화면을 걷어가기 직전의 마지막 신호다.
+        authSucceededFeedback();
+      } else if (result !== IGNORED) {
+        authFailedFeedback();
+        setCode("");
+        lastSubmittedCode.current = null;
+        focusCodeInput();
+      }
+    },
+    [email, focusCodeInput, locked, runVerification]
+  );
 
   const handleChangeCode = useCallback(
     (next: string) => {
       setCode(next);
-      clearFailure();
+      clearVerifyFailure();
+
+      if (!isCodeComplete(next)) {
+        lastSubmittedCode.current = null;
+        return;
+      }
+
+      handleVerify(next);
     },
-    [clearFailure]
+    [clearVerifyFailure, handleVerify]
   );
 
-  const handleVerify = useCallback(async () => {
-    // 주소가 없으면 검증할 것이 없다. 딥링크로 이 화면에 바로 온 경우다.
-    if (!(email && isCodeComplete(code))) {
+  const handleResend = useCallback(async () => {
+    if (!(email && canResend) || locked) {
       return;
     }
 
-    const result = await run(
-      () => verifyEmailCode(email, code),
-      "email:verify"
-    );
+    const result = await runResend(() => sendEmailCode(email), "email:resend");
+
+    if (result === IGNORED) {
+      return;
+    }
 
     if (result === null) {
-      // 가드가 이 화면을 걷어가기 직전의 마지막 신호다.
-      authSucceededFeedback();
-    } else if (result) {
-      authFailedFeedback();
+      setCode("");
+      lastSubmittedCode.current = null;
+      clearVerifyFailure();
+      restart();
+      focusCodeInput();
+      return;
     }
-  }, [code, email, run]);
 
-  const locked = !isCodeComplete(code) || pending;
+    const retryAfter = describeAuthError(result.error).retryAfterSeconds;
+
+    if (retryAfter && retryAfter > remaining) {
+      restart(retryAfter);
+    }
+  }, [
+    canResend,
+    clearVerifyFailure,
+    email,
+    focusCodeInput,
+    locked,
+    remaining,
+    restart,
+    runResend,
+  ]);
+
+  const resendLabel = canResend
+    ? "코드 다시 받기"
+    : `${remaining}초 후 다시 받기`;
+  const resendLocked = !(email && canResend) || locked;
+  let inlineAction = (
+    <>
+      <Text className="text-[14px] text-muted-foreground">
+        코드가 안 왔나요?
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ disabled: resendLocked }}
+        disabled={resendLocked}
+        onPress={handleResend}
+      >
+        <Text
+          className={`font-medium text-[14px] ${
+            resendLocked ? "text-disabled-foreground" : "text-primary"
+          }`}
+        >
+          {resendLabel}
+        </Text>
+      </Pressable>
+    </>
+  );
+
+  if (resendPending) {
+    inlineAction = (
+      <>
+        <ActivityIndicator color={app.primary} size="small" />
+        <Text className="text-[14px] text-muted-foreground">보내는 중…</Text>
+      </>
+    );
+  }
+
+  if (verifyPending) {
+    inlineAction = (
+      <>
+        <ActivityIndicator color={app.primary} size="small" />
+        <Text className="text-[14px] text-muted-foreground">확인 중…</Text>
+      </>
+    );
+  }
 
   return (
     <ScrollView
@@ -69,37 +189,38 @@ export default function CodeScreen() {
         {email}로 보낸 6자리 코드를 입력해 주세요.
       </Text>
 
-      <CodeInput
-        invalid={failure?.kind === "invalidCode"}
-        onChangeText={handleChangeCode}
-        value={code}
-      />
+      <View className="gap-3">
+        <CodeInput
+          disabled={locked}
+          invalid={verifyFailure?.kind === "invalidCode"}
+          onChangeText={handleChangeCode}
+          ref={codeInputRef}
+          value={code}
+        />
 
-      {/* 입력에 붙은 검증 결과라 얼럿이 아니라 인라인 각주다. */}
-      {failure ? (
-        <Text className="text-[13px] text-danger">{failure.message}</Text>
-      ) : null}
+        <View className="min-h-6 flex-row items-center justify-center gap-2">
+          {inlineAction}
+        </View>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ disabled: locked }}
-        className={`h-[50px] items-center justify-center rounded-[14px] ${
-          locked ? "bg-disabled" : "bg-primary"
-        }`}
-        disabled={locked}
-        onPress={handleVerify}
-        style={{ borderCurve: "continuous" }}
-      >
-        <Text
-          className={`font-semibold text-[17px] ${
-            locked ? "text-disabled-foreground" : "text-primary-foreground"
-          }`}
-        >
-          로그인
-        </Text>
-      </Pressable>
+        {email ? null : (
+          <Text className="text-[13px] text-danger">
+            이메일 주소를 다시 입력해 주세요.
+          </Text>
+        )}
 
-      {pending ? <ActivityIndicator color={app.primary} /> : null}
+        {/* 입력에 붙은 검증 결과라 얼럿이 아니라 인라인 각주다. */}
+        {verifyFailure ? (
+          <Text className="text-[13px] text-danger">
+            {verifyFailure.message}
+          </Text>
+        ) : null}
+
+        {resendFailure ? (
+          <Text className="text-[13px] text-danger">
+            {resendFailure.message}
+          </Text>
+        ) : null}
+      </View>
 
       <View />
     </ScrollView>

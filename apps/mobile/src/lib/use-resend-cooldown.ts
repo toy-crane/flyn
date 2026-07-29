@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
+import { AppState } from "react-native";
 
-/** Supabase GoTrue의 기본 OTP 재발송 제한. 서버가 알려주면 그 값으로 덮는다. */
-export const DEFAULT_COOLDOWN_SECONDS = 60;
+/** 앱이 보장하는 OTP 재발송 간격. 서버가 더 길게 알려주면 그 값으로 덮는다. */
+export const DEFAULT_COOLDOWN_SECONDS = 30;
 
 const TICK_MS = 1000;
 
@@ -49,6 +50,16 @@ export function useResendCooldown(
     }, TICK_MS);
 
     return () => clearInterval(id);
+  }, [deadline]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        setRemaining(secondsUntil(deadline));
+      }
+    });
+
+    return () => subscription?.remove();
   }, [deadline]);
 
   const restart = useCallback((seconds: number = DEFAULT_COOLDOWN_SECONDS) => {
