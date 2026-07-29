@@ -114,15 +114,19 @@ bunx expo start --clear
 
 작업:
 
-1. `bun run dev:worktree`를 추가한다.
-2. Supabase status와 앱별 필수 환경 변수 이름을 검사하되 값을 출력하거나
+1. 루트 `dev:setup` 스크립트와 Turbo의 `//#dev:setup`,
+   `dev.dependsOn` 연결을 제거한다. `db:start`는 명시적인 공유 Supabase 시작
+   명령으로 유지한다.
+2. `bun run dev:worktree`를 추가하고 기존 `bun run dev`는 이 명령의 alias로
+   바꾼다.
+3. Supabase status와 앱별 필수 환경 변수 이름을 검사하되 값을 출력하거나
    `.env.local`을 수정하지 않는다.
-3. API를 `PORT=<api-port>`, Metro를
+4. API를 `PORT=<api-port>`, Metro를
    `EXPO_PUBLIC_API_BASE_URL=<slot-api-url>`과 선택한 Metro port로 spawn한다.
-4. API `/health`와 Metro 준비 상태를 timeout 안에서 poll한다.
-5. 자식 로그 prefix, startup rollback, signal forwarding, lock cleanup을
+5. API `/health`와 Metro 준비 상태를 timeout 안에서 poll한다.
+6. 자식 로그 prefix, startup rollback, signal forwarding, lock cleanup을
    구현한다.
-6. port 충돌을 사전 검사하고 다른 프로세스를 종료하지 않는다.
+7. port 충돌을 사전 검사하고 다른 프로세스를 종료하지 않는다.
 
 테스트 방법:
 
