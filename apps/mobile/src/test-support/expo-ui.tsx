@@ -337,12 +337,23 @@ function MockListItem({
 function MockRow({
   alignment = "start",
   children,
-}: {
+  modifiers,
+  testID,
+}: Modifiers & {
   alignment?: "center" | "end" | "start";
   children?: ReactNode;
+  testID?: string;
 }) {
+  const observableProps = { modifiers } as ComponentProps<typeof View>;
+
   return (
-    <View accessibilityHint={`row-alignment:${alignment}`}>{children}</View>
+    <View
+      {...observableProps}
+      accessibilityHint={`row-alignment:${alignment}`}
+      testID={testID}
+    >
+      {children}
+    </View>
   );
 }
 

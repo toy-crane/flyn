@@ -21,12 +21,15 @@ export function FormSubmitButton({
   const locked = Boolean(disabled || pending);
 
   return (
-    <Button
-      disabled={locked}
-      modifiers={[frame({ maxWidth: Number.POSITIVE_INFINITY, minHeight: 50 })]}
-      onPress={onPress}
-    >
-      <Row alignment="center" spacing={8}>
+    <Button disabled={locked} onPress={onPress}>
+      <Row
+        alignment="center"
+        modifiers={[
+          frame({ maxWidth: Number.POSITIVE_INFINITY, minHeight: 50 }),
+        ]}
+        spacing={8}
+        testID="form-submit-content"
+      >
         {pending ? <ProgressView testID="form-submit-progress" /> : null}
         <Text
           modifiers={
