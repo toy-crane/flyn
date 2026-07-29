@@ -60,6 +60,15 @@ flyn의 제품 방향을 확정한 스펙. flyn은 **재미 중심 스토리 롤
 - 어떤 경로로 끝나든 **총평**: 배운 표현 3–5개, 주요 교정 요약, 목표 결과.
   총평 한 줄이 홈 카드 요약이 되고, 흩어진 첨삭의 1차 복습 표면을 겸한다.
 
+### 프로토타입
+
+화면은 흐름별로 두 파일에 있다. 각각 자체 완결된 HTML이라 그냥 열면 된다.
+
+- [prototype-onboarding.html](prototype-onboarding.html) — 표시 이름 → 관심
+  분야 → 레벨. 마지막 단계가 에피소드 프로토타입의 홈으로 이어진다.
+- [prototype-episode.html](prototype-episode.html) — 홈(날짜별 기록) →
+  위저드 3단계 → 브리핑 → 대화·첨삭 → 해설 챗 → 총평.
+
 ### 화면 문구
 
 화면 문구는 [danggeun-voice-for-copy](../../decisions/danggeun-voice-for-copy.md)를
