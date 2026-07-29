@@ -48,6 +48,17 @@ class MemoryChatRepository implements ChatRepository {
     );
   }
 
+  deleteStoppedAssistantMessage(roomId: string, messageId: string) {
+    this.messages = this.messages.filter(
+      (message) =>
+        message.chatRoomId !== roomId ||
+        message.id !== messageId ||
+        message.role !== "assistant" ||
+        message.status !== "stopped"
+    );
+    return Promise.resolve();
+  }
+
   insertUserMessage(message: ChatMessage) {
     this.messages.push(message);
     return Promise.resolve();
@@ -261,6 +272,40 @@ describe("POST /chats/:chatId/messages 저장과 스트리밍", () => {
     expect(repository.messages).toHaveLength(2);
     expect(model.generateCount).toBe(1);
     expect(model.replayCount).toBe(1);
+  });
+
+  it("중단된 응답의 같은-ID 재요청은 부분 응답을 버리고 새로 생성한다", async () => {
+    const input = { content: "길게 답해줘", id: "user-1" };
+    model.outcome = { kind: "stopped", text: "실패한 부분 응답" };
+
+    const first = await send(input);
+    await first.text();
+
+    model.outcome = { kind: "complete", text: "새 완료 응답" };
+    const retry = await send(input);
+
+    expect(await retry.text()).toBe("stream:새 완료 응답");
+    expect(model.generateCount).toBe(2);
+    expect(model.replayCount).toBe(0);
+    expect(model.generatedHistories[1]).toEqual([
+      expect.objectContaining({
+        content: "길게 답해줘",
+        id: "user-1",
+        role: "user",
+      }),
+    ]);
+    expect(repository.messages).toEqual([
+      expect.objectContaining({
+        content: "길게 답해줘",
+        id: "user-1",
+        role: "user",
+      }),
+      expect.objectContaining({
+        content: "새 완료 응답",
+        role: "assistant",
+        status: "complete",
+      }),
+    ]);
   });
 
   it("같은 ID의 다른 본문은 409", async () => {

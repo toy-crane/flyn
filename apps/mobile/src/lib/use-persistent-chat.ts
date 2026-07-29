@@ -212,8 +212,19 @@ export function usePersistentChat(
   }, [chat, input, isGenerating]);
 
   const onRetry = useCallback(() => {
+    if (lastAssistant) {
+      setStoppedMessageIds((current) => {
+        if (!current.has(lastAssistant.id)) {
+          return current;
+        }
+
+        const next = new Set(current);
+        next.delete(lastAssistant.id);
+        return next;
+      });
+    }
     chat.regenerate();
-  }, [chat]);
+  }, [chat, lastAssistant]);
 
   const stop = useCallback(() => {
     chat.stop();
