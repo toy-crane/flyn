@@ -6,15 +6,19 @@ import {
 } from "@testing-library/react-native";
 
 const mockScrollToEnd = jest.fn();
+const mockContentInsetEndAdjustment = { value: 0 };
+const mockOnComposerLayout = jest.fn();
+const mockKeyboardHeight = { value: 0 };
+const mockKeyboardProgress = { value: 0 };
 
 jest.mock(
-  "@legendapp/list/react-native",
+  "@legendapp/list/keyboard",
   () => {
     const ReactRuntime = require("react");
     const { View: NativeView } = require("react-native");
 
     return {
-      LegendList: ReactRuntime.forwardRef(
+      KeyboardAwareLegendList: ReactRuntime.forwardRef(
         (
           {
             data,
@@ -45,6 +49,10 @@ jest.mock(
           );
         }
       ),
+      useKeyboardChatComposerInset: () => ({
+        contentInsetEndAdjustment: mockContentInsetEndAdjustment,
+        onComposerLayout: mockOnComposerLayout,
+      }),
     };
   },
   { virtual: true }
@@ -56,10 +64,23 @@ jest.mock(
     return {
       KeyboardGestureArea: NativeView,
       KeyboardStickyView: NativeView,
+      useReanimatedKeyboardAnimation: () => ({
+        height: mockKeyboardHeight,
+        progress: mockKeyboardProgress,
+      }),
     };
   },
   { virtual: true }
 );
+jest.mock("react-native-reanimated", () => {
+  const { View: NativeView } = require("react-native");
+
+  return {
+    __esModule: true,
+    default: { View: NativeView },
+    useAnimatedStyle: (style: () => object) => style(),
+  };
+});
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
@@ -143,7 +164,11 @@ function controller(overrides: Partial<ChatController> = {}): ChatController {
 
 describe("채팅방 상세 대화", () => {
   beforeEach(() => {
+    mockContentInsetEndAdjustment.value = 0;
+    mockKeyboardHeight.value = 0;
+    mockKeyboardProgress.value = 0;
     mockScrollToEnd.mockClear();
+    mockOnComposerLayout.mockClear();
   });
 
   it("사용자 말풍선과 전체 폭 AI 응답을 함께 보여준다", async () => {
@@ -193,6 +218,41 @@ describe("채팅방 상세 대화", () => {
     ).toBeCloseTo(0.2);
   });
 
+  it("키보드 전환과 하단 버튼은 inset을 포함한 같은 72pt 경계를 따른다", async () => {
+    await render(<ChatConversation chat={controller()} />);
+
+    const list = screen.getByTestId("chat-message-list");
+    const stickyComposer = screen.getByTestId("chat-composer-sticky");
+
+    await fireEvent(list, "onScroll", {
+      nativeEvent: {
+        contentInset: { bottom: 96, left: 0, right: 0, top: 0 },
+        contentOffset: { x: 0, y: 496 },
+        contentSize: { height: 1000, width: 390 },
+        layoutMeasurement: { height: 500, width: 390 },
+      },
+    });
+
+    expect(list.props.keyboardLiftBehavior).toBe("never");
+    expect(
+      within(stickyComposer).getByRole("button", { name: "맨 아래로" })
+    ).toBeTruthy();
+
+    await fireEvent(list, "onScroll", {
+      nativeEvent: {
+        contentInset: { bottom: 96, left: 0, right: 0, top: 0 },
+        contentOffset: { x: 0, y: 536 },
+        contentSize: { height: 1000, width: 390 },
+        layoutMeasurement: { height: 500, width: 390 },
+      },
+    });
+
+    expect(list.props.keyboardLiftBehavior).toBe("always");
+    expect(
+      within(stickyComposer).queryByRole("button", { name: "맨 아래로" })
+    ).toBeNull();
+  });
+
   it("중앙 버튼으로 맨 아래에 도착한 뒤 자동 추적 상태로 돌아간다", async () => {
     await render(<ChatConversation chat={controller()} />);
 
@@ -205,14 +265,14 @@ describe("채팅방 상세 대화", () => {
       },
     });
 
-    const viewport = screen.getByTestId("chat-message-viewport");
-    const button = within(viewport).getByRole("button", {
+    const stickyComposer = screen.getByTestId("chat-composer-sticky");
+    const button = within(stickyComposer).getByRole("button", {
       name: "맨 아래로",
     });
 
     expect(button).toHaveStyle({
-      bottom: 16,
       left: "50%",
+      top: -60,
       transform: [{ translateX: -22 }],
     });
 
@@ -220,7 +280,7 @@ describe("채팅방 상세 대화", () => {
 
     expect(mockScrollToEnd).toHaveBeenCalledWith({ animated: true });
     expect(
-      within(viewport).getByRole("button", { name: "맨 아래로" })
+      within(stickyComposer).getByRole("button", { name: "맨 아래로" })
     ).toBeTruthy();
 
     await fireEvent(list, "onScroll", {
@@ -232,7 +292,7 @@ describe("채팅방 상세 대화", () => {
     });
 
     expect(
-      within(viewport).queryByRole("button", { name: "맨 아래로" })
+      within(stickyComposer).queryByRole("button", { name: "맨 아래로" })
     ).toBeNull();
   });
 
@@ -254,17 +314,51 @@ describe("채팅방 상세 대화", () => {
     expect(screen.queryByTestId("chat-empty-state")).toBeNull();
   });
 
-  it("composer가 키보드에 가려지지 않도록 화면 높이를 조정한다", async () => {
+  it("빈 안내는 키보드와 composer를 제외한 영역 안에서 중앙 정렬된다", async () => {
+    mockContentInsetEndAdjustment.value = 96;
+    mockKeyboardHeight.value = -300;
+    mockKeyboardProgress.value = 1;
+
+    await render(<ChatConversation chat={controller({ messages: [] })} />);
+
+    const emptyState = screen.getByTestId("chat-empty-state");
+
+    expect(emptyState).toHaveStyle({ bottom: 396 });
+    expect(emptyState.props.className).toContain("top-0");
+  });
+
+  it("맨 아래에서는 목록과 composer가 같은 키보드 전환을 따른다", async () => {
     await render(<ChatConversation chat={controller()} />);
 
-    const keyboardLayout = screen.getByTestId("chat-keyboard-layout");
+    const list = screen.getByTestId("chat-message-list");
 
-    expect(keyboardLayout.props.style).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ flex: 1 }),
-        expect.objectContaining({ paddingBottom: 0 }),
-      ])
+    expect(list.props.keyboardLiftBehavior).toBe("always");
+    expect(list.props.keyboardOffset).toBe(0);
+    expect(list.props.contentInsetEndAdjustment).toBe(
+      mockContentInsetEndAdjustment
     );
+    expect(screen.getByTestId("chat-composer-sticky")).toHaveStyle({
+      bottom: 0,
+      left: 0,
+      position: "absolute",
+      right: 0,
+    });
+  });
+
+  it("composer 높이 변화는 메시지 목록의 아래 inset에 반영한다", async () => {
+    await render(<ChatConversation chat={controller()} />);
+
+    await fireEvent(screen.getByTestId("chat-composer-layout"), "onLayout", {
+      nativeEvent: {
+        layout: { height: 96, width: 390, x: 0, y: 0 },
+      },
+    });
+
+    expect(mockOnComposerLayout).toHaveBeenCalledWith({
+      nativeEvent: {
+        layout: { height: 96, width: 390, x: 0, y: 0 },
+      },
+    });
   });
 
   it("composer는 텍스트만 4,000자까지 받고 내용을 컨트롤러에 전한다", async () => {

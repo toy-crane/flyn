@@ -1,4 +1,8 @@
-import { LegendList, type LegendListRef } from "@legendapp/list/react-native";
+import {
+  KeyboardAwareLegendList,
+  useKeyboardChatComposerInset,
+} from "@legendapp/list/keyboard";
+import type { LegendListRef } from "@legendapp/list/react-native";
 import type { ChatStatus } from "ai";
 import { BlurView } from "expo-blur";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
@@ -6,7 +10,6 @@ import { SymbolView } from "expo-symbols";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -15,7 +18,12 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { KeyboardGestureArea } from "react-native-keyboard-controller";
+import {
+  KeyboardGestureArea,
+  KeyboardStickyView,
+  useReanimatedKeyboardAnimation,
+} from "react-native-keyboard-controller";
+import Reanimated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "../../theme/app-theme";
 import { ChatMarkdown } from "./chat-markdown";
@@ -212,8 +220,21 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
   const listRef = useRef<LegendListRef>(null);
+  const composerRef = useRef<View>(null);
   const [listViewportHeight, setListViewportHeight] = useState(0);
-  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const { contentInsetEndAdjustment, onComposerLayout } =
+    useKeyboardChatComposerInset(listRef, composerRef);
+  const { height: keyboardHeight, progress: keyboardProgress } =
+    useReanimatedKeyboardAnimation();
+  const keyboardOffset = Math.max(insets.bottom - COMPOSER_MARGIN, 0);
+  const emptyStateStyle = useAnimatedStyle(() => ({
+    bottom:
+      contentInsetEndAdjustment.value -
+      keyboardHeight.value -
+      keyboardProgress.value * keyboardOffset,
+  }));
+  const showScrollButton = !isAtBottom;
   const maintainScrollAtEndThreshold =
     listViewportHeight > 0
       ? Math.min(1, BOTTOM_THRESHOLD / listViewportHeight)
@@ -229,13 +250,16 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const { contentOffset, contentSize, layoutMeasurement } =
+      const { contentInset, contentOffset, contentSize, layoutMeasurement } =
         event.nativeEvent;
       const distance =
-        contentSize.height - layoutMeasurement.height - contentOffset.y;
+        contentSize.height +
+        (contentInset?.bottom ?? 0) -
+        layoutMeasurement.height -
+        contentOffset.y;
       const nextAtBottom = distance <= BOTTOM_THRESHOLD;
 
-      setShowScrollButton(!nextAtBottom);
+      setIsAtBottom(nextAtBottom);
     },
     []
   );
@@ -265,68 +289,80 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
 
   return (
     <View className="flex-1 bg-background">
-      <KeyboardAvoidingView
-        behavior="padding"
-        keyboardVerticalOffset={Math.max(insets.bottom - COMPOSER_MARGIN, 0)}
+      <KeyboardGestureArea
+        interpolator="ios"
+        offset={COMPOSER_MIN_HEIGHT}
         style={{ flex: 1 }}
         testID="chat-keyboard-layout"
+        textInputNativeID={COMPOSER_NATIVE_ID}
       >
-        <KeyboardGestureArea
-          interpolator="ios"
-          offset={COMPOSER_MIN_HEIGHT}
-          style={{ flex: 1 }}
-          textInputNativeID={COMPOSER_NATIVE_ID}
+        <View
+          className="min-h-0 flex-1"
+          onLayout={handleViewportLayout}
+          testID="chat-message-viewport"
+        >
+          <KeyboardAwareLegendList
+            contentContainerStyle={{
+              paddingBottom: 16,
+              paddingHorizontal: 16,
+              paddingTop: 16,
+            }}
+            contentInsetEndAdjustment={contentInsetEndAdjustment}
+            data={chat.messages}
+            estimatedItemSize={84}
+            initialScrollAtEnd
+            keyboardDismissMode="interactive"
+            keyboardLiftBehavior={isAtBottom ? "always" : "never"}
+            keyboardOffset={keyboardOffset}
+            keyboardShouldPersistTaps="handled"
+            keyExtractor={messageKey}
+            maintainScrollAtEnd={{
+              animated: false,
+              on: {
+                dataChange: true,
+                itemLayout: true,
+                layout: true,
+              },
+            }}
+            maintainScrollAtEndThreshold={maintainScrollAtEndThreshold}
+            onScroll={handleScroll}
+            recycleItems
+            ref={listRef}
+            renderItem={renderMessage}
+            scrollEventThrottle={16}
+            style={{ flex: 1, minHeight: 0 }}
+            testID="chat-message-list"
+          />
+
+          {chat.messages.length === 0 ? (
+            <Reanimated.View
+              className="absolute top-0 right-0 left-0 items-center justify-center gap-2 px-6"
+              pointerEvents="none"
+              style={emptyStateStyle}
+              testID="chat-empty-state"
+            >
+              <Text className="font-semibold text-[22px] text-foreground">
+                무엇이든 물어보세요
+              </Text>
+              <Text className="text-center text-[15px] text-muted-foreground leading-6">
+                메시지는 이 채팅방에 안전하게 저장돼요.
+              </Text>
+            </Reanimated.View>
+          ) : null}
+        </View>
+
+        <KeyboardStickyView
+          offset={{
+            opened: keyboardOffset,
+          }}
+          style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
+          testID="chat-composer-sticky"
         >
           <View
-            className="min-h-0 flex-1"
-            onLayout={handleViewportLayout}
-            testID="chat-message-viewport"
+            onLayout={onComposerLayout}
+            ref={composerRef}
+            testID="chat-composer-layout"
           >
-            <LegendList
-              contentContainerStyle={{
-                paddingBottom: 16,
-                paddingHorizontal: 16,
-                paddingTop: 16,
-              }}
-              data={chat.messages}
-              estimatedItemSize={84}
-              initialScrollAtEnd
-              keyboardDismissMode="interactive"
-              keyboardShouldPersistTaps="handled"
-              keyExtractor={messageKey}
-              maintainScrollAtEnd={{
-                animated: false,
-                on: {
-                  dataChange: true,
-                  itemLayout: true,
-                  layout: true,
-                },
-              }}
-              maintainScrollAtEndThreshold={maintainScrollAtEndThreshold}
-              onScroll={handleScroll}
-              recycleItems
-              ref={listRef}
-              renderItem={renderMessage}
-              scrollEventThrottle={16}
-              style={{ flex: 1, minHeight: 0 }}
-              testID="chat-message-list"
-            />
-
-            {chat.messages.length === 0 ? (
-              <View
-                className="absolute inset-0 items-center justify-center gap-2 px-6"
-                pointerEvents="none"
-                testID="chat-empty-state"
-              >
-                <Text className="font-semibold text-[22px] text-foreground">
-                  무엇이든 물어보세요
-                </Text>
-                <Text className="text-center text-[15px] text-muted-foreground leading-6">
-                  메시지는 이 채팅방에 안전하게 저장돼요.
-                </Text>
-              </View>
-            ) : null}
-
             {showScrollButton ? (
               <Pressable
                 accessibilityLabel="맨 아래로"
@@ -334,9 +370,11 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
                 className="absolute min-h-11 min-w-11 items-center justify-center rounded-full bg-surface"
                 onPress={scrollToBottom}
                 style={{
-                  bottom: 16,
                   left: "50%",
+                  position: "absolute",
+                  top: -60,
                   transform: [{ translateX: -22 }],
+                  zIndex: 1,
                 }}
               >
                 <SymbolView
@@ -347,11 +385,10 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
                 />
               </Pressable>
             ) : null}
+            <Composer bottomInset={insets.bottom} chat={chat} />
           </View>
-
-          <Composer bottomInset={insets.bottom} chat={chat} />
-        </KeyboardGestureArea>
-      </KeyboardAvoidingView>
+        </KeyboardStickyView>
+      </KeyboardGestureArea>
     </View>
   );
 }
