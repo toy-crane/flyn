@@ -82,6 +82,10 @@
 - 저장한 기기가 다른 활성 slot에 배정돼 있으면 실행하지 않고 다른 기기를
   고르라는 오류를 낸다.
 - 앱 실행과 자동 검증은 저장소 결정대로 `agent-device`를 사용한다.
+- public `--device` 입력은 이름이나 UDID를 받지만, 선택 뒤 `agent-device`
+  호출에는 0.20.0 CLI의 정확한 ID selector인 `--udid`를 사용한다.
+- Expo development client에는 선택한 Metro URL의 launch URL도 전달해 서버
+  선택 화면에 머물지 않고 해당 워크트리 bundle을 연다.
 - 선택한 시뮬레이터에 development build가 없으면 자동으로 네이티브 빌드를
   시작하지 않는다. 실행해야 할
   `expo run:ios --device <device> --port <metro-port>` 명령을 정확히 안내한다.

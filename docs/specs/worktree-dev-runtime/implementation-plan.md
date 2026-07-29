@@ -39,7 +39,9 @@
 
 작업:
 
-1. `apps/mobile/.expo/metro-cache`와 `.expo/metro-file-map` 절대 경로를 만든다.
+1. `apps/mobile/.expo/metro-cache`와 `.expo/metro-file-map` 절대 경로와
+   디렉터리를 만든다. Expo file-map writer는 대상 디렉터리를 직접 만들지
+   않으므로 config 로드 시 두 디렉터리를 선제 생성한다.
 2. Expo 기본 config에 `cacheStores` callback과 `fileMapCacheDirectory`를
    설정한 뒤 기존 Uniwind wrapper에 전달한다.
 3. 현재 resolver `blockList`와 Uniwind CSS 설정이 보존되는지 확인한다.
@@ -117,12 +119,16 @@ bunx expo start --clear
 1. 루트 `dev:setup` 스크립트와 Turbo의 `//#dev:setup`,
    `dev.dependsOn` 연결을 제거한다. `db:start`는 명시적인 공유 Supabase 시작
    명령으로 유지한다.
-2. `bun run dev:worktree`를 추가하고 기존 `bun run dev`는 이 명령의 alias로
-   바꾼다.
+2. `bun run dev:worktree`를 추가하고 기존 `bun run dev`도 같은
+   `scripts/dev-worktree.ts` entrypoint를 직접 실행한다. 중첩된 `bun run` alias는
+   Ctrl+C가 바깥 runner에서 끝나 내부 cleanup을 건너뛸 수 있으므로 두 명령이
+   동일 entrypoint를 가리키는 방식으로 alias 의미를 유지한다.
 3. Supabase status와 앱별 필수 환경 변수 이름을 검사하되 값을 출력하거나
    `.env.local`을 수정하지 않는다.
 4. API를 `PORT=<api-port>`, Metro를
    `EXPO_PUBLIC_API_BASE_URL=<slot-api-url>`과 선택한 Metro port로 spawn한다.
+   Expo `--localhost`가 macOS에서 IPv6 loopback에만 bind하지 않도록 기존
+   `NODE_OPTIONS`를 보존하면서 `--dns-result-order=ipv4first`를 추가한다.
 5. API `/health`와 Metro 준비 상태를 timeout 안에서 poll한다.
 6. 자식 로그 prefix, startup rollback, signal forwarding, lock cleanup을
    구현한다.
@@ -155,8 +161,14 @@ bunx expo start --clear
    중복 검사를 구현한다.
 3. development build 유무를 확인하고 없으면 정확한 `expo run:ios` 복구 명령과
    선택된 port를 출력한다.
-4. Metro가 준비된 뒤 해당 simulator에서 정확한 dev server로 앱을 연다.
-5. README의 단일-worktree `bun run dev` 설명을 공유 Supabase 선행 실행 +
+4. `agent-device` 0.20.0은 `--device`를 이름 selector로만 해석하므로, 내부
+   adapter는 확정된 Simulator ID를 `--udid`로 전달한다.
+5. Metro가 준비된 뒤 `--metro-host`·`--metro-port`와
+   `exp+flyn://expo-development-client/?url=...` launch URL을 함께 전달해
+   development-client 서버 선택 화면이 아니라 앱 JavaScript를 바로 연다.
+   같은 deterministic session이 비정상 종료에서 남았으면 그 session만 먼저
+   닫고 Simulator는 shutdown하지 않는다.
+6. README의 단일-worktree `bun run dev` 설명을 공유 Supabase 선행 실행 +
    `bun run dev:worktree` 흐름으로 교체한다.
 
 자동 테스트:
