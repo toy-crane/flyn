@@ -4,8 +4,10 @@ import {
   consumeStream,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  type FinishReason,
   isTextUIPart,
   type LanguageModel,
+  type LanguageModelUsage,
   type ModelMessage,
   streamText,
   toUIMessageStream,
@@ -297,10 +299,6 @@ export async function respondToChatMessage({
 
     return withStreamingHeaders(response);
   } catch (error) {
-    console.error("[chat] gateway start failed", {
-      message: error instanceof Error ? error.message : String(error),
-      roomId,
-    });
     // biome-ignore lint/style/useErrorCause: ChatHttpError의 네 번째 인자가 super의 cause로 전달된다.
     throw new ChatHttpError(500, "AI 응답을 시작하지 못했습니다.", true, error);
   }
@@ -455,24 +453,56 @@ function toUiMessages(messages: ChatMessage[]): UIMessage[] {
 }
 
 interface GatewayChatModelOptions {
+  createRequestId?: () => string;
   limits?: {
     chunkMs: number;
     firstChunkMs: number;
     totalMs: number;
   };
+  logger?: (event: ChatModelEvent) => void;
   model?: LanguageModel;
+  now?: () => number;
+}
+
+type ChatModelOutcome = "complete" | "error" | "timeout" | "user_stopped";
+
+export interface ChatModelEvent {
+  durationMs: number;
+  event: "chat.model.completed";
+  finishReason: FinishReason | null;
+  modelId: string;
+  outcome: ChatModelOutcome;
+  requestId: string;
+  usage: {
+    inputTokens: number | null;
+    outputTokens: number | null;
+    totalTokens: number | null;
+  };
+}
+
+function consoleModelEvent(event: ChatModelEvent) {
+  console.info(event);
 }
 
 class GatewayChatModel implements ChatModel {
   private readonly configuredModel: LanguageModel | undefined;
+  private readonly createRequestId: () => string;
   private readonly limits: NonNullable<GatewayChatModelOptions["limits"]>;
+  private readonly logger: (event: ChatModelEvent) => void;
+  private readonly now: () => number;
 
   constructor({
+    createRequestId = () => crypto.randomUUID(),
     limits = DEFAULT_MODEL_LIMITS,
+    logger = consoleModelEvent,
     model,
+    now = performance.now.bind(performance),
   }: GatewayChatModelOptions = {}) {
     this.configuredModel = model;
+    this.createRequestId = createRequestId;
     this.limits = limits;
+    this.logger = logger;
+    this.now = now;
   }
 
   generate({
@@ -487,14 +517,75 @@ class GatewayChatModel implements ChatModel {
       throw new Error("AI_MODEL is not configured");
     }
 
-    const result = streamText({
-      abortSignal: signal,
-      instructions: SYSTEM_INSTRUCTIONS,
-      maxOutputTokens: 4000,
-      messages: toModelMessages(messages),
-      model,
-      timeout: this.limits,
-    });
+    const startedAt = this.now();
+    const requestId = this.createRequestId();
+    const modelId = typeof model === "string" ? model : model.modelId;
+    let eventRecorded = false;
+    const recordEvent = ({
+      finishReason,
+      outcome,
+      usage,
+    }: {
+      finishReason: FinishReason | null;
+      outcome: ChatModelOutcome;
+      usage?: LanguageModelUsage;
+    }) => {
+      if (eventRecorded) {
+        return;
+      }
+
+      eventRecorded = true;
+      this.logger({
+        durationMs: Math.max(0, Math.round(this.now() - startedAt)),
+        event: "chat.model.completed",
+        finishReason,
+        modelId,
+        outcome,
+        requestId,
+        usage: {
+          inputTokens: usage?.inputTokens ?? null,
+          outputTokens: usage?.outputTokens ?? null,
+          totalTokens: usage?.totalTokens ?? null,
+        },
+      });
+    };
+
+    let result: ReturnType<typeof streamText>;
+    try {
+      result = streamText({
+        abortSignal: signal,
+        instructions: SYSTEM_INSTRUCTIONS,
+        maxOutputTokens: 4000,
+        messages: toModelMessages(messages),
+        model,
+        onAbort: () => {
+          recordEvent({
+            finishReason: null,
+            outcome: signal.aborted ? "user_stopped" : "timeout",
+          });
+        },
+        onEnd: ({ finishReason, usage }) => {
+          recordEvent({
+            finishReason,
+            outcome: finishReason === "error" ? "error" : "complete",
+            usage,
+          });
+        },
+        onError: () => {
+          recordEvent({
+            finishReason: "error",
+            outcome: "error",
+          });
+        },
+        timeout: this.limits,
+      });
+    } catch (error) {
+      recordEvent({
+        finishReason: "error",
+        outcome: "error",
+      });
+      throw error;
+    }
     const stream = toUIMessageStream({
       generateMessageId: () => assistantMessageId,
       onEnd: async ({ finishReason, isAborted, responseMessage }) => {
@@ -508,12 +599,7 @@ class GatewayChatModel implements ChatModel {
           text,
         });
       },
-      onError: (error) => {
-        console.error("[chat] gateway stream failed", {
-          message: error instanceof Error ? error.message : String(error),
-        });
-        return "AI 응답을 생성하지 못했습니다.";
-      },
+      onError: () => "AI 응답을 생성하지 못했습니다.",
       originalMessages: toUiMessages(messages),
       stream: result.stream,
     });
