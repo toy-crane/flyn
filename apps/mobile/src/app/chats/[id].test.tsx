@@ -127,7 +127,7 @@ describe("채팅방 상세", () => {
     await render(<ChatDetailScreen />);
     fireEvent.press(screen.getByRole("button", { name: "채팅 목록으로" }));
 
-    expect(screen.getByText("채팅방을 찾을 수 없습니다.")).toBeTruthy();
+    expect(screen.getByText("채팅방을 찾을 수 없어요.")).toBeTruthy();
     expect(mockBack).toHaveBeenCalled();
   });
 });

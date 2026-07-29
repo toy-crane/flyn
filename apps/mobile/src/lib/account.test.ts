@@ -18,7 +18,7 @@ const mockClear = (queryClient as unknown as { clear: jest.Mock }).clear;
 const mockSupabaseSignOut = supabase.auth.signOut as unknown as jest.Mock;
 const mockGoogleSignOut = GoogleSignin.signOut as unknown as jest.Mock;
 
-const DELETE_FAILED = /삭제하지 못했습니다/;
+const DELETE_FAILED = /삭제하지 못했어요/;
 
 function respond(ok: boolean, body: unknown = {}) {
   mockDelete.mockResolvedValue({ json: () => Promise.resolve(body), ok });
@@ -81,10 +81,10 @@ describe("deleteAccount — 서버가 지웠을 때", () => {
 describe("deleteAccount — 서버가 중단했을 때", () => {
   // 로컬 세션을 지우면 사용자는 다시 시도할 방법을 잃는다.
   it("로컬 세션을 건드리지 않는다", async () => {
-    respond(false, { error: "계정을 삭제하지 못했습니다." });
+    respond(false, { error: "계정을 삭제하지 못했어요." });
 
     await expect(deleteAccount()).resolves.toEqual({
-      error: "계정을 삭제하지 못했습니다.",
+      error: "계정을 삭제하지 못했어요.",
     });
 
     expect(mockSupabaseSignOut).not.toHaveBeenCalled();

@@ -11,7 +11,7 @@ import { supabase } from "./supabase";
  * 다른 auth 헬퍼와 같은 규약: 성공은 null, 실패만 `{ error }`.
  */
 
-const GENERIC_ERROR = "계정을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+const GENERIC_ERROR = "계정을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.";
 
 /**
  * 서버가 이유를 이미 사용자용 문장으로 준다. 못 읽으면 일반 문구로 떨어진다 —

@@ -26,7 +26,7 @@ import EmailScreen from "./email";
 const mockAuth = supabase.auth as unknown as { signInWithOtp: jest.Mock };
 const FIELD = "이메일 주소";
 const SUBMIT = "코드 받기";
-const RATE_LIMIT_COPY = /요청이 너무 잦습니다/;
+const RATE_LIMIT_COPY = /요청이 너무 잦아요/;
 const RAW_VENDOR_COPY = /rate limit/;
 
 async function sendCodeTo(address: string) {

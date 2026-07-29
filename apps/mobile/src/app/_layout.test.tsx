@@ -76,8 +76,8 @@ import Layout from "./_layout";
 const mockUseAuth = useAuth as jest.Mock;
 const mockUseProfileGate = useProfileGate as jest.Mock;
 const MISSING_ENV = /환경변수 없음/;
-const FETCH_FAILED = /계정 정보를 불러오지 못했습니다/;
-const INTEGRITY = /계정 정보가 올바르지 않습니다/;
+const FETCH_FAILED = /계정 정보를 불러오지 못했어요/;
+const INTEGRITY = /계정 정보가 올바르지 않아요/;
 
 /** 로그인은 됐고 프로필 판정만 다른 경우가 대부분이라 한 줄로 묶는다. */
 function signedInWith(profile: Record<string, unknown>) {

@@ -21,7 +21,7 @@ const FIELD = "인증 코드 6자리";
 const EMAIL = "me@example.test";
 const INVALID_CODE_COPY = /코드가 올바르지 않거나 만료/;
 const NETWORK_COPY = /인터넷에 연결/;
-const RATE_LIMIT_COPY = /요청이 너무 잦습니다/;
+const RATE_LIMIT_COPY = /요청이 너무 잦아요/;
 const RAW_VENDOR_COPY = /Token has expired/;
 const RESEND = "코드 다시 받기";
 

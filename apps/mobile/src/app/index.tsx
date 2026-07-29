@@ -56,7 +56,7 @@ function ChatRoomRow({
 
   return (
     <Pressable
-      accessibilityHint="길게 누르면 삭제할 수 있습니다"
+      accessibilityHint="길게 누르면 삭제할 수 있어요"
       accessibilityLabel={room.title}
       accessibilityRole="button"
       className="min-h-18 flex-row items-center border-border border-b px-5 py-3 active:bg-surface"
@@ -89,7 +89,7 @@ function EmptyRooms({ onCreate }: { onCreate: () => void }) {
         아직 채팅이 없어요
       </Text>
       <Text className="text-center text-[15px] text-muted-foreground leading-6">
-        궁금한 것을 보내면 대화가 여기에 저장됩니다.
+        궁금한 것을 보내면 대화가 여기에 저장돼요.
       </Text>
       <Pressable
         accessibilityLabel="첫 채팅 시작하기"
@@ -133,7 +133,7 @@ export default function HomeScreen() {
       const room = await createRoom.mutateAsync();
       openRoom(room.id);
     } catch {
-      Alert.alert("새 채팅을 만들지 못했습니다", "잠시 후 다시 시도해 주세요.");
+      Alert.alert("새 채팅을 만들지 못했어요", "잠시 후 다시 시도해 주세요.");
     }
   }, [createRoom, openRoom]);
 
@@ -149,7 +149,7 @@ export default function HomeScreen() {
               deleteRoom.mutate(room.id, {
                 onError: () => {
                   Alert.alert(
-                    "채팅을 삭제하지 못했습니다",
+                    "채팅을 삭제하지 못했어요",
                     "잠시 후 다시 시도해 주세요."
                   );
                 },
@@ -190,7 +190,7 @@ export default function HomeScreen() {
     content = (
       <View className="flex-1 items-center justify-center gap-3 px-8">
         <Text className="text-center text-[17px] text-foreground">
-          채팅을 불러오지 못했습니다.
+          채팅을 불러오지 못했어요.
         </Text>
         <Pressable
           accessibilityLabel="다시 시도"
