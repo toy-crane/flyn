@@ -1,3 +1,6 @@
+import path from "node:path";
+import type { RuntimePlan } from "./allocator";
+
 export const MAX_DEV_SLOT = 99;
 
 export interface DevWorktreeArgs {
@@ -71,6 +74,24 @@ export function portsForSlot(slot: number): RuntimePorts {
     apiPort: 3000 + slot,
     metroPort: 8081 + slot,
   };
+}
+
+export function formatDryRunPlan(plan: RuntimePlan, worktreeRoot: string) {
+  const mobileRoot = path.join(worktreeRoot, "apps/mobile");
+  return [
+    `[runtime] worktree: ${worktreeRoot}`,
+    `[runtime] slot ${plan.slot} · API ${plan.apiPort} · Metro ${plan.metroPort} · ${plan.device.name} (${plan.device.id})`,
+    `[runtime] transformer cache: ${path.join(
+      mobileRoot,
+      ".expo/metro-cache"
+    )}`,
+    `[runtime] file-map cache: ${path.join(
+      mobileRoot,
+      ".expo/metro-file-map"
+    )}`,
+    `[runtime] API command: (cd apps/api && PORT=${plan.apiPort} bun run dev)`,
+    `[runtime] Metro command: (cd apps/mobile && bunx expo start --dev-client --localhost --port ${plan.metroPort})`,
+  ].join("\n");
 }
 
 export function parseDevWorktreeArgs(argv: string[]): DevWorktreeArgs {

@@ -10,7 +10,11 @@ import {
   assertSupabaseRunning,
   loadServiceEnvironment,
 } from "./dev-worktree/preflight";
-import { parseDevWorktreeArgs, selectSimulator } from "./dev-worktree/runtime";
+import {
+  formatDryRunPlan,
+  parseDevWorktreeArgs,
+  selectSimulator,
+} from "./dev-worktree/runtime";
 import {
   closeSimulatorSession,
   createSimulatorSessionName,
@@ -82,16 +86,17 @@ async function main() {
     worktreeRoot,
   });
   const { plan } = reservation;
-  process.stdout.write(
-    `[runtime] slot ${plan.slot} · API ${plan.apiPort} · Metro ${plan.metroPort} · ${plan.device.name} (${plan.device.id})\n`
-  );
 
   if (options.dryRun) {
     process.stdout.write(
-      "[runtime] dry-run: assignment, lock, child process를 변경하지 않았습니다.\n"
+      `${formatDryRunPlan(plan, worktreeRoot)}\n[runtime] dry-run: assignment, lock, child process를 변경하지 않았습니다.\n`
     );
     return;
   }
+
+  process.stdout.write(
+    `[runtime] slot ${plan.slot} · API ${plan.apiPort} · Metro ${plan.metroPort} · ${plan.device.name} (${plan.device.id})\n`
+  );
 
   if (!(await hasDevelopmentBuild(plan.device.id))) {
     await reservation.release();

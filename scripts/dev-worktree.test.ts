@@ -11,6 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { reserveRuntime } from "./dev-worktree/allocator";
 import {
+  formatDryRunPlan,
   parseDevWorktreeArgs,
   portsForSlot,
   selectSimulator,
@@ -75,6 +76,25 @@ describe("dev:worktree 명령 계약", () => {
     expect(() => parseDevWorktreeArgs(["--wat"])).toThrow(
       "지원하지 않는 옵션입니다: --wat"
     );
+  });
+
+  test("dry-run 계획에 worktree, cache, child command를 표시한다", () => {
+    const output = formatDryRunPlan(
+      {
+        apiPort: 3001,
+        device: { id: "SIM-1", name: "iPhone 17 Pro" },
+        metroPort: 8082,
+        slot: 1,
+      },
+      "/repo/worktree"
+    );
+
+    expect(output).toContain("/repo/worktree");
+    expect(output).toContain("apps/mobile/.expo/metro-cache");
+    expect(output).toContain("apps/mobile/.expo/metro-file-map");
+    expect(output).toContain("PORT=3001 bun run dev");
+    expect(output).toContain("--port 8082");
+    expect(output).not.toContain("AI_GATEWAY_API_KEY");
   });
 });
 
