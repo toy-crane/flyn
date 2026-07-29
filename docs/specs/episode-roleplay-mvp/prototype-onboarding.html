@@ -117,7 +117,17 @@
     font-size: 14px; color: var(--muted) }
 
   .step-no { font-size: 12px; color: var(--muted) }
-  .progress { flex: 1; height: 4px; background: var(--skeleton); border-radius: 99px;
+  /* iOS가 그리는 부분. 우리가 만들지 않으므로 그 옆에 무엇도 놓을 수 없다 —
+     진행 바가 header 아래로 내려간 이유다. */
+  .ios-header { margin: -16px -12px 0; padding: 0 0 2px }
+  .ios-header .statusbar { display: flex; justify-content: space-between;
+    padding: 8px 20px 2px; font-size: 13px; font-weight: 600 }
+  .ios-header .navbar { display: flex; align-items: center; min-height: 40px;
+    padding: 0 12px; font-size: 22px }
+  .ios-header .owner { font-size: 10px; color: var(--muted); text-align: right;
+    padding: 0 12px; font-family: ui-monospace, Menlo, monospace }
+
+  .progress { height: 4px; background: var(--skeleton); border-radius: 99px;
     overflow: hidden }
   .progress > span { display: block; height: 100%; background: var(--accent);
     border-radius: 99px }
@@ -223,9 +233,12 @@
 
   <!-- ── 온보딩 · 표시 이름 ─────────────────────────────────────────── -->
   <section data-screen="ob-name" data-title="온보딩·이름" data-states="기본,저장 실패" class="screen">
-    <div class="topbar">
-      <span class="progress" data-component="new:OnboardingProgress"><span style="width:33%"></span></span>
+    <div class="ios-header">
+      <div class="statusbar"><span>9:41</span><span>▮▮▮</span></div>
+      <div class="navbar">&nbsp;</div>
+      <div class="owner">↑ iOS 네이티브 header · 첫 단계라 뒤로가기 없음</div>
     </div>
+    <span class="progress" data-component="new:OnboardingProgress"><span style="width:33%"></span></span>
     <h1 class="big-title">뭐라고<br>부를까요?</h1>
     <div data-component="TextField">
       <div class="field-label">표시 이름</div>
@@ -242,10 +255,12 @@
 
   <!-- ── 온보딩 · 관심 분야 ─────────────────────────────────────────── -->
   <section data-screen="ob-interests" data-title="온보딩·관심" class="screen">
-    <div class="topbar">
-      <a class="back" href="#ob-name">←</a>
-      <span class="progress" data-component="new:OnboardingProgress"><span style="width:66%"></span></span>
+    <div class="ios-header">
+      <div class="statusbar"><span>9:41</span><span>▮▮▮</span></div>
+      <div class="navbar"><a href="#ob-name">‹</a></div>
+      <div class="owner">↑ iOS 네이티브 header</div>
     </div>
+    <span class="progress" data-component="new:OnboardingProgress"><span style="width:66%"></span></span>
     <h1 class="big-title">어떤 이야기가<br>재밌나요?</h1>
     <p class="sub">고른 분야에서 에피소드 스토리를 만들어요. 여러 개 골라도 돼요.</p>
     <div class="chip-grid" data-component="new:InterestChips">
@@ -263,11 +278,13 @@
 
   <!-- ── 온보딩 · 레벨 ──────────────────────────────────────────────── -->
   <section data-screen="ob-level" data-title="온보딩·레벨" class="screen">
-    <div class="topbar">
-      <a class="back" href="#ob-interests">←</a>
-      <span class="progress" data-component="new:OnboardingProgress"><span style="width:100%"></span></span>
+    <div class="ios-header">
+      <div class="statusbar"><span>9:41</span><span>▮▮▮</span></div>
+      <div class="navbar"><a href="#ob-interests">‹</a></div>
+      <div class="owner">↑ iOS 네이티브 header</div>
     </div>
-    <h1 class="big-title">영어로 얼마나<br>쓸 수 있나요?</h1>
+    <span class="progress" data-component="new:OnboardingProgress"><span style="width:100%"></span></span>
+    <h1 class="big-title">영어 문장, 얼마나<br>만들 수 있나요?</h1>
     <a class="option-card" href="#ob-level" data-component="new:LevelOption">
       <div class="name">이제 시작</div>
       <div class="desc">영어로 문장을 만드는 게 아직 어려워요.</div>
