@@ -1,4 +1,5 @@
 const { getDefaultConfig } = require("expo/metro-config");
+const { mkdirSync } = require("node:fs");
 const path = require("node:path");
 const { withUniwindConfig } = require("uniwind/metro"); // make sure this import exists
 
@@ -14,7 +15,11 @@ config.resolver.blockList = [
   /\/src\/app\/.*\.(test|spec)\.[tj]sx?$/,
 ];
 
-config.fileMapCacheDirectory = path.join(__dirname, ".expo", "metro-file-map");
+const transformerCacheDirectory = path.join(__dirname, ".expo", "metro-cache");
+const fileMapCacheDirectory = path.join(__dirname, ".expo", "metro-file-map");
+mkdirSync(transformerCacheDirectory, { recursive: true });
+mkdirSync(fileMapCacheDirectory, { recursive: true });
+config.fileMapCacheDirectory = fileMapCacheDirectory;
 
 // Apply uniwind modifications before exporting
 const uniwindConfig = withUniwindConfig(config, {
@@ -40,7 +45,7 @@ uniwindConfig.cacheStores = ({ FileStore }) => {
 
   return [
     new UniwindFileStore({
-      root: path.join(__dirname, ".expo", "metro-cache"),
+      root: transformerCacheDirectory,
     }),
   ];
 };

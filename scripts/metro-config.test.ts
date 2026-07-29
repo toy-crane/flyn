@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 
@@ -25,6 +26,12 @@ describe("Metro config", () => {
     expect(stores[0].root).toBe(path.join(mobileRoot, ".expo", "metro-cache"));
     expect(config.fileMapCacheDirectory).toBe(
       path.join(mobileRoot, ".expo", "metro-file-map")
+    );
+    expect(existsSync(path.join(mobileRoot, ".expo", "metro-cache"))).toBe(
+      true
+    );
+    expect(existsSync(path.join(mobileRoot, ".expo", "metro-file-map"))).toBe(
+      true
     );
   });
 
