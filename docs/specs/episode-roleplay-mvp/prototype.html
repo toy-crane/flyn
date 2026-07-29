@@ -6,16 +6,62 @@
 <title>flyn proto</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  /* ── project tokens: replace this block in the fill pass ─────────── */
+  /* ── project tokens ───────────────────────────────────────────────
+     apps/mobile/src/global.css에서 그대로 옮긴 값. 여기서 고치지 말고
+     global.css를 고친 뒤 다시 옮긴다 — 원본은 그쪽이다.
+     (uniwind-css-theme 결정 참고) */
   :root {
-    --background: #f6f6f6;
-    --surface: #ffffff;
-    --foreground: #3a3a3a;
-    --muted: #9a9a9a;
-    --line: #dcdcdc;
-    --accent: #6b6b6b;
-    --radius: 6px;
-    --font: system-ui, sans-serif;
+    --app-background: #f7f7f5;
+    --app-surface: #ffffff;
+    --app-foreground: #171719;
+    --app-muted-foreground: #6e6e73;
+    --app-disabled-foreground: #8e8e93;
+    --app-placeholder: #8e8e93;
+    --app-border: #d1d1d6;
+    --app-primary: #171719;
+    --app-primary-foreground: #ffffff;
+    --app-disabled: #e5e5ea;
+    --app-user-bubble: #e5e5ea;
+    --app-user-bubble-foreground: #171719;
+    --app-overlay: rgba(0, 0, 0, 0.18);
+    --app-danger: #d70015;
+    --app-success: #248a3d;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --app-background: #000000;
+      --app-surface: #1c1c1e;
+      --app-foreground: #f5f5f7;
+      --app-muted-foreground: #98989d;
+      --app-disabled-foreground: #636366;
+      --app-placeholder: #636366;
+      --app-border: #38383a;
+      --app-primary: #ffffff;
+      --app-primary-foreground: #000000;
+      --app-disabled: #2c2c2e;
+      --app-user-bubble: #2c2c2e;
+      --app-user-bubble-foreground: #f5f5f7;
+      --app-overlay: rgba(0, 0, 0, 0.62);
+      --app-danger: #ff453a;
+      --app-success: #32d74b;
+    }
+  }
+
+  /* 셸이 요구하는 이름으로 잇는 매핑. 색을 새로 만들지 않는다. */
+  :root {
+    --background: var(--app-background);
+    --surface: var(--app-surface);
+    --foreground: var(--app-foreground);
+    --muted: var(--app-muted-foreground);
+    --line: var(--app-border);
+    --accent: var(--app-primary);
+    --on-accent: var(--app-primary-foreground);
+    --placeholder: var(--app-placeholder);
+    --skeleton: var(--app-disabled);
+    /* SOCIAL_BUTTON_RADIUS = 16 (src/theme/buttons.ts) */
+    --radius: 16px;
+    --font: -apple-system, "SF Pro Text", system-ui, sans-serif;
   }
 
   /* ── review chrome (sh-*): keep, extend, never strip ─────────────── */
@@ -52,9 +98,8 @@
     padding: 16px; margin-top: 12px;
   }
 
-  .wf-line { height: 10px; border-radius: 4px; background: #e3e3e3; margin: 7px 0 }
-  .wf-pic  { border-radius: 4px; background:
-             repeating-linear-gradient(45deg, #e9e9e9, #e9e9e9 6px, #f2f2f2 6px, #f2f2f2 12px) }
+  .wf-line { height: 10px; border-radius: 4px; background: var(--skeleton); margin: 7px 0 }
+  .wf-pic  { border-radius: 4px; background: var(--skeleton) }
 
   /* ── prototype structure (skin lives in tokens only) ─────────────── */
   .screen { display: flex; flex-direction: column; min-height: 620px; gap: 12px }
@@ -74,7 +119,7 @@
   .big-title { font-size: 22px; font-weight: 700; line-height: 1.3; margin: 2px 0 0 }
   .sub { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 0 }
 
-  .cta { display: block; text-align: center; background: var(--accent); color: var(--surface);
+  .cta { display: block; text-align: center; background: var(--accent); color: var(--on-accent);
     border: none; border-radius: var(--radius); padding: 14px; font-size: 15px; font-weight: 600;
     margin-top: auto }
   .ghost { display: block; text-align: center; background: none; color: var(--muted);
@@ -108,7 +153,7 @@
   .epi-sum { font-size: 13px; color: var(--muted); line-height: 1.4 }
   .badge { font-size: 10px; border: 1px solid var(--line); border-radius: 99px; padding: 2px 8px }
   .fab { position: sticky; bottom: 12px; margin-left: auto; margin-top: auto;
-    background: var(--foreground); color: var(--surface); border-radius: 99px;
+    background: var(--accent); color: var(--on-accent); border-radius: 99px;
     padding: 13px 20px; font-size: 15px; font-weight: 600; width: max-content;
     display: block }
 
@@ -121,7 +166,8 @@
   .msgs { display: flex; flex-direction: column; gap: 10px; flex: 1 }
   .bubble { max-width: 82%; padding: 10px 12px; border-radius: 14px; font-size: 14px; line-height: 1.5 }
   .bubble.ai { align-self: flex-start; background: var(--surface); border: 1px solid var(--line) }
-  .bubble.user { align-self: flex-end; background: var(--accent); color: var(--surface) }
+  .bubble.user { align-self: flex-end; background: var(--app-user-bubble);
+    color: var(--app-user-bubble-foreground) }
   .u-wrap { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end;
     gap: 4px; max-width: 88% }
   .annot { align-self: flex-end; border: 1px solid var(--line); border-left: 3px solid var(--accent);
@@ -137,9 +183,9 @@
 
   .inputbar { display: flex; gap: 8px; margin-top: 8px }
   .inputbar .field { flex: 1; border: 1px solid var(--line); border-radius: 99px;
-    background: var(--surface); padding: 11px 14px; font-size: 13px; color: var(--muted) }
+    background: var(--surface); padding: 11px 14px; font-size: 13px; color: var(--placeholder) }
   .inputbar .send { width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
-    color: var(--surface); display: flex; align-items: center; justify-content: center }
+    color: var(--on-accent); display: flex; align-items: center; justify-content: center }
 
   .kv { display: flex; flex-direction: column; gap: 10px }
   .kv .row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px }
