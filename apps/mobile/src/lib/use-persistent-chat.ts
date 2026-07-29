@@ -210,11 +210,13 @@ export function usePersistentChat(
     }
 
     chat.clearError();
+    streamingStore.set("");
     setInput("");
     chat.sendMessage({ text: content });
-  }, [chat, input, isGenerating]);
+  }, [chat, input, isGenerating, streamingStore]);
 
   const onRetry = useCallback(() => {
+    streamingStore.set("");
     if (lastAssistant) {
       setStoppedMessageIds((current) => {
         if (!current.has(lastAssistant.id)) {
@@ -227,7 +229,7 @@ export function usePersistentChat(
       });
     }
     chat.regenerate();
-  }, [chat, lastAssistant]);
+  }, [chat, lastAssistant, streamingStore]);
 
   const stop = useCallback(() => {
     chat.stop();

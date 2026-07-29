@@ -214,6 +214,37 @@ describe("영구 채팅 controller", () => {
     expect(result.current.input).toBe("");
   });
 
+  it("새 메시지를 보내기 전에 이전 streaming text를 즉시 지운다", async () => {
+    const assistant = {
+      id: "old-assistant",
+      parts: [{ text: "이전 답변", type: "text" }],
+      role: "assistant",
+    };
+    let state = chatState({
+      messages: [assistant],
+      status: "streaming",
+    });
+    mockUseChat.mockImplementation(() => state);
+    const { rerender, result } = await renderHook(() =>
+      usePersistentChat("room-1", "account-1", STORED_MESSAGES)
+    );
+
+    await waitFor(() => {
+      expect(result.current.streamingStore.get()).toBe("이전 답변");
+    });
+    state = chatState({ messages: [assistant], status: "ready" });
+    await rerender({});
+    await act(() => {
+      result.current.setInput("새 질문");
+    });
+
+    await act(() => {
+      result.current.onSend();
+    });
+
+    expect(result.current.streamingStore.get()).toBe("");
+  });
+
   it("오류 상태를 유지한 채 재시도하고 생성 중단을 위임한다", async () => {
     mockUseChat.mockReturnValue(
       chatState({ error: new Error("failed"), status: "error" })
@@ -230,6 +261,38 @@ describe("영구 채팅 controller", () => {
     expect(clearError).not.toHaveBeenCalled();
     expect(regenerate).toHaveBeenCalled();
     expect(stop).toHaveBeenCalled();
+  });
+
+  it("재시도하기 전에 이전 streaming text를 즉시 지운다", async () => {
+    const assistant = {
+      id: "failed-assistant",
+      parts: [{ text: "실패 전 답변", type: "text" }],
+      role: "assistant",
+    };
+    let state = chatState({
+      messages: [assistant],
+      status: "streaming",
+    });
+    mockUseChat.mockImplementation(() => state);
+    const { rerender, result } = await renderHook(() =>
+      usePersistentChat("room-1", "account-1", STORED_MESSAGES)
+    );
+
+    await waitFor(() => {
+      expect(result.current.streamingStore.get()).toBe("실패 전 답변");
+    });
+    state = chatState({
+      error: new Error("failed"),
+      messages: [assistant],
+      status: "error",
+    });
+    await rerender({});
+
+    await act(() => {
+      result.current.onRetry();
+    });
+
+    expect(result.current.streamingStore.get()).toBe("");
   });
 
   it("abort된 부분 응답은 화면에서도 중단 상태로 남긴다", async () => {
