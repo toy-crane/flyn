@@ -60,7 +60,7 @@ export default function OnboardingScreen() {
       description="다른 사람에게 보이지 않는, 앱에서 나를 부르는 이름이에요. 나중에 설정에서 바꿀 수 있어요."
       failure={
         save.isError
-          ? "이름을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."
+          ? "이름을 저장하지 못했어요. 잠시 후 다시 시도해 주세요."
           : undefined
       }
       initialValue={candidate}

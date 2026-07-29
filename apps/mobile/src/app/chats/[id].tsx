@@ -90,7 +90,7 @@ export default function ChatDetailScreen() {
     content = (
       <CenteredAction
         actionLabel="다시 시도"
-        message="채팅을 불러오지 못했습니다."
+        message="채팅을 불러오지 못했어요."
         onPress={retry}
       />
     );
@@ -98,7 +98,7 @@ export default function ChatDetailScreen() {
     content = (
       <CenteredAction
         actionLabel="채팅 목록으로"
-        message="채팅방을 찾을 수 없습니다."
+        message="채팅방을 찾을 수 없어요."
         onPress={goBack}
       />
     );

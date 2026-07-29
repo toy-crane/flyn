@@ -255,7 +255,7 @@ describe("설정 — 계정 삭제", () => {
   // 서버가 지우지 못했으면 사용자는 왜 멈췄는지 알아야 한다.
   it("서버가 중단한 이유를 그대로 전한다", async () => {
     mockDeleteAccount.mockResolvedValue({
-      error: "계정을 삭제하지 못했습니다.",
+      error: "계정을 삭제하지 못했어요.",
     });
 
     await render(<SettingsScreen />);
@@ -264,8 +264,8 @@ describe("설정 — 계정 삭제", () => {
     await pressAlertButton("삭제");
 
     expect(Alert.alert).toHaveBeenLastCalledWith(
-      "계정을 삭제하지 못했습니다",
-      "계정을 삭제하지 못했습니다."
+      "계정을 삭제하지 못했어요",
+      "계정을 삭제하지 못했어요."
     );
   });
 });

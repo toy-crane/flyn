@@ -130,7 +130,7 @@ export default function SettingsScreen() {
       const result = await deleteAccount();
 
       if (result) {
-        Alert.alert("계정을 삭제하지 못했습니다", result.error);
+        Alert.alert("계정을 삭제하지 못했어요", result.error);
       }
     } finally {
       setDeleting(false);

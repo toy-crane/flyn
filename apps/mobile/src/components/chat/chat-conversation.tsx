@@ -280,7 +280,7 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
                   무엇이든 물어보세요
                 </Text>
                 <Text className="text-center text-[15px] text-muted-foreground leading-6">
-                  메시지는 이 채팅방에 안전하게 저장됩니다.
+                  메시지는 이 채팅방에 안전하게 저장돼요.
                 </Text>
               </View>
             }

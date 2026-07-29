@@ -99,7 +99,7 @@ export function ProfileUnavailable({
           />
         </>
       }
-      message="계정 정보를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요."
+      message="계정 정보를 불러오지 못했어요. 인터넷 연결을 확인해 주세요."
     />
   );
 }
@@ -123,7 +123,7 @@ export function ProfileMissing({ onSignOut }: { onSignOut: () => void }) {
           onPress={onSignOut}
         />
       }
-      message="계정 정보가 올바르지 않습니다. 로그아웃한 뒤 다시 로그인해 주세요. 문제가 계속되면 문의해 주세요."
+      message="계정 정보가 올바르지 않아요. 로그아웃한 뒤 다시 로그인해 주세요. 문제가 계속되면 문의해 주세요."
     />
   );
 }

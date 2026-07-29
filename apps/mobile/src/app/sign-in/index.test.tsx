@@ -138,7 +138,7 @@ describe("SignInScreen", () => {
     await pressSettled(screen.getByTestId("apple-button"));
 
     expect(Alert.alert).toHaveBeenCalledWith(
-      "로그인하지 못했습니다",
+      "로그인하지 못했어요",
       "잠시 후에 다시 시도해 주세요.",
       expect.anything()
     );

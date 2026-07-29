@@ -51,7 +51,7 @@ export function describeAuthError(raw: string): AuthErrorInfo {
     return {
       kind,
       message: "인터넷에 연결되어 있는지 확인한 뒤 다시 시도해 주세요.",
-      title: "로그인하지 못했습니다",
+      title: "로그인하지 못했어요",
     };
   }
 
@@ -62,8 +62,8 @@ export function describeAuthError(raw: string): AuthErrorInfo {
     return {
       kind,
       message: wait
-        ? `요청이 너무 잦습니다. ${wait}초 후에 다시 시도할 수 있습니다.`
-        : "요청이 너무 잦습니다. 잠시 후에 다시 시도해 주세요.",
+        ? `요청이 너무 잦아요. ${wait}초 후에 다시 시도할 수 있어요.`
+        : "요청이 너무 잦아요. 잠시 후에 다시 시도해 주세요.",
       retryAfterSeconds: wait,
       title: "잠시 후에 다시 시도해 주세요",
     };
@@ -72,7 +72,7 @@ export function describeAuthError(raw: string): AuthErrorInfo {
   if (kind === "invalidCode") {
     return {
       kind,
-      message: "코드가 올바르지 않거나 만료되었습니다. 다시 확인해 주세요.",
+      message: "코드가 올바르지 않거나 만료됐어요. 다시 확인해 주세요.",
       title: "코드를 확인해 주세요",
     };
   }
@@ -80,7 +80,7 @@ export function describeAuthError(raw: string): AuthErrorInfo {
   return {
     kind,
     message: "잠시 후에 다시 시도해 주세요.",
-    title: "로그인하지 못했습니다",
+    title: "로그인하지 못했어요",
   };
 }
 
