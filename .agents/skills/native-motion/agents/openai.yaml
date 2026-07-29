@@ -1,0 +1,4 @@
+interface:
+  display_name: "Native Motion"
+  short_description: "Design and review motion across native renderers"
+  default_prompt: "Use $native-motion to identify who owns motion on each Expo surface, then design, review, or implement it with native behavior and device verification."
