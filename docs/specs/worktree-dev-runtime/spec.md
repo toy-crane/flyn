@@ -64,7 +64,7 @@
 
 - API는 `apps/api`에서 `PORT=<api-port>`를 받아 실행한다.
 - Metro는 `apps/mobile`에서
-  `EXPO_PUBLIC_API_BASE_URL=http://localhost:<api-port>`와
+  `EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:<api-port>`와
   `expo start --dev-client --localhost --port <metro-port>`로 실행한다.
 - API의 `/health`와 Metro의 준비 상태를 확인한 뒤 시뮬레이터 연결을 완료한다.
 - 두 프로세스 로그는 `[api:<port>]`, `[metro:<port>]`처럼 출처를 구분한다.
