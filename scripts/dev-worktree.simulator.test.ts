@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
   AGENT_DEVICE_APP_NAME,
+  agentDeviceAppsArgs,
+  agentDeviceOpenArgs,
   createSimulatorSessionName,
   developmentBuildCommand,
   parseAgentDeviceApps,
@@ -57,6 +59,35 @@ describe("dev:worktree agent-device adapter", () => {
     expect(developmentBuildCommand("SIM-1", 8085)).toBe(
       'cd apps/mobile && bunx expo run:ios --device "SIM-1" --port 8085 --no-bundler'
     );
+    expect(agentDeviceAppsArgs("SIM-1")).toContain("--udid");
+    expect(agentDeviceAppsArgs("SIM-1")).not.toContain("--device");
+    expect(
+      agentDeviceOpenArgs({
+        plan: {
+          apiPort: 3004,
+          device: { id: "SIM-1", name: "iPhone 17" },
+          metroPort: 8085,
+          slot: 4,
+        },
+        sessionName: "flyn-repo-slot-4",
+      })
+    ).toEqual([
+      "open",
+      "flyn",
+      "--platform",
+      "ios",
+      "--udid",
+      "SIM-1",
+      "--session",
+      "flyn-repo-slot-4",
+      "--metro-host",
+      "127.0.0.1",
+      "--metro-port",
+      "8085",
+      "--launch-url",
+      "exp+flyn://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8085",
+      "--relaunch",
+    ]);
   });
 
   test("예상하지 못한 agent-device 응답은 거부한다", () => {

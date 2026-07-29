@@ -7,8 +7,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "bun run dev:worktree",
-    "dev:worktree": "bun run scripts/dev-worktree.ts",
+    "dev": "bun scripts/dev-worktree.ts",
+    "dev:worktree": "bun scripts/dev-worktree.ts",
     "lint": "ultracite check",
     "lint:fix": "ultracite fix",
     "test:scripts": "bun test scripts",

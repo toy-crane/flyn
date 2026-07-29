@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   assertCompatibleAgentDevice,
   deriveRepositoryId,
+  isReadyResponse,
 } from "./dev-worktree/system";
 
 const REPOSITORY_ID_PATTERN = /^[a-f0-9]{16}$/u;
@@ -27,5 +28,32 @@ describe("dev:worktree system boundary", () => {
     expect(() => assertCompatibleAgentDevice("unknown")).toThrow(
       "agent-device version"
     );
+  });
+
+  test("API health 본문과 Metro status HTTP 성공을 readiness로 판별한다", async () => {
+    await expect(
+      isReadyResponse(
+        "http://127.0.0.1:3000/health",
+        Response.json({ status: "ok" })
+      )
+    ).resolves.toBe(true);
+    await expect(
+      isReadyResponse(
+        "http://127.0.0.1:3000/health",
+        Response.json({ status: "starting" })
+      )
+    ).resolves.toBe(false);
+    await expect(
+      isReadyResponse(
+        "http://127.0.0.1:8081/status",
+        new Response(null, { status: 200 })
+      )
+    ).resolves.toBe(true);
+    await expect(
+      isReadyResponse(
+        "http://127.0.0.1:8081/status",
+        new Response(null, { status: 503 })
+      )
+    ).resolves.toBe(false);
   });
 });

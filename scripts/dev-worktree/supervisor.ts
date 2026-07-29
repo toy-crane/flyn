@@ -21,6 +21,7 @@ interface LaunchDevelopmentServicesOptions {
   apiEnvironment: Environment;
   mobileEnvironment: Environment;
   plan: RuntimePlan;
+  shutdown?: Promise<NodeJS.Signals>;
   spawn: (spec: ServiceSpec, onLine: (line: string) => void) => ServiceProcess;
   waitForUrl: (url: string, timeoutMs: number) => Promise<void>;
   worktreeRoot: string;
@@ -37,6 +38,23 @@ const SECRET_ASSIGNMENT =
 const AUTHORIZATION_HEADER =
   /\b(authorization\s*:\s*)(?:bearer\s+)?[^\s,}]+/giu;
 
+export class RuntimeShutdownError extends Error {
+  constructor() {
+    super("개발 런타임 종료 요청");
+    this.name = "RuntimeShutdownError";
+  }
+}
+
+function nodeOptionsWithIpv4DnsFirst(existing: string | undefined) {
+  const option = "--dns-result-order=ipv4first";
+
+  if (existing?.includes(option)) {
+    return existing;
+  }
+
+  return [existing, option].filter(Boolean).join(" ");
+}
+
 export function redactLogLine(line: string) {
   return line
     .replace(SECRET_ASSIGNMENT, "$1[REDACTED]")
@@ -47,16 +65,27 @@ async function waitForService(
   service: ServiceProcess,
   url: string,
   timeoutMs: number,
-  waitForUrl: LaunchDevelopmentServicesOptions["waitForUrl"]
+  waitForUrl: LaunchDevelopmentServicesOptions["waitForUrl"],
+  shutdown?: Promise<NodeJS.Signals>
 ) {
-  await Promise.race([
+  const pending = [
     waitForUrl(url, timeoutMs),
     service.exited.then((code) => {
       throw new Error(
         `${service.name} process가 준비 전에 종료되었습니다(exit ${code}).`
       );
     }),
-  ]);
+  ];
+
+  if (shutdown) {
+    pending.push(
+      shutdown.then(() => {
+        throw new RuntimeShutdownError();
+      })
+    );
+  }
+
+  await Promise.race(pending);
 }
 
 export async function launchDevelopmentServices(
@@ -94,7 +123,8 @@ export async function launchDevelopmentServices(
       api,
       `http://127.0.0.1:${options.plan.apiPort}/health`,
       15_000,
-      options.waitForUrl
+      options.waitForUrl,
+      options.shutdown
     );
 
     const metro = spawn({
@@ -111,6 +141,9 @@ export async function launchDevelopmentServices(
       environment: {
         ...options.mobileEnvironment,
         EXPO_PUBLIC_API_BASE_URL: `http://127.0.0.1:${options.plan.apiPort}`,
+        NODE_OPTIONS: nodeOptionsWithIpv4DnsFirst(
+          options.mobileEnvironment.NODE_OPTIONS
+        ),
       },
       name: "metro",
       port: options.plan.metroPort,
@@ -119,7 +152,8 @@ export async function launchDevelopmentServices(
       metro,
       `http://127.0.0.1:${options.plan.metroPort}/status`,
       45_000,
-      options.waitForUrl
+      options.waitForUrl,
+      options.shutdown
     );
   } catch (error) {
     await stop();

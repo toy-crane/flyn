@@ -4,7 +4,10 @@ import {
   readRuntimeAssignment,
   reserveRuntime,
 } from "./dev-worktree/allocator";
-import { runRuntimeSession } from "./dev-worktree/orchestrator";
+import {
+  assertDevelopmentBuildAvailable,
+  runRuntimeSession,
+} from "./dev-worktree/orchestrator";
 import {
   assertDevelopmentEnvironment,
   assertSupabaseRunning,
@@ -17,6 +20,7 @@ import {
 } from "./dev-worktree/runtime";
 import {
   closeSimulatorSession,
+  closeStaleSimulatorSession,
   createSimulatorSessionName,
   developmentBuildCommand,
   hasDevelopmentBuild,
@@ -98,20 +102,19 @@ async function main() {
     `[runtime] slot ${plan.slot} · API ${plan.apiPort} · Metro ${plan.metroPort} · ${plan.device.name} (${plan.device.id})\n`
   );
 
-  if (!(await hasDevelopmentBuild(plan.device.id))) {
-    await reservation.release();
-    throw new Error(
-      `Simulator에 com.odd.flyn development build가 없습니다.\n${developmentBuildCommand(
-        plan.device.id,
-        plan.metroPort
-      )}`
-    );
-  }
-
-  const sessionName = createSimulatorSessionName(repoId, plan.slot);
   const shutdownSignal = createShutdownSignal();
 
   try {
+    await assertDevelopmentBuildAvailable({
+      check: () => hasDevelopmentBuild(plan.device.id),
+      missingBuildMessage: `Simulator에 com.odd.flyn development build가 없습니다.\n${developmentBuildCommand(
+        plan.device.id,
+        plan.metroPort
+      )}`,
+      reservation,
+    });
+
+    const sessionName = createSimulatorSessionName(repoId, plan.slot);
     await runRuntimeSession({
       closeSimulator: () => closeSimulatorSession(sessionName),
       launchServices: () =>
@@ -119,6 +122,7 @@ async function main() {
           apiEnvironment,
           mobileEnvironment,
           plan,
+          shutdown: shutdownSignal.promise,
           spawn: spawnServiceProcess,
           waitForUrl,
           worktreeRoot,
@@ -132,7 +136,10 @@ async function main() {
           `[runtime] cleanup 경고: ${redactLogLine(message)}\n`
         );
       },
-      openSimulator: () => openSimulatorSession({ plan, sessionName }),
+      openSimulator: async () => {
+        await closeStaleSimulatorSession(sessionName);
+        await openSimulatorSession({ plan, sessionName });
+      },
       reservation,
       waitForSignal: () => shutdownSignal.promise,
     });

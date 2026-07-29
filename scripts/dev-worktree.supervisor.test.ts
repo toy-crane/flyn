@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   launchDevelopmentServices,
+  RuntimeShutdownError,
   redactLogLine,
   type ServiceProcess,
   type ServiceSpec,
@@ -80,6 +81,7 @@ describe("dev:worktree service supervisor", () => {
         environment: {
           EXISTING_MOBILE: "yes",
           EXPO_PUBLIC_API_BASE_URL: "http://127.0.0.1:3007",
+          NODE_OPTIONS: "--dns-result-order=ipv4first",
         },
         name: "metro",
         port: 8088,
@@ -113,6 +115,29 @@ describe("dev:worktree service supervisor", () => {
         worktreeRoot: "/repo/worktree",
       })
     ).rejects.toThrow("API timeout");
+    expect(api.stopCalls).toHaveLength(1);
+  });
+
+  test("startup 중 signal도 이미 시작한 child를 정리한다", async () => {
+    const api = fakeProcess("api");
+    const shutdown = deferred<NodeJS.Signals>();
+    const launch = launchDevelopmentServices({
+      apiEnvironment: {},
+      mobileEnvironment: {},
+      plan: {
+        apiPort: 3000,
+        device: { id: "SIM", name: "iPhone" },
+        metroPort: 8081,
+        slot: 0,
+      },
+      shutdown: shutdown.promise,
+      spawn: () => api.process,
+      waitForUrl: () => new Promise(() => undefined),
+      worktreeRoot: "/repo/worktree",
+    });
+
+    shutdown.resolve("SIGINT");
+    await expect(launch).rejects.toBeInstanceOf(RuntimeShutdownError);
     expect(api.stopCalls).toHaveLength(1);
   });
 

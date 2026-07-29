@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import type { RuntimeReservation } from "./dev-worktree/allocator";
-import { runRuntimeSession } from "./dev-worktree/orchestrator";
+import {
+  assertDevelopmentBuildAvailable,
+  runRuntimeSession,
+} from "./dev-worktree/orchestrator";
 import type { DevelopmentServices } from "./dev-worktree/supervisor";
 
 function createReservation(events: string[]): RuntimeReservation {
@@ -29,6 +32,18 @@ function createServices(events: string[]): DevelopmentServices {
 }
 
 describe("dev:worktree runtime session", () => {
+  test("development build 확인 명령 자체가 실패해도 lock을 정리한다", async () => {
+    const events: string[] = [];
+    await expect(
+      assertDevelopmentBuildAvailable({
+        check: () => Promise.reject(new Error("agent-device failed")),
+        missingBuildMessage: "missing build",
+        reservation: createReservation(events),
+      })
+    ).rejects.toThrow("agent-device failed");
+    expect(events).toEqual(["release-lock"]);
+  });
+
   test("startup 실패 시 lock을 정리하고 Supabase 명령은 호출하지 않는다", async () => {
     const events: string[] = [];
 

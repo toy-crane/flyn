@@ -181,13 +181,13 @@ export function spawnServiceProcess(
   };
 }
 
-async function isReadyResponse(url: string, response: Response) {
+export async function isReadyResponse(url: string, response: Response) {
   if (!response.ok) {
     return false;
   }
 
   if (url.endsWith("/status")) {
-    return (await response.text()).trim() === "packager-status:running";
+    return true;
   }
 
   if (url.endsWith("/health")) {

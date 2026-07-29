@@ -79,6 +79,40 @@ export function developmentBuildCommand(deviceId: string, metroPort: number) {
   return `cd apps/mobile && bunx expo run:ios --device "${deviceId}" --port ${metroPort} --no-bundler`;
 }
 
+export function agentDeviceAppsArgs(deviceId: string) {
+  return ["apps", "--platform", "ios", "--udid", deviceId];
+}
+
+export function agentDeviceOpenArgs({
+  plan,
+  sessionName,
+}: {
+  plan: RuntimePlan;
+  sessionName: string;
+}) {
+  const bundleUrl = `http://127.0.0.1:${plan.metroPort}`;
+  const launchUrl = `exp+flyn://expo-development-client/?url=${encodeURIComponent(
+    bundleUrl
+  )}`;
+  return [
+    "open",
+    "flyn",
+    "--platform",
+    "ios",
+    "--udid",
+    plan.device.id,
+    "--session",
+    sessionName,
+    "--metro-host",
+    "127.0.0.1",
+    "--metro-port",
+    String(plan.metroPort),
+    "--launch-url",
+    launchUrl,
+    "--relaunch",
+  ];
+}
+
 async function runAgentDeviceJson(args: string[]) {
   const child = spawn(["agent-device", ...args, "--json"], {
     stderr: "pipe",
@@ -91,8 +125,22 @@ async function runAgentDeviceJson(args: string[]) {
   ]);
 
   if (exitCode !== 0) {
+    let detail = stderr.trim();
+
+    try {
+      const parsed = JSON.parse(stdout) as {
+        error?: { message?: unknown };
+      };
+
+      if (typeof parsed.error?.message === "string") {
+        detail = parsed.error.message;
+      }
+    } catch {
+      // JSON이 아니면 stderr를 그대로 사용한다.
+    }
+
     throw new Error(
-      `agent-device ${args[0]} 실패(exit ${exitCode}): ${stderr.trim()}`
+      `agent-device ${args[0]} 실패(exit ${exitCode}): ${detail}`
     );
   }
 
@@ -111,13 +159,7 @@ export async function listIosSimulators() {
 
 export async function hasDevelopmentBuild(deviceId: string) {
   const apps = parseAgentDeviceApps(
-    await runAgentDeviceJson([
-      "apps",
-      "--platform",
-      "ios",
-      "--device",
-      deviceId,
-    ])
+    await runAgentDeviceJson(agentDeviceAppsArgs(deviceId))
   );
   return apps.includes(AGENT_DEVICE_APP_NAME);
 }
@@ -129,23 +171,21 @@ export async function openSimulatorSession({
   plan: RuntimePlan;
   sessionName: string;
 }) {
-  await runAgentDeviceJson([
-    "open",
-    "flyn",
-    "--platform",
-    "ios",
-    "--device",
-    plan.device.id,
-    "--session",
-    sessionName,
-    "--metro-host",
-    "127.0.0.1",
-    "--metro-port",
-    String(plan.metroPort),
-    "--relaunch",
-  ]);
+  await runAgentDeviceJson(agentDeviceOpenArgs({ plan, sessionName }));
 }
 
 export async function closeSimulatorSession(sessionName: string) {
   await runAgentDeviceJson(["close", "--session", sessionName]);
+}
+
+export async function closeStaleSimulatorSession(sessionName: string) {
+  try {
+    await closeSimulatorSession(sessionName);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("No active session")) {
+      return;
+    }
+
+    throw error;
+  }
 }
