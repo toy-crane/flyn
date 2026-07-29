@@ -13,6 +13,7 @@ export function StreamingMessage({ store }: { store: StreamingStore }) {
         accessibilityLabel="응답 생성 중"
         color={theme.mutedForeground}
         size="small"
+        style={{ alignSelf: "flex-start" }}
         testID="assistant-response-spinner"
       />
     );

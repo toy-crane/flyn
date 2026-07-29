@@ -238,7 +238,9 @@ describe("채팅방 상세 대화", () => {
       />
     );
 
-    expect(screen.getByLabelText("응답 생성 중")).toBeTruthy();
+    expect(screen.getByLabelText("응답 생성 중")).toHaveStyle({
+      alignSelf: "flex-start",
+    });
     expect(screen.queryByText("…")).toBeNull();
     expect(screen.queryByText("\u258c")).toBeNull();
   });
