@@ -1,0 +1,130 @@
+{
+  "skill_name": "native-motion",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/native-motion Settings의 @expo/ui ListItem이 밋밋해 보여. 누를 때마다 scale 0.97 애니메이션을 넣어서 더 살아있게 만들어줘.",
+      "expected_output": "The response identifies the ListItem as an @expo/ui native control, inspects the Host boundary, existing native feedback, and supported control or SwiftUI modifier surface, then rejects generic RN press scaling unless device evidence establishes a missing state signal.",
+      "files": [
+        "apps/mobile/src/app/settings/index.tsx",
+        "docs/decisions/self-contained-native-ui-boundaries.md"
+      ],
+      "expectations": [
+        "It classifies the ListItem and its containing subtree as @expo/ui-owned rather than React Native-owned.",
+        "It inspects or cites the current Host boundary, native control behavior, and installed @expo/ui capability surface before proposing code.",
+        "It does not blindly apply the web-style scale 0.97 recipe.",
+        "It does not equate native ownership with an absence of configurable motion.",
+        "It preserves native feedback unless a concrete product or device observation justifies a supported owner-local change."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/native-motion 채팅에서 맨 아래로 버튼이 갑자기 나타났다 사라져. 자연스럽게 바꿔줘.",
+      "expected_output": "The response identifies the button as an RN overlay, uses a focused Reanimated enter/exit treatment with system reduced-motion behavior, preserves virtualized scrolling, and verifies both appearance directions on the simulator.",
+      "files": [
+        "apps/mobile/src/components/chat/chat-conversation.tsx",
+        "apps/mobile/src/components/chat/chat-conversation.test.tsx"
+      ],
+      "expectations": [
+        "It classifies the button as React Native-owned even though the app also uses @expo/ui elsewhere.",
+        "It keeps Expo Router navigation and the message list's virtualization out of the change.",
+        "It handles Reduce Motion and both entering and exiting behavior.",
+        "It adds focused test coverage where mechanically useful and requires device or recording verification for feel."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "/native-motion 채팅방을 열 때 화면 전환이 조금 느린 것 같아. Reanimated로 감싸서 더 빠르게 고쳐줘.",
+      "expected_output": "The response recognizes the route transition as native-stack-owned, inspects supported Expo Router animation, duration, presentation, and gesture configuration plus the running transition, and does not add a second Reanimated wrapper around it.",
+      "files": [
+        "apps/mobile/src/app/_layout.tsx",
+        "apps/mobile/src/app/index.tsx"
+      ],
+      "expectations": [
+        "It classifies push and interactive back behavior as system-owned.",
+        "It investigates current Expo Router animation, duration, presentation, and gesture options plus runtime evidence before accepting the speed diagnosis.",
+        "It rejects layering an RN transition around the native stack.",
+        "It treats supported owner-level configuration as a real candidate rather than declaring the route untouchable.",
+        "If a real issue remains, it limits changes to supported owner-level configuration."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "/native-motion 앱이 좀 정적인 것 같아. 전체적으로 애니메이션 넣을 곳을 점검해줘.",
+      "expected_output": "The response performs a read-only renderer-aware opportunity audit, reports a small set of justified candidates, and includes rejected native, high-frequency, and content-stability cases.",
+      "files": [
+        "apps/mobile/src/app/_layout.tsx",
+        "apps/mobile/src/app/index.tsx",
+        "apps/mobile/src/components/chat/chat-conversation.tsx",
+        "apps/mobile/src/app/settings/index.tsx"
+      ],
+      "expectations": [
+        "It inventories system, @expo/ui, RN, and mixed boundaries plus each owner's configuration or modifier surface before proposing motion.",
+        "It keeps the audit read-only because the user asked to inspect rather than implement.",
+        "It reports purpose, frequency, owner, and reduced-motion behavior for surviving candidates.",
+        "It includes rejected candidates and does not turn the request into an animation wishlist."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "/native-motion RN 화면 위의 @expo/ui Host와 오류 overlay를 한 덩어리처럼 scale 전환해도 되는지 리뷰해줘.",
+      "expected_output": "The response splits ownership between the complete Host subtree and RN overlay, rejects an animation that reaches through the renderer boundary, and suggests owner-local continuity if motion is justified.",
+      "files": [
+        "docs/decisions/self-contained-native-ui-boundaries.md",
+        "apps/mobile/src/app/settings/index.tsx"
+      ],
+      "expectations": [
+        "It identifies the mixed boundary instead of selecting one renderer for the whole screen.",
+        "It keeps the Host subtree self-contained.",
+        "It does not apply a Reanimated transform to SwiftUI leaves or duplicate Host wrappers around controls.",
+        "It returns review findings without modifying code."
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "/native-motion Google 로그인 버튼 press 애니메이션을 리뷰해줘. Emil 스킬처럼 scale 0.97이 없으면 문제인지 봐줘.",
+      "expected_output": "The response recognizes the RN Pressable and vendor-owned visual constraints, verifies the existing pressed-opacity feedback, and does not flag absent scale as a defect by itself.",
+      "files": [
+        "apps/mobile/src/components/sign-in/google-button.tsx",
+        "docs/decisions/social-sign-in-presentation.md"
+      ],
+      "expectations": [
+        "It classifies the outer interaction as RN-owned while preserving Google's brand-owned appearance.",
+        "It notices the existing pressed opacity feedback.",
+        "It treats scale as optional rather than a universal Pressable requirement.",
+        "It keeps the review read-only and cites concrete code and decision evidence."
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "/native-motion 새 메시지를 보낼 때마다 haptic과 버블 등장 애니메이션을 추가해줘.",
+      "expected_output": "The response gates the high-frequency request, preserves chat readability and scroll behavior, and either rejects repeated haptics and decorative row entrances or narrows them to a justified causal state with reduced-motion behavior.",
+      "files": [
+        "apps/mobile/src/components/chat/chat-conversation.tsx",
+        "apps/mobile/src/lib/haptics.ts"
+      ],
+      "expectations": [
+        "It accounts for message frequency and the fact that streaming content is already changing.",
+        "It does not add haptics to every message without a meaningful event distinction.",
+        "It preserves virtualized-list and user-away-from-bottom behavior.",
+        "Any surviving motion has a named purpose and a Reduce Motion alternative."
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "/native-motion FormSubmitButton의 label 옆 ProgressView가 갑자기 나타나. @expo/ui니까 시스템 기본만 유지하고 끝내면 되는지 검토해줘.",
+      "expected_output": "The response identifies a self-contained @expo/ui Host subtree, inspects the installed SwiftUI animation, withAnimation, and related modifier capabilities, and decides whether the pending-state change needs owner-local continuity without using Reanimated through the boundary.",
+      "files": [
+        "apps/mobile/src/components/forms/form-submit-button.tsx",
+        "apps/mobile/src/components/profile/display-name-form.tsx"
+      ],
+      "expectations": [
+        "It classifies the Button, Row, Text, and ProgressView state change as @expo/ui-owned.",
+        "It inspects exact installed @expo/ui animation APIs before deciding what is possible.",
+        "It does not reject the opportunity merely because native controls already animate.",
+        "It keeps any surviving animation within the existing Host subtree and does not wrap SwiftUI leaves in Reanimated.",
+        "It names a Reduce Motion alternative and requires simulator verification for layout stability."
+      ]
+    }
+  ]
+}
