@@ -7,7 +7,13 @@ import type { ChatStatus } from "ai";
 import { BlurView } from "expo-blur";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { SymbolView } from "expo-symbols";
-import { type ReactNode, useCallback, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   type LayoutChangeEvent,
@@ -23,7 +29,14 @@ import {
   KeyboardStickyView,
   useReanimatedKeyboardAnimation,
 } from "react-native-keyboard-controller";
-import Reanimated, { useAnimatedStyle } from "react-native-reanimated";
+import Reanimated, {
+  Keyframe,
+  LinearTransition,
+  ReduceMotion,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "../../theme/app-theme";
 import { ChatMarkdown } from "./chat-markdown";
@@ -34,6 +47,33 @@ const COMPOSER_NATIVE_ID = "chat-composer";
 const BOTTOM_THRESHOLD = 72;
 const COMPOSER_MIN_HEIGHT = 52;
 const COMPOSER_MARGIN = 8;
+const CHAT_ERROR_ENTERING = new Keyframe({
+  0: {
+    opacity: 0,
+    transform: [{ translateY: 6 }],
+  },
+  100: {
+    opacity: 1,
+    transform: [{ translateY: 0 }],
+  },
+})
+  .duration(160)
+  .reduceMotion(ReduceMotion.System);
+const CHAT_ERROR_EXITING = new Keyframe({
+  0: {
+    opacity: 1,
+    transform: [{ translateY: 0 }],
+  },
+  100: {
+    opacity: 0,
+    transform: [{ translateY: 6 }],
+  },
+})
+  .duration(140)
+  .reduceMotion(ReduceMotion.System);
+const CHAT_RECOVERY_LAYOUT = LinearTransition.duration(160).reduceMotion(
+  ReduceMotion.System
+);
 
 export interface DisplayChatMessage {
   content: string;
@@ -150,7 +190,13 @@ function Composer({
       }}
     >
       {chat.error ? (
-        <View className="mb-2 flex-row items-center gap-3 rounded-2xl bg-surface px-4 py-3">
+        <Reanimated.View
+          className="mb-2 flex-row items-center gap-3 rounded-2xl bg-surface px-4 py-3"
+          entering={CHAT_ERROR_ENTERING}
+          exiting={CHAT_ERROR_EXITING}
+          layout={CHAT_RECOVERY_LAYOUT}
+          testID="chat-error-banner"
+        >
           <Text className="flex-1 text-[13px] text-foreground">
             응답을 만들지 못했어요.
           </Text>
@@ -164,54 +210,59 @@ function Composer({
               다시 시도
             </Text>
           </Pressable>
-        </View>
+        </Reanimated.View>
       ) : null}
 
-      <ComposerSurface>
-        <TextInput
-          accessibilityLabel="메시지"
-          className="max-h-28 min-h-[52px] flex-1 px-4 py-[14px] text-base text-foreground leading-[22px]"
-          cursorColor={theme.foreground}
-          maxLength={4000}
-          multiline
-          nativeID={COMPOSER_NATIVE_ID}
-          onChangeText={chat.setInput}
-          placeholder="메시지 보내기"
-          placeholderTextColor={theme.placeholder}
-          selectionColor={theme.foreground}
-          textAlignVertical="top"
-          value={chat.input}
-        />
-        <Pressable
-          accessibilityLabel={actionLabel}
-          accessibilityRole="button"
-          className="m-1 min-h-11 min-w-11 items-center justify-center rounded-full"
-          disabled={disabled}
-          onPress={handleAction}
-          style={{
-            backgroundColor: disabled ? theme.disabled : theme.primary,
-            opacity: disabled ? 0.7 : 1,
-          }}
-        >
-          {chat.status === "submitted" ? (
-            <ActivityIndicator
-              accessible={false}
-              color={theme.primaryForeground}
-              size="small"
-              testID="composer-submit-spinner"
-            />
-          ) : (
-            <SymbolView
-              name={chat.status === "streaming" ? "stop.fill" : "arrow.up"}
-              size={17}
-              tintColor={
-                disabled ? theme.disabledForeground : theme.primaryForeground
-              }
-              weight="semibold"
-            />
-          )}
-        </Pressable>
-      </ComposerSurface>
+      <Reanimated.View
+        layout={CHAT_RECOVERY_LAYOUT}
+        testID="chat-composer-surface-motion"
+      >
+        <ComposerSurface>
+          <TextInput
+            accessibilityLabel="메시지"
+            className="max-h-28 min-h-[52px] flex-1 px-4 py-[14px] text-base text-foreground leading-[22px]"
+            cursorColor={theme.foreground}
+            maxLength={4000}
+            multiline
+            nativeID={COMPOSER_NATIVE_ID}
+            onChangeText={chat.setInput}
+            placeholder="메시지 보내기"
+            placeholderTextColor={theme.placeholder}
+            selectionColor={theme.foreground}
+            textAlignVertical="top"
+            value={chat.input}
+          />
+          <Pressable
+            accessibilityLabel={actionLabel}
+            accessibilityRole="button"
+            className="m-1 min-h-11 min-w-11 items-center justify-center rounded-full"
+            disabled={disabled}
+            onPress={handleAction}
+            style={{
+              backgroundColor: disabled ? theme.disabled : theme.primary,
+              opacity: disabled ? 0.7 : 1,
+            }}
+          >
+            {chat.status === "submitted" ? (
+              <ActivityIndicator
+                accessible={false}
+                color={theme.primaryForeground}
+                size="small"
+                testID="composer-submit-spinner"
+              />
+            ) : (
+              <SymbolView
+                name={chat.status === "streaming" ? "stop.fill" : "arrow.up"}
+                size={17}
+                tintColor={
+                  disabled ? theme.disabledForeground : theme.primaryForeground
+                }
+                weight="semibold"
+              />
+            )}
+          </Pressable>
+        </ComposerSurface>
+      </Reanimated.View>
     </View>
   );
 }
@@ -239,6 +290,18 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
     listViewportHeight > 0
       ? Math.min(1, BOTTOM_THRESHOLD / listViewportHeight)
       : 0.1;
+  const scrollButtonProgress = useSharedValue(showScrollButton ? 1 : 0);
+  const scrollButtonStyle = useAnimatedStyle(() => ({
+    opacity: scrollButtonProgress.value,
+    transform: [{ translateY: 6 * (1 - scrollButtonProgress.value) }],
+  }));
+
+  useEffect(() => {
+    scrollButtonProgress.value = withTiming(showScrollButton ? 1 : 0, {
+      duration: 160,
+      reduceMotion: ReduceMotion.System,
+    });
+  }, [scrollButtonProgress, showScrollButton]);
 
   const scrollToBottom = useCallback(() => {
     listRef.current?.scrollToEnd({ animated: true });
@@ -363,28 +426,40 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
             ref={composerRef}
             testID="chat-composer-layout"
           >
-            {showScrollButton ? (
-              <Pressable
-                accessibilityLabel="맨 아래로"
-                accessibilityRole="button"
-                className="absolute min-h-11 min-w-11 items-center justify-center rounded-full bg-surface"
-                onPress={scrollToBottom}
-                style={{
-                  left: "50%",
-                  position: "absolute",
-                  top: -60,
-                  transform: [{ translateX: -22 }],
-                  zIndex: 1,
-                }}
+            <View
+              accessibilityElementsHidden={!showScrollButton}
+              importantForAccessibility={
+                showScrollButton ? "auto" : "no-hide-descendants"
+              }
+              pointerEvents={showScrollButton ? "auto" : "none"}
+              style={{
+                left: "50%",
+                position: "absolute",
+                top: -60,
+                transform: [{ translateX: -22 }],
+                zIndex: 1,
+              }}
+              testID="chat-scroll-to-bottom-anchor"
+            >
+              <Reanimated.View
+                style={scrollButtonStyle}
+                testID="chat-scroll-to-bottom-motion"
               >
-                <SymbolView
-                  name="chevron.down"
-                  size={16}
-                  tintColor={theme.mutedForeground}
-                  weight="semibold"
-                />
-              </Pressable>
-            ) : null}
+                <Pressable
+                  accessibilityLabel="맨 아래로"
+                  accessibilityRole="button"
+                  className="min-h-11 min-w-11 items-center justify-center rounded-full bg-surface"
+                  onPress={scrollToBottom}
+                >
+                  <SymbolView
+                    name="chevron.down"
+                    size={16}
+                    tintColor={theme.mutedForeground}
+                    weight="semibold"
+                  />
+                </Pressable>
+              </Reanimated.View>
+            </View>
             <Composer bottomInset={insets.bottom} chat={chat} />
           </View>
         </KeyboardStickyView>

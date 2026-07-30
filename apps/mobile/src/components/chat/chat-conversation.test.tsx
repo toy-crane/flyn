@@ -75,10 +75,35 @@ jest.mock(
 jest.mock("react-native-reanimated", () => {
   const { View: NativeView } = require("react-native");
 
+  class MockAnimationBuilder {
+    config?: unknown;
+    durationMs?: number;
+    reduceMotionV?: string;
+
+    constructor(config?: unknown) {
+      this.config = config;
+    }
+
+    duration(value: number) {
+      this.durationMs = value;
+      return this;
+    }
+
+    reduceMotion(value: string) {
+      this.reduceMotionV = value;
+      return this;
+    }
+  }
+
   return {
     __esModule: true,
     default: { View: NativeView },
+    Keyframe: MockAnimationBuilder,
+    LinearTransition: new MockAnimationBuilder(),
+    ReduceMotion: { System: "system" },
     useAnimatedStyle: (style: () => object) => style(),
+    useSharedValue: (value: number) => ({ value }),
+    withTiming: jest.fn((value: number) => value),
   };
 });
 jest.mock("react-native-safe-area-context", () => ({
@@ -130,6 +155,9 @@ jest.mock(
 
 import { type ChatController, ChatConversation } from "./chat-conversation";
 
+const mockWithTiming = jest.requireMock("react-native-reanimated")
+  .withTiming as jest.Mock;
+
 function controller(overrides: Partial<ChatController> = {}): ChatController {
   return {
     error: null,
@@ -169,6 +197,7 @@ describe("채팅방 상세 대화", () => {
     mockKeyboardProgress.value = 0;
     mockScrollToEnd.mockClear();
     mockOnComposerLayout.mockClear();
+    mockWithTiming.mockClear();
   });
 
   it("사용자 말풍선과 전체 폭 AI 응답을 함께 보여준다", async () => {
@@ -237,6 +266,10 @@ describe("채팅방 상세 대화", () => {
     expect(
       within(stickyComposer).getByRole("button", { name: "맨 아래로" })
     ).toBeTruthy();
+    expect(mockWithTiming).toHaveBeenLastCalledWith(1, {
+      duration: 160,
+      reduceMotion: "system",
+    });
 
     await fireEvent(list, "onScroll", {
       nativeEvent: {
@@ -251,6 +284,10 @@ describe("채팅방 상세 대화", () => {
     expect(
       within(stickyComposer).queryByRole("button", { name: "맨 아래로" })
     ).toBeNull();
+    expect(mockWithTiming).toHaveBeenLastCalledWith(0, {
+      duration: 160,
+      reduceMotion: "system",
+    });
   });
 
   it("중앙 버튼으로 맨 아래에 도착한 뒤 자동 추적 상태로 돌아간다", async () => {
@@ -270,7 +307,7 @@ describe("채팅방 상세 대화", () => {
       name: "맨 아래로",
     });
 
-    expect(button).toHaveStyle({
+    expect(screen.getByTestId("chat-scroll-to-bottom-anchor")).toHaveStyle({
       left: "50%",
       top: -60,
       transform: [{ translateX: -22 }],
@@ -516,6 +553,21 @@ describe("채팅방 상세 대화", () => {
     );
 
     expect(screen.getByText("응답을 만들지 못했어요.")).toBeTruthy();
+    const banner = screen.getByTestId("chat-error-banner");
+    const composerSurface = screen.getByTestId("chat-composer-surface-motion");
+
+    expect(banner.props.entering).toMatchObject({
+      durationMs: 160,
+      reduceMotionV: "system",
+    });
+    expect(banner.props.exiting).toMatchObject({
+      durationMs: 140,
+      reduceMotionV: "system",
+    });
+    expect(composerSurface.props.layout).toMatchObject({
+      durationMs: 160,
+      reduceMotionV: "system",
+    });
     fireEvent.press(screen.getByRole("button", { name: "다시 시도" }));
 
     expect(onRetry).toHaveBeenCalled();
