@@ -64,7 +64,8 @@ export function modifiersMock() {
           return new Proxy(
             {},
             {
-              get: (_t, preset: string) =>
+              get:
+                (_t, preset: string) =>
                 (...args: unknown[]) => ({ $animation: preset, args }),
             }
           );

@@ -6,10 +6,7 @@ import {
   type TextInput as TextInputInstance,
   View,
 } from "react-native";
-import Reanimated, {
-  Keyframe,
-  ReduceMotion,
-} from "react-native-reanimated";
+import Reanimated, { Keyframe, ReduceMotion } from "react-native-reanimated";
 import { CODE_LENGTH, normalizeCode } from "../../lib/otp-code";
 
 const SLOTS = Array.from({ length: CODE_LENGTH }, (_, i) => i);

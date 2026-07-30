@@ -1,9 +1,9 @@
 import { Host } from "@expo/ui";
 import { ProgressView, Text, VStack } from "@expo/ui/swift-ui";
 import {
+  Animation,
   accessibilityHidden,
   animation,
-  Animation,
   font,
   foregroundStyle,
   multilineTextAlignment,
