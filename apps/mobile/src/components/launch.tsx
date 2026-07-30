@@ -1,13 +1,20 @@
 import { Host } from "@expo/ui";
 import { ProgressView, Text, VStack } from "@expo/ui/swift-ui";
 import {
+  accessibilityHidden,
+  animation,
+  Animation,
   font,
   foregroundStyle,
   multilineTextAlignment,
+  opacity,
   padding,
 } from "@expo/ui/swift-ui/modifiers";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { useAppTheme } from "../theme/app-theme";
+
+const PROGRESS_REVEAL_DELAY_MS = 200;
 
 /**
  * 세션을 복원하는 동안, 그리고 복원조차 못 할 때 나오는 두 화면.
@@ -35,9 +42,28 @@ function Screen({ children }: { children: React.ReactNode }) {
 }
 
 export function LaunchChecking() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setVisible(true);
+    }, PROGRESS_REVEAL_DELAY_MS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, []);
+
   return (
     <Screen>
-      <ProgressView />
+      <ProgressView
+        modifiers={[
+          accessibilityHidden(!visible),
+          opacity(visible ? 1 : 0),
+          animation(Animation.easeOut({ duration: 0.16 }), visible),
+        ]}
+        testID="launch-progress"
+      />
     </Screen>
   );
 }
