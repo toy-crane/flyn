@@ -3,6 +3,13 @@
 // https://github.com/reactwg/react-18/discussions/102
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+// Reanimated 4는 Worklets native module을 불러온다. Jest에서는 공식 mock을
+// 먼저 연결한 뒤 animation test matcher와 timer 환경을 초기화한다.
+jest.mock("react-native-worklets", () =>
+  require("react-native-worklets/lib/module/mock")
+);
+require("react-native-reanimated").setUpTests();
+
 // Metro가 global.css에서 만드는 변수 저장소는 Jest에 없다. 화면 테스트가
 // native bridge를 통과할 수 있도록 실제 색과 무관한 결정적 값만 제공한다.
 jest.mock("uniwind", () => ({
