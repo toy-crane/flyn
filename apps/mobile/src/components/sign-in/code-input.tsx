@@ -6,9 +6,22 @@ import {
   type TextInput as TextInputInstance,
   View,
 } from "react-native";
+import Reanimated, { Keyframe, ReduceMotion } from "react-native-reanimated";
 import { CODE_LENGTH, normalizeCode } from "../../lib/otp-code";
 
 const SLOTS = Array.from({ length: CODE_LENGTH }, (_, i) => i);
+const DIGIT_ENTERING = new Keyframe({
+  0: {
+    opacity: 0,
+    transform: [{ scale: 0.96 }],
+  },
+  100: {
+    opacity: 1,
+    transform: [{ scale: 1 }],
+  },
+})
+  .duration(140)
+  .reduceMotion(ReduceMotion.System);
 
 function borderClassName(invalid: boolean | undefined, active: boolean) {
   if (invalid) {
@@ -78,25 +91,37 @@ export function CodeInput({
         pointerEvents="none"
         testID="code-input-boxes"
       >
-        {SLOTS.map((slot) => (
-          <View
-            className={`h-14 flex-1 items-center justify-center rounded-xl border-2 bg-surface ${borderClassName(
-              invalid,
-              slot === cursor
-            )}`}
-            key={slot}
-            style={{
-              borderCurve: "continuous",
-            }}
-          >
-            <Text
-              className="text-2xl text-foreground"
-              style={{ fontVariant: ["tabular-nums"] }}
+        {SLOTS.map((slot) => {
+          const digit = value[slot];
+
+          return (
+            <View
+              className={`h-14 flex-1 items-center justify-center rounded-xl border-2 bg-surface ${borderClassName(
+                invalid,
+                slot === cursor
+              )}`}
+              key={slot}
+              style={{
+                borderCurve: "continuous",
+              }}
             >
-              {value[slot] ?? ""}
-            </Text>
-          </View>
-        ))}
+              {digit ? (
+                <Reanimated.View
+                  entering={DIGIT_ENTERING}
+                  key={`${slot}-${digit}`}
+                  testID={`code-digit-${slot}`}
+                >
+                  <Text
+                    className="text-2xl text-foreground"
+                    style={{ fontVariant: ["tabular-nums"] }}
+                  >
+                    {digit}
+                  </Text>
+                </Reanimated.View>
+              ) : null}
+            </View>
+          );
+        })}
       </View>
 
       {/* 반드시 마지막 형제여야 한다 — RN은 뒤 형제가 위에 그려지고 먼저 히트테스트된다. */}

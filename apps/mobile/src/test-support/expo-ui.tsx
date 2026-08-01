@@ -60,6 +60,17 @@ export function modifiersMock() {
           );
         }
 
+        if (name === "Animation") {
+          return new Proxy(
+            {},
+            {
+              get:
+                (_t, preset: string) =>
+                (...args: unknown[]) => ({ $animation: preset, args }),
+            }
+          );
+        }
+
         return (...args: unknown[]): ModifierMark => ({
           $modifier: name,
           args,
@@ -170,8 +181,23 @@ function MockTextField({
   );
 }
 
-function MockProgressView({ testID }: { testID?: string }) {
-  return <ActivityIndicator testID={testID} />;
+function MockProgressView({
+  modifiers,
+  testID,
+}: Modifiers & { testID?: string }) {
+  const opacity = modifierArg<number>(modifiers, "opacity");
+  const accessibilityHidden = modifierArg<boolean>(
+    modifiers,
+    "accessibilityHidden"
+  );
+
+  return (
+    <ActivityIndicator
+      accessibilityElementsHidden={accessibilityHidden}
+      style={opacity === undefined ? undefined : { opacity }}
+      testID={testID}
+    />
+  );
 }
 
 function MockText({

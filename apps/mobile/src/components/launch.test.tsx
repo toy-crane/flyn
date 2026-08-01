@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react-native";
+import { act, render, screen } from "@testing-library/react-native";
 
 // SwiftUI 트리는 jest에서 불투명한 네이티브 뷰 하나로만 그려진다 — 안의 문구를
 // RNTL이 못 본다. 목이 그걸 RN 프리미티브로 갈아끼운다.
@@ -40,5 +40,35 @@ describe("LaunchChecking", () => {
     await render(<LaunchChecking />);
 
     expect(screen.queryByText(ANY_PROGRESS_COPY)).toBeNull();
+  });
+
+  it("짧은 판정에는 progress를 숨기고 실제 대기에서만 보여준다", async () => {
+    jest.useFakeTimers();
+
+    try {
+      await render(<LaunchChecking />);
+
+      expect(
+        screen.getByTestId("launch-progress", {
+          includeHiddenElements: true,
+        })
+      ).toHaveStyle({ opacity: 0 });
+
+      await act(() => {
+        jest.advanceTimersByTime(199);
+      });
+      expect(
+        screen.getByTestId("launch-progress", {
+          includeHiddenElements: true,
+        })
+      ).toHaveStyle({ opacity: 0 });
+
+      await act(() => {
+        jest.advanceTimersByTime(1);
+      });
+      expect(screen.getByTestId("launch-progress")).toHaveStyle({ opacity: 1 });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

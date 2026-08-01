@@ -1,4 +1,36 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
+
+jest.mock("react-native-reanimated", () => {
+  const { View: NativeView } = require("react-native");
+
+  class MockKeyframe {
+    config: unknown;
+    durationMs?: number;
+    reduceMotionV?: string;
+
+    constructor(config: unknown) {
+      this.config = config;
+    }
+
+    duration(value: number) {
+      this.durationMs = value;
+      return this;
+    }
+
+    reduceMotion(value: string) {
+      this.reduceMotionV = value;
+      return this;
+    }
+  }
+
+  return {
+    __esModule: true,
+    default: { View: NativeView },
+    Keyframe: MockKeyframe,
+    ReduceMotion: { System: "system" },
+  };
+});
+
 import { CodeInput } from "./code-input";
 
 const FIELD = "인증 코드 6자리";
@@ -17,6 +49,25 @@ describe("CodeInput", () => {
 
     for (const digit of ["1", "2", "3", "4", "5", "6"]) {
       expect(screen.getByText(digit, HIDDEN)).toBeTruthy();
+    }
+  });
+
+  it("숫자 feedback은 Reduce Motion을 따르고 slot별 지연하지 않는다", async () => {
+    await render(<CodeInput onChangeText={noop} value="123456" />);
+
+    for (let slot = 0; slot < 6; slot += 1) {
+      const entering = screen.getByTestId(`code-digit-${slot}`, HIDDEN).props
+        .entering as {
+        delayV?: number;
+        durationMs?: number;
+        reduceMotionV?: string;
+      };
+
+      expect(entering).toMatchObject({
+        durationMs: 140,
+        reduceMotionV: "system",
+      });
+      expect(entering.delayV).toBeUndefined();
     }
   });
 
