@@ -213,10 +213,7 @@ function Composer({
         </Reanimated.View>
       ) : null}
 
-      <Reanimated.View
-        layout={CHAT_RECOVERY_LAYOUT}
-        testID="chat-composer-surface-motion"
-      >
+      <View testID="chat-composer-surface">
         <ComposerSurface>
           <TextInput
             accessibilityLabel="메시지"
@@ -262,7 +259,7 @@ function Composer({
             )}
           </Pressable>
         </ComposerSurface>
-      </Reanimated.View>
+      </View>
     </View>
   );
 }

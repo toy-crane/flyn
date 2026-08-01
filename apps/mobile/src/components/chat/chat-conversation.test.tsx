@@ -554,7 +554,7 @@ describe("채팅방 상세 대화", () => {
 
     expect(screen.getByText("응답을 만들지 못했어요.")).toBeTruthy();
     const banner = screen.getByTestId("chat-error-banner");
-    const composerSurface = screen.getByTestId("chat-composer-surface-motion");
+    const composerSurface = screen.getByTestId("chat-composer-surface");
 
     expect(banner.props.entering).toMatchObject({
       durationMs: 160,
@@ -564,10 +564,7 @@ describe("채팅방 상세 대화", () => {
       durationMs: 140,
       reduceMotionV: "system",
     });
-    expect(composerSurface.props.layout).toMatchObject({
-      durationMs: 160,
-      reduceMotionV: "system",
-    });
+    expect(composerSurface.props.layout).toBeUndefined();
     fireEvent.press(screen.getByRole("button", { name: "다시 시도" }));
 
     expect(onRetry).toHaveBeenCalled();
