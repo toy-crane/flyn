@@ -50,6 +50,18 @@ native semantic color는 단순한 hex 문자열이 아니라 플랫폼이 light
 TypeScript와 StyleSheet는 native 값을 잃지 않으면서 React Native core API 안에
 남는다.
 
+Uniwind가 나쁜 도구라서 떠나는 것은 아니다. 짧은 `className`, 빠른 layout·spacing
+작성, build-time style 계산, dark mode와 pseudo-class는 분명한 장점이다. 현재 코드를
+옮기는 비용과 StyleSheet의 장황함도 감수해야 한다. flyn은 그 생산성보다 native
+color fidelity, 한 가지 style 소유권, core API에 가까운 디버깅 경로와 compiler·
+Metro 의존 감소를 장기적으로 더 중요하게 선택한다.
+
+색만 StyleSheet로 옮기고 layout·spacing·typography는 Uniwind에 남기는 hybrid도
+장기 계약으로 쓰지 않는다. 그러면 한 component가 `style`과 `className`을 함께
+사용하고 token 위치, 조건부 style, 우선순위와 디버깅 경로가 둘로 갈린다. Tailwind
+compiler, Metro 연동, generated type과 CSS 진입점도 제거할 수 없다. migration
+비용은 줄지만 유지보수 단순화라는 선택의 목적을 달성하지 못한다.
+
 반대로 모든 값을 화면에 흩어 두면 간격과 텍스트 위계가 서서히 갈라진다. 색·간격·
 타이포까지만 공유하면 반복되는 시각 언어는 유지하면서, 화면 구조와 native control의
 플랫폼 관용을 억지로 하나로 만들지 않는다.
@@ -74,11 +86,13 @@ TypeScript와 StyleSheet는 native 값을 잃지 않으면서 React Native core 
 StyleSheet가 실제 개발 병목이라는 측정 가능한 증거가 생기거나, 사용자가 선택하는
 appearance·확정된 브랜드 체계·반복 컴포넌트 라이브러리가 제품 요구가 되면 범위를
 다시 결정한다. NativeWind가 native `ColorValue`를 손실 없이 받아들이는 안정판을
-내고 compiler 의존 비용보다 이익이 커져도 다시 평가할 수 있다.
+내거나, Uniwind가 native `ColorValue`를 CSS 원본으로 보존하는 공식 stable API와
+migration 경로를 제공해 compiler 의존 비용보다 이익이 커져도 다시 평가할 수 있다.
 
 ## Still-rejected alternatives
 
 - Uniwind CSS 변수를 색의 원본으로 유지해 native 색을 hex로 정규화하기.
+- 색은 StyleSheet, layout·spacing·typography는 Uniwind로 나누는 영구 hybrid.
 - Tailwind 3용 NativeWind v4에 장기 계약을 묶거나 NativeWind v5 preview를 생산
   기반으로 채택하기.
 - raw 색, 화면별 `dark:` 분기와 TypeScript semantic resolver를 병행하기.
@@ -94,6 +108,12 @@ appearance·확정된 브랜드 체계·반복 컴포넌트 라이브러리가 �
   되므로, 브랜드 accent가 없을 때 생략하는 것이 플랫폼 기본값에 가깝다.
 - Uniwind CSS 변수 API는 string·number를 다루며 native semantic color 객체를
   theme 원본으로 보존하지 못한다.
+- Uniwind는 짧은 className, build-time 계산, theme·dark mode·pseudo-class를 공식
+  장점으로 제공한다. 이 결정은 그 장점을 부정하지 않고 장기 소유 비용과 비교한다.
+- 2026-08-05에 공식 문서와 공개 저장소를 검색했지만 `PlatformColor`·`ColorValue`
+  객체를 CSS theme 원본으로 보존한다는 공개 roadmap이나 공식 계획은 확인하지
+  못했다. 이는 향후 지원하지 않는다는 단정이 아니라 현재 공개 계약만으로 결정한
+  시점 기록이다.
 - NativeWind v5 공식 문서는 2026-08-05 기준 production에 권하지 않는 preview로
   표시한다.
 
@@ -102,6 +122,7 @@ appearance·확정된 브랜드 체계·반복 컴포넌트 라이브러리가 �
 - [Expo Router Color](https://docs.expo.dev/router/reference/color/)
 - [Expo UI Host](https://docs.expo.dev/versions/latest/sdk/ui/universal/host/)
 - [Uniwind runtime CSS variables](https://docs.uniwind.dev/theming/update-css-variables)
+- [Uniwind official repository](https://github.com/uni-stack/uniwind)
 - [NativeWind v5 installation](https://www.nativewind.dev/v5/getting-started/installation)
 - [Shopify Restyle fundamentals](https://shopify.github.io/restyle/fundamentals/)
 - [CWB Expo Unified Theming](https://github.com/Code-with-Beto/skills/blob/main/plugins/cwb-theming/README.md)

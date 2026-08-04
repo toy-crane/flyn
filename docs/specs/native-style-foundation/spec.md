@@ -187,6 +187,11 @@ header나 tab bar를 RN custom component로 다시 만든다는 뜻은 아니다
 보지 않는다. 다만 작업 중간 커밋은 앱이 동작하고 다음 migration 경계가 명확해야
 한다.
 
+색만 TypeScript로 옮기고 layout·spacing·typography `className`을 남기는 상태도
+완료가 아니다. 이 hybrid는 component마다 `style`과 `className`의 우선순위를
+판단하게 하고 CSS·Tailwind·Metro·generated type을 계속 유지시킨다. 화면 단위의
+일시적 migration 단계로는 허용하지만 장기 구조로 남기지 않는다.
+
 ## 완료 조건
 
 - RN production code에 Uniwind import, styling `className`, CSS variable 조회와
@@ -240,14 +245,17 @@ header나 tab bar를 RN custom component로 다시 만든다는 뜻은 아니다
 
 - utility class 제거 범위가 넓어 layout 회귀가 생길 수 있다. 화면 단위로
   StyleSheet를 옮기고 현재 screenshot과 접근성 tree를 비교한다.
+- Uniwind의 짧은 className과 빠른 layout·spacing 작성 속도를 잃고 StyleSheet 코드가
+  길어진다. 반복되는 색·간격·타이포만 foundation으로 추출하고 screen layout은
+  가까이 두어 탐색과 중복 비용을 제한한다.
 - CSS와 TypeScript 원본이 잠시 공존하면 잘못된 쪽을 새 코드가 참조할 수 있다.
   migration 완료 조건으로 잔존 artifact를 자동 검사한다.
 - RN typography 값은 SwiftUI·Compose native text style과 같은 API가 아니다.
   의미 위계만 맞추고 scaling과 잘림을 플랫폼별로 검증한다.
 - Android 값은 runtime 검증 전까지 source-level 준비다. Android 지원 단계에서
   실제 기기 Material behavior를 별도 acceptance로 닫는다.
-- StyleSheet가 className보다 길어질 수 있다. 반복되는 의미만 foundation으로
-  추출하고 화면 layout은 가까이 둬 탐색 비용을 제한한다.
+- Uniwind가 향후 native `ColorValue`를 보존하는 stable API를 낼 수 있다. 현재
+  공개 계약만으로 영구 불가능을 단정하지 않고, 결정 계약의 재검토 조건으로 둔다.
 
 ## 관련 계약과 근거
 
@@ -258,6 +266,8 @@ header나 tab bar를 RN custom component로 다시 만든다는 뜻은 아니다
 - [2026-08-04 native interface audit](../native-interface-consistency/spec.md)
 - [Expo Router Color](https://docs.expo.dev/router/reference/color/)
 - [Expo UI Host](https://docs.expo.dev/versions/latest/sdk/ui/universal/host/)
+- [Uniwind runtime CSS variables](https://docs.uniwind.dev/theming/update-css-variables)
+- [Uniwind official repository](https://github.com/uni-stack/uniwind)
 - [React Native StyleSheet](https://reactnative.dev/docs/stylesheet)
 - [React Native PlatformColor](https://reactnative.dev/docs/platformcolor)
 - [React Native DynamicColorIOS](https://reactnative.dev/docs/dynamiccolorios)
