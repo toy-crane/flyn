@@ -1,33 +1,32 @@
-# 모델 호출은 AI SDK로 하되 반드시 Vercel AI Gateway를 경유한다
+# 모델 호출 경계
 
-AI 기능은 AI SDK로 구현하고, 모델 호출은 프로바이더 SDK를 직접 부르지 않고
-**Vercel AI Gateway**를 통한다.
+## Decisions
 
-- 프로바이더 교체가 **모델 문자열 변경 수준**이 된다. 어느 모델이 이 제품에
-  맞는지 모르는 단계에서 교체 비용을 미리 0에 가깝게 만드는 것이 요점이다.
-- 토큰 마진 없이 원가로 과금된다.
-- Gateway 프로바이더는 `ai` 패키지에 내장돼 있어 **별도 프로바이더 패키지가
-  필요 없다.** `@ai-sdk/openai` 같은 것을 추가하려 한다면 이 결정을 우회하는
-  중이다.
+- 모델은 AI SDK를 통해 Vercel AI Gateway로만 호출한다. provider SDK를 직접
+  추가하지 않는다.
+- 모바일 스트리밍은 `@ai-sdk/react`의 `useChat`과 `expo/fetch`를 사용한다.
+- 프로덕션 채팅 모델 ID는 API 코드에 고정한다. `AI_MODEL` 환경 변수, model
+  picker 또는 원격 설정으로 선택하지 않는다.
+- 자동 테스트가 가짜 `LanguageModel`을 주입하는 경계는 유지한다.
+- Gateway secret은 `AI_GATEWAY_API_KEY` 하나만 사용한다.
 
-모바일 스트리밍은 `@ai-sdk/react`의 `useChat` + `expo/fetch`(Expo 52+ 공식
-지원)로 받는다.
+## Why
 
-## 현재 제품 모델은 코드에 고정한다
+Gateway는 provider 교체를 모델 ID 변경으로 제한하고 provider별 패키지와 key를
+앱 구조에 퍼뜨리지 않는다. 모델 변경은 동작·비용·품질을 함께 바꾸므로 코드 리뷰와
+배포 이력에 남아야 한다.
 
-채팅 모델은 `inclusionai/ling-3.0-flash-free`로 고정한다. 운영 환경의
-`AI_MODEL`이나 모바일의 model picker로 선택하지 않는다. 모델을 바꾸는 일은
-동작·비용·품질을 함께 바꾸는 코드 변경이므로 리뷰와 배포 이력이 남아야 한다.
+## Boundaries
 
-프로덕션 경로만 고정하며, 자동 테스트가 가짜 `LanguageModel`을 주입하는 경계는
-유지한다. 모델 호출에 필요한 secret은 계속 `AI_GATEWAY_API_KEY` 하나다.
+AI SDK API는 버전마다 바뀐다. 구현할 때 기억이나 이 계약의 예전 예제가 아니라
+현재 설치 버전의 번들 문서와 타입을 확인한다.
 
-## 버전 — 기억으로 쓰지 말 것
+## Reconsider when
 
-이 결정은 원래 "AI SDK(v5)"로 적혔으나 **현재 최신은 v7이다**(`ai@7.0.37`,
-2026-07-25 정정). 결정 자체(Gateway 경유 · `useChat` + `expo/fetch`)는 유효하고
-버전만 어긋나 있었다. v7에서는 `toUIMessageStreamResponse()`가 deprecated이고
-`convertToModelMessages()`가 async가 됐다.
+Gateway가 필요한 provider·기능·지역 또는 비용 조건을 제공하지 못하거나, 제품이
+사용자별 모델 선택을 명시적으로 요구할 때 호출 경계를 다시 결정한다.
 
-구현은 나중에 다시 설계한다. 그때 이 버전 메모를 현재 사실로 간주하지 말고
-**실제로 설치한 버전의 번들 문서(`node_modules/ai/docs/`)를 볼 것.**
+## Still-rejected alternatives
+
+- `@ai-sdk/openai` 같은 provider SDK를 나란히 추가하기.
+- 운영 환경 변수나 모바일 UI가 모델을 고르게 하기.

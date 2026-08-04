@@ -28,7 +28,7 @@ import {
 
 /**
  * 소셜 우선. 화면을 지배하는 두 버튼이 SwiftUI로 표현할 수 없는 RN 뷰라
- * 이 화면은 RN이다(docs/decisions/expo-ui-by-default.md).
+ * 이 화면은 RN이다(docs/decisions/self-contained-native-ui-boundaries.md).
  *
  * 성공하면 onAuthStateChange가 가드를 뒤집어 스택째 벗어난다 — 여기선 실패만 다룬다.
  */

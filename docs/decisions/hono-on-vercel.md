@@ -1,15 +1,25 @@
-# API는 Vercel 위의 Hono
+# API 런타임과 배포
 
-Hono 앱을 Vercel에 무설정 배포한다(Node 런타임, Fluid compute). 스트리밍
-지원은 확인됐다 — AI 응답을 토큰 단위로 흘려보내는 것이 이 API의 존재
-이유라 이것이 선택의 전제였다.
+## Decisions
 
-앱 ↔ API 통신은 Hono RPC(`hc`)로 타입을 공유한다.
+- 서버 API는 Hono를 Node 런타임의 Vercel Function으로 배포한다.
+- 모바일과 API는 Hono RPC(`hc`)로 요청·응답 타입을 공유한다.
+- API는 AI 스트리밍과 server secret이 필요한 로직만 맡고 일반 CRUD를 복제하지
+  않는다.
 
-API가 맡는 범위는 좁다. 일반 CRUD는 앱이 Supabase에 직접 가고, **AI·서버 전용
-로직만** 이 API를 거친다 — 근거는 [hybrid-data-access](hybrid-data-access.md).
+## Why
 
-## 아는 한도
+Hono는 작은 인증·스트리밍 경계를 유지하면서 모바일과 타입 계약을 공유할 수 있고,
+Vercel은 AI 응답 스트리밍을 지원한다. 일반 데이터 접근까지 API로 감싸지 않으면
+Supabase RLS의 장점을 보존한다.
 
-Vercel 함수 시간 한도는 Fluid 기본 300초다(Hobby 최대 300초, Pro 800초).
-긴 AI 스트림·후처리는 `maxDuration` 설정을 확인해야 한다.
+## Boundaries
+
+긴 AI 스트림이나 후처리를 추가할 때는 현재 Vercel plan과 Function의
+`maxDuration`을 다시 확인한다. 데이터 권한은
+[하이브리드 접근 계약](hybrid-data-access.md)이 소유한다.
+
+## Reconsider when
+
+스트리밍 또는 실행 시간 요구가 Vercel Function 경계를 반복해서 넘거나 Hono RPC가
+모바일 계약을 유지하지 못할 때 런타임과 배포 대상을 다시 고른다.

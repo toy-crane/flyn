@@ -1,65 +1,59 @@
-# React가 화면을 소유하고 네이티브 UI는 완결된 `Host` subtree로 둔다
+# React Native와 Expo UI의 화면 경계
 
-이 기록은 [expo-ui-by-default](expo-ui-by-default.md)를 대체한다. universal
-`@expo/ui`를 기본값으로 두고, 경계가 막는 surface만 RN으로 만든다는 선택은
-유지한다. 다만 "한 화면에서는 RN과 `@expo/ui`를 섞지 않는다"는 표현은
-`Host`의 실제 역할과 현재 Settings 구조를 지나치게 단순화했으므로 바로잡는다.
+## Decisions
 
-## 결정
+- 라우팅, 서버 상태, mutation, 검증과 화면 상태는 React가 소유한다.
+- 새 화면의 기본 renderer는 universal `@expo/ui`다. 필요한 표현이 universal에
+  없으면 `@expo/ui/swift-ui`로 내려가며, 비슷한 universal 컴포넌트로 대체하지
+  않는다.
+- `@expo/ui` 레이아웃과 control은 완결된 `Host` subtree 하나에 모은다. RN
+  wrapper·overlay와 `Host`를 형제로 둘 수 있지만 control마다 경계를 왕복하지
+  않는다.
+- RN은 가상 목록, keyboard, vendor control 또는 hit testing처럼 화면의 핵심
+  경계가 Expo UI로 완결되지 않는 surface에만 쓴다.
+- 재사용 UI는 TSX React 컴포넌트로 만든다. Expo UI가 필요한 native capability를
+  표현하지 못할 때만 custom native module을 검토한다.
+- iOS 전용이므로 renderer 선택을 위해 플랫폼 파일이나 Android·web fallback을
+  만들지 않는다.
 
-화면은 계속 React 컴포넌트다. 라우팅, 서버 상태, mutation, 검증과 화면 상태는
-React가 소유한다. 화면을 그리는 기본 renderer는 universal `@expo/ui`이며,
-iOS에서는 SwiftUI, Android에서는 Jetpack Compose로 이어지는 네이티브
-컴포넌트를 사용한다. 이 앱은 iOS 전용이므로 Android·web 폴백은 만들지 않는다.
+## Why
 
-`@expo/ui`를 쓰는 부분은 관련 레이아웃과 control을 하나의 **완결된 `Host`
-subtree**에 모은다. RN 화면 바깥에 `Host`를 두거나, `Host`와 RN overlay를
-형제로 두는 것은 허용한다. RN과 SwiftUI 사이를 한 control마다 반복해서
-오가는 구성은 피한다. Expo가 제공하는 `RNHostView`나 자동 interop은 표현
-가능성이지 기본 구조가 아니다.
+Expo UI는 실제 SwiftUI primitive를 제공하지만 `Host`는 RN과 SwiftUI 사이의
+레이아웃 경계다. 한 subtree를 완결하면 native control의 관용을 얻으면서 React
+상태를 유지할 수 있고, 반복 왕복을 피하면 layout·focus·gesture 소유권이
+분명해진다.
 
-재사용 UI는 TypeScript/TSX React 컴포넌트로 만든다. 그 컴포넌트가
-`@expo/ui` primitive를 반환하면 실제 iOS leaf는 SwiftUI이므로, 재사용을 위해
-별도 Swift 모듈을 만들 필요가 없다. Expo UI가 필요한 native capability를
-표현하지 못할 때만 RN primitive나 custom native module을 검토한다.
+## Boundaries
 
-## 현재 surface 경계
-
-| surface | renderer | 근거 |
+| surface | renderer | 이유 |
 | --- | --- | --- |
-| Settings | universal `@expo/ui` | native grouped form 전체가 self-contained하다 |
-| 표시 이름·온보딩 | universal `@expo/ui` | 일반 TextInput과 Button으로 완결된다 |
-| 이메일 입력 | universal `@expo/ui` | 일반 TextInput과 Button으로 완결된다 |
-| launch·native progress | universal `@expo/ui` | 시스템 progress와 짧은 상태 표현이다 |
+| Settings, 표시 이름·온보딩, 이메일 입력, launch progress | universal `@expo/ui` | form이나 짧은 상태가 한 `Host` 안에서 완결된다 |
 | root sign-in | RN | Apple·Google vendor button이 화면의 핵심이다 |
-| 이메일 OTP code | RN | 겹친 단일 입력과 6개 slot의 hit testing을 SwiftUI 경계에서 안정적으로 표현하지 못했다 |
+| 이메일 OTP code | RN | 겹친 단일 입력과 6개 slot의 hit testing이 필요하다 |
+| 채팅 목록·상세 | RN | 가상 목록, streaming, keyboard controller와 composer가 하나의 scroll 경계를 공유한다 |
 
-RN surface도 iOS에서 UIKit native view를 사용한다. 이 표의 구분은
-"native 대 non-native"가 아니라, React Native primitive와 Expo UI가 노출하는
-SwiftUI primitive 중 어느 renderer가 해당 surface의 관용과 제약에 맞는지를
-뜻한다.
+RN surface도 iOS native view를 사용한다. 이 표는 native/non-native 구분이 아니라
+surface를 가장 잘 소유하는 renderer를 고른 결과다.
 
-## 이유
+## Reconsider when
 
-Expo는 `Host`를 React Native와 SwiftUI 사이의 경계로 설명한다. RN view를
-SwiftUI 안에 넣는 interop은 가능하지만, SwiftUI layout을 self-contained하게
-유지하고 경계를 명확하게 할 때 가장 잘 동작한다고 권장한다.
+Expo SDK가 올라 기존 focus·hit testing·interop 제약을 없애거나, 새 surface가
+현재 표와 다른 native capability를 요구하면 해당 surface만 다시 판정한다.
 
-- [Building SwiftUI apps with Expo UI](https://docs.expo.dev/guides/expo-ui-swift-ui/)
-- [Universal Host](https://docs.expo.dev/versions/latest/sdk/ui/universal/host/)
+## Still-rejected alternatives
 
-현재 Settings도 이 원칙을 따른다. 바깥 RN `View`가 화면과 overlay를 관리하고,
-grouped form은 하나의 `Host` 안에서 완결된다. 반면 sign-in을 SwiftUI로 옮기면
-화면을 지배하는 두 vendor button 때문에 경계를 다시 열어야 한다. code 화면은
-2026-07-27 simulator spike에서 `frame`과 겹친 투명 `TextField`의 hit testing이
-실패했다.
+- Expo UI를 통째로 기각하고 모든 화면을 RN으로 만들기.
+- 한 화면에서 renderer를 섞는 것 자체를 금지하기.
+- control마다 `Host`를 다시 열거나 `RNHostView`를 기본 구조로 삼기.
+- 재사용을 이유로 Expo UI 위에 별도 Swift 모듈 만들기.
 
-## 결과
+## Evidence worth preserving
 
-- Apple HIG와 native control 상태·접근성은 계속 우선한다.
-- 화면 로직과 재사용 컴포넌트는 TSX에서 관리한다.
-- 한 화면 안의 RN wrapper, native `Host`, RN overlay는 역할이 분리된 형제로
-  공존할 수 있다.
-- renderer를 섞는 것 자체를 금지하지 않고, 반복되는 경계 왕복을 금지한다.
-- SDK가 바뀌어 기존 제약이 사라지면 sign-in이나 code의 renderer는 새 근거로
-  다시 결정할 수 있다.
+- root sign-in을 SwiftUI로 감싸면 Apple UIKit button과 풀컬러 Google mark 때문에
+  경계를 반복해서 열어야 한다.
+- OTP spike에서 평범한 `TextField`와 `Button`은 동작했지만, `frame`을 건 필드와
+  `ZStack`의 투명 필드는 focus hit testing에 실패했다. 이 제약이 사라지기 전에는
+  code surface를 RN으로 유지한다.
+- swift-ui `TextField`의 native state는 `@expo/ui/swift-ui`에서 가져오고,
+  `Host`는 universal 패키지에서 가져온다. SwiftUI `Button`의 문자열은 children이
+  아니라 `label` prop으로 전달한다.

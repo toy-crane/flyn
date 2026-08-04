@@ -21,7 +21,7 @@ import { useAppTheme } from "../../theme/app-theme";
 
 /**
  * 코드 입력. 6칸 합성이 RN이라 이 화면도 RN이다
- * (docs/decisions/expo-ui-by-default.md의 스파이크 결과).
+ * (docs/decisions/self-contained-native-ui-boundaries.md의 스파이크 결과).
  *
  * `다른 이메일로 받기`는 없다 — 헤더의 뒤로가기가 그 역할을 한다.
  */
