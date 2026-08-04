@@ -6,17 +6,24 @@ import {
   multilineTextAlignment,
 } from "@expo/ui/swift-ui/modifiers";
 import type { ReactNode } from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useColors } from "../../theme/app-theme";
+import { spacing } from "../../theme/tokens";
+
+const styles = StyleSheet.create({
+  screen: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: spacing.xxl,
+  },
+});
 
 function Screen({ children }: { children: ReactNode }) {
   const colors = useColors();
 
   return (
-    <View
-      className="flex-1 items-center justify-center px-8"
-      style={{ backgroundColor: colors.background }}
-    >
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <Host matchContents>{children}</Host>
     </View>
   );

@@ -11,10 +11,19 @@ import {
   padding,
 } from "@expo/ui/swift-ui/modifiers";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useColors } from "../theme/app-theme";
+import { spacing } from "../theme/tokens";
 
 const PROGRESS_REVEAL_DELAY_MS = 200;
+const styles = StyleSheet.create({
+  screen: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: spacing.xxl,
+  },
+});
 
 /**
  * 세션을 복원하는 동안, 그리고 복원조차 못 할 때 나오는 두 화면.
@@ -30,10 +39,7 @@ function Screen({ children }: { children: React.ReactNode }) {
   const colors = useColors();
 
   return (
-    <View
-      className="flex-1 items-center justify-center px-8"
-      style={{ backgroundColor: colors.background }}
-    >
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <Host matchContents>{children}</Host>
     </View>
   );

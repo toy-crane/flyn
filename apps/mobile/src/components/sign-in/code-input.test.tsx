@@ -31,6 +31,15 @@ jest.mock("react-native-reanimated", () => {
   };
 });
 
+jest.mock("../../theme/app-theme", () => ({
+  useColors: () => ({
+    danger: "#d70015",
+    primary: "#0066ff",
+    surface: "#ffffff",
+    text: "#171719",
+  }),
+}));
+
 import { CodeInput } from "./code-input";
 
 const FIELD = "인증 코드 6자리";
@@ -114,5 +123,27 @@ describe("CodeInput", () => {
     await render(<CodeInput disabled onChangeText={noop} value="123456" />);
 
     expect(screen.getByLabelText(FIELD)).toBeDisabled();
+  });
+
+  it("현재 slot은 action 색, 오류 상태의 모든 slot은 danger 색을 쓴다", async () => {
+    const { rerender } = await render(
+      <CodeInput onChangeText={noop} value="1" />
+    );
+
+    expect(screen.getByTestId("code-slot-1", HIDDEN)).toHaveStyle({
+      borderColor: "#0066ff",
+    });
+    expect(screen.getByTestId("code-slot-0", HIDDEN)).toHaveStyle({
+      borderColor: "transparent",
+    });
+
+    await rerender(<CodeInput invalid onChangeText={noop} value="1" />);
+
+    expect(screen.getByTestId("code-slot-0", HIDDEN)).toHaveStyle({
+      borderColor: "#d70015",
+    });
+    expect(screen.getByTestId("code-slot-5", HIDDEN)).toHaveStyle({
+      borderColor: "#d70015",
+    });
   });
 });

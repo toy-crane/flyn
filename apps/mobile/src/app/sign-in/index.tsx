@@ -10,6 +10,7 @@ import {
   Alert,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   useColorScheme,
   View,
@@ -25,6 +26,48 @@ import {
   SOCIAL_BUTTON_HEIGHT,
   SOCIAL_BUTTON_RADIUS,
 } from "../../theme/buttons";
+import { spacing, typography } from "../../theme/tokens";
+
+const styles = StyleSheet.create({
+  actionsSpacer: {
+    flex: 1,
+    minHeight: 40,
+  },
+  emailAction: {
+    alignItems: "center",
+    marginTop: spacing.xxs,
+    paddingVertical: spacing.sm,
+  },
+  header: {
+    gap: spacing.xs,
+  },
+  inner: {
+    flex: 1,
+  },
+  overlay: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  screen: {
+    flex: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: spacing.lg,
+  },
+  socialActions: {
+    gap: spacing.sm,
+  },
+  supportingText: typography.body,
+  wordmark: {
+    fontSize: 36,
+    fontWeight: "700",
+    letterSpacing: -0.9,
+  },
+});
 
 /**
  * 소셜 우선. 화면을 지배하는 두 버튼이 SwiftUI로 표현할 수 없는 RN 뷰라
@@ -69,36 +112,38 @@ export default function SignInScreen() {
   }, [pending, router]);
 
   return (
-    <View className="flex-1 bg-background">
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <ScrollView
-        className="flex-1"
-        contentContainerClassName="flex-grow px-5"
-        contentContainerStyle={{
-          paddingBottom: insets.bottom + 8,
-          paddingTop: insets.top + 24,
-        }}
+        contentContainerStyle={StyleSheet.flatten([
+          styles.scrollContent,
+          {
+            paddingBottom: insets.bottom + spacing.xs,
+            paddingTop: insets.top + spacing.xl,
+          },
+        ])}
         contentInsetAdjustmentBehavior="never"
+        style={styles.scroll}
         testID="sign-in-scroll"
       >
         <View
           accessibilityElementsHidden={pending}
-          className="flex-1"
           importantForAccessibility={pending ? "no-hide-descendants" : "auto"}
+          style={styles.inner}
         >
           {/* 헤더가 없는 화면이라 워드마크는 스택 타이틀이 아니라 본문 Text다. */}
-          <View className="gap-2">
-            <Text className="font-bold text-4xl text-foreground tracking-tight">
-              flyn
-            </Text>
-            <Text className="text-[17px] text-muted-foreground">
+          <View style={styles.header}>
+            <Text style={[styles.wordmark, { color: colors.text }]}>flyn</Text>
+            <Text
+              style={[styles.supportingText, { color: colors.secondaryText }]}
+            >
               로그인하고 시작하세요.
             </Text>
           </View>
 
-          <View className="min-h-10 flex-1" testID="sign-in-flex-spacer" />
+          <View style={styles.actionsSpacer} testID="sign-in-flex-spacer" />
 
           <View testID="sign-in-actions">
-            <View className="gap-3" testID="sign-in-social-actions">
+            <View style={styles.socialActions} testID="sign-in-social-actions">
               {/* Apple이 기준이고 Google을 여기 맞춘다. cornerRadius와 buttonStyle 말고는
                   우리가 건드릴 수 있는 손잡이가 없다 — style의 배경·모서리는 동작하지
                   않을뿐더러 App Store 가이드라인 위반이다. */}
@@ -122,12 +167,13 @@ export default function SignInScreen() {
 
             <Pressable
               accessibilityRole="button"
-              className="items-center py-3"
               disabled={pending}
               onPress={handleEmail}
-              style={{ marginTop: 4 }}
+              style={styles.emailAction}
             >
-              <Text className="text-[17px] text-muted-foreground">
+              <Text
+                style={[styles.supportingText, { color: colors.secondaryText }]}
+              >
                 이메일로 계속하기
               </Text>
             </Pressable>
@@ -140,7 +186,11 @@ export default function SignInScreen() {
           accessibilityLabel="로그인 중"
           accessibilityRole="progressbar"
           accessibilityViewIsModal
-          className="absolute inset-0 items-center justify-center bg-overlay"
+          style={[
+            StyleSheet.absoluteFill,
+            styles.overlay,
+            { backgroundColor: colors.overlay },
+          ]}
           testID="sign-in-loading-overlay"
         >
           <ActivityIndicator color={colors.primary} />

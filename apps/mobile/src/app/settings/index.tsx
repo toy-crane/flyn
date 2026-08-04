@@ -10,7 +10,7 @@ import {
   multilineTextAlignment,
 } from "@expo/ui/swift-ui/modifiers";
 import { useCallback, useState } from "react";
-import { Alert, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 import { NicknameEditSheet } from "../../components/profile/nickname-edit-sheet";
 import { ProfileAvatar } from "../../components/profile/profile-avatar";
 import { UsernameEditSheet } from "../../components/profile/username-edit-sheet";
@@ -20,6 +20,16 @@ import { signOut } from "../../lib/auth/sign-out";
 import { useProfile } from "../../lib/use-profile";
 import { useUserId } from "../../lib/user-id";
 import { useColors } from "../../theme/app-theme";
+
+const styles = StyleSheet.create({
+  overlay: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  screen: {
+    flex: 1,
+  },
+});
 
 /** 값 표시는 두 행이 같은 모양이어야 한다 — 하나는 누를 수 있을 뿐이다. */
 function Value({ children }: { children: string }) {
@@ -154,7 +164,7 @@ export default function SettingsScreen() {
   }, [handleDelete]);
 
   return (
-    <View className="flex-1">
+    <View style={styles.screen}>
       <Host
         style={{ flex: 1 }}
         // Form은 남은 공간을 채워야 한다. 없으면 내용 높이만큼만 잡혀 스크롤이
@@ -232,8 +242,11 @@ export default function SettingsScreen() {
       {/* 서버가 지우는 동안 화면이 멀쩡해 보이면 사용자가 다시 누른다. */}
       {deleting ? (
         <View
-          className="absolute inset-0 items-center justify-center"
-          style={{ backgroundColor: colors.overlay }}
+          style={[
+            StyleSheet.absoluteFill,
+            styles.overlay,
+            { backgroundColor: colors.overlay },
+          ]}
         >
           <Host matchContents>
             <ProgressView />
