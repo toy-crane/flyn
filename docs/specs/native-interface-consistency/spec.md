@@ -19,6 +19,26 @@
   [닉네임·아이디 스펙](../onboarding-nickname-and-id/spec.md)이 해결할 문제를
   중복 구현하지 않는다.
 
+## 구현 상태
+
+2026-08-04에 현재 제품 코드에 적용할 수 있는 1·2단계를 구현했다.
+
+- light `success`를 `#1F7A35`로 조정하고, light/dark의 명시적 일반 텍스트 pair가
+  4.5:1 미만이면 실패하는 contrast regression test를 추가했다.
+- 이메일 화면의 native back button title을 `로그인`으로 지정했다. iPhone 17 ·
+  iOS 26.5 accessibility tree에서 route path 대신 `로그인` button으로 노출되고,
+  화면에는 기존 minimal chevron만 유지되는 것을 확인했다.
+- OTP 안내와 이메일을 분리했다. 45자 테스트 주소를 라이트·다크에서 확인한 결과,
+  전체 주소가 생략 없이 별도 줄에 표시되고 6칸 입력·재전송 action·숫자 keyboard와
+  겹치지 않았다.
+- 전체 `bun run check`의 lint·typecheck·test 8개 작업이 통과했다. 모바일은
+  30 suites, 238 tests가 통과했다.
+
+P0 native surface 경계와 상태별 matrix는 아직 제품 코드가 없는 닉네임·아이디
+sheet의 구현 계약이다. 현재 코드에는 제거할 `presentationBackground(app.background)`나
+`scrollContentBackground('hidden')`가 없으므로, 존재하지 않는 feature를 이번 변경에서
+선행 구현하지 않는다. 해당 sheet를 만들 때 아래 완료 조건을 그대로 acceptance로 쓴다.
+
 ## B안: 소유권 경계
 
 **flyn이 의미를 소유하고, iOS가 native surface를 소유한다.** 시각적 일관성은
