@@ -131,6 +131,18 @@ describe("Layout native stack header", () => {
       title: "표시 이름",
     });
   });
+
+  it("이메일 화면의 system back은 route path 대신 로그인을 읽는다", async () => {
+    mockUseAuth.mockReturnValue({ kind: "signedOut" });
+
+    await render(<Layout />);
+
+    expect(mockRouteOptions["sign-in/email"]).toMatchObject({
+      headerBackTitle: "로그인",
+      headerShown: true,
+      title: "이메일",
+    });
+  });
 });
 
 describe("Layout 인증 가드", () => {
