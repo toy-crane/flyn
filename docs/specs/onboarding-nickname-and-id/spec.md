@@ -209,15 +209,25 @@ filled 컨트롤이라 배경 없는 Form 행에 들어갈 물건이 아니고, 
 **presented 동안 마운트되고 dismiss 뒤 언마운트된다**고 적고 있다. 고치던 값은
 언마운트와 함께 사라지고, 다시 열리면 저장된 값으로 새로 마운트된다.
 
-### 문서가 요구하는 것 둘
+### 배경색은 `presentationBackground`로만 닿는다
 
-- **시트 내용을 `ScrollView`로 감싼다.** 가장 작은 snap point를 넘는 내용은
-  오버플로가 난다고 문서가 명시한다. 이 시트는 폼과 규칙 footer에 더해 중복일
-  때 추천 섹션까지 붙으므로 정확히 그 경우다.
-- **시트 표면 색은 `presentationBackground`로 준다.** 일반 `background`는 내용
-  뒤에 깔릴 뿐이라 손잡이 영역과 홈 인디케이터 safe area까지 닿지 않는다.
-  [uniwind-css-theme](../../decisions/uniwind-css-theme.md)의 변수 값을 여기에
-  넘긴다.
+**`Host`의 `backgroundColor`는 시트에 닿지 않는다.** 시트는 별도 프레젠테이션이라
+호스트 뷰 바깥에 서고, 그 안의 `Form`이 자기 기본 배경을 칠한다. 1차 스파이크에서
+시트 배경을 재보니 `#F2F2F7`이었다 — iOS의 `.systemGroupedBackground`이지 앱
+배경이 아니다.
+
+`presentationBackground(app.background)`를 주면 `#F7F7F5`로 맞는다. 실측으로
+확인했다. `FieldGroup`에는 `scrollContentBackground('hidden')`을 함께 줘야
+`Form`이 그 위를 다시 덮지 않는다.
+
+### `ScrollView`로 감싸지 않는다
+
+문서는 "가장 작은 snap point를 넘는 내용은 `ScrollView`로 감싸라"고 하지만, **그
+권고는 일반 콘텐츠용이다.** `FieldGroup`을 `ScrollView` 안에 넣으면 폼이 통째로
+사라진다 — `Form` 자체가 스크롤 컨테이너라 중첩되면 높이가 0이 된다. 스파이크에서
+접근성 트리에 `scroll-area`만 남고 행이 하나도 없었다.
+
+전체 높이 시트에서는 `Form`이 알아서 스크롤하므로 감쌀 이유도 없다.
 
 ### 설정에만 있는 경로
 
@@ -251,9 +261,20 @@ filled 컨트롤이라 배경 없는 Form 행에 들어갈 물건이 아니고, 
 - 접근성 트리에 `Close`·`닉네임`·text-field·footer가 모두 잡히고, 닫기를 누르면
   시트와 키보드가 함께 사라진다.
 
-**스파이크가 확인하지 않은 것**: 내용은 필드 하나와 footer뿐이었다. `ScrollView`도
-`presentationBackground`도 넣지 않았고, 추천 섹션이 붙어 길어진 상태도 보지
-않았다. 근거는
+2차 스파이크에서 추가로 확인한 것.
+
+- **`presentationBackground(app.background)`가 시트 배경을 앱 색으로 바꾼다.**
+  주기 전에는 `#F2F2F7`, 준 뒤에는 `#F7F7F5`였다.
+- **`ScrollView`로 감싸면 `FieldGroup`이 사라진다.** 접근성 트리에 `scroll-area`
+  하나만 남고 행이 전부 없어졌다.
+- **중복 상태의 세 요소가 한 폼 안에 선다** — 입력 행 trailing의 경고 아이콘,
+  danger 색 footer, 그리고 아래에 붙는 `추천` 섹션 3행.
+- **추천을 탭하면 네 가지가 한 번에 바뀐다** — 입력값, trailing 아이콘(경고 →
+  초록 체크), footer(오류 → 규칙), 저장 버튼(`disabled` 해제).
+
+**아직 확인하지 않은 것**: 저장 실패의 인라인 표시, 다크 모드, iOS 26 미만.
+
+API 근거는
 [universal](https://docs.expo.dev/versions/latest/sdk/ui/universal/bottomsheet/)·[swift-ui](https://docs.expo.dev/versions/latest/sdk/ui/swift-ui/bottomsheet/)
 문서다.
 
@@ -300,8 +321,8 @@ filled 컨트롤이라 배경 없는 Form 행에 들어갈 물건이 아니고, 
 - **유리 버튼 스타일은 iOS 26+ 전용이다.** 스파이크는 26.5에서만 돌렸고, 그
   아래에서 SwiftUI가 어떤 모양으로 떨어뜨리는지는 확인하지 않았다. 지원 하한을
   정할 때 이 화면이 기준 중 하나다.
-- **긴 내용에서의 시트 거동은 아직 못 봤다.** 추천 섹션이 붙어 길어지고 키보드까지
-  겹쳤을 때 `ScrollView`가 실제로 오버플로를 막는지 확인해야 한다.
+- **저장 실패의 인라인 표시를 아직 못 봤다.** 중복 오류는 확인했지만, 서버 저장이
+  실패했을 때 그 문구가 어디 서는지는 정하지 않았다.
 - **아이디 칸에 한글 키보드가 뜨면 안 된다.** 스파이크에서 닉네임 칸에 한글
   키보드가 올라왔는데, 닉네임에는 맞지만 아이디에는 틀리다. `keyboardType`,
   `textInputAutocapitalization`, `autocorrectionDisabled` modifier로 눌러야
