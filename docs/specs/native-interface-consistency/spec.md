@@ -1,5 +1,12 @@
 # Native interface 일관성 정리와 전체 화면 UI audit
 
+> **2026-08-05 후속 결정:** 이 문서의 `global.css`, semantic `className`,
+> `Host.seedColor`와 “새 전역 token을 만들지 않는다”는 설명은 2026-08-04 당시
+> 구현과 audit 범위를 기록한 기준선이다. 장기 styling 목표는
+> [React Native 스타일 파운데이션](../native-style-foundation/spec.md)이 대체한다.
+> native surface를 플랫폼이 소유한다는 경계와 이 문서의 runtime 증거는 그대로
+> 유효하다.
+
 2026-08-04에 현재 HEAD `2271da4`를 iPhone 17 · iOS 26.5 시뮬레이터에서 직접
 확인하고, 구현된 route와 guard state의 source를 함께 읽어 정리했다. 이 문서는
 새 renderer migration을 제안하는 문서가 아니다. 이미 선택한 Universal-first
@@ -69,8 +76,9 @@ VoiceOver, 가장 큰 Dynamic Type, Increase Contrast와 Reduce Transparency는 
   RN 화면과 맞추는 목적에는 쓰지 않는다.
 
 이 경계의 장기 계약은
-[Apple HIG와 앱 테마](../../decisions/apple-hig-with-app-theme.md), bridge 규칙은
-[Uniwind와 앱 색](../../decisions/uniwind-css-theme.md)이 소유한다.
+[네이티브 관용과 스타일 파운데이션](../../decisions/apple-hig-with-app-theme.md),
+RN styling 원본은
+[React Native 스타일 파운데이션](../../decisions/uniwind-css-theme.md)이 소유한다.
 
 ## audit 범위와 증거 수준
 
@@ -209,8 +217,9 @@ surface에서 충분했다.
   button을 만들지 않는다. 한국어가 primary인 실제 기기에서 공식 label을 한 번
   확인한다.
 - **RN과 설정 Form의 배경 통일**: B안이 의도적으로 기각한다.
-- **새 전역 spacing·typography·radius token**: 반복 문제 증거가 없고 앱 테마의
-  범위가 아니다.
+- **당시 audit 안의 새 전역 spacing·typography·radius token**: 이 audit은
+  renderer seam과 접근성 문제를 고치는 작업이어서 별도 token migration을 섞지
+  않았다. 이후 확정된 색·간격·타이포 파운데이션은 후속 spec이 소유한다.
 - **Swift 코드나 custom native module**: Universal API와 기존 RN 경계 안에서 모두
   해결 가능하다.
 

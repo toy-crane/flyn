@@ -3,9 +3,10 @@
 ## Decisions
 
 - 라우팅, 서버 상태, mutation, 검증과 화면 상태는 React가 소유한다.
-- 새 화면의 기본 renderer는 universal `@expo/ui`다. 필요한 표현이 universal에
-  없으면 `@expo/ui/swift-ui`로 내려가며, 비슷한 universal 컴포넌트로 대체하지
-  않는다.
+- 새 native form·짧은 상태 화면의 기본 renderer는 universal `@expo/ui`다. 필요한
+  표현이 universal에 없으면 해당 플랫폼의 `@expo/ui/swift-ui` 또는
+  `@expo/ui/jetpack-compose` 경계로 내려가며, 비슷하지만 동작이 다른 universal
+  컴포넌트로 대체하지 않는다.
 - `@expo/ui` 레이아웃과 control은 완결된 `Host` subtree 하나에 모은다. RN
   wrapper·overlay와 `Host`를 형제로 둘 수 있지만 control마다 경계를 왕복하지
   않는다.
@@ -13,15 +14,16 @@
   경계가 Expo UI로 완결되지 않는 surface에만 쓴다.
 - 재사용 UI는 TSX React 컴포넌트로 만든다. Expo UI가 필요한 native capability를
   표현하지 못할 때만 custom native module을 검토한다.
-- iOS 전용이므로 renderer 선택을 위해 플랫폼 파일이나 Android·web fallback을
-  만들지 않는다.
+- universal API로 같은 동작을 표현할 수 있으면 공유하고, native capability가
+  실제로 다를 때만 플랫폼 파일로 나눈다. Android 지원을 이유로 아직 검증하지
+  못하는 빈 screen fallback을 만들지는 않는다.
 
 ## Why
 
-Expo UI는 실제 SwiftUI primitive를 제공하지만 `Host`는 RN과 SwiftUI 사이의
-레이아웃 경계다. 한 subtree를 완결하면 native control의 관용을 얻으면서 React
-상태를 유지할 수 있고, 반복 왕복을 피하면 layout·focus·gesture 소유권이
-분명해진다.
+Expo UI는 실제 SwiftUI·Jetpack Compose primitive를 제공하지만 `Host`는 RN과
+native UI 사이의 레이아웃 경계다. 한 subtree를 완결하면 native control의 관용을
+얻으면서 React 상태를 유지할 수 있고, 반복 왕복을 피하면 layout·focus·gesture
+소유권이 분명해진다.
 
 ## Boundaries
 
