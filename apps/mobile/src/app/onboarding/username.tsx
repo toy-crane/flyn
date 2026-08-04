@@ -27,7 +27,7 @@ import {
   normalizeUsername,
   USERNAME_MAX,
 } from "../../lib/username";
-import { useAppTheme } from "../../theme/app-theme";
+import { useColors } from "../../theme/app-theme";
 
 const USERNAME_RULE = "4~20자, 영문 소문자·숫자·_·.만 사용할 수 있어요.";
 
@@ -101,7 +101,7 @@ function UsernameForm({
   onSubmit: (username: string, onDuplicate: () => void) => void;
   pending: boolean;
 }) {
-  const app = useAppTheme();
+  const colors = useColors();
   const username = useNativeState(initialValue);
   const [typed, setTyped] = useState(initialValue);
   const [duplicateValue, setDuplicateValue] = useState<string | null>(null);
@@ -170,11 +170,15 @@ function UsernameForm({
   let trailing: ReactNode = null;
   if (status === "available") {
     trailing = (
-      <Icon color={app.success} name="checkmark.circle.fill" size={20} />
+      <Icon color={colors.success} name="checkmark.circle.fill" size={20} />
     );
   } else if (status === "taken") {
     trailing = (
-      <Icon color={app.danger} name="exclamationmark.circle.fill" size={20} />
+      <Icon
+        color={colors.danger}
+        name="exclamationmark.circle.fill"
+        size={20}
+      />
     );
   }
 
@@ -208,7 +212,9 @@ function UsernameForm({
             modifiers={[
               font({ textStyle: "footnote" }),
               foregroundStyle(
-                status === "taken" ? app.danger : app.mutedForeground
+                status === "taken"
+                  ? colors.danger
+                  : { style: "secondary", type: "hierarchical" }
               ),
             ]}
           >
@@ -221,7 +227,10 @@ function UsernameForm({
             <Text
               modifiers={[
                 font({ textStyle: "subheadline", weight: "semibold" }),
-                foregroundStyle(app.mutedForeground),
+                foregroundStyle({
+                  style: "secondary",
+                  type: "hierarchical",
+                }),
               ]}
             >
               추천

@@ -1,7 +1,14 @@
 import { LegendList } from "@legendapp/list/react-native";
 import { Stack, useIsFocused, useRouter } from "expo-router";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  type ColorValue,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
 import { RNSymbol } from "../components/symbols/rn-symbol";
 import {
   type ChatRoom,
@@ -10,7 +17,7 @@ import {
   useDeleteChatRoom,
 } from "../lib/use-chat-rooms";
 import { useUserId } from "../lib/user-id";
-import { useAppTheme } from "../theme/app-theme";
+import { useColors } from "../theme/app-theme";
 
 const TIME_FORMAT = new Intl.DateTimeFormat("ko-KR", {
   hour: "numeric",
@@ -42,7 +49,7 @@ function ChatRoomRow({
   onOpen,
   room,
 }: {
-  disclosureColor: string;
+  disclosureColor: ColorValue;
   onDelete: (room: ChatRoom) => void;
   onOpen: (roomId: string) => void;
   room: ChatRoom;
@@ -106,7 +113,7 @@ function EmptyRooms({ onCreate }: { onCreate: () => void }) {
 }
 
 export default function HomeScreen() {
-  const app = useAppTheme();
+  const colors = useColors();
   const isFocused = useIsFocused();
   const router = useRouter();
   const userId = useUserId();
@@ -175,13 +182,13 @@ export default function HomeScreen() {
   const renderRoom = useCallback(
     ({ item }: { item: ChatRoom }) => (
       <ChatRoomRow
-        disclosureColor={app.mutedForeground}
+        disclosureColor={colors.secondaryText}
         onDelete={confirmDelete}
         onOpen={openRoom}
         room={item}
       />
     ),
-    [app.mutedForeground, confirmDelete, openRoom]
+    [colors.secondaryText, confirmDelete, openRoom]
   );
   const retryRooms = useCallback(() => {
     rooms.refetch();

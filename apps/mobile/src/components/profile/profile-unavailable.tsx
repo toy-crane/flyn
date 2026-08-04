@@ -7,19 +7,17 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import type { ReactNode } from "react";
 import { View } from "react-native";
-import { useAppTheme } from "../../theme/app-theme";
+import { useColors } from "../../theme/app-theme";
 
 function Screen({ children }: { children: ReactNode }) {
-  const app = useAppTheme();
+  const colors = useColors();
 
   return (
     <View
       className="flex-1 items-center justify-center px-8"
-      style={{ backgroundColor: app.background }}
+      style={{ backgroundColor: colors.background }}
     >
-      <Host matchContents seedColor={app.primary}>
-        {children}
-      </Host>
+      <Host matchContents>{children}</Host>
     </View>
   );
 }
@@ -73,8 +71,6 @@ export function ProfileUnavailable({
   onSignOut: () => void;
   retrying: boolean;
 }) {
-  const app = useAppTheme();
-
   return (
     <ProfileProblem
       actions={
@@ -82,21 +78,10 @@ export function ProfileUnavailable({
           <Button
             disabled={retrying}
             label="다시 시도"
-            // 활성 filled 버튼은 흰 primary 배경 위에서 검은 라벨을 쓴다.
-            // 비활성 외형은 계속 iOS가 결정한다.
-            modifiers={[
-              controlSize("large"),
-              ...(retrying ? [] : [foregroundStyle(app.primaryForeground)]),
-            ]}
+            modifiers={[controlSize("large")]}
             onPress={onRetry}
           />
-          <Button
-            label="로그아웃"
-            // 틴트가 없으면 라벨 색으로 그려져 버튼으로 읽히지 않는다.
-            modifiers={[foregroundStyle(app.primary)]}
-            onPress={onSignOut}
-            variant="text"
-          />
+          <Button label="로그아웃" onPress={onSignOut} variant="text" />
         </>
       }
       message="계정 정보를 불러오지 못했어요. 인터넷 연결을 확인해 주세요."
@@ -109,17 +94,12 @@ export function ProfileUnavailable({
  * 이것은 재시도로 낫는 상태가 아니라 데이터 무결성 오류다.
  */
 export function ProfileMissing({ onSignOut }: { onSignOut: () => void }) {
-  const app = useAppTheme();
-
   return (
     <ProfileProblem
       actions={
         <Button
           label="로그아웃"
-          modifiers={[
-            controlSize("large"),
-            foregroundStyle(app.primaryForeground),
-          ]}
+          modifiers={[controlSize("large")]}
           onPress={onSignOut}
         />
       }

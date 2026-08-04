@@ -6,7 +6,7 @@ import {
   frame,
 } from "@expo/ui/swift-ui/modifiers";
 import type { ReactNode } from "react";
-import { useAppTheme } from "../../theme/app-theme";
+import { useColors } from "../../theme/app-theme";
 
 type OwnedTextInputProps =
   | "cursorColor"
@@ -32,14 +32,14 @@ export function FormTextField({
   trailing,
   ...inputProps
 }: FormTextFieldProps) {
-  const app = useAppTheme();
+  const colors = useColors();
 
   return (
     <Column alignment="start" spacing={8}>
       <Text
         modifiers={[
           font({ textStyle: "subheadline", weight: "semibold" }),
-          foregroundStyle(app.mutedForeground),
+          foregroundStyle({ style: "secondary", type: "hierarchical" }),
         ]}
       >
         {label}
@@ -52,22 +52,10 @@ export function FormTextField({
       >
         <TextInput
           {...inputProps}
-          cursorColor={app.primary}
           modifiers={[
             frame({ maxWidth: Number.POSITIVE_INFINITY }),
             accessibilityLabel(label),
           ]}
-          placeholderTextColor={app.placeholder}
-          style={{
-            backgroundColor: app.surface,
-            borderRadius: 16,
-            paddingHorizontal: 16,
-            paddingVertical: 16,
-          }}
-          textStyle={{
-            color: app.foreground,
-            fontSize: 17,
-          }}
         />
         {trailing}
       </Row>
@@ -76,7 +64,7 @@ export function FormTextField({
         <Text
           modifiers={[
             font({ textStyle: "footnote" }),
-            foregroundStyle(app.danger),
+            foregroundStyle(colors.danger),
           ]}
         >
           {error}

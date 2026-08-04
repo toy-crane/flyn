@@ -1,8 +1,9 @@
 import { SymbolView } from "expo-symbols";
+import type { ColorValue } from "react-native";
 import { APP_SYMBOLS, type AppSymbolName } from "./app-symbols";
 
 interface RNSymbolProps {
-  color: string;
+  color: ColorValue;
   symbol: AppSymbolName;
 }
 

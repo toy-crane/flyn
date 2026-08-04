@@ -12,7 +12,6 @@ import {
   normalizeDisplayName,
 } from "../../lib/display-name";
 import { useSaveDisplayName } from "../../lib/use-profile";
-import { useAppTheme } from "../../theme/app-theme";
 import { ProfileEditSheet } from "./profile-edit-sheet";
 
 function saveFailed() {
@@ -28,7 +27,6 @@ export function NicknameEditSheet({
   onDismiss: () => void;
   userId: string;
 }) {
-  const app = useAppTheme();
   const save = useSaveDisplayName(userId);
   const name = useNativeState(initialValue);
   const [typed, setTyped] = useState(initialValue);
@@ -76,7 +74,14 @@ export function NicknameEditSheet({
             value={name}
           />
           <FieldGroup.SectionFooter>
-            <Text modifiers={[foregroundStyle(app.mutedForeground)]}>
+            <Text
+              modifiers={[
+                foregroundStyle({
+                  style: "secondary",
+                  type: "hierarchical",
+                }),
+              ]}
+            >
               1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.
             </Text>
           </FieldGroup.SectionFooter>

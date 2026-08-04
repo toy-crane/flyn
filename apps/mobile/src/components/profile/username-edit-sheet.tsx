@@ -26,7 +26,7 @@ import {
   normalizeUsername,
   USERNAME_MAX,
 } from "../../lib/username";
-import { useAppTheme } from "../../theme/app-theme";
+import { useColors } from "../../theme/app-theme";
 import { ProfileEditSheet } from "./profile-edit-sheet";
 
 const USERNAME_RULE = "4~20자, 영문 소문자·숫자·_·.만 사용할 수 있어요.";
@@ -44,7 +44,7 @@ export function UsernameEditSheet({
   onDismiss: () => void;
   userId: string;
 }) {
-  const app = useAppTheme();
+  const colors = useColors();
   const save = useSaveUsername(userId);
   const username = useNativeState(initialValue);
   const [typed, setTyped] = useState(initialValue);
@@ -116,11 +116,15 @@ export function UsernameEditSheet({
   let trailing: ReactNode = null;
   if (status === "available") {
     trailing = (
-      <Icon color={app.success} name="checkmark.circle.fill" size={20} />
+      <Icon color={colors.success} name="checkmark.circle.fill" size={20} />
     );
   } else if (status === "taken") {
     trailing = (
-      <Icon color={app.danger} name="exclamationmark.circle.fill" size={20} />
+      <Icon
+        color={colors.danger}
+        name="exclamationmark.circle.fill"
+        size={20}
+      />
     );
   }
 
@@ -159,7 +163,9 @@ export function UsernameEditSheet({
             <Text
               modifiers={[
                 foregroundStyle(
-                  status === "taken" ? app.danger : app.mutedForeground
+                  status === "taken"
+                    ? colors.danger
+                    : { style: "secondary", type: "hierarchical" }
                 ),
               ]}
             >

@@ -19,7 +19,7 @@ import { deleteAccount } from "../../lib/account";
 import { signOut } from "../../lib/auth/sign-out";
 import { useProfile } from "../../lib/use-profile";
 import { useUserId } from "../../lib/user-id";
-import { useAppTheme } from "../../theme/app-theme";
+import { useColors } from "../../theme/app-theme";
 
 /** 값 표시는 두 행이 같은 모양이어야 한다 — 하나는 누를 수 있을 뿐이다. */
 function Value({ children }: { children: string }) {
@@ -36,11 +36,9 @@ function Value({ children }: { children: string }) {
 
 function ProfileHeader({
   displayName,
-  mutedColor,
   username,
 }: {
   displayName: string;
-  mutedColor: string;
   username: string;
 }) {
   return (
@@ -74,7 +72,10 @@ function ProfileHeader({
         </Text>
         <Text
           modifiers={[
-            foregroundStyle(mutedColor),
+            foregroundStyle({
+              style: "secondary",
+              type: "hierarchical",
+            }),
             font({ textStyle: "callout" }),
             multilineTextAlignment("center"),
           ]}
@@ -95,7 +96,7 @@ function ProfileHeader({
  * 항목을 미리 만들지 않는다.
  */
 export default function SettingsScreen() {
-  const app = useAppTheme();
+  const colors = useColors();
   const userId = useUserId();
   const profile = useProfile(userId);
   const [deleting, setDeleting] = useState(false);
@@ -153,20 +154,15 @@ export default function SettingsScreen() {
   }, [handleDelete]);
 
   return (
-    <View className="flex-1" style={{ backgroundColor: app.background }}>
+    <View className="flex-1">
       <Host
-        seedColor={app.primary}
-        style={{ backgroundColor: app.background, flex: 1 }}
+        style={{ flex: 1 }}
         // Form은 남은 공간을 채워야 한다. 없으면 내용 높이만큼만 잡혀 스크롤이
         // 생기지 않는다.
         useViewportSizeMeasurement
       >
         <FieldGroup>
-          <ProfileHeader
-            displayName={displayName}
-            mutedColor={app.mutedForeground}
-            username={username}
-          />
+          <ProfileHeader displayName={displayName} username={username} />
 
           <FieldGroup.Section title="프로필">
             {/* SwiftUI가 chevron을 그려 주는 것은 NavigationLink일 때다. 여기는
@@ -178,10 +174,7 @@ export default function SettingsScreen() {
               trailing={
                 <Row alignment="center" spacing={6}>
                   <Value>{displayName}</Value>
-                  <NativeSymbol
-                    color={app.mutedForeground}
-                    symbol="disclosure"
-                  />
+                  <NativeSymbol symbol="disclosure" />
                 </Row>
               }
             >
@@ -193,10 +186,7 @@ export default function SettingsScreen() {
               trailing={
                 <Row alignment="center" spacing={6}>
                   <Value>{username}</Value>
-                  <NativeSymbol
-                    color={app.mutedForeground}
-                    symbol="disclosure"
-                  />
+                  <NativeSymbol symbol="disclosure" />
                 </Row>
               }
             >
@@ -215,7 +205,9 @@ export default function SettingsScreen() {
               destructive 역할은 얼럿 버튼이 들고, 행 자체는 붉은 글자로 되돌릴
               수 없는 일임을 알린다. */}
             <ListItem onPress={confirmDelete}>
-              <Text modifiers={[foregroundStyle(app.danger)]}>계정 삭제</Text>
+              <Text modifiers={[foregroundStyle(colors.danger)]}>
+                계정 삭제
+              </Text>
             </ListItem>
           </FieldGroup.Section>
         </FieldGroup>
@@ -241,9 +233,9 @@ export default function SettingsScreen() {
       {deleting ? (
         <View
           className="absolute inset-0 items-center justify-center"
-          style={{ backgroundColor: app.overlay }}
+          style={{ backgroundColor: colors.overlay }}
         >
-          <Host matchContents seedColor={app.primary}>
+          <Host matchContents>
             <ProgressView />
           </Host>
         </View>

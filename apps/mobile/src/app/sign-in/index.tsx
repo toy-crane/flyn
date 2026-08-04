@@ -20,7 +20,7 @@ import { signInWithApple } from "../../lib/auth/apple";
 import { signInWithGoogle } from "../../lib/auth/google";
 import { authFailedFeedback } from "../../lib/haptics";
 import { useAuthAction } from "../../lib/use-auth-action";
-import { useAppTheme } from "../../theme/app-theme";
+import { useColors } from "../../theme/app-theme";
 import {
   SOCIAL_BUTTON_HEIGHT,
   SOCIAL_BUTTON_RADIUS,
@@ -33,7 +33,7 @@ import {
  * 성공하면 onAuthStateChange가 가드를 뒤집어 스택째 벗어난다 — 여기선 실패만 다룬다.
  */
 export default function SignInScreen() {
-  const app = useAppTheme();
+  const colors = useColors();
   const { clearFailure, failure, pending, run } = useAuthAction();
   const router = useRouter();
   const dark = useColorScheme() === "dark";
@@ -143,7 +143,7 @@ export default function SignInScreen() {
           className="absolute inset-0 items-center justify-center bg-overlay"
           testID="sign-in-loading-overlay"
         >
-          <ActivityIndicator color={app.primary} />
+          <ActivityIndicator color={colors.primary} />
         </View>
       ) : null}
     </View>

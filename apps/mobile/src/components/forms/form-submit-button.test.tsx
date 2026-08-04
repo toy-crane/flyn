@@ -13,7 +13,7 @@ jest.mock("@expo/ui/swift-ui/modifiers", () =>
 import { FormSubmitButton } from "./form-submit-button";
 
 describe("FormSubmitButton", () => {
-  it("native 여백을 포함해 약 50pt가 되도록 콘텐츠 높이를 제한한다", async () => {
+  it("가로 폭만 채우고 native control 높이는 플랫폼에 맡긴다", async () => {
     await render(<FormSubmitButton label="저장" onPress={jest.fn()} />);
 
     expect(
@@ -21,7 +21,7 @@ describe("FormSubmitButton", () => {
     ).toContainEqual(
       expect.objectContaining({
         $modifier: "frame",
-        args: [{ maxWidth: Number.POSITIVE_INFINITY, minHeight: 36 }],
+        args: [{ maxWidth: Number.POSITIVE_INFINITY }],
       })
     );
   });

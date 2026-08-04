@@ -12,7 +12,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
-import { useAppTheme } from "../theme/app-theme";
+import { useColors } from "../theme/app-theme";
 
 const PROGRESS_REVEAL_DELAY_MS = 200;
 
@@ -27,16 +27,14 @@ const PROGRESS_REVEAL_DELAY_MS = 200;
  */
 
 function Screen({ children }: { children: React.ReactNode }) {
-  const app = useAppTheme();
+  const colors = useColors();
 
   return (
     <View
       className="flex-1 items-center justify-center px-8"
-      style={{ backgroundColor: app.background }}
+      style={{ backgroundColor: colors.background }}
     >
-      <Host matchContents seedColor={app.primary}>
-        {children}
-      </Host>
+      <Host matchContents>{children}</Host>
     </View>
   );
 }

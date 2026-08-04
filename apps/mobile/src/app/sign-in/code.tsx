@@ -17,7 +17,7 @@ import { authFailedFeedback, authSucceededFeedback } from "../../lib/haptics";
 import { isCodeComplete } from "../../lib/otp-code";
 import { IGNORED, useAuthAction } from "../../lib/use-auth-action";
 import { useResendCooldown } from "../../lib/use-resend-cooldown";
-import { useAppTheme } from "../../theme/app-theme";
+import { useColors } from "../../theme/app-theme";
 
 /**
  * 코드 입력. 6칸 합성이 RN이라 이 화면도 RN이다
@@ -26,7 +26,7 @@ import { useAppTheme } from "../../theme/app-theme";
  * `다른 이메일로 받기`는 없다 — 헤더의 뒤로가기가 그 역할을 한다.
  */
 export default function CodeScreen() {
-  const app = useAppTheme();
+  const colors = useColors();
   const params = useLocalSearchParams<{ email?: string }>();
   const email = typeof params.email === "string" ? params.email : "";
   const {
@@ -161,7 +161,7 @@ export default function CodeScreen() {
   if (resendPending) {
     inlineAction = (
       <>
-        <ActivityIndicator color={app.primary} size="small" />
+        <ActivityIndicator color={colors.primary} size="small" />
         <Text className="text-[14px] text-muted-foreground">보내는 중…</Text>
       </>
     );
@@ -170,7 +170,7 @@ export default function CodeScreen() {
   if (verifyPending) {
     inlineAction = (
       <>
-        <ActivityIndicator color={app.primary} size="small" />
+        <ActivityIndicator color={colors.primary} size="small" />
         <Text className="text-[14px] text-muted-foreground">확인 중…</Text>
       </>
     );

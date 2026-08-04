@@ -95,18 +95,19 @@ beforeEach(() => {
 });
 
 describe("Layout native stack header", () => {
-  it("공통 header는 앱 테마를 쓰고 system back과 hairline 없는 외형을 유지한다", async () => {
+  it("공통 header는 navigation theme에 색을 맡기고 system back과 hairline 없는 외형을 유지한다", async () => {
     signedInWith({ kind: "ready" });
 
     await render(<Layout />);
 
     expect(mockNavigatorOptions.current).toMatchObject({
-      contentStyle: { backgroundColor: "#111111" },
       headerBackButtonDisplayMode: "minimal",
       headerShadowVisible: false,
-      headerStyle: { backgroundColor: "#111111" },
-      headerTintColor: "#111111",
     });
+    expect(mockNavigatorOptions.current).not.toHaveProperty("contentStyle");
+    expect(mockNavigatorOptions.current).not.toHaveProperty("headerStyle");
+    expect(mockNavigatorOptions.current).not.toHaveProperty("headerTintColor");
+    expect(mockNavigatorOptions.current).not.toHaveProperty("headerTitleStyle");
   });
 
   it("홈과 push 화면의 native title을 라우트에서 선언한다", async () => {
@@ -271,7 +272,6 @@ describe("Layout 프로필 오류 가드", () => {
 
     expect(screen.getByText(FETCH_FAILED)).toBeTruthy();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeTruthy();
-    expect(screen.getByText("다시 시도")).toHaveStyle({ color: "#fefefe" });
     expect(screen.queryByText("screen:onboarding/index")).toBeNull();
   });
 
@@ -310,6 +310,5 @@ describe("Layout 프로필 오류 가드", () => {
     await render(<Layout />);
 
     expect(screen.getByRole("button", { name: "로그아웃" })).toBeTruthy();
-    expect(screen.getByText("로그아웃")).toHaveStyle({ color: "#fefefe" });
   });
 });

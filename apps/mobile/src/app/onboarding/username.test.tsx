@@ -31,16 +31,10 @@ jest.mock("../../lib/username", () => {
 });
 jest.mock("../../lib/user-id", () => ({ useUserId: () => "user-1" }));
 jest.mock("../../theme/app-theme", () => ({
-  useAppTheme: () => ({
+  useColors: () => ({
     background: "#f7f7f5",
     danger: "#c62828",
-    foreground: "#202124",
-    mutedForeground: "#6b6f76",
-    placeholder: "#8c9199",
-    primary: "#275dff",
-    primaryForeground: "#ffffff",
     success: "#1f7a35",
-    surface: "#ffffff",
   }),
 }));
 

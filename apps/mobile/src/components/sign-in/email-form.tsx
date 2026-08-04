@@ -2,7 +2,7 @@ import { Column, Host, ScrollView, Text, useNativeState } from "@expo/ui";
 import { font, foregroundStyle, frame } from "@expo/ui/swift-ui/modifiers";
 import { useCallback, useState } from "react";
 import { isEmailSubmittable } from "../../lib/otp-code";
-import { useAppTheme } from "../../theme/app-theme";
+import { useColors } from "../../theme/app-theme";
 import { FormSubmitButton } from "../forms/form-submit-button";
 import { FormTextField } from "../forms/form-text-field";
 
@@ -19,7 +19,7 @@ export function EmailForm({
   onSubmit: (email: string) => void;
   pending?: boolean;
 }) {
-  const app = useAppTheme();
+  const colors = useColors();
   const email = useNativeState("");
   // 버튼 잠금을 판단하려면 렌더가 필요해서 React 상태에 한 번 더 비춘다.
   // **이 미러는 잠금 판단에만 쓴다.** 한 프레임 늦어도 잠금은 곧 따라잡지만,
@@ -46,10 +46,7 @@ export function EmailForm({
   }, [email, onSubmit, pending]);
 
   return (
-    <Host
-      seedColor={app.primary}
-      style={{ backgroundColor: app.background, flex: 1 }}
-    >
+    <Host style={{ backgroundColor: colors.background, flex: 1 }}>
       <Column
         alignment="start"
         modifiers={[

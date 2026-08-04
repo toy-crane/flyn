@@ -1,9 +1,10 @@
 import { Icon } from "@expo/ui";
-import { font } from "@expo/ui/swift-ui/modifiers";
+import { font, foregroundStyle } from "@expo/ui/swift-ui/modifiers";
+import type { ColorValue } from "react-native";
 import { APP_SYMBOLS, type AppSymbolName } from "./app-symbols";
 
 interface NativeSymbolProps {
-  color: string;
+  color?: ColorValue;
   symbol: AppSymbolName;
 }
 
@@ -18,6 +19,14 @@ export function NativeSymbol({ color, symbol }: NativeSymbolProps) {
           size: definition.size,
           weight: definition.weight,
         }),
+        ...(color
+          ? []
+          : [
+              foregroundStyle({
+                style: "secondary",
+                type: "hierarchical",
+              }),
+            ]),
       ]}
       name={definition.name}
     />

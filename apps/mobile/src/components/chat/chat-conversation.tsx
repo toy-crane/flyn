@@ -38,7 +38,7 @@ import Reanimated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAppTheme } from "../../theme/app-theme";
+import { useColors } from "../../theme/app-theme";
 import { ChatMarkdown } from "./chat-markdown";
 import { StreamingMessage } from "./streaming-message";
 import type { StreamingStore } from "./streaming-store";
@@ -174,7 +174,7 @@ function Composer({
   bottomInset: number;
   chat: ChatController;
 }) {
-  const theme = useAppTheme();
+  const colors = useColors();
   const canSend = chat.input.trim().length > 0;
   const isGenerating = isGeneratingStatus(chat.status);
   const actionLabel = isGenerating ? "응답 중단" : "메시지 보내기";
@@ -218,14 +218,14 @@ function Composer({
           <TextInput
             accessibilityLabel="메시지"
             className="max-h-28 min-h-[52px] flex-1 px-4 py-[14px] text-base text-foreground leading-[22px]"
-            cursorColor={theme.foreground}
+            cursorColor={colors.text}
             maxLength={4000}
             multiline
             nativeID={COMPOSER_NATIVE_ID}
             onChangeText={chat.setInput}
             placeholder="메시지 보내기"
-            placeholderTextColor={theme.placeholder}
-            selectionColor={theme.foreground}
+            placeholderTextColor={colors.placeholder}
+            selectionColor={colors.text}
             textAlignVertical="top"
             value={chat.input}
           />
@@ -236,14 +236,14 @@ function Composer({
             disabled={disabled}
             onPress={handleAction}
             style={{
-              backgroundColor: disabled ? theme.disabled : theme.primary,
+              backgroundColor: disabled ? colors.disabled : colors.primary,
               opacity: disabled ? 0.7 : 1,
             }}
           >
             {chat.status === "submitted" ? (
               <ActivityIndicator
                 accessible={false}
-                color={theme.primaryForeground}
+                color={colors.onPrimary}
                 size="small"
                 testID="composer-submit-spinner"
               />
@@ -251,9 +251,7 @@ function Composer({
               <SymbolView
                 name={chat.status === "streaming" ? "stop.fill" : "arrow.up"}
                 size={17}
-                tintColor={
-                  disabled ? theme.disabledForeground : theme.primaryForeground
-                }
+                tintColor={disabled ? colors.disabledText : colors.onPrimary}
                 weight="semibold"
               />
             )}
@@ -266,7 +264,7 @@ function Composer({
 
 export function ChatConversation({ chat }: { chat: ChatController }) {
   const insets = useSafeAreaInsets();
-  const theme = useAppTheme();
+  const colors = useColors();
   const listRef = useRef<LegendListRef>(null);
   const composerRef = useRef<View>(null);
   const [listViewportHeight, setListViewportHeight] = useState(0);
@@ -451,7 +449,7 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
                   <SymbolView
                     name="chevron.down"
                     size={16}
-                    tintColor={theme.mutedForeground}
+                    tintColor={colors.secondaryText}
                     weight="semibold"
                   />
                 </Pressable>
