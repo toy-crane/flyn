@@ -8,7 +8,7 @@
 -- 자기 표시 이름을 바꿀 수 있다는 양성 대조를 함께 둔다.
 
 begin;
-select plan(26);
+select plan(44);
 
 select tests.create_supabase_user('alice');
 select tests.create_supabase_user('bob');
@@ -36,6 +36,12 @@ select ok(
   '새 프로필의 display_name은 null이다 — 이것이 곧 온보딩 전 상태다'
 );
 
+select ok(
+  (select username is null from public.profiles
+   where id = tests.get_supabase_uid('alice')),
+  '새 프로필의 username도 null이다 — 두 값이 모두 채워져야 온보딩이 끝난다'
+);
+
 select tests.authenticate_as('alice');
 
 select is(
@@ -61,6 +67,24 @@ select is(
   (select display_name from public.profiles),
   'bob name',
   'bob은 자기 표시 이름을 바꿀 수 있다'
+);
+
+update public.profiles set username = 'Bob_User';
+select is(
+  (select username from public.profiles),
+  'bob_user',
+  'bob은 자기 아이디를 바꿀 수 있고 대문자는 소문자로 저장된다'
+);
+
+select tests.authenticate_as('alice');
+update public.profiles set username = 'hacked'
+where id = tests.get_supabase_uid('bob');
+
+select tests.authenticate_as('bob');
+select is(
+  (select username from public.profiles),
+  'bob_user',
+  'alice는 bob의 아이디를 바꿀 수 없다'
 );
 
 select tests.authenticate_as('alice');
@@ -146,6 +170,96 @@ select throws_ok(
   '상한을 넘는 이름은 거부된다'
 );
 
+-- 아이디는 검색·멘션에 쓰이는 정규화된 식별자라 DB도 UX 규칙을 그대로
+-- 강제한다. 앱 검증은 빠른 피드백이고, 이 제약과 고유 인덱스가 최종 방어다.
+update public.profiles set username = 'alice.id_7';
+select is(
+  (select username from public.profiles),
+  'alice.id_7',
+  '영문 소문자·숫자·마침표·밑줄 조합은 저장된다'
+);
+
+select throws_ok(
+  $$update public.profiles set username = 'abc'$$,
+  '23514',
+  null,
+  '4자보다 짧은 아이디는 거부된다'
+);
+
+select throws_ok(
+  $$update public.profiles set username = repeat('a', 21)$$,
+  '23514',
+  null,
+  '20자보다 긴 아이디는 거부된다'
+);
+
+select throws_ok(
+  $$update public.profiles set username = '.alice'$$,
+  '23514',
+  null,
+  '마침표로 시작하는 아이디는 거부된다'
+);
+
+select throws_ok(
+  $$update public.profiles set username = 'alice_'$$,
+  '23514',
+  null,
+  '밑줄로 끝나는 아이디는 거부된다'
+);
+
+select throws_ok(
+  $$update public.profiles set username = 'alice-id'$$,
+  '23514',
+  null,
+  '허용 문자 밖의 문자가 든 아이디는 거부된다'
+);
+
+select throws_ok(
+  $$update public.profiles set username = 'alice..id'$$,
+  '23514',
+  null,
+  '마침표를 연달아 쓴 아이디는 거부된다'
+);
+
+select throws_ok(
+  $$update public.profiles set username = 'support'$$,
+  '23514',
+  null,
+  '예약 아이디는 거부된다'
+);
+
+select throws_ok(
+  $$update public.profiles set username = 'bob_user'$$,
+  '23505',
+  null,
+  '다른 사용자가 쓰는 아이디는 대소문자와 관계없이 중복 저장할 수 없다'
+);
+
+select ok(
+  public.is_username_available('fresh.user'),
+  '사용할 수 있는 아이디는 가용하다고 답한다'
+);
+
+select ok(
+  not public.is_username_available('BOB_USER'),
+  '대소문자를 바꿔도 이미 쓰는 아이디는 가용하지 않다'
+);
+
+select ok(
+  public.is_username_available('ALICE.ID_7'),
+  '현재 사용자의 기존 아이디는 가용하다고 답한다'
+);
+
+select ok(
+  not public.is_username_available('bad-id'),
+  '형식이 잘못된 후보는 가용하지 않다'
+);
+
+select ok(
+  not public.is_username_available('official'),
+  '예약된 후보는 가용하지 않다'
+);
+
 -- 열 권한 — 정책은 행만 가르고, 여기서부터는 grant가 막는다.
 select throws_ok(
   $$update public.profiles set email = 'hacked@test.example'$$,
@@ -176,6 +290,13 @@ select throws_ok(
 );
 
 select tests.clear_authentication();
+select throws_ok(
+  $$select public.is_username_available('fresh.user')$$,
+  '42501',
+  'permission denied for function is_username_available',
+  '미인증은 아이디 가용성 함수도 실행할 수 없다'
+);
+
 select throws_ok(
   $$select count(*) from public.profiles$$,
   '42501',

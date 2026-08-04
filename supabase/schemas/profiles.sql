@@ -11,6 +11,9 @@ create table public.profiles (
   -- 크게 깨지는 쪽을 택한다 — 프로필 없는 사용자를 만들지 않는다.
   email text not null,
   display_name text,
+  -- null이면 아이디 온보딩 전이다. 값이 생기면 아래 제약과 고유 인덱스가
+  -- 형식과 중복을 최종 방어한다.
+  username text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   -- display_name이 null인 상태가 곧 "온보딩 전"이다. null에는 이 check가 걸리지
@@ -21,8 +24,31 @@ create table public.profiles (
   -- 다시 세면 단위가 달라 영원히 어긋난다 — 그래서 여기는 넉넉히 두고 다투지
   -- 않는다. 50 grapheme이 만들 수 있는 최대치보다 크게 잡았다.
   constraint profiles_display_name_length
-    check (char_length(display_name) between 1 and 500)
+    check (char_length(display_name) between 1 and 500),
+  constraint profiles_username_format
+    check (
+      username is null
+      or (
+        char_length(username) between 4 and 20
+        and username ~ '^[a-z0-9][a-z0-9_.]{2,18}[a-z0-9]$'
+        and username !~ '\.\.'
+        and username not in (
+          'admin',
+          'administrator',
+          'flyn',
+          'official',
+          'root',
+          'staff',
+          'support',
+          'system'
+        )
+      )
+    )
 );
+
+create unique index profiles_username_unique
+  on public.profiles (lower(username))
+  where username is not null;
 
 -- 저장 값은 앞뒤의 보이지 않는 문자를 잘라낸 값이다. 그것뿐인 이름은 여기서
 -- ''가 되어 위 check가 거부한다 — null로 바꾸지 않는다. 조용히 이름을 지우면
@@ -49,6 +75,7 @@ begin
     '',
     'g'
   );
+  new.username := lower(new.username);
   return new;
 end;
 $$;
@@ -87,11 +114,48 @@ create policy "own profile updatable" on public.profiles
 -- RLS와 열 권한을 함께 쓴다. 정책은 어느 **행**을 만지는지만 가르고, 그 행의
 -- 어느 **열**을 바꾸는지는 못 막는다 — email·id를 지키는 것은 아래 grant다.
 grant select on table public.profiles to authenticated;
-grant update (display_name) on table public.profiles to authenticated;
+grant update (display_name, username) on table public.profiles to authenticated;
 
 -- 생성·삭제는 클라이언트 권한이 아니다. 생성은 auth.users 트리거가, 삭제는
 -- on delete cascade가 맡는다.
 grant select, insert, update, delete on table public.profiles to service_role;
+
+-- 입력 중 확인은 UX를 위한 힌트다. 최종 중복 방어는 위 고유 인덱스가 맡는다.
+-- SECURITY DEFINER로 모든 프로필을 확인하되, 호출자에게 다른 사용자의 아이디를
+-- 열거할 수 있는 행 접근 권한은 주지 않는다.
+create function public.is_username_available(candidate_username text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select
+    candidate_username is not null
+    and char_length(lower(candidate_username)) between 4 and 20
+    and lower(candidate_username) ~ '^[a-z0-9][a-z0-9_.]{2,18}[a-z0-9]$'
+    and lower(candidate_username) !~ '\.\.'
+    and lower(candidate_username) not in (
+      'admin',
+      'administrator',
+      'flyn',
+      'official',
+      'root',
+      'staff',
+      'support',
+      'system'
+    )
+    and not exists (
+      select 1
+      from public.profiles
+      where lower(username) = lower(candidate_username)
+        and id <> (select auth.uid())
+    );
+$$;
+
+revoke all on function public.is_username_available(text) from public;
+grant execute on function public.is_username_available(text) to authenticated;
+grant execute on function public.is_username_available(text) to service_role;
 
 -- 프로필 행은 사용자 생성과 같은 경계에서 생긴다. 세션이 앱에 돌아왔을 때
 -- 행은 이미 존재해야 하며, 앱은 행이 없으면 온보딩으로 가장하지 않고 무결성
