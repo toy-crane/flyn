@@ -155,6 +155,7 @@ function Routes() {
           <Stack.Screen
             name="sign-in/email"
             options={{
+              headerBackTitle: "로그인",
               headerShown: true,
               title: "이메일",
             }}
