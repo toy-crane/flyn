@@ -26,6 +26,9 @@
   구성하며, 경계가 막는다는 근거가 있는 surface만 RN으로 만든다.
 - [uniwind-css-theme](uniwind-css-theme.md) — 앱 테마의 단일 원본은 Uniwind
   CSS 변수이고, RN은 시맨틱 className을, 네이티브 경계는 같은 변수 값을 쓴다.
+- [settings-edits-use-native-form](settings-edits-use-native-form.md) — 설정에서
+  값을 고치는 화면은 네이티브 `Form`과 네비게이션 바 `완료`를 쓴다. 하단 CTA는
+  진행 흐름에만 쓴다.
 - [danggeun-voice-for-copy](danggeun-voice-for-copy.md) — 화면 문구는 당근
   SEED의 라이팅 규칙을 따르고, '이웃'과 '당신'은 쓰지 않는다.
 
