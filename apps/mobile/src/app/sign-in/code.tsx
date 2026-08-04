@@ -185,9 +185,14 @@ export default function CodeScreen() {
       // CodeInput을 다시 탭해 키보드를 되부를 수 있어야 한다.
       keyboardShouldPersistTaps="handled"
     >
-      <Text className="text-[15px] text-muted-foreground">
-        {email}로 보낸 6자리 코드를 입력해 주세요.
-      </Text>
+      <View className="gap-1">
+        <Text className="text-[15px] text-foreground">
+          6자리 코드를 입력해 주세요.
+        </Text>
+        {email ? (
+          <Text className="text-[15px] text-muted-foreground">{email}</Text>
+        ) : null}
+      </View>
 
       <View className="gap-3">
         <CodeInput
