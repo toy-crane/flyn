@@ -26,6 +26,9 @@
   구성하며, 경계가 막는다는 근거가 있는 surface만 RN으로 만든다.
 - [uniwind-css-theme](uniwind-css-theme.md) — 앱 테마의 단일 원본은 Uniwind
   CSS 변수이고, RN은 시맨틱 className을, 네이티브 경계는 같은 변수 값을 쓴다.
+- [settings-edits-use-native-form](settings-edits-use-native-form.md) — 설정에서
+  값을 고치는 화면은 라우트가 아니라 `@expo/ui` 시트이고, 그 안은 네이티브
+  `Form`에 유리 아이콘 버튼이다. 하단 CTA는 진행 흐름에만 쓴다.
 - [danggeun-voice-for-copy](danggeun-voice-for-copy.md) — 화면 문구는 당근
   SEED의 라이팅 규칙을 따르고, '이웃'과 '당신'은 쓰지 않는다.
 
@@ -54,7 +57,10 @@
 ## 데이터
 
 - [private-auth-profiles](private-auth-profiles.md) — 프로필은 인증 사용자와
-  1:1인 비공개 계정 정보이고, `display_name is null`만 첫 온보딩을 뜻한다.
+  1:1이고, 행은 `auth.users` 트리거가 만들며, 이메일의 원본은 Auth다.
+- [public-username-in-profile](public-username-in-profile.md) — 프로필에 공개
+  고유 username을 두고 한국어로 아이디라 부른다. 사람이 읽는 이름은 닉네임이고,
+  온보딩 완료는 둘 다 채워진 상태다.
 - [hybrid-data-access](hybrid-data-access.md) — 일반 CRUD는 앱이 Supabase에 직접
   가고 RLS가 보안 경계다. AI·서버 전용 로직만 Hono를 거친다.
 - [server-owned-chat-messages](server-owned-chat-messages.md) — 채팅방 CRUD와
