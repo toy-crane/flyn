@@ -132,6 +132,21 @@ describe("Layout native stack header", () => {
     });
   });
 
+  it("온보딩 두 단계의 제목을 native header에 선언한다", async () => {
+    signedInWith({ kind: "onboarding", step: "nickname" });
+
+    await render(<Layout />);
+
+    expect(mockRouteOptions["onboarding/nickname"]).toMatchObject({
+      headerShown: true,
+      title: "닉네임을 정해 주세요",
+    });
+    expect(mockRouteOptions["onboarding/username"]).toMatchObject({
+      headerShown: true,
+      title: "아이디를 정해 주세요",
+    });
+  });
+
   it("이메일 화면의 system back은 route path 대신 로그인을 읽는다", async () => {
     mockUseAuth.mockReturnValue({ kind: "signedOut" });
 
@@ -211,12 +226,18 @@ describe("Layout 인증 가드", () => {
 });
 
 describe("Layout 온보딩 가드", () => {
-  it("표시 이름이 없으면 온보딩만 마운트한다", async () => {
-    signedInWith({ kind: "onboarding" });
+  it("미완료 프로필이면 온보딩 스택만 마운트한다", async () => {
+    signedInWith({ kind: "onboarding", step: "nickname" });
 
     await render(<Layout />);
 
-    expect(screen.getByText("screen:onboarding")).toBeTruthy();
+    for (const name of [
+      "onboarding/index",
+      "onboarding/nickname",
+      "onboarding/username",
+    ]) {
+      expect(screen.getByText(`screen:${name}`)).toBeTruthy();
+    }
     // index가 함께 마운트되면 뒤로 가서 앱에 들어갈 수 있다.
     expect(screen.queryByText("screen:index")).toBeNull();
   });
@@ -226,7 +247,7 @@ describe("Layout 온보딩 가드", () => {
 
     await render(<Layout />);
 
-    expect(screen.queryByText("screen:onboarding")).toBeNull();
+    expect(screen.queryByText("screen:onboarding/index")).toBeNull();
   });
 
   it("프로필을 불러오는 동안에는 어느 화면도 마운트하지 않는다", async () => {
@@ -235,7 +256,7 @@ describe("Layout 온보딩 가드", () => {
     await render(<Layout />);
 
     expect(screen.queryByText("screen:index")).toBeNull();
-    expect(screen.queryByText("screen:onboarding")).toBeNull();
+    expect(screen.queryByText("screen:onboarding/index")).toBeNull();
   });
 });
 
@@ -254,7 +275,7 @@ describe("Layout 프로필 오류 가드", () => {
     expect(screen.getByText(FETCH_FAILED)).toBeTruthy();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeTruthy();
     expect(screen.getByText("다시 시도")).toHaveStyle({ color: "#fefefe" });
-    expect(screen.queryByText("screen:onboarding")).toBeNull();
+    expect(screen.queryByText("screen:onboarding/index")).toBeNull();
   });
 
   it("재시도 중에는 버튼을 잠근다", async () => {
@@ -281,7 +302,7 @@ describe("Layout 프로필 오류 가드", () => {
     await render(<Layout />);
 
     expect(screen.getByText(INTEGRITY)).toBeTruthy();
-    expect(screen.queryByText("screen:onboarding")).toBeNull();
+    expect(screen.queryByText("screen:onboarding/index")).toBeNull();
     expect(screen.queryByText("screen:index")).toBeNull();
   });
 

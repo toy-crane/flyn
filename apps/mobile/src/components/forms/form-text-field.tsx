@@ -1,9 +1,11 @@
-import { Column, Text, TextInput, type TextInputProps } from "@expo/ui";
+import { Column, Row, Text, TextInput, type TextInputProps } from "@expo/ui";
 import {
   accessibilityLabel,
   font,
   foregroundStyle,
+  frame,
 } from "@expo/ui/swift-ui/modifiers";
+import type { ReactNode } from "react";
 import { useAppTheme } from "../../theme/app-theme";
 
 type OwnedTextInputProps =
@@ -17,6 +19,7 @@ export interface FormTextFieldProps
   extends Omit<TextInputProps, OwnedTextInputProps> {
   error?: string;
   label: string;
+  trailing?: ReactNode;
 }
 
 /**
@@ -26,6 +29,7 @@ export interface FormTextFieldProps
 export function FormTextField({
   error,
   label,
+  trailing,
   ...inputProps
 }: FormTextFieldProps) {
   const app = useAppTheme();
@@ -41,22 +45,32 @@ export function FormTextField({
         {label}
       </Text>
 
-      <TextInput
-        {...inputProps}
-        cursorColor={app.primary}
-        modifiers={[accessibilityLabel(label)]}
-        placeholderTextColor={app.placeholder}
-        style={{
-          backgroundColor: app.surface,
-          borderRadius: 16,
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-        }}
-        textStyle={{
-          color: app.foreground,
-          fontSize: 17,
-        }}
-      />
+      <Row
+        alignment="center"
+        modifiers={[frame({ maxWidth: Number.POSITIVE_INFINITY })]}
+        spacing={10}
+      >
+        <TextInput
+          {...inputProps}
+          cursorColor={app.primary}
+          modifiers={[
+            frame({ maxWidth: Number.POSITIVE_INFINITY }),
+            accessibilityLabel(label),
+          ]}
+          placeholderTextColor={app.placeholder}
+          style={{
+            backgroundColor: app.surface,
+            borderRadius: 16,
+            paddingHorizontal: 16,
+            paddingVertical: 16,
+          }}
+          textStyle={{
+            color: app.foreground,
+            fontSize: 17,
+          }}
+        />
+        {trailing}
+      </Row>
 
       {error ? (
         <Text

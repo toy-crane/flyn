@@ -146,8 +146,16 @@ function Routes() {
           guard={auth.kind === "ready" && profile.kind === "onboarding"}
         >
           <Stack.Screen
-            name="onboarding"
-            options={{ headerShown: true, title: "이름 정하기" }}
+            name="onboarding/index"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="onboarding/nickname"
+            options={{ headerShown: true, title: "닉네임을 정해 주세요" }}
+          />
+          <Stack.Screen
+            name="onboarding/username"
+            options={{ headerShown: true, title: "아이디를 정해 주세요" }}
           />
         </Stack.Protected>
         <Stack.Protected guard={auth.kind === "signedOut"}>

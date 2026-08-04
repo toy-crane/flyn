@@ -1,4 +1,5 @@
 import {
+  createUsernameFallback,
   createUsernameSuggestions,
   deriveUsernameBase,
   findAvailableUsername,
@@ -61,6 +62,15 @@ describe("deriveUsernameBase", () => {
 });
 
 describe("사용 가능한 후보", () => {
+  it("가용성 확인이 실패해도 저장해 볼 수 있는 유효한 후보를 만든다", () => {
+    expect(createUsernameFallback("ab@example.com", () => "1234")).toBe(
+      "ab1234"
+    );
+    expect(createUsernameFallback("hello@example.com", () => "1234")).toBe(
+      "hello"
+    );
+  });
+
   it("파생값이 유효하고 비어 있으면 그대로 쓴다", async () => {
     const available = jest.fn().mockResolvedValue(true);
 
