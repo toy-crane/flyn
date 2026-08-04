@@ -133,13 +133,6 @@ function Routes() {
               title: "설정",
             }}
           />
-          <Stack.Screen
-            name="settings/display-name"
-            options={{
-              headerShown: true,
-              title: "표시 이름",
-            }}
-          />
         </Stack.Protected>
         {/* 온보딩만 마운트한다 — 뒤로 가서 앱에 들어갈 스택 자체를 만들지 않는다. */}
         <Stack.Protected

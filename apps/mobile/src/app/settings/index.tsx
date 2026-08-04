@@ -9,10 +9,11 @@ import {
   listRowSeparator,
   multilineTextAlignment,
 } from "@expo/ui/swift-ui/modifiers";
-import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, View } from "react-native";
+import { NicknameEditSheet } from "../../components/profile/nickname-edit-sheet";
 import { ProfileAvatar } from "../../components/profile/profile-avatar";
+import { UsernameEditSheet } from "../../components/profile/username-edit-sheet";
 import { NativeSymbol } from "../../components/symbols/native-symbol";
 import { deleteAccount } from "../../lib/account";
 import { signOut } from "../../lib/auth/sign-out";
@@ -35,12 +36,12 @@ function Value({ children }: { children: string }) {
 
 function ProfileHeader({
   displayName,
-  email,
   mutedColor,
+  username,
 }: {
   displayName: string;
-  email: string;
   mutedColor: string;
+  username: string;
 }) {
   return (
     <Column
@@ -56,9 +57,11 @@ function ProfileHeader({
       spacing={14}
       testID="settings-profile-header"
     >
-      {/* 아직 프로필 사진 도메인은 없다. 임의의 OAuth 메타데이터 대신 표시
-          이름으로 항상 같은 색의 기본 아바타를 만든다. */}
-      <ProfileAvatar name={displayName} testID="settings-profile-avatar" />
+      <ProfileAvatar
+        colorKey={username}
+        displayName={displayName}
+        testID="settings-profile-avatar"
+      />
 
       <Column alignment="center" spacing={2}>
         <Text
@@ -76,7 +79,7 @@ function ProfileHeader({
             multilineTextAlignment("center"),
           ]}
         >
-          {email}
+          {`@${username}`}
         </Text>
       </Column>
     </Column>
@@ -95,14 +98,15 @@ export default function SettingsScreen() {
   const app = useAppTheme();
   const userId = useUserId();
   const profile = useProfile(userId);
-  const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState<"nickname" | "username" | null>(null);
   const displayName = profile.data?.display_name ?? "";
   const email = profile.data?.email ?? "";
+  const username = profile.data?.username ?? "";
 
-  const openDisplayName = useCallback(() => {
-    router.push("/settings/display-name");
-  }, [router]);
+  const openNickname = useCallback(() => setEditing("nickname"), []);
+  const openUsername = useCallback(() => setEditing("username"), []);
+  const closeEditing = useCallback(() => setEditing(null), []);
 
   // 알릴 실패가 없다. auth-js는 요청이 실패해도 로컬 세션을 지우고 SIGNED_OUT을
   // 쏘므로, 어느 경우든 _layout의 가드가 sign-in으로 보낸다 — 여기서 얼럿을
@@ -160,8 +164,8 @@ export default function SettingsScreen() {
         <FieldGroup>
           <ProfileHeader
             displayName={displayName}
-            email={email}
             mutedColor={app.mutedForeground}
+            username={username}
           />
 
           <FieldGroup.Section title="프로필">
@@ -170,7 +174,7 @@ export default function SettingsScreen() {
                 읽히지 않는다. Evan Bacon의 chat-template처럼 iOS SF Symbol의
                 chevron.right를 medium 굵기와 muted 색으로 둔다. */}
             <ListItem
-              onPress={openDisplayName}
+              onPress={openNickname}
               trailing={
                 <Row alignment="center" spacing={6}>
                   <Value>{displayName}</Value>
@@ -181,7 +185,22 @@ export default function SettingsScreen() {
                 </Row>
               }
             >
-              표시 이름
+              닉네임
+            </ListItem>
+
+            <ListItem
+              onPress={openUsername}
+              trailing={
+                <Row alignment="center" spacing={6}>
+                  <Value>{username}</Value>
+                  <NativeSymbol
+                    color={app.mutedForeground}
+                    symbol="disclosure"
+                  />
+                </Row>
+              }
+            >
+              아이디
             </ListItem>
 
             {/* 이메일은 읽기 전용이다 — 원본은 auth.users이고 앱에는 update 열
@@ -200,6 +219,22 @@ export default function SettingsScreen() {
             </ListItem>
           </FieldGroup.Section>
         </FieldGroup>
+
+        {editing === "nickname" ? (
+          <NicknameEditSheet
+            initialValue={displayName}
+            onDismiss={closeEditing}
+            userId={userId}
+          />
+        ) : null}
+
+        {editing === "username" ? (
+          <UsernameEditSheet
+            initialValue={username}
+            onDismiss={closeEditing}
+            userId={userId}
+          />
+        ) : null}
       </Host>
 
       {/* 서버가 지우는 동안 화면이 멀쩡해 보이면 사용자가 다시 누른다. */}

@@ -126,10 +126,7 @@ describe("Layout native stack header", () => {
       headerShown: true,
       title: "설정",
     });
-    expect(mockRouteOptions["settings/display-name"]).toMatchObject({
-      headerShown: true,
-      title: "표시 이름",
-    });
+    expect(mockRouteOptions["settings/display-name"]).toBeUndefined();
   });
 
   it("온보딩 두 단계의 제목을 native header에 선언한다", async () => {

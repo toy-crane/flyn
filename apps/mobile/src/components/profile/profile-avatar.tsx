@@ -26,7 +26,8 @@ const NAME_SEGMENTER =
     : new Intl.Segmenter("ko", { granularity: "grapheme" });
 
 interface ProfileAvatarProps {
-  name: string;
+  colorKey: string;
+  displayName: string;
   size?: number;
   testID?: string;
 }
@@ -53,10 +54,16 @@ function initialForName(name: string) {
   return firstGrapheme?.toLocaleUpperCase() ?? "?";
 }
 
-export function ProfileAvatar({ name, size = 88, testID }: ProfileAvatarProps) {
-  const normalizedName = normalizeDisplayName(name).normalize("NFC");
+export function ProfileAvatar({
+  colorKey,
+  displayName,
+  size = 88,
+  testID,
+}: ProfileAvatarProps) {
+  const normalizedName = normalizeDisplayName(displayName).normalize("NFC");
+  const normalizedColorKey = colorKey.normalize("NFC").toLowerCase();
   const initial = initialForName(normalizedName);
-  const backgroundColor = colorForName(normalizedName);
+  const backgroundColor = colorForName(normalizedColorKey);
 
   return (
     <Text
