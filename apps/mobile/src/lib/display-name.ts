@@ -1,5 +1,5 @@
-/** 입력칸이 막는 길이. 네이티브가 사람이 세는 단위(grapheme)로 센다. */
-export const DISPLAY_NAME_MAX = 50;
+/** 사람이 세는 단위(grapheme) 기준 상한. */
+export const DISPLAY_NAME_MAX = 32;
 
 /**
  * 앞뒤에서 잘라낼 "보이지 않는" 문자 — 제어 문자, 유니코드 공백류, zero-width.
@@ -16,6 +16,39 @@ export const DISPLAY_NAME_MAX = 50;
 const INVISIBLE =
   "\\u0000-\\u0020\\u007f-\\u009f\\u00a0\\u1680\\u2000-\\u200d\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff";
 const INVISIBLE_EDGES = new RegExp(`^[${INVISIBLE}]+|[${INVISIBLE}]+$`, "g");
+const DISPLAY_NAME_CHARACTER = /^[\p{L}\p{M}\p{N} .'-]$/u;
+
+interface Segmenter {
+  segment: (input: string) => Iterable<{ segment: string }>;
+}
+
+type SegmenterConstructor = new (
+  locales?: string | string[],
+  options?: { granularity: "grapheme" }
+) => Segmenter;
+
+function graphemes(value: string): string[] {
+  const SegmenterClass = (
+    Intl as typeof Intl & { Segmenter?: SegmenterConstructor }
+  ).Segmenter;
+
+  if (SegmenterClass) {
+    const segmenter = new SegmenterClass(undefined, {
+      granularity: "grapheme",
+    });
+    return Array.from(segmenter.segment(value), ({ segment }) => segment);
+  }
+
+  // 지원 하한의 JavaScriptCore에는 Segmenter가 있지만, 테스트·도구 환경을 위한
+  // 폴백은 NFC로 합칠 수 있는 결합 문자를 먼저 합친 뒤 코드 포인트로 센다.
+  return Array.from(value.normalize("NFC"));
+}
+
+function isAllowedGrapheme(grapheme: string): boolean {
+  return Array.from(grapheme).every((character) =>
+    DISPLAY_NAME_CHARACTER.test(character)
+  );
+}
 
 /**
  * 저장 값은 앞뒤를 잘라낸 값이다. DB 트리거가 같은 일을 하지만, 여기서도 해야
@@ -26,13 +59,23 @@ export function normalizeDisplayName(raw: string): string {
 }
 
 /**
- * **길이는 여기서 보지 않는다.** 입력칸의 `maxLength`가 이미 사람이 세는
- * 단위(grapheme)로 막고 있어서, 여기서 다시 세면 단위가 어긋난다 — Swift는
- * grapheme, `char_length`는 코드 포인트라 NFD 한글이나 ZWJ 이모지에서 입력은
- * 되는데 버튼만 이유 없이 죽었다. 세는 곳을 하나로 줄여 그 자리를 없앤다.
- *
- * DB의 상한은 UX 규칙이 아니라 남용 방지 backstop이다.
+ * Provider가 준 이름은 사용자가 바로 고칠 수 있는 유효한 초깃값으로 다듬는다.
+ * 직접 입력은 문자를 조용히 지우지 않지만, 자동 후보는 허용하지 않는 문자를
+ * 걷어내고 상한에서 자른다.
  */
+export function prepareDisplayNameCandidate(raw: string): string {
+  const normalized = normalizeDisplayName(raw);
+  const allowed = graphemes(normalized).filter(isAllowedGrapheme);
+  return normalizeDisplayName(allowed.slice(0, DISPLAY_NAME_MAX).join(""));
+}
+
 export function isDisplayNameSubmittable(raw: string): boolean {
-  return normalizeDisplayName(raw).length > 0;
+  const normalized = normalizeDisplayName(raw);
+  const parts = graphemes(normalized);
+
+  return (
+    parts.length >= 1 &&
+    parts.length <= DISPLAY_NAME_MAX &&
+    parts.every(isAllowedGrapheme)
+  );
 }

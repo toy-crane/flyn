@@ -52,18 +52,29 @@ describe("isDisplayNameSubmittable", () => {
     expect(isDisplayNameSubmittable("훈")).toBe(true);
   });
 
-  /**
-   * **상한은 여기서 보지 않는다.** 입력칸의 maxLength가 사람이 세는
-   * 단위(grapheme)로 이미 막고 있어서, 여기서 다시 세면 단위가 어긋나 입력은
-   * 되는데 버튼만 죽는다 — NFD 한글과 ZWJ 이모지에서 실제로 그랬다.
-   */
-  it("긴 이름을 여기서 막지 않는다 — 길이는 입력칸이 정한다", () => {
-    expect(isDisplayNameSubmittable("a".repeat(DISPLAY_NAME_MAX * 4))).toBe(
-      true
+  it("32 grapheme까지 받아들이고 33 grapheme은 거부한다", () => {
+    expect(isDisplayNameSubmittable("a".repeat(DISPLAY_NAME_MAX))).toBe(true);
+    expect(isDisplayNameSubmittable("a".repeat(DISPLAY_NAME_MAX + 1))).toBe(
+      false
     );
   });
 
-  it("이모지 이름을 받아들인다", () => {
-    expect(isDisplayNameSubmittable("👍".repeat(DISPLAY_NAME_MAX))).toBe(true);
+  it("NFD로 조합한 한글도 한 글자로 센다", () => {
+    expect(isDisplayNameSubmittable("훈".repeat(DISPLAY_NAME_MAX))).toBe(true);
+  });
+
+  it("여러 언어의 글자·숫자와 실제 이름에 쓰는 구두점을 받는다", () => {
+    expect(isDisplayNameSubmittable("Anne-Marie O'Brien. 7 김한울")).toBe(true);
+    expect(isDisplayNameSubmittable("أحمد 7")).toBe(true);
+  });
+
+  it("이모지와 장식용 기호를 거부한다", () => {
+    expect(isDisplayNameSubmittable("훈👍")).toBe(false);
+    expect(isDisplayNameSubmittable("훈★")).toBe(false);
+  });
+
+  it("허용하지 않은 구두점을 거부한다", () => {
+    expect(isDisplayNameSubmittable("김_한울")).toBe(false);
+    expect(isDisplayNameSubmittable("김/한울")).toBe(false);
   });
 });

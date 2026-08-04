@@ -60,16 +60,29 @@ describe("fetchNameCandidate", () => {
     await expect(fetchNameCandidate()).resolves.toBe("김한울");
   });
 
-  // 길이는 입력칸이 정한다 — 여기서 또 재면 규칙이 두 곳으로 갈린다.
-  it("긴 후보를 길이만으로 버리지 않는다", async () => {
+  it("긴 후보는 32 grapheme으로 잘라 바로 고칠 수 있게 한다", async () => {
     const long = "가".repeat(DISPLAY_NAME_MAX + 1);
     withMetadata({ full_name: long });
 
-    await expect(fetchNameCandidate()).resolves.toBe(long);
+    await expect(fetchNameCandidate()).resolves.toBe(
+      "가".repeat(DISPLAY_NAME_MAX)
+    );
   });
 
   it("보이지 않는 문자뿐인 후보는 없는 것으로 친다", async () => {
     withMetadata({ full_name: "\u200b\u3000" });
+
+    await expect(fetchNameCandidate()).resolves.toBe("");
+  });
+
+  it("이름에 쓸 수 없는 이모지는 후보에서 걷어낸다", async () => {
+    withMetadata({ full_name: "김😀한울" });
+
+    await expect(fetchNameCandidate()).resolves.toBe("김한울");
+  });
+
+  it("허용 문자가 하나도 없으면 빈 후보를 준다", async () => {
+    withMetadata({ full_name: "😀★" });
 
     await expect(fetchNameCandidate()).resolves.toBe("");
   });

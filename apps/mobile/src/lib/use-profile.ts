@@ -3,10 +3,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { normalizeDisplayName } from "./display-name";
 import { queryKeys } from "./query-keys";
 import { supabase } from "./supabase";
+import { normalizeUsername } from "./username";
 
-export type Profile = Pick<Tables<"profiles">, "id" | "email" | "display_name">;
+export type Profile = Pick<
+  Tables<"profiles">,
+  "id" | "email" | "display_name" | "username"
+>;
 
-const COLUMNS = "id, email, display_name";
+const COLUMNS = "id, email, display_name, username";
 
 /**
  * 행이 없으면 `null`, 조회가 실패하면 던진다. **이 둘을 섞지 않는 것이 이 함수의
@@ -47,6 +51,44 @@ export async function saveDisplayName(
   return data;
 }
 
+function hasErrorCode(error: unknown, code: string): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === code
+  );
+}
+
+export function isUsernameAlreadyTaken(error: unknown): boolean {
+  return hasErrorCode(error, "23505");
+}
+
+export async function saveUsername(
+  userId: string,
+  raw: string
+): Promise<Profile> {
+  const { data } = await supabase
+    .from("profiles")
+    .update({ username: normalizeUsername(raw) })
+    .eq("id", userId)
+    .select(COLUMNS)
+    .single()
+    .throwOnError();
+
+  return data;
+}
+
+export async function checkUsernameAvailability(
+  candidate: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .rpc("is_username_available", { candidate_username: candidate })
+    .throwOnError();
+
+  return data;
+}
+
 /**
  * `userId`가 null이면 조회를 켜지 않는다. 훅은 조건부로 부를 수 없어
  * `_layout`이 로그인 전에도 이 훅을 부르는데, 그때 조회가 나가면 anon으로
@@ -66,13 +108,13 @@ export function useProfile(userId: string | null) {
  * - `failed` 조회 실패 — 네트워크·권한. 재시도할 수 있어야 한다.
  * - `missing` 행 없음 — 트리거가 만들었어야 할 행이 없다. 온보딩으로 가장하지
  *   않고 무결성 오류로 드러낸다.
- * - `onboarding` `display_name`이 null. 완료 조건은 이것 하나뿐이다.
+ * - `onboarding` 닉네임·아이디 중 처음 비어 있는 단계.
  */
 export type ProfileGate =
   | { kind: "loading" }
   | { kind: "failed"; retry: () => void; retrying: boolean }
   | { kind: "missing" }
-  | { kind: "onboarding" }
+  | { kind: "onboarding"; step: "nickname" | "username" }
   | { kind: "ready" };
 
 /**
@@ -110,9 +152,15 @@ export function describeProfileGate(query: {
     return { kind: "missing" };
   }
 
-  return query.data.display_name === null
-    ? { kind: "onboarding" }
-    : { kind: "ready" };
+  if (query.data.display_name === null) {
+    return { kind: "onboarding", step: "nickname" };
+  }
+
+  if (query.data.username === null) {
+    return { kind: "onboarding", step: "username" };
+  }
+
+  return { kind: "ready" };
 }
 
 export function useProfileGate(userId: string | null): ProfileGate {
@@ -128,6 +176,17 @@ export function useSaveDisplayName(userId: string) {
 
   return useMutation({
     mutationFn: (raw: string) => saveDisplayName(userId, raw),
+    onSuccess: (profile) => {
+      queryClient.setQueryData(queryKeys.profile(userId), profile);
+    },
+  });
+}
+
+export function useSaveUsername(userId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (raw: string) => saveUsername(userId, raw),
     onSuccess: (profile) => {
       queryClient.setQueryData(queryKeys.profile(userId), profile);
     },
