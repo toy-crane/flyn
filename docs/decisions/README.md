@@ -54,7 +54,10 @@
 ## 데이터
 
 - [private-auth-profiles](private-auth-profiles.md) — 프로필은 인증 사용자와
-  1:1인 비공개 계정 정보이고, `display_name is null`만 첫 온보딩을 뜻한다.
+  1:1이고, 행은 `auth.users` 트리거가 만들며, 이메일의 원본은 Auth다.
+- [public-username-in-profile](public-username-in-profile.md) — 프로필에 공개
+  고유 username을 두고 한국어로 아이디라 부른다. 사람이 읽는 이름은 닉네임이고,
+  온보딩 완료는 둘 다 채워진 상태다.
 - [hybrid-data-access](hybrid-data-access.md) — 일반 CRUD는 앱이 Supabase에 직접
   가고 RLS가 보안 경계다. AI·서버 전용 로직만 Hono를 거친다.
 - [server-owned-chat-messages](server-owned-chat-messages.md) — 채팅방 CRUD와
