@@ -18,8 +18,8 @@ import { authFailedFeedback, authSucceededFeedback } from "../../lib/haptics";
 import { isCodeComplete } from "../../lib/otp-code";
 import { IGNORED, useAuthAction } from "../../lib/use-auth-action";
 import { useResendCooldown } from "../../lib/use-resend-cooldown";
-import { useColors } from "../../theme/app-theme";
-import { spacing, typography } from "../../theme/tokens";
+import { useTheme } from "../../theme/app-theme";
+import { spacing } from "../../theme/tokens";
 
 const styles = StyleSheet.create({
   codeSection: {
@@ -30,11 +30,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
   },
-  error: typography.caption,
   guidance: {
     gap: spacing.xxs,
   },
-  guidanceText: typography.supporting,
   inlineAction: {
     alignItems: "center",
     flexDirection: "row",
@@ -42,7 +40,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 24,
   },
-  inlineActionText: typography.label,
   screen: {
     flex: 1,
   },
@@ -55,7 +52,7 @@ const styles = StyleSheet.create({
  * `다른 이메일로 받기`는 없다 — 헤더의 뒤로가기가 그 역할을 한다.
  */
 export default function CodeScreen() {
-  const colors = useColors();
+  const { colors, typography } = useTheme();
   const params = useLocalSearchParams<{ email?: string }>();
   const email = typeof params.email === "string" ? params.email : "";
   const {
@@ -167,7 +164,7 @@ export default function CodeScreen() {
   const resendLocked = !(email && canResend) || locked;
   let inlineAction = (
     <>
-      <Text style={[styles.inlineActionText, { color: colors.secondaryText }]}>
+      <Text style={[typography.label, { color: colors.secondaryText }]}>
         코드가 안 왔나요?
       </Text>
       <Pressable
@@ -178,7 +175,7 @@ export default function CodeScreen() {
       >
         <Text
           style={[
-            styles.inlineActionText,
+            typography.label,
             { color: resendLocked ? colors.disabledText : colors.primary },
           ]}
         >
@@ -192,9 +189,7 @@ export default function CodeScreen() {
     inlineAction = (
       <>
         <ActivityIndicator color={colors.primary} size="small" />
-        <Text
-          style={[styles.inlineActionText, { color: colors.secondaryText }]}
-        >
+        <Text style={[typography.label, { color: colors.secondaryText }]}>
           보내는 중…
         </Text>
       </>
@@ -205,9 +200,7 @@ export default function CodeScreen() {
     inlineAction = (
       <>
         <ActivityIndicator color={colors.primary} size="small" />
-        <Text
-          style={[styles.inlineActionText, { color: colors.secondaryText }]}
-        >
+        <Text style={[typography.label, { color: colors.secondaryText }]}>
           확인 중…
         </Text>
       </>
@@ -224,11 +217,13 @@ export default function CodeScreen() {
       style={[styles.screen, { backgroundColor: colors.background }]}
     >
       <View style={styles.guidance}>
-        <Text style={[styles.guidanceText, { color: colors.text }]}>
+        <Text style={[typography.supporting, { color: colors.text }]}>
           6자리 코드를 입력해 주세요.
         </Text>
         {email ? (
-          <Text style={[styles.guidanceText, { color: colors.secondaryText }]}>
+          <Text
+            style={[typography.supporting, { color: colors.secondaryText }]}
+          >
             {email}
           </Text>
         ) : null}
@@ -246,20 +241,20 @@ export default function CodeScreen() {
         <View style={styles.inlineAction}>{inlineAction}</View>
 
         {email ? null : (
-          <Text style={[styles.error, { color: colors.danger }]}>
+          <Text style={[typography.caption, { color: colors.danger }]}>
             이메일 주소를 다시 입력해 주세요.
           </Text>
         )}
 
         {/* 입력에 붙은 검증 결과라 얼럿이 아니라 인라인 각주다. */}
         {verifyFailure ? (
-          <Text style={[styles.error, { color: colors.danger }]}>
+          <Text style={[typography.caption, { color: colors.danger }]}>
             {verifyFailure.message}
           </Text>
         ) : null}
 
         {resendFailure ? (
-          <Text style={[styles.error, { color: colors.danger }]}>
+          <Text style={[typography.caption, { color: colors.danger }]}>
             {resendFailure.message}
           </Text>
         ) : null}

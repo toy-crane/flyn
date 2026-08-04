@@ -3,11 +3,11 @@ import {
   Pressable,
   type PressableStateCallbackType,
   Text,
-  useColorScheme,
   View,
   type ViewStyle,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { useTheme } from "../../theme/app-theme";
 import {
   SOCIAL_BUTTON_HEIGHT,
   SOCIAL_BUTTON_RADIUS,
@@ -61,7 +61,8 @@ export function GoogleButton({
   onPress: () => void;
   disabled?: boolean;
 }) {
-  const palette = useColorScheme() === "dark" ? GOOGLE.dark : GOOGLE.light;
+  const { colorScheme } = useTheme();
+  const palette = colorScheme === "dark" ? GOOGLE.dark : GOOGLE.light;
   const glyph = socialGlyphSize();
   const gap = socialGapSize();
 

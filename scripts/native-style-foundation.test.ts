@@ -16,6 +16,7 @@ const FORBIDDEN_SOURCE_PATTERNS = [
 ];
 const FORBIDDEN_RUNTIME_PATTERN = /uniwind|global\.css|jest-css-stub/i;
 const FORBIDDEN_LOCKFILE_ENTRY_PATTERN = /^\s*"(?:uniwind|tailwindcss)":/m;
+const COLOR_SCHEME_HOOK_PATTERN = /\buseColorScheme\b/;
 
 function productionSources(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -51,6 +52,18 @@ describe("native style foundation structure", () => {
     });
 
     expect(violations).toEqual([]);
+  });
+
+  test("system appearance는 root theme provider에서만 구독한다", () => {
+    const providerPath = path.join(sourceRoot, "theme/app-theme.tsx");
+    const directSubscribers = productionSources(sourceRoot)
+      .filter((filePath) => filePath !== providerPath)
+      .filter((filePath) =>
+        COLOR_SCHEME_HOOK_PATTERN.test(readFileSync(filePath, "utf8"))
+      )
+      .map(relative);
+
+    expect(directSubscribers).toEqual([]);
   });
 
   test("CSS와 generated Uniwind artifact가 없다", () => {

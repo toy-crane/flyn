@@ -19,8 +19,8 @@ import {
 } from "../../lib/use-chat-rooms";
 import { usePersistentChat } from "../../lib/use-persistent-chat";
 import { useUserId } from "../../lib/user-id";
-import { useColors } from "../../theme/app-theme";
-import { spacing, typography } from "../../theme/tokens";
+import { useTheme } from "../../theme/app-theme";
+import { spacing } from "../../theme/tokens";
 
 const styles = StyleSheet.create({
   action: {
@@ -29,7 +29,6 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: spacing.lg,
   },
-  actionLabel: typography.action,
   centered: {
     alignItems: "center",
     flex: 1,
@@ -38,7 +37,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xxl,
   },
   message: {
-    ...typography.body,
     textAlign: "center",
   },
 });
@@ -66,7 +64,7 @@ function CenteredAction({
   message: string;
   onPress: () => void;
 }) {
-  const colors = useColors();
+  const { colors, typography } = useTheme();
   const actionStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
       styles.action,
@@ -77,14 +75,16 @@ function CenteredAction({
 
   return (
     <View style={[styles.centered, { backgroundColor: colors.background }]}>
-      <Text style={[styles.message, { color: colors.text }]}>{message}</Text>
+      <Text style={[styles.message, typography.body, { color: colors.text }]}>
+        {message}
+      </Text>
       <Pressable
         accessibilityLabel={actionLabel}
         accessibilityRole="button"
         onPress={onPress}
         style={actionStyle}
       >
-        <Text style={[styles.actionLabel, { color: colors.onPrimary }]}>
+        <Text style={[typography.action, { color: colors.onPrimary }]}>
           {actionLabel}
         </Text>
       </Pressable>
@@ -93,7 +93,7 @@ function CenteredAction({
 }
 
 export default function ChatDetailScreen() {
-  const colors = useColors();
+  const { colors } = useTheme();
   const params = useLocalSearchParams<{
     id?: string | string[];
   }>();

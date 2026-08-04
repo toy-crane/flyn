@@ -12,7 +12,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,12 +20,12 @@ import { signInWithApple } from "../../lib/auth/apple";
 import { signInWithGoogle } from "../../lib/auth/google";
 import { authFailedFeedback } from "../../lib/haptics";
 import { useAuthAction } from "../../lib/use-auth-action";
-import { useColors } from "../../theme/app-theme";
+import { useTheme } from "../../theme/app-theme";
 import {
   SOCIAL_BUTTON_HEIGHT,
   SOCIAL_BUTTON_RADIUS,
 } from "../../theme/buttons";
-import { spacing, typography } from "../../theme/tokens";
+import { spacing } from "../../theme/tokens";
 
 const styles = StyleSheet.create({
   actionsSpacer: {
@@ -61,7 +60,6 @@ const styles = StyleSheet.create({
   socialActions: {
     gap: spacing.sm,
   },
-  supportingText: typography.body,
   wordmark: {
     fontSize: 36,
     fontWeight: "700",
@@ -76,10 +74,10 @@ const styles = StyleSheet.create({
  * 성공하면 onAuthStateChange가 가드를 뒤집어 스택째 벗어난다 — 여기선 실패만 다룬다.
  */
 export default function SignInScreen() {
-  const colors = useColors();
+  const { colorScheme, colors, typography } = useTheme();
   const { clearFailure, failure, pending, run } = useAuthAction();
   const router = useRouter();
-  const dark = useColorScheme() === "dark";
+  const dark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
 
   // 소셜 실패는 폼 검증이 아니라 OS 시트가 닫히면서 돌아오는 모달 흐름의 결과다.
@@ -133,9 +131,7 @@ export default function SignInScreen() {
           {/* 헤더가 없는 화면이라 워드마크는 스택 타이틀이 아니라 본문 Text다. */}
           <View style={styles.header}>
             <Text style={[styles.wordmark, { color: colors.text }]}>flyn</Text>
-            <Text
-              style={[styles.supportingText, { color: colors.secondaryText }]}
-            >
+            <Text style={[typography.body, { color: colors.secondaryText }]}>
               로그인하고 시작하세요.
             </Text>
           </View>
@@ -171,9 +167,7 @@ export default function SignInScreen() {
               onPress={handleEmail}
               style={styles.emailAction}
             >
-              <Text
-                style={[styles.supportingText, { color: colors.secondaryText }]}
-              >
+              <Text style={[typography.body, { color: colors.secondaryText }]}>
                 이메일로 계속하기
               </Text>
             </Pressable>

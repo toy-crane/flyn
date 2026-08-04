@@ -19,8 +19,8 @@ import {
   useDeleteChatRoom,
 } from "../lib/use-chat-rooms";
 import { useUserId } from "../lib/user-id";
-import { useColors } from "../theme/app-theme";
-import { spacing, typography } from "../theme/tokens";
+import { useTheme } from "../theme/app-theme";
+import { spacing } from "../theme/tokens";
 
 const styles = StyleSheet.create({
   action: {
@@ -30,7 +30,6 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: spacing.lg,
   },
-  actionLabel: typography.action,
   centered: {
     alignItems: "center",
     flex: 1,
@@ -42,12 +41,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   emptyDescription: {
-    ...typography.supporting,
     textAlign: "center",
   },
-  emptyTitle: typography.title,
   errorMessage: {
-    ...typography.body,
     textAlign: "center",
   },
   loading: {
@@ -68,11 +64,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
   },
-  roomTitle: typography.body,
   screen: {
     flex: 1,
   },
-  timestamp: typography.caption,
 });
 
 const TIME_FORMAT = new Intl.DateTimeFormat("ko-KR", {
@@ -110,7 +104,7 @@ function ChatRoomRow({
   onOpen: (roomId: string) => void;
   room: ChatRoom;
 }) {
-  const colors = useColors();
+  const { colors, typography } = useTheme();
   const handleDelete = useCallback(() => {
     onDelete(room);
   }, [onDelete, room]);
@@ -138,12 +132,12 @@ function ChatRoomRow({
       <View style={styles.roomContent}>
         <Text
           numberOfLines={2}
-          style={[styles.roomTitle, { color: colors.text }]}
+          style={[typography.body, { color: colors.text }]}
         >
           {room.title}
         </Text>
         <Text
-          style={[styles.timestamp, { color: colors.secondaryText }]}
+          style={[typography.caption, { color: colors.secondaryText }]}
           testID="chat-room-updated-at"
         >
           {formatUpdatedAt(room.updated_at)}
@@ -155,7 +149,7 @@ function ChatRoomRow({
 }
 
 function EmptyRooms({ onCreate }: { onCreate: () => void }) {
-  const colors = useColors();
+  const { colors, typography } = useTheme();
   const actionStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
       styles.action,
@@ -167,10 +161,16 @@ function EmptyRooms({ onCreate }: { onCreate: () => void }) {
 
   return (
     <View style={styles.centered}>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>
+      <Text style={[typography.title, { color: colors.text }]}>
         아직 채팅이 없어요
       </Text>
-      <Text style={[styles.emptyDescription, { color: colors.secondaryText }]}>
+      <Text
+        style={[
+          styles.emptyDescription,
+          typography.supporting,
+          { color: colors.secondaryText },
+        ]}
+      >
         궁금한 것을 보내면 대화가 여기에 저장돼요.
       </Text>
       <Pressable
@@ -179,7 +179,7 @@ function EmptyRooms({ onCreate }: { onCreate: () => void }) {
         onPress={onCreate}
         style={actionStyle}
       >
-        <Text style={[styles.actionLabel, { color: colors.onPrimary }]}>
+        <Text style={[typography.action, { color: colors.onPrimary }]}>
           첫 채팅 시작하기
         </Text>
       </Pressable>
@@ -188,7 +188,7 @@ function EmptyRooms({ onCreate }: { onCreate: () => void }) {
 }
 
 export default function HomeScreen() {
-  const colors = useColors();
+  const { colors, typography } = useTheme();
   const isFocused = useIsFocused();
   const router = useRouter();
   const userId = useUserId();
@@ -298,7 +298,9 @@ export default function HomeScreen() {
   } else if (rooms.isError && !rooms.data) {
     content = (
       <View style={styles.centered}>
-        <Text style={[styles.errorMessage, { color: colors.text }]}>
+        <Text
+          style={[styles.errorMessage, typography.body, { color: colors.text }]}
+        >
           채팅을 불러오지 못했어요.
         </Text>
         <Pressable
@@ -308,7 +310,7 @@ export default function HomeScreen() {
           onPress={retryRooms}
           style={retryStyle}
         >
-          <Text style={[styles.actionLabel, { color: colors.onPrimary }]}>
+          <Text style={[typography.action, { color: colors.onPrimary }]}>
             다시 시도
           </Text>
         </Pressable>

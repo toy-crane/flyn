@@ -13,9 +13,13 @@ import { gfmTableFromMarkdown } from "mdast-util-gfm-table";
 import { gfmTable } from "micromark-extension-gfm-table";
 import { Fragment, type ReactNode, useCallback, useMemo } from "react";
 import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useColors } from "../../theme/app-theme";
+import { type AppTheme, useTheme } from "../../theme/app-theme";
 import type { ThemeColors } from "../../theme/colors";
-import { spacing, typography } from "../../theme/tokens";
+import { spacing } from "../../theme/tokens";
+
+interface MarkdownRenderTheme extends ThemeColors {
+  typography: AppTheme["typography"];
+}
 
 const styles = StyleSheet.create({
   blockquote: {
@@ -79,10 +83,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxs,
   },
   listMarker: {
-    ...typography.message,
     width: spacing.xl,
   },
-  paragraph: typography.message,
   paragraphSpacing: {
     marginBottom: spacing.sm,
   },
@@ -128,7 +130,7 @@ function MarkdownLink({
   label: string;
   url: string;
 }) {
-  const colors = useColors();
+  const { colors } = useTheme();
   const openLink = useCallback(() => {
     Linking.openURL(url).catch(() => undefined);
   }, [url]);
@@ -173,7 +175,7 @@ function textContent(nodes: PhrasingContent[]): string {
 function renderInline(
   node: PhrasingContent,
   key: string,
-  colors: ThemeColors
+  colors: MarkdownRenderTheme
 ): ReactNode {
   switch (node.type) {
     case "text":
@@ -237,7 +239,7 @@ function renderInline(
 function renderInlineChildren(
   children: PhrasingContent[],
   prefix: string,
-  colors: ThemeColors
+  colors: MarkdownRenderTheme
 ) {
   return children.map((child, index) =>
     renderInline(child, `${prefix}-inline-${index}`, colors)
@@ -258,7 +260,7 @@ function renderTableCell(
   cell: TableCell,
   key: string,
   header: boolean,
-  colors: ThemeColors
+  colors: MarkdownRenderTheme
 ) {
   return (
     <View key={key} style={[styles.tableCell, { borderColor: colors.border }]}>
@@ -280,7 +282,7 @@ function renderTableRow(
   row: TableRow,
   key: string,
   header: boolean,
-  colors: ThemeColors
+  colors: MarkdownRenderTheme
 ) {
   return (
     <View key={key} style={[styles.tableRow, { borderColor: colors.border }]}>
@@ -291,7 +293,7 @@ function renderTableRow(
   );
 }
 
-function renderTable(table: Table, key: string, colors: ThemeColors) {
+function renderTable(table: Table, key: string, colors: MarkdownRenderTheme) {
   return (
     <ScrollView
       horizontal
@@ -312,11 +314,19 @@ function renderListItem(
   item: ListItem,
   key: string,
   marker: string,
-  colors: ThemeColors
+  colors: MarkdownRenderTheme
 ) {
   return (
     <View key={key} style={styles.listItem}>
-      <Text style={[styles.listMarker, { color: colors.text }]}>{marker}</Text>
+      <Text
+        style={[
+          styles.listMarker,
+          colors.typography.message,
+          { color: colors.text },
+        ]}
+      >
+        {marker}
+      </Text>
       <View style={styles.listContent}>
         {item.children.map((child, index) =>
           renderBlock(child, `${key}-block-${index}`, colors, true)
@@ -326,7 +336,7 @@ function renderListItem(
   );
 }
 
-function renderList(list: List, key: string, colors: ThemeColors) {
+function renderList(list: List, key: string, colors: MarkdownRenderTheme) {
   const start = list.start ?? 1;
   return (
     <View key={key} style={styles.list}>
@@ -345,7 +355,7 @@ function renderList(list: List, key: string, colors: ThemeColors) {
 function renderBlock(
   node: RootContent,
   key: string,
-  colors: ThemeColors,
+  colors: MarkdownRenderTheme,
   compact = false
 ): ReactNode {
   switch (node.type) {
@@ -355,7 +365,7 @@ function renderBlock(
           key={key}
           selectable
           style={[
-            styles.paragraph,
+            colors.typography.message,
             !compact && styles.paragraphSpacing,
             { color: colors.text },
           ]}
@@ -430,12 +440,16 @@ function parseMarkdown(markdown: string): Root | null {
 }
 
 export function ChatMarkdown({ children }: { children: string }) {
-  const colors = useColors();
+  const { colors, typography } = useTheme();
   const document = useMemo(() => parseMarkdown(children), [children]);
+  const renderTheme = useMemo<MarkdownRenderTheme>(
+    () => ({ ...colors, typography }),
+    [colors, typography]
+  );
 
   if (!document) {
     return (
-      <Text selectable style={[styles.paragraph, { color: colors.text }]}>
+      <Text selectable style={[typography.message, { color: colors.text }]}>
         {children}
       </Text>
     );
@@ -444,7 +458,7 @@ export function ChatMarkdown({ children }: { children: string }) {
   return (
     <View>
       {document.children.map((node, index) =>
-        renderBlock(node, `markdown-${index}`, colors)
+        renderBlock(node, `markdown-${index}`, renderTheme)
       )}
     </View>
   );

@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { ActivityIndicator, StyleSheet, Text } from "react-native";
-import { useColors } from "../../theme/app-theme";
-import { spacing, typography } from "../../theme/tokens";
+import { useTheme } from "../../theme/app-theme";
+import { spacing } from "../../theme/tokens";
 import type { StreamingStore } from "./streaming-store";
 
 const styles = StyleSheet.create({
@@ -9,11 +9,10 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginLeft: spacing.xs,
   },
-  text: typography.message,
 });
 
 export function StreamingMessage({ store }: { store: StreamingStore }) {
-  const colors = useColors();
+  const { colors, typography } = useTheme();
   const text = useSyncExternalStore(store.subscribe, store.get);
 
   if (!text) {
@@ -29,7 +28,7 @@ export function StreamingMessage({ store }: { store: StreamingStore }) {
   }
 
   return (
-    <Text selectable style={[styles.text, { color: colors.text }]}>
+    <Text selectable style={[typography.message, { color: colors.text }]}>
       {text}
     </Text>
   );

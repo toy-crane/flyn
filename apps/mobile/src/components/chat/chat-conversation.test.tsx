@@ -409,6 +409,15 @@ describe("채팅방 상세 대화", () => {
     expect(setInput).toHaveBeenCalledWith("새 질문");
   });
 
+  it("composer 입력은 Dynamic Type 글자를 자르는 고정 line height를 쓰지 않는다", async () => {
+    const { StyleSheet } = require("react-native");
+    await render(<ChatConversation chat={controller()} />);
+
+    const input = screen.getByPlaceholderText("메시지 보내기");
+
+    expect(StyleSheet.flatten(input.props.style).lineHeight).toBeUndefined();
+  });
+
   it("보낼 내용이 있으면 전송 action을 실행한다", async () => {
     const onSend = jest.fn();
     await render(

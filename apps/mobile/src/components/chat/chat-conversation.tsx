@@ -39,8 +39,8 @@ import Reanimated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useColors } from "../../theme/app-theme";
-import { spacing, typography } from "../../theme/tokens";
+import { useTheme } from "../../theme/app-theme";
+import { spacing } from "../../theme/tokens";
 import { ChatMarkdown } from "./chat-markdown";
 import { StreamingMessage } from "./streaming-message";
 import type { StreamingStore } from "./streaming-store";
@@ -96,8 +96,6 @@ const styles = StyleSheet.create({
   },
   composerInput: {
     flex: 1,
-    fontSize: typography.message.fontSize,
-    lineHeight: 22,
     maxHeight: 112,
     minHeight: 52,
     paddingHorizontal: spacing.md,
@@ -111,7 +109,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   emptyDescription: {
-    ...typography.supporting,
     textAlign: "center",
   },
   emptyState: {
@@ -125,7 +122,6 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
   },
-  emptyTitle: typography.title,
   errorBanner: {
     alignItems: "center",
     borderRadius: 16,
@@ -136,7 +132,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   errorText: {
-    ...typography.caption,
     flex: 1,
   },
   keyboardArea: {
@@ -157,7 +152,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xs,
   },
   retryText: {
-    ...typography.caption,
     fontWeight: "600",
   },
   screen: {
@@ -195,10 +189,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
-  userMessageText: {
-    fontSize: typography.message.fontSize,
-    lineHeight: 22,
-  },
   viewport: {
     flex: 1,
     minHeight: 0,
@@ -233,7 +223,7 @@ function isGeneratingStatus(status: ChatStatus) {
 }
 
 function UserMessage({ content }: { content: string }) {
-  const colors = useColors();
+  const { colors, typography } = useTheme();
 
   return (
     <View
@@ -242,7 +232,13 @@ function UserMessage({ content }: { content: string }) {
     >
       <Text
         selectable
-        style={[styles.userMessageText, { color: colors.onUserBubble }]}
+        style={[
+          typography.message,
+          {
+            color: colors.onUserBubble,
+            lineHeight: 22,
+          },
+        ]}
       >
         {content}
       </Text>
@@ -261,7 +257,7 @@ function AssistantMessage({
   streaming: boolean;
   streamingStore: StreamingStore;
 }) {
-  const colors = useColors();
+  const { colors } = useTheme();
 
   return (
     <View style={styles.assistantMessage} testID="assistant-message">
@@ -310,7 +306,7 @@ function Composer({
   bottomInset: number;
   chat: ChatController;
 }) {
-  const colors = useColors();
+  const { colors, typography } = useTheme();
   const canSend = chat.input.trim().length > 0;
   const isGenerating = isGeneratingStatus(chat.status);
   const actionLabel = isGenerating ? "응답 중단" : "메시지 보내기";
@@ -332,7 +328,13 @@ function Composer({
           style={[styles.errorBanner, { backgroundColor: colors.surface }]}
           testID="chat-error-banner"
         >
-          <Text style={[styles.errorText, { color: colors.text }]}>
+          <Text
+            style={[
+              styles.errorText,
+              typography.caption,
+              { color: colors.text },
+            ]}
+          >
             응답을 만들지 못했어요.
           </Text>
           <Pressable
@@ -341,7 +343,13 @@ function Composer({
             onPress={chat.onRetry}
             style={styles.retryAction}
           >
-            <Text style={[styles.retryText, { color: colors.text }]}>
+            <Text
+              style={[
+                styles.retryText,
+                typography.caption,
+                { color: colors.text },
+              ]}
+            >
               다시 시도
             </Text>
           </Pressable>
@@ -360,7 +368,14 @@ function Composer({
             placeholder="메시지 보내기"
             placeholderTextColor={colors.placeholder}
             selectionColor={colors.text}
-            style={[styles.composerInput, { color: colors.text }]}
+            style={[
+              styles.composerInput,
+              typography.message,
+              {
+                color: colors.text,
+                lineHeight: undefined,
+              },
+            ]}
             textAlignVertical="top"
             value={chat.input}
           />
@@ -401,7 +416,7 @@ function Composer({
 
 export function ChatConversation({ chat }: { chat: ChatController }) {
   const insets = useSafeAreaInsets();
-  const colors = useColors();
+  const { colors, typography } = useTheme();
   const listRef = useRef<LegendListRef>(null);
   const composerRef = useRef<View>(null);
   const [listViewportHeight, setListViewportHeight] = useState(0);
@@ -531,12 +546,13 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
               style={[styles.emptyState, emptyStateStyle]}
               testID="chat-empty-state"
             >
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>
+              <Text style={[typography.title, { color: colors.text }]}>
                 무엇이든 물어보세요
               </Text>
               <Text
                 style={[
                   styles.emptyDescription,
+                  typography.supporting,
                   { color: colors.secondaryText },
                 ]}
               >

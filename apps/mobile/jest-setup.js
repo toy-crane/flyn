@@ -13,6 +13,7 @@ require("react-native-reanimated").setUpTests();
 // 화면 테스트는 앱 root 밖에서 각 surface를 직접 렌더한다. 실제 provider 계약은
 // theme 전용 테스트가 검증하고, 나머지 테스트에는 역할이 구분되는 결정적 값을 준다.
 jest.mock("./src/theme/app-theme", () => {
+  const { typography } = require("./src/theme/tokens");
   const colors = {
     accent: "#111111",
     background: "#111111",
@@ -39,7 +40,7 @@ jest.mock("./src/theme/app-theme", () => {
     colorScheme: "light",
     colors,
     spacing: {},
-    typography: {},
+    typography,
   };
 
   return {
