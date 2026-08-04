@@ -95,6 +95,7 @@ it("설명 문단 없이 아이디 필드·규칙·시작 행동만 보여준다
     screen.getByText("4~20자, 영문 소문자·숫자·_·.만 사용할 수 있어요.")
   ).toBeTruthy();
   expect(screen.getByRole("button", { name: "시작하기" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "로그아웃" })).toBeNull();
   expect(screen.queryByText(OTHER_PEOPLE)).toBeNull();
   expect(screen.queryByText(LOGIN)).toBeNull();
 });

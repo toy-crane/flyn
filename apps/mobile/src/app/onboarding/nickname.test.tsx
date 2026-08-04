@@ -11,7 +11,6 @@ jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
 jest.mock("../../lib/auth/name-candidate", () => ({
   fetchNameCandidate: jest.fn(),
 }));
-jest.mock("../../lib/auth/sign-out", () => ({ signOut: jest.fn() }));
 jest.mock("../../lib/use-profile", () => ({
   useSaveDisplayName: jest.fn(),
 }));
@@ -19,12 +18,10 @@ jest.mock("../../lib/user-id", () => ({ useUserId: () => "user-1" }));
 
 import { useRouter } from "expo-router";
 import { fetchNameCandidate } from "../../lib/auth/name-candidate";
-import { signOut } from "../../lib/auth/sign-out";
 import { useSaveDisplayName } from "../../lib/use-profile";
 import NicknameOnboardingScreen from "./nickname";
 
 const mockFetchCandidate = fetchNameCandidate as jest.Mock;
-const mockSignOut = signOut as jest.Mock;
 const mockUseRouter = useRouter as jest.Mock;
 const mockUseSave = useSaveDisplayName as jest.Mock;
 const mutate = jest.fn();
@@ -52,6 +49,7 @@ it("설명 문단 없이 닉네임 필드·규칙·다음 행동만 보여준다
     screen.getByText("1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.")
   ).toBeTruthy();
   expect(screen.getByRole("button", { name: "아이디 정하기" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "로그아웃" })).toBeNull();
   expect(screen.queryByText(OTHER_PEOPLE)).toBeNull();
   expect(screen.queryByText(LATER_IN_SETTINGS)).toBeNull();
 });
@@ -94,20 +92,4 @@ it("저장 실패는 입력 규칙 자리가 아니라 alert로 알린다", asyn
     "저장하지 못했어요",
     "잠시 후 다시 시도해 주세요."
   );
-});
-
-it("로그아웃 확인은 닉네임과 아이디를 함께 나중에 정할 수 있다고 말한다", async () => {
-  const alert = jest.spyOn(Alert, "alert");
-  await renderScreen();
-  await fireEvent.press(screen.getByText("로그아웃"));
-
-  expect(alert).toHaveBeenCalledWith(
-    "로그아웃할까요?",
-    "닉네임과 아이디는 다음에 정할 수 있어요.",
-    expect.any(Array)
-  );
-
-  const actions = alert.mock.calls[0]?.[2];
-  actions?.find((action) => action.text === "로그아웃")?.onPress?.();
-  expect(mockSignOut).toHaveBeenCalled();
 });

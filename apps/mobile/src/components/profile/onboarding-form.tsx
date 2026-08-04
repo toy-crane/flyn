@@ -1,17 +1,8 @@
-import { Button, Column, Host, ScrollView } from "@expo/ui";
-import { foregroundStyle, frame } from "@expo/ui/swift-ui/modifiers";
+import { Column, Host, ScrollView } from "@expo/ui";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 import type { ReactNode } from "react";
-import { Alert } from "react-native";
-import { signOut } from "../../lib/auth/sign-out";
 import { useAppTheme } from "../../theme/app-theme";
 import { FormSubmitButton } from "../forms/form-submit-button";
-
-function confirmSignOut() {
-  Alert.alert("로그아웃할까요?", "닉네임과 아이디는 다음에 정할 수 있어요.", [
-    { style: "cancel", text: "취소" },
-    { onPress: () => signOut(), style: "default", text: "로그아웃" },
-  ]);
-}
 
 export function OnboardingForm({
   children,
@@ -61,13 +52,6 @@ export function OnboardingForm({
         >
           {children}
         </ScrollView>
-
-        <Button
-          label="로그아웃"
-          modifiers={[foregroundStyle(app.primary)]}
-          onPress={confirmSignOut}
-          variant="text"
-        />
 
         <FormSubmitButton
           disabled={disabled}

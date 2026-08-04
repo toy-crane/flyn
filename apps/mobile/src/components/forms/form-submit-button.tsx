@@ -25,7 +25,7 @@ export function FormSubmitButton({
       <Row
         alignment="center"
         modifiers={[
-          frame({ maxWidth: Number.POSITIVE_INFINITY, minHeight: 50 }),
+          frame({ maxWidth: Number.POSITIVE_INFINITY, minHeight: 36 }),
         ]}
         spacing={8}
         testID="form-submit-content"
