@@ -15,8 +15,10 @@
   유니크 저장 충돌도 일반 실패 대신 중복 상태로 되돌린다.
 - 저장 중에는 `checkmark` 자리를 같은 크기의 `ProgressView`로 바꾸고 입력과 추천을
   잠근다. 일반 저장 실패는 입력을 보존한 채 시트 위 alert로 알린다.
-- `Form`에는 `presentationBackground(app.background)`와
-  `scrollContentBackground('hidden')`을 적용하며 `ScrollView`로 감싸지 않는다.
+- sheet와 `Form`의 기본 grouped background와 material은 iOS에 맡긴다.
+  `presentationBackground(app.background)`와
+  `scrollContentBackground('hidden')`으로 앱 배경에 맞추지 않으며,
+  `ScrollView`로 감싸지 않는다.
 - 설정 헤더는 닉네임과 `@아이디`를 보여주고 이메일은 읽기 전용 행에 둔다.
 
 ## Why
@@ -36,6 +38,8 @@ trailing 상태, 추천 section처럼 검증 화면에 필요한 자리를 이�
   닫는다.
 - 값 하나에 검증과 서버 왕복이 모두 없다면 설정 목록에서 직접 편집할 수 있다.
 - 시트 header의 가운데 정렬과 safe area는 앱이 책임진다.
+- 제품 상태인 가용성·중복은 앱의 success·danger 의미를 쓰되, `Form`의 기본
+  background·label·separator는 native 기본값을 유지한다.
 - 아이디 변경 빈도와 이전 아이디 경고는 검색 표면이 생길 때까지 두지 않는다.
 - 구현 세부와 확인하지 않은 경로는
   [온보딩 스펙](../specs/onboarding-nickname-and-id/spec.md)이 소유한다.
@@ -54,13 +58,15 @@ presentation과 컴포넌트 공유 경계를 다시 정한다.
 - 검증과 서버 왕복이 필요한 값을 설정 목록에서 바로 편집하기.
 - 온보딩의 filled field와 하단 CTA 컴포넌트를 설정 Form에 재사용하기.
 - `FieldGroup`을 `ScrollView`로 감싸기.
+- native grouped background를 앱 background와 픽셀 단위로 맞추기.
 
 ## Evidence worth preserving
 
 - iOS 26.5 시뮬레이터에서 full `BottomSheet` 안의 `FieldGroup`, footer, 원형 glass
   button, disabled 상태와 키보드 안정성을 확인했다.
 - `presentationBackground`는 시트 배경을 앱 색으로 바꿨지만 `Host`의 배경색만으로는
-  바뀌지 않았다.
+  바뀌지 않았다. 이 modifier가 동작한다는 사실과 별개로, 앱 색에 맞추는 사용은
+  native surface를 iOS에 맡기는 현재 경계에서 채택하지 않는다.
 - `FieldGroup`을 `ScrollView`로 감싸면 중첩 scroll container의 높이가 0이 되어
   접근성 트리에서 form 행이 사라졌다.
 - 중복 상태에서 trailing 경고, danger footer, 추천 section이 한 Form 안에서 함께
