@@ -27,7 +27,7 @@ Expo UI는 실제 SwiftUI primitive를 제공하지만 `Host`는 RN과 SwiftUI �
 
 | surface | renderer | 이유 |
 | --- | --- | --- |
-| Settings, 표시 이름·온보딩, 이메일 입력, launch progress | universal `@expo/ui` | form이나 짧은 상태가 한 `Host` 안에서 완결된다 |
+| Settings·프로필 편집 시트·온보딩, 이메일 입력, launch progress | universal `@expo/ui` | form이나 짧은 상태가 한 `Host` 안에서 완결된다 |
 | root sign-in | RN | Apple·Google vendor button이 화면의 핵심이다 |
 | 이메일 OTP code | RN | 겹친 단일 입력과 6개 slot의 hit testing이 필요하다 |
 | 채팅 목록·상세 | RN | 가상 목록, streaming, keyboard controller와 composer가 하나의 scroll 경계를 공유한다 |

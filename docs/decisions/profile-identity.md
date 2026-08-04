@@ -39,8 +39,7 @@
 - 아이디로 사람을 찾는 화면, 공개 프로필 열람, 아바타와 bio는 이 계약이 선점하지
   않는다.
 - 계정 삭제는 [계정 삭제 계약](no-apple-token-revocation.md)이 소유한다.
-- 구현 범위와 남은 검증은
-  [온보딩 스펙](../specs/onboarding-nickname-and-id/spec.md)이 소유한다.
+- 구현과 무관하게 유지할 제품·데이터 계약은 이 결정 문서가 소유한다.
 
 ## Reconsider when
 
