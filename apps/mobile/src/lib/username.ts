@@ -67,6 +67,14 @@ function withSuffix(raw: string, suffix: string): string {
   return `${cleanUsernameStem(raw, USERNAME_STEM_MAX)}${suffix}`;
 }
 
+export function createUsernameFallback(
+  email: string,
+  nextSuffix: UsernameSuffix = randomUsernameSuffix
+): string {
+  const base = deriveUsernameBase(email);
+  return isUsernameValid(base) ? base : withSuffix(base, nextSuffix());
+}
+
 const MAX_CANDIDATE_ATTEMPTS = 100;
 
 async function findSuffixedCandidate(
