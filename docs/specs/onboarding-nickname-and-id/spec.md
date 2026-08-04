@@ -247,9 +247,9 @@ filled 컨트롤이라 배경 없는 Form 행에 들어갈 물건이 아니고, 
 순수 함수 한 벌에서 나와야 두 경로가 갈리지 않는다.
 
 **두 시트끼리는 컴포넌트를 공유한다.** 골격이 같으므로 시트 껍데기(전체 높이
-`BottomSheet`, `presentationBackground`, 헤더 줄의 유리 버튼 두 개와 제목)를 한
-컴포넌트로 두고, 그 안의 `Form`만 각자 소유한다. 온보딩과 설정이 화면을 공유하던
-자리를, 이제 설정의 두 시트가 껍데기를 공유하는 것으로 대신한다.
+`BottomSheet`, 헤더 줄의 유리 버튼 두 개와 제목)를 한 컴포넌트로 두고, 그 안의
+`Form`만 각자 소유한다. 온보딩과 설정이 화면을 공유하던 자리를, 이제 설정의 두
+시트가 껍데기를 공유하는 것으로 대신한다.
 
 나머지 동작은 지금 것을 따른다. `initialValue`는 마운트 때 한 번만 읽고, 저장이
 성공하면 갱신된 행을 그대로 캐시에 넣은 뒤 시트를 닫는다. 실패해도 입력값을
@@ -263,16 +263,18 @@ filled 컨트롤이라 배경 없는 Form 행에 들어갈 물건이 아니고, 
 **presented 동안 마운트되고 dismiss 뒤 언마운트된다**고 적고 있다. 고치던 값은
 언마운트와 함께 사라지고, 다시 열리면 저장된 값으로 새로 마운트된다.
 
-### 배경색은 `presentationBackground`로만 닿는다
+### 배경은 iOS grouped surface를 유지한다
 
-**`Host`의 `backgroundColor`는 시트에 닿지 않는다.** 시트는 별도 프레젠테이션이라
-호스트 뷰 바깥에 서고, 그 안의 `Form`이 자기 기본 배경을 칠한다. 1차 스파이크에서
-시트 배경을 재보니 `#F2F2F7`이었다 — iOS의 `.systemGroupedBackground`이지 앱
-배경이 아니다.
+**`Host`의 `backgroundColor`가 시트에 닿지 않는 것이 맞는 경계다.** 시트는 별도
+프레젠테이션이고, 그 안의 `Form`은 iOS가 소유하는 grouped background와 material을
+그린다. 1차 스파이크에서 잰 `#F2F2F7`은 앱 배경 `#F7F7F5`와의 오차가 아니라
+`.systemGroupedBackground`가 만든 화면 위계다.
 
-`presentationBackground(app.background)`를 주면 `#F7F7F5`로 맞는다. 실측으로
-확인했다. `FieldGroup`에는 `scrollContentBackground('hidden')`을 함께 줘야
-`Form`이 그 위를 다시 덮지 않는다.
+`presentationBackground(app.background)`와
+`scrollContentBackground('hidden')`은 적용하지 않는다. 둘은 기술적으로 색을
+맞추지만 native surface를 앱이 다시 칠하게 된다. 제품 상태인 success·danger와
+앱 tint만 앱 테마에서 넘기고, sheet·`Form`·label·separator의 기본 표현은 iOS에
+맡긴다.
 
 ### `ScrollView`로 감싸지 않는다
 
@@ -340,7 +342,8 @@ filled 컨트롤이라 배경 없는 Form 행에 들어갈 물건이 아니고, 
 2차 스파이크에서 추가로 확인한 것.
 
 - **`presentationBackground(app.background)`가 시트 배경을 앱 색으로 바꾼다.**
-  주기 전에는 `#F2F2F7`, 준 뒤에는 `#F7F7F5`였다.
+  주기 전에는 `#F2F2F7`, 준 뒤에는 `#F7F7F5`였다. 동작은 확인했지만 native
+  grouped surface를 유지하기로 했으므로 제품 구현에는 넣지 않는다.
 - **`ScrollView`로 감싸면 `FieldGroup`이 사라진다.** 접근성 트리에 `scroll-area`
   하나만 남고 행이 전부 없어졌다.
 - **중복 상태의 세 요소가 한 폼 안에 선다** — 입력 행 trailing의 경고 아이콘,
@@ -348,7 +351,8 @@ filled 컨트롤이라 배경 없는 Form 행에 들어갈 물건이 아니고, 
 - **추천을 탭하면 네 가지가 한 번에 바뀐다** — 입력값, trailing 아이콘(경고 →
   초록 체크), footer(오류 → 규칙), 저장 버튼(`disabled` 해제).
 
-**아직 확인하지 않은 것**: 시트 위의 alert, 다크 모드, iOS 26 미만.
+**아직 확인하지 않은 것**: 시트 위의 alert, 다크 모드, iOS 26 미만, explicit
+success·danger의 실제 배경 대비.
 
 API 근거는
 [universal](https://docs.expo.dev/versions/latest/sdk/ui/universal/bottomsheet/)·[swift-ui](https://docs.expo.dev/versions/latest/sdk/ui/swift-ui/bottomsheet/)
@@ -399,6 +403,11 @@ API 근거는
   정할 때 이 화면이 기준 중 하나다.
 - **시트 위에 alert를 띄우는 것을 아직 못 봤다.** 모달 위의 모달이라 시트가
   가려지거나 닫히지 않는지 확인해야 한다.
+- **light success `#248A3D`는 작은 텍스트 기준 대비가 부족하다.** 흰 surface에서
+  4.40:1, 앱 background에서 4.10:1이라 4.5:1에 못 미친다. success를 텍스트로
+  쓰기 전에 light 값을 `#1F7A35` 이상 대비가 나는 값으로 조정하고 실제 `Form`
+  background에서 다시 잰다. 아이콘만 쓰더라도 Increase Contrast에서 상태가 색
+  하나로만 전달되지 않는지 확인한다.
 - **아이디 칸에 한글 키보드가 뜨면 안 된다.** 스파이크에서 닉네임 칸에 한글
   키보드가 올라왔는데, 닉네임에는 맞지만 아이디에는 틀리다. `keyboardType`,
   `textInputAutocapitalization`, `autocorrectionDisabled` modifier로 눌러야
