@@ -18,7 +18,7 @@
     --app-user-bubble-foreground: #171719;
     --app-overlay: rgba(0, 0, 0, 0.18);
     --app-danger: #d70015;
-    --app-success: #248a3d;
+    --app-success: #1f7a35;
   }
 
   @variant dark {
