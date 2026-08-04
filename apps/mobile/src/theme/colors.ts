@@ -1,5 +1,6 @@
 import { Color } from "expo-router";
 import { type ColorValue, Platform } from "react-native";
+import { PRODUCT_STATE_COLORS } from "./product-colors";
 
 export type AppColorScheme = "dark" | "light";
 
@@ -25,19 +26,6 @@ export interface ThemeColors {
   text: ColorValue;
   userBubble: ColorValue;
 }
-
-export const PRODUCT_STATE_COLORS = {
-  dark: {
-    danger: "#FF453A",
-    overlay: "rgba(0, 0, 0, 0.62)",
-    success: "#32D74B",
-  },
-  light: {
-    danger: "#D70015",
-    overlay: "rgba(0, 0, 0, 0.18)",
-    success: "#1F7A35",
-  },
-} as const;
 
 function resolveIosColors(colorScheme: AppColorScheme): ThemeColors {
   const state = PRODUCT_STATE_COLORS[colorScheme];

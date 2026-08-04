@@ -10,24 +10,6 @@ jest.mock("react-native-worklets", () =>
 );
 require("react-native-reanimated").setUpTests();
 
-// Metro가 global.css에서 만드는 변수 저장소는 Jest에 없다. 화면 테스트가
-// native bridge를 통과할 수 있도록 실제 색과 무관한 결정적 값만 제공한다.
-jest.mock("uniwind", () => ({
-  useCSSVariable: (name) => {
-    const value = (variable) => {
-      if (variable === "--app-overlay") {
-        return "rgba(0, 0, 0, 0.5)";
-      }
-
-      // foreground 배선은 배경/tint와 다른 값이어야 테스트가 두 역할을
-      // 실수로 맞바꿔도 잡아낸다.
-      return variable === "--app-primary-foreground" ? "#fefefe" : "#111111";
-    };
-
-    return Array.isArray(name) ? name.map(value) : value(name);
-  },
-}));
-
 // 화면 테스트는 앱 root 밖에서 각 surface를 직접 렌더한다. 실제 provider 계약은
 // theme 전용 테스트가 검증하고, 나머지 테스트에는 역할이 구분되는 결정적 값을 준다.
 jest.mock("./src/theme/app-theme", () => {

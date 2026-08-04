@@ -35,37 +35,9 @@ describe("Metro config", () => {
     );
   });
 
-  test("기존 Expo Router와 Uniwind 설정을 유지한다", () => {
+  test("Expo Router의 route-test 차단 설정을 유지한다", () => {
     expect(config.resolver.blockList.map(String)).toContain(
       String(ROUTE_TEST_PATTERN)
     );
-    expect(config.transformer.uniwind).toEqual({
-      cssEntryFile: "./src/global.css",
-      dtsFile: "./src/uniwind-types.d.ts",
-    });
-  });
-
-  test("Uniwind가 표시한 uncached CSS 결과는 저장하지 않는다", async () => {
-    const writes: unknown[] = [];
-
-    class RecordingFileStore {
-      set(_key: Buffer, value: unknown) {
-        writes.push(value);
-        return Promise.resolve();
-      }
-    }
-
-    const [store] = config.cacheStores({ FileStore: RecordingFileStore });
-    const uncachedCss = {
-      output: [{ data: { css: { skipCache: true } } }],
-    };
-    const cacheableModule = {
-      output: [{ data: { code: "module.exports = true" } }],
-    };
-
-    await store.set(Buffer.from("uncached"), uncachedCss);
-    await store.set(Buffer.from("cacheable"), cacheableModule);
-
-    expect(writes).toEqual([cacheableModule]);
   });
 });
