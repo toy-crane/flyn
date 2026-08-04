@@ -158,21 +158,26 @@ Supabase를 쓰는 화면·엔드포인트에는 위 **Supabase 로컬 스택**�
   격리된다. 전환 전에 남은 공용 캐시 때문에 Worklets mismatch가 한 번 보이면 해당
   워크트리에서 `bunx expo start --clear`로 정리한 뒤 다시 `bun run dev`를 쓴다.
 - 채팅 상세에서 뒤로 온 뒤 pull-to-refresh spinner가 남으면
-  [iOS 뒤로가기 후 채팅 목록 스피너 고착](docs/ios-refresh-control-navigation.md)의
-  상태 경계와 회귀 절차부터 확인한다.
+  [AI 채팅 화면 계약](docs/decisions/ai-chat-experience.md)의 수동 새로고침 경계부터
+  확인한다.
 - **Uniwind는 무료(MIT) 범위로 충분하다.** Pro는 C++ 엔진·Reanimated 4 className
   애니메이션 같은 성능 계층이다. 판단 근거는
-  [uniwind-for-styling](docs/decisions/uniwind-for-styling.md).
+  [uniwind-css-theme](docs/decisions/uniwind-css-theme.md).
 
 ## 에이전트 스킬
 
-스킬은 저장소에 벤더링하지 않고 Claude Code 플러그인으로 설치합니다. 설치 목록은
-[.claude/settings.json](.claude/settings.json)에 프로젝트 스코프로 선언되어 있어,
-저장소를 클론하면 Claude Code가 마켓플레이스에서 자동으로 받아옵니다.
+공유 프로젝트 스킬은 [`.agents/skills`](.agents/skills)가 원본이고
+`.claude/skills`는 같은 디렉터리를 가리키는 상대 심볼릭 링크다. 공개 Toycrane
+스킬은 `sync-toycrane-skills`로 upstream Git 이력을 확인한 뒤 이 위치에
+동기화한다. 프로젝트 전용 스킬은 이름이 upstream에서 관리됐다는 근거가 없으면
+보존한다.
+
+벤더 스킬과 MCP 플러그인은
+[`.claude/settings.json`](.claude/settings.json)에 프로젝트 스코프로 선언한다.
+저장소를 클론한 Claude Code는 이 목록을 각 마켓플레이스에서 설치한다.
 
 | 플러그인 | 마켓플레이스 | 내용 |
 | --- | --- | --- |
-| `toycrane-skills` | `toy-crane/skills` | 아이디어 구체화, 계획 수립, 프로토타입, 도메인 모델링, TDD |
 | `expo` | `expo/skills` | Expo·EAS 공식 스킬 |
 | `supabase` | `supabase/agent-skills` | Supabase 전반 |
 | `postgres-best-practices` | `supabase/agent-skills` | Postgres 성능·설계 |
@@ -180,10 +185,3 @@ Supabase를 쓰는 화면·엔드포인트에는 위 **Supabase 로컬 스택**�
 | `RevenueCat` | `RevenueCat/ai-toolkit` | RevenueCat MCP·구독 연동 공식 스킬 |
 | `posthog` | `anthropics/claude-plugins-official` | PostHog 공식 플러그인(MCP·스킬) |
 | `context7` | `upstash/context7` | 라이브러리 최신 문서·코드 예제 조회(MCP) |
-
-수동으로 설치하려면:
-
-```
-/plugin marketplace add toy-crane/skills
-/plugin install toycrane-skills@toycrane
-```

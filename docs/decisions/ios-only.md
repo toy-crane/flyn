@@ -1,16 +1,22 @@
-# 타깃은 iOS 전용 — Android·web 폴백을 만들지 않는다
+# 지원 플랫폼
 
-React Native 위에 있지만 **Android는 목표가 아니고 web도 목표가 아니다.**
-이것이 명시적 결정인 이유는, RN 코드베이스를 보는 사람이 기본적으로 크로스
-플랫폼을 가정하기 때문이다. 그 가정 위에서 `Platform.OS` 분기나 `.android.tsx`
-폴백을 "빠뜨린 것"으로 보고 채워 넣기 쉽다.
+## Decisions
 
-- 벤더 문서가 플랫폼 분기(`.ios.tsx` 분리, `Platform.OS` 검사)를 요구해도 이
-  저장소에서는 해당 없다. 분기 대신 iOS 경로 하나만 만든다.
-- iOS 전용이므로 iOS 네이티브 표현으로 곧장 내려가는 선택이 가능하다 —
-  [expo-ui-by-default](expo-ui-by-default.md)와 [uniwind-css-theme](uniwind-css-theme.md)가
-  이 결정 위에 서 있다.
+제품 타깃은 iOS 하나다. Android와 web 폴백, `Platform.OS` 분기,
+`.android.tsx`·`.ios.tsx` 쌍을 미리 만들지 않고 iOS 경로만 구현한다. 벤더 예제가
+플랫폼 분리를 전제로 해도 이 저장소에서는 필요한 iOS 부분만 적용한다.
 
-전환 비용은 낮다. 코드가 RN이라 Android가 필요해지면 별도 결정으로 다룬다.
-웹이 필요해지면 모노레포에 Next.js 앱을 추가하는 별도 결정으로 다룬다. 지금
-폴백을 미리 만들어 두는 것은 그 낮은 비용을 앞당겨 지불하는 것일 뿐이다.
+## Why
+
+React Native 저장소라는 이유만으로 사용하지 않는 플랫폼의 구현과 검증 비용을
+지불하지 않는다. iOS 네이티브 관용을 직접 쓰는 편이 현재 제품의 범위와 일치한다.
+
+## Reconsider when
+
+Android 제품 요구가 생기면 같은 RN 코드에서 별도 플랫폼 결정을 내린다. web 제품
+요구가 생기면 모노레포의 별도 web 앱을 포함해 경계를 다시 설계한다.
+
+## Still-rejected alternatives
+
+- 미래 가능성만으로 빈 fallback이나 플랫폼 분기 추가하기.
+- iOS 전용 API를 쓰지 않기 위해 공통분모 UI로 낮추기.

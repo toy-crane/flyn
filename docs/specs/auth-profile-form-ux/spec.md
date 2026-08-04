@@ -18,14 +18,13 @@ native interaction은 유지하면서 다음 일관성을 만든다.
 - 처리 중 UI가 추가되며 기존 control 위치가 움직이지 않는다.
 - 일반 text input은 같은 부드러운 filled appearance를 쓴다.
 
-이 스펙은 다음 확정 결정 위에 선다.
+이 스펙은 다음 결정 계약 위에 선다.
 
 - [Apple HIG와 앱 소유 테마](../../decisions/apple-hig-with-app-theme.md)
-- [Self-contained native UI boundaries](../../decisions/self-contained-native-ui-boundaries.md)
+- [React Native와 Expo UI 경계](../../decisions/self-contained-native-ui-boundaries.md)
 - [Uniwind CSS 앱 테마](../../decisions/uniwind-css-theme.md)
-- [네이티브 소셜 로그인](../../decisions/native-social-login.md)
+- [로그인 수단과 검증](../../decisions/sign-in-methods.md)
 - [소셜 로그인 버튼 표현](../../decisions/social-sign-in-presentation.md)
-- [이메일 OTP code](../../decisions/email-otp-code.md)
 
 ## UX 원칙
 

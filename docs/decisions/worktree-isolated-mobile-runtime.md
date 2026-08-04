@@ -1,55 +1,44 @@
-# 병렬 모바일 개발은 런타임을 워크트리별로 격리하고 Supabase는 공유한다
+# 워크트리별 모바일 개발 런타임
 
-여러 워크트리에서 Expo 앱을 동시에 실행할 수 있지만 기본 개발 명령은 모두
-API `3000`, Metro `8081`, 현재 부팅된 시뮬레이터와 macOS 임시 폴더의 Metro
-캐시를 함께 쓴다. 특히 서로 다른 `react-native-worklets` 버전으로 변환한 결과가
-공용 캐시에 남으면 다른 워크트리에서 Babel plugin과 JavaScript bundle 버전이
-어긋난다. 실제로 의존성을 다시 설치한 뒤 네이티브 앱을 재빌드하지 않고
-`expo start --clear`만 했을 때 오류가 사라진 것이 이 경로와 일치한다.
+## Decisions
 
-따라서 병렬 개발 런타임은 다음처럼 나눈다.
+- 각 활성 워크트리에 안정적인 dev slot을 배정한다. slot은 API와 Metro 포트 한
+  쌍을 정하며, `bun run dev`가 배정과 실행을 관리한다.
+- Metro transformer와 file-map 캐시는 워크트리의 `apps/mobile/.expo/` 아래에 둔다.
+- bundle identifier는 `com.odd.flyn` 하나를 유지하고, 동시에 실행하는 워크트리는
+  서로 다른 iOS Simulator를 사용한다.
+- 로컬 Supabase는 저장소당 하나만 실행해 모든 워크트리가 공유한다. 워크트리 개발
+  명령은 상태를 확인하지만 시작·중지·reset하지 않는다.
+- 프로덕션 채팅 모델은 API 코드에 고정하고 dev slot별 환경 변수로 바꾸지 않는다.
 
-- 각 워크트리는 안정적으로 배정된 dev slot을 가진다. slot은 API와 Metro 포트
-  한 쌍을 정하고 다른 활성 워크트리와 겹치지 않는다.
-- Metro transformer cache와 file-map cache는 각 워크트리의
-  `apps/mobile/.expo/` 아래에 둔다. 평소에는 `--clear` 없이 실행한다.
-- 같은 bundle identifier `com.odd.flyn`을 유지하되, 동시에 실행하는 워크트리는
-  서로 다른 iOS Simulator를 쓴다.
-- Supabase 로컬 스택은 저장소당 하나만 별도로 실행하고 모든 워크트리가
-  공유한다. 워크트리 개발 명령은 상태만 확인하며 시작·중지·reset하지 않는다.
+## Why
 
-## 받아들인 비용
+기본 API·Metro 포트, 시뮬레이터와 macOS 임시 캐시를 공유하면 병렬 실행이 서로를
+덮는다. 특히 다른 Worklets/Babel 조합으로 변환한 캐시가 재사용되면 JavaScript와
+네이티브 버전이 어긋난다. 포트·캐시·시뮬레이터만 격리하면 소셜 로그인 설정과 DB
+토폴로지를 복제하지 않고도 병렬 개발할 수 있다.
 
-- 병렬 워크트리는 DB, Auth, Mailpit과 세션·데이터를 공유한다. migration,
-  `db:reset`, RLS, Auth 설정, seed 변경은 한 번에 한 워크트리에서만 수행한다.
-- 두 시뮬레이터에 같은 앱을 따로 설치해야 한다. 네이티브 의존성이 달라진
-  워크트리는 자기 시뮬레이터에서 development build를 다시 만든다.
-- slot과 simulator 배정, 프로세스 종료 정리가 필요하므로 단순한 `turbo run dev`
-  위에 작은 로컬 오케스트레이터를 둔다.
+## Boundaries
 
-## 기각한 대안
+- DB, Auth, Mailpit, 세션과 데이터는 워크트리 사이에 공유된다. migration,
+  `db:reset`, RLS, Auth 설정과 seed 변경은 한 번에 한 워크트리만 수행한다.
+- 네이티브 의존성이 달라진 워크트리는 자기 시뮬레이터에서 development build를
+  다시 만든다.
+- `expo start --clear`는 전환이나 복구 때 한 번 쓰는 수단이지 일상 명령이 아니다.
 
-- **모든 실행에 `expo start --clear`를 붙이지 않는다.** 증상 복구에는 유효하지만
-  매번 전체 변환 비용을 내고 캐시 소유권 문제를 숨긴다. 기존 공용 캐시를 버리는
-  전환 시점의 1회 복구 수단으로만 쓴다.
-- **활성 브랜치의 Worklets 버전을 강제로 같게 만들지 않는다.** 의존성 정렬은
-  별도 변경이어야 하고, 다시 버전이 갈리는 순간 문제가 돌아온다. 캐시 격리가
-  근본 경계다.
-- **워크트리별 bundle identifier를 만들지 않는다.** 한 시뮬레이터에 여러 앱을
-  설치할 수 있지만 Apple·Google 네이티브 로그인 설정과 development build
-  변형 비용이 커진다. 별도 시뮬레이터가 더 작은 변경이다.
-- **워크트리별 Supabase를 만들지 않는다.** 포트·project ID·환경 변수·DB 볼륨을
-  모두 생성하는 복잡도에 비해 현재 병렬 개발에 필요한 이득이 작다.
+## Reconsider when
 
-## 근거
+병렬 DB 변경이 일상화되거나 provider 설정을 포함한 여러 app variant를 유지할
+제품 요구가 생기면 Supabase와 bundle identifier 격리를 다시 결정한다.
 
-- [Worklets troubleshooting](https://docs.swmansion.com/react-native-worklets/docs/guides/troubleshooting/)은
-  다른 Babel plugin으로 미리 변환된 코드가 남은 version mismatch에서 bundler
-  cache 초기화를 우선 복구책으로 안내한다.
-- [Metro configuration](https://metrobundler.dev/docs/configuration/#cachestores)은
-  transformer `cacheStores`와 file map cache 위치를 설정하는 공개 경계를 제공한다.
-- [Expo CLI](https://docs.expo.dev/more/expo-cli/)는 dev server `--port`와
-  development build 실행을 지원한다.
-- [Expo app variants](https://docs.expo.dev/build-reference/variants/)에서 한 기기에
-  여러 variant를 설치하려면 고유 bundle identifier가 필요하다. flyn은 네이티브
-  소셜 로그인 설정까지 분기되는 비용을 피하고 simulator를 분리한다.
+## Still-rejected alternatives
+
+- 모든 실행에서 Metro 캐시를 지우기.
+- 활성 브랜치의 Worklets 버전을 강제로 맞춰 캐시 충돌을 피하기.
+- 워크트리마다 bundle identifier 또는 Supabase 스택 만들기.
+
+## Evidence worth preserving
+
+의존성 재설치 뒤 네이티브 앱을 다시 만들지 않은 상태에서 `expo start --clear`로
+오류가 사라진 재현은 공용 변환 캐시가 원인이었음을 뒷받침한다. 현재 allocator,
+supervisor와 simulator adapter 테스트가 slot·정리·충돌 경계를 고정한다.

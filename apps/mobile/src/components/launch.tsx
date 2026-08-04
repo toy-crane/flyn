@@ -19,7 +19,7 @@ const PROGRESS_REVEAL_DELAY_MS = 200;
 /**
  * 세션을 복원하는 동안, 그리고 복원조차 못 할 때 나오는 두 화면.
  *
- * SwiftUI로 만든다(docs/decisions/expo-ui-by-default.md의 판정표). RN이 하나도
+ * SwiftUI로 만든다(docs/decisions/self-contained-native-ui-boundaries.md의 판정표). RN이 하나도
  * 필요 없고 자명하게 self-contained라 `Host` 경계가 한 번만 열린다.
  *
  * background와 interactive tint는 CSS 앱 테마에서 받고, 안쪽 SwiftUI 텍스트는
