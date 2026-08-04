@@ -1,6 +1,6 @@
 import {
   isDisplayNameSubmittable,
-  normalizeDisplayName,
+  prepareDisplayNameCandidate,
 } from "../display-name";
 import { supabase } from "../supabase";
 
@@ -37,10 +37,9 @@ function usable(raw: unknown): string {
     return "";
   }
 
-  const candidate = normalizeDisplayName(raw);
+  const candidate = prepareDisplayNameCandidate(raw);
 
-  // 보이지 않는 문자뿐인 후보는 없는 것으로 친다. 길이는 거르지 않는다 —
-  // 상한은 입력칸이 정하고, 여기서 또 재면 규칙이 두 곳으로 갈린다.
+  // 보이지 않거나 이름에 쓸 수 없는 문자뿐인 후보는 없는 것으로 친다.
   return isDisplayNameSubmittable(candidate) ? candidate : "";
 }
 

@@ -1,20 +1,36 @@
-jest.mock("./supabase", () => ({ supabase: { from: jest.fn() } }));
+jest.mock("@tanstack/react-query", () => ({
+  useMutation: jest.fn((options) => options),
+  useQuery: jest.fn(),
+  useQueryClient: jest.fn(),
+}));
+jest.mock("./supabase", () => ({
+  supabase: { from: jest.fn(), rpc: jest.fn() },
+}));
 
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "./supabase";
 import {
+  checkUsernameAvailability,
   describeProfileGate,
   fetchProfile,
+  isUsernameAlreadyTaken,
   type Profile,
   saveDisplayName,
+  saveUsername,
+  useSaveDisplayName,
+  useSaveUsername,
 } from "./use-profile";
 
 const mockFrom = supabase.from as unknown as jest.Mock;
+const mockRpc = supabase.rpc as unknown as jest.Mock;
+const mockUseQueryClient = useQueryClient as jest.Mock;
 const USER = "user-1";
 
 const PROFILE: Profile = {
   display_name: "훈",
   email: "me@example.test",
   id: USER,
+  username: "toycrane",
 };
 
 /**
@@ -54,7 +70,7 @@ function query(overrides: Partial<Parameters<typeof describeProfileGate>[0]>) {
 }
 
 beforeEach(() => {
-  jest.resetAllMocks();
+  jest.clearAllMocks();
 });
 
 describe("describeProfileGate", () => {
@@ -62,13 +78,27 @@ describe("describeProfileGate", () => {
     expect(query({ isPending: true }).kind).toBe("loading");
   });
 
-  it("display_name이 null이면 온보딩이다", () => {
-    expect(query({ data: { ...PROFILE, display_name: null } }).kind).toBe(
-      "onboarding"
-    );
+  it("닉네임이 없으면 첫 단계부터 온보딩한다", () => {
+    expect(query({ data: { ...PROFILE, display_name: null } })).toEqual({
+      kind: "onboarding",
+      step: "nickname",
+    });
   });
 
-  it("display_name이 있으면 앱으로 간다", () => {
+  it("닉네임은 있고 아이디가 없으면 아이디 단계부터 온보딩한다", () => {
+    expect(query({ data: { ...PROFILE, username: null } })).toEqual({
+      kind: "onboarding",
+      step: "username",
+    });
+  });
+
+  it("닉네임이 없으면 아이디가 있어도 닉네임 단계가 먼저다", () => {
+    expect(
+      query({ data: { ...PROFILE, display_name: null, username: "already" } })
+    ).toEqual({ kind: "onboarding", step: "nickname" });
+  });
+
+  it("두 값이 모두 있으면 앱으로 간다", () => {
     expect(query({ data: PROFILE }).kind).toBe("ready");
   });
 
@@ -96,8 +126,8 @@ describe("describeProfileGate", () => {
 
   it("캐시된 프로필이 온보딩 전이면 리페치가 실패해도 온보딩을 유지한다", () => {
     expect(
-      query({ data: { ...PROFILE, display_name: null }, isError: true }).kind
-    ).toBe("onboarding");
+      query({ data: { ...PROFILE, username: null }, isError: true })
+    ).toEqual({ kind: "onboarding", step: "username" });
   });
 
   // 행이 없다는 사실이 캐시돼 있으면 그것도 확정된 답이다.
@@ -146,6 +176,14 @@ describe("fetchProfile", () => {
 
     expect(calls.eq).toEqual(["id", USER]);
   });
+
+  it("닉네임과 아이디를 함께 가져온다", async () => {
+    const calls = stubQuery(Promise.resolve({ data: PROFILE }));
+
+    await fetchProfile(USER);
+
+    expect(calls.select).toEqual(["id, email, display_name, username"]);
+  });
 });
 
 describe("saveDisplayName", () => {
@@ -161,5 +199,59 @@ describe("saveDisplayName", () => {
     stubQuery(Promise.resolve({ data: PROFILE }));
 
     await expect(saveDisplayName(USER, "훈")).resolves.toEqual(PROFILE);
+  });
+});
+
+describe("saveUsername", () => {
+  it("소문자로 정규화해 보낸다", async () => {
+    const calls = stubQuery(Promise.resolve({ data: PROFILE }));
+
+    await saveUsername(USER, "Toy.Crane");
+
+    expect(calls.update).toEqual([{ username: "toy.crane" }]);
+  });
+
+  it("갱신된 전체 프로필을 돌려준다", async () => {
+    stubQuery(Promise.resolve({ data: PROFILE }));
+
+    await expect(saveUsername(USER, "toycrane")).resolves.toEqual(PROFILE);
+  });
+
+  it("유니크 위반은 화면이 구분할 수 있는 코드를 보존한다", async () => {
+    const conflict = { code: "23505" };
+    stubQuery(Promise.reject(conflict));
+
+    await expect(saveUsername(USER, "taken")).rejects.toBe(conflict);
+    expect(isUsernameAlreadyTaken(conflict)).toBe(true);
+    expect(isUsernameAlreadyTaken(new Error("network"))).toBe(false);
+  });
+});
+
+describe("checkUsernameAvailability", () => {
+  it("불리언 RPC 결과를 돌려준다", async () => {
+    const throwOnError = jest.fn().mockResolvedValue({ data: true });
+    mockRpc.mockReturnValue({ throwOnError });
+
+    await expect(checkUsernameAvailability("toycrane")).resolves.toBe(true);
+    expect(mockRpc).toHaveBeenCalledWith("is_username_available", {
+      candidate_username: "toycrane",
+    });
+  });
+});
+
+describe("프로필 저장 캐시", () => {
+  it.each([
+    ["닉네임", useSaveDisplayName],
+    ["아이디", useSaveUsername],
+  ])("%s 저장은 갱신된 전체 프로필을 직접 넣는다", (_label, useSave) => {
+    const setQueryData = jest.fn();
+    mockUseQueryClient.mockReturnValue({ setQueryData });
+
+    const mutation = useSave(USER) as unknown as {
+      onSuccess: (profile: Profile) => void;
+    };
+    mutation.onSuccess(PROFILE);
+
+    expect(setQueryData).toHaveBeenCalledWith(["profile", USER], PROFILE);
   });
 });
