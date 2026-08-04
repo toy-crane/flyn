@@ -12,6 +12,22 @@
   Expo Router의 iOS semantic color, Android는 Material 3 dynamic color와 정적
   fallback을 쓴다. Android의 시스템 light/dark 변경에는 `useColorScheme()`을
   구독해 다시 계산한다. screen과 일반 컴포넌트는 플랫폼을 직접 판별하지 않는다.
+- 초기 색 역할은 system, action, 제품 역할로 나눈다.
+  - system: background, secondaryBackground, surface, text, secondaryText,
+    separator, border, link
+  - action: primary, onPrimary, accent, onAccent
+  - 제품·상태: disabled, disabledText, placeholder, overlay, danger, success,
+    userBubble, onUserBubble
+  `onDanger`처럼 색 위에 실제로 foreground를 놓을 때만 필요한 pair는 사용 증거가
+  생길 때 추가한다.
+- root의 app theme provider가 `useColorScheme()`을 한 번 구독하고 `useColors()`와
+  `useTheme()`에 resolved `ColorValue`를 제공한다. React Navigation
+  `ThemeProvider`는 별도 bridge로 두어 header, tab bar와 기본 screen background를
+  같은 색 원본에 연결한다. 두 provider의 역할을 합치거나 하나를 생략하지 않는다.
+- React Navigation 색은 `primary → accent`, `background → background`,
+  `card → secondaryBackground`, `text → text`, `border → separator`,
+  `notification → accent`로 연결한다. navigation component의 높이, material,
+  gesture와 interaction은 플랫폼 기본값을 유지한다.
 - 화면 배치와 컴포넌트 구조를 이루는 flex, alignment, position, 특정 크기는
   화면·컴포넌트 가까이의 `StyleSheet`가 소유한다. 임의의 `rowBetween` 같은 전역
   layout utility로 승격하지 않는다.
@@ -20,7 +36,9 @@
 - Navigation과 RN surface는 같은 의미 색 resolver를 쓴다. `@expo/ui` native
   surface는 RN 간격·타이포·layout token을 받지 않고 플랫폼 기본값을 유지한다.
 - 제품 accent가 확정되지 않은 `Host`에는 `seedColor`를 전달하지 않는다. 실제
-  제품 accent가 생기면 같은 의미 역할을 iOS tint와 Android accent에 연결한다.
+  제품 accent가 생기기 전 action 역할은 iOS system action/link와 Android Material
+  dynamic primary에 연결하고 임의의 brand hex를 넣지 않는다. 실제 제품 accent가
+  생기면 같은 의미 역할을 iOS tint와 Android accent에 연결한다.
 - 시스템 appearance가 light/dark를 고르며 앱 안에 theme selector를 만들지
   않는다.
 
@@ -43,6 +61,9 @@ TypeScript와 StyleSheet는 native 값을 잃지 않으면서 React Native core 
   쓰면 실제 배경과 4.5:1 이상 대비를 검증하고 색 외의 문구·아이콘도 함께 쓴다.
 - native `Form`·`List`·sheet·navigation의 background, material, label, separator,
   기본 간격, 글자 위계와 control 크기는 플랫폼이 소유한다.
+- Expo Router/React Navigation chrome에는 공개 `ThemeProvider`를 통해 semantic
+  color만 전달한다. header·tab bar의 metric, blur/material과 native interaction을
+  직접 다시 만들지는 않는다.
 - RN과 native의 일관성은 같은 의미와 위계로 읽히는지로 판단하며 픽셀 일치를
   요구하지 않는다.
 - spacing·typography의 정확한 이름과 값은 현재 반복 사용을 근거로 작게 시작한다.
@@ -83,3 +104,6 @@ appearance·확정된 브랜드 체계·반복 컴포넌트 라이브러리가 �
 - [Uniwind runtime CSS variables](https://docs.uniwind.dev/theming/update-css-variables)
 - [NativeWind v5 installation](https://www.nativewind.dev/v5/getting-started/installation)
 - [Shopify Restyle fundamentals](https://shopify.github.io/restyle/fundamentals/)
+- [CWB Expo Unified Theming](https://github.com/Code-with-Beto/skills/blob/main/plugins/cwb-theming/README.md)
+- [CWB theme config](https://github.com/Code-with-Beto/skills/blob/main/plugins/cwb-theming/skills/theming/assets/config.ts)
+- [CWB color and navigation resolver](https://github.com/Code-with-Beto/skills/blob/main/plugins/cwb-theming/skills/theming/assets/colors.ts)

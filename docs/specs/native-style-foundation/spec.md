@@ -5,7 +5,8 @@
 RN custom surface는 React Native core `StyleSheet`와 TypeScript 원본으로 스타일을
 표현한다. 색·간격·타이포는 앱 전체에서 같은 의미를 쓰고, 화면 layout과
 `@expo/ui` native surface는 각 소유자가 결정한다. 현재 iOS의 native 관용을
-유지하면서도 Android 추가 때 semantic layer를 다시 설계하지 않는다.
+유지하면서도 Android 추가 때 semantic layer를 다시 설계하지 않는다. Expo
+Router의 header, tab bar와 기본 screen background도 이 색 원본에서 파생한다.
 
 이 명세는 제품 화면을 새로 디자인하는 작업이 아니다. 현재 보이는 정보 구조와
 renderer 경계를 유지한 채 styling 소유권만 바꾸는 migration 계약이다.
@@ -22,6 +23,9 @@ renderer 경계를 유지한 채 styling 소유권만 바꾸는 migration 계약
   spacing, typography, size와 interaction을 유지한다.
 - iOS와 Android는 같은 semantic role을 쓰되 값은 중앙 platform resolver가
   native color로 해석한다.
+- app theme provider와 React Navigation `ThemeProvider`는 서로 다른 역할로 root에
+  둔다. 전자는 RN consumer에 theme를 제공하고 후자는 navigation chrome을
+  연결한다.
 - 앱은 시스템 light/dark를 따르며 별도 theme selector를 만들지 않는다.
 - 실제 제품 accent가 생기기 전에는 `Host.seedColor`를 생략한다.
 
@@ -29,7 +33,7 @@ renderer 경계를 유지한 채 styling 소유권만 바꾸는 migration 계약
 
 | 범위 | 소유자 | 예시 |
 | --- | --- | --- |
-| semantic color | 스타일 파운데이션 | background, surface, foreground, muted, danger, success |
+| semantic color | 스타일 파운데이션 | system, action, 제품·상태 색 역할 |
 | spacing rhythm | 스타일 파운데이션 | 반복되는 screen inset, stack gap, control 사이 간격 |
 | RN typography role | 스타일 파운데이션 | title, body, label, caption에 해당하는 현재 반복 역할 |
 | screen layout | 각 screen·component | flex 방향, 정렬, position, scroll·keyboard composition |
@@ -56,6 +60,73 @@ renderer 경계를 유지한 채 styling 소유권만 바꾸는 migration 계약
   가질 수 있다. 이 값은 light/dark 실제 배경에서 접근성 대비를 검증한다.
 - Navigation과 RN custom surface는 같은 semantic color 결과를 소비한다.
 - native label·separator·material은 의미를 OS가 이미 알면 색 prop을 생략한다.
+
+### 초기 색 역할
+
+| 분류 | 역할 | 의미 |
+| --- | --- | --- |
+| system | `background` | 기본 screen canvas |
+| system | `secondaryBackground` | navigation card나 보조 canvas |
+| system | `surface` | RN이 소유하는 card·input·composer surface |
+| system | `text` | 기본 foreground text와 icon |
+| system | `secondaryText` | 보조 설명과 낮은 위계 text |
+| system | `separator` | system list·navigation 경계와 hairline |
+| system | `border` | RN input·app surface의 명시적 outline |
+| system | `link` | OS가 제공하는 link·inline action |
+| action | `primary`, `onPrimary` | 주요 action과 그 위 foreground |
+| action | `accent`, `onAccent` | tint·selection·active navigation과 그 위 foreground |
+| state | `disabled`, `disabledText` | 비활성 surface와 foreground |
+| state | `placeholder` | input placeholder |
+| state | `overlay` | modal·scrim overlay |
+| state | `danger` | 오류·파괴적 상태 |
+| state | `success` | 완료·가용 상태 |
+| product | `userBubble`, `onUserBubble` | 사용자 chat bubble과 그 위 foreground |
+
+`onDanger`, `onSuccess`처럼 filled 상태 surface 위에 foreground가 실제로 놓일 때
+필요한 pair는 사용처가 생길 때 추가한다. raw palette 이름, renderer 이름이나
+사용되지 않는 warning·elevation·gradient 역할은 초기 목록에 넣지 않는다.
+
+제품 accent가 없더라도 action 역할 자체는 유지한다. 이때 iOS는 system action/link,
+Android는 Material dynamic primary·onPrimary를 사용하고 임의의 brand hex를 넣지
+않는다. 제품 accent가 확정되면 `primary`·`accent` 계열만 product 값으로 pin할 수
+있다. `Host.seedColor`는 system action color를 쓴다는 이유만으로 전달하지 않는다.
+
+### theme 접근 경계
+
+- root의 app theme provider가 `useColorScheme()`을 한 번 구독하고 system·action·
+  제품 색을 resolve한다.
+- RN component는 `useColors()`로 색만, `useTheme()`으로 colors·spacing·typography를
+  읽는다. screen이 platform resolver를 직접 부르지 않는다.
+- React 밖에서 색이 필요한 adapter는 color scheme을 명시적으로 받아 non-hook
+  resolver를 호출한다. module load 때 resolved color를 상수로 고정하지 않는다.
+- foundation의 공개 색 타입은 끝까지 `ColorValue`다. 외부 library가 `string`으로
+  좁힌 type을 요구하면 adapter에서만 type을 맞추며 실제 값을 hex나 `String()`으로
+  정규화하지 않는다.
+
+### Navigation과 tab bar
+
+app theme provider와 Expo Router/React Navigation `ThemeProvider`는 역할이 다르다.
+app provider는 RN consumer를, Navigation provider는 header·tab bar·기본 screen
+background를 소유한다. root에 둘 다 연결한다.
+
+| React Navigation theme | 스타일 파운데이션 |
+| --- | --- |
+| `primary` | `accent` |
+| `background` | `background` |
+| `card` | `secondaryBackground` |
+| `text` | `text` |
+| `border` | `separator` |
+| `notification` | `accent` |
+
+`getNavigationTheme()`은 현재 light/dark의 React Navigation base theme 위에 이
+색만 덮는다. Stack header와 React Navigation tab bar는 이 값을 기본으로 쓴다.
+특정 navigation component가 public theme를 소비하지 않는 경우에만 같은 semantic
+role을 해당 공식 color prop에 연결한다. active·inactive 상태를 새 raw 색으로
+만들지 않는다.
+
+navigation chrome의 높이, blur/material, icon placement, back gesture, press·focus
+interaction은 플랫폼과 navigation renderer가 계속 소유한다. 색을 공유한다는 것이
+header나 tab bar를 RN custom component로 다시 만든다는 뜻은 아니다.
 
 ## 간격 계약
 
@@ -99,10 +170,13 @@ renderer 경계를 유지한 채 styling 소유권만 바꾸는 migration 계약
 
 ## migration 범위
 
-- TypeScript 색·간격·타이포 원본과 platform color resolver를 둔다.
+- TypeScript 색·간격·타이포 원본과 platform color resolver, app theme provider,
+  `useColors()`·`useTheme()`를 둔다.
 - RN의 색 `className`뿐 아니라 layout·spacing·typography `className`도 component
   local `StyleSheet` 또는 공유 foundation role로 옮긴다.
-- Navigation, system UI와 color prop의 CSS variable bridge를 semantic color
+- root의 React Navigation `ThemeProvider`는 app provider 아래에서
+  `getNavigationTheme()`를 받아 header·tab bar·screen background를 연결한다.
+  Navigation, system UI와 color prop의 CSS variable bridge를 semantic color
   resolver로 바꾼다.
 - `Host.seedColor`는 명시적 제품 accent가 없으면 제거한다.
 - 모든 callsite가 이동한 뒤 Uniwind, Tailwind config, `global.css`, 생성 type과
@@ -121,8 +195,12 @@ renderer 경계를 유지한 채 styling 소유권만 바꾸는 migration 계약
 - 공유 token은 색·간격·타이포 범주에만 있고 layout·전역 size·radius scale이 없다.
 - iOS·Android resolver가 모든 semantic color role을 빠짐없이 반환하고 TypeScript
   수준에서 `ColorValue`를 유지한다.
-- iOS light/dark에서 Navigation, RN background/text, 제품 상태와 native surface
-  경계가 자연스럽다.
+- app theme provider가 system appearance 변경에 다시 render되고 모든 consumer가
+  같은 resolved colors를 받는다.
+- Navigation theme의 primary·background·card·text·border·notification이 mapping
+  계약과 일치한다.
+- iOS light/dark에서 Stack header, RN background/text, 제품 상태와 native surface
+  경계가 자연스럽다. tab bar가 생기면 별도 raw 색 없이 같은 theme를 소비한다.
 - 제품 상태의 explicit foreground/background pair는 기존 contrast regression을
   통과한다.
 - Dynamic Type에서 RN 주요 텍스트가 잘리거나 겹치지 않고 native text는 platform
@@ -131,10 +209,12 @@ renderer 경계를 유지한 채 styling 소유권만 바꾸는 migration 계약
 
 ## 검증 증거
 
-- 자동 검증: semantic role completeness, Android fallback, 제품 색 contrast,
-  forbidden Uniwind artifacts, 기존 unit·integration suite.
-- iOS runtime: 주요 RN·Universal 경계의 light/dark, keyboard, Dynamic Type,
-  Increase Contrast와 native tint 기본값.
+- 자동 검증: semantic role completeness, `useColorScheme()` re-render, navigation
+  mapping, Android fallback, 제품 색 contrast, forbidden Uniwind artifacts, 기존
+  unit·integration suite.
+- iOS runtime: 주요 RN·Universal 경계와 Stack header의 light/dark, keyboard,
+  Dynamic Type, Increase Contrast와 native tint 기본값. tab bar 도입 시 active·
+  inactive·badge와 background도 같은 matrix에 추가한다.
 - Android runtime: 제품 지원 시작 전까지 deferred다. TypeScript resolver 검증을
   실제 native UI acceptance로 과장하지 않는다.
 
@@ -181,3 +261,7 @@ renderer 경계를 유지한 채 styling 소유권만 바꾸는 migration 계약
 - [React Native StyleSheet](https://reactnative.dev/docs/stylesheet)
 - [React Native PlatformColor](https://reactnative.dev/docs/platformcolor)
 - [React Native DynamicColorIOS](https://reactnative.dev/docs/dynamiccolorios)
+- [CWB Expo Unified Theming](https://github.com/Code-with-Beto/skills/blob/main/plugins/cwb-theming/README.md)
+- [CWB theming skill](https://github.com/Code-with-Beto/skills/blob/main/plugins/cwb-theming/skills/theming/SKILL.md)
+- [CWB theme config](https://github.com/Code-with-Beto/skills/blob/main/plugins/cwb-theming/skills/theming/assets/config.ts)
+- [CWB color and navigation resolver](https://github.com/Code-with-Beto/skills/blob/main/plugins/cwb-theming/skills/theming/assets/colors.ts)

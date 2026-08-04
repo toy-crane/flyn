@@ -13,6 +13,9 @@
   secondary label, separator, 간격, 글자 위계, control 크기와 상호작용을
   소유한다. 시스템이 의미를 이미 아는 곳은 앱 스타일과 픽셀 단위로 맞추려고
   덮어쓰지 않는다.
+- Expo Router/React Navigation의 공개 theme API에는 앱의 background, text,
+  separator와 action accent를 연결한다. 이 색 연결은 header·tab bar의 높이,
+  material, gesture와 native interaction을 앱이 소유한다는 뜻이 아니다.
 - RN과 native의 일관성은 같은 의미가 같은 역할로 읽히는 것으로 판단한다. 서로
   다른 화면 종류의 배경색이 완전히 같아야 한다는 뜻이 아니다.
 - 시스템 폰트, native stack header와 back gesture를 유지한다.
@@ -35,6 +38,9 @@ UI kit가 아니다. 다만 React Native 화면과 OS가 알 수 없는 제품 �
 - 앱이 직접 소유하는 foreground/background 조합은 접근성 대비를 검증한다.
 - native subtree에서 앱 색을 명시하는 경우는 실제 앱 accent, 제품 상태 또는 앱이
   직접 소유하는 canvas처럼 플랫폼이 의미를 추론할 수 없는 자리로 한정한다.
+- navigation chrome은 semantic color를 공유하는 renderer bridge다. header·tab
+  bar의 공개 theme color prop은 쓸 수 있지만 platform material과 metric을 RN
+  surface처럼 다시 만들지 않는다.
 - native surface의 색을 RN 화면과 맞추는 것만이 목적이면
   `presentationBackground`, `scrollContentBackground('hidden')` 같은 override를
   쓰지 않는다.
