@@ -6,6 +6,8 @@ import {
   Alert,
   type ColorValue,
   Pressable,
+  type PressableStateCallbackType,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -18,6 +20,60 @@ import {
 } from "../lib/use-chat-rooms";
 import { useUserId } from "../lib/user-id";
 import { useColors } from "../theme/app-theme";
+import { spacing, typography } from "../theme/tokens";
+
+const styles = StyleSheet.create({
+  action: {
+    alignSelf: "center",
+    borderRadius: 22,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
+  },
+  actionLabel: typography.action,
+  centered: {
+    alignItems: "center",
+    flex: 1,
+    gap: spacing.sm,
+    justifyContent: "center",
+    paddingHorizontal: spacing.xxl,
+  },
+  emptyAction: {
+    marginTop: spacing.xs,
+  },
+  emptyDescription: {
+    ...typography.supporting,
+    textAlign: "center",
+  },
+  emptyTitle: typography.title,
+  errorMessage: {
+    ...typography.body,
+    textAlign: "center",
+  },
+  loading: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+  },
+  roomContent: {
+    flex: 1,
+    gap: spacing.xxs,
+    paddingRight: spacing.md,
+  },
+  roomRow: {
+    alignItems: "center",
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    minHeight: 72,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  roomTitle: typography.body,
+  screen: {
+    flex: 1,
+  },
+  timestamp: typography.caption,
+});
 
 const TIME_FORMAT = new Intl.DateTimeFormat("ko-KR", {
   hour: "numeric",
@@ -54,31 +110,40 @@ function ChatRoomRow({
   onOpen: (roomId: string) => void;
   room: ChatRoom;
 }) {
+  const colors = useColors();
   const handleDelete = useCallback(() => {
     onDelete(room);
   }, [onDelete, room]);
   const handleOpen = useCallback(() => {
     onOpen(room.id);
   }, [onOpen, room.id]);
+  const rowStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      styles.roomRow,
+      { borderColor: colors.separator },
+      pressed && { backgroundColor: colors.surface },
+    ],
+    [colors.separator, colors.surface]
+  );
 
   return (
     <Pressable
       accessibilityHint="길게 누르면 삭제할 수 있어요"
       accessibilityLabel={room.title}
       accessibilityRole="button"
-      className="min-h-18 flex-row items-center border-border border-b px-5 py-3 active:bg-surface"
       onLongPress={handleDelete}
       onPress={handleOpen}
+      style={rowStyle}
     >
-      <View className="flex-1 gap-1 pr-4">
+      <View style={styles.roomContent}>
         <Text
-          className="text-[17px] text-foreground leading-6"
           numberOfLines={2}
+          style={[styles.roomTitle, { color: colors.text }]}
         >
           {room.title}
         </Text>
         <Text
-          className="text-[13px] text-muted-foreground"
+          style={[styles.timestamp, { color: colors.secondaryText }]}
           testID="chat-room-updated-at"
         >
           {formatUpdatedAt(room.updated_at)}
@@ -90,21 +155,31 @@ function ChatRoomRow({
 }
 
 function EmptyRooms({ onCreate }: { onCreate: () => void }) {
+  const colors = useColors();
+  const actionStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      styles.action,
+      styles.emptyAction,
+      { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 },
+    ],
+    [colors.primary]
+  );
+
   return (
-    <View className="flex-1 items-center justify-center gap-3 px-8">
-      <Text className="font-semibold text-[22px] text-foreground">
+    <View style={styles.centered}>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>
         아직 채팅이 없어요
       </Text>
-      <Text className="text-center text-[15px] text-muted-foreground leading-6">
+      <Text style={[styles.emptyDescription, { color: colors.secondaryText }]}>
         궁금한 것을 보내면 대화가 여기에 저장돼요.
       </Text>
       <Pressable
         accessibilityLabel="첫 채팅 시작하기"
         accessibilityRole="button"
-        className="mt-2 min-h-11 justify-center rounded-full bg-primary px-5 active:opacity-70"
         onPress={onCreate}
+        style={actionStyle}
       >
-        <Text className="font-semibold text-primary-foreground">
+        <Text style={[styles.actionLabel, { color: colors.onPrimary }]}>
           첫 채팅 시작하기
         </Text>
       </Pressable>
@@ -202,28 +277,38 @@ export default function HomeScreen() {
       setManualRefreshing(false);
     }
   }, [rooms.refetch]);
+  const retryStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      styles.action,
+      {
+        backgroundColor: colors.primary,
+        opacity: pressed || rooms.isFetching ? 0.7 : 1,
+      },
+    ],
+    [colors.primary, rooms.isFetching]
+  );
 
   let content: ReactNode;
   if (rooms.isPending && !rooms.data) {
     content = (
-      <View className="flex-1 items-center justify-center">
+      <View style={styles.loading}>
         <ActivityIndicator accessibilityLabel="채팅 불러오는 중" />
       </View>
     );
   } else if (rooms.isError && !rooms.data) {
     content = (
-      <View className="flex-1 items-center justify-center gap-3 px-8">
-        <Text className="text-center text-[17px] text-foreground">
+      <View style={styles.centered}>
+        <Text style={[styles.errorMessage, { color: colors.text }]}>
           채팅을 불러오지 못했어요.
         </Text>
         <Pressable
           accessibilityLabel="다시 시도"
           accessibilityRole="button"
-          className="min-h-11 justify-center rounded-full bg-primary px-5"
           disabled={rooms.isFetching}
           onPress={retryRooms}
+          style={retryStyle}
         >
-          <Text className="font-semibold text-primary-foreground">
+          <Text style={[styles.actionLabel, { color: colors.onPrimary }]}>
             다시 시도
           </Text>
         </Pressable>
@@ -262,7 +347,9 @@ export default function HomeScreen() {
         />
       </Stack.Toolbar>
 
-      <View className="flex-1 bg-background">{content}</View>
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        {content}
+      </View>
     </>
   );
 }

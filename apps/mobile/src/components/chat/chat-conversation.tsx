@@ -20,6 +20,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
+  StyleSheet,
   Text,
   TextInput,
   View,
@@ -39,6 +40,7 @@ import Reanimated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "../../theme/app-theme";
+import { spacing, typography } from "../../theme/tokens";
 import { ChatMarkdown } from "./chat-markdown";
 import { StreamingMessage } from "./streaming-message";
 import type { StreamingStore } from "./streaming-store";
@@ -75,6 +77,134 @@ const CHAT_RECOVERY_LAYOUT = LinearTransition.duration(160).reduceMotion(
   ReduceMotion.System
 );
 
+const styles = StyleSheet.create({
+  action: {
+    alignItems: "center",
+    borderRadius: 22,
+    justifyContent: "center",
+    margin: spacing.xxs,
+    minHeight: 44,
+    minWidth: 44,
+  },
+  assistantMessage: {
+    marginBottom: spacing.md,
+    width: "100%",
+  },
+  composer: {
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.xs,
+  },
+  composerInput: {
+    flex: 1,
+    fontSize: typography.message.fontSize,
+    lineHeight: 22,
+    maxHeight: 112,
+    minHeight: 52,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 14,
+  },
+  composerSurface: {
+    alignItems: "flex-end",
+    borderRadius: 24,
+    flexDirection: "row",
+    minHeight: 52,
+    overflow: "hidden",
+  },
+  emptyDescription: {
+    ...typography.supporting,
+    textAlign: "center",
+  },
+  emptyState: {
+    alignItems: "center",
+    bottom: 0,
+    gap: spacing.xs,
+    justifyContent: "center",
+    left: 0,
+    paddingHorizontal: spacing.xl,
+    position: "absolute",
+    right: 0,
+    top: 0,
+  },
+  emptyTitle: typography.title,
+  errorBanner: {
+    alignItems: "center",
+    borderRadius: 16,
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  errorText: {
+    ...typography.caption,
+    flex: 1,
+  },
+  keyboardArea: {
+    flex: 1,
+  },
+  list: {
+    flex: 1,
+    minHeight: 0,
+  },
+  listContent: {
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+  },
+  retryAction: {
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: spacing.xs,
+  },
+  retryText: {
+    ...typography.caption,
+    fontWeight: "600",
+  },
+  screen: {
+    flex: 1,
+  },
+  scrollButton: {
+    alignItems: "center",
+    borderRadius: 22,
+    justifyContent: "center",
+    minHeight: 44,
+    minWidth: 44,
+  },
+  scrollButtonAnchor: {
+    left: "50%",
+    position: "absolute",
+    top: -60,
+    transform: [{ translateX: -22 }],
+    zIndex: 1,
+  },
+  stickyComposer: {
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+  },
+  stopped: {
+    fontSize: 12,
+    marginTop: spacing.xxs,
+  },
+  userMessage: {
+    alignSelf: "flex-end",
+    borderRadius: 20,
+    marginBottom: spacing.sm,
+    maxWidth: "80%",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  userMessageText: {
+    fontSize: typography.message.fontSize,
+    lineHeight: 22,
+  },
+  viewport: {
+    flex: 1,
+    minHeight: 0,
+  },
+});
+
 export interface DisplayChatMessage {
   content: string;
   id: string;
@@ -103,14 +233,16 @@ function isGeneratingStatus(status: ChatStatus) {
 }
 
 function UserMessage({ content }: { content: string }) {
+  const colors = useColors();
+
   return (
     <View
-      className="mb-3 max-w-[80%] self-end rounded-[20px] bg-user-bubble px-4 py-3"
+      style={[styles.userMessage, { backgroundColor: colors.userBubble }]}
       testID="user-message"
     >
       <Text
-        className="text-base text-user-bubble-foreground leading-[22px]"
         selectable
+        style={[styles.userMessageText, { color: colors.onUserBubble }]}
       >
         {content}
       </Text>
@@ -129,39 +261,43 @@ function AssistantMessage({
   streaming: boolean;
   streamingStore: StreamingStore;
 }) {
+  const colors = useColors();
+
   return (
-    <View className="mb-4 w-full" testID="assistant-message">
+    <View style={styles.assistantMessage} testID="assistant-message">
       {streaming ? (
         <StreamingMessage store={streamingStore} />
       ) : (
         <ChatMarkdown>{content}</ChatMarkdown>
       )}
       {status === "stopped" ? (
-        <Text className="mt-1 text-[12px] text-muted-foreground">중단됨</Text>
+        <Text style={[styles.stopped, { color: colors.secondaryText }]}>
+          중단됨
+        </Text>
       ) : null}
     </View>
   );
 }
 
 function ComposerSurface({ children }: { children: ReactNode }) {
-  const style = {
-    alignItems: "flex-end" as const,
-    borderRadius: 24,
-    flexDirection: "row" as const,
-    minHeight: 52,
-    overflow: "hidden" as const,
-  };
-
   if (isLiquidGlassAvailable()) {
     return (
-      <GlassView glassEffectStyle="regular" isInteractive style={style}>
+      <GlassView
+        glassEffectStyle="regular"
+        isInteractive
+        style={styles.composerSurface}
+      >
         {children}
       </GlassView>
     );
   }
 
   return (
-    <BlurView intensity={72} style={style} tint="systemChromeMaterial">
+    <BlurView
+      intensity={72}
+      style={styles.composerSurface}
+      tint="systemChromeMaterial"
+    >
       {children}
     </BlurView>
   );
@@ -183,30 +319,29 @@ function Composer({
 
   return (
     <View
-      style={{
-        paddingBottom: Math.max(bottomInset, 8),
-        paddingHorizontal: 12,
-        paddingTop: 8,
-      }}
+      style={[
+        styles.composer,
+        { paddingBottom: Math.max(bottomInset, spacing.xs) },
+      ]}
     >
       {chat.error ? (
         <Reanimated.View
-          className="mb-2 flex-row items-center gap-3 rounded-2xl bg-surface px-4 py-3"
           entering={CHAT_ERROR_ENTERING}
           exiting={CHAT_ERROR_EXITING}
           layout={CHAT_RECOVERY_LAYOUT}
+          style={[styles.errorBanner, { backgroundColor: colors.surface }]}
           testID="chat-error-banner"
         >
-          <Text className="flex-1 text-[13px] text-foreground">
+          <Text style={[styles.errorText, { color: colors.text }]}>
             응답을 만들지 못했어요.
           </Text>
           <Pressable
             accessibilityLabel="다시 시도"
             accessibilityRole="button"
-            className="min-h-11 justify-center px-2"
             onPress={chat.onRetry}
+            style={styles.retryAction}
           >
-            <Text className="font-semibold text-[13px] text-foreground">
+            <Text style={[styles.retryText, { color: colors.text }]}>
               다시 시도
             </Text>
           </Pressable>
@@ -217,7 +352,6 @@ function Composer({
         <ComposerSurface>
           <TextInput
             accessibilityLabel="메시지"
-            className="max-h-28 min-h-[52px] flex-1 px-4 py-[14px] text-base text-foreground leading-[22px]"
             cursorColor={colors.text}
             maxLength={4000}
             multiline
@@ -226,19 +360,22 @@ function Composer({
             placeholder="메시지 보내기"
             placeholderTextColor={colors.placeholder}
             selectionColor={colors.text}
+            style={[styles.composerInput, { color: colors.text }]}
             textAlignVertical="top"
             value={chat.input}
           />
           <Pressable
             accessibilityLabel={actionLabel}
             accessibilityRole="button"
-            className="m-1 min-h-11 min-w-11 items-center justify-center rounded-full"
             disabled={disabled}
             onPress={handleAction}
-            style={{
-              backgroundColor: disabled ? colors.disabled : colors.primary,
-              opacity: disabled ? 0.7 : 1,
-            }}
+            style={[
+              styles.action,
+              {
+                backgroundColor: disabled ? colors.disabled : colors.primary,
+                opacity: disabled ? 0.7 : 1,
+              },
+            ]}
           >
             {chat.status === "submitted" ? (
               <ActivityIndicator
@@ -346,25 +483,21 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
   );
 
   return (
-    <View className="flex-1 bg-background">
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <KeyboardGestureArea
         interpolator="ios"
         offset={COMPOSER_MIN_HEIGHT}
-        style={{ flex: 1 }}
+        style={styles.keyboardArea}
         testID="chat-keyboard-layout"
         textInputNativeID={COMPOSER_NATIVE_ID}
       >
         <View
-          className="min-h-0 flex-1"
           onLayout={handleViewportLayout}
+          style={styles.viewport}
           testID="chat-message-viewport"
         >
           <KeyboardAwareLegendList
-            contentContainerStyle={{
-              paddingBottom: 16,
-              paddingHorizontal: 16,
-              paddingTop: 16,
-            }}
+            contentContainerStyle={styles.listContent}
             contentInsetEndAdjustment={contentInsetEndAdjustment}
             data={chat.messages}
             estimatedItemSize={84}
@@ -388,21 +521,25 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
             ref={listRef}
             renderItem={renderMessage}
             scrollEventThrottle={16}
-            style={{ flex: 1, minHeight: 0 }}
+            style={styles.list}
             testID="chat-message-list"
           />
 
           {chat.messages.length === 0 ? (
             <Reanimated.View
-              className="absolute top-0 right-0 left-0 items-center justify-center gap-2 px-6"
               pointerEvents="none"
-              style={emptyStateStyle}
+              style={[styles.emptyState, emptyStateStyle]}
               testID="chat-empty-state"
             >
-              <Text className="font-semibold text-[22px] text-foreground">
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>
                 무엇이든 물어보세요
               </Text>
-              <Text className="text-center text-[15px] text-muted-foreground leading-6">
+              <Text
+                style={[
+                  styles.emptyDescription,
+                  { color: colors.secondaryText },
+                ]}
+              >
                 메시지는 이 채팅방에 안전하게 저장돼요.
               </Text>
             </Reanimated.View>
@@ -413,7 +550,7 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
           offset={{
             opened: keyboardOffset,
           }}
-          style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
+          style={styles.stickyComposer}
           testID="chat-composer-sticky"
         >
           <View
@@ -427,13 +564,7 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
                 showScrollButton ? "auto" : "no-hide-descendants"
               }
               pointerEvents={showScrollButton ? "auto" : "none"}
-              style={{
-                left: "50%",
-                position: "absolute",
-                top: -60,
-                transform: [{ translateX: -22 }],
-                zIndex: 1,
-              }}
+              style={styles.scrollButtonAnchor}
               testID="chat-scroll-to-bottom-anchor"
             >
               <Reanimated.View
@@ -443,8 +574,11 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
                 <Pressable
                   accessibilityLabel="맨 아래로"
                   accessibilityRole="button"
-                  className="min-h-11 min-w-11 items-center justify-center rounded-full bg-surface"
                   onPress={scrollToBottom}
+                  style={[
+                    styles.scrollButton,
+                    { backgroundColor: colors.surface },
+                  ]}
                 >
                   <SymbolView
                     name="chevron.down"

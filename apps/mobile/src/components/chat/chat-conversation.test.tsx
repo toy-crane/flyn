@@ -205,9 +205,9 @@ describe("채팅방 상세 대화", () => {
 
     expect(screen.getByText("사용자 질문")).toBeTruthy();
     expect(screen.getByText("**AI 답변**")).toBeTruthy();
-    expect(screen.getByTestId("user-message").props.className).toContain(
-      "self-end"
-    );
+    expect(screen.getByTestId("user-message")).toHaveStyle({
+      alignSelf: "flex-end",
+    });
     expect(screen.getByTestId("assistant-message")).toBeTruthy();
   });
 
@@ -361,7 +361,7 @@ describe("채팅방 상세 대화", () => {
     const emptyState = screen.getByTestId("chat-empty-state");
 
     expect(emptyState).toHaveStyle({ bottom: 396 });
-    expect(emptyState.props.className).toContain("top-0");
+    expect(emptyState).toHaveStyle({ top: 0 });
   });
 
   it("맨 아래에서는 목록과 composer가 같은 키보드 전환을 따른다", async () => {
