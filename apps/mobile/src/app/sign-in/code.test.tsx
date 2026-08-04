@@ -19,6 +19,7 @@ const mockAuth = supabase.auth as unknown as {
 };
 const FIELD = "인증 코드 6자리";
 const EMAIL = "me@example.test";
+const LONG_EMAIL = "a-very-long-email-address-for-ui@example.test";
 const INVALID_CODE_COPY = /코드가 올바르지 않거나 만료/;
 const NETWORK_COPY = /인터넷에 연결/;
 const RATE_LIMIT_COPY = /요청이 너무 잦아요/;
@@ -51,6 +52,15 @@ async function finishCooldown() {
 }
 
 describe("CodeScreen", () => {
+  it("긴 이메일은 코드 안내와 분리해 전체 주소를 보여준다", async () => {
+    setSearchParams({ email: LONG_EMAIL });
+
+    await render(<CodeScreen />);
+
+    expect(screen.getByText("6자리 코드를 입력해 주세요.")).toBeTruthy();
+    expect(screen.getByText(LONG_EMAIL)).toBeTruthy();
+  });
+
   it("붙여넣은 코드에서 숫자만 남기고 즉시 검증한다", async () => {
     mockAuth.verifyOtp.mockResolvedValue({ error: null });
     await render(<CodeScreen />);
