@@ -14,24 +14,48 @@ jest.mock("@expo/ui/swift-ui/modifiers", () =>
   require("../../test-support/expo-ui").modifiersMock()
 );
 
-const mockPush = jest.fn();
-jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush }),
-}));
-
 jest.mock("../../lib/account", () => ({ deleteAccount: jest.fn() }));
 jest.mock("../../lib/auth/sign-out", () => ({ signOut: jest.fn() }));
-jest.mock("../../lib/use-profile", () => ({ useProfile: jest.fn() }));
+jest.mock("../../lib/use-profile", () => ({
+  checkUsernameAvailability: jest.fn().mockResolvedValue(true),
+  isUsernameAlreadyTaken: (error: unknown) =>
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "23505",
+  useProfile: jest.fn(),
+  useSaveDisplayName: jest.fn(),
+  useSaveUsername: jest.fn(),
+}));
+jest.mock("../../lib/use-username-availability", () => ({
+  useUsernameAvailability: jest.fn(),
+}));
+jest.mock("../../lib/username", () => {
+  const actual = jest.requireActual("../../lib/username");
+  return { ...actual, createUsernameSuggestions: jest.fn() };
+});
 jest.mock("../../lib/user-id", () => ({ useUserId: () => "user-1" }));
 
 import { deleteAccount } from "../../lib/account";
 import { signOut } from "../../lib/auth/sign-out";
-import { useProfile } from "../../lib/use-profile";
+import {
+  useProfile,
+  useSaveDisplayName,
+  useSaveUsername,
+} from "../../lib/use-profile";
+import { useUsernameAvailability } from "../../lib/use-username-availability";
+import { createUsernameSuggestions } from "../../lib/username";
 import SettingsScreen from "./index";
 
 const mockUseProfile = useProfile as unknown as jest.Mock;
+const mockUseSaveDisplayName = useSaveDisplayName as jest.Mock;
+const mockUseSaveUsername = useSaveUsername as jest.Mock;
+const mockAvailability = useUsernameAvailability as jest.Mock;
+const mockCreateSuggestions = createUsernameSuggestions as jest.Mock;
 const mockSignOut = signOut as unknown as jest.Mock;
 const mockDeleteAccount = deleteAccount as unknown as jest.Mock;
+const nicknameMutate = jest.fn();
+const usernameMutate = jest.fn();
 
 const IRREVERSIBLE = /되돌릴 수 없습니다/;
 
@@ -39,6 +63,7 @@ const PROFILE = {
   display_name: "한울",
   email: "me@example.test",
   id: "user-1",
+  username: "toycrane",
 };
 
 /**
@@ -69,12 +94,26 @@ beforeEach(() => {
   jest.resetAllMocks();
   jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
   mockUseProfile.mockReturnValue({ data: PROFILE });
+  mockUseSaveDisplayName.mockReturnValue({
+    isPending: false,
+    mutate: nicknameMutate,
+  });
+  mockUseSaveUsername.mockReturnValue({
+    isPending: false,
+    mutate: usernameMutate,
+  });
+  mockAvailability.mockReturnValue("available");
+  mockCreateSuggestions.mockResolvedValue([
+    "toycrane1111",
+    "toycrane2222",
+    "toycrane3333",
+  ]);
   mockSignOut.mockResolvedValue(undefined);
   mockDeleteAccount.mockResolvedValue(null);
 });
 
 describe("설정 — 프로필", () => {
-  it("상단 프로필 헤더에 이름 기반 아바타와 계정 정보를 보여준다", async () => {
+  it("상단 프로필 헤더에 닉네임 아바타와 @아이디를 보여준다", async () => {
     await render(<SettingsScreen />);
 
     const header = screen.getByTestId("settings-profile-header");
@@ -82,7 +121,8 @@ describe("설정 — 프로필", () => {
     expect(within(header).getByTestId("settings-profile-avatar")).toBeTruthy();
     expect(within(header).getByText("한")).toBeTruthy();
     expect(within(header).getByText("한울")).toBeTruthy();
-    expect(within(header).getByText("me@example.test")).toBeTruthy();
+    expect(within(header).getByText("@toycrane")).toBeTruthy();
+    expect(within(header).queryByText("me@example.test")).toBeNull();
   });
 
   it("프로필 헤더가 Dynamic Type과 iOS 16 전체 너비를 지원한다", async () => {
@@ -104,17 +144,13 @@ describe("설정 — 프로필", () => {
         args: [{ textStyle: "title", weight: "bold" }],
       })
     );
-    expect(
-      headerScope.getByText("me@example.test").props.modifiers
-    ).toContainEqual(
+    expect(headerScope.getByText("@toycrane").props.modifiers).toContainEqual(
       expect.objectContaining({
         $modifier: "font",
         args: [{ textStyle: "callout" }],
       })
     );
-    expect(
-      headerScope.getByText("me@example.test").props.modifiers
-    ).toContainEqual(
+    expect(headerScope.getByText("@toycrane").props.modifiers).toContainEqual(
       expect.objectContaining({
         $modifier: "multilineTextAlignment",
         args: ["center"],
@@ -122,29 +158,35 @@ describe("설정 — 프로필", () => {
     );
   });
 
-  it("현재 표시 이름과 이메일을 보여준다", async () => {
+  it("프로필 목록에 닉네임·아이디·이메일을 보여준다", async () => {
     await render(<SettingsScreen />);
 
-    expect(screen.getByText("표시 이름")).toBeTruthy();
+    expect(screen.getByText("닉네임")).toBeTruthy();
     expect(screen.getAllByText("한울")).toHaveLength(2);
+    expect(screen.getByText("아이디")).toBeTruthy();
+    expect(screen.getByText("toycrane")).toBeTruthy();
     expect(screen.getByText("이메일")).toBeTruthy();
-    expect(screen.getAllByText("me@example.test")).toHaveLength(2);
+    expect(screen.getAllByText("me@example.test")).toHaveLength(1);
   });
 
-  it("표시 이름을 누르면 편집 화면으로 push한다", async () => {
+  it("닉네임과 아이디를 누르면 각각 다른 시트를 연다", async () => {
     await render(<SettingsScreen />);
-    await fireEvent.press(screen.getByText("표시 이름"));
+    await fireEvent.press(screen.getByText("닉네임"));
+    expect(screen.getByTestId("nickname-edit-sheet")).toBeTruthy();
 
-    expect(mockPush).toHaveBeenCalledWith("/settings/display-name");
+    await fireEvent.press(screen.getByRole("button", { name: "닫기" }));
+    await fireEvent.press(screen.getByText("아이디"));
+
+    expect(screen.getByTestId("username-edit-sheet")).toBeTruthy();
   });
 
-  it("표시 이름 행은 Evan의 iOS disclosure 패턴을 사용한다", async () => {
+  it("두 편집 행은 disclosure를, 이메일 행은 읽기 전용을 유지한다", async () => {
     await render(<SettingsScreen />);
 
-    const indicator = screen.getByLabelText("chevron.right");
+    const indicators = screen.getAllByLabelText("chevron.right");
 
-    expect(screen.getByHintText("row-alignment:center")).toBeTruthy();
-    expect(JSON.parse(indicator.props.accessibilityHint)).toContainEqual(
+    expect(indicators).toHaveLength(2);
+    expect(JSON.parse(indicators[0]?.props.accessibilityHint)).toContainEqual(
       expect.objectContaining({
         $modifier: "font",
         args: [{ size: 14, weight: "medium" }],
@@ -158,7 +200,167 @@ describe("설정 — 프로필", () => {
     await render(<SettingsScreen />);
     await fireEvent.press(screen.getByText("이메일"));
 
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("nickname-edit-sheet")).toBeNull();
+    expect(screen.queryByTestId("username-edit-sheet")).toBeNull();
+  });
+});
+
+describe("설정 — 닉네임 편집 시트", () => {
+  async function openNickname() {
+    await render(<SettingsScreen />);
+    await fireEvent.press(screen.getByText("닉네임"));
+  }
+
+  it("전체 높이 native Form과 규칙 footer를 쓴다", async () => {
+    await openNickname();
+
+    const sheet = screen.getByTestId("nickname-edit-sheet");
+    expect(JSON.parse(sheet.props.accessibilityHint)).toEqual({
+      showDragIndicator: true,
+      snapPoints: ["full"],
+    });
+    expect(screen.getByLabelText("닉네임").props.value).toBe("한울");
+    expect(
+      screen.getByText("1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.")
+    ).toBeTruthy();
+  });
+
+  it("바뀐 값이 없거나 규칙에 맞지 않으면 저장을 잠근다", async () => {
+    await openNickname();
+    const save = screen.getByRole("button", { name: "저장" });
+
+    expect(save).toBeDisabled();
+    await fireEvent.changeText(screen.getByLabelText("닉네임"), "새이름");
+    expect(save).not.toBeDisabled();
+    await fireEvent.changeText(screen.getByLabelText("닉네임"), "새이름😀");
+    expect(save).toBeDisabled();
+  });
+
+  it("닫거나 끌어내리면 저장하지 않고 다음에 저장값으로 다시 연다", async () => {
+    await openNickname();
+    await fireEvent.changeText(screen.getByLabelText("닉네임"), "버릴 값");
+    await fireEvent.press(screen.getByLabelText("시트 끌어내리기"));
+
+    expect(screen.queryByTestId("nickname-edit-sheet")).toBeNull();
+    expect(nicknameMutate).not.toHaveBeenCalled();
+
+    await fireEvent.press(screen.getByText("닉네임"));
+    expect(screen.getByLabelText("닉네임").props.value).toBe("한울");
+  });
+
+  it("저장 성공 때 전체 프로필 mutation 뒤 시트를 닫는다", async () => {
+    await openNickname();
+    await fireEvent.changeText(screen.getByLabelText("닉네임"), "  새이름  ");
+    await fireEvent.press(screen.getByRole("button", { name: "저장" }));
+
+    expect(nicknameMutate).toHaveBeenCalledWith("새이름", expect.any(Object));
+    const options = nicknameMutate.mock.calls[0]?.[1] as {
+      onSuccess: () => void;
+    };
+    await act(() => options.onSuccess());
+    expect(screen.queryByTestId("nickname-edit-sheet")).toBeNull();
+  });
+
+  it("일반 저장 실패는 입력값을 보존한 채 alert로 알린다", async () => {
+    await openNickname();
+    await fireEvent.changeText(screen.getByLabelText("닉네임"), "새이름");
+    await fireEvent.press(screen.getByRole("button", { name: "저장" }));
+
+    const options = nicknameMutate.mock.calls[0]?.[1] as {
+      onError: () => void;
+    };
+    await act(() => options.onError());
+
+    expect(Alert.alert).toHaveBeenLastCalledWith(
+      "저장하지 못했어요",
+      "잠시 후 다시 시도해 주세요."
+    );
+    expect(screen.getByLabelText("닉네임").props.value).toBe("새이름");
+  });
+
+  it("저장 중에는 checkmark 자리를 progress로 바꾸고 입력을 잠근다", async () => {
+    mockUseSaveDisplayName.mockReturnValue({
+      isPending: true,
+      mutate: nicknameMutate,
+    });
+    await openNickname();
+
+    expect(screen.getByTestId("profile-edit-progress")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "저장" })).toBeNull();
+    expect(screen.getByLabelText("닉네임").props.editable).toBe(false);
+  });
+});
+
+describe("설정 — 아이디 편집 시트", () => {
+  async function openUsername(status = "available") {
+    mockAvailability.mockReturnValue(status);
+    await render(<SettingsScreen />);
+    await fireEvent.press(screen.getByText("아이디"));
+  }
+
+  it("현재 아이디는 사용 가능이어도 바뀐 값이 없어 저장하지 않는다", async () => {
+    await openUsername();
+
+    expect(screen.getByLabelText("아이디").props.value).toBe("toycrane");
+    expect(screen.getByLabelText("checkmark.circle.fill")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "저장" })).toBeDisabled();
+  });
+
+  it("사용 가능한 새 아이디는 저장할 수 있다", async () => {
+    await openUsername();
+    await fireEvent.changeText(screen.getByLabelText("아이디"), "new.name");
+
+    expect(screen.getByRole("button", { name: "저장" })).not.toBeDisabled();
+  });
+
+  it("중복이면 danger 오류와 추천 3개를 보여주고 저장을 잠근다", async () => {
+    await openUsername("taken");
+
+    expect(screen.getByText("이미 사용 중인 아이디예요.")).toBeTruthy();
+    expect(screen.getByLabelText("exclamationmark.circle.fill")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "저장" })).toBeDisabled();
+    expect(await screen.findByText("toycrane1111")).toBeTruthy();
+    expect(await screen.findByText("toycrane2222")).toBeTruthy();
+    expect(await screen.findByText("toycrane3333")).toBeTruthy();
+  });
+
+  it("추천을 누르면 값만 채우고 저장하지 않는다", async () => {
+    await openUsername("taken");
+    await fireEvent.press(await screen.findByText("toycrane1111"));
+
+    expect(screen.getByLabelText("아이디").props.value).toBe("toycrane1111");
+    expect(usernameMutate).not.toHaveBeenCalled();
+  });
+
+  it("저장 순간 중복은 alert 대신 중복 상태로 되돌린다", async () => {
+    await openUsername();
+    await fireEvent.changeText(screen.getByLabelText("아이디"), "new.name");
+    await fireEvent.press(screen.getByRole("button", { name: "저장" }));
+
+    const options = usernameMutate.mock.calls[0]?.[1] as {
+      onError: (error: unknown) => void;
+    };
+    await act(() => options.onError({ code: "23505" }));
+
+    expect(await screen.findByText("이미 사용 중인 아이디예요.")).toBeTruthy();
+    expect(Alert.alert).not.toHaveBeenCalled();
+  });
+
+  it("일반 저장 실패는 입력값을 보존한 채 alert로 알린다", async () => {
+    await openUsername();
+    await fireEvent.changeText(screen.getByLabelText("아이디"), "new.name");
+    await fireEvent.press(screen.getByRole("button", { name: "저장" }));
+
+    const options = usernameMutate.mock.calls[0]?.[1] as {
+      onError: (error: unknown) => void;
+    };
+    await act(() => options.onError(new Error("network")));
+
+    expect(Alert.alert).toHaveBeenLastCalledWith(
+      "저장하지 못했어요",
+      "잠시 후 다시 시도해 주세요."
+    );
+    expect(screen.getByLabelText("아이디").props.value).toBe("new.name");
   });
 });
 

@@ -125,9 +125,14 @@ function MockButton({
     disabledProp === true || (modifiers ?? []).some(isDisabledMark);
   const foreground = modifierArg<unknown>(modifiers, "foregroundStyle");
   const labelColor = typeof foreground === "string" ? foreground : undefined;
+  const accessibilityLabel = modifierArg<string>(
+    modifiers,
+    "accessibilityLabel"
+  );
 
   return (
     <Pressable
+      accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       accessibilityState={{ disabled }}
       disabled={disabled}
@@ -141,6 +146,36 @@ function MockButton({
         </Text>
       )}
     </Pressable>
+  );
+}
+
+function MockBottomSheet({
+  children,
+  isPresented,
+  onDismiss,
+  showDragIndicator,
+  snapPoints,
+  testID,
+}: {
+  children?: ReactNode;
+  isPresented: boolean;
+  onDismiss: () => void;
+  showDragIndicator?: boolean;
+  snapPoints?: unknown[];
+  testID?: string;
+}) {
+  if (!isPresented) {
+    return null;
+  }
+
+  return (
+    <View
+      accessibilityHint={JSON.stringify({ showDragIndicator, snapPoints })}
+      testID={testID}
+    >
+      <Pressable accessibilityLabel="시트 끌어내리기" onPress={onDismiss} />
+      {children}
+    </View>
   );
 }
 
@@ -449,6 +484,7 @@ export function universalMock() {
   return {
     ...containers,
     ...leaves,
+    BottomSheet: MockBottomSheet,
     Button: MockButton,
     Column: MockColumn,
     FieldGroup,
