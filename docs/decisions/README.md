@@ -20,6 +20,5 @@
 - [sign-in-methods](sign-in-methods.md) — Read when 로그인 provider, 이메일 OTP, 매직링크 또는 인증 자동화를 바꿀 때.
 - [social-sign-in-presentation](social-sign-in-presentation.md) — Read when root sign-in의 provider 버튼, 이메일 위계 또는 pending 표현을 바꿀 때.
 - [no-apple-token-revocation](no-apple-token-revocation.md) — Read when 계정 삭제, Apple token 취소 또는 사용자 데이터 정리를 바꿀 때.
-- [private-auth-profiles](private-auth-profiles.md) — Read when 프로필 스키마, 표시 이름, 온보딩 판정 또는 프로필 권한을 바꿀 때.
-- [public-username-in-profile](public-username-in-profile.md) — Read when 공개 아이디, 닉네임, 온보딩 완료 조건 또는 아이디 중복 검사를 바꿀 때.
+- [profile-identity](profile-identity.md) — Read when 프로필 스키마, 공개 닉네임·아이디, 온보딩 판정 또는 프로필 권한을 바꿀 때.
 - [hybrid-data-access](hybrid-data-access.md) — Read when 모바일 직접 CRUD, RLS, Hono 경계 또는 채팅 메시지 쓰기 권한을 바꿀 때.
