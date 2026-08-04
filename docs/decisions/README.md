@@ -6,10 +6,10 @@
 - [turborepo-with-bun](turborepo-with-bun.md) — Read when 모노레포 구조, Bun 설치 방식, Supabase 생성 타입 위치를 바꿀 때.
 - [worktree-isolated-mobile-runtime](worktree-isolated-mobile-runtime.md) — Read when 병렬 워크트리의 포트, Metro 캐시, 시뮬레이터, 로컬 Supabase를 다룰 때.
 - [agent-device-for-simulator-checks](agent-device-for-simulator-checks.md) — Read when iOS 시뮬레이터를 조작하거나 화면 검증 증거를 남길 때.
-- [ios-only](ios-only.md) — Read when 플랫폼 분기, Android, web, 네이티브 iOS 전용 구현을 제안할 때.
-- [apple-hig-with-app-theme](apple-hig-with-app-theme.md) — Read when 앱 전반의 시각 체계, 시스템 컴포넌트, 디자인 토큰 범위를 바꿀 때.
+- [supported-platforms](ios-only.md) — Read when 플랫폼 분기, Android, web 또는 플랫폼별 구현을 제안할 때.
+- [native-conventions-with-style-foundation](apple-hig-with-app-theme.md) — Read when 앱 전반의 시각 체계, 시스템 컴포넌트, 디자인 토큰 범위를 바꿀 때.
 - [self-contained-native-ui-boundaries](self-contained-native-ui-boundaries.md) — Read when 화면의 React Native와 `@expo/ui` 경계를 선택하거나 재사용 UI를 만들 때.
-- [uniwind-css-theme](uniwind-css-theme.md) — Read when Uniwind, 앱 색, light/dark, Navigation 또는 `@expo/ui` 테마 연결을 바꿀 때.
+- [native-style-foundation](uniwind-css-theme.md) — Read when StyleSheet, Uniwind, 앱 색·간격·타이포, light/dark, Navigation 또는 `@expo/ui` 테마 연결을 바꿀 때.
 - [native-motion](native-motion.md) — Read when 화면 전환, 상태 피드백, Reanimated 또는 Reduce Motion 동작을 추가할 때.
 - [settings-edits-use-native-form](settings-edits-use-native-form.md) — Read when 설정의 닉네임·아이디 편집 화면이나 네이티브 Form 시트를 바꿀 때.
 - [danggeun-voice-for-copy](danggeun-voice-for-copy.md) — Read when 사용자에게 보이는 한국어 문구를 쓰거나 검토할 때.
