@@ -41,8 +41,7 @@ trailing 상태, 추천 section처럼 검증 화면에 필요한 자리를 이�
 - 제품 상태인 가용성·중복은 앱의 success·danger 의미를 쓰되, `Form`의 기본
   background·label·separator는 native 기본값을 유지한다.
 - 아이디 변경 빈도와 이전 아이디 경고는 검색 표면이 생길 때까지 두지 않는다.
-- 구현 세부와 확인하지 않은 경로는
-  [온보딩 스펙](../specs/onboarding-nickname-and-id/spec.md)이 소유한다.
+- 구현과 무관하게 유지할 편집 interaction 계약은 이 결정 문서가 소유한다.
 
 ## Reconsider when
 

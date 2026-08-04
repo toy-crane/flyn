@@ -15,9 +15,8 @@
 - iOS가 모르는 제품 상태와 RN canvas만 flyn의 semantic color를 쓴다.
 - 구현된 모든 route와 중요한 상태가 light/dark, keyboard, Dynamic Type와
   accessibility setting에서 끊김 없이 이어진다.
-- 현재 화면에서 확인한 문제와 이미 승인된
-  [닉네임·아이디 스펙](../onboarding-nickname-and-id/spec.md)이 해결할 문제를
-  중복 구현하지 않는다.
+- 현재 화면에서 확인한 문제와 프로필 identity 구현이 이미 해결한 문제를 중복
+  구현하지 않는다.
 
 ## 구현 상태
 
@@ -31,13 +30,16 @@
 - OTP 안내와 이메일을 분리했다. 45자 테스트 주소를 라이트·다크에서 확인한 결과,
   전체 주소가 생략 없이 별도 줄에 표시되고 6칸 입력·재전송 action·숫자 keyboard와
   겹치지 않았다.
+- 닉네임·아이디 2단계 온보딩과 두 설정 편집 시트를 구현했다. native grouped
+  surface를 유지하고, 아이디 가용성·중복·추천·저장 상태에만 제품 의미를 더했다.
+- iPhone 17 · iOS 26.5에서 신규·중간 이탈 온보딩, 설정 편집의 저장·폐기·중복,
+  라틴 키보드, 표준 light/dark 상태를 확인했다.
 - 전체 `bun run check`의 lint·typecheck·test 8개 작업이 통과했다. 모바일은
-  30 suites, 238 tests가 통과했다.
+  34 suites, 297 tests가 통과했다.
 
-P0 native surface 경계와 상태별 matrix는 아직 제품 코드가 없는 닉네임·아이디
-sheet의 구현 계약이다. 현재 코드에는 제거할 `presentationBackground(app.background)`나
-`scrollContentBackground('hidden')`가 없으므로, 존재하지 않는 feature를 이번 변경에서
-선행 구현하지 않는다. 해당 sheet를 만들 때 아래 완료 조건을 그대로 acceptance로 쓴다.
+P0 native surface 경계는 제품 코드에 적용됐다. 상태별 matrix 중 지원 하한 iOS,
+VoiceOver, 가장 큰 Dynamic Type, Increase Contrast와 Reduce Transparency는 계속
+남은 수동 acceptance다.
 
 ## B안: 소유권 경계
 
@@ -78,8 +80,8 @@ sheet의 구현 계약이다. 현재 코드에는 제거할 `presentationBackgro
   확인했다.
 - **source 확인**: 실패나 missing처럼 데이터를 깨뜨려야만 나오는 상태는 route,
   guard와 test를 읽었다. runtime 확인으로 과장하지 않는다.
-- **예정 화면**: 아직 제품 코드가 없는 닉네임·아이디 설정 sheet는 승인된 spec과
-  2026-08-04 spike evidence를 확인했다.
+- **프로필 identity runtime**: 닉네임·아이디 온보딩과 설정 sheet의 표준
+  light/dark·keyboard·주요 상태를 iOS 26.5에서 확인했다.
 
 검수용 screenshot은 임시 evidence이며 제품 저장소에는 넣지 않는다.
 
@@ -90,9 +92,10 @@ sheet의 구현 계약이다. 현재 코드에는 제거할 `presentationBackgro
 | launch session 확인·실패 | Universal | source·test | native progress와 짧은 복구 action을 유지한다. 별도 개선 없음 |
 | profile 조회 실패·missing | RN | source·test | guard surface이고 renderer seam이 노출되지 않는다. 카피·action 구조 유지 |
 | root sign-in | RN + vendor button | light/dark runtime | 하단 action hierarchy와 vendor appearance가 자연스럽다. Apple 영문 label은 primary OS language가 영어인 simulator의 공식 label이라 custom 한국어 button으로 바꾸지 않는다 |
-| 이메일 입력 | Universal | light/dark·keyboard runtime | native field·keyboard·하단 submit은 자연스럽다. 다만 back button의 접근성 이름이 route 이름 `sign-in/index`로 노출된다 |
-| OTP | RN | dark·numeric keyboard runtime | 6칸 input과 system keyboard가 자연스럽다. 긴 이메일이 안내 문장 중간에서 한 글자짜리 둘째 줄을 만들어 읽기 흐름이 나쁘다 |
-| 현재 이름 온보딩 | Universal | light/dark·keyboard runtime | 시작 CTA와 keyboard는 안정적이다. 한 값만 받고 비공개라고 설명하는 현재 흐름은 닉네임·아이디 스펙이 교체하므로 별도 polish하지 않는다 |
+| 이메일 입력 | Universal | light/dark·keyboard runtime | native field·keyboard·하단 submit이 자연스럽고 back button은 접근성 트리에서 `로그인`으로 노출된다 |
+| OTP | RN | light/dark·numeric keyboard runtime | 안내와 이메일을 분리해 긴 주소도 6칸 input·재전송 action과 겹치지 않는다 |
+| 닉네임 온보딩 | Universal | light·keyboard runtime | 승인한 제목·필드·규칙 footer·CTA만 보이고 저장 뒤 아이디 단계로 이동한다 |
+| 아이디 온보딩 | Universal | light·keyboard runtime | 이메일 파생 후보, 라틴 키보드, 중복 오류와 추천이 동작하며 중간 이탈 사용자는 이 단계로 바로 돌아온다 |
 | 채팅 목록 loading·error | RN | source·test | 기존 retry/refresh 상태를 유지한다. 장애를 만들기 위한 runtime state injection은 하지 않았다 |
 | 채팅 목록 empty | RN | light runtime | native header 아래의 설명과 첫 action 위계가 명확하다. 개선 없음 |
 | 채팅 목록 populated | RN | light/dark runtime | system header와 RN row가 하나의 목록처럼 읽힌다. 2줄 title 정책 유지 |
@@ -100,20 +103,19 @@ sheet의 구현 계약이다. 현재 코드에는 제거할 `presentationBackgro
 | 채팅 상세 populated | RN | light runtime | full-width AI response, user bubble, system header가 일관된다. composer 아래로 이어지는 content inset은 keyboard·streaming 회귀 검수 대상으로 유지 |
 | 채팅 상세 keyboard·맨 아래로 | RN | light runtime | keyboard 위 composer와 scroll-to-bottom affordance가 안정적이다. 개선 없음 |
 | 채팅 상세 streaming·중단·실패 | RN | source·test | 기존 AI chat 결정 계약의 상태 구조를 유지한다. 이번 audit에서 runtime network failure는 만들지 않았다 |
-| 설정 | Universal | light/dark runtime | grouped `Form`, native alert와 destructive hierarchy가 가장 iOS답다. header의 email 중복은 닉네임·아이디 스펙이 해결한다 |
-| 현재 표시 이름 편집 | Universal | light·keyboard runtime | 하단 저장 CTA가 keyboard 뒤에 대부분 가려진다. 이 route는 승인된 스펙에서 삭제되고 native sheet toolbar로 교체되므로 현 route를 따로 고치지 않는다 |
+| 설정 | Universal | light/dark runtime | header는 닉네임과 `@아이디`를 보여주고 이메일은 읽기 전용 한 행에만 둔다 |
+| 닉네임 설정 sheet | Universal | light·keyboard runtime | full-height grouped `Form`, 폐기·저장 toolbar와 변경 없음 비활성화가 동작한다 |
+| 아이디 설정 sheet | Universal | light/dark·keyboard runtime | 가용성·중복·추천·저장 뒤 즉시 header 갱신이 native surface 안에서 동작한다 |
 | 로그아웃·계정 삭제 확인 | native alert | light runtime | material, hierarchy, destructive copy가 적절하다. 개선 없음 |
-| 예정 닉네임·아이디 설정 sheet | Universal | spec·spike | 앱 background override를 제거하고 iOS grouped surface를 유지한다. dark·contrast·alert·Dynamic Type 검수가 필요하다 |
 
 ## 선택한 개선
 
-### P0 — 예정 설정 sheet에서 native surface를 다시 칠하지 않는다
+### P0 — 설정 sheet에서 native surface를 다시 칠하지 않는다
 
-기존 닉네임·아이디 스펙은 `presentationBackground(app.background)`와
-`scrollContentBackground('hidden')`으로 iOS `.systemGroupedBackground`를
-`#F7F7F5`에 맞추도록 되어 있었다. 기술 spike는 modifier가 동작한다는 사실만
-증명한다. B안에서는 그 차이가 renderer seam이 아니라 설정 hierarchy이므로 제품
-구현에 넣지 않는다.
+기술 spike에서 검토한 `presentationBackground(app.background)`와
+`scrollContentBackground('hidden')`은 iOS `.systemGroupedBackground`를 앱
+background에 맞출 수 있지만 제품 구현에는 넣지 않았다. 이 차이는 renderer seam이
+아니라 설정 hierarchy다.
 
 완료 조건:
 
@@ -124,13 +126,13 @@ sheet의 구현 계약이다. 현재 코드에는 제거할 `presentationBackgro
   `global.css`에 추가하지 않는다.
 - success·danger는 username 상태처럼 iOS가 모르는 제품 의미에만 쓴다.
 
-이 선택은 이미 닉네임·아이디 스펙과 관련 결정 계약에 반영했다.
+이 선택은 제품 코드와 관련 결정 계약에 반영했다.
 
 ### P1 — explicit success의 light 대비를 확보한다
 
-현재 `--app-success: #248A3D`는 흰 surface에서 4.40:1, 앱 background에서
-4.10:1이다. 향후 username 상태를 작은 텍스트로 표시하면 4.5:1 기준에 못 미친다.
-dark `#32D74B`는 현재 surface에서 충분하다.
+변경 전 `--app-success: #248A3D`는 흰 surface에서 4.40:1, 앱 background에서
+4.10:1이라 작은 텍스트의 4.5:1 기준에 못 미쳤다. dark `#32D74B`는 현재
+surface에서 충분했다.
 
 구현 동작:
 
@@ -151,8 +153,8 @@ dark `#32D74B`는 현재 surface에서 충분하다.
 
 ### P1 — native sheet를 상태별로 한 번씩 검수한다
 
-현재 spike가 확인한 것은 iOS 26.5 light의 기본 구조와 keyboard 안정성이다. 아래는
-구현 완료 전에 빠지면 안 되는 visual acceptance matrix다.
+표준 light/dark, keyboard, 중복·추천, 저장·폐기 상태는 iOS 26.5에서 확인했다.
+아래 matrix는 지원 하한과 접근성 설정까지 포함해 반복 검수할 acceptance다.
 
 | 조건 | 닉네임 sheet | 아이디 sheet |
 | --- | --- | --- |
@@ -202,11 +204,6 @@ dark `#32D74B`는 현재 surface에서 충분하다.
 
 ## 별도 작업으로 만들지 않는 것
 
-- **현재 표시 이름 편집 CTA**: keyboard 뒤에 가려지지만 곧 삭제될 route다. 같은
-  화면을 고친 뒤 버리는 대신 닉네임·아이디 native sheet toolbar를 검수한다.
-- **설정 header의 email 중복과 `표시 이름` 용어**: 닉네임·아이디 스펙이 이미
-  nickname + `@아이디`, email 한 행으로 교체한다.
-- **현재 한 단계 온보딩**: 승인된 두 단계 흐름이 교체한다.
 - **Apple button 영문 label**: 확인한 simulator의 primary OS language가
   `en-KR`이고 공식 system button이 그 locale을 따른 결과다. custom 한국어 Apple
   button을 만들지 않는다. 한국어가 primary인 실제 기기에서 공식 label을 한 번
@@ -219,15 +216,11 @@ dark `#32D74B`는 현재 surface에서 충분하다.
 
 ## 구현 순서
 
-1. semantic success 대비와 contrast regression check를 넣는다.
-2. 이메일 back 접근성 이름과 OTP 안내 layout을 고친다.
-3. 닉네임·아이디 스펙을 구현할 때 B안 native surface 경계를 적용한다.
-4. 위 상태 matrix를 실제 지원 하한 iOS와 iOS 26.5에서 확인한다.
-5. current display-name route가 삭제된 뒤 route와 카피가 남지 않았는지 전체 screen
-   pass를 한 번 더 한다.
-
-각 단계는 독립적으로 검증 가능하다. 1·2는 현재 제품 화면 개선이고, 3·4·5는
-닉네임·아이디 feature의 acceptance에 합쳐진다.
+1. 완료 — semantic success 대비와 contrast regression check.
+2. 완료 — 이메일 back 접근성 이름과 OTP 안내 layout.
+3. 완료 — 닉네임·아이디 구현과 B안 native surface 경계.
+4. 완료 — iOS 26.5 표준 light/dark·keyboard·주요 상태와 이전 route·카피 제거.
+5. 남음 — 지원 하한 iOS와 accessibility 설정의 수동 matrix.
 
 ## 검증 방법
 
@@ -248,7 +241,7 @@ runtime screenshot만으로 실패·streaming·race를 통과했다고 판단하
 - iOS가 주 플랫폼이고 Android·web parity는 이번 정리의 범위가 아니다.
 - 현재 renderer map은 유지한다. RN이어야 하는 composite input·chat scroll과
   Universal이 잘하는 Form·List를 서로 옮기지 않는다.
-- 닉네임·아이디 스펙은 다음 profile UI 변경의 source of truth다.
+- 프로필 identity와 편집 interaction은 관련 결정 문서의 계약을 유지한다.
 - system appearance를 따르며 앱 안에 theme selector를 넣지 않는다.
 
 ## 범위 밖
@@ -265,7 +258,7 @@ runtime screenshot만으로 실패·streaming·race를 통과했다고 판단하
   없다.
 - CSS fixed color는 Increase Contrast에 자동 적응하지 않는다. explicit app color가
   늘어날 때마다 pair 검증 범위도 늘려야 한다.
-- VoiceOver와 가장 큰 Dynamic Type은 이번 runtime pass에서 켜지 않았다. 구현
+- VoiceOver와 가장 큰 Dynamic Type은 이번 runtime pass에서 켜지 않았다. 후속
   acceptance에서 반드시 실제로 확인한다.
 - profile failure와 chat network failure는 source·test만 확인했다. 실제 error
   surface의 system alert/keyboard 조합은 별도 failure injection이 있어야 반복
