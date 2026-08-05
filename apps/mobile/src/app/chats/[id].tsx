@@ -1,7 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { type ReactNode, useCallback } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   type PressableStateCallbackType,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
   type ChatController,
   ChatConversation,
 } from "../../components/chat/chat-conversation";
+import { LoadingIndicator } from "../../components/feedback/loading-indicator";
 import {
   type StoredChatMessage,
   useChatMessages,
@@ -120,7 +120,7 @@ export default function ChatDetailScreen() {
   ) {
     content = (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <ActivityIndicator accessibilityLabel="채팅 불러오는 중" />
+        <LoadingIndicator accessibilityLabel="채팅 불러오는 중" />
       </View>
     );
   } else if (

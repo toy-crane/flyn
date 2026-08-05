@@ -6,7 +6,6 @@ import {
 import { useRouter } from "expo-router";
 import { useCallback, useEffect } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -15,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LoadingIndicator } from "../../components/feedback/loading-indicator";
 import { GoogleButton } from "../../components/sign-in/google-button";
 import { signInWithApple } from "../../lib/auth/apple";
 import { signInWithGoogle } from "../../lib/auth/google";
@@ -187,7 +187,7 @@ export default function SignInScreen() {
           ]}
           testID="sign-in-loading-overlay"
         >
-          <ActivityIndicator color={colors.primary} />
+          <LoadingIndicator testID="sign-in-loading-indicator" />
         </View>
       ) : null}
     </View>

@@ -2,15 +2,16 @@ import { LegendList } from "@legendapp/list/react-native";
 import { Stack, useIsFocused, useRouter } from "expo-router";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   type ColorValue,
   Pressable,
   type PressableStateCallbackType,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { LoadingIndicator } from "../components/feedback/loading-indicator";
 import { RNSymbol } from "../components/symbols/rn-symbol";
 import {
   type ChatRoom,
@@ -292,7 +293,7 @@ export default function HomeScreen() {
   if (rooms.isPending && !rooms.data) {
     content = (
       <View style={styles.loading}>
-        <ActivityIndicator accessibilityLabel="채팅 불러오는 중" />
+        <LoadingIndicator accessibilityLabel="채팅 불러오는 중" />
       </View>
     );
   } else if (rooms.isError && !rooms.data) {
@@ -325,9 +326,15 @@ export default function HomeScreen() {
         data={rooms.data ?? []}
         keyExtractor={roomKey}
         maintainVisibleContentPosition
-        onRefresh={refreshRooms}
         recycleItems
-        refreshing={isFocused && manualRefreshing}
+        refreshControl={
+          <RefreshControl
+            onRefresh={refreshRooms}
+            refreshing={isFocused && manualRefreshing}
+            testID="chat-room-list-refresh-control"
+            tintColor={colors.loadingIndicator}
+          />
+        }
         renderItem={renderRoom}
       />
     );

@@ -1,5 +1,5 @@
 import { Host } from "@expo/ui";
-import { ProgressView, Text, VStack } from "@expo/ui/swift-ui";
+import { Text, VStack } from "@expo/ui/swift-ui";
 import {
   Animation,
   accessibilityHidden,
@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useColors } from "../theme/app-theme";
 import { spacing } from "../theme/tokens";
+import { HostedLoadingIndicator } from "./feedback/hosted-loading-indicator";
 
 const PROGRESS_REVEAL_DELAY_MS = 200;
 const styles = StyleSheet.create({
@@ -31,8 +32,8 @@ const styles = StyleSheet.create({
  * SwiftUI로 만든다(docs/decisions/self-contained-native-ui-boundaries.md의 판정표). RN이 하나도
  * 필요 없고 자명하게 self-contained라 `Host` 경계가 한 번만 열린다.
  *
- * background와 interactive tint는 CSS 앱 테마에서 받고, 안쪽 SwiftUI 텍스트는
- * 네이티브 계층 표현을 그대로 쓴다.
+ * background는 앱 테마에서 받고, 안쪽 SwiftUI 텍스트는 네이티브 계층 표현을
+ * 그대로 쓴다.
  */
 
 function Screen({ children }: { children: React.ReactNode }) {
@@ -40,7 +41,7 @@ function Screen({ children }: { children: React.ReactNode }) {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <Host matchContents>{children}</Host>
+      {children}
     </View>
   );
 }
@@ -60,7 +61,7 @@ export function LaunchChecking() {
 
   return (
     <Screen>
-      <ProgressView
+      <HostedLoadingIndicator
         modifiers={[
           accessibilityHidden(!visible),
           opacity(visible ? 1 : 0),
@@ -82,17 +83,19 @@ export function LaunchChecking() {
 export function LaunchFailed({ reason }: { reason: string }) {
   return (
     <Screen>
-      <VStack modifiers={[padding({ all: 8 })]} spacing={8}>
-        <Text
-          modifiers={[
-            font({ textStyle: "body" }),
-            foregroundStyle({ style: "secondary", type: "hierarchical" }),
-            multilineTextAlignment("center"),
-          ]}
-        >
-          {reason}
-        </Text>
-      </VStack>
+      <Host matchContents>
+        <VStack modifiers={[padding({ all: 8 })]} spacing={8}>
+          <Text
+            modifiers={[
+              font({ textStyle: "body" }),
+              foregroundStyle({ style: "secondary", type: "hierarchical" }),
+              multilineTextAlignment("center"),
+            ]}
+          >
+            {reason}
+          </Text>
+        </VStack>
+      </Host>
     </Screen>
   );
 }
