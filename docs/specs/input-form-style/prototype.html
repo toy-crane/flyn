@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <!--
+  prototype shell: the review chrome every prototype starts from.
+
+  Keep this comment in the prototype you grow from here: it is the contract,
+  and later turns work from that file rather than from this one.
+
+  Contract (extend freely, never strip):
+  - Screens:  <section data-screen="slug" data-title="Label"> inside .sh-stage.
+               The tab bar, arrow keys, and #hash routing build themselves;
+               in-prototype links may target screens (href="#slug").
+  - States:   a screen with meaningful states declares data-states="a,b,c"
+               (free strings; first one is the default). Elements that belong
+               to one state carry data-when="a" (comma-separated for several).
+               Elements without data-when always show.
+  - Viewport: "vp (m)" cycles full / 390 / 768. The 390 preset is a
+               fixed-height, internally scrolling phone frame. Start a
+               mobile-first prototype by adding class="sh-vp-390" to <body>
+               (or a bootstrap classList.add before the chrome script runs).
+  - Pinning:  keep in-frame bars (tab bars, CTAs) inside the phone with
+               position: sticky; position: fixed pins to the browser window.
+  - Tokens:   replace the project-tokens block below with the project's own
+               design tokens, copied verbatim. Keep --background, --foreground,
+               and --font defined afterwards; when the system's names differ,
+               add a small mapping block after the copy, and a web font
+               substitutes a system stack (note that in the spec). A
+               project with no design system
+               keeps the block as it ships: that minimal palette is the
+               finished look, not a stage waiting to be swapped out.
+  - Placeholders: .wf-pic stands in for pictures the prototype has no real
+               files for. .wf-line (text bar) is here for the same reason but
+               rarely earns its use — real text belongs where it would go.
+
+  Self-contained by design: no build, no framework, no network.
+  Chrome that needs explaining has failed; keep it three controls.
+  -->
+  <title>flyn input form style prototype</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    /* Current project roles, represented with iOS semantic-color fallbacks. */
+    :root {
+      --background: #ffffff;
+      --grouped-background: #f2f2f7;
+      --surface: #ffffff;
+      --foreground: #000000;
+      --secondary: rgba(60, 60, 67, 0.60);
+      --tertiary: rgba(60, 60, 67, 0.30);
+      --placeholder: rgba(60, 60, 67, 0.30);
+      --separator: rgba(60, 60, 67, 0.22);
+      --opaque-separator: #c6c6c8;
+      --tertiary-system-fill: rgba(118, 118, 128, 0.12);
+      --disabled: #e5e5ea;
+      --accent: #007aff;
+      --danger: #d70015;
+      --success: #1f7a35;
+      --glass: rgba(248, 248, 248, 0.72);
+      --field-fill: var(--tertiary-system-fill);
+      --field-height: 52px;
+      --field-padding-x: 18px;
+      --radius: 16px;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    }
+
+    body[data-appearance="dark"] {
+      --background: #000000;
+      --grouped-background: #1c1c1e;
+      --surface: #1c1c1e;
+      --foreground: #ffffff;
+      --secondary: rgba(235, 235, 245, 0.60);
+      --tertiary: rgba(235, 235, 245, 0.30);
+      --placeholder: rgba(235, 235, 245, 0.30);
+      --separator: rgba(84, 84, 88, 0.65);
+      --opaque-separator: #38383a;
+      --tertiary-system-fill: rgba(118, 118, 128, 0.24);
+      --disabled: #2c2c2e;
+      --accent: #0a84ff;
+      --danger: #ff453a;
+      --success: #32d74b;
+      --glass: rgba(44, 44, 46, 0.72);
+    }
+
+    * { box-sizing: border-box }
+    html, body { min-height: 100% }
+    body {
+      margin: 0;
+      padding: 0 0 40px;
+      color: var(--foreground);
+      background: #e8e8ed;
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+    body[data-appearance="dark"] { background: #111113 }
+    button, input { font: inherit }
+
+    /* Review chrome retained from the prototype shell. */
+    .sh-bar {
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      min-height: 44px;
+      padding: 8px 12px;
+      color: #d7d7d7;
+      background: #191a1c;
+      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .sh-bar b { color: #8a8f98; font-weight: 500 }
+    .sh-bar nav { display: flex; gap: 6px }
+    .sh-bar button {
+      padding: 2px 9px;
+      color: inherit;
+      background: none;
+      border: 1px solid #3a3d42;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .sh-bar button.on {
+      color: #191a1c;
+      background: #d7d7d7;
+      border-color: #d7d7d7;
+    }
+    #sh-states:not([hidden])::before,
+    #sh-variants::before {
+      margin-right: 4px;
+      color: #8a8f98;
+    }
+    #sh-states:not([hidden])::before { content: "state" }
+    #sh-variants::before { content: "field" }
+    #sh-states, #sh-variants { display: inline-flex; gap: 5px; align-items: center }
+    .sh-spacer { flex: 1 }
+    .sh-stage { max-width: 960px; margin: 0 auto; padding: 12px 16px 0 }
+    [hidden] { display: none !important }
+
+    .sh-vp-390 .sh-stage {
+      max-width: 390px;
+      height: min(844px, calc(100dvh - 68px));
+      margin-top: 12px;
+      padding: 0;
+      overflow: hidden;
+      background: var(--background);
+      border: 10px solid #191a1c;
+      border-radius: 42px;
+      box-shadow: 0 14px 42px rgba(0, 0, 0, 0.24);
+    }
+    .sh-vp-768 .sh-stage {
+      max-width: 768px;
+      margin-top: 12px;
+      padding: 16px;
+      background: var(--background);
+      border: 1px solid #c4c4c4;
+      border-radius: 12px;
+    }
+
+    section[data-screen] {
+      position: relative;
+      min-height: 824px;
+      overflow: hidden;
+      color: var(--foreground);
+      background: var(--background);
+    }
+    .sh-vp-390 section[data-screen] {
+      height: 100%;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    /* iOS-like shared screen chrome. */
+    .status-bar {
+      position: relative;
+      z-index: 4;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      height: 54px;
+      padding: 6px 20px 0;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .dynamic-island { width: 112px; height: 34px; background: #000; border-radius: 999px }
+    body[data-appearance="dark"] .dynamic-island { outline: 1px solid #171719 }
+    .signals { justify-self: end; font-size: 13px; letter-spacing: 1px }
+    .navigation-bar {
+      position: relative;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: 48px 1fr 48px;
+      align-items: center;
+      height: 54px;
+      padding: 0 16px;
+      background: var(--background);
+      border-bottom: 1px solid color-mix(in srgb, var(--separator), transparent 45%);
+    }
+    .navigation-title { text-align: center; font-size: 17px; font-weight: 600 }
+    .back-button,
+    .sheet-action {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      color: var(--foreground);
+      background: var(--glass);
+      border: 0;
+      border-radius: 999px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+      backdrop-filter: blur(18px);
+    }
+    .back-button { font-size: 34px; font-weight: 200; line-height: 1 }
+    .sheet-action { font-size: 23px; font-weight: 400 }
+    .sheet-action[disabled] { color: var(--tertiary) }
+
+    .form-layout {
+      display: flex;
+      min-height: calc(100% - 108px);
+      padding: 24px 20px 12px;
+      flex-direction: column;
+    }
+    .form-main { flex: 1 }
+    .intro {
+      margin: 0 0 16px;
+      color: var(--secondary);
+      font-size: 15px;
+      line-height: 21px;
+    }
+    .field-unit { display: grid; gap: 8px }
+    .field-label { font-size: 15px; line-height: 20px; font-weight: 600; color: var(--secondary) }
+    .field-shell {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-height: var(--field-height);
+      padding: 0 var(--field-padding-x);
+      overflow: hidden;
+      background: var(--field-fill);
+      border: 1px solid transparent;
+      border-radius: 999px;
+    }
+    .field-shell input {
+      width: 100%;
+      min-width: 0;
+      height: 48px;
+      padding: 0;
+      color: var(--foreground);
+      caret-color: var(--accent);
+      background: transparent;
+      border: 0;
+      outline: none;
+      font-size: 17px;
+      line-height: 24px;
+    }
+    .field-shell input::placeholder { color: var(--placeholder); opacity: 1 }
+    .field-shell.is-error { border-color: var(--danger) }
+    .field-icon {
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      margin-left: 8px;
+      color: white;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .field-icon.success { background: var(--success) }
+    .field-icon.danger { background: var(--danger) }
+    .field-footer { margin: 0; color: var(--secondary); font-size: 13px; line-height: 18px }
+    .field-footer.danger { color: var(--danger) }
+
+    body[data-variant="B"] .field-shell { border-radius: 16px }
+    body[data-variant="C"] .field-shell {
+      min-height: 42px;
+      padding-inline: 12px;
+      background: var(--background);
+      border-color: var(--opaque-separator);
+      border-radius: 7px;
+    }
+    body[data-variant="C"] .field-shell input { height: 40px }
+    body[data-variant="C"] .field-shell.is-error { border-color: var(--danger) }
+
+    .submit-button {
+      width: 100%;
+      min-height: 52px;
+      margin-top: 20px;
+      color: white;
+      background: var(--accent);
+      border: 0;
+      border-radius: 16px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .submit-button[disabled] { color: var(--tertiary); background: var(--disabled) }
+
+    .suggestions { display: grid; gap: 4px; margin-top: 16px }
+    .suggestions-title { color: var(--secondary); font-size: 13px; font-weight: 600 }
+    .suggestion {
+      min-height: 44px;
+      padding: 0;
+      color: var(--accent);
+      text-align: left;
+      background: transparent;
+      border: 0;
+      font-size: 17px;
+    }
+
+    /* Settings sheet context. */
+    .settings-backdrop {
+      position: absolute;
+      inset: 0;
+      padding: 0 22px;
+      color: var(--secondary);
+      background: var(--grouped-background);
+    }
+    .settings-backdrop .status-bar { margin: 0 -22px }
+    .settings-backdrop h1 { margin: 38px 0 22px; color: var(--foreground); font-size: 22px; text-align: center }
+    .settings-card { height: 120px; background: var(--surface); border-radius: 22px; opacity: 0.72 }
+    .sheet-dim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.18) }
+    .profile-sheet {
+      position: absolute;
+      z-index: 2;
+      inset: 62px 0 0;
+      min-height: calc(100% - 62px);
+      overflow: hidden;
+      background: var(--background);
+      border-radius: 36px 36px 0 0;
+      box-shadow: 0 -10px 34px rgba(0, 0, 0, 0.10);
+    }
+    .sheet-grabber { width: 36px; height: 5px; margin: 7px auto 2px; background: var(--tertiary); border-radius: 999px }
+    .sheet-header {
+      display: grid;
+      grid-template-columns: 44px 1fr 44px;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px 0;
+    }
+    .sheet-title { text-align: center; font-size: 17px; font-weight: 600 }
+    .sheet-content { padding: 20px 32px 0 }
+
+    @media (max-width: 520px) {
+      .sh-bar { gap: 6px }
+      .sh-spacer { display: none }
+    }
+  </style>
+</head>
+<body class="sh-vp-390" data-appearance="light" data-variant="A">
+  <header class="sh-bar">
+    <b>flyn input</b>
+    <nav id="sh-tabs" aria-label="화면"></nav>
+    <span class="sh-spacer"></span>
+    <span id="sh-states" hidden></span>
+    <span id="sh-variants" aria-label="입력 변형">
+      <button aria-pressed="true" class="on" data-variant="A" title="Filled capsule">A</button>
+      <button aria-pressed="false" data-variant="B" title="Filled rounded rectangle">B</button>
+      <button aria-pressed="false" data-variant="C" title="Current rounded border">C</button>
+    </span>
+    <button id="sh-appearance" title="Light/dark 전환">light</button>
+    <button id="sh-vp">vp: full (m)</button>
+  </header>
+
+  <main class="sh-stage">
+    <section data-screen="email" data-title="이메일" data-states="빈 입력,오류">
+      <div class="status-bar" data-component="native:StatusBar">
+        <span>9:41</span><span class="dynamic-island"></span><span class="signals">▮▮▮ ◉ ▰</span>
+      </div>
+      <div class="navigation-bar" data-component="native:StackHeader">
+        <button class="back-button" aria-label="로그인, 뒤로">‹</button>
+        <div class="navigation-title">이메일</div><span></span>
+      </div>
+      <div class="form-layout" data-component="EmailForm">
+        <div class="form-main">
+          <p class="intro">코드를 받을 이메일 주소를 입력해 주세요.</p>
+          <div class="field-unit" data-component="FormTextField">
+            <label class="field-label" id="email-label">이메일 주소</label>
+            <div class="field-shell" data-component="new:FilledTextField" data-when="빈 입력">
+              <input aria-labelledby="email-label" inputmode="email" placeholder="name@example.com">
+            </div>
+            <div class="field-shell is-error" data-component="new:FilledTextField" data-when="오류">
+              <input aria-describedby="email-error" aria-invalid="true" aria-labelledby="email-label" inputmode="email" value="alwaysfun2183@">
+              <span class="field-icon danger" aria-hidden="true">!</span>
+            </div>
+            <p class="field-footer danger" data-when="오류" id="email-error" role="alert">올바른 이메일 주소를 입력해 주세요.</p>
+          </div>
+        </div>
+        <button class="submit-button" data-component="FormSubmitButton" disabled>코드 받기</button>
+      </div>
+    </section>
+
+    <section data-screen="onboarding" data-title="온보딩" data-states="닉네임,아이디 가능,아이디 중복">
+      <div class="status-bar" data-component="native:StatusBar">
+        <span>9:41</span><span class="dynamic-island"></span><span class="signals">▮▮▮ ◉ ▰</span>
+      </div>
+      <div class="navigation-bar" data-component="native:StackHeader">
+        <span></span>
+        <div class="navigation-title" data-when="닉네임">닉네임</div>
+        <div class="navigation-title" data-when="아이디 가능,아이디 중복">아이디</div>
+        <span></span>
+      </div>
+      <div class="form-layout" data-component="OnboardingForm">
+        <div class="form-main" data-when="닉네임">
+          <div class="field-unit" data-component="FormTextField">
+            <label class="field-label" for="nickname-onboarding">닉네임</label>
+            <div class="field-shell" data-component="new:FilledTextField">
+              <input id="nickname-onboarding" aria-label="닉네임" value="Hello">
+            </div>
+            <p class="field-footer">1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.</p>
+          </div>
+        </div>
+        <div class="form-main" data-when="아이디 가능">
+          <div class="field-unit" data-component="FormTextField">
+            <label class="field-label" for="username-available">아이디</label>
+            <div class="field-shell" data-component="new:FilledTextField">
+              <input id="username-available" aria-label="아이디" value="alwaysfun2183">
+              <span class="field-icon success" aria-label="사용 가능">✓</span>
+            </div>
+            <p class="field-footer">4~20자, 영문 소문자·숫자·_·.만 사용할 수 있어요.</p>
+          </div>
+        </div>
+        <div class="form-main" data-when="아이디 중복">
+          <div class="field-unit" data-component="FormTextField">
+            <label class="field-label" id="onboarding-username-label">아이디</label>
+            <div class="field-shell is-error" data-component="new:FilledTextField">
+              <input aria-describedby="onboarding-username-error" aria-invalid="true" aria-labelledby="onboarding-username-label" value="alwaysfun218">
+              <span class="field-icon danger" aria-hidden="true">!</span>
+            </div>
+            <p class="field-footer danger" id="onboarding-username-error" role="alert">이미 사용 중인 아이디예요.</p>
+          </div>
+          <div class="suggestions" data-component="UsernameSuggestionList">
+            <span class="suggestions-title">추천</span>
+            <button class="suggestion">alwaysfun218.3</button>
+            <button class="suggestion">alwaysfun_2183</button>
+            <button class="suggestion">alwaysfun2183_</button>
+          </div>
+        </div>
+        <button class="submit-button" data-component="FormSubmitButton" data-when="닉네임">아이디 정하기</button>
+        <button class="submit-button" data-component="FormSubmitButton" data-when="아이디 가능">시작하기</button>
+        <button class="submit-button" data-component="FormSubmitButton" data-when="아이디 중복" disabled>시작하기</button>
+      </div>
+    </section>
+
+    <section data-screen="settings-sheet" data-title="설정 시트" data-states="닉네임,아이디 중복">
+      <div class="settings-backdrop" aria-hidden="true">
+        <div class="status-bar">
+          <span>9:41</span><span class="dynamic-island"></span><span class="signals">▮▮▮ ◉ ▰</span>
+        </div>
+        <h1>설정</h1><div class="settings-card"></div>
+      </div>
+      <div class="sheet-dim"></div>
+      <div class="profile-sheet" data-component="ProfileEditSheet">
+        <div class="sheet-grabber"></div>
+        <div class="sheet-header">
+          <button class="sheet-action" aria-label="닫기">×</button>
+          <div class="sheet-title" data-when="닉네임">닉네임</div>
+          <div class="sheet-title" data-when="아이디 중복">아이디</div>
+          <button class="sheet-action" aria-label="저장" data-when="닉네임">✓</button>
+          <button class="sheet-action" aria-label="저장" data-when="아이디 중복" disabled>✓</button>
+        </div>
+        <div class="sheet-content" data-when="닉네임">
+          <div class="field-unit" data-component="NicknameEditSheet">
+            <div class="field-shell" data-component="new:FilledTextField">
+              <input aria-label="닉네임" value="Hello">
+            </div>
+            <p class="field-footer">1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.</p>
+          </div>
+        </div>
+        <div class="sheet-content" data-when="아이디 중복">
+          <div class="field-unit" data-component="UsernameEditSheet">
+            <div class="field-shell is-error" data-component="new:FilledTextField">
+              <input aria-describedby="settings-username-error" aria-invalid="true" aria-label="아이디" value="alwaysfun218">
+              <span class="field-icon danger" aria-hidden="true">!</span>
+            </div>
+            <p class="field-footer danger" id="settings-username-error" role="alert">이미 사용 중인 아이디예요.</p>
+          </div>
+          <div class="suggestions" data-component="UsernameSuggestionList">
+            <span class="suggestions-title">추천</span>
+            <button class="suggestion">alwaysfun218.3</button>
+            <button class="suggestion">alwaysfun_2183</button>
+            <button class="suggestion">alwaysfun2183_</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const stage = document.querySelector('.sh-stage');
+    const screens = [...stage.querySelectorAll('[data-screen]')];
+    const tabs = document.getElementById('sh-tabs');
+    const statebox = document.getElementById('sh-states');
+    const variantbox = document.getElementById('sh-variants');
+    const appearanceBtn = document.getElementById('sh-appearance');
+    const vpBtn = document.getElementById('sh-vp');
+    let current = null;
+
+    screens.forEach(screen => {
+      const button = document.createElement('button');
+      button.textContent = screen.dataset.title || screen.dataset.screen;
+      button.dataset.for = screen.dataset.screen;
+      button.setAttribute('aria-current', 'false');
+      button.onclick = () => show(screen.dataset.screen);
+      tabs.append(button);
+    });
+
+    function show(slug) {
+      current = screens.find(screen => screen.dataset.screen === slug) || screens[0];
+      screens.forEach(screen => { screen.hidden = screen !== current; });
+      [...tabs.children].forEach(button => {
+        const selected = button.dataset.for === current.dataset.screen;
+        button.classList.toggle('on', selected);
+        button.setAttribute('aria-current', selected ? 'page' : 'false');
+      });
+      history.replaceState(null, '', '#' + current.dataset.screen);
+      buildStates();
+    }
+
+    function buildStates() {
+      const names = (current.dataset.states || '').split(',').map(name => name.trim()).filter(Boolean);
+      statebox.innerHTML = '';
+      statebox.hidden = !names.length;
+      names.forEach(name => {
+        const button = document.createElement('button');
+        button.textContent = name;
+        button.setAttribute('aria-pressed', 'false');
+        button.onclick = () => applyState(name);
+        statebox.append(button);
+      });
+      applyState(names[0] || null);
+    }
+
+    function applyState(name) {
+      current.querySelectorAll('[data-when]').forEach(element => {
+        element.hidden = !name || !element.dataset.when.split(',').map(value => value.trim()).includes(name);
+      });
+      [...statebox.children].forEach(button => {
+        const selected = button.textContent === name;
+        button.classList.toggle('on', selected);
+        button.setAttribute('aria-pressed', String(selected));
+      });
+    }
+
+    variantbox.addEventListener('click', event => {
+      const button = event.target.closest('button[data-variant]');
+      if (!button) return;
+      document.body.dataset.variant = button.dataset.variant;
+      [...variantbox.querySelectorAll('button')].forEach(candidate => {
+        const selected = candidate === button;
+        candidate.classList.toggle('on', selected);
+        candidate.setAttribute('aria-pressed', String(selected));
+      });
+    });
+
+    appearanceBtn.onclick = () => {
+      const next = document.body.dataset.appearance === 'dark' ? 'light' : 'dark';
+      document.body.dataset.appearance = next;
+      appearanceBtn.textContent = next;
+      appearanceBtn.classList.toggle('on', next === 'dark');
+      appearanceBtn.setAttribute('aria-pressed', String(next === 'dark'));
+    };
+    appearanceBtn.setAttribute('aria-pressed', 'false');
+
+    const VPS = ['full', '390', '768'];
+    let viewport = VPS.find(value => document.body.classList.contains('sh-vp-' + value)) || 'full';
+    function applyViewport() {
+      VPS.forEach(value => {
+        document.body.classList.toggle('sh-vp-' + value, value === viewport && value !== 'full');
+      });
+      vpBtn.textContent = 'vp: ' + viewport + ' (m)';
+      vpBtn.classList.toggle('on', viewport !== 'full');
+    }
+    vpBtn.onclick = () => {
+      viewport = VPS[(VPS.indexOf(viewport) + 1) % VPS.length];
+      applyViewport();
+    };
+    applyViewport();
+
+    addEventListener('keydown', event => {
+      if (/INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) return;
+      const index = screens.indexOf(current);
+      if (event.key === 'ArrowRight') show(screens[(index + 1) % screens.length].dataset.screen);
+      if (event.key === 'ArrowLeft') show(screens[(index - 1 + screens.length) % screens.length].dataset.screen);
+      if (event.key === 'm') vpBtn.click();
+    });
+
+    addEventListener('hashchange', () => show(location.hash.slice(1)));
+    show(location.hash.slice(1));
+  </script>
+</body>
+</html>
