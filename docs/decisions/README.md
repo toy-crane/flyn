@@ -14,11 +14,11 @@
 - [settings-edits-use-native-form-sheet](settings-edits-use-native-form.md) — Read when 설정의 닉네임·아이디 편집 화면이나 native form sheet를 바꿀 때.
 - [danggeun-voice-for-copy](danggeun-voice-for-copy.md) — Read when 사용자에게 보이는 한국어 문구를 쓰거나 검토할 때.
 - [hono-on-vercel](hono-on-vercel.md) — Read when API 런타임, 배포 표면 또는 모바일 API 계약을 바꿀 때.
-- [ai-gateway-for-model-calls](ai-gateway-for-model-calls.md) — Read when AI SDK, 모델, Gateway 또는 모바일 스트리밍 경계를 바꿀 때.
-- [ai-chat-experience](ai-chat-experience.md) — Read when 채팅 목록·상세, 생성 상태, 스크롤, 키보드 또는 새로고침 동작을 바꿀 때.
-- [ai-chat-reliability](ai-chat-reliability.md) — Read when 채팅 재시도, timeout, 출력 상한 또는 운영 로그를 바꿀 때.
+- [ai-gateway-for-model-calls](ai-gateway-for-model-calls.md) — Read when AI SDK, 역할별 모델, Gateway 또는 한 요청의 여러 모델 호출을 다룰 때.
+- [streaming-conversation-experience](ai-chat-experience.md) — Read when 스트리밍 대화 화면의 생성 상태, 스크롤, 키보드 또는 새로고침 동작을 바꿀 때.
+- [ai-chat-reliability](ai-chat-reliability.md) — Read when 모델 호출 재시도, timeout, 출력 상한 또는 운영 로그를 바꿀 때.
 - [sign-in-methods](sign-in-methods.md) — Read when 로그인 provider, 이메일 OTP, 매직링크 또는 인증 자동화를 바꿀 때.
 - [social-sign-in-presentation](social-sign-in-presentation.md) — Read when root sign-in의 provider 버튼, 이메일 위계 또는 pending 표현을 바꿀 때.
 - [no-apple-token-revocation](no-apple-token-revocation.md) — Read when 계정 삭제, Apple token 취소 또는 사용자 데이터 정리를 바꿀 때.
 - [profile-identity](profile-identity.md) — Read when 프로필 스키마, 공개 닉네임·아이디, 온보딩 판정 또는 프로필 권한을 바꿀 때.
-- [hybrid-data-access](hybrid-data-access.md) — Read when 모바일 직접 CRUD, RLS, Hono 경계 또는 채팅 메시지 쓰기 권한을 바꿀 때.
+- [hybrid-data-access](hybrid-data-access.md) — Read when 모바일 직접 CRUD, RLS, Hono 경계 또는 AI가 만든 기록의 쓰기 권한을 바꿀 때.
