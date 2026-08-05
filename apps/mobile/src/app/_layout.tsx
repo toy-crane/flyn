@@ -32,6 +32,7 @@ function AppNavigationTheme({ children }: { children: ReactNode }) {
 
 // useAuth 구독은 여기 한 곳뿐이다 — 화면들은 가드 결과만 받는다.
 function Routes() {
+  const { colors } = useTheme();
   const auth = useAuth();
   const userId = auth.kind === "ready" ? auth.userId : null;
   // 훅은 조건부로 부를 수 없다. 로그인 전에는 userId가 null이라 조회가 꺼져
@@ -72,7 +73,7 @@ function Routes() {
 
   return (
     <UserIdProvider userId={userId}>
-      {/* layout과 back gesture는 native stack이 소유하고 색만 CSS 테마가 준다. */}
+      {/* layout과 back gesture는 native stack이 소유하고 색만 navigation theme가 준다. */}
       <Stack
         screenOptions={{
           headerBackButtonDisplayMode: "minimal",
@@ -96,6 +97,7 @@ function Routes() {
             name="settings/index"
             options={{
               headerShown: true,
+              headerStyle: { backgroundColor: colors.background },
               title: "설정",
             }}
           />

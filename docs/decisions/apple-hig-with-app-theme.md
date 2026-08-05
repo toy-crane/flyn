@@ -16,6 +16,9 @@
 - Expo Router/React Navigation의 공개 theme API에는 앱의 background, text,
   separator와 action accent를 연결한다. 이 색 연결은 header·tab bar의 높이,
   material, gesture와 native interaction을 앱이 소유한다는 뜻이 아니다.
+- Settings처럼 grouped `Form`이 화면 전체의 의미인 경우에는 해당 route의 native
+  header에 같은 semantic grouped background를 연결할 수 있다. 현재 예외는
+  Settings 하나이며 다른 route의 navigation surface에는 전파하지 않는다.
 - RN과 native의 일관성은 같은 의미가 같은 역할로 읽히는 것으로 판단한다. 서로
   다른 화면 종류의 배경색이 완전히 같아야 한다는 뜻이 아니다.
 - 시스템 폰트, native stack header와 back gesture를 유지한다.

@@ -1,6 +1,9 @@
 import { render, screen } from "@testing-library/react-native";
 
 const mockNavigatorOptions: { current?: Record<string, unknown> } = {};
+const mockNavigationTheme: { current: { colors: Record<string, unknown> } } = {
+  current: { colors: {} },
+};
 const mockRouteOptions: Record<string, Record<string, unknown> | undefined> =
   {};
 
@@ -45,7 +48,16 @@ jest.mock("expo-router", () => {
 jest.mock("expo-router/react-navigation", () => ({
   DarkTheme: { colors: {}, dark: true },
   DefaultTheme: { colors: {}, dark: false },
-  ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+  ThemeProvider: ({
+    children,
+    value,
+  }: {
+    children: React.ReactNode;
+    value: { colors: Record<string, unknown> };
+  }) => {
+    mockNavigationTheme.current = value;
+    return children;
+  },
 }));
 jest.mock("react-native-keyboard-controller", () => ({
   KeyboardProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -88,6 +100,7 @@ function signedInWith(profile: Record<string, unknown>) {
 beforeEach(() => {
   jest.resetAllMocks();
   mockNavigatorOptions.current = undefined;
+  mockNavigationTheme.current = { colors: {} };
   for (const name of Object.keys(mockRouteOptions)) {
     delete mockRouteOptions[name];
   }
@@ -128,6 +141,20 @@ describe("Layout native stack header", () => {
       title: "설정",
     });
     expect(mockRouteOptions["settings/display-name"]).toBeUndefined();
+  });
+
+  it("설정 화면만 grouped background를 native header까지 이어 쓴다", async () => {
+    signedInWith({ kind: "ready" });
+
+    await render(<Layout />);
+
+    expect(mockRouteOptions["settings/index"]).toMatchObject({
+      headerStyle: {
+        backgroundColor: mockNavigationTheme.current.colors.background,
+      },
+    });
+    expect(mockRouteOptions.index).not.toHaveProperty("headerStyle");
+    expect(mockRouteOptions["chats/[id]"]).not.toHaveProperty("headerStyle");
   });
 
   it("온보딩 두 단계의 제목을 native header에 선언한다", async () => {

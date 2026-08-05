@@ -28,6 +28,9 @@
   `card → secondaryBackground`, `text → text`, `border → separator`,
   `notification → accent`로 연결한다. navigation component의 높이, material,
   gesture와 interaction은 플랫폼 기본값을 유지한다.
+- grouped `Form` 자체가 화면의 주 surface인 Settings는 route의 native header에도
+  같은 semantic `background`를 사용한다. 이 화면 한정 연결은 grouped canvas의
+  연속성을 표현하며 다른 route의 공통 `card` 색은 바꾸지 않는다.
 - 화면 배치와 컴포넌트 구조를 이루는 flex, alignment, position, 특정 크기는
   화면·컴포넌트 가까이의 `StyleSheet`가 소유한다. 임의의 `rowBetween` 같은 전역
   layout utility로 승격하지 않는다.
@@ -75,7 +78,8 @@ compiler, Metro 연동, generated type과 CSS 진입점도 제거할 수 없다.
   기본 간격, 글자 위계와 control 크기는 플랫폼이 소유한다.
 - Expo Router/React Navigation chrome에는 공개 `ThemeProvider`를 통해 semantic
   color만 전달한다. header·tab bar의 metric, blur/material과 native interaction을
-  직접 다시 만들지는 않는다.
+  직접 다시 만들지는 않는다. 화면별 연결이 필요해도 앱의 semantic `ColorValue`만
+  사용하고 raw 색을 route 옵션에 넣지 않는다.
 - RN과 native의 일관성은 같은 의미와 위계로 읽히는지로 판단하며 픽셀 일치를
   요구하지 않는다.
 - spacing·typography의 정확한 이름과 값은 현재 반복 사용을 근거로 작게 시작한다.
