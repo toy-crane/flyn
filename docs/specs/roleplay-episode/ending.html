@@ -197,6 +197,9 @@
   .say-row .m.ok { color: var(--success) }
   .say-row .m.more { color: var(--secondary-text) }
   .say-row .chev { color: var(--border); flex: none; display: flex }
+  .say-row .retry-label {
+    flex: none; color: var(--accent); font-size: 14px; line-height: 20px; font-weight: 600;
+  }
 
   .cta {
     position: sticky; bottom: 0; z-index: 10;
@@ -259,7 +262,7 @@
     </div>
   </section>
 
-  <section data-screen="result" data-title="결과" data-states="전부 달성,일부 달성">
+  <section data-screen="result" data-title="결과" data-states="전부 달성,일부 달성,판정 실패 남음">
     <div class="ep-header" data-component="new:EpisodeHeader">
       <div class="back" aria-label="뒤로">
         <svg width="12" height="21" viewBox="0 0 12 21" fill="none"><path d="M10.5 1.5L2 10.5L10.5 19.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -270,7 +273,7 @@
 
     <div class="content">
       <div class="ep-name">공항에서 짐이 안 나왔을 때 항의하기</div>
-      <div class="headline" data-when="전부 달성">목표 3개를 모두 해냈어요</div>
+      <div class="headline" data-when="전부 달성,판정 실패 남음">목표 3개를 모두 해냈어요</div>
       <div class="headline" data-when="일부 달성">목표 3개 중 2개를 해냈어요</div>
 
       <div class="sec-title">이번 대화의 목표</div>
@@ -283,7 +286,7 @@
           <span class="pip-done"><svg width="11" height="9" viewBox="0 0 12 10" fill="none"><path d="M1.5 5L4.5 8L10.5 1.5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           <span class="txt">가방 생김새 설명하기</span>
         </div>
-        <div class="goal-line" data-when="전부 달성">
+        <div class="goal-line" data-when="전부 달성,판정 실패 남음">
           <span class="pip-done"><svg width="11" height="9" viewBox="0 0 12 10" fill="none"><path d="M1.5 5L4.5 8L10.5 1.5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           <span class="txt">연락받을 방법 정하기</span>
         </div>
@@ -300,7 +303,8 @@
         "무엇을 하고 싶다"고 말할 때 <b>want to</b>를 챙겨보세요.
       </div>
 
-      <div class="sec-title">내가 쓴 문장 5개</div>
+      <div class="sec-title" data-when="전부 달성,일부 달성">내가 쓴 문장 5개</div>
+      <div class="sec-title" data-when="판정 실패 남음">내가 쓴 문장 6개</div>
       <div class="say-list" data-component="new:UtteranceReviewList">
         <div class="say-row">
           <span class="m more" aria-label="한글로 썼어요">
@@ -334,6 +338,15 @@
             <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><path d="M3 9.6L7 13.4L15 4.6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>
           <span class="txt">Could you call me when you find it?</span>
+        </div>
+
+        <!-- 자동 재시도로도 못 채운 문장. 여기서만 탭 가능한 재시도를 보인다 -->
+        <div class="say-row" data-when="판정 실패 남음" data-component="new:FeedbackRetryRow">
+          <span class="m more" aria-label="다시 확인하기">
+            <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><path d="M14.6 9a5.6 5.6 0 1 1-1.64-3.96" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M14.9 2.6v3h-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="txt">Is the office open tomorrow morning?</span>
+          <span class="retry-label">다시 확인</span>
         </div>
       </div>
     </div>

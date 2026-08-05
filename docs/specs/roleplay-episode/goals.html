@@ -219,7 +219,7 @@
 
 <main class="sh-stage">
 
-  <section data-screen="chat" data-title="대화 화면" data-states="기본,목표 펼침,상황 펼침">
+  <section data-screen="chat" data-title="대화 화면" data-states="기본,목표 펼침,상황 펼침,턴 5개 남음">
 
     <div class="ep-header" data-component="new:EpisodeHeader">
       <div class="back" aria-label="뒤로">
@@ -234,7 +234,7 @@
 
     <div class="ep-messages" data-component="chat-conversation">
 
-      <div class="card-collapsed" data-when="기본,목표 펼침" data-component="new:EpisodeContextCard">
+      <div class="card-collapsed" data-when="기본,목표 펼침,턴 5개 남음" data-component="new:EpisodeContextCard">
         <span class="grow">상황 자세히 보기</span>
         <span class="chev"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3.5 6l4.5 4.5L12.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       </div>
@@ -271,6 +271,15 @@
       <div class="goal-dock" data-when="기본,상황 펼침" data-component="new:GoalDock">
         <div class="bar">
           <span class="now-txt">우유를 오트밀크로 바꿔 주문하기</span>
+          <span class="chev"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="transform:rotate(180deg)"><path d="M3.5 6l4.5 4.5L12.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+      </div>
+
+      <!-- 남은 턴이 5개 이하일 때만 접힌 바에도 턴이 나타난다 -->
+      <div class="goal-dock" data-when="턴 5개 남음" data-component="new:GoalDock">
+        <div class="bar">
+          <span class="now-txt">우유를 오트밀크로 바꿔 주문하기</span>
+          <span class="count">5턴 남음</span>
           <span class="chev"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="transform:rotate(180deg)"><path d="M3.5 6l4.5 4.5L12.5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         </div>
       </div>

@@ -1,0 +1,276 @@
+<!--
+  prototype shell: the review chrome every prototype starts from.
+
+  Contract (extend freely, never strip):
+  - Screens:  <section data-screen="slug" data-title="Label"> inside .sh-stage.
+  - States:   data-states="a,b,c" on the screen; data-when="a" on elements.
+              This file adds ?state=<name> URL support for headless capture.
+  - Viewport: "vp (m)" cycles full / 390 / 768.
+  - Tokens:   apps/mobile/src/theme (colors.ts iOS light, tokens.ts spacing/type).
+
+  Self-contained by design: no build, no framework, no network.
+
+  확정: 에피소드 목록이 앱의 홈이다. 가장 최근에 진행 중인 에피소드 하나만
+  상단 카드로 앞세우고, 나머지는 모두 아래 한 목록에 둔다. 카드에 오른
+  에피소드는 목록에 다시 나오지 않는다.
+-->
+<meta charset="utf-8">
+<title>flyn 에피소드 목록 프로토타입</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --background: #FFFFFF;
+    --surface: #F2F2F7;
+    --grouped-background: #F2F2F7;
+    --input-fill: rgba(118,118,128,0.12);
+    --text: #000000;
+    --secondary-text: rgba(60,60,67,0.60);
+    --separator: rgba(60,60,67,0.29);
+    --border: #C6C6C8;
+    --accent: #007AFF;
+    --placeholder: rgba(60,60,67,0.30);
+    --user-bubble: #E5E5EA;
+    --danger: #D70015;
+    --success: #1F7A35;
+    --sp-xxs: 4px; --sp-xs: 8px; --sp-sm: 12px; --sp-md: 16px;
+    --sp-lg: 20px; --sp-xl: 24px; --sp-xxl: 32px;
+    --foreground: var(--text);
+    --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+  }
+
+  * { box-sizing: border-box }
+  body {
+    margin: 0; padding: 0 0 40px;
+    background: var(--background); color: var(--foreground);
+    font-family: var(--font);
+  }
+  .sh-bar {
+    position: sticky; top: 0; z-index: 999;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    padding: 8px 12px; background: #191a1c; color: #d7d7d7;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .sh-bar b { color: #8a8f98; font-weight: 500 }
+  .sh-bar button {
+    border: 1px solid #3a3d42; background: none; color: inherit;
+    font: inherit; padding: 2px 9px; border-radius: 99px; cursor: pointer;
+  }
+  .sh-bar button.on { background: #d7d7d7; color: #191a1c; border-color: #d7d7d7 }
+  #sh-states:not([hidden])::before { content: "state"; color: #8a8f98; margin-right: 4px }
+  .sh-spacer { flex: 1 }
+  .sh-stage { max-width: 960px; margin: 0 auto; padding: 12px 16px 0 }
+  [hidden] { display: none !important }
+
+  .sh-vp-390 .sh-stage {
+    max-width: 390px; background: var(--background);
+    border: 10px solid #191a1c; border-radius: 28px;
+    padding: 0; height: min(844px, calc(100dvh - 52px));
+    overflow-y: auto; margin-top: 12px;
+  }
+  .sh-vp-768 .sh-stage {
+    max-width: 768px; border: 1px solid #c4c4c4; border-radius: 12px;
+    padding: 16px; margin-top: 12px;
+  }
+
+  section[data-screen] {
+    position: relative; display: flex; flex-direction: column;
+    min-height: 100%; background: var(--background);
+  }
+
+  .nav {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: var(--sp-xs);
+    padding: var(--sp-sm) var(--sp-md);
+    background: rgba(255,255,255,0.94); backdrop-filter: blur(12px);
+    border-bottom: 0.5px solid var(--separator); min-height: 52px;
+  }
+  .nav .brand { flex: 1; font-size: 17px; font-weight: 600; line-height: 22px }
+  .nav .add { color: var(--accent); font-size: 17px; line-height: 22px; padding: 0 var(--sp-xxs) }
+
+  .content { flex: 1; padding: var(--sp-md) }
+  .sec-title {
+    font-size: 13px; line-height: 18px; color: var(--secondary-text);
+    font-weight: 500; margin: 0 var(--sp-xxs) var(--sp-xs);
+  }
+  .sec-gap { height: var(--sp-xl) }
+
+  /* 가장 최근 진행 중 에피소드 하나 */
+  .now-card {
+    background: var(--surface); border-radius: 16px; padding: var(--sp-md);
+  }
+  .now-card .lbl {
+    font-size: 12.5px; line-height: 17px; color: var(--accent);
+    font-weight: 600; margin-bottom: var(--sp-xxs);
+  }
+  .now-card .t { font-size: 17px; font-weight: 600; line-height: 23px }
+  .now-card .s { font-size: 14px; line-height: 20px; color: var(--secondary-text); margin-top: 2px }
+  .now-card .go {
+    margin-top: var(--sp-sm); height: 44px; border-radius: 12px;
+    background: var(--accent); color: #FFFFFF; font-size: 15px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .list { background: var(--surface); border-radius: 14px; padding: 0 var(--sp-md) }
+  .row {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm) 0; border-bottom: 0.5px solid var(--separator);
+    min-height: 60px;
+  }
+  .row:last-child { border-bottom: none }
+  .row .grow { flex: 1; min-width: 0 }
+  .row .t {
+    font-size: 15px; line-height: 21px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .row .s { font-size: 13px; line-height: 18px; color: var(--secondary-text); margin-top: 2px }
+  .row .chev { color: var(--border); flex: none; display: flex }
+  .row.done .t { font-weight: 400 }
+  .dot { width: 8px; height: 8px; border-radius: 4px; background: var(--accent); flex: none }
+  .dot-slot { width: 8px; flex: none }
+
+  /* 아무것도 없을 때 */
+  .empty { padding: var(--sp-xxl) var(--sp-md); text-align: center }
+  .empty .t { font-size: 17px; font-weight: 600; line-height: 23px }
+  .empty .s { font-size: 15px; line-height: 22px; color: var(--secondary-text); margin-top: var(--sp-xxs) }
+  .empty .go {
+    margin-top: var(--sp-lg); height: 50px; border-radius: 14px;
+    background: var(--accent); color: #FFFFFF; font-size: 16px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+</style>
+
+<header class="sh-bar">
+  <b>flyn 에피소드 목록</b>
+  <nav id="sh-tabs"></nav>
+  <span class="sh-spacer"></span>
+  <span id="sh-states" hidden></span>
+  <button id="sh-vp">vp: full (m)</button>
+</header>
+
+<main class="sh-stage">
+
+  <section data-screen="home" data-title="에피소드 목록" data-states="기본,진행 중 없음,비어 있음">
+    <div class="nav" data-component="new:HomeHeader">
+      <span class="brand">에피소드</span>
+      <span class="add" data-when="기본,진행 중 없음" aria-label="새 에피소드">새로 만들기</span>
+    </div>
+
+    <div class="content">
+
+      <div class="now-card" data-when="기본" data-component="new:ResumeCard">
+        <div class="lbl">이어서 하기</div>
+        <div class="t">포틀랜드 카페에서 첫 주문</div>
+        <div class="s">목표 1/3 · 3턴까지 했어요</div>
+        <div class="go">대화 이어가기</div>
+      </div>
+
+      <div class="sec-gap" data-when="기본"></div>
+
+      <div data-when="기본,진행 중 없음">
+        <div class="sec-title">모든 에피소드</div>
+        <div class="list" data-component="new:EpisodeList">
+          <div class="row" data-when="기본">
+            <span class="dot"></span>
+            <div class="grow">
+              <div class="t">공항에서 짐이 안 나왔을 때 항의하기</div>
+              <div class="s">목표 2/3 · 8턴까지 했어요</div>
+            </div>
+            <span class="chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1.5 1.5L6.5 7L1.5 12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </div>
+          <div class="row done">
+            <span class="dot-slot"></span>
+            <div class="grow">
+              <div class="t">호스텔 체크인이 꼬였어요</div>
+              <div class="s">어제 · 목표 3/3</div>
+            </div>
+            <span class="chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1.5 1.5L6.5 7L1.5 12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </div>
+          <div class="row done">
+            <span class="dot-slot"></span>
+            <div class="grow">
+              <div class="t">식당에서 알레르기 알리기</div>
+              <div class="s">3일 전 · 목표 2/3</div>
+            </div>
+            <span class="chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1.5 1.5L6.5 7L1.5 12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty" data-when="비어 있음" data-component="new:EmptyEpisodes">
+        <div class="t">아직 만든 에피소드가 없어요</div>
+        <div class="s">취향과 영어 수준에 맞는 상황을 만들어 드릴게요</div>
+        <div class="go">첫 에피소드 만들기</div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<script>document.body.classList.add('sh-vp-390')</script>
+<script>
+  const stage = document.querySelector('.sh-stage');
+  const screens = [...stage.querySelectorAll('[data-screen]')];
+  const tabs = document.getElementById('sh-tabs');
+  const statebox = document.getElementById('sh-states');
+  const vpBtn = document.getElementById('sh-vp');
+  let current = null;
+
+  screens.forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s.dataset.title || s.dataset.screen;
+    b.dataset.for = s.dataset.screen;
+    b.onclick = () => show(s.dataset.screen);
+    tabs.append(b);
+  });
+
+  function show(slug) {
+    current = screens.find(s => s.dataset.screen === slug) || screens[0];
+    screens.forEach(s => s.hidden = s !== current);
+    [...tabs.children].forEach(b => b.classList.toggle('on', b.dataset.for === current.dataset.screen));
+    history.replaceState(null, '', '#' + current.dataset.screen);
+    buildStates();
+  }
+
+  function buildStates() {
+    const names = (current.dataset.states || '').split(',').map(x => x.trim()).filter(Boolean);
+    statebox.innerHTML = '';
+    statebox.hidden = !names.length;
+    names.forEach(name => {
+      const b = document.createElement('button');
+      b.textContent = name;
+      b.onclick = () => applyState(name);
+      statebox.append(b);
+    });
+    const q = new URLSearchParams(location.search).get('state');
+    applyState(q && names.includes(q) ? q : (names[0] || null));
+  }
+
+  function applyState(name) {
+    current.querySelectorAll('[data-when]').forEach(el => {
+      el.hidden = !name || !el.dataset.when.split(',').map(x => x.trim()).includes(name);
+    });
+    [...statebox.children].forEach(b => b.classList.toggle('on', b.textContent === name));
+  }
+
+  const VPS = ['full', '390', '768'];
+  let vp = VPS.find(v => document.body.classList.contains('sh-vp-' + v)) || 'full';
+  function applyVp() {
+    VPS.forEach(v => document.body.classList.toggle('sh-vp-' + v, v === vp && v !== 'full'));
+    vpBtn.textContent = 'vp: ' + vp + ' (m)';
+    vpBtn.classList.toggle('on', vp !== 'full');
+  }
+  vpBtn.onclick = () => { vp = VPS[(VPS.indexOf(vp) + 1) % VPS.length]; applyVp(); };
+  applyVp();
+
+  addEventListener('keydown', e => {
+    if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    const i = screens.indexOf(current);
+    if (e.key === 'ArrowRight') show(screens[(i + 1) % screens.length].dataset.screen);
+    if (e.key === 'ArrowLeft') show(screens[(i - 1 + screens.length) % screens.length].dataset.screen);
+    if (e.key === 'm') vpBtn.click();
+  });
+
+  addEventListener('hashchange', () => show(location.hash.slice(1)));
+  show(location.hash.slice(1));
+</script>
