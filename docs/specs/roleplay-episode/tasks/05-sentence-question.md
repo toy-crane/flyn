@@ -33,3 +33,25 @@
 - 롤플레잉이 아니라 학습 질문을 주고받는 자리다. 여기서 오간 말은 에피소드
   대화에 섞이지 않고 턴으로 세지 않는다.
 - 이 자리를 가리킬 때 `대화`라는 말을 쓰지 않는다. `대화`는 롤플레잉 쪽이다.
+
+## 리뷰에서 남은 메모
+
+막은 것은 없다.
+
+- `docs/specs/roleplay-episode/spec.md:135` — `모델 호출` 절이 아직 역할을 `다섯`이라 세는데 코드는
+  이제 여섯을 못박는다(`SENTENCE_QUESTION_MODEL_ID`). 리뷰의 판단: 이 추가는 계약 위반이 아니라
+  필요하고 옳게 놓인 것이다. `docs/decisions/ai-gateway-for-model-calls.md:35`가 역할 목록의
+  소유권을 작업 단위 문서에 넘긴다고 밝히고, 같은 스펙이 문장 질문에 답하고 저장하기를
+  요구한다(spec.md:112, 180). `ROLEPLAY_MODEL_ID`를 재사용했다면 그쪽이 위반이었다. 상수는 다른
+  다섯과 같은 모양이다(API 코드 안 리터럴 ID, 고를 수 있는 env 없음, 가짜 `LanguageModel` 주입구
+  유지, 가장 낮은 reasoning, env를 무시한다는 테스트). 스펙의 `다섯`은 여섯으로 고쳐야 한다.
+- `supabase/tests/episodes_rls.test.sql:98` — 새 표는 alice 몫만 심어, alice가 보면 안 되는 행이
+  아예 없다. `using (true)` 정책이어도 통과한다(기존 `message_feedback` 블록과 같은 모양).
+  리뷰가 사용자 둘과 같은 글자 문장 둘을 손으로 심어 확인했다: alice 2행, bob 1행, 교차 없음.
+- `apps/api/src/sentence-question.ts:305` — 물을 때마다 저장된 스레드 전체를 자르지 않고 모델에
+  다시 넣는다. 롤플레잉과 달리 턴 상한이 없어 오래 산 스레드는 입력 비용과 지연이 끝없이 자란다.
+- `apps/mobile/src/lib/sentence-question.ts:44` — `enabled`가 두 파라미터가 다 있을 때만 열려,
+  딥링크로 파라미터 없이 `/episodes/question`에 닿으면 쿼리가 영영 `isPending`이라
+  `문장을 찾을 수 없어요` 대신 스피너가 계속 돈다.
+- `apps/mobile/src/app/episodes/question.tsx:15` — 이름이 같은 `useSentenceQuestion` 둘(저장된
+  메시지 쿼리와 채팅 컨트롤러)을 한 파일에서 별칭으로 가른다. 서로 다른 이름이 읽기 좋다.
