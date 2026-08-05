@@ -1,20 +1,9 @@
+import { Button, Column, Icon, Text, useNativeState } from "@expo/ui";
 import {
-  Button,
-  Column,
-  Icon,
-  Row,
-  Text,
-  TextInput,
-  useNativeState,
-} from "@expo/ui";
-import {
-  accessibilityLabel,
   buttonStyle,
-  controlSize,
   font,
   foregroundStyle,
   frame,
-  textFieldStyle,
 } from "@expo/ui/swift-ui/modifiers";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
@@ -31,6 +20,7 @@ import {
   USERNAME_MAX,
 } from "../../lib/username";
 import { useColors } from "../../theme/app-theme";
+import { FormInput } from "../forms/form-input";
 import { ProfileEditSheet } from "./profile-edit-sheet";
 
 const USERNAME_RULE = "4~20자, 영문 소문자·숫자·_·.만 사용할 수 있어요.";
@@ -145,25 +135,19 @@ export function UsernameEditSheet({
       title="아이디"
     >
       <Column spacing={8} style={{ paddingHorizontal: 32, paddingTop: 20 }}>
-        <Row alignment="center" spacing={8}>
-          <TextInput
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoFocus
-            editable={!save.isPending}
-            keyboardType="ascii-capable"
-            maxLength={USERNAME_MAX}
-            modifiers={[
-              controlSize("large"),
-              textFieldStyle("roundedBorder"),
-              frame({ maxWidth: Number.POSITIVE_INFINITY }),
-              accessibilityLabel("아이디"),
-            ]}
-            onChangeText={handleChangeText}
-            value={username}
-          />
-          {trailing}
-        </Row>
+        <FormInput
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoFocus
+          editable={!save.isPending}
+          invalid={status === "taken"}
+          keyboardType="ascii-capable"
+          label="아이디"
+          maxLength={USERNAME_MAX}
+          onChangeText={handleChangeText}
+          trailing={trailing}
+          value={username}
+        />
         <Text
           modifiers={[
             foregroundStyle(

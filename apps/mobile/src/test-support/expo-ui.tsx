@@ -319,6 +319,8 @@ function MockTextInput({
   onSubmitEditing,
   placeholder,
   returnKeyType,
+  style,
+  testID,
   value,
 }: Pick<
   TextInputProps,
@@ -331,6 +333,8 @@ function MockTextInput({
   | "maxLength"
   | "placeholder"
   | "returnKeyType"
+  | "style"
+  | "testID"
 > & {
   modifiers?: unknown[];
   onChangeText?: (next: string) => void;
@@ -358,6 +362,8 @@ function MockTextInput({
       onSubmitEditing={handleSubmitEditing}
       placeholder={placeholder}
       returnKeyType={returnKeyType}
+      style={style}
+      testID={testID}
       value={value ? value.value : ""}
     />
   );
@@ -399,10 +405,12 @@ function MockRow({
   alignment = "start",
   children,
   modifiers,
+  style,
   testID,
 }: Modifiers & {
   alignment?: "center" | "end" | "start";
   children?: ReactNode;
+  style?: ComponentProps<typeof View>["style"];
   testID?: string;
 }) {
   const observableProps = { modifiers } as ComponentProps<typeof View>;
@@ -411,6 +419,7 @@ function MockRow({
     <View
       {...observableProps}
       accessibilityHint={`row-alignment:${alignment}`}
+      style={style}
       testID={testID}
     >
       {children}

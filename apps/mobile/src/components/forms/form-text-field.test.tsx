@@ -18,6 +18,7 @@ function TestField({ error }: { error?: string }) {
       error={error}
       label="표시 이름"
       placeholder="이름을 입력해 주세요"
+      testID="display-name-input"
       value={value}
     />
   );
@@ -31,5 +32,9 @@ describe("FormTextField", () => {
     expect(screen.getByLabelText("표시 이름")).toBeTruthy();
     expect(screen.getByPlaceholderText("이름을 입력해 주세요")).toBeTruthy();
     expect(screen.getByText("이름을 저장하지 못했습니다.")).toBeTruthy();
+    expect(screen.getByLabelText("exclamationmark.circle.fill")).toBeTruthy();
+    expect(screen.getByTestId("display-name-input-surface")).toHaveStyle({
+      borderWidth: 1,
+    });
   });
 });

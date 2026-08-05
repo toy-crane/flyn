@@ -198,6 +198,7 @@ function UsernameForm({
             autoCapitalize="none"
             autoCorrect={false}
             autoFocus
+            invalid={status === "taken"}
             keyboardType="ascii-capable"
             label="아이디"
             maxLength={USERNAME_MAX}

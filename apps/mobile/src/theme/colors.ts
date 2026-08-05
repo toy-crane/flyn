@@ -12,6 +12,7 @@ export interface ThemeColors {
   disabled: ColorValue;
   disabledText: ColorValue;
   groupedBackground: ColorValue;
+  inputFill: ColorValue;
   link: ColorValue;
   onAccent: ColorValue;
   onPrimary: ColorValue;
@@ -38,6 +39,7 @@ function resolveIosColors(colorScheme: AppColorScheme): ThemeColors {
     disabled: Color.ios.systemGray5,
     disabledText: Color.ios.tertiaryLabel,
     groupedBackground: Color.ios.systemGroupedBackground,
+    inputFill: Color.ios.tertiarySystemFill,
     link: Color.ios.link,
     onAccent: "#FFFFFF",
     onPrimary: "#FFFFFF",
@@ -83,6 +85,10 @@ function resolveAndroidColors(colorScheme: AppColorScheme): ThemeColors {
     groupedBackground: androidColor(
       dynamic.surfaceContainer,
       material.surfaceContainer
+    ),
+    inputFill: androidColor(
+      dynamic.surfaceContainerHighest,
+      material.surfaceContainerHighest
     ),
     link: primary,
     onAccent: onPrimary,

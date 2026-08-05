@@ -34,6 +34,7 @@ jest.mock("../../theme/app-theme", () => ({
   useColors: () => ({
     background: "#f7f7f5",
     danger: "#c62828",
+    inputFill: "#eeeeef",
     success: "#1f7a35",
   }),
 }));

@@ -1,11 +1,5 @@
-import { Column, Text, TextInput, useNativeState } from "@expo/ui";
-import {
-  accessibilityLabel,
-  controlSize,
-  foregroundStyle,
-  frame,
-  textFieldStyle,
-} from "@expo/ui/swift-ui/modifiers";
+import { Column, Text, useNativeState } from "@expo/ui";
+import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
 import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 import {
@@ -14,6 +8,7 @@ import {
   normalizeDisplayName,
 } from "../../lib/display-name";
 import { useSaveDisplayName } from "../../lib/use-profile";
+import { FormInput } from "../forms/form-input";
 import { ProfileEditSheet } from "./profile-edit-sheet";
 
 function saveFailed() {
@@ -62,17 +57,12 @@ export function NicknameEditSheet({
       title="닉네임"
     >
       <Column spacing={8} style={{ paddingHorizontal: 32, paddingTop: 20 }}>
-        <TextInput
+        <FormInput
           autoComplete="nickname"
           autoFocus
           editable={!save.isPending}
+          label="닉네임"
           maxLength={DISPLAY_NAME_MAX}
-          modifiers={[
-            controlSize("large"),
-            textFieldStyle("roundedBorder"),
-            frame({ maxWidth: Number.POSITIVE_INFINITY }),
-            accessibilityLabel("닉네임"),
-          ]}
           onChangeText={handleChangeText}
           value={name}
         />

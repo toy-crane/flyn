@@ -11,6 +11,7 @@ const colors = {
   disabled: "disabled",
   disabledText: "disabled-text",
   groupedBackground: "grouped-background",
+  inputFill: "input-fill",
   link: "link",
   onAccent: "on-accent",
   onPrimary: "on-primary",
