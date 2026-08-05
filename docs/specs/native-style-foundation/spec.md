@@ -67,7 +67,8 @@ renderer 경계를 유지한 채 styling 소유권만 바꾸는 migration 계약
 | --- | --- | --- |
 | system | `background` | grouped content가 아닌 기본 screen canvas |
 | system | `groupedBackground` | grouped content가 화면의 주 surface인 canvas |
-| system | `surface` | RN이 소유하는 card·input·composer surface |
+| system | `surface` | RN이 소유하는 card·code block surface |
+| system | `inputFill` | form input·chat composer·OTP slot의 중립 fill |
 | system | `text` | 기본 foreground text와 icon |
 | system | `secondaryText` | 보조 설명과 낮은 위계 text |
 | system | `separator` | system list·navigation 경계와 hairline |
@@ -88,8 +89,9 @@ renderer 경계를 유지한 채 styling 소유권만 바꾸는 migration 계약
 
 iOS는 `background → systemBackground`,
 `groupedBackground → systemGroupedBackground`,
-`surface → secondarySystemBackground`로 연결한다. Android는 각각 Material
-`background`, `surfaceContainer`, `surfaceContainerHigh`를 사용한다.
+`surface → secondarySystemBackground`, `inputFill → tertiarySystemFill`로 연결한다.
+Android는 각각 Material `background`, `surfaceContainer`, `surfaceContainerHigh`,
+`surfaceContainerHighest`를 사용한다.
 
 제품 accent가 없더라도 action 역할 자체는 유지한다. 이때 iOS는 system action/link,
 Android는 Material dynamic primary·onPrimary를 사용하고 임의의 brand hex를 넣지

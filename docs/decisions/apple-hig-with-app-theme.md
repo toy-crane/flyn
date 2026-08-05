@@ -13,6 +13,9 @@
   secondary label, separator, 간격, 글자 위계, control 크기와 상호작용을
   소유한다. 시스템이 의미를 이미 아는 곳은 앱 스타일과 픽셀 단위로 맞추려고
   덮어쓰지 않는다.
+- plain canvas의 single-line form input, RN chat composer와 OTP slot은 입력 가능
+  영역을 식별시키는 앱 소유 `inputFill`을 쓴다. form과 chat의 renderer는 합치지
+  않고 system font·Dynamic Type·keyboard·focus 동작은 각 native control에 남긴다.
 - Expo Router/React Navigation의 공개 theme API에는 앱의 background, text,
   separator와 action accent를 연결한다. 이 색 연결은 header·tab bar의 높이,
   material, gesture와 native interaction을 앱이 소유한다는 뜻이 아니다.
@@ -40,6 +43,8 @@ UI kit가 아니다. 다만 React Native 화면과 OS가 알 수 없는 제품 �
 - 스타일 파운데이션은 재사용 컴포넌트 라이브러리가 아니다.
 - RN의 반복 간격과 타이포 역할은 공유하지만 화면 배치, 특정 크기와 모서리는
   필요한 화면이나 컴포넌트가 소유한다.
+- `inputFill` 공유는 renderer를 가로지르는 범용 input component를 뜻하지 않는다.
+  universal `FormInput`, RN composer와 OTP가 같은 의미 색만 각각 소비한다.
 - 앱 안에 appearance 선택기를 만들지 않고 시스템 light/dark를 따른다.
 - 앱이 직접 소유하는 foreground/background 조합은 접근성 대비를 검증한다.
 - native subtree에서 앱 색을 명시하는 경우는 실제 앱 accent, 제품 상태 또는 앱이

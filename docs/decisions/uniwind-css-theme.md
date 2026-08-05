@@ -13,8 +13,8 @@
   fallback을 쓴다. Android의 시스템 light/dark 변경에는 `useColorScheme()`을
   구독해 다시 계산한다. screen과 일반 컴포넌트는 플랫폼을 직접 판별하지 않는다.
 - 초기 색 역할은 system, action, 제품 역할로 나눈다.
-  - system: background, groupedBackground, surface, text, secondaryText,
-    separator, border, link
+  - system: background, groupedBackground, surface, inputFill, text,
+    secondaryText, separator, border, link
   - action: primary, onPrimary, accent, onAccent
   - 제품·상태: disabled, disabledText, placeholder, overlay, danger, success,
     userBubble, onUserBubble
@@ -28,9 +28,13 @@
   `card → background`, `text → text`, `border → separator`,
   `notification → accent`로 연결한다. navigation component의 높이, material,
   gesture와 interaction은 플랫폼 기본값을 유지한다.
-- plain screen canvas는 iOS `systemBackground`, 그 위 RN card·input·composer
-  surface는 `secondarySystemBackground`를 쓴다. Android에서는 각각 Material
-  `background`, `surfaceContainerHigh`에 연결한다.
+- plain screen canvas는 iOS `systemBackground`, 그 위 RN card surface는
+  `secondarySystemBackground`를 쓴다. Android에서는 각각 Material `background`,
+  `surfaceContainerHigh`에 연결한다.
+- 입력 가능한 영역은 `inputFill`을 공유한다. iOS는 `tertiarySystemFill`, Android는
+  dynamic `surfaceContainerHighest`와 같은 static Material fallback을 쓴다.
+  universal `FormInput`, RN chat composer와 OTP slot은 이 색 역할만 공유하고,
+  renderer·native state·keyboard/scroll 경계와 shape는 각 컴포넌트가 소유한다.
 - `groupedBackground`는 grouped content가 화면의 주 surface일 때만 쓴다. iOS는
   `systemGroupedBackground`, Android는 `surfaceContainer`에 연결한다.
 - grouped `Form` 자체가 화면의 주 surface인 Settings는 route의 native header에도
@@ -43,6 +47,8 @@
   반복 variant라는 증거가 생기면 해당 컴포넌트 계약부터 만든다.
 - Navigation과 RN surface는 같은 의미 색 resolver를 쓴다. `@expo/ui` native
   surface는 RN 간격·타이포·layout token을 받지 않고 플랫폼 기본값을 유지한다.
+  사용자가 승인한 single-line `FormInput`의 52pt capsule은 입력 affordance에
+  한정된 예외이며 Form/List/sheet 전체를 다시 칠하는 근거가 아니다.
 - 제품 accent가 확정되지 않은 `Host`에는 `seedColor`를 전달하지 않는다. 실제
   제품 accent가 생기기 전 action 역할은 iOS system action/link와 Android Material
   dynamic primary에 연결하고 임의의 brand hex를 넣지 않는다. 실제 제품 accent가
