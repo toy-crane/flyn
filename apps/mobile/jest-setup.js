@@ -21,7 +21,7 @@ jest.mock("./src/theme/app-theme", () => {
     danger: "#111111",
     disabled: "#111111",
     disabledText: "#111111",
-    groupedBackground: "#111111",
+    groupedBackground: "#333333",
     inputFill: "#222222",
     link: "#111111",
     onAccent: "#fefefe",
