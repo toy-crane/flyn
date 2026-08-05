@@ -7,7 +7,7 @@
  */
 
 import type { ReactNode } from "react";
-import { Pressable } from "react-native";
+import { Platform, Pressable } from "react-native";
 
 const NOTHING = () => null;
 
@@ -26,9 +26,14 @@ function ToolbarButton({
   icon?: unknown;
   onPress: () => void;
 }) {
+  // Expo Router의 Android toolbar는 SF Symbol 문자열을 렌더링하지 않는다.
+  if (Platform.OS === "android" && typeof icon === "string") {
+    return null;
+  }
+
   return (
     <Pressable
-      accessibilityHint={typeof icon === "string" ? `sf:${icon}` : undefined}
+      accessibilityHint={typeof icon === "string" ? `sf:${icon}` : "image"}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       accessibilityState={{ disabled }}

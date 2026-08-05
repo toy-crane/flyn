@@ -3,6 +3,7 @@ import { frame } from "@expo/ui/swift-ui/modifiers";
 import { Stack } from "expo-router";
 import type { ReactNode } from "react";
 import { ActivityIndicator, StyleSheet } from "react-native";
+import { profileToolbarIcons } from "./profile-toolbar-icons";
 
 const styles = StyleSheet.create({
   host: {
@@ -28,7 +29,7 @@ export function ProfileEditScreen({
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button
           accessibilityLabel="닫기"
-          icon="xmark"
+          icon={profileToolbarIcons.close}
           onPress={onDismiss}
         />
       </Stack.Toolbar>
@@ -44,7 +45,7 @@ export function ProfileEditScreen({
           <Stack.Toolbar.Button
             accessibilityLabel="저장"
             disabled={!canSave}
-            icon="checkmark"
+            icon={profileToolbarIcons.save}
             onPress={onSave}
           />
         )}
