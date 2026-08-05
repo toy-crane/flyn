@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <!--
+  <head>
+    <meta charset="utf-8">
+    <!--
   prototype shell: the review chrome every prototype starts from.
 
   Keep this comment in the prototype you grow from here: it is the contract,
@@ -37,18 +37,18 @@
   Self-contained by design: no build, no framework, no network.
   Chrome that needs explaining has failed; keep it three controls.
   -->
-  <title>flyn input form style prototype</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
+    <title>flyn input form style prototype</title>
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <style>
     /* Current project roles, represented with iOS semantic-color fallbacks. */
     :root {
       --background: #ffffff;
       --grouped-background: #f2f2f7;
       --surface: #ffffff;
       --foreground: #000000;
-      --secondary: rgba(60, 60, 67, 0.60);
-      --tertiary: rgba(60, 60, 67, 0.30);
-      --placeholder: rgba(60, 60, 67, 0.30);
+      --secondary: rgba(60, 60, 67, 0.6);
+      --tertiary: rgba(60, 60, 67, 0.3);
+      --placeholder: rgba(60, 60, 67, 0.3);
       --separator: rgba(60, 60, 67, 0.22);
       --opaque-separator: #c6c6c8;
       --tertiary-system-fill: rgba(118, 118, 128, 0.12);
@@ -61,7 +61,8 @@
       --field-height: 52px;
       --field-padding-x: 18px;
       --radius: 16px;
-      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      --font:
+        -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
     }
 
     body[data-appearance="dark"] {
@@ -69,9 +70,9 @@
       --grouped-background: #1c1c1e;
       --surface: #1c1c1e;
       --foreground: #ffffff;
-      --secondary: rgba(235, 235, 245, 0.60);
-      --tertiary: rgba(235, 235, 245, 0.30);
-      --placeholder: rgba(235, 235, 245, 0.30);
+      --secondary: rgba(235, 235, 245, 0.6);
+      --tertiary: rgba(235, 235, 245, 0.3);
+      --placeholder: rgba(235, 235, 245, 0.3);
       --separator: rgba(84, 84, 88, 0.65);
       --opaque-separator: #38383a;
       --tertiary-system-fill: rgba(118, 118, 128, 0.24);
@@ -82,18 +83,28 @@
       --glass: rgba(44, 44, 46, 0.72);
     }
 
-    * { box-sizing: border-box }
-    html, body { min-height: 100% }
+    * {
+      box-sizing: border-box;
+    }
+    html,
     body {
-      margin: 0;
+      min-height: 100%;
+    }
+    body {
       padding: 0 0 40px;
-      color: var(--foreground);
-      background: #e8e8ed;
+      margin: 0;
       font-family: var(--font);
       -webkit-font-smoothing: antialiased;
+      color: var(--foreground);
+      background: #e8e8ed;
     }
-    body[data-appearance="dark"] { background: #111113 }
-    button, input { font: inherit }
+    body[data-appearance="dark"] {
+      background: #111113;
+    }
+    button,
+    input {
+      font: inherit;
+    }
 
     /* Review chrome retained from the prototype shell. */
     .sh-bar {
@@ -101,24 +112,34 @@
       top: 0;
       z-index: 999;
       display: flex;
+      flex-wrap: wrap;
       gap: 10px;
       align-items: center;
-      flex-wrap: wrap;
       min-height: 44px;
       padding: 8px 12px;
+      font:
+        12px / 1.5 ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        monospace;
       color: #d7d7d7;
       background: #191a1c;
-      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
     }
-    .sh-bar b { color: #8a8f98; font-weight: 500 }
-    .sh-bar nav { display: flex; gap: 6px }
+    .sh-bar b {
+      font-weight: 500;
+      color: #8a8f98;
+    }
+    .sh-bar nav {
+      display: flex;
+      gap: 6px;
+    }
     .sh-bar button {
       padding: 2px 9px;
       color: inherit;
+      cursor: pointer;
       background: none;
       border: 1px solid #3a3d42;
       border-radius: 999px;
-      cursor: pointer;
     }
     .sh-bar button.on {
       color: #191a1c;
@@ -130,18 +151,39 @@
       margin-right: 4px;
       color: #8a8f98;
     }
-    #sh-states:not([hidden])::before { content: "state" }
-    #sh-variants::before { content: "field" }
-    #sh-states, #sh-variants { display: inline-flex; gap: 5px; align-items: center }
-    .sh-spacer { flex: 1 }
-    .sh-stage { max-width: 960px; margin: 0 auto; padding: 12px 16px 0 }
-    [hidden] { display: none !important }
+    #sh-states:not([hidden])::before {
+      content: "state";
+    }
+    #sh-variants::before {
+      content: "field";
+    }
+    #sh-states,
+    #sh-variants {
+      display: inline-flex;
+      gap: 5px;
+      align-items: center;
+      min-inline-size: 0;
+      padding: 0;
+      margin: 0;
+      border: 0;
+    }
+    .sh-spacer {
+      flex: 1;
+    }
+    .sh-stage {
+      max-width: 960px;
+      padding: 12px 16px 0;
+      margin: 0 auto;
+    }
+    [hidden] {
+      display: none !important;
+    }
 
     .sh-vp-390 .sh-stage {
       max-width: 390px;
       height: min(844px, calc(100dvh - 68px));
-      margin-top: 12px;
       padding: 0;
+      margin-top: 12px;
       overflow: hidden;
       background: var(--background);
       border: 10px solid #191a1c;
@@ -150,8 +192,8 @@
     }
     .sh-vp-768 .sh-stage {
       max-width: 768px;
-      margin-top: 12px;
       padding: 16px;
+      margin-top: 12px;
       background: var(--background);
       border: 1px solid #c4c4c4;
       border-radius: 12px;
@@ -182,9 +224,20 @@
       font-size: 15px;
       font-weight: 600;
     }
-    .dynamic-island { width: 112px; height: 34px; background: #000; border-radius: 999px }
-    body[data-appearance="dark"] .dynamic-island { outline: 1px solid #171719 }
-    .signals { justify-self: end; font-size: 13px; letter-spacing: 1px }
+    .dynamic-island {
+      width: 112px;
+      height: 34px;
+      background: #000;
+      border-radius: 999px;
+    }
+    body[data-appearance="dark"] .dynamic-island {
+      outline: 1px solid #171719;
+    }
+    .signals {
+      justify-self: end;
+      font-size: 13px;
+      letter-spacing: 1px;
+    }
     .navigation-bar {
       position: relative;
       z-index: 3;
@@ -194,9 +247,14 @@
       height: 54px;
       padding: 0 16px;
       background: var(--background);
-      border-bottom: 1px solid color-mix(in srgb, var(--separator), transparent 45%);
+      border-bottom: 1px solid
+        color-mix(in srgb, var(--separator), transparent 45%);
     }
-    .navigation-title { text-align: center; font-size: 17px; font-weight: 600 }
+    .navigation-title {
+      font-size: 17px;
+      font-weight: 600;
+      text-align: center;
+    }
     .back-button,
     .sheet-action {
       display: grid;
@@ -211,25 +269,44 @@
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
       backdrop-filter: blur(18px);
     }
-    .back-button { font-size: 34px; font-weight: 200; line-height: 1 }
-    .sheet-action { font-size: 23px; font-weight: 400 }
-    .sheet-action[disabled] { color: var(--tertiary) }
+    .back-button {
+      font-size: 34px;
+      font-weight: 200;
+      line-height: 1;
+    }
+    .sheet-action {
+      font-size: 23px;
+      font-weight: 400;
+    }
+    .sheet-action[disabled] {
+      color: var(--tertiary);
+    }
 
     .form-layout {
       display: flex;
+      flex-direction: column;
       min-height: calc(100% - 108px);
       padding: 24px 20px 12px;
-      flex-direction: column;
     }
-    .form-main { flex: 1 }
+    .form-main {
+      flex: 1;
+    }
     .intro {
       margin: 0 0 16px;
-      color: var(--secondary);
       font-size: 15px;
       line-height: 21px;
+      color: var(--secondary);
     }
-    .field-unit { display: grid; gap: 8px }
-    .field-label { font-size: 15px; line-height: 20px; font-weight: 600; color: var(--secondary) }
+    .field-unit {
+      display: grid;
+      gap: 8px;
+    }
+    .field-label {
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 20px;
+      color: var(--secondary);
+    }
     .field-shell {
       display: flex;
       align-items: center;
@@ -246,34 +323,52 @@
       min-width: 0;
       height: 48px;
       padding: 0;
-      color: var(--foreground);
-      caret-color: var(--accent);
-      background: transparent;
-      border: 0;
-      outline: none;
       font-size: 17px;
       line-height: 24px;
+      color: var(--foreground);
+      caret-color: var(--accent);
+      outline: none;
+      background: transparent;
+      border: 0;
     }
-    .field-shell input::placeholder { color: var(--placeholder); opacity: 1 }
-    .field-shell.is-error { border-color: var(--danger) }
+    .field-shell input::placeholder {
+      color: var(--placeholder);
+      opacity: 1;
+    }
+    .field-shell.is-error {
+      border-color: var(--danger);
+    }
     .field-icon {
-      flex: 0 0 auto;
       display: grid;
+      flex: 0 0 auto;
       place-items: center;
       width: 22px;
       height: 22px;
       margin-left: 8px;
-      color: white;
-      border-radius: 999px;
       font-size: 14px;
       font-weight: 700;
+      color: white;
+      border-radius: 999px;
     }
-    .field-icon.success { background: var(--success) }
-    .field-icon.danger { background: var(--danger) }
-    .field-footer { margin: 0; color: var(--secondary); font-size: 13px; line-height: 18px }
-    .field-footer.danger { color: var(--danger) }
+    .field-icon.success {
+      background: var(--success);
+    }
+    .field-icon.danger {
+      background: var(--danger);
+    }
+    .field-footer {
+      margin: 0;
+      font-size: 13px;
+      line-height: 18px;
+      color: var(--secondary);
+    }
+    .field-footer.danger {
+      color: var(--danger);
+    }
 
-    body[data-variant="B"] .field-shell { border-radius: 16px }
+    body[data-variant="B"] .field-shell {
+      border-radius: 16px;
+    }
     body[data-variant="C"] .field-shell {
       min-height: 42px;
       padding-inline: 12px;
@@ -281,32 +376,47 @@
       border-color: var(--opaque-separator);
       border-radius: 7px;
     }
-    body[data-variant="C"] .field-shell input { height: 40px }
-    body[data-variant="C"] .field-shell.is-error { border-color: var(--danger) }
+    body[data-variant="C"] .field-shell input {
+      height: 40px;
+    }
+    body[data-variant="C"] .field-shell.is-error {
+      border-color: var(--danger);
+    }
 
     .submit-button {
       width: 100%;
       min-height: 52px;
       margin-top: 20px;
+      font-size: 16px;
+      font-weight: 600;
       color: white;
       background: var(--accent);
       border: 0;
       border-radius: 16px;
-      font-size: 16px;
-      font-weight: 600;
     }
-    .submit-button[disabled] { color: var(--tertiary); background: var(--disabled) }
+    .submit-button[disabled] {
+      color: var(--tertiary);
+      background: var(--disabled);
+    }
 
-    .suggestions { display: grid; gap: 4px; margin-top: 16px }
-    .suggestions-title { color: var(--secondary); font-size: 13px; font-weight: 600 }
+    .suggestions {
+      display: grid;
+      gap: 4px;
+      margin-top: 16px;
+    }
+    .suggestions-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--secondary);
+    }
     .suggestion {
       min-height: 44px;
       padding: 0;
+      font-size: 17px;
       color: var(--accent);
       text-align: left;
       background: transparent;
       border: 0;
-      font-size: 17px;
     }
 
     /* Settings sheet context. */
@@ -317,260 +427,483 @@
       color: var(--secondary);
       background: var(--grouped-background);
     }
-    .settings-backdrop .status-bar { margin: 0 -22px }
-    .settings-backdrop h1 { margin: 38px 0 22px; color: var(--foreground); font-size: 22px; text-align: center }
-    .settings-card { height: 120px; background: var(--surface); border-radius: 22px; opacity: 0.72 }
-    .sheet-dim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.18) }
+    .settings-backdrop .status-bar {
+      margin: 0 -22px;
+    }
+    .settings-backdrop h1 {
+      margin: 38px 0 22px;
+      font-size: 22px;
+      color: var(--foreground);
+      text-align: center;
+    }
+    .settings-card {
+      height: 120px;
+      background: var(--surface);
+      border-radius: 22px;
+      opacity: 0.72;
+    }
+    .sheet-dim {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.18);
+    }
     .profile-sheet {
       position: absolute;
-      z-index: 2;
       inset: 62px 0 0;
+      z-index: 2;
       min-height: calc(100% - 62px);
       overflow: hidden;
       background: var(--background);
       border-radius: 36px 36px 0 0;
-      box-shadow: 0 -10px 34px rgba(0, 0, 0, 0.10);
+      box-shadow: 0 -10px 34px rgba(0, 0, 0, 0.1);
     }
-    .sheet-grabber { width: 36px; height: 5px; margin: 7px auto 2px; background: var(--tertiary); border-radius: 999px }
+    .sheet-grabber {
+      width: 36px;
+      height: 5px;
+      margin: 7px auto 2px;
+      background: var(--tertiary);
+      border-radius: 999px;
+    }
     .sheet-header {
       display: grid;
       grid-template-columns: 44px 1fr 44px;
-      align-items: center;
       gap: 8px;
+      align-items: center;
       padding: 8px 16px 0;
     }
-    .sheet-title { text-align: center; font-size: 17px; font-weight: 600 }
-    .sheet-content { padding: 20px 32px 0 }
+    .sheet-title {
+      font-size: 17px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .sheet-content {
+      padding: 20px 32px 0;
+    }
 
     @media (max-width: 520px) {
-      .sh-bar { gap: 6px }
-      .sh-spacer { display: none }
+      .sh-bar {
+        gap: 6px;
+      }
+      .sh-spacer {
+        display: none;
+      }
     }
-  </style>
-</head>
-<body class="sh-vp-390" data-appearance="light" data-variant="A">
-  <header class="sh-bar">
-    <b>flyn input</b>
-    <nav id="sh-tabs" aria-label="화면"></nav>
-    <span class="sh-spacer"></span>
-    <span id="sh-states" hidden></span>
-    <span id="sh-variants" aria-label="입력 변형">
-      <button aria-pressed="true" class="on" data-variant="A" title="Filled capsule">A</button>
-      <button aria-pressed="false" data-variant="B" title="Filled rounded rectangle">B</button>
-      <button aria-pressed="false" data-variant="C" title="Current rounded border">C</button>
-    </span>
-    <button id="sh-appearance" title="Light/dark 전환">light</button>
-    <button id="sh-vp">vp: full (m)</button>
-  </header>
+    </style>
+  </head>
+  <body class="sh-vp-390" data-appearance="light" data-variant="A">
+    <header class="sh-bar">
+      <b>flyn input</b>
+      <nav aria-label="화면" id="sh-tabs"></nav>
+      <span class="sh-spacer"></span>
+      <span hidden id="sh-states"></span>
+      <fieldset aria-label="입력 변형" id="sh-variants">
+        <button
+          aria-pressed="true"
+          class="on"
+          data-variant="A"
+          title="Filled capsule"
+          type="button"
+        >
+          A
+        </button>
+        <button
+          aria-pressed="false"
+          data-variant="B"
+          title="Filled rounded rectangle"
+          type="button"
+        >
+          B
+        </button>
+        <button
+          aria-pressed="false"
+          data-variant="C"
+          title="Current rounded border"
+          type="button"
+        >
+          C
+        </button>
+      </fieldset>
+      <button id="sh-appearance" title="Light/dark 전환" type="button">
+        light
+      </button>
+      <button id="sh-vp" type="button">vp: full (m)</button>
+    </header>
 
-  <main class="sh-stage">
-    <section data-screen="email" data-title="이메일" data-states="빈 입력,오류">
-      <div class="status-bar" data-component="native:StatusBar">
-        <span>9:41</span><span class="dynamic-island"></span><span class="signals">▮▮▮ ◉ ▰</span>
-      </div>
-      <div class="navigation-bar" data-component="native:StackHeader">
-        <button class="back-button" aria-label="로그인, 뒤로">‹</button>
-        <div class="navigation-title">이메일</div><span></span>
-      </div>
-      <div class="form-layout" data-component="EmailForm">
-        <div class="form-main">
-          <p class="intro">코드를 받을 이메일 주소를 입력해 주세요.</p>
-          <div class="field-unit" data-component="FormTextField">
-            <label class="field-label" id="email-label">이메일 주소</label>
-            <div class="field-shell" data-component="new:FilledTextField" data-when="빈 입력">
-              <input aria-labelledby="email-label" inputmode="email" placeholder="name@example.com">
-            </div>
-            <div class="field-shell is-error" data-component="new:FilledTextField" data-when="오류">
-              <input aria-describedby="email-error" aria-invalid="true" aria-labelledby="email-label" inputmode="email" value="alwaysfun2183@">
-              <span class="field-icon danger" aria-hidden="true">!</span>
-            </div>
-            <p class="field-footer danger" data-when="오류" id="email-error" role="alert">올바른 이메일 주소를 입력해 주세요.</p>
-          </div>
+    <main class="sh-stage">
+      <section
+        data-screen="email"
+        data-states="빈 입력,오류"
+        data-title="이메일"
+      >
+        <div class="status-bar" data-component="native:StatusBar">
+          <span>9:41</span><span class="dynamic-island"></span
+          ><span class="signals">▮▮▮ ◉ ▰</span>
         </div>
-        <button class="submit-button" data-component="FormSubmitButton" disabled>코드 받기</button>
-      </div>
-    </section>
+        <div class="navigation-bar" data-component="native:StackHeader">
+          <button aria-label="로그인, 뒤로" class="back-button" type="button">
+            ‹
+          </button>
+          <div class="navigation-title">이메일</div>
+          <span></span>
+        </div>
+        <div class="form-layout" data-component="EmailForm">
+          <div class="form-main">
+            <p class="intro">코드를 받을 이메일 주소를 입력해 주세요.</p>
+            <div class="field-unit" data-component="FormTextField">
+              <span class="field-label" id="email-label">이메일 주소</span>
+              <div
+                class="field-shell"
+                data-component="new:FilledTextField"
+                data-when="빈 입력"
+              >
+                <input
+                  aria-labelledby="email-label"
+                  inputmode="email"
+                  placeholder="name@example.com"
+                >
+              </div>
+              <div
+                class="field-shell is-error"
+                data-component="new:FilledTextField"
+                data-when="오류"
+              >
+                <input
+                  aria-describedby="email-error"
+                  aria-invalid="true"
+                  aria-labelledby="email-label"
+                  inputmode="email"
+                  value="alwaysfun2183@"
+                >
+                <span aria-hidden="true" class="field-icon danger">!</span>
+              </div>
+              <p
+                class="field-footer danger"
+                data-when="오류"
+                id="email-error"
+                role="alert"
+              >
+                올바른 이메일 주소를 입력해 주세요.
+              </p>
+            </div>
+          </div>
+          <button
+            class="submit-button"
+            data-component="FormSubmitButton"
+            disabled
+            type="button"
+          >
+            코드 받기
+          </button>
+        </div>
+      </section>
 
-    <section data-screen="onboarding" data-title="온보딩" data-states="닉네임,아이디 가능,아이디 중복">
-      <div class="status-bar" data-component="native:StatusBar">
-        <span>9:41</span><span class="dynamic-island"></span><span class="signals">▮▮▮ ◉ ▰</span>
-      </div>
-      <div class="navigation-bar" data-component="native:StackHeader">
-        <span></span>
-        <div class="navigation-title" data-when="닉네임">닉네임</div>
-        <div class="navigation-title" data-when="아이디 가능,아이디 중복">아이디</div>
-        <span></span>
-      </div>
-      <div class="form-layout" data-component="OnboardingForm">
-        <div class="form-main" data-when="닉네임">
-          <div class="field-unit" data-component="FormTextField">
-            <label class="field-label" for="nickname-onboarding">닉네임</label>
-            <div class="field-shell" data-component="new:FilledTextField">
-              <input id="nickname-onboarding" aria-label="닉네임" value="Hello">
-            </div>
-            <p class="field-footer">1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.</p>
-          </div>
+      <section
+        data-screen="onboarding"
+        data-states="닉네임,아이디 가능,아이디 중복"
+        data-title="온보딩"
+      >
+        <div class="status-bar" data-component="native:StatusBar">
+          <span>9:41</span><span class="dynamic-island"></span
+          ><span class="signals">▮▮▮ ◉ ▰</span>
         </div>
-        <div class="form-main" data-when="아이디 가능">
-          <div class="field-unit" data-component="FormTextField">
-            <label class="field-label" for="username-available">아이디</label>
-            <div class="field-shell" data-component="new:FilledTextField">
-              <input id="username-available" aria-label="아이디" value="alwaysfun2183">
-              <span class="field-icon success" aria-label="사용 가능">✓</span>
-            </div>
-            <p class="field-footer">4~20자, 영문 소문자·숫자·_·.만 사용할 수 있어요.</p>
+        <div class="navigation-bar" data-component="native:StackHeader">
+          <span></span>
+          <div class="navigation-title" data-when="닉네임">닉네임</div>
+          <div class="navigation-title" data-when="아이디 가능,아이디 중복">
+            아이디
           </div>
+          <span></span>
         </div>
-        <div class="form-main" data-when="아이디 중복">
-          <div class="field-unit" data-component="FormTextField">
-            <label class="field-label" id="onboarding-username-label">아이디</label>
-            <div class="field-shell is-error" data-component="new:FilledTextField">
-              <input aria-describedby="onboarding-username-error" aria-invalid="true" aria-labelledby="onboarding-username-label" value="alwaysfun218">
-              <span class="field-icon danger" aria-hidden="true">!</span>
+        <div class="form-layout" data-component="OnboardingForm">
+          <div class="form-main" data-when="닉네임">
+            <div class="field-unit" data-component="FormTextField">
+              <label class="field-label" for="nickname-onboarding"
+                >닉네임</label
+              >
+              <div class="field-shell" data-component="new:FilledTextField">
+                <input
+                  aria-label="닉네임"
+                  id="nickname-onboarding"
+                  value="Hello"
+                >
+              </div>
+              <p class="field-footer">
+                1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.
+              </p>
             </div>
-            <p class="field-footer danger" id="onboarding-username-error" role="alert">이미 사용 중인 아이디예요.</p>
           </div>
-          <div class="suggestions" data-component="UsernameSuggestionList">
-            <span class="suggestions-title">추천</span>
-            <button class="suggestion">alwaysfun218.3</button>
-            <button class="suggestion">alwaysfun_2183</button>
-            <button class="suggestion">alwaysfun2183_</button>
+          <div class="form-main" data-when="아이디 가능">
+            <div class="field-unit" data-component="FormTextField">
+              <label class="field-label" for="username-available">아이디</label>
+              <div class="field-shell" data-component="new:FilledTextField">
+                <input
+                  aria-label="아이디"
+                  id="username-available"
+                  value="alwaysfun2183"
+                >
+                <span
+                  aria-label="사용 가능"
+                  class="field-icon success"
+                  role="img"
+                  >✓</span
+                >
+              </div>
+              <p class="field-footer">
+                4~20자, 영문 소문자·숫자·_·.만 사용할 수 있어요.
+              </p>
+            </div>
           </div>
+          <div class="form-main" data-when="아이디 중복">
+            <div class="field-unit" data-component="FormTextField">
+              <span class="field-label" id="onboarding-username-label"
+                >아이디</span
+              >
+              <div
+                class="field-shell is-error"
+                data-component="new:FilledTextField"
+              >
+                <input
+                  aria-describedby="onboarding-username-error"
+                  aria-invalid="true"
+                  aria-labelledby="onboarding-username-label"
+                  value="alwaysfun218"
+                >
+                <span aria-hidden="true" class="field-icon danger">!</span>
+              </div>
+              <p
+                class="field-footer danger"
+                id="onboarding-username-error"
+                role="alert"
+              >
+                이미 사용 중인 아이디예요.
+              </p>
+            </div>
+            <div class="suggestions" data-component="UsernameSuggestionList">
+              <span class="suggestions-title">추천</span>
+              <button class="suggestion" type="button">alwaysfun218.3</button>
+              <button class="suggestion" type="button">alwaysfun_2183</button>
+              <button class="suggestion" type="button">alwaysfun2183_</button>
+            </div>
+          </div>
+          <button
+            class="submit-button"
+            data-component="FormSubmitButton"
+            data-when="닉네임"
+            type="button"
+          >
+            아이디 정하기
+          </button>
+          <button
+            class="submit-button"
+            data-component="FormSubmitButton"
+            data-when="아이디 가능"
+            type="button"
+          >
+            시작하기
+          </button>
+          <button
+            class="submit-button"
+            data-component="FormSubmitButton"
+            data-when="아이디 중복"
+            disabled
+            type="button"
+          >
+            시작하기
+          </button>
         </div>
-        <button class="submit-button" data-component="FormSubmitButton" data-when="닉네임">아이디 정하기</button>
-        <button class="submit-button" data-component="FormSubmitButton" data-when="아이디 가능">시작하기</button>
-        <button class="submit-button" data-component="FormSubmitButton" data-when="아이디 중복" disabled>시작하기</button>
-      </div>
-    </section>
+      </section>
 
-    <section data-screen="settings-sheet" data-title="설정 시트" data-states="닉네임,아이디 중복">
-      <div class="settings-backdrop" aria-hidden="true">
-        <div class="status-bar">
-          <span>9:41</span><span class="dynamic-island"></span><span class="signals">▮▮▮ ◉ ▰</span>
+      <section
+        data-screen="settings-sheet"
+        data-states="닉네임,아이디 중복"
+        data-title="설정 시트"
+      >
+        <div aria-hidden="true" class="settings-backdrop">
+          <div class="status-bar">
+            <span>9:41</span><span class="dynamic-island"></span
+            ><span class="signals">▮▮▮ ◉ ▰</span>
+          </div>
+          <h1>설정</h1>
+          <div class="settings-card"></div>
         </div>
-        <h1>설정</h1><div class="settings-card"></div>
-      </div>
-      <div class="sheet-dim"></div>
-      <div class="profile-sheet" data-component="ProfileEditSheet">
-        <div class="sheet-grabber"></div>
-        <div class="sheet-header">
-          <button class="sheet-action" aria-label="닫기">×</button>
-          <div class="sheet-title" data-when="닉네임">닉네임</div>
-          <div class="sheet-title" data-when="아이디 중복">아이디</div>
-          <button class="sheet-action" aria-label="저장" data-when="닉네임">✓</button>
-          <button class="sheet-action" aria-label="저장" data-when="아이디 중복" disabled>✓</button>
-        </div>
-        <div class="sheet-content" data-when="닉네임">
-          <div class="field-unit" data-component="NicknameEditSheet">
-            <div class="field-shell" data-component="new:FilledTextField">
-              <input aria-label="닉네임" value="Hello">
+        <div class="sheet-dim"></div>
+        <div class="profile-sheet" data-component="ProfileEditSheet">
+          <div class="sheet-grabber"></div>
+          <div class="sheet-header">
+            <button aria-label="닫기" class="sheet-action" type="button">
+              ×
+            </button>
+            <div class="sheet-title" data-when="닉네임">닉네임</div>
+            <div class="sheet-title" data-when="아이디 중복">아이디</div>
+            <button
+              aria-label="저장"
+              class="sheet-action"
+              data-when="닉네임"
+              type="button"
+            >
+              ✓
+            </button>
+            <button
+              aria-label="저장"
+              class="sheet-action"
+              data-when="아이디 중복"
+              disabled
+              type="button"
+            >
+              ✓
+            </button>
+          </div>
+          <div class="sheet-content" data-when="닉네임">
+            <div class="field-unit" data-component="NicknameEditSheet">
+              <div class="field-shell" data-component="new:FilledTextField">
+                <input aria-label="닉네임" value="Hello">
+              </div>
+              <p class="field-footer">
+                1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.
+              </p>
             </div>
-            <p class="field-footer">1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.</p>
           </div>
-        </div>
-        <div class="sheet-content" data-when="아이디 중복">
-          <div class="field-unit" data-component="UsernameEditSheet">
-            <div class="field-shell is-error" data-component="new:FilledTextField">
-              <input aria-describedby="settings-username-error" aria-invalid="true" aria-label="아이디" value="alwaysfun218">
-              <span class="field-icon danger" aria-hidden="true">!</span>
+          <div class="sheet-content" data-when="아이디 중복">
+            <div class="field-unit" data-component="UsernameEditSheet">
+              <div
+                class="field-shell is-error"
+                data-component="new:FilledTextField"
+              >
+                <input
+                  aria-describedby="settings-username-error"
+                  aria-invalid="true"
+                  aria-label="아이디"
+                  value="alwaysfun218"
+                >
+                <span aria-hidden="true" class="field-icon danger">!</span>
+              </div>
+              <p
+                class="field-footer danger"
+                id="settings-username-error"
+                role="alert"
+              >
+                이미 사용 중인 아이디예요.
+              </p>
             </div>
-            <p class="field-footer danger" id="settings-username-error" role="alert">이미 사용 중인 아이디예요.</p>
-          </div>
-          <div class="suggestions" data-component="UsernameSuggestionList">
-            <span class="suggestions-title">추천</span>
-            <button class="suggestion">alwaysfun218.3</button>
-            <button class="suggestion">alwaysfun_2183</button>
-            <button class="suggestion">alwaysfun2183_</button>
+            <div class="suggestions" data-component="UsernameSuggestionList">
+              <span class="suggestions-title">추천</span>
+              <button class="suggestion" type="button">alwaysfun218.3</button>
+              <button class="suggestion" type="button">alwaysfun_2183</button>
+              <button class="suggestion" type="button">alwaysfun2183_</button>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
-  </main>
+      </section>
+    </main>
 
-  <script>
-    const stage = document.querySelector('.sh-stage');
-    const screens = [...stage.querySelectorAll('[data-screen]')];
-    const tabs = document.getElementById('sh-tabs');
-    const statebox = document.getElementById('sh-states');
-    const variantbox = document.getElementById('sh-variants');
-    const appearanceBtn = document.getElementById('sh-appearance');
-    const vpBtn = document.getElementById('sh-vp');
+    <script>
+    "use strict";
+    const stage = document.querySelector(".sh-stage");
+    const screens = [...stage.querySelectorAll("[data-screen]")];
+    const tabs = document.getElementById("sh-tabs");
+    const statebox = document.getElementById("sh-states");
+    const variantbox = document.getElementById("sh-variants");
+    const appearanceBtn = document.getElementById("sh-appearance");
+    const vpBtn = document.getElementById("sh-vp");
+    const FORM_CONTROL_TAG = /INPUT|TEXTAREA|SELECT/;
     let current = null;
 
-    screens.forEach(screen => {
-      const button = document.createElement('button');
+    for (const screen of screens) {
+      const button = document.createElement("button");
+      button.type = "button";
       button.textContent = screen.dataset.title || screen.dataset.screen;
       button.dataset.for = screen.dataset.screen;
-      button.setAttribute('aria-current', 'false');
+      button.setAttribute("aria-current", "false");
       button.onclick = () => show(screen.dataset.screen);
       tabs.append(button);
-    });
+    }
 
     function show(slug) {
-      current = screens.find(screen => screen.dataset.screen === slug) || screens[0];
-      screens.forEach(screen => { screen.hidden = screen !== current; });
-      [...tabs.children].forEach(button => {
+      current =
+        screens.find((screen) => screen.dataset.screen === slug) || screens[0];
+      for (const screen of screens) {
+        screen.hidden = screen !== current;
+      }
+      for (const button of tabs.children) {
         const selected = button.dataset.for === current.dataset.screen;
-        button.classList.toggle('on', selected);
-        button.setAttribute('aria-current', selected ? 'page' : 'false');
-      });
-      history.replaceState(null, '', '#' + current.dataset.screen);
+        button.classList.toggle("on", selected);
+        button.setAttribute("aria-current", selected ? "page" : "false");
+      }
+      history.replaceState(null, "", `#${current.dataset.screen}`);
       buildStates();
     }
 
     function buildStates() {
-      const names = (current.dataset.states || '').split(',').map(name => name.trim()).filter(Boolean);
-      statebox.innerHTML = '';
+      const names = (current.dataset.states || "")
+        .split(",")
+        .map((name) => name.trim())
+        .filter(Boolean);
+      statebox.innerHTML = "";
       statebox.hidden = !names.length;
-      names.forEach(name => {
-        const button = document.createElement('button');
+      for (const name of names) {
+        const button = document.createElement("button");
+        button.type = "button";
         button.textContent = name;
-        button.setAttribute('aria-pressed', 'false');
+        button.setAttribute("aria-pressed", "false");
         button.onclick = () => applyState(name);
         statebox.append(button);
-      });
+      }
       applyState(names[0] || null);
     }
 
     function applyState(name) {
-      current.querySelectorAll('[data-when]').forEach(element => {
-        element.hidden = !name || !element.dataset.when.split(',').map(value => value.trim()).includes(name);
-      });
-      [...statebox.children].forEach(button => {
+      for (const element of current.querySelectorAll("[data-when]")) {
+        element.hidden = !(
+          name &&
+          element.dataset.when
+            .split(",")
+            .map((value) => value.trim())
+            .includes(name)
+        );
+      }
+      for (const button of statebox.children) {
         const selected = button.textContent === name;
-        button.classList.toggle('on', selected);
-        button.setAttribute('aria-pressed', String(selected));
-      });
+        button.classList.toggle("on", selected);
+        button.setAttribute("aria-pressed", String(selected));
+      }
     }
 
-    variantbox.addEventListener('click', event => {
-      const button = event.target.closest('button[data-variant]');
-      if (!button) return;
+    variantbox.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-variant]");
+      if (!button) {
+        return;
+      }
       document.body.dataset.variant = button.dataset.variant;
-      [...variantbox.querySelectorAll('button')].forEach(candidate => {
+      for (const candidate of variantbox.querySelectorAll("button")) {
         const selected = candidate === button;
-        candidate.classList.toggle('on', selected);
-        candidate.setAttribute('aria-pressed', String(selected));
-      });
+        candidate.classList.toggle("on", selected);
+        candidate.setAttribute("aria-pressed", String(selected));
+      }
     });
 
     appearanceBtn.onclick = () => {
-      const next = document.body.dataset.appearance === 'dark' ? 'light' : 'dark';
+      const next =
+        document.body.dataset.appearance === "dark" ? "light" : "dark";
       document.body.dataset.appearance = next;
       appearanceBtn.textContent = next;
-      appearanceBtn.classList.toggle('on', next === 'dark');
-      appearanceBtn.setAttribute('aria-pressed', String(next === 'dark'));
+      appearanceBtn.classList.toggle("on", next === "dark");
+      appearanceBtn.setAttribute("aria-pressed", String(next === "dark"));
     };
-    appearanceBtn.setAttribute('aria-pressed', 'false');
+    appearanceBtn.setAttribute("aria-pressed", "false");
 
-    const VPS = ['full', '390', '768'];
-    let viewport = VPS.find(value => document.body.classList.contains('sh-vp-' + value)) || 'full';
+    const VPS = ["full", "390", "768"];
+    let viewport =
+      VPS.find((value) => document.body.classList.contains(`sh-vp-${value}`)) ||
+      "full";
     function applyViewport() {
-      VPS.forEach(value => {
-        document.body.classList.toggle('sh-vp-' + value, value === viewport && value !== 'full');
-      });
-      vpBtn.textContent = 'vp: ' + viewport + ' (m)';
-      vpBtn.classList.toggle('on', viewport !== 'full');
+      for (const value of VPS) {
+        document.body.classList.toggle(
+          `sh-vp-${value}`,
+          value === viewport && value !== "full"
+        );
+      }
+      vpBtn.textContent = `vp: ${viewport} (m)`;
+      vpBtn.classList.toggle("on", viewport !== "full");
     }
     vpBtn.onclick = () => {
       viewport = VPS[(VPS.indexOf(viewport) + 1) % VPS.length];
@@ -578,16 +911,26 @@
     };
     applyViewport();
 
-    addEventListener('keydown', event => {
-      if (/INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) return;
+    addEventListener("keydown", (event) => {
+      if (FORM_CONTROL_TAG.test(event.target.tagName)) {
+        return;
+      }
       const index = screens.indexOf(current);
-      if (event.key === 'ArrowRight') show(screens[(index + 1) % screens.length].dataset.screen);
-      if (event.key === 'ArrowLeft') show(screens[(index - 1 + screens.length) % screens.length].dataset.screen);
-      if (event.key === 'm') vpBtn.click();
+      if (event.key === "ArrowRight") {
+        show(screens[(index + 1) % screens.length].dataset.screen);
+      }
+      if (event.key === "ArrowLeft") {
+        show(
+          screens[(index - 1 + screens.length) % screens.length].dataset.screen
+        );
+      }
+      if (event.key === "m") {
+        vpBtn.click();
+      }
     });
 
-    addEventListener('hashchange', () => show(location.hash.slice(1)));
+    addEventListener("hashchange", () => show(location.hash.slice(1)));
     show(location.hash.slice(1));
-  </script>
-</body>
+    </script>
+  </body>
 </html>
