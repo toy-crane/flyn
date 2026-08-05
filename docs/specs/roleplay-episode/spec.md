@@ -12,6 +12,8 @@ flyn은 AI 롤플레잉으로 영어 작문을 연습하는 앱이다. 이 문�
 - [conversation.html](conversation.html) — 말풍선, 첨삭 시트, 문장 대화
 - [ending.html](ending.html) — 종료 전환과 결과
 
+이 스펙은 [tasks/](tasks/)의 태스크 6개로 나뉘어 있다. 번호가 의존 순서다.
+
 ## 제품 정의
 
 flyn의 대화 단위는 **롤플레잉 에피소드** 하나다. 자유 주제 채팅 표면은 제공하지
