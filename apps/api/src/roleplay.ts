@@ -15,6 +15,15 @@ import {
   type UIMessage,
 } from "ai";
 import type { EpisodeStatus } from "./episode";
+import {
+  createGatewayJudgmentModel,
+  type GoalAchievement,
+  type JudgmentModel,
+  type JudgmentRepository,
+  type JudgmentUpdate,
+  judgeEpisodeTurn,
+  type MessageJudgment,
+} from "./judgment";
 
 /**
  * 롤플레잉 응답과 한글 번역은 역할이 다른 두 호출이다. 같은 모델을 쓰더라도 ID를
@@ -54,8 +63,15 @@ export interface EpisodeMessage {
   status: EpisodeMessageStatus;
 }
 
+/** 판정이 채우기 전에는 `achievedAt`이 비어 있다. 비어 있는 것이 곧 미달성이다. */
+export interface RoleplayGoal {
+  achievedAt: string | null;
+  position: number;
+  sentence: string;
+}
+
 export interface RoleplayEpisode {
-  goals: string[];
+  goals: RoleplayGoal[];
   id: string;
   partnerRole: string;
   scenarioDescription: string;
@@ -74,7 +90,7 @@ export interface DeliveredSentence {
   text: string;
 }
 
-export interface RoleplayRepository {
+export interface RoleplayRepository extends JudgmentRepository {
   deleteStoppedAssistantMessage: (
     episodeId: string,
     messageId: string
@@ -96,6 +112,8 @@ interface RoleplayGenerateOptions {
   assistantMessageId: string;
   delivered: DeliveredSentence;
   episode: RoleplayEpisode;
+  /** 롤플레잉과 병렬로 도는 판정. 늦게 도착하면 대화가 먼저 흐른다. */
+  judgment: Promise<JudgmentUpdate | null>;
   messages: EpisodeMessage[];
   onFinish: (result: { isAborted: boolean; text: string }) => Promise<void>;
   signal: AbortSignal;
@@ -104,6 +122,7 @@ interface RoleplayGenerateOptions {
 interface RoleplayReplayOptions {
   assistantMessageId: string;
   delivered: DeliveredSentence;
+  judgment: Promise<JudgmentUpdate | null>;
   status: EpisodeMessageStatus;
   text: string;
 }
@@ -122,6 +141,11 @@ export interface RoleplayModel {
 
 export interface RoleplayDependencies {
   createRepository: (context: SupabaseContext<Database>) => RoleplayRepository;
+  /**
+   * 판정은 롤플레잉과 나뉜 두 번째 호출이다. 프롬프트가 각자 한 가지만 해야
+   * 하고, 판정이 실패해도 대화는 계속되어야 하기 때문이다.
+   */
+  judgment: JudgmentModel;
   model: RoleplayModel;
 }
 
@@ -319,22 +343,50 @@ export async function respondToEpisodeMessage({
       throw new RoleplayHttpError(409, "응답 메시지 ID가 충돌했습니다.");
     }
 
-    if (existingAssistant.status === "complete") {
-      return withStreamingHeaders(
-        await dependencies.model.replay({
-          assistantMessageId,
-          delivered,
-          status: existingAssistant.status,
-          text: existingAssistant.content,
-        })
+    if (existingAssistant.status !== "complete") {
+      await repository.deleteStoppedAssistantMessage(
+        episodeId,
+        assistantMessageId
+      );
+      messages = messages.filter(
+        (message) => message.id !== assistantMessageId
       );
     }
+  }
 
-    await repository.deleteStoppedAssistantMessage(
+  /**
+   * 판정은 여기서 출발해 롤플레잉과 **병렬로** 돈다. 실패해도 대화 중에는
+   * 아무것도 알리지 않는다 — 못 채운 발화는 다음 판정 호출이 함께 판정해
+   * 조용히 메운다.
+   */
+  const judgment = judgeEpisodeTurn({
+    episode,
+    messages,
+    model: dependencies.judgment,
+    repository,
+    signal: requestSignal,
+    // 사용자가 실제로 친 말은 이 요청 안에만 있다. 전달된 문장만 저장되므로
+    // 판정 행이 아니면 원문을 남길 자리가 없다.
+    sourceTexts: { [userMessage.id]: request.content },
+  }).catch((error) => {
+    console.error("[roleplay] judgment failed", {
       episodeId,
-      assistantMessageId
+      message: error instanceof Error ? error.message : String(error),
+    });
+
+    return null;
+  });
+
+  if (existingAssistant?.status === "complete") {
+    return withStreamingHeaders(
+      await dependencies.model.replay({
+        assistantMessageId,
+        delivered,
+        judgment,
+        status: existingAssistant.status,
+        text: existingAssistant.content,
+      })
     );
-    messages = messages.filter((message) => message.id !== assistantMessageId);
   }
 
   try {
@@ -342,6 +394,7 @@ export async function respondToEpisodeMessage({
       assistantMessageId,
       delivered,
       episode,
+      judgment,
       messages,
       onFinish: async ({ isAborted, text }) => {
         if (text.length === 0) {
@@ -372,8 +425,8 @@ export async function respondToEpisodeMessage({
   }
 }
 
-function goalLines(goals: string[]) {
-  return goals.map((goal) => `- ${goal}`).join("\n");
+function goalLines(goals: RoleplayGoal[]) {
+  return goals.map((goal) => `- ${goal.sentence}`).join("\n");
 }
 
 /**
@@ -552,6 +605,7 @@ class GatewayRoleplayModel implements RoleplayModel {
     assistantMessageId,
     delivered,
     episode,
+    judgment,
     messages,
     onFinish,
     signal,
@@ -641,21 +695,34 @@ class GatewayRoleplayModel implements RoleplayModel {
       createUIMessageStreamResponse({
         consumeSseStream: consumeStream,
         headers: STREAM_HEADERS,
-        stream: withDeliveredSentence(delivered, replyStream),
+        stream: createUIMessageStream({
+          execute: async ({ writer }) => {
+            writeDeliveredSentence(writer, delivered);
+            writer.merge(replyStream);
+            await writeJudgment(writer, judgment);
+          },
+          onError: () => "AI 응답을 생성하지 못했습니다.",
+        }),
       })
     );
   }
 
-  replay({ assistantMessageId, delivered, text }: RoleplayReplayOptions) {
+  replay({
+    assistantMessageId,
+    delivered,
+    judgment,
+    text,
+  }: RoleplayReplayOptions) {
     const textPartId = `${assistantMessageId}-text`;
     const stream = createUIMessageStream({
-      execute: ({ writer }) => {
+      execute: async ({ writer }) => {
         writeDeliveredSentence(writer, delivered);
         writer.write({ messageId: assistantMessageId, type: "start" });
         writer.write({ id: textPartId, type: "text-start" });
         writer.write({ delta: text, id: textPartId, type: "text-delta" });
         writer.write({ id: textPartId, type: "text-end" });
         writer.write({ finishReason: "stop", type: "finish" });
+        await writeJudgment(writer, judgment);
       },
     });
 
@@ -719,17 +786,22 @@ function writeDeliveredSentence(
   });
 }
 
-function withDeliveredSentence(
-  delivered: DeliveredSentence,
-  replyStream: Parameters<DeliveredWriter["merge"]>[0]
+/**
+ * 판정은 롤플레잉 응답보다 늦게 도착할 수 있다. 응답을 merge한 **뒤에** 기다리
+ * 므로 대화는 그대로 먼저 흐르고, 판정은 같은 스트림에 나중에 얹힌다. 판정이
+ * 없거나 채운 목표가 없으면 아무것도 쓰지 않는다 — 대화 화면에 알릴 것이 없다.
+ */
+async function writeJudgment(
+  writer: DeliveredWriter,
+  judgment: Promise<JudgmentUpdate | null>
 ) {
-  return createUIMessageStream({
-    execute: ({ writer }) => {
-      writeDeliveredSentence(writer, delivered);
-      writer.merge(replyStream);
-    },
-    onError: () => "AI 응답을 생성하지 못했습니다.",
-  });
+  const update = await judgment;
+
+  if (!update || update.goals.length === 0) {
+    return;
+  }
+
+  writer.write({ data: update, transient: true, type: "data-judgment" });
 }
 
 export function createGatewayRoleplayModel(
@@ -739,7 +811,7 @@ export function createGatewayRoleplayModel(
 }
 
 const EPISODE_COLUMNS =
-  "id, scenario_title, scenario_description, partner_role, user_role, status, turn_limit, episode_goals(position, sentence)";
+  "id, scenario_title, scenario_description, partner_role, user_role, status, turn_limit, episode_goals(position, sentence, achieved_at)";
 const MESSAGE_COLUMNS = "id, episode_id, role, content, status, created_at";
 
 class SupabaseRoleplayRepository implements RoleplayRepository {
@@ -768,7 +840,11 @@ class SupabaseRoleplayRepository implements RoleplayRepository {
     return {
       goals: [...data.episode_goals]
         .sort((left, right) => left.position - right.position)
-        .map((goal) => goal.sentence),
+        .map((goal) => ({
+          achievedAt: goal.achieved_at,
+          position: goal.position,
+          sentence: goal.sentence,
+        })),
       id: data.id,
       partnerRole: data.partner_role,
       scenarioDescription: data.scenario_description,
@@ -815,6 +891,58 @@ class SupabaseRoleplayRepository implements RoleplayRepository {
 
   async insertAssistantMessage(message: EpisodeMessage) {
     await this.insertMessage(message);
+  }
+
+  async listJudgedMessageIds(episodeId: string) {
+    const { data, error } = await this.client
+      .from("message_feedback")
+      .select("message_id")
+      .eq("episode_id", episodeId);
+
+    if (error) {
+      throw error;
+    }
+
+    return data.map((row) => row.message_id);
+  }
+
+  async insertMessageFeedback(episodeId: string, rows: MessageJudgment[]) {
+    // 같은 발화를 두 요청이 함께 판정했으면 먼저 남긴 판정을 그대로 둔다.
+    const { error } = await this.client.from("message_feedback").upsert(
+      rows.map((row) => ({
+        episode_id: episodeId,
+        improved_sentence: row.improvedSentence,
+        message_id: row.messageId,
+        reasons: row.reasons,
+        source_text: row.sourceText,
+        verdict: row.verdict,
+      })),
+      { ignoreDuplicates: true, onConflict: "episode_id,message_id" }
+    );
+
+    if (error) {
+      throw error;
+    }
+  }
+
+  async markGoalAchieved({
+    achievedAt,
+    episodeId,
+    messageId,
+    position,
+  }: GoalAchievement & { episodeId: string }) {
+    // 달성 시각과 달성한 발화는 함께 채운다. 이미 달성한 목표는 건드리지 않아,
+    // 늦게 도착한 판정이 완료 줄의 자리를 뒤로 옮기지 못한다.
+    const { error } = await this.client
+      .from("episode_goals")
+      .update({ achieved_at: achievedAt, achieved_message_id: messageId })
+      .eq("episode_id", episodeId)
+      .eq("position", position)
+      .is("achieved_at", null);
+
+    if (error) {
+      throw error;
+    }
   }
 
   async deleteStoppedAssistantMessage(episodeId: string, messageId: string) {
@@ -867,6 +995,7 @@ export function createProductionRoleplayDependencies(): RoleplayDependencies {
   return {
     createRepository: (context) =>
       new SupabaseRoleplayRepository(context.supabaseAdmin),
+    judgment: createGatewayJudgmentModel(),
     model: createGatewayRoleplayModel(),
   };
 }

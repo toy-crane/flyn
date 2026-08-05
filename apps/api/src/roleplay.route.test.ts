@@ -1,6 +1,13 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { exportJWK, generateKeyPair, type JWK, SignJWT } from "jose";
 import type {
+  GoalAchievement,
+  JudgmentDraft,
+  JudgmentModel,
+  JudgmentUpdate,
+  MessageJudgment,
+} from "./judgment";
+import type {
   DeliveredSentence,
   EpisodeMessage,
   RoleplayDependencies,
@@ -17,13 +24,18 @@ let signingKey: CryptoKey;
 let createApiApp: typeof import("./index").createApiApp;
 let repository: MemoryRoleplayRepository;
 let model: FakeRoleplayModel;
+let judgmentModel: FakeJudgmentModel;
 let app: ReturnType<typeof createApiApp>;
 
 const EPISODE: RoleplayEpisode = {
   goals: [
-    "오늘의 원두 추천 받기",
-    "우유를 오트밀크로 바꿔 주문하기",
-    "근처 가볼 만한 곳 물어보기",
+    { achievedAt: null, position: 1, sentence: "오늘의 원두 추천 받기" },
+    {
+      achievedAt: null,
+      position: 2,
+      sentence: "우유를 오트밀크로 바꿔 주문하기",
+    },
+    { achievedAt: null, position: 3, sentence: "근처 가볼 만한 곳 물어보기" },
   ],
   id: EPISODE_ID,
   partnerRole: "바리스타 Maya",
@@ -35,9 +47,34 @@ const EPISODE: RoleplayEpisode = {
 };
 
 class MemoryRoleplayRepository implements RoleplayRepository {
-  episode: RoleplayEpisode | undefined = EPISODE;
+  episode: RoleplayEpisode | undefined = structuredClone(EPISODE);
   ownerId = USER_ID;
   messages: EpisodeMessage[] = [];
+  feedback: MessageJudgment[] = [];
+  achievements: (GoalAchievement & { episodeId: string })[] = [];
+
+  listJudgedMessageIds(_episodeId: string) {
+    return Promise.resolve(this.feedback.map((row) => row.messageId));
+  }
+
+  insertMessageFeedback(_episodeId: string, rows: MessageJudgment[]) {
+    this.feedback.push(...rows);
+    return Promise.resolve();
+  }
+
+  markGoalAchieved(input: GoalAchievement & { episodeId: string }) {
+    this.achievements.push(input);
+
+    const goal = this.episode?.goals.find(
+      (item) => item.position === input.position
+    );
+
+    if (goal && goal.achievedAt === null) {
+      goal.achievedAt = input.achievedAt;
+    }
+
+    return Promise.resolve();
+  }
 
   findOwnedEpisode(episodeId: string, userId: string) {
     if (this.episode?.id !== episodeId || this.ownerId !== userId) {
@@ -85,6 +122,7 @@ class MemoryRoleplayRepository implements RoleplayRepository {
 
 class FakeRoleplayModel implements RoleplayModel {
   delivered: DeliveredSentence[] = [];
+  judgments: (JudgmentUpdate | null)[] = [];
   generatedHistories: EpisodeMessage[][] = [];
   generateCount = 0;
   replayCount = 0;
@@ -113,6 +151,7 @@ class FakeRoleplayModel implements RoleplayModel {
 
   async generate({
     delivered,
+    judgment,
     messages,
     onFinish,
   }: Parameters<RoleplayModel["generate"]>[0]) {
@@ -129,14 +168,51 @@ class FakeRoleplayModel implements RoleplayModel {
       text: this.outcome.text,
     });
 
+    // 실제 스트림처럼 판정을 응답 뒤에 얹는다.
+    this.judgments.push(await judgment);
+
     return new Response(`stream:${delivered.text}|${this.outcome.text}`);
   }
 
-  replay({ delivered, text }: Parameters<RoleplayModel["replay"]>[0]) {
+  async replay({
+    delivered,
+    judgment,
+    text,
+  }: Parameters<RoleplayModel["replay"]>[0]) {
     this.replayCount += 1;
     this.delivered.push(delivered);
+    this.judgments.push(await judgment);
 
     return new Response(`replay:${delivered.text}|${text}`);
+  }
+}
+
+class FakeJudgmentModel implements JudgmentModel {
+  calls: { pending: string[] }[] = [];
+  draft: JudgmentDraft = { goals: [], sentences: [] };
+  /** 판정만 실패하는 경로를 세우는 스위치다. */
+  fails = Boolean(false);
+
+  judge({ pending }: Parameters<JudgmentModel["judge"]>[0]) {
+    this.calls.push({ pending: pending.map((item) => item.id) });
+
+    if (this.fails) {
+      return Promise.reject(new Error("gateway unavailable"));
+    }
+
+    return Promise.resolve({
+      goals: this.draft.goals,
+      // 판정은 아직 판정하지 않은 발화에만 붙는다.
+      sentences: pending.map((item) => ({
+        improvedSentence: null,
+        messageId: item.id,
+        reasons: [],
+        verdict: "clear" as const,
+        ...this.draft.sentences.find(
+          (sentence) => sentence.messageId === item.id
+        ),
+      })),
+    });
   }
 }
 
@@ -192,8 +268,10 @@ beforeAll(async () => {
 beforeEach(() => {
   repository = new MemoryRoleplayRepository();
   model = new FakeRoleplayModel();
+  judgmentModel = new FakeJudgmentModel();
   const roleplay: RoleplayDependencies = {
     createRepository: () => repository,
+    judgment: judgmentModel,
     model,
   };
   app = createApiApp({ roleplay });
@@ -414,5 +492,123 @@ describe("저장과 스트리밍", () => {
     expect(
       model.generatedHistories[1]?.map((message) => message.content)
     ).toEqual(["Hi there", "Sure thing.", "One oat latte please"]);
+  });
+});
+
+describe("목표 판정", () => {
+  it("발화 한 번에 요청 한 번으로 롤플레잉과 판정이 함께 돈다", async () => {
+    judgmentModel.draft = {
+      goals: [{ messageId: "user-1", position: 1 }],
+      sentences: [],
+    };
+
+    const response = await send({
+      content: "Could you recommend today's coffee?",
+      id: "user-1",
+    });
+    await response.text();
+
+    expect(response.status).toBe(200);
+    expect(model.generateCount).toBe(1);
+    expect(judgmentModel.calls).toEqual([{ pending: ["user-1"] }]);
+    expect(repository.achievements).toEqual([
+      expect.objectContaining({
+        episodeId: EPISODE_ID,
+        messageId: "user-1",
+        position: 1,
+      }),
+    ]);
+    // 판정 결과가 같은 응답에 실려 나간다.
+    expect(model.judgments).toEqual([
+      {
+        goals: [expect.objectContaining({ messageId: "user-1", position: 1 })],
+      },
+    ]);
+  });
+
+  it("판정 한 번이 판정·개선문·이유를 함께 남긴다", async () => {
+    judgmentModel.draft = {
+      goals: [],
+      sentences: [
+        {
+          improvedSentence: "What would you recommend today?",
+          messageId: "user-1",
+          reasons: ["원어민은 recommend 앞에 would를 붙여 부드럽게 물어요."],
+          verdict: "improvable",
+        },
+      ],
+    };
+
+    const response = await send({
+      content: "오늘 커피 뭐가 좋아요?",
+      id: "user-1",
+    });
+    await response.text();
+
+    expect(repository.feedback).toEqual([
+      {
+        improvedSentence: "What would you recommend today?",
+        messageId: "user-1",
+        reasons: ["원어민은 recommend 앞에 would를 붙여 부드럽게 물어요."],
+        // 사용자가 실제로 친 말은 이 행에만 남는다.
+        sourceText: "오늘 커피 뭐가 좋아요?",
+        verdict: "improvable",
+      },
+    ]);
+  });
+
+  it("판정만 실패하면 대화 화면에 알릴 것 없이 그대로 흐른다", async () => {
+    judgmentModel.fails = true;
+
+    const response = await send({ content: "Hi there", id: "user-1" });
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("stream:Hi there|Sure thing.");
+    expect(model.judgments).toEqual([null]);
+    expect(repository.feedback).toEqual([]);
+    expect(repository.achievements).toEqual([]);
+    // 대화는 그대로 남는다.
+    expect(repository.messages).toHaveLength(2);
+  });
+
+  it("판정이 빠진 발화를 다음 판정이 함께 채운다", async () => {
+    judgmentModel.fails = true;
+    const first = await send({ content: "Hi there", id: "user-1" });
+    await first.text();
+
+    judgmentModel.fails = false;
+    const second = await send({
+      content: "One oat latte please",
+      id: "user-2",
+    });
+    await second.text();
+
+    expect(judgmentModel.calls).toEqual([
+      { pending: ["user-1"] },
+      { pending: ["user-1", "user-2"] },
+    ]);
+    expect(repository.feedback.map((row) => row.messageId)).toEqual([
+      "user-1",
+      "user-2",
+    ]);
+  });
+
+  it("이미 판정한 발화와 이미 달성한 목표는 다시 보지 않는다", async () => {
+    judgmentModel.draft = {
+      goals: [{ messageId: "user-1", position: 1 }],
+      sentences: [],
+    };
+    const first = await send({ content: "Hi there", id: "user-1" });
+    await first.text();
+
+    const second = await send({
+      content: "One oat latte please",
+      id: "user-2",
+    });
+    await second.text();
+
+    expect(judgmentModel.calls[1]).toEqual({ pending: ["user-2"] });
+    // 같은 목표를 다시 채우면 완료 줄의 자리가 뒤로 밀린다.
+    expect(repository.achievements).toHaveLength(1);
   });
 });
