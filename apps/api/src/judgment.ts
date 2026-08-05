@@ -47,11 +47,22 @@ export interface GoalAchievement {
 }
 
 /**
- * 롤플레잉 스트림에 data part로 얹혀 앱에 도착하는 판정 결과. 개선문과 이유는
- * 저장만 하고 여기 싣지 않는다 — 드러내는 것은 첨삭 시트의 몫이다.
+ * 스트림에 실리는 한 발화의 판정. 저장하는 행에 **전달된 문장**을 더해 보낸다 —
+ * 첨삭 시트가 내가 쓴 말과 실제로 간 문장을 나란히 놓으려면 둘이 함께 와야 하고,
+ * 시트는 열릴 때 아무것도 다시 부르지 않는다.
+ */
+export interface JudgedSentence extends MessageJudgment {
+  delivered: string;
+}
+
+/**
+ * 롤플레잉 스트림에 data part로 얹혀 앱에 도착하는 판정 결과. 판정 호출 하나가
+ * 낸 판정·개선문·이유가 그대로 실려, 표시와 첨삭 시트가 네트워크를 다시 타지
+ * 않는다.
  */
 export interface JudgmentUpdate {
   goals: GoalAchievement[];
+  sentences: JudgedSentence[];
 }
 
 /**
@@ -142,7 +153,7 @@ export async function judgeEpisodeTurn({
   const draft = await model.judge({ episode, messages, pending, signal });
   const pendingById = new Map(pending.map((item) => [item.id, item]));
   const seenSentences = new Set<string>();
-  const feedback: MessageJudgment[] = [];
+  const feedback: JudgedSentence[] = [];
 
   for (const sentence of draft.sentences) {
     const utterance = pendingById.get(sentence.messageId);
@@ -154,6 +165,7 @@ export async function judgeEpisodeTurn({
 
     seenSentences.add(sentence.messageId);
     feedback.push({
+      delivered: utterance.text,
       improvedSentence: sentence.improvedSentence,
       messageId: sentence.messageId,
       reasons: sentence.reasons,
@@ -192,7 +204,7 @@ export async function judgeEpisodeTurn({
     )
   );
 
-  return { goals: achievements };
+  return { goals: achievements, sentences: feedback };
 }
 
 const JUDGMENT_SCHEMA = jsonSchema<{

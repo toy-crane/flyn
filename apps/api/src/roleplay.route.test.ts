@@ -522,6 +522,7 @@ describe("목표 판정", () => {
     expect(model.judgments).toEqual([
       {
         goals: [expect.objectContaining({ messageId: "user-1", position: 1 })],
+        sentences: [expect.objectContaining({ messageId: "user-1" })],
       },
     ]);
   });
@@ -546,13 +547,30 @@ describe("목표 판정", () => {
     await response.text();
 
     expect(repository.feedback).toEqual([
-      {
+      expect.objectContaining({
         improvedSentence: "What would you recommend today?",
         messageId: "user-1",
         reasons: ["원어민은 recommend 앞에 would를 붙여 부드럽게 물어요."],
         // 사용자가 실제로 친 말은 이 행에만 남는다.
         sourceText: "오늘 커피 뭐가 좋아요?",
         verdict: "improvable",
+      }),
+    ]);
+    // 표시와 첨삭 시트가 읽을 값이 저장과 같은 턴에 스트림으로도 나간다.
+    expect(model.judgments).toEqual([
+      {
+        goals: [],
+        sentences: [
+          {
+            // 한글로 썼으므로 내가 쓴 말과 전달된 문장이 다르다.
+            delivered: "What do you recommend today?",
+            improvedSentence: "What would you recommend today?",
+            messageId: "user-1",
+            reasons: ["원어민은 recommend 앞에 would를 붙여 부드럽게 물어요."],
+            sourceText: "오늘 커피 뭐가 좋아요?",
+            verdict: "improvable",
+          },
+        ],
       },
     ]);
   });

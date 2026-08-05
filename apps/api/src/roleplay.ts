@@ -789,7 +789,8 @@ function writeDeliveredSentence(
 /**
  * 판정은 롤플레잉 응답보다 늦게 도착할 수 있다. 응답을 merge한 **뒤에** 기다리
  * 므로 대화는 그대로 먼저 흐르고, 판정은 같은 스트림에 나중에 얹힌다. 판정이
- * 없거나 채운 목표가 없으면 아무것도 쓰지 않는다 — 대화 화면에 알릴 것이 없다.
+ * 없거나 채운 것이 하나도 없으면 아무것도 쓰지 않는다 — 대화 화면에 알릴 것이
+ * 없다.
  */
 async function writeJudgment(
   writer: DeliveredWriter,
@@ -797,7 +798,7 @@ async function writeJudgment(
 ) {
   const update = await judgment;
 
-  if (!update || update.goals.length === 0) {
+  if (!update || (update.goals.length === 0 && update.sentences.length === 0)) {
     return;
   }
 

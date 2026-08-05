@@ -320,6 +320,21 @@ const ACHIEVED: JudgmentUpdate = {
       position: 1,
     },
   ],
+  sentences: [],
+};
+
+const JUDGED: JudgmentUpdate = {
+  goals: [],
+  sentences: [
+    {
+      delivered: "Sound good. Can you make it oat milk?",
+      improvedSentence: "Sounds good. Can you make it with oat milk?",
+      messageId: "user-1",
+      reasons: ["앞의 that이 생략된 3인칭 주어라 동사에 -s가 붙어요."],
+      sourceText: "Sound good. Can you make it oat milk?",
+      verdict: "improvable",
+    },
+  ],
 };
 
 /** lib 사이의 ReadableStream 타입 차이를 피해 읽는 모양만 요구한다. */
@@ -417,7 +432,24 @@ describe("같은 스트림에 얹히는 판정", () => {
     expect(await drain(reader)).toContain('"type":"data-judgment"');
   });
 
-  it("판정이 실패하거나 채운 목표가 없으면 아무것도 얹지 않는다", async () => {
+  it("목표를 채우지 못한 턴에도 문장 판정은 같은 스트림에 온다", async () => {
+    const model = createGatewayRoleplayModel({
+      logger: () => undefined,
+      model: createTextModel(),
+    });
+
+    const { body } = await generate(model, {
+      judgment: Promise.resolve(JUDGED),
+    });
+
+    // 표시와 첨삭 시트가 읽는 값이 판정 호출 하나에서 그대로 실려 온다.
+    expect(body).toContain('"type":"data-judgment"');
+    expect(body).toContain('"verdict":"improvable"');
+    expect(body).toContain("Sounds good. Can you make it with oat milk?");
+    expect(body).toContain("동사에 -s가 붙어요");
+  });
+
+  it("판정이 실패하거나 채운 것이 없으면 아무것도 얹지 않는다", async () => {
     const model = createGatewayRoleplayModel({
       logger: () => undefined,
       model: createTextModel(),
@@ -425,7 +457,7 @@ describe("같은 스트림에 얹히는 판정", () => {
 
     const failed = await generate(model, { judgment: Promise.resolve(null) });
     const empty = await generate(model, {
-      judgment: Promise.resolve({ goals: [] }),
+      judgment: Promise.resolve({ goals: [], sentences: [] }),
     });
 
     expect(failed.body).not.toContain("data-judgment");

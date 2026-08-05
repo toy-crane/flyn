@@ -320,7 +320,11 @@ const app = createApiApp();
 export type AppType = typeof app;
 
 /** 스트림에 얹어 보내는 값이라 RPC 타입에 잡히지 않는다. 앱이 함께 읽는다. */
-export type { GoalAchievement, JudgmentUpdate } from "./judgment";
+export type {
+  GoalAchievement,
+  JudgedSentence,
+  JudgmentUpdate,
+} from "./judgment";
 export type { DeliveredSentence } from "./roleplay";
 
 export default app;

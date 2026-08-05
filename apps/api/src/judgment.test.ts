@@ -158,7 +158,28 @@ describe("한 턴의 판정", () => {
       sourceTexts: { "user-2": "좋아요. 오트밀크로 해 줄래요?" },
     });
 
-    expect(await update).toEqual({ goals: [] });
+    // 판정·개선문·이유가 전달된 문장과 함께 그대로 스트림에 실린다.
+    expect(await update).toEqual({
+      goals: [],
+      sentences: [
+        {
+          delivered: "Sound good. make it oat milk?",
+          improvedSentence: "Sounds good. Could you make it oat milk?",
+          messageId: "user-2",
+          reasons: ["Sound good은 Sounds good이 자연스러워요."],
+          sourceText: "좋아요. 오트밀크로 해 줄래요?",
+          verdict: "improvable",
+        },
+        {
+          delivered: "Could you recommend today's coffee?",
+          improvedSentence: null,
+          messageId: "user-1",
+          reasons: [],
+          sourceText: "Could you recommend today's coffee?",
+          verdict: "clear",
+        },
+      ],
+    });
     expect(calls[0]?.pending.map((item) => item.id)).toEqual([
       "user-1",
       "user-2",
@@ -197,6 +218,7 @@ describe("한 턴의 판정", () => {
           position: 1,
         },
       ],
+      sentences: [],
     });
     expect(repository.achievements).toEqual([
       {
@@ -221,7 +243,7 @@ describe("한 턴의 판정", () => {
       episode: episode({ 1: "2026-08-05T00:00:00.000Z" }),
     });
 
-    expect(await update).toEqual({ goals: [] });
+    expect(await update).toEqual({ goals: [], sentences: [] });
     expect(repository.achievements).toEqual([]);
   });
 
