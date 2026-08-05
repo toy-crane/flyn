@@ -13,6 +13,7 @@ const colors = {
   groupedBackground: "grouped-background",
   inputFill: "input-fill",
   link: "link",
+  loadingIndicator: "loading-indicator",
   onAccent: "on-accent",
   onPrimary: "on-primary",
   onUserBubble: "on-user-bubble",

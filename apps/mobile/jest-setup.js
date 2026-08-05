@@ -24,6 +24,7 @@ jest.mock("./src/theme/app-theme", () => {
     groupedBackground: "#333333",
     inputFill: "#222222",
     link: "#111111",
+    loadingIndicator: "#777777",
     onAccent: "#fefefe",
     onPrimary: "#fefefe",
     onUserBubble: "#fefefe",

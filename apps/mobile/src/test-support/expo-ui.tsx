@@ -16,14 +16,17 @@
 
 import {
   type ComponentProps,
+  createContext,
   type ReactNode,
   useCallback,
+  useContext,
   useMemo,
   useRef,
   useState,
 } from "react";
 import {
   ActivityIndicator,
+  type ColorValue,
   Pressable,
   Text,
   TextInput,
@@ -84,8 +87,24 @@ interface Modifiers {
   modifiers?: unknown[];
 }
 
+const HostSeedColorContext = createContext<ColorValue | undefined>(undefined);
+
 function Passthrough({ children }: { children?: ReactNode }) {
   return <View>{children}</View>;
+}
+
+function MockHost({
+  children,
+  seedColor,
+}: {
+  children?: ReactNode;
+  seedColor?: ColorValue;
+}) {
+  return (
+    <HostSeedColorContext.Provider value={seedColor}>
+      <View>{children}</View>
+    </HostSeedColorContext.Provider>
+  );
 }
 
 function MockColumn({
@@ -190,6 +209,7 @@ function MockProgressView({
   modifiers,
   testID,
 }: Modifiers & { testID?: string }) {
+  const seedColor = useContext(HostSeedColorContext);
   const opacity = modifierArg<number>(modifiers, "opacity");
   const accessibilityHidden = modifierArg<boolean>(
     modifiers,
@@ -199,6 +219,7 @@ function MockProgressView({
   return (
     <ActivityIndicator
       accessibilityElementsHidden={accessibilityHidden}
+      color={seedColor}
       style={opacity === undefined ? undefined : { opacity }}
       testID={testID}
     />
@@ -416,7 +437,7 @@ function MockSection({
 const containers = {
   Form: Passthrough,
   Group: Passthrough,
-  Host: Passthrough,
+  Host: MockHost,
   HStack: Passthrough,
   Section: Passthrough,
   VStack: Passthrough,

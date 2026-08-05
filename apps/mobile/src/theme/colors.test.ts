@@ -10,6 +10,7 @@ jest.mock("expo-router", () => ({
       secondarySystemBackground: "ios-plain-surface",
       separator: "ios-separator",
       systemBackground: "ios-system-background",
+      systemGray: "ios-system-gray",
       systemGray5: "ios-system-gray-5",
       systemGroupedBackground: "ios-grouped-background",
       tertiaryLabel: "ios-tertiary-label",
@@ -32,6 +33,7 @@ const COLOR_ROLES = [
   "groupedBackground",
   "inputFill",
   "link",
+  "loadingIndicator",
   "onAccent",
   "onPrimary",
   "onUserBubble",
@@ -60,6 +62,7 @@ describe("semantic color resolver", () => {
       groupedBackground: "ios-grouped-background",
       inputFill: "ios-tertiary-system-fill",
       link: "ios-link",
+      loadingIndicator: "ios-system-gray",
       onPrimary: "#FFFFFF",
       placeholder: "ios-placeholder",
       primary: "ios-link",
@@ -109,6 +112,7 @@ describe("semantic color resolver", () => {
       expect(colors.background).toBe("dynamic-background");
       expect(colors.groupedBackground).toBe("dynamic-surfaceContainer");
       expect(colors.inputFill).toBe("dynamic-surfaceContainerHighest");
+      expect(colors.loadingIndicator).toBe("dynamic-onSurfaceVariant");
       expect(colors.primary).toBe("material-primary");
       expect(colors.accent).toBe("material-primary");
       expect(colors.onPrimary).toBe("dynamic-onPrimary");
