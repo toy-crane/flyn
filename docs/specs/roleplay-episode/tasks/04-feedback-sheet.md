@@ -36,3 +36,35 @@
 - 커스텀 글리프와 `ellipsis`는 쓰지 않는다. `ellipsis`는 명령 메뉴를 뜻한다.
 - 시트는 이미 저장된 판정만 읽는다. 열 때 새로 부르지 않는다.
 - 시트에 `더 물어보기`를 아직 두지 않는다. 액션과 목적지는 05가 함께 붙인다.
+
+## 리뷰에서 남은 메모
+
+막은 것은 없다.
+
+- `apps/mobile/src/lib/message-feedback.ts:29` — 번역 표시를 `sourceText !== delivered`로 미루어
+  짐작하는데, `apps/api/src/judgment.ts:143`이 다음 턴에 채우는 판정에서는 `sourceText`를
+  `message.content`로 되돌린다. 그래서 첫 판정이 실패한 한글 발화는 영영 교정·통과 표시로 남고
+  시트에서 `내가 쓴 한글` 블록을 잃는다. "이건 번역된 문장이다"를 적어 두는 자리가 스키마에
+  없어, 제대로 고치려면 03이 칼럼이나 플래그를 내어 주어야 한다.
+- `apps/mobile/src/components/episode/feedback-sheet.tsx:156` — 번역 시트의 `표현 노트와 대체 표현`은
+  `feedback.reasons`만 먹는데 `apps/api/src/judgment.ts:500`이 `clear`면 `reasons: []`로 못박는다.
+  기계 번역은 거의 언제나 `clear`라, 흔한 번역 시트는 `내가 쓴 한글` → `이렇게 전달됐어요`만
+  보여 준다. 태스크 산문과 승인된 `conversation.html`의 TranslationSheet보다 얇다.
+- `apps/mobile/src/components/episode/feedback-sheet.test.tsx:17` — `TRANSLATED` 픽스처가
+  `verdict: "clear"`에 `reasons`가 찬 행이다. 판정 파이프라인이 만들지 않는 모양이라, 번역 시트가
+  노트를 그린다는 그 테스트는 닿을 수 없는 입력 위에서 통과한다.
+- `apps/mobile/src/lib/use-episode-conversation.ts:265` — `sentences` 없이 `data-judgment`가 오면
+  `withArrivedFeedback`이 던진다(이 변경 전에 배포된 API). `sentences = []` 기본값이면 새 클라이언트가
+  옛 서버를 견딘다. 반대 방향은 안전하다.
+- `apps/mobile/src/lib/sentence-diff.ts:28` — `lcsLengths`가 시트를 열 때 `(토큰+1)²` 행렬을 동기로
+  잡는다. 서버 상한(메시지 4000자, 개선문 20000자)에서 최악이 JS 스레드 위 2천만 칸이다. 실제
+  문장에는 사소하지만 원리상 상한이 없다.
+- `apps/mobile/src/lib/use-episodes.ts:103`, `apps/mobile/src/app/episodes/[id].tsx:191` —
+  `message_feedback` 읽기 실패를 `feedback.data ?? []`가 삼켜, 가져오기 오류와 "아직 판정이 없다"가
+  구분되지 않는다. 표시가 통째로 조용히 사라지고 다시 시도할 길이 없다.
+- `apps/mobile/src/components/symbols/app-symbols.ts:47` — `translate`는 SF Symbols 6(iOS 18) 이름인데
+  `RNSymbol`에 폴백을 주지 않는다. 배포 타깃이 낮으면 번역 표시가 빈 44pt 버튼이 된다. 프로젝트
+  최소 iOS와 맞춰 볼 값어치가 있다.
+
+리뷰는 시뮬레이터를 돌리지 못했다(핀으로 박은 모델이 이 기기에서 403). 눈에 보이는 기준은
+44×44 스타일 단언, 원형 대 플랫 렌더링, detent 상수로 구조에서 확인했다.
