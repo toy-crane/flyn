@@ -50,3 +50,31 @@
   02가 대화 화면을 대신 세울 때 함께 한다.
 - 이 태스크가 끝난 시점에는 에피소드를 열 대화 화면이 아직 없다. 카드와 목록
   행의 목적지는 02가 연결한다.
+
+## 리뷰에서 남은 메모
+
+막지는 않았지만 PR이 안고 갈 것들.
+
+- `apps/mobile/src/app/episodes/new.tsx:619` — 목표 생성이 실패하면 알림은 닫히지만 ③이
+  `목표 만드는 중`을 계속 그린다. `다른 목표 보기`가 `sentences` 분기 안에 있어 재시도에
+  닿을 길이 없고, `이전 질문` → `다음`만이 탈출구다. ①·②는 실패에서 회복한다.
+- `apps/api/src/episode.ts:155` — `optionalTitles`는 `excluded` 배열 길이만 12로 막고 각
+  문자열 길이는 막지 않는다. 다른 필드와 달리 `requireText`를 지나지 않은 채 프롬프트에
+  그대로 끼어들어, 인증된 클라이언트가 입력 토큰을 본문 상한까지 부풀릴 수 있다.
+- `apps/api/src/episode.ts:503` — `GatewayEpisodeModel`에 테스트 파일이 없다
+  (`chat.model.test.ts`와 대비). 프롬프트 조립·후보 필터·`requireGoals`/`requireRole`
+  가드·타임아웃·구조화 로그가 라우트 테스트의 가짜 모델로만 지나간다.
+- `apps/mobile/src/app/episodes/new.tsx:38` — 생성 화면이 `self-contained-native-ui-boundaries`의
+  기본값인 `@expo/ui` 대신 RN을 골랐다. 근거로 든 조건(스크롤 본문 + 키보드 입력 + 상주 CTA)이
+  같은 계약이 `@expo/ui`로 배정한 온보딩 화면에도 들어맞는다. 다시 볼 값어치가 있다.
+- `apps/api/src/episode.ts:135`와 `:558` — 사용자에게 보이는 오류 문구가 합쇼체와 해요체를
+  섞는다. 둘이 같은 `Alert` 본문에 그대로 오른다. `danggeun-voice-for-copy`의 기본은 해요체다.
+- `apps/mobile/src/app/index.tsx:177`, `:210` — 이어서 하기 카드의 `대화 이어가기`는 채운
+  버튼처럼 보이지만 `View`이고, `EpisodeRow`는 `accessibilityRole="button"`에 `onLongPress`만
+  있다. 02가 목적지를 잇기 전까지 눌러도 아무 일이 없다(태스크 제약대로지만 main에 오른다).
+- `apps/mobile/src/app/episodes/new.tsx:583`, `:631` — 후보와 목표를 제 텍스트로 키를 삼는데
+  API도 화면도 모델 출력을 중복 제거하지 않아, 같은 제목이 나오면 React 키가 겹친다.
+- `apps/mobile/src/app/episodes/new.tsx:555` — ②·③은 네이티브 뒤로 가기를 숨기고 툴바
+  셰브론을 두지만, iOS 스와이프 백 제스처는 여전히 화면 전체를 팝한다.
+- `bun run lint`는 저장소 전체에서 526개로 붉지만 전부 `docs/specs/roleplay-episode/*.html`
+  프로토타입이고, 이 태스크가 건드린 17개 파일은 깨끗하다.
