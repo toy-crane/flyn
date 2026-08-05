@@ -21,7 +21,7 @@ import {
 } from "../../lib/username";
 import { useColors } from "../../theme/app-theme";
 import { FormInput } from "../forms/form-input";
-import { ProfileEditSheet } from "./profile-edit-sheet";
+import { ProfileEditScreen } from "./profile-edit-screen";
 
 const USERNAME_RULE = "4~20자, 영문 소문자·숫자·_·.만 사용할 수 있어요.";
 
@@ -29,7 +29,7 @@ function saveFailed() {
   Alert.alert("저장하지 못했어요", "잠시 후 다시 시도해 주세요.");
 }
 
-export function UsernameEditSheet({
+export function UsernameEditForm({
   initialValue,
   onDismiss,
   userId,
@@ -126,13 +126,11 @@ export function UsernameEditSheet({
     status === "taken" ? "이미 사용 중인 아이디예요." : USERNAME_RULE;
 
   return (
-    <ProfileEditSheet
+    <ProfileEditScreen
       canSave={canSave}
       onDismiss={onDismiss}
       onSave={handleSave}
       pending={save.isPending}
-      testID="username-edit-sheet"
-      title="아이디"
     >
       <Column spacing={8} style={{ paddingHorizontal: 20, paddingTop: 20 }}>
         <FormInput
@@ -184,7 +182,7 @@ export function UsernameEditSheet({
           </Column>
         ) : null}
       </Column>
-    </ProfileEditSheet>
+    </ProfileEditScreen>
   );
 }
 

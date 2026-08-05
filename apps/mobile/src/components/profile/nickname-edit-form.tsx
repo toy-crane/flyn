@@ -9,13 +9,13 @@ import {
 } from "../../lib/display-name";
 import { useSaveDisplayName } from "../../lib/use-profile";
 import { FormInput } from "../forms/form-input";
-import { ProfileEditSheet } from "./profile-edit-sheet";
+import { ProfileEditScreen } from "./profile-edit-screen";
 
 function saveFailed() {
   Alert.alert("저장하지 못했어요", "잠시 후 다시 시도해 주세요.");
 }
 
-export function NicknameEditSheet({
+export function NicknameEditForm({
   initialValue,
   onDismiss,
   userId,
@@ -48,13 +48,11 @@ export function NicknameEditSheet({
   }, [canSave, name, onDismiss, save]);
 
   return (
-    <ProfileEditSheet
+    <ProfileEditScreen
       canSave={canSave}
       onDismiss={onDismiss}
       onSave={handleSave}
       pending={save.isPending}
-      testID="nickname-edit-sheet"
-      title="닉네임"
     >
       <Column spacing={8} style={{ paddingHorizontal: 20, paddingTop: 20 }}>
         <FormInput
@@ -77,6 +75,6 @@ export function NicknameEditSheet({
           1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.
         </Text>
       </Column>
-    </ProfileEditSheet>
+    </ProfileEditScreen>
   );
 }

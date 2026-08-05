@@ -101,6 +101,28 @@ function Routes() {
               title: "설정",
             }}
           />
+          <Stack.Screen
+            name="settings/display-name"
+            options={{
+              headerBackVisible: false,
+              headerShown: true,
+              presentation: "formSheet",
+              sheetAllowedDetents: [1],
+              sheetGrabberVisible: true,
+              title: "닉네임",
+            }}
+          />
+          <Stack.Screen
+            name="settings/username"
+            options={{
+              headerBackVisible: false,
+              headerShown: true,
+              presentation: "formSheet",
+              sheetAllowedDetents: [1],
+              sheetGrabberVisible: true,
+              title: "아이디",
+            }}
+          />
         </Stack.Protected>
         {/* 온보딩만 마운트한다 — 뒤로 가서 앱에 들어갈 스택 자체를 만들지 않는다. */}
         <Stack.Protected

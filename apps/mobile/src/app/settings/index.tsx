@@ -9,11 +9,10 @@ import {
   listRowSeparator,
   multilineTextAlignment,
 } from "@expo/ui/swift-ui/modifiers";
+import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
-import { NicknameEditSheet } from "../../components/profile/nickname-edit-sheet";
 import { ProfileAvatar } from "../../components/profile/profile-avatar";
-import { UsernameEditSheet } from "../../components/profile/username-edit-sheet";
 import { NativeSymbol } from "../../components/symbols/native-symbol";
 import { deleteAccount } from "../../lib/account";
 import { signOut } from "../../lib/auth/sign-out";
@@ -107,17 +106,20 @@ function ProfileHeader({
  */
 export default function SettingsScreen() {
   const colors = useColors();
+  const router = useRouter();
   const userId = useUserId();
   const profile = useProfile(userId);
   const [deleting, setDeleting] = useState(false);
-  const [editing, setEditing] = useState<"nickname" | "username" | null>(null);
   const displayName = profile.data?.display_name ?? "";
   const email = profile.data?.email ?? "";
   const username = profile.data?.username ?? "";
 
-  const openNickname = useCallback(() => setEditing("nickname"), []);
-  const openUsername = useCallback(() => setEditing("username"), []);
-  const closeEditing = useCallback(() => setEditing(null), []);
+  const openNickname = useCallback(() => {
+    router.push("/settings/display-name");
+  }, [router]);
+  const openUsername = useCallback(() => {
+    router.push("/settings/username");
+  }, [router]);
 
   // 알릴 실패가 없다. auth-js는 요청이 실패해도 로컬 세션을 지우고 SIGNED_OUT을
   // 쏘므로, 어느 경우든 _layout의 가드가 sign-in으로 보낸다 — 여기서 얼럿을
@@ -221,22 +223,6 @@ export default function SettingsScreen() {
             </ListItem>
           </FieldGroup.Section>
         </FieldGroup>
-
-        {editing === "nickname" ? (
-          <NicknameEditSheet
-            initialValue={displayName}
-            onDismiss={closeEditing}
-            userId={userId}
-          />
-        ) : null}
-
-        {editing === "username" ? (
-          <UsernameEditSheet
-            initialValue={username}
-            onDismiss={closeEditing}
-            userId={userId}
-          />
-        ) : null}
       </Host>
 
       {/* 서버가 지우는 동안 화면이 멀쩡해 보이면 사용자가 다시 누른다. */}

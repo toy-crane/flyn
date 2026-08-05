@@ -140,7 +140,22 @@ describe("Layout native stack header", () => {
       headerShown: true,
       title: "설정",
     });
-    expect(mockRouteOptions["settings/display-name"]).toBeUndefined();
+    expect(mockRouteOptions["settings/display-name"]).toMatchObject({
+      headerBackVisible: false,
+      headerShown: true,
+      presentation: "formSheet",
+      sheetAllowedDetents: [1],
+      sheetGrabberVisible: true,
+      title: "닉네임",
+    });
+    expect(mockRouteOptions["settings/username"]).toMatchObject({
+      headerBackVisible: false,
+      headerShown: true,
+      presentation: "formSheet",
+      sheetAllowedDetents: [1],
+      sheetGrabberVisible: true,
+      title: "아이디",
+    });
   });
 
   it("설정 화면만 grouped background를 native header까지 이어 쓴다", async () => {

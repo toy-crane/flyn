@@ -149,36 +149,6 @@ function MockButton({
   );
 }
 
-function MockBottomSheet({
-  children,
-  isPresented,
-  onDismiss,
-  showDragIndicator,
-  snapPoints,
-  testID,
-}: {
-  children?: ReactNode;
-  isPresented: boolean;
-  onDismiss: () => void;
-  showDragIndicator?: boolean;
-  snapPoints?: unknown[];
-  testID?: string;
-}) {
-  if (!isPresented) {
-    return null;
-  }
-
-  return (
-    <View
-      accessibilityHint={JSON.stringify({ showDragIndicator, snapPoints })}
-      testID={testID}
-    >
-      <Pressable accessibilityLabel="시트 끌어내리기" onPress={onDismiss} />
-      {children}
-    </View>
-  );
-}
-
 interface ObservableState<T> {
   value: T;
 }
@@ -493,7 +463,6 @@ export function universalMock() {
   return {
     ...containers,
     ...leaves,
-    BottomSheet: MockBottomSheet,
     Button: MockButton,
     Column: MockColumn,
     FieldGroup,

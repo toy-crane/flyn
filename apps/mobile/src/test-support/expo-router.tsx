@@ -17,18 +17,29 @@ function Toolbar({ children }: { children?: ReactNode }) {
 
 function ToolbarButton({
   accessibilityLabel,
+  disabled,
+  icon,
   onPress,
 }: {
   accessibilityLabel: string;
+  disabled?: boolean;
+  icon?: unknown;
   onPress: () => void;
 }) {
   return (
     <Pressable
+      accessibilityHint={typeof icon === "string" ? `sf:${icon}` : undefined}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
     />
   );
+}
+
+function ToolbarView({ children }: { children?: ReactNode }) {
+  return children;
 }
 
 /** 화면들이 부르는 라우터. 메서드만 jest.fn이라 resetAllMocks에 안전하다. */
@@ -56,7 +67,10 @@ export function expoRouterMock() {
   const Stack = Object.assign(NOTHING, {
     Protected: NOTHING,
     Screen: NOTHING,
-    Toolbar: Object.assign(Toolbar, { Button: ToolbarButton }),
+    Toolbar: Object.assign(Toolbar, {
+      Button: ToolbarButton,
+      View: ToolbarView,
+    }),
   });
 
   return {
