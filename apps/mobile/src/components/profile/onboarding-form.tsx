@@ -1,7 +1,7 @@
 import { Column, Host, ScrollView } from "@expo/ui";
 import { frame } from "@expo/ui/swift-ui/modifiers";
 import type { ReactNode } from "react";
-import { useAppTheme } from "../../theme/app-theme";
+import { useColors } from "../../theme/app-theme";
 import { FormSubmitButton } from "../forms/form-submit-button";
 
 export function OnboardingForm({
@@ -17,13 +17,10 @@ export function OnboardingForm({
   pending: boolean;
   submitLabel: string;
 }) {
-  const app = useAppTheme();
+  const colors = useColors();
 
   return (
-    <Host
-      seedColor={app.primary}
-      style={{ backgroundColor: app.background, flex: 1 }}
-    >
+    <Host style={{ backgroundColor: colors.background, flex: 1 }}>
       <Column
         alignment="start"
         modifiers={[

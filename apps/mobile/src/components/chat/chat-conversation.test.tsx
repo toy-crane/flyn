@@ -110,25 +110,6 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
 jest.mock(
-  "expo-glass-effect",
-  () => {
-    const { View: NativeView } = require("react-native");
-    return {
-      GlassView: NativeView,
-      isLiquidGlassAvailable: () => false,
-    };
-  },
-  { virtual: true }
-);
-jest.mock(
-  "expo-blur",
-  () => {
-    const { View: NativeView } = require("react-native");
-    return { BlurView: NativeView };
-  },
-  { virtual: true }
-);
-jest.mock(
   "expo-symbols",
   () => {
     const ReactRuntime = require("react");
@@ -205,9 +186,9 @@ describe("채팅방 상세 대화", () => {
 
     expect(screen.getByText("사용자 질문")).toBeTruthy();
     expect(screen.getByText("**AI 답변**")).toBeTruthy();
-    expect(screen.getByTestId("user-message").props.className).toContain(
-      "self-end"
-    );
+    expect(screen.getByTestId("user-message")).toHaveStyle({
+      alignSelf: "flex-end",
+    });
     expect(screen.getByTestId("assistant-message")).toBeTruthy();
   });
 
@@ -361,7 +342,7 @@ describe("채팅방 상세 대화", () => {
     const emptyState = screen.getByTestId("chat-empty-state");
 
     expect(emptyState).toHaveStyle({ bottom: 396 });
-    expect(emptyState.props.className).toContain("top-0");
+    expect(emptyState).toHaveStyle({ top: 0 });
   });
 
   it("맨 아래에서는 목록과 composer가 같은 키보드 전환을 따른다", async () => {
@@ -407,6 +388,23 @@ describe("채팅방 상세 대화", () => {
 
     expect(input.props.maxLength).toBe(4000);
     expect(setInput).toHaveBeenCalledWith("새 질문");
+  });
+
+  it("composer 입력은 Dynamic Type 글자를 자르는 고정 line height를 쓰지 않는다", async () => {
+    const { StyleSheet } = require("react-native");
+    await render(<ChatConversation chat={controller()} />);
+
+    const input = screen.getByPlaceholderText("메시지 보내기");
+
+    expect(StyleSheet.flatten(input.props.style).lineHeight).toBeUndefined();
+  });
+
+  it("composer는 form과 같은 adaptive input fill을 사용한다", async () => {
+    await render(<ChatConversation chat={controller()} />);
+
+    expect(screen.getByTestId("chat-composer-surface")).toHaveStyle({
+      backgroundColor: "#222222",
+    });
   });
 
   it("보낼 내용이 있으면 전송 action을 실행한다", async () => {
@@ -568,6 +566,16 @@ describe("채팅방 상세 대화", () => {
     fireEvent.press(screen.getByRole("button", { name: "다시 시도" }));
 
     expect(onRetry).toHaveBeenCalled();
+  });
+
+  it("모델 오류의 재시도 action은 semibold 위계를 유지한다", async () => {
+    await render(
+      <ChatConversation
+        chat={controller({ error: new Error("gateway failed") })}
+      />
+    );
+
+    expect(screen.getByText("다시 시도")).toHaveStyle({ fontWeight: "600" });
   });
 
   it("모델 오류 중에도 새 입력은 일반 전송 버튼으로 보낼 수 있다", async () => {

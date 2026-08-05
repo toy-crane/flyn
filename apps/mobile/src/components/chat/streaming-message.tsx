@@ -1,26 +1,34 @@
 import { useSyncExternalStore } from "react";
-import { ActivityIndicator, Text } from "react-native";
-import { useAppTheme } from "../../theme/app-theme";
+import { ActivityIndicator, StyleSheet, Text } from "react-native";
+import { useTheme } from "../../theme/app-theme";
+import { spacing } from "../../theme/tokens";
 import type { StreamingStore } from "./streaming-store";
 
+const styles = StyleSheet.create({
+  spinner: {
+    alignSelf: "flex-start",
+    marginLeft: spacing.xs,
+  },
+});
+
 export function StreamingMessage({ store }: { store: StreamingStore }) {
-  const theme = useAppTheme();
+  const { colors, typography } = useTheme();
   const text = useSyncExternalStore(store.subscribe, store.get);
 
   if (!text) {
     return (
       <ActivityIndicator
         accessibilityLabel="응답 생성 중"
-        color={theme.mutedForeground}
+        color={colors.secondaryText}
         size="small"
-        style={{ alignSelf: "flex-start", marginLeft: 8 }}
+        style={styles.spinner}
         testID="assistant-response-spinner"
       />
     );
   }
 
   return (
-    <Text className="text-base text-foreground leading-[23px]" selectable>
+    <Text selectable style={[typography.message, { color: colors.text }]}>
       {text}
     </Text>
   );

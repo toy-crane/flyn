@@ -196,9 +196,9 @@ describe("SignInScreen", () => {
     expect(
       screen.getByRole("button", { name: "이메일로 계속하기" }).props.style
     ).toMatchObject({ marginTop: 4 });
-    expect(screen.getByText("이메일로 계속하기").props.className).toContain(
-      "text-muted-foreground"
-    );
+    expect(screen.getByText("이메일로 계속하기")).toHaveStyle({
+      color: "#111111",
+    });
   });
 
   it("로그인 동작은 화면 하단 action 영역에 모은다", async () => {

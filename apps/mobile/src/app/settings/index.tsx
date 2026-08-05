@@ -9,17 +9,26 @@ import {
   listRowSeparator,
   multilineTextAlignment,
 } from "@expo/ui/swift-ui/modifiers";
+import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert, View } from "react-native";
-import { NicknameEditSheet } from "../../components/profile/nickname-edit-sheet";
+import { Alert, StyleSheet, View } from "react-native";
 import { ProfileAvatar } from "../../components/profile/profile-avatar";
-import { UsernameEditSheet } from "../../components/profile/username-edit-sheet";
 import { NativeSymbol } from "../../components/symbols/native-symbol";
 import { deleteAccount } from "../../lib/account";
 import { signOut } from "../../lib/auth/sign-out";
 import { useProfile } from "../../lib/use-profile";
 import { useUserId } from "../../lib/user-id";
-import { useAppTheme } from "../../theme/app-theme";
+import { useColors } from "../../theme/app-theme";
+
+const styles = StyleSheet.create({
+  overlay: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  screen: {
+    flex: 1,
+  },
+});
 
 /** 값 표시는 두 행이 같은 모양이어야 한다 — 하나는 누를 수 있을 뿐이다. */
 function Value({ children }: { children: string }) {
@@ -36,11 +45,9 @@ function Value({ children }: { children: string }) {
 
 function ProfileHeader({
   displayName,
-  mutedColor,
   username,
 }: {
   displayName: string;
-  mutedColor: string;
   username: string;
 }) {
   return (
@@ -74,7 +81,10 @@ function ProfileHeader({
         </Text>
         <Text
           modifiers={[
-            foregroundStyle(mutedColor),
+            foregroundStyle({
+              style: "secondary",
+              type: "hierarchical",
+            }),
             font({ textStyle: "callout" }),
             multilineTextAlignment("center"),
           ]}
@@ -95,18 +105,21 @@ function ProfileHeader({
  * 항목을 미리 만들지 않는다.
  */
 export default function SettingsScreen() {
-  const app = useAppTheme();
+  const colors = useColors();
+  const router = useRouter();
   const userId = useUserId();
   const profile = useProfile(userId);
   const [deleting, setDeleting] = useState(false);
-  const [editing, setEditing] = useState<"nickname" | "username" | null>(null);
   const displayName = profile.data?.display_name ?? "";
   const email = profile.data?.email ?? "";
   const username = profile.data?.username ?? "";
 
-  const openNickname = useCallback(() => setEditing("nickname"), []);
-  const openUsername = useCallback(() => setEditing("username"), []);
-  const closeEditing = useCallback(() => setEditing(null), []);
+  const openNickname = useCallback(() => {
+    router.push("/settings/display-name");
+  }, [router]);
+  const openUsername = useCallback(() => {
+    router.push("/settings/username");
+  }, [router]);
 
   // 알릴 실패가 없다. auth-js는 요청이 실패해도 로컬 세션을 지우고 SIGNED_OUT을
   // 쏘므로, 어느 경우든 _layout의 가드가 sign-in으로 보낸다 — 여기서 얼럿을
@@ -153,20 +166,15 @@ export default function SettingsScreen() {
   }, [handleDelete]);
 
   return (
-    <View className="flex-1" style={{ backgroundColor: app.background }}>
+    <View style={styles.screen}>
       <Host
-        seedColor={app.primary}
-        style={{ backgroundColor: app.background, flex: 1 }}
+        style={{ flex: 1 }}
         // Form은 남은 공간을 채워야 한다. 없으면 내용 높이만큼만 잡혀 스크롤이
         // 생기지 않는다.
         useViewportSizeMeasurement
       >
         <FieldGroup>
-          <ProfileHeader
-            displayName={displayName}
-            mutedColor={app.mutedForeground}
-            username={username}
-          />
+          <ProfileHeader displayName={displayName} username={username} />
 
           <FieldGroup.Section title="프로필">
             {/* SwiftUI가 chevron을 그려 주는 것은 NavigationLink일 때다. 여기는
@@ -178,10 +186,7 @@ export default function SettingsScreen() {
               trailing={
                 <Row alignment="center" spacing={6}>
                   <Value>{displayName}</Value>
-                  <NativeSymbol
-                    color={app.mutedForeground}
-                    symbol="disclosure"
-                  />
+                  <NativeSymbol symbol="disclosure" />
                 </Row>
               }
             >
@@ -193,10 +198,7 @@ export default function SettingsScreen() {
               trailing={
                 <Row alignment="center" spacing={6}>
                   <Value>{username}</Value>
-                  <NativeSymbol
-                    color={app.mutedForeground}
-                    symbol="disclosure"
-                  />
+                  <NativeSymbol symbol="disclosure" />
                 </Row>
               }
             >
@@ -215,35 +217,24 @@ export default function SettingsScreen() {
               destructive 역할은 얼럿 버튼이 들고, 행 자체는 붉은 글자로 되돌릴
               수 없는 일임을 알린다. */}
             <ListItem onPress={confirmDelete}>
-              <Text modifiers={[foregroundStyle(app.danger)]}>계정 삭제</Text>
+              <Text modifiers={[foregroundStyle(colors.danger)]}>
+                계정 삭제
+              </Text>
             </ListItem>
           </FieldGroup.Section>
         </FieldGroup>
-
-        {editing === "nickname" ? (
-          <NicknameEditSheet
-            initialValue={displayName}
-            onDismiss={closeEditing}
-            userId={userId}
-          />
-        ) : null}
-
-        {editing === "username" ? (
-          <UsernameEditSheet
-            initialValue={username}
-            onDismiss={closeEditing}
-            userId={userId}
-          />
-        ) : null}
       </Host>
 
       {/* 서버가 지우는 동안 화면이 멀쩡해 보이면 사용자가 다시 누른다. */}
       {deleting ? (
         <View
-          className="absolute inset-0 items-center justify-center"
-          style={{ backgroundColor: app.overlay }}
+          style={[
+            StyleSheet.absoluteFill,
+            styles.overlay,
+            { backgroundColor: colors.overlay },
+          ]}
         >
-          <Host matchContents seedColor={app.primary}>
+          <Host matchContents>
             <ProgressView />
           </Host>
         </View>

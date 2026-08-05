@@ -61,13 +61,6 @@ describe("EmailForm", () => {
     expect(screen.getByRole("button", { name: SUBMIT })).not.toBeDisabled();
   });
 
-  it("활성 제출 버튼 라벨에 primary foreground 색을 적용한다", async () => {
-    await render(<EmailForm onSubmit={noop} />);
-    await fireEvent.changeText(screen.getByLabelText(FIELD), "me@example.test");
-
-    expect(screen.getByText(SUBMIT)).toHaveStyle({ color: "#fefefe" });
-  });
-
   it("보내는 중에는 다시 누를 수 없다", async () => {
     await render(<EmailForm onSubmit={noop} pending />);
 

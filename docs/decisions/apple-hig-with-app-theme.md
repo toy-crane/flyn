@@ -13,9 +13,22 @@
   secondary label, separator, 간격, 글자 위계, control 크기와 상호작용을
   소유한다. 시스템이 의미를 이미 아는 곳은 앱 스타일과 픽셀 단위로 맞추려고
   덮어쓰지 않는다.
+- native toolbar와 control action에 대응하는 시스템 symbol이 있으면 이를
+  우선한다. iOS는 SF Symbols를 `Stack.Toolbar` 같은 native API에 의미 이름으로
+  전달하고, 크기·굵기·tint·material·hit target은 시스템에 맡긴다. Android 구현은
+  같은 제품 의미를 Material system icon/resource로 표현한다.
+- plain canvas의 single-line form input, RN chat composer와 OTP slot은 입력 가능
+  영역을 식별시키는 앱 소유 `inputFill`을 쓴다. form과 chat의 renderer는 합치지
+  않고 system font·Dynamic Type·keyboard·focus 동작은 각 native control에 남긴다.
 - Expo Router/React Navigation의 공개 theme API에는 앱의 background, text,
   separator와 action accent를 연결한다. 이 색 연결은 header·tab bar의 높이,
   material, gesture와 native interaction을 앱이 소유한다는 뜻이 아니다.
+- 로그인·채팅·온보딩처럼 grouped content가 주 구조가 아닌 화면은 plain
+  `systemBackground` canvas를 쓴다. 그 위 앱 소유 surface는 한 단계 분리된
+  `secondarySystemBackground`를 쓴다.
+- Settings처럼 grouped `Form`이 화면 전체의 의미인 경우에는 해당 route의 native
+  header에 `groupedBackground`를 연결할 수 있다. 현재 예외는 Settings 하나이며
+  다른 route의 navigation surface에는 전파하지 않는다.
 - RN과 native의 일관성은 같은 의미가 같은 역할로 읽히는 것으로 판단한다. 서로
   다른 화면 종류의 배경색이 완전히 같아야 한다는 뜻이 아니다.
 - 시스템 폰트, native stack header와 back gesture를 유지한다.
@@ -34,10 +47,15 @@ UI kit가 아니다. 다만 React Native 화면과 OS가 알 수 없는 제품 �
 - 스타일 파운데이션은 재사용 컴포넌트 라이브러리가 아니다.
 - RN의 반복 간격과 타이포 역할은 공유하지만 화면 배치, 특정 크기와 모서리는
   필요한 화면이나 컴포넌트가 소유한다.
+- `inputFill` 공유는 renderer를 가로지르는 범용 input component를 뜻하지 않는다.
+  universal `FormInput`, RN composer와 OTP가 같은 의미 색만 각각 소비한다.
 - 앱 안에 appearance 선택기를 만들지 않고 시스템 light/dark를 따른다.
 - 앱이 직접 소유하는 foreground/background 조합은 접근성 대비를 검증한다.
 - native subtree에서 앱 색을 명시하는 경우는 실제 앱 accent, 제품 상태 또는 앱이
   직접 소유하는 canvas처럼 플랫폼이 의미를 추론할 수 없는 자리로 한정한다.
+- 시스템 symbol에는 사람이 이해하는 접근성 label을 함께 제공한다. 브랜드 mark,
+  제품 고유 개념 또는 시스템 symbol로 의미가 명확하지 않은 그림은 custom asset을
+  쓸 수 있으며 SF Symbol을 억지로 끼워 맞추지 않는다.
 - navigation chrome은 semantic color를 공유하는 renderer bridge다. header·tab
   bar의 공개 theme color prop은 쓸 수 있지만 platform material과 metric을 RN
   surface처럼 다시 만들지 않는다.

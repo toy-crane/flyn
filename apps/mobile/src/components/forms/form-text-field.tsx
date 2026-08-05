@@ -1,25 +1,11 @@
-import { Column, Row, Text, TextInput, type TextInputProps } from "@expo/ui";
-import {
-  accessibilityLabel,
-  font,
-  foregroundStyle,
-  frame,
-} from "@expo/ui/swift-ui/modifiers";
-import type { ReactNode } from "react";
-import { useAppTheme } from "../../theme/app-theme";
+import { Column, Icon, Text } from "@expo/ui";
+import { font, foregroundStyle } from "@expo/ui/swift-ui/modifiers";
+import { useColors } from "../../theme/app-theme";
+import { FormInput, type FormInputProps } from "./form-input";
 
-type OwnedTextInputProps =
-  | "cursorColor"
-  | "modifiers"
-  | "placeholderTextColor"
-  | "style"
-  | "textStyle";
-
-export interface FormTextFieldProps
-  extends Omit<TextInputProps, OwnedTextInputProps> {
+export interface FormTextFieldProps extends Omit<FormInputProps, "label"> {
   error?: string;
   label: string;
-  trailing?: ReactNode;
 }
 
 /**
@@ -28,55 +14,45 @@ export interface FormTextFieldProps
  */
 export function FormTextField({
   error,
+  invalid,
   label,
   trailing,
   ...inputProps
 }: FormTextFieldProps) {
-  const app = useAppTheme();
+  const colors = useColors();
 
   return (
     <Column alignment="start" spacing={8}>
       <Text
         modifiers={[
           font({ textStyle: "subheadline", weight: "semibold" }),
-          foregroundStyle(app.mutedForeground),
+          foregroundStyle({ style: "secondary", type: "hierarchical" }),
         ]}
       >
         {label}
       </Text>
 
-      <Row
-        alignment="center"
-        modifiers={[frame({ maxWidth: Number.POSITIVE_INFINITY })]}
-        spacing={10}
-      >
-        <TextInput
-          {...inputProps}
-          cursorColor={app.primary}
-          modifiers={[
-            frame({ maxWidth: Number.POSITIVE_INFINITY }),
-            accessibilityLabel(label),
-          ]}
-          placeholderTextColor={app.placeholder}
-          style={{
-            backgroundColor: app.surface,
-            borderRadius: 16,
-            paddingHorizontal: 16,
-            paddingVertical: 16,
-          }}
-          textStyle={{
-            color: app.foreground,
-            fontSize: 17,
-          }}
-        />
-        {trailing}
-      </Row>
+      <FormInput
+        {...inputProps}
+        invalid={Boolean(error) || invalid}
+        label={label}
+        trailing={
+          trailing ??
+          (error ? (
+            <Icon
+              color={colors.danger}
+              name="exclamationmark.circle.fill"
+              size={20}
+            />
+          ) : null)
+        }
+      />
 
       {error ? (
         <Text
           modifiers={[
             font({ textStyle: "footnote" }),
-            foregroundStyle(app.danger),
+            foregroundStyle(colors.danger),
           ]}
         >
           {error}

@@ -1,15 +1,8 @@
-import "../global.css";
-
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "expo-router/react-navigation";
+import { ThemeProvider } from "expo-router/react-navigation";
 import { StatusBar } from "expo-status-bar";
 import { type ReactNode, useMemo } from "react";
-import { useColorScheme } from "react-native";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { LaunchChecking, LaunchFailed } from "../components/launch";
 import {
@@ -21,7 +14,8 @@ import { queryClient } from "../lib/query-client";
 import { useAuth } from "../lib/use-auth";
 import { useProfileGate } from "../lib/use-profile";
 import { UserIdProvider } from "../lib/user-id";
-import { useAppTheme } from "../theme/app-theme";
+import { AppThemeProvider, useTheme } from "../theme/app-theme";
+import { getNavigationTheme } from "../theme/navigation-theme";
 
 // signOut은 실패를 스스로 콘솔에 남기고, 어느 경우든 로컬 세션은 지워진다 —
 // 여기서 돌려받아 처리할 것이 없다.
@@ -30,38 +24,15 @@ function discardSession() {
 }
 
 function AppNavigationTheme({ children }: { children: ReactNode }) {
-  const app = useAppTheme();
-  const dark = useColorScheme() === "dark";
-  const value = useMemo(() => {
-    const base = dark ? DarkTheme : DefaultTheme;
-
-    return {
-      ...base,
-      colors: {
-        ...base.colors,
-        background: app.background,
-        border: app.border,
-        card: app.background,
-        notification: app.danger,
-        primary: app.primary,
-        text: app.foreground,
-      },
-    };
-  }, [
-    app.background,
-    app.border,
-    app.danger,
-    app.foreground,
-    app.primary,
-    dark,
-  ]);
+  const theme = useTheme();
+  const value = useMemo(() => getNavigationTheme(theme), [theme]);
 
   return <ThemeProvider value={value}>{children}</ThemeProvider>;
 }
 
 // useAuth 구독은 여기 한 곳뿐이다 — 화면들은 가드 결과만 받는다.
 function Routes() {
-  const app = useAppTheme();
+  const { colors } = useTheme();
   const auth = useAuth();
   const userId = auth.kind === "ready" ? auth.userId : null;
   // 훅은 조건부로 부를 수 없다. 로그인 전에는 userId가 null이라 조회가 꺼져
@@ -102,16 +73,12 @@ function Routes() {
 
   return (
     <UserIdProvider userId={userId}>
-      {/* layout과 back gesture는 native stack이 소유하고 색만 CSS 테마가 준다. */}
+      {/* layout과 back gesture는 native stack이 소유하고 색만 navigation theme가 준다. */}
       <Stack
         screenOptions={{
-          contentStyle: { backgroundColor: app.background },
           headerBackButtonDisplayMode: "minimal",
           headerShadowVisible: false,
           headerShown: false,
-          headerStyle: { backgroundColor: app.background },
-          headerTintColor: app.foreground,
-          headerTitleStyle: { color: app.foreground, fontWeight: "500" },
         }}
       >
         <Stack.Protected
@@ -130,7 +97,30 @@ function Routes() {
             name="settings/index"
             options={{
               headerShown: true,
+              headerStyle: { backgroundColor: colors.groupedBackground },
               title: "설정",
+            }}
+          />
+          <Stack.Screen
+            name="settings/display-name"
+            options={{
+              headerBackVisible: false,
+              headerShown: true,
+              presentation: "formSheet",
+              sheetAllowedDetents: [1],
+              sheetGrabberVisible: true,
+              title: "닉네임",
+            }}
+          />
+          <Stack.Screen
+            name="settings/username"
+            options={{
+              headerBackVisible: false,
+              headerShown: true,
+              presentation: "formSheet",
+              sheetAllowedDetents: [1],
+              sheetGrabberVisible: true,
+              title: "아이디",
             }}
           />
         </Stack.Protected>
@@ -176,13 +166,15 @@ function Routes() {
 
 export default function Layout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <KeyboardProvider>
-        <AppNavigationTheme>
-          <Routes />
-          <StatusBar style="auto" />
-        </AppNavigationTheme>
-      </KeyboardProvider>
-    </QueryClientProvider>
+    <AppThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <KeyboardProvider>
+          <AppNavigationTheme>
+            <Routes />
+            <StatusBar style="auto" />
+          </AppNavigationTheme>
+        </KeyboardProvider>
+      </QueryClientProvider>
+    </AppThemeProvider>
   );
 }

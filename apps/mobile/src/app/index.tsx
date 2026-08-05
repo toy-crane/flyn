@@ -1,7 +1,16 @@
 import { LegendList } from "@legendapp/list/react-native";
 import { Stack, useIsFocused, useRouter } from "expo-router";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  type ColorValue,
+  Pressable,
+  type PressableStateCallbackType,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { RNSymbol } from "../components/symbols/rn-symbol";
 import {
   type ChatRoom,
@@ -10,7 +19,55 @@ import {
   useDeleteChatRoom,
 } from "../lib/use-chat-rooms";
 import { useUserId } from "../lib/user-id";
-import { useAppTheme } from "../theme/app-theme";
+import { useTheme } from "../theme/app-theme";
+import { spacing } from "../theme/tokens";
+
+const styles = StyleSheet.create({
+  action: {
+    alignSelf: "center",
+    borderRadius: 22,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
+  },
+  centered: {
+    alignItems: "center",
+    flex: 1,
+    gap: spacing.sm,
+    justifyContent: "center",
+    paddingHorizontal: spacing.xxl,
+  },
+  emptyAction: {
+    marginTop: spacing.xs,
+  },
+  emptyDescription: {
+    textAlign: "center",
+  },
+  errorMessage: {
+    textAlign: "center",
+  },
+  loading: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+  },
+  roomContent: {
+    flex: 1,
+    gap: spacing.xxs,
+    paddingRight: spacing.md,
+  },
+  roomRow: {
+    alignItems: "center",
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    minHeight: 72,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  screen: {
+    flex: 1,
+  },
+});
 
 const TIME_FORMAT = new Intl.DateTimeFormat("ko-KR", {
   hour: "numeric",
@@ -42,36 +99,45 @@ function ChatRoomRow({
   onOpen,
   room,
 }: {
-  disclosureColor: string;
+  disclosureColor: ColorValue;
   onDelete: (room: ChatRoom) => void;
   onOpen: (roomId: string) => void;
   room: ChatRoom;
 }) {
+  const { colors, typography } = useTheme();
   const handleDelete = useCallback(() => {
     onDelete(room);
   }, [onDelete, room]);
   const handleOpen = useCallback(() => {
     onOpen(room.id);
   }, [onOpen, room.id]);
+  const rowStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      styles.roomRow,
+      { borderColor: colors.separator },
+      pressed && { backgroundColor: colors.surface },
+    ],
+    [colors.separator, colors.surface]
+  );
 
   return (
     <Pressable
       accessibilityHint="길게 누르면 삭제할 수 있어요"
       accessibilityLabel={room.title}
       accessibilityRole="button"
-      className="min-h-18 flex-row items-center border-border border-b px-5 py-3 active:bg-surface"
       onLongPress={handleDelete}
       onPress={handleOpen}
+      style={rowStyle}
     >
-      <View className="flex-1 gap-1 pr-4">
+      <View style={styles.roomContent}>
         <Text
-          className="text-[17px] text-foreground leading-6"
           numberOfLines={2}
+          style={[typography.body, { color: colors.text }]}
         >
           {room.title}
         </Text>
         <Text
-          className="text-[13px] text-muted-foreground"
+          style={[typography.caption, { color: colors.secondaryText }]}
           testID="chat-room-updated-at"
         >
           {formatUpdatedAt(room.updated_at)}
@@ -83,21 +149,37 @@ function ChatRoomRow({
 }
 
 function EmptyRooms({ onCreate }: { onCreate: () => void }) {
+  const { colors, typography } = useTheme();
+  const actionStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      styles.action,
+      styles.emptyAction,
+      { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 },
+    ],
+    [colors.primary]
+  );
+
   return (
-    <View className="flex-1 items-center justify-center gap-3 px-8">
-      <Text className="font-semibold text-[22px] text-foreground">
+    <View style={styles.centered}>
+      <Text style={[typography.title, { color: colors.text }]}>
         아직 채팅이 없어요
       </Text>
-      <Text className="text-center text-[15px] text-muted-foreground leading-6">
+      <Text
+        style={[
+          styles.emptyDescription,
+          typography.supporting,
+          { color: colors.secondaryText },
+        ]}
+      >
         궁금한 것을 보내면 대화가 여기에 저장돼요.
       </Text>
       <Pressable
         accessibilityLabel="첫 채팅 시작하기"
         accessibilityRole="button"
-        className="mt-2 min-h-11 justify-center rounded-full bg-primary px-5 active:opacity-70"
         onPress={onCreate}
+        style={actionStyle}
       >
-        <Text className="font-semibold text-primary-foreground">
+        <Text style={[typography.action, { color: colors.onPrimary }]}>
           첫 채팅 시작하기
         </Text>
       </Pressable>
@@ -106,7 +188,7 @@ function EmptyRooms({ onCreate }: { onCreate: () => void }) {
 }
 
 export default function HomeScreen() {
-  const app = useAppTheme();
+  const { colors, typography } = useTheme();
   const isFocused = useIsFocused();
   const router = useRouter();
   const userId = useUserId();
@@ -175,13 +257,13 @@ export default function HomeScreen() {
   const renderRoom = useCallback(
     ({ item }: { item: ChatRoom }) => (
       <ChatRoomRow
-        disclosureColor={app.mutedForeground}
+        disclosureColor={colors.secondaryText}
         onDelete={confirmDelete}
         onOpen={openRoom}
         room={item}
       />
     ),
-    [app.mutedForeground, confirmDelete, openRoom]
+    [colors.secondaryText, confirmDelete, openRoom]
   );
   const retryRooms = useCallback(() => {
     rooms.refetch();
@@ -195,28 +277,40 @@ export default function HomeScreen() {
       setManualRefreshing(false);
     }
   }, [rooms.refetch]);
+  const retryStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      styles.action,
+      {
+        backgroundColor: colors.primary,
+        opacity: pressed || rooms.isFetching ? 0.7 : 1,
+      },
+    ],
+    [colors.primary, rooms.isFetching]
+  );
 
   let content: ReactNode;
   if (rooms.isPending && !rooms.data) {
     content = (
-      <View className="flex-1 items-center justify-center">
+      <View style={styles.loading}>
         <ActivityIndicator accessibilityLabel="채팅 불러오는 중" />
       </View>
     );
   } else if (rooms.isError && !rooms.data) {
     content = (
-      <View className="flex-1 items-center justify-center gap-3 px-8">
-        <Text className="text-center text-[17px] text-foreground">
+      <View style={styles.centered}>
+        <Text
+          style={[styles.errorMessage, typography.body, { color: colors.text }]}
+        >
           채팅을 불러오지 못했어요.
         </Text>
         <Pressable
           accessibilityLabel="다시 시도"
           accessibilityRole="button"
-          className="min-h-11 justify-center rounded-full bg-primary px-5"
           disabled={rooms.isFetching}
           onPress={retryRooms}
+          style={retryStyle}
         >
-          <Text className="font-semibold text-primary-foreground">
+          <Text style={[typography.action, { color: colors.onPrimary }]}>
             다시 시도
           </Text>
         </Pressable>
@@ -255,7 +349,9 @@ export default function HomeScreen() {
         />
       </Stack.Toolbar>
 
-      <View className="flex-1 bg-background">{content}</View>
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+        {content}
+      </View>
     </>
   );
 }

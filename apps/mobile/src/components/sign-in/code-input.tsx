@@ -1,5 +1,6 @@
 import { type Ref, useCallback, useImperativeHandle, useRef } from "react";
 import {
+  type ColorValue,
   StyleSheet,
   Text,
   TextInput,
@@ -8,6 +9,8 @@ import {
 } from "react-native";
 import Reanimated, { Keyframe, ReduceMotion } from "react-native-reanimated";
 import { CODE_LENGTH, normalizeCode } from "../../lib/otp-code";
+import { useColors } from "../../theme/app-theme";
+import { spacing } from "../../theme/tokens";
 
 const SLOTS = Array.from({ length: CODE_LENGTH }, (_, i) => i);
 const DIGIT_ENTERING = new Keyframe({
@@ -23,13 +26,31 @@ const DIGIT_ENTERING = new Keyframe({
   .duration(140)
   .reduceMotion(ReduceMotion.System);
 
-function borderClassName(invalid: boolean | undefined, active: boolean) {
-  if (invalid) {
-    return "border-danger";
-  }
-
-  return active ? "border-primary" : "border-transparent";
-}
+const styles = StyleSheet.create({
+  container: {
+    position: "relative",
+  },
+  digit: {
+    fontSize: 24,
+    fontVariant: ["tabular-nums"],
+  },
+  input: {
+    color: "transparent",
+  },
+  slot: {
+    alignItems: "center",
+    borderCurve: "continuous",
+    borderRadius: 12,
+    borderWidth: 2,
+    flex: 1,
+    height: 56,
+    justifyContent: "center",
+  },
+  slots: {
+    flexDirection: "row",
+    gap: spacing.xs,
+  },
+});
 
 /**
  * 6칸으로 보이지만 입력을 받는 것은 그 위에 겹친 **투명한 단일 `TextInput`**
@@ -62,6 +83,7 @@ export function CodeInput({
   ref,
   value,
 }: CodeInputProps) {
+  const colors = useColors();
   const inputRef = useRef<TextInputInstance>(null);
 
   useImperativeHandle(
@@ -82,28 +104,36 @@ export function CodeInput({
   const cursor = Math.min(value.length, CODE_LENGTH - 1);
 
   return (
-    <View className="relative">
+    <View style={styles.container}>
       <View
         accessibilityElementsHidden
-        className="flex-row gap-2"
         importantForAccessibility="no-hide-descendants"
         // 칸이 탭을 가져가면 키보드가 뜨지 않는다.
         pointerEvents="none"
+        style={styles.slots}
         testID="code-input-boxes"
       >
         {SLOTS.map((slot) => {
           const digit = value[slot];
+          let borderColor: ColorValue = "transparent";
+
+          if (invalid) {
+            borderColor = colors.danger;
+          } else if (slot === cursor) {
+            borderColor = colors.primary;
+          }
 
           return (
             <View
-              className={`h-14 flex-1 items-center justify-center rounded-xl border-2 bg-surface ${borderClassName(
-                invalid,
-                slot === cursor
-              )}`}
               key={slot}
-              style={{
-                borderCurve: "continuous",
-              }}
+              style={[
+                styles.slot,
+                {
+                  backgroundColor: colors.inputFill,
+                  borderColor,
+                },
+              ]}
+              testID={`code-slot-${slot}`}
             >
               {digit ? (
                 <Reanimated.View
@@ -111,10 +141,7 @@ export function CodeInput({
                   key={`${slot}-${digit}`}
                   testID={`code-digit-${slot}`}
                 >
-                  <Text
-                    className="text-2xl text-foreground"
-                    style={{ fontVariant: ["tabular-nums"] }}
-                  >
+                  <Text style={[styles.digit, { color: colors.text }]}>
                     {digit}
                   </Text>
                 </Reanimated.View>
@@ -136,7 +163,7 @@ export function CodeInput({
         onChangeText={handleChangeText}
         ref={inputRef}
         selectionColor="transparent"
-        style={[StyleSheet.absoluteFill, { color: "transparent" }]}
+        style={[StyleSheet.absoluteFill, styles.input]}
         textContentType="oneTimeCode"
         value={value}
       />

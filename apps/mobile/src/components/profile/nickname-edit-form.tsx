@@ -1,9 +1,5 @@
-import { FieldGroup, Text, TextInput, useNativeState } from "@expo/ui";
-import {
-  accessibilityLabel,
-  foregroundStyle,
-  frame,
-} from "@expo/ui/swift-ui/modifiers";
+import { Column, Text, useNativeState } from "@expo/ui";
+import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
 import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 import {
@@ -12,14 +8,14 @@ import {
   normalizeDisplayName,
 } from "../../lib/display-name";
 import { useSaveDisplayName } from "../../lib/use-profile";
-import { useAppTheme } from "../../theme/app-theme";
-import { ProfileEditSheet } from "./profile-edit-sheet";
+import { FormInput } from "../forms/form-input";
+import { ProfileEditScreen } from "./profile-edit-screen";
 
 function saveFailed() {
   Alert.alert("저장하지 못했어요", "잠시 후 다시 시도해 주세요.");
 }
 
-export function NicknameEditSheet({
+export function NicknameEditForm({
   initialValue,
   onDismiss,
   userId,
@@ -28,7 +24,6 @@ export function NicknameEditSheet({
   onDismiss: () => void;
   userId: string;
 }) {
-  const app = useAppTheme();
   const save = useSaveDisplayName(userId);
   const name = useNativeState(initialValue);
   const [typed, setTyped] = useState(initialValue);
@@ -53,35 +48,33 @@ export function NicknameEditSheet({
   }, [canSave, name, onDismiss, save]);
 
   return (
-    <ProfileEditSheet
+    <ProfileEditScreen
       canSave={canSave}
       onDismiss={onDismiss}
       onSave={handleSave}
       pending={save.isPending}
-      testID="nickname-edit-sheet"
-      title="닉네임"
     >
-      <FieldGroup>
-        <FieldGroup.Section>
-          <TextInput
-            autoComplete="nickname"
-            autoFocus
-            editable={!save.isPending}
-            maxLength={DISPLAY_NAME_MAX}
-            modifiers={[
-              frame({ maxWidth: Number.POSITIVE_INFINITY }),
-              accessibilityLabel("닉네임"),
-            ]}
-            onChangeText={handleChangeText}
-            value={name}
-          />
-          <FieldGroup.SectionFooter>
-            <Text modifiers={[foregroundStyle(app.mutedForeground)]}>
-              1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.
-            </Text>
-          </FieldGroup.SectionFooter>
-        </FieldGroup.Section>
-      </FieldGroup>
-    </ProfileEditSheet>
+      <Column spacing={8} style={{ paddingHorizontal: 20, paddingTop: 20 }}>
+        <FormInput
+          autoComplete="nickname"
+          autoFocus
+          editable={!save.isPending}
+          label="닉네임"
+          maxLength={DISPLAY_NAME_MAX}
+          onChangeText={handleChangeText}
+          value={name}
+        />
+        <Text
+          modifiers={[
+            foregroundStyle({
+              style: "secondary",
+              type: "hierarchical",
+            }),
+          ]}
+        >
+          1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.
+        </Text>
+      </Column>
+    </ProfileEditScreen>
   );
 }

@@ -1,7 +1,6 @@
 import { Button, Row, Text } from "@expo/ui";
 import { ProgressView } from "@expo/ui/swift-ui";
-import { foregroundStyle, frame } from "@expo/ui/swift-ui/modifiers";
-import { useAppTheme } from "../../theme/app-theme";
+import { frame } from "@expo/ui/swift-ui/modifiers";
 
 export interface FormSubmitButtonProps {
   disabled?: boolean;
@@ -17,27 +16,18 @@ export function FormSubmitButton({
   onPress,
   pending,
 }: FormSubmitButtonProps) {
-  const app = useAppTheme();
   const locked = Boolean(disabled || pending);
 
   return (
     <Button disabled={locked} onPress={onPress}>
       <Row
         alignment="center"
-        modifiers={[
-          frame({ maxWidth: Number.POSITIVE_INFINITY, minHeight: 36 }),
-        ]}
+        modifiers={[frame({ maxWidth: Number.POSITIVE_INFINITY })]}
         spacing={8}
         testID="form-submit-content"
       >
         {pending ? <ProgressView testID="form-submit-progress" /> : null}
-        <Text
-          modifiers={
-            locked ? undefined : [foregroundStyle(app.primaryForeground)]
-          }
-        >
-          {label}
-        </Text>
+        <Text>{label}</Text>
       </Row>
     </Button>
   );

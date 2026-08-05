@@ -1,6 +1,9 @@
 import { render, screen } from "@testing-library/react-native";
 
 const mockNavigatorOptions: { current?: Record<string, unknown> } = {};
+const mockNavigationTheme: { current: { colors: Record<string, unknown> } } = {
+  current: { colors: {} },
+};
 const mockRouteOptions: Record<string, Record<string, unknown> | undefined> =
   {};
 
@@ -45,7 +48,16 @@ jest.mock("expo-router", () => {
 jest.mock("expo-router/react-navigation", () => ({
   DarkTheme: { colors: {}, dark: true },
   DefaultTheme: { colors: {}, dark: false },
-  ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+  ThemeProvider: ({
+    children,
+    value,
+  }: {
+    children: React.ReactNode;
+    value: { colors: Record<string, unknown> };
+  }) => {
+    mockNavigationTheme.current = value;
+    return children;
+  },
 }));
 jest.mock("react-native-keyboard-controller", () => ({
   KeyboardProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -88,6 +100,7 @@ function signedInWith(profile: Record<string, unknown>) {
 beforeEach(() => {
   jest.resetAllMocks();
   mockNavigatorOptions.current = undefined;
+  mockNavigationTheme.current = { colors: {} };
   for (const name of Object.keys(mockRouteOptions)) {
     delete mockRouteOptions[name];
   }
@@ -95,18 +108,19 @@ beforeEach(() => {
 });
 
 describe("Layout native stack header", () => {
-  it("공통 header는 앱 테마를 쓰고 system back과 hairline 없는 외형을 유지한다", async () => {
+  it("공통 header는 navigation theme에 색을 맡기고 system back과 hairline 없는 외형을 유지한다", async () => {
     signedInWith({ kind: "ready" });
 
     await render(<Layout />);
 
     expect(mockNavigatorOptions.current).toMatchObject({
-      contentStyle: { backgroundColor: "#111111" },
       headerBackButtonDisplayMode: "minimal",
       headerShadowVisible: false,
-      headerStyle: { backgroundColor: "#111111" },
-      headerTintColor: "#111111",
     });
+    expect(mockNavigatorOptions.current).not.toHaveProperty("contentStyle");
+    expect(mockNavigatorOptions.current).not.toHaveProperty("headerStyle");
+    expect(mockNavigatorOptions.current).not.toHaveProperty("headerTintColor");
+    expect(mockNavigatorOptions.current).not.toHaveProperty("headerTitleStyle");
   });
 
   it("홈과 push 화면의 native title을 라우트에서 선언한다", async () => {
@@ -126,7 +140,37 @@ describe("Layout native stack header", () => {
       headerShown: true,
       title: "설정",
     });
-    expect(mockRouteOptions["settings/display-name"]).toBeUndefined();
+    expect(mockRouteOptions["settings/display-name"]).toMatchObject({
+      headerBackVisible: false,
+      headerShown: true,
+      presentation: "formSheet",
+      sheetAllowedDetents: [1],
+      sheetGrabberVisible: true,
+      title: "닉네임",
+    });
+    expect(mockRouteOptions["settings/username"]).toMatchObject({
+      headerBackVisible: false,
+      headerShown: true,
+      presentation: "formSheet",
+      sheetAllowedDetents: [1],
+      sheetGrabberVisible: true,
+      title: "아이디",
+    });
+  });
+
+  it("설정 화면만 grouped background를 native header까지 이어 쓴다", async () => {
+    signedInWith({ kind: "ready" });
+
+    await render(<Layout />);
+
+    const settingsHeaderStyle = mockRouteOptions["settings/index"]
+      ?.headerStyle as { backgroundColor: unknown };
+
+    expect(settingsHeaderStyle.backgroundColor).not.toBe(
+      mockNavigationTheme.current.colors.background
+    );
+    expect(mockRouteOptions.index).not.toHaveProperty("headerStyle");
+    expect(mockRouteOptions["chats/[id]"]).not.toHaveProperty("headerStyle");
   });
 
   it("온보딩 두 단계의 제목을 native header에 선언한다", async () => {
@@ -271,7 +315,6 @@ describe("Layout 프로필 오류 가드", () => {
 
     expect(screen.getByText(FETCH_FAILED)).toBeTruthy();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeTruthy();
-    expect(screen.getByText("다시 시도")).toHaveStyle({ color: "#fefefe" });
     expect(screen.queryByText("screen:onboarding/index")).toBeNull();
   });
 
@@ -310,6 +353,5 @@ describe("Layout 프로필 오류 가드", () => {
     await render(<Layout />);
 
     expect(screen.getByRole("button", { name: "로그아웃" })).toBeTruthy();
-    expect(screen.getByText("로그아웃")).toHaveStyle({ color: "#fefefe" });
   });
 });

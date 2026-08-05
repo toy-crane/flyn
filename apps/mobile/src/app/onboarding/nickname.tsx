@@ -14,14 +14,12 @@ import {
 } from "../../lib/display-name";
 import { useSaveDisplayName } from "../../lib/use-profile";
 import { useUserId } from "../../lib/user-id";
-import { useAppTheme } from "../../theme/app-theme";
 
 function saveFailed() {
   Alert.alert("저장하지 못했어요", "잠시 후 다시 시도해 주세요.");
 }
 
 export default function NicknameOnboardingScreen() {
-  const app = useAppTheme();
   const router = useRouter();
   const userId = useUserId();
   const save = useSaveDisplayName(userId);
@@ -58,7 +56,6 @@ export default function NicknameOnboardingScreen() {
       initialValue={candidate}
       onSubmit={handleSubmit}
       pending={save.isPending}
-      ruleColor={app.mutedForeground}
     />
   );
 }
@@ -67,12 +64,10 @@ function NicknameForm({
   initialValue,
   onSubmit,
   pending,
-  ruleColor,
 }: {
   initialValue: string;
   onSubmit: (name: string) => void;
   pending: boolean;
-  ruleColor: string;
 }) {
   const name = useNativeState(initialValue);
   const [typed, setTyped] = useState(initialValue);
@@ -118,7 +113,7 @@ function NicknameForm({
         <Text
           modifiers={[
             font({ textStyle: "footnote" }),
-            foregroundStyle(ruleColor),
+            foregroundStyle({ style: "secondary", type: "hierarchical" }),
           ]}
         >
           1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.

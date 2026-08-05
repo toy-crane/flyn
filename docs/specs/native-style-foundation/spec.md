@@ -65,9 +65,10 @@ renderer 경계를 유지한 채 styling 소유권만 바꾸는 migration 계약
 
 | 분류 | 역할 | 의미 |
 | --- | --- | --- |
-| system | `background` | 기본 screen canvas |
-| system | `secondaryBackground` | navigation card나 보조 canvas |
-| system | `surface` | RN이 소유하는 card·input·composer surface |
+| system | `background` | grouped content가 아닌 기본 screen canvas |
+| system | `groupedBackground` | grouped content가 화면의 주 surface인 canvas |
+| system | `surface` | RN이 소유하는 card·code block surface |
+| system | `inputFill` | form input·chat composer·OTP slot의 중립 fill |
 | system | `text` | 기본 foreground text와 icon |
 | system | `secondaryText` | 보조 설명과 낮은 위계 text |
 | system | `separator` | system list·navigation 경계와 hairline |
@@ -85,6 +86,12 @@ renderer 경계를 유지한 채 styling 소유권만 바꾸는 migration 계약
 `onDanger`, `onSuccess`처럼 filled 상태 surface 위에 foreground가 실제로 놓일 때
 필요한 pair는 사용처가 생길 때 추가한다. raw palette 이름, renderer 이름이나
 사용되지 않는 warning·elevation·gradient 역할은 초기 목록에 넣지 않는다.
+
+iOS는 `background → systemBackground`,
+`groupedBackground → systemGroupedBackground`,
+`surface → secondarySystemBackground`, `inputFill → tertiarySystemFill`로 연결한다.
+Android는 각각 Material `background`, `surfaceContainer`, `surfaceContainerHigh`,
+`surfaceContainerHighest`를 사용한다.
 
 제품 accent가 없더라도 action 역할 자체는 유지한다. 이때 iOS는 system action/link,
 Android는 Material dynamic primary·onPrimary를 사용하고 임의의 brand hex를 넣지
@@ -113,16 +120,17 @@ background를 소유한다. root에 둘 다 연결한다.
 | --- | --- |
 | `primary` | `accent` |
 | `background` | `background` |
-| `card` | `secondaryBackground` |
+| `card` | `background` |
 | `text` | `text` |
 | `border` | `separator` |
 | `notification` | `accent` |
 
 `getNavigationTheme()`은 현재 light/dark의 React Navigation base theme 위에 이
-색만 덮는다. Stack header와 React Navigation tab bar는 이 값을 기본으로 쓴다.
-특정 navigation component가 public theme를 소비하지 않는 경우에만 같은 semantic
-role을 해당 공식 color prop에 연결한다. active·inactive 상태를 새 raw 색으로
-만들지 않는다.
+색만 덮는다. 일반 Stack header와 기본 screen content는 같은 plain `background`를
+쓴다. Settings처럼 grouped content가 화면의 주 surface인 route만 공식
+`headerStyle.backgroundColor`에 `groupedBackground`를 연결한다. 특정 navigation
+component가 public theme를 소비하지 않는 경우에만 같은 semantic role을 해당 공식
+color prop에 연결한다. active·inactive 상태를 새 raw 색으로 만들지 않는다.
 
 navigation chrome의 높이, blur/material, icon placement, back gesture, press·focus
 interaction은 플랫폼과 navigation renderer가 계속 소유한다. 색을 공유한다는 것이
@@ -225,7 +233,8 @@ header나 tab bar를 RN custom component로 다시 만든다는 뜻은 아니다
 
 ## 가정
 
-- migration 직전의 현재 시각 값과 정보 위계를 baseline으로 삼는다.
+- migration 직전의 정보 위계와 layout을 baseline으로 삼는다. screen canvas는 이후
+  승인된 plain/grouped 의미 구분을 따른다.
 - 현재 화면에서 반복되는 간격·타이포 역할만으로 초기 foundation이 충분하다.
 - Expo Router `Color`가 지원 SDK에서 iOS semantic color와 Android Material
   dynamic/static color를 계속 `ColorValue`로 제공한다.

@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -17,7 +18,32 @@ import { authFailedFeedback, authSucceededFeedback } from "../../lib/haptics";
 import { isCodeComplete } from "../../lib/otp-code";
 import { IGNORED, useAuthAction } from "../../lib/use-auth-action";
 import { useResendCooldown } from "../../lib/use-resend-cooldown";
-import { useAppTheme } from "../../theme/app-theme";
+import { useTheme } from "../../theme/app-theme";
+import { spacing } from "../../theme/tokens";
+
+const styles = StyleSheet.create({
+  codeSection: {
+    gap: spacing.sm,
+  },
+  content: {
+    gap: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+  },
+  guidance: {
+    gap: spacing.xxs,
+  },
+  inlineAction: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.xs,
+    justifyContent: "center",
+    minHeight: 24,
+  },
+  screen: {
+    flex: 1,
+  },
+});
 
 /**
  * 코드 입력. 6칸 합성이 RN이라 이 화면도 RN이다
@@ -26,7 +52,7 @@ import { useAppTheme } from "../../theme/app-theme";
  * `다른 이메일로 받기`는 없다 — 헤더의 뒤로가기가 그 역할을 한다.
  */
 export default function CodeScreen() {
-  const app = useAppTheme();
+  const { colors, typography } = useTheme();
   const params = useLocalSearchParams<{ email?: string }>();
   const email = typeof params.email === "string" ? params.email : "";
   const {
@@ -138,7 +164,7 @@ export default function CodeScreen() {
   const resendLocked = !(email && canResend) || locked;
   let inlineAction = (
     <>
-      <Text className="text-[14px] text-muted-foreground">
+      <Text style={[typography.label, { color: colors.secondaryText }]}>
         코드가 안 왔나요?
       </Text>
       <Pressable
@@ -148,9 +174,10 @@ export default function CodeScreen() {
         onPress={handleResend}
       >
         <Text
-          className={`font-medium text-[14px] ${
-            resendLocked ? "text-disabled-foreground" : "text-primary"
-          }`}
+          style={[
+            typography.label,
+            { color: resendLocked ? colors.disabledText : colors.primary },
+          ]}
         >
           {resendLabel}
         </Text>
@@ -161,8 +188,10 @@ export default function CodeScreen() {
   if (resendPending) {
     inlineAction = (
       <>
-        <ActivityIndicator color={app.primary} size="small" />
-        <Text className="text-[14px] text-muted-foreground">보내는 중…</Text>
+        <ActivityIndicator color={colors.primary} size="small" />
+        <Text style={[typography.label, { color: colors.secondaryText }]}>
+          보내는 중…
+        </Text>
       </>
     );
   }
@@ -170,8 +199,10 @@ export default function CodeScreen() {
   if (verifyPending) {
     inlineAction = (
       <>
-        <ActivityIndicator color={app.primary} size="small" />
-        <Text className="text-[14px] text-muted-foreground">확인 중…</Text>
+        <ActivityIndicator color={colors.primary} size="small" />
+        <Text style={[typography.label, { color: colors.secondaryText }]}>
+          확인 중…
+        </Text>
       </>
     );
   }
@@ -179,22 +210,26 @@ export default function CodeScreen() {
   return (
     <ScrollView
       automaticallyAdjustKeyboardInsets
-      className="flex-1 bg-background"
-      contentContainerClassName="gap-6 px-5 pt-6"
+      contentContainerStyle={styles.content}
       contentInsetAdjustmentBehavior="automatic"
       // CodeInput을 다시 탭해 키보드를 되부를 수 있어야 한다.
       keyboardShouldPersistTaps="handled"
+      style={[styles.screen, { backgroundColor: colors.background }]}
     >
-      <View className="gap-1">
-        <Text className="text-[15px] text-foreground">
+      <View style={styles.guidance}>
+        <Text style={[typography.supporting, { color: colors.text }]}>
           6자리 코드를 입력해 주세요.
         </Text>
         {email ? (
-          <Text className="text-[15px] text-muted-foreground">{email}</Text>
+          <Text
+            style={[typography.supporting, { color: colors.secondaryText }]}
+          >
+            {email}
+          </Text>
         ) : null}
       </View>
 
-      <View className="gap-3">
+      <View style={styles.codeSection}>
         <CodeInput
           disabled={locked}
           invalid={verifyFailure?.kind === "invalidCode"}
@@ -203,25 +238,23 @@ export default function CodeScreen() {
           value={code}
         />
 
-        <View className="min-h-6 flex-row items-center justify-center gap-2">
-          {inlineAction}
-        </View>
+        <View style={styles.inlineAction}>{inlineAction}</View>
 
         {email ? null : (
-          <Text className="text-[13px] text-danger">
+          <Text style={[typography.caption, { color: colors.danger }]}>
             이메일 주소를 다시 입력해 주세요.
           </Text>
         )}
 
         {/* 입력에 붙은 검증 결과라 얼럿이 아니라 인라인 각주다. */}
         {verifyFailure ? (
-          <Text className="text-[13px] text-danger">
+          <Text style={[typography.caption, { color: colors.danger }]}>
             {verifyFailure.message}
           </Text>
         ) : null}
 
         {resendFailure ? (
-          <Text className="text-[13px] text-danger">
+          <Text style={[typography.caption, { color: colors.danger }]}>
             {resendFailure.message}
           </Text>
         ) : null}

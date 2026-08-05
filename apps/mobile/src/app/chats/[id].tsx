@@ -1,6 +1,13 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { type ReactNode, useCallback } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  type PressableStateCallbackType,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import {
   type ChatController,
   ChatConversation,
@@ -12,6 +19,27 @@ import {
 } from "../../lib/use-chat-rooms";
 import { usePersistentChat } from "../../lib/use-persistent-chat";
 import { useUserId } from "../../lib/user-id";
+import { useTheme } from "../../theme/app-theme";
+import { spacing } from "../../theme/tokens";
+
+const styles = StyleSheet.create({
+  action: {
+    borderRadius: 22,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
+  },
+  centered: {
+    alignItems: "center",
+    flex: 1,
+    gap: spacing.sm,
+    justifyContent: "center",
+    paddingHorizontal: spacing.xxl,
+  },
+  message: {
+    textAlign: "center",
+  },
+});
 
 function ConversationSession({
   messages,
@@ -36,16 +64,27 @@ function CenteredAction({
   message: string;
   onPress: () => void;
 }) {
+  const { colors, typography } = useTheme();
+  const actionStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      styles.action,
+      { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 },
+    ],
+    [colors.primary]
+  );
+
   return (
-    <View className="flex-1 items-center justify-center gap-3 bg-background px-8">
-      <Text className="text-center text-[17px] text-foreground">{message}</Text>
+    <View style={[styles.centered, { backgroundColor: colors.background }]}>
+      <Text style={[styles.message, typography.body, { color: colors.text }]}>
+        {message}
+      </Text>
       <Pressable
         accessibilityLabel={actionLabel}
         accessibilityRole="button"
-        className="min-h-11 justify-center rounded-full bg-primary px-5"
         onPress={onPress}
+        style={actionStyle}
       >
-        <Text className="font-semibold text-primary-foreground">
+        <Text style={[typography.action, { color: colors.onPrimary }]}>
           {actionLabel}
         </Text>
       </Pressable>
@@ -54,6 +93,7 @@ function CenteredAction({
 }
 
 export default function ChatDetailScreen() {
+  const { colors } = useTheme();
   const params = useLocalSearchParams<{
     id?: string | string[];
   }>();
@@ -79,7 +119,7 @@ export default function ChatDetailScreen() {
     (messages.isPending && messages.data === undefined)
   ) {
     content = (
-      <View className="flex-1 items-center justify-center bg-background">
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
         <ActivityIndicator accessibilityLabel="채팅 불러오는 중" />
       </View>
     );

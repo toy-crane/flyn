@@ -7,7 +7,7 @@
  */
 
 import type { ReactNode } from "react";
-import { Pressable } from "react-native";
+import { Platform, Pressable } from "react-native";
 
 const NOTHING = () => null;
 
@@ -17,18 +17,34 @@ function Toolbar({ children }: { children?: ReactNode }) {
 
 function ToolbarButton({
   accessibilityLabel,
+  disabled,
+  icon,
   onPress,
 }: {
   accessibilityLabel: string;
+  disabled?: boolean;
+  icon?: unknown;
   onPress: () => void;
 }) {
+  // Expo Router의 Android toolbar는 SF Symbol 문자열을 렌더링하지 않는다.
+  if (Platform.OS === "android" && typeof icon === "string") {
+    return null;
+  }
+
   return (
     <Pressable
+      accessibilityHint={typeof icon === "string" ? `sf:${icon}` : "image"}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
     />
   );
+}
+
+function ToolbarView({ children }: { children?: ReactNode }) {
+  return children;
 }
 
 /** 화면들이 부르는 라우터. 메서드만 jest.fn이라 resetAllMocks에 안전하다. */
@@ -56,7 +72,10 @@ export function expoRouterMock() {
   const Stack = Object.assign(NOTHING, {
     Protected: NOTHING,
     Screen: NOTHING,
-    Toolbar: Object.assign(Toolbar, { Button: ToolbarButton }),
+    Toolbar: Object.assign(Toolbar, {
+      Button: ToolbarButton,
+      View: ToolbarView,
+    }),
   });
 
   return {

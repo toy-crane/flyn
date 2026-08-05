@@ -1,14 +1,7 @@
+import { Button, Column, Icon, Text, useNativeState } from "@expo/ui";
 import {
-  FieldGroup,
-  Icon,
-  ListItem,
-  Row,
-  Text,
-  TextInput,
-  useNativeState,
-} from "@expo/ui";
-import {
-  accessibilityLabel,
+  buttonStyle,
+  font,
   foregroundStyle,
   frame,
 } from "@expo/ui/swift-ui/modifiers";
@@ -26,8 +19,9 @@ import {
   normalizeUsername,
   USERNAME_MAX,
 } from "../../lib/username";
-import { useAppTheme } from "../../theme/app-theme";
-import { ProfileEditSheet } from "./profile-edit-sheet";
+import { useColors } from "../../theme/app-theme";
+import { FormInput } from "../forms/form-input";
+import { ProfileEditScreen } from "./profile-edit-screen";
 
 const USERNAME_RULE = "4~20자, 영문 소문자·숫자·_·.만 사용할 수 있어요.";
 
@@ -35,7 +29,7 @@ function saveFailed() {
   Alert.alert("저장하지 못했어요", "잠시 후 다시 시도해 주세요.");
 }
 
-export function UsernameEditSheet({
+export function UsernameEditForm({
   initialValue,
   onDismiss,
   userId,
@@ -44,7 +38,7 @@ export function UsernameEditSheet({
   onDismiss: () => void;
   userId: string;
 }) {
-  const app = useAppTheme();
+  const colors = useColors();
   const save = useSaveUsername(userId);
   const username = useNativeState(initialValue);
   const [typed, setTyped] = useState(initialValue);
@@ -116,11 +110,15 @@ export function UsernameEditSheet({
   let trailing: ReactNode = null;
   if (status === "available") {
     trailing = (
-      <Icon color={app.success} name="checkmark.circle.fill" size={20} />
+      <Icon color={colors.success} name="checkmark.circle.fill" size={20} />
     );
   } else if (status === "taken") {
     trailing = (
-      <Icon color={app.danger} name="exclamationmark.circle.fill" size={20} />
+      <Icon
+        color={colors.danger}
+        name="exclamationmark.circle.fill"
+        size={20}
+      />
     );
   }
 
@@ -128,48 +126,51 @@ export function UsernameEditSheet({
     status === "taken" ? "이미 사용 중인 아이디예요." : USERNAME_RULE;
 
   return (
-    <ProfileEditSheet
+    <ProfileEditScreen
       canSave={canSave}
       onDismiss={onDismiss}
       onSave={handleSave}
       pending={save.isPending}
-      testID="username-edit-sheet"
-      title="아이디"
     >
-      <FieldGroup>
-        <FieldGroup.Section>
-          <Row alignment="center" spacing={8}>
-            <TextInput
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoFocus
-              editable={!save.isPending}
-              keyboardType="ascii-capable"
-              maxLength={USERNAME_MAX}
-              modifiers={[
-                frame({ maxWidth: Number.POSITIVE_INFINITY }),
-                accessibilityLabel("아이디"),
-              ]}
-              onChangeText={handleChangeText}
-              value={username}
-            />
-            {trailing}
-          </Row>
-          <FieldGroup.SectionFooter>
-            <Text
-              modifiers={[
-                foregroundStyle(
-                  status === "taken" ? app.danger : app.mutedForeground
-                ),
-              ]}
-            >
-              {footer}
-            </Text>
-          </FieldGroup.SectionFooter>
-        </FieldGroup.Section>
+      <Column spacing={8} style={{ paddingHorizontal: 20, paddingTop: 20 }}>
+        <FormInput
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoFocus
+          editable={!save.isPending}
+          invalid={status === "taken"}
+          keyboardType="ascii-capable"
+          label="아이디"
+          maxLength={USERNAME_MAX}
+          onChangeText={handleChangeText}
+          trailing={trailing}
+          value={username}
+        />
+        <Text
+          modifiers={[
+            foregroundStyle(
+              status === "taken"
+                ? colors.danger
+                : { style: "secondary", type: "hierarchical" }
+            ),
+          ]}
+        >
+          {footer}
+        </Text>
 
         {status === "taken" && suggestions.length > 0 ? (
-          <FieldGroup.Section title="추천">
+          <Column spacing={4} style={{ paddingTop: 16 }}>
+            <Text
+              modifiers={[
+                font({ textStyle: "footnote", weight: "semibold" }),
+                foregroundStyle({
+                  style: "secondary",
+                  type: "hierarchical",
+                }),
+              ]}
+            >
+              추천
+            </Text>
             {suggestions.map((suggestion) => (
               <UsernameSuggestion
                 disabled={save.isPending}
@@ -178,10 +179,10 @@ export function UsernameEditSheet({
                 value={suggestion}
               />
             ))}
-          </FieldGroup.Section>
+          </Column>
         ) : null}
-      </FieldGroup>
-    </ProfileEditSheet>
+      </Column>
+    </ProfileEditScreen>
   );
 }
 
@@ -197,6 +198,19 @@ function UsernameSuggestion({
   const handlePress = useCallback(() => onSelect(value), [onSelect, value]);
 
   return (
-    <ListItem onPress={disabled ? undefined : handlePress}>{value}</ListItem>
+    <Button
+      disabled={disabled}
+      modifiers={[
+        buttonStyle("plain"),
+        frame({
+          alignment: "leading",
+          maxWidth: Number.POSITIVE_INFINITY,
+          minHeight: 44,
+        }),
+      ]}
+      onPress={handlePress}
+    >
+      <Text>{value}</Text>
+    </Button>
   );
 }
