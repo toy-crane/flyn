@@ -337,8 +337,8 @@ function Composer({
           >
             <Text
               style={[
-                styles.retryText,
                 typography.caption,
+                styles.retryText,
                 { color: colors.text },
               ]}
             >

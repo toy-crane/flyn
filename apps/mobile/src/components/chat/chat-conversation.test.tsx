@@ -568,6 +568,16 @@ describe("채팅방 상세 대화", () => {
     expect(onRetry).toHaveBeenCalled();
   });
 
+  it("모델 오류의 재시도 action은 semibold 위계를 유지한다", async () => {
+    await render(
+      <ChatConversation
+        chat={controller({ error: new Error("gateway failed") })}
+      />
+    );
+
+    expect(screen.getByText("다시 시도")).toHaveStyle({ fontWeight: "600" });
+  });
+
   it("모델 오류 중에도 새 입력은 일반 전송 버튼으로 보낼 수 있다", async () => {
     const onSend = jest.fn();
     await render(
