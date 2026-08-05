@@ -1,4 +1,5 @@
 import { useChat } from "@ai-sdk/react";
+import type { DeliveredSentence } from "@flyn/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { DefaultChatTransport, isTextUIPart, type UIMessage } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
@@ -9,24 +10,27 @@ import type {
 } from "../components/chat/chat-conversation";
 import { createStreamingStore } from "../components/chat/streaming-store";
 import { API_BASE_URL } from "./api";
+import type { EpisodeMessage } from "./episodes";
 import { queryKeys } from "./query-keys";
 import { supabase } from "./supabase";
-import type { StoredChatMessage } from "./use-chat-rooms";
 
-interface ChatMessageMetadata {
+interface EpisodeMessageMetadata {
   status: "complete" | "stopped";
 }
 
-type ChatUiMessage = UIMessage<ChatMessageMetadata>;
+type EpisodeUiMessage = UIMessage<
+  EpisodeMessageMetadata,
+  { delivered: DeliveredSentence }
+>;
 
-function messageText(message: ChatUiMessage) {
+function messageText(message: EpisodeUiMessage) {
   return message.parts
     .filter(isTextUIPart)
     .map((part) => part.text)
     .join("");
 }
 
-function toUiMessages(messages: StoredChatMessage[]): ChatUiMessage[] {
+function toUiMessages(messages: EpisodeMessage[]): EpisodeUiMessage[] {
   return messages.flatMap((message) => {
     if (message.role !== "assistant" && message.role !== "user") {
       return [];
@@ -38,16 +42,16 @@ function toUiMessages(messages: StoredChatMessage[]): ChatUiMessage[] {
         metadata: {
           status: message.status === "stopped" ? "stopped" : "complete",
         },
-        parts: [{ text: message.content, type: "text" }],
+        parts: [{ text: message.content, type: "text" as const }],
         role: message.role,
       },
     ];
   });
 }
 
-function createTransport(roomId: string) {
-  return new DefaultChatTransport<ChatUiMessage>({
-    api: `${API_BASE_URL}/chats/${encodeURIComponent(roomId)}/messages`,
+function createTransport(episodeId: string) {
+  return new DefaultChatTransport<EpisodeUiMessage>({
+    api: `${API_BASE_URL}/episodes/${encodeURIComponent(episodeId)}/messages`,
     fetch: expoFetch as unknown as typeof globalThis.fetch,
     headers: async (): Promise<Record<string, string>> => {
       const { data } = await supabase.auth.getSession();
@@ -74,15 +78,21 @@ function createTransport(roomId: string) {
   });
 }
 
+/**
+ * 말풍선에는 언제나 **실제로 전달된 문장**이 남는다. 한글을 쓰면 서버가 번역해
+ * 보내므로, 방금 보낸 말풍선은 스트림이 알려준 전달본으로 바꿔 그린다.
+ */
 function toDisplayMessages({
+  delivered,
+  episodeId,
   isGenerating,
   messages,
-  roomId,
   stoppedMessageIds,
 }: {
+  delivered: Record<string, string>;
+  episodeId: string;
   isGenerating: boolean;
-  messages: ChatUiMessage[];
-  roomId: string;
+  messages: EpisodeUiMessage[];
   stoppedMessageIds: Set<string>;
 }): DisplayChatMessage[] {
   const displayMessages = messages.flatMap<DisplayChatMessage>(
@@ -95,7 +105,10 @@ function toDisplayMessages({
         isGenerating &&
         message.role === "assistant" &&
         index === messages.length - 1;
-      const content = messageText(message);
+      const content =
+        message.role === "user"
+          ? (delivered[message.id] ?? messageText(message))
+          : messageText(message);
 
       if (message.role === "assistant" && !streaming && content.length === 0) {
         return [];
@@ -121,7 +134,7 @@ function toDisplayMessages({
   if (isGenerating && (!lastMessage || lastMessage.role === "user")) {
     displayMessages.push({
       content: "",
-      id: `pending-assistant-${lastMessage?.id ?? roomId}`,
+      id: `pending-assistant-${lastMessage?.id ?? episodeId}`,
       role: "assistant",
       status: "complete",
     });
@@ -130,39 +143,48 @@ function toDisplayMessages({
   return displayMessages;
 }
 
-export function usePersistentChat(
-  roomId: string,
+export function useEpisodeConversation(
+  episodeId: string,
   userId: string,
-  storedMessages: StoredChatMessage[]
+  storedMessages: EpisodeMessage[]
 ): ChatController {
   const queryClient = useQueryClient();
   const initialMessages = useMemo(
     () => toUiMessages(storedMessages),
     [storedMessages]
   );
-  const transport = useMemo(() => createTransport(roomId), [roomId]);
+  const transport = useMemo(() => createTransport(episodeId), [episodeId]);
   const streamingStore = useMemo(() => createStreamingStore(), []);
   const [input, setInput] = useState("");
+  const [delivered, setDelivered] = useState<Record<string, string>>({});
   const [stoppedMessageIds, setStoppedMessageIds] = useState(
     () => new Set<string>()
   );
 
-  const refreshStoredChat = useCallback(() => {
+  const refreshStoredEpisode = useCallback(() => {
     queryClient.invalidateQueries({
-      queryKey: queryKeys.chatMessages(roomId),
+      queryKey: queryKeys.episodeMessages(episodeId),
     });
     queryClient.invalidateQueries({
-      queryKey: queryKeys.chatRoom(roomId),
+      queryKey: queryKeys.episode(episodeId),
     });
+    // 대화를 이어간 에피소드가 홈에서 가장 최근이 된다.
     queryClient.invalidateQueries({
-      queryKey: queryKeys.chatRooms(userId),
+      queryKey: queryKeys.episodes(userId),
     });
-  }, [queryClient, roomId, userId]);
+  }, [episodeId, queryClient, userId]);
 
-  const chat = useChat<ChatUiMessage>({
-    id: roomId,
+  const chat = useChat<EpisodeUiMessage>({
+    id: episodeId,
     messages: initialMessages,
-    onError: refreshStoredChat,
+    onData: (part) => {
+      if (part.type === "data-delivered") {
+        const { messageId, text } = part.data;
+
+        setDelivered((current) => ({ ...current, [messageId]: text }));
+      }
+    },
+    onError: refreshStoredEpisode,
     onFinish: ({ isAbort, isError, message }) => {
       if ((isAbort || isError) && messageText(message).length > 0) {
         setStoppedMessageIds((current) => {
@@ -171,7 +193,7 @@ export function usePersistentChat(
           return next;
         });
       }
-      refreshStoredChat();
+      refreshStoredEpisode();
     },
     throttle: 32,
     transport,
@@ -194,12 +216,13 @@ export function usePersistentChat(
   const messages = useMemo(
     () =>
       toDisplayMessages({
+        delivered,
+        episodeId,
         isGenerating,
         messages: chat.messages,
-        roomId,
         stoppedMessageIds,
       }),
-    [chat.messages, isGenerating, roomId, stoppedMessageIds]
+    [chat.messages, delivered, episodeId, isGenerating, stoppedMessageIds]
   );
 
   const onSend = useCallback(() => {

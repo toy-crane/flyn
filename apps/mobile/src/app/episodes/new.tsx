@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { LoadingIndicator } from "../../components/feedback/loading-indicator";
+import { HeaderTitles } from "../../components/navigation/header-titles";
 import { RNSymbol } from "../../components/symbols/rn-symbol";
 import {
   canContinue,
@@ -89,9 +90,6 @@ const styles = StyleSheet.create({
   goalText: {
     flex: 1,
   },
-  headerTitles: {
-    alignItems: "center",
-  },
   input: {
     borderRadius: 12,
     minHeight: 46,
@@ -132,46 +130,10 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.xxs,
     marginTop: spacing.xs,
   },
-  subtitle: {
-    marginTop: 2,
-  },
 });
 
 function failed(message: string) {
   Alert.alert("지금은 만들지 못했어요", message);
-}
-
-function HeaderTitles({
-  subtitle,
-  title,
-}: {
-  subtitle: string | null;
-  title: string;
-}) {
-  const { colors, typography } = useTheme();
-
-  return (
-    <View style={styles.headerTitles}>
-      <Text
-        numberOfLines={1}
-        style={[typography.body, { color: colors.text, fontWeight: "600" }]}
-      >
-        {title}
-      </Text>
-      {subtitle ? (
-        <Text
-          numberOfLines={1}
-          style={[
-            styles.subtitle,
-            typography.caption,
-            { color: colors.secondaryText },
-          ]}
-        >
-          {subtitle}
-        </Text>
-      ) : null}
-    </View>
-  );
 }
 
 function StepTitle({ children }: { children: string }) {

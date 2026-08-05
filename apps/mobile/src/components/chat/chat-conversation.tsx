@@ -6,6 +6,7 @@ import type { LegendListRef } from "@legendapp/list/react-native";
 import type { ChatStatus } from "ai";
 import { SymbolView } from "expo-symbols";
 import {
+  type ReactElement,
   type ReactNode,
   useCallback,
   useEffect,
@@ -27,7 +28,6 @@ import {
 import {
   KeyboardGestureArea,
   KeyboardStickyView,
-  useReanimatedKeyboardAnimation,
 } from "react-native-keyboard-controller";
 import Reanimated, {
   Keyframe,
@@ -107,20 +107,6 @@ const styles = StyleSheet.create({
     minHeight: 52,
     overflow: "hidden",
   },
-  emptyDescription: {
-    textAlign: "center",
-  },
-  emptyState: {
-    alignItems: "center",
-    bottom: 0,
-    gap: spacing.xs,
-    justifyContent: "center",
-    left: 0,
-    paddingHorizontal: spacing.xl,
-    position: "absolute",
-    right: 0,
-    top: 0,
-  },
   errorBanner: {
     alignItems: "center",
     borderRadius: 16,
@@ -144,6 +130,10 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
+  },
+  markColumn: {
+    height: 44,
+    width: 44,
   },
   retryAction: {
     justifyContent: "center",
@@ -181,12 +171,16 @@ const styles = StyleSheet.create({
     marginTop: spacing.xxs,
   },
   userMessage: {
-    alignSelf: "flex-end",
     borderRadius: 20,
-    marginBottom: spacing.sm,
-    maxWidth: "80%",
+    maxWidth: "76%",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+  },
+  userRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginBottom: spacing.sm,
   },
   viewport: {
     flex: 1,
@@ -225,22 +219,29 @@ function UserMessage({ content }: { content: string }) {
   const { colors, typography } = useTheme();
 
   return (
-    <View
-      style={[styles.userMessage, { backgroundColor: colors.userBubble }]}
-      testID="user-message"
-    >
-      <Text
-        selectable
-        style={[
-          typography.message,
-          {
-            color: colors.onUserBubble,
-            lineHeight: 22,
-          },
-        ]}
+    <View style={styles.userRow} testID="user-message-row">
+      {/*
+       * 말풍선 곁의 표시는 본문이 아니라 44pt 고정 열에 둔다. 늦게 도착하는
+       * 값이 붙어도 레이아웃이 흔들리지 않는다. 지금은 비어 있다.
+       */}
+      <View style={styles.markColumn} testID="user-message-mark" />
+      <View
+        style={[styles.userMessage, { backgroundColor: colors.userBubble }]}
+        testID="user-message"
       >
-        {content}
-      </Text>
+        <Text
+          selectable
+          style={[
+            typography.message,
+            {
+              color: colors.onUserBubble,
+              lineHeight: 22,
+            },
+          ]}
+        >
+          {content}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -294,9 +295,11 @@ function ComposerSurface({
 function Composer({
   chat,
   bottomInset,
+  placeholder,
 }: {
   bottomInset: number;
   chat: ChatController;
+  placeholder: string;
 }) {
   const { colors, typography } = useTheme();
   const canSend = chat.input.trim().length > 0;
@@ -356,7 +359,7 @@ function Composer({
           multiline
           nativeID={COMPOSER_NATIVE_ID}
           onChangeText={chat.setInput}
-          placeholder="메시지 보내기"
+          placeholder={placeholder}
           placeholderTextColor={colors.placeholder}
           selectionColor={colors.text}
           style={[
@@ -404,24 +407,31 @@ function Composer({
   );
 }
 
-export function ChatConversation({ chat }: { chat: ChatController }) {
+/**
+ * 스트리밍 대화 표면. 목록 머리와 composer 위 자리는 화면이 채운다 —
+ * 무엇이 대화 위에 얹히는지는 이 컴포넌트가 정하지 않는다
+ * (docs/decisions/ai-chat-experience.md).
+ */
+export function ChatConversation({
+  chat,
+  dock,
+  listHeader,
+  placeholder = "메시지 보내기",
+}: {
+  chat: ChatController;
+  dock?: ReactNode;
+  listHeader?: ReactElement | null;
+  placeholder?: string;
+}) {
   const insets = useSafeAreaInsets();
-  const { colors, typography } = useTheme();
+  const { colors } = useTheme();
   const listRef = useRef<LegendListRef>(null);
   const composerRef = useRef<View>(null);
   const [listViewportHeight, setListViewportHeight] = useState(0);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const { contentInsetEndAdjustment, onComposerLayout } =
     useKeyboardChatComposerInset(listRef, composerRef);
-  const { height: keyboardHeight, progress: keyboardProgress } =
-    useReanimatedKeyboardAnimation();
   const keyboardOffset = Math.max(insets.bottom - COMPOSER_MARGIN, 0);
-  const emptyStateStyle = useAnimatedStyle(() => ({
-    bottom:
-      contentInsetEndAdjustment.value -
-      keyboardHeight.value -
-      keyboardProgress.value * keyboardOffset,
-  }));
   const showScrollButton = !isAtBottom;
   const maintainScrollAtEndThreshold =
     listViewportHeight > 0
@@ -512,6 +522,7 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
             keyboardOffset={keyboardOffset}
             keyboardShouldPersistTaps="handled"
             keyExtractor={messageKey}
+            ListHeaderComponent={listHeader}
             maintainScrollAtEnd={{
               animated: false,
               on: {
@@ -529,27 +540,6 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
             style={styles.list}
             testID="chat-message-list"
           />
-
-          {chat.messages.length === 0 ? (
-            <Reanimated.View
-              pointerEvents="none"
-              style={[styles.emptyState, emptyStateStyle]}
-              testID="chat-empty-state"
-            >
-              <Text style={[typography.title, { color: colors.text }]}>
-                무엇이든 물어보세요
-              </Text>
-              <Text
-                style={[
-                  styles.emptyDescription,
-                  typography.supporting,
-                  { color: colors.secondaryText },
-                ]}
-              >
-                메시지는 이 채팅방에 안전하게 저장돼요.
-              </Text>
-            </Reanimated.View>
-          ) : null}
         </View>
 
         <KeyboardStickyView
@@ -595,7 +585,12 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
                 </Pressable>
               </Reanimated.View>
             </View>
-            <Composer bottomInset={insets.bottom} chat={chat} />
+            {dock}
+            <Composer
+              bottomInset={insets.bottom}
+              chat={chat}
+              placeholder={placeholder}
+            />
           </View>
         </KeyboardStickyView>
       </KeyboardGestureArea>

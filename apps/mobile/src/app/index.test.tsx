@@ -222,6 +222,24 @@ describe("홈의 카드와 목록", () => {
     ).toHaveTextContent(GOAL_PROGRESS_TAIL);
   });
 
+  it("카드의 대화 이어가기가 그 에피소드의 대화를 연다", async () => {
+    await render(<HomeScreen />);
+
+    fireEvent.press(screen.getByRole("button", { name: "대화 이어가기" }));
+
+    expect(routerStub.push).toHaveBeenCalledWith("/episodes/episode-1");
+  });
+
+  it("목록 행을 누르면 그 에피소드의 대화를 연다", async () => {
+    await render(<HomeScreen />);
+
+    fireEvent.press(
+      screen.getByRole("button", { name: OLDER_ACTIVE.scenario_title })
+    );
+
+    expect(routerStub.push).toHaveBeenCalledWith("/episodes/episode-2");
+  });
+
   it("행을 길게 눌러 확인하면 에피소드와 목표를 함께 지운다", async () => {
     await render(<HomeScreen />);
 

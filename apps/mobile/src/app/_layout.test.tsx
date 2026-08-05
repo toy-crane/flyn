@@ -136,9 +136,9 @@ describe("Layout native stack header", () => {
       headerShown: true,
       title: "새 에피소드",
     });
-    expect(mockRouteOptions["chats/[id]"]).toMatchObject({
+    expect(mockRouteOptions["episodes/[id]"]).toMatchObject({
       headerShown: true,
-      title: "새 채팅",
+      title: "대화",
     });
     expect(mockRouteOptions["settings/index"]).toMatchObject({
       headerShown: true,
@@ -174,7 +174,7 @@ describe("Layout native stack header", () => {
       mockNavigationTheme.current.colors.background
     );
     expect(mockRouteOptions.index).not.toHaveProperty("headerStyle");
-    expect(mockRouteOptions["chats/[id]"]).not.toHaveProperty("headerStyle");
+    expect(mockRouteOptions["episodes/[id]"]).not.toHaveProperty("headerStyle");
   });
 
   it("온보딩 두 단계의 제목을 native header에 선언한다", async () => {

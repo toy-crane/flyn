@@ -4,6 +4,7 @@ import {
   screen,
   within,
 } from "@testing-library/react-native";
+import { Text } from "react-native";
 
 const mockScrollToEnd = jest.fn();
 const mockContentInsetEndAdjustment = { value: 0 };
@@ -171,7 +172,7 @@ function controller(overrides: Partial<ChatController> = {}): ChatController {
   };
 }
 
-describe("채팅방 상세 대화", () => {
+describe("스트리밍 대화 표면", () => {
   beforeEach(() => {
     mockContentInsetEndAdjustment.value = 0;
     mockKeyboardHeight.value = 0;
@@ -186,10 +187,20 @@ describe("채팅방 상세 대화", () => {
 
     expect(screen.getByText("사용자 질문")).toBeTruthy();
     expect(screen.getByText("**AI 답변**")).toBeTruthy();
-    expect(screen.getByTestId("user-message")).toHaveStyle({
-      alignSelf: "flex-end",
+    expect(screen.getByTestId("user-message-row")).toHaveStyle({
+      justifyContent: "flex-end",
     });
     expect(screen.getByTestId("assistant-message")).toBeTruthy();
+  });
+
+  it("말풍선 곁의 표시는 44pt 고정 열에 자리를 비워 둔다", async () => {
+    await render(<ChatConversation chat={controller()} />);
+
+    expect(screen.getByTestId("user-message-mark")).toHaveStyle({
+      height: 44,
+      width: 44,
+    });
+    expect(screen.getByTestId("user-message-mark")).toBeEmptyElement();
   });
 
   it("맨 아래에서는 목록이 스트리밍 높이 변화를 애니메이션 없이 따라간다", async () => {
@@ -314,35 +325,30 @@ describe("채팅방 상세 대화", () => {
     ).toBeNull();
   });
 
-  it("빈 안내는 목록 높이에 참여하지 않는 overlay로 표시한다", async () => {
-    const { rerender } = await render(
-      <ChatConversation chat={controller({ messages: [] })} />
+  it("목록 머리는 대화의 첫 요소로, dock은 composer 바로 위에 둔다", async () => {
+    await render(
+      <ChatConversation
+        chat={controller()}
+        dock={<Text testID="surface-dock">dock</Text>}
+        listHeader={<Text testID="surface-header">header</Text>}
+      />
     );
 
     const list = screen.getByTestId("chat-message-list");
-    const viewport = screen.getByTestId("chat-message-viewport");
-    const emptyState = within(viewport).getByTestId("chat-empty-state");
+    const composerLayout = screen.getByTestId("chat-composer-layout");
 
-    expect(list.props.ListEmptyComponent).toBeUndefined();
-    expect(emptyState.props.pointerEvents).toBe("none");
-    expect(screen.getByText("무엇이든 물어보세요")).toBeTruthy();
-
-    await rerender(<ChatConversation chat={controller()} />);
-
-    expect(screen.queryByTestId("chat-empty-state")).toBeNull();
+    expect(list.props.ListHeaderComponent.props.testID).toBe("surface-header");
+    expect(within(composerLayout).getByTestId("surface-dock")).toBeTruthy();
   });
 
-  it("빈 안내는 키보드와 composer를 제외한 영역 안에서 중앙 정렬된다", async () => {
-    mockContentInsetEndAdjustment.value = 96;
-    mockKeyboardHeight.value = -300;
-    mockKeyboardProgress.value = 1;
+  it("composer placeholder는 화면이 정한다", async () => {
+    await render(
+      <ChatConversation chat={controller()} placeholder="영어로 써 보세요" />
+    );
 
-    await render(<ChatConversation chat={controller({ messages: [] })} />);
-
-    const emptyState = screen.getByTestId("chat-empty-state");
-
-    expect(emptyState).toHaveStyle({ bottom: 396 });
-    expect(emptyState).toHaveStyle({ top: 0 });
+    expect(screen.getByLabelText("메시지").props.placeholder).toBe(
+      "영어로 써 보세요"
+    );
   });
 
   it("맨 아래에서는 목록과 composer가 같은 키보드 전환을 따른다", async () => {

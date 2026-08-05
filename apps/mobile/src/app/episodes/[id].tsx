@@ -11,13 +11,19 @@ import {
   type ChatController,
   ChatConversation,
 } from "../../components/chat/chat-conversation";
+import { EpisodeContextCard } from "../../components/episode/episode-context-card";
+import { GoalDock } from "../../components/episode/goal-dock";
 import { LoadingIndicator } from "../../components/feedback/loading-indicator";
+import { HeaderTitles } from "../../components/navigation/header-titles";
 import {
-  type StoredChatMessage,
-  useChatMessages,
-  useChatRoom,
-} from "../../lib/use-chat-rooms";
-import { usePersistentChat } from "../../lib/use-persistent-chat";
+  currentGoalPosition,
+  type Episode,
+  type EpisodeMessage,
+  orderedGoals,
+  usedTurns,
+} from "../../lib/episodes";
+import { useEpisodeConversation } from "../../lib/use-episode-conversation";
+import { useEpisode, useEpisodeMessages } from "../../lib/use-episodes";
 import { useUserId } from "../../lib/user-id";
 import { useTheme } from "../../theme/app-theme";
 import { spacing } from "../../theme/tokens";
@@ -41,18 +47,45 @@ const styles = StyleSheet.create({
   },
 });
 
-function ConversationSession({
+/** 헤더가 시나리오와 역할을 나른다. 상황 설명은 상황 카드 하나만 말한다. */
+function roleSubtitle(episode: Episode) {
+  return `${episode.partner_role} · ${episode.user_role}`;
+}
+
+function RoleplaySession({
+  episode,
   messages,
-  roomId,
   userId,
 }: {
-  messages: StoredChatMessage[];
-  roomId: string;
+  episode: Episode;
+  messages: EpisodeMessage[];
   userId: string;
 }) {
-  const chat: ChatController = usePersistentChat(roomId, userId, messages);
+  const chat: ChatController = useEpisodeConversation(
+    episode.id,
+    userId,
+    messages
+  );
+  const goals = orderedGoals(episode);
 
-  return <ChatConversation chat={chat} />;
+  return (
+    <ChatConversation
+      chat={chat}
+      dock={
+        <GoalDock
+          currentPosition={currentGoalPosition(episode)}
+          goals={goals}
+          turnLimit={episode.turn_limit}
+          usedTurns={usedTurns(messages)}
+        />
+      }
+      listHeader={
+        <EpisodeContextCard description={episode.scenario_description} />
+      }
+      // 한글 입력은 막힐 때 쓰는 비상구다. 문구가 앞세우지 않는다.
+      placeholder="영어로 써 보세요"
+    />
+  );
 }
 
 function CenteredAction({
@@ -92,74 +125,72 @@ function CenteredAction({
   );
 }
 
-export default function ChatDetailScreen() {
+export default function EpisodeConversationScreen() {
   const { colors } = useTheme();
-  const params = useLocalSearchParams<{
-    id?: string | string[];
-  }>();
+  const params = useLocalSearchParams<{ id?: string | string[] }>();
   const router = useRouter();
   const userId = useUserId();
-  const roomId = Array.isArray(params.id)
+  const episodeId = Array.isArray(params.id)
     ? (params.id[0] ?? "")
     : (params.id ?? "");
-  const room = useChatRoom(roomId);
-  const messages = useChatMessages(roomId);
+  const episode = useEpisode(episodeId);
+  const messages = useEpisodeMessages(episodeId);
 
   const retry = useCallback(() => {
-    room.refetch();
+    episode.refetch();
     messages.refetch();
-  }, [messages, room]);
+  }, [episode, messages]);
   const goBack = useCallback(() => {
     router.back();
   }, [router]);
 
   let content: ReactNode;
   if (
-    (room.isPending && room.data === undefined) ||
+    (episode.isPending && episode.data === undefined) ||
     (messages.isPending && messages.data === undefined)
   ) {
     content = (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <LoadingIndicator accessibilityLabel="채팅 불러오는 중" />
+        <LoadingIndicator accessibilityLabel="대화 불러오는 중" />
       </View>
     );
   } else if (
-    (room.isError && room.data === undefined) ||
+    (episode.isError && episode.data === undefined) ||
     (messages.isError && messages.data === undefined)
   ) {
     content = (
       <CenteredAction
         actionLabel="다시 시도"
-        message="채팅을 불러오지 못했어요."
+        message="대화를 불러오지 못했어요."
         onPress={retry}
       />
     );
-  } else if (!roomId || room.data === null) {
+  } else if (episodeId && episode.data) {
     content = (
-      <CenteredAction
-        actionLabel="채팅 목록으로"
-        message="채팅방을 찾을 수 없어요."
-        onPress={goBack}
+      <RoleplaySession
+        episode={episode.data}
+        messages={messages.data ?? []}
+        userId={userId}
       />
     );
   } else {
     content = (
-      <ConversationSession
-        messages={messages.data ?? []}
-        roomId={roomId}
-        userId={userId}
+      <CenteredAction
+        actionLabel="에피소드 목록으로"
+        message="에피소드를 찾을 수 없어요."
+        onPress={goBack}
       />
     );
   }
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: room.data?.title ?? "새 채팅",
-        }}
-      />
+      <Stack.Title asChild>
+        <HeaderTitles
+          subtitle={episode.data ? roleSubtitle(episode.data) : null}
+          title={episode.data?.scenario_title ?? "대화"}
+        />
+      </Stack.Title>
       {content}
     </>
   );

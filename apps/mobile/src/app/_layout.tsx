@@ -94,9 +94,10 @@ function Routes() {
             name="episodes/new"
             options={{ headerShown: true, title: "새 에피소드" }}
           />
+          {/* 시나리오 제목과 역할은 대화 화면이 헤더에 직접 세운다. */}
           <Stack.Screen
-            name="chats/[id]"
-            options={{ headerShown: true, title: "새 채팅" }}
+            name="episodes/[id]"
+            options={{ headerShown: true, title: "대화" }}
           />
           <Stack.Screen
             name="settings/index"

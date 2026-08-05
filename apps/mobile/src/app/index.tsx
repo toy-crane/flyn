@@ -149,10 +149,26 @@ function episodeKey(episode: Episode) {
 
 /**
  * 가장 최근에 진행 중인 에피소드 하나. 카드에 오른 에피소드는 아래 목록에
- * 다시 나오지 않는다. 대화 화면은 02가 연결한다.
+ * 다시 나오지 않는다.
  */
-function ResumeCard({ episode }: { episode: Episode }) {
+function ResumeCard({
+  episode,
+  onOpen,
+}: {
+  episode: Episode;
+  onOpen: (episode: Episode) => void;
+}) {
   const { colors, typography } = useTheme();
+  const handleOpen = useCallback(() => {
+    onOpen(episode);
+  }, [episode, onOpen]);
+  const actionStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      styles.cardAction,
+      { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 },
+    ],
+    [colors.primary]
+  );
 
   return (
     <View style={[styles.card, { backgroundColor: colors.surface }]}>
@@ -174,11 +190,16 @@ function ResumeCard({ episode }: { episode: Episode }) {
       >
         {goalProgress(episode)}
       </Text>
-      <View style={[styles.cardAction, { backgroundColor: colors.primary }]}>
+      <Pressable
+        accessibilityLabel="대화 이어가기"
+        accessibilityRole="button"
+        onPress={handleOpen}
+        style={actionStyle}
+      >
         <Text style={[typography.action, { color: colors.onPrimary }]}>
           대화 이어가기
         </Text>
-      </View>
+      </Pressable>
     </View>
   );
 }
@@ -187,16 +208,21 @@ function EpisodeRow({
   disclosureColor,
   episode,
   onDelete,
+  onOpen,
 }: {
   disclosureColor: ColorValue;
   episode: Episode;
   onDelete: (episode: Episode) => void;
+  onOpen: (episode: Episode) => void;
 }) {
   const { colors, typography } = useTheme();
   const active = isEpisodeActive(episode);
   const handleDelete = useCallback(() => {
     onDelete(episode);
   }, [episode, onDelete]);
+  const handleOpen = useCallback(() => {
+    onOpen(episode);
+  }, [episode, onOpen]);
   const rowStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
       styles.row,
@@ -212,6 +238,7 @@ function EpisodeRow({
       accessibilityLabel={episode.scenario_title}
       accessibilityRole="button"
       onLongPress={handleDelete}
+      onPress={handleOpen}
       style={rowStyle}
     >
       {active ? (
@@ -312,6 +339,13 @@ export default function HomeScreen() {
     router.push("/episodes/new");
   }, [router]);
 
+  const openEpisode = useCallback(
+    (episode: Episode) => {
+      router.push(`/episodes/${episode.id}`);
+    },
+    [router]
+  );
+
   const confirmDelete = useCallback(
     (episode: Episode) => {
       Alert.alert(
@@ -345,9 +379,10 @@ export default function HomeScreen() {
         disclosureColor={colors.secondaryText}
         episode={item}
         onDelete={confirmDelete}
+        onOpen={openEpisode}
       />
     ),
-    [colors.secondaryText, confirmDelete]
+    [colors.secondaryText, confirmDelete, openEpisode]
   );
   const retryEpisodes = useCallback(() => {
     episodes.refetch();
@@ -415,7 +450,9 @@ export default function HomeScreen() {
         keyExtractor={episodeKey}
         ListHeaderComponent={
           <View style={styles.header}>
-            {resume ? <ResumeCard episode={resume} /> : null}
+            {resume ? (
+              <ResumeCard episode={resume} onOpen={openEpisode} />
+            ) : null}
             <Text
               style={[
                 styles.sectionTitle,
