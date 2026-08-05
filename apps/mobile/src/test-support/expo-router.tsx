@@ -80,7 +80,7 @@ export function setIsFocused(next: boolean) {
 export function expoRouterMock() {
   const Stack = Object.assign(NOTHING, {
     Protected: NOTHING,
-    Screen: NOTHING,
+    Screen: Object.assign(NOTHING, { BackButton: NOTHING }),
     Title,
     Toolbar: Object.assign(Toolbar, {
       Button: ToolbarButton,

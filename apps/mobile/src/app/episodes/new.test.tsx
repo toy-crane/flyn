@@ -239,6 +239,49 @@ describe("② 역할", () => {
   });
 });
 
+describe("이전 질문으로 돌아가기", () => {
+  it("② 역할에서 뒤로 가면 화면을 벗기지 않고 ① 상황으로 돌아간다", async () => {
+    await reachRoles();
+
+    await fireEvent.press(screen.getByRole("button", { name: "이전 질문" }));
+
+    expect(screen.getByText("이런 상황 어때요?")).toBeTruthy();
+    expect(routerStub.back).not.toHaveBeenCalled();
+  });
+
+  it("상황을 바꾸면 역할과 목표를 함께 다시 만든다", async () => {
+    await reachRoles();
+    await fireEvent.press(screen.getByRole("button", { name: "이전 질문" }));
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: FIRST_SCENARIOS[1].title })
+    );
+    await fireEvent.press(screen.getByRole("button", { name: "다음" }));
+
+    expect(draft.mutate).toHaveBeenLastCalledWith(
+      FIRST_SCENARIOS[1],
+      expect.anything()
+    );
+    expect(screen.getByLabelText("상대 만드는 중")).toBeTruthy();
+
+    await draft.resolve({
+      goals: ["새 목표 1", "새 목표 2", "새 목표 3"],
+      partnerRole: "프런트 직원",
+      userRole: "예약이 사라진 여행객",
+    });
+    await fireEvent.press(screen.getByRole("button", { name: "다음" }));
+
+    expect(goals.mutate).not.toHaveBeenCalled();
+    expect(screen.getByText("새 목표 1")).toBeTruthy();
+  });
+
+  it("① 상황에서 뒤로 가면 생성 화면을 벗긴다", async () => {
+    await pickFirstScenario();
+
+    expect(screen.queryByRole("button", { name: "이전 질문" })).toBeNull();
+  });
+});
+
 describe("③ 목표", () => {
   it("역할이 그대로면 만들어 둔 목표를 다시 부르지 않는다", async () => {
     await reachGoals();

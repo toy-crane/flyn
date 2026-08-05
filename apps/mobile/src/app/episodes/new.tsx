@@ -452,6 +452,24 @@ export default function NewEpisodeScreen() {
     dispatch({ role: value, target: "user", type: "role-changed" });
   }, []);
 
+  /**
+   * 스텝은 화면이 아니라 한 화면 안의 질문이다. 그래서 헤더의 뒤로 가기는
+   * 스택을 벗기기 전에 이전 질문으로 먼저 돌아간다.
+   */
+  const goBack = useCallback(() => {
+    if (state.step === "goals") {
+      dispatch({ step: "roles", type: "step-changed" });
+      return;
+    }
+
+    if (state.step === "roles") {
+      dispatch({ step: "scenario", type: "step-changed" });
+      return;
+    }
+
+    router.back();
+  }, [router, state.step]);
+
   const startEpisode = useCallback(() => {
     const sentences = draftGoals(state);
 
@@ -534,6 +552,18 @@ export default function NewEpisodeScreen() {
           title={episodeDraftTitle(state)}
         />
       </Stack.Title>
+      {state.step === "scenario" ? null : (
+        <>
+          <Stack.Screen.BackButton hidden />
+          <Stack.Toolbar placement="left">
+            <Stack.Toolbar.Button
+              accessibilityLabel="이전 질문"
+              icon="chevron.backward"
+              onPress={goBack}
+            />
+          </Stack.Toolbar>
+        </>
+      )}
 
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
         <ScrollView
