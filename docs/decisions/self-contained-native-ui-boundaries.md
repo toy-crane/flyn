@@ -14,6 +14,9 @@
   경계가 Expo UI로 완결되지 않는 surface에만 쓴다.
 - 재사용 UI는 TSX React 컴포넌트로 만든다. Expo UI가 필요한 native capability를
   표현하지 못할 때만 custom native module을 검토한다.
+- 같은 제품 의미를 RN과 Expo UI가 함께 표현해도 renderer primitive와 `Host`
+  소유권이 다르면 얇은 TSX 컴포넌트를 각각 둔다. 수동형 로딩 indicator는 RN
+  `ActivityIndicator`와 완결된 native `Host` + `ProgressView`가 의미 색만 공유한다.
 - universal API로 같은 동작을 표현할 수 있으면 공유하고, native capability가
   실제로 다를 때만 플랫폼 파일로 나눈다. Android 지원을 이유로 아직 검증하지
   못하는 빈 screen fallback을 만들지는 않는다.

@@ -14,7 +14,7 @@
   구독해 다시 계산한다. screen과 일반 컴포넌트는 플랫폼을 직접 판별하지 않는다.
 - 초기 색 역할은 system, action, 제품 역할로 나눈다.
   - system: background, groupedBackground, surface, inputFill, text,
-    secondaryText, separator, border, link
+    secondaryText, separator, border, link, loadingIndicator
   - action: primary, onPrimary, accent, onAccent
   - 제품·상태: disabled, disabledText, placeholder, overlay, danger, success,
     userBubble, onUserBubble
@@ -53,6 +53,10 @@
   제품 accent가 생기기 전 action 역할은 iOS system action/link와 Android Material
   dynamic primary에 연결하고 임의의 brand hex를 넣지 않는다. 실제 제품 accent가
   생기면 같은 의미 역할을 iOS tint와 Android accent에 연결한다.
+- 화면에 독립적으로 나타나는 수동형 progress는 `loadingIndicator`를 쓴다. iOS는
+  system gray, Android는 Material on-surface variant에 연결한다. native subtree에는
+  해당 indicator에 한정된 `Host.seedColor`로 전달하고 전역 action tint는 바꾸지
+  않는다. 버튼 안의 progress는 버튼 foreground를 따른다.
 - 시스템 appearance가 light/dark를 고르며 앱 안에 theme selector를 만들지
   않는다.
 
