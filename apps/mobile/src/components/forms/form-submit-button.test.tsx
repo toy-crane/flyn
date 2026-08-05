@@ -13,15 +13,24 @@ jest.mock("@expo/ui/swift-ui/modifiers", () =>
 import { FormSubmitButton } from "./form-submit-button";
 
 describe("FormSubmitButton", () => {
-  it("가로 폭만 채우고 native control 높이는 플랫폼에 맡긴다", async () => {
+  it("가로 폭을 채우고 주요 CTA에 맞는 large native control을 쓴다", async () => {
     await render(<FormSubmitButton label="저장" onPress={jest.fn()} />);
 
+    expect(
+      screen.getByRole("button", { name: "저장" }).props.accessibilityHint
+    ).toBe(JSON.stringify([{ $modifier: "controlSize", args: ["large"] }]));
     expect(
       screen.getByTestId("form-submit-content").props.modifiers
     ).toContainEqual(
       expect.objectContaining({
         $modifier: "frame",
         args: [{ maxWidth: Number.POSITIVE_INFINITY }],
+      })
+    );
+    expect(screen.getByText("저장").props.modifiers).toContainEqual(
+      expect.objectContaining({
+        $modifier: "font",
+        args: [{ textStyle: "body", weight: "semibold" }],
       })
     );
   });

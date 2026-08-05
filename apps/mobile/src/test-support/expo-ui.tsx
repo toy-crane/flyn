@@ -151,6 +151,7 @@ function MockButton({
 
   return (
     <Pressable
+      accessibilityHint={JSON.stringify(modifiers)}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       accessibilityState={{ disabled }}
