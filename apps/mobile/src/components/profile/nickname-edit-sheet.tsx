@@ -56,7 +56,7 @@ export function NicknameEditSheet({
       testID="nickname-edit-sheet"
       title="닉네임"
     >
-      <Column spacing={8} style={{ paddingHorizontal: 32, paddingTop: 20 }}>
+      <Column spacing={8} style={{ paddingHorizontal: 20, paddingTop: 20 }}>
         <FormInput
           autoComplete="nickname"
           autoFocus

@@ -134,7 +134,7 @@ export function UsernameEditSheet({
       testID="username-edit-sheet"
       title="아이디"
     >
-      <Column spacing={8} style={{ paddingHorizontal: 32, paddingTop: 20 }}>
+      <Column spacing={8} style={{ paddingHorizontal: 20, paddingTop: 20 }}>
         <FormInput
           autoCapitalize="none"
           autoCorrect={false}
