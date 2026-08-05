@@ -1,4 +1,5 @@
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { FeedbackSheet } from "../../components/episode/feedback-sheet";
 import { findFeedback } from "../../lib/message-feedback";
@@ -28,12 +29,26 @@ function single(value: string | string[] | undefined) {
  */
 export default function FeedbackSheetScreen() {
   const { colors, typography } = useTheme();
+  const router = useRouter();
   const params = useLocalSearchParams<{
     episodeId?: string | string[];
     messageId?: string | string[];
   }>();
-  const feedback = useStoredFeedback(single(params.episodeId));
-  const judged = findFeedback(feedback ?? [], single(params.messageId));
+  const episodeId = single(params.episodeId);
+  const messageId = single(params.messageId);
+  const feedback = useStoredFeedback(episodeId);
+  const judged = findFeedback(feedback ?? [], messageId);
+  /**
+   * `더 물어보기`는 시트 위에 시트를 쌓지 않는다. 시트를 닫고 그 아래 대화
+   * 화면 위로 문장 질문을 push해, 뒤로 가면 시트가 아니라 대화로 돌아온다.
+   */
+  const askMore = useCallback(() => {
+    router.back();
+    router.push({
+      params: { episodeId, messageId },
+      pathname: "/episodes/question",
+    });
+  }, [episodeId, messageId, router]);
 
   if (!judged) {
     return (
@@ -45,5 +60,5 @@ export default function FeedbackSheetScreen() {
     );
   }
 
-  return <FeedbackSheet feedback={judged} />;
+  return <FeedbackSheet feedback={judged} onAskMore={askMore} />;
 }

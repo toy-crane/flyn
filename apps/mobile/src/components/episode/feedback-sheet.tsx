@@ -1,11 +1,25 @@
-import type { ReactNode } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { type ReactNode, useCallback } from "react";
+import {
+  Pressable,
+  type PressableStateCallbackType,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { type MessageFeedback, messageMark } from "../../lib/message-feedback";
 import { improvedSegments } from "../../lib/sentence-diff";
 import { useTheme } from "../../theme/app-theme";
 import { spacing } from "../../theme/tokens";
+import { RNSymbol } from "../symbols/rn-symbol";
 
 const styles = StyleSheet.create({
+  askMore: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.xs,
+    minHeight: 44,
+  },
   content: {
     gap: spacing.md,
     paddingBottom: spacing.xl,
@@ -131,10 +145,46 @@ function Reasons({ reasons }: { reasons: string[] }) {
 }
 
 /**
+ * 시트 하단의 `더 물어보기`. 여기서 열리는 문장 질문은 시트 위에 쌓이지 않고
+ * 대화 위로 push되므로, 이 자리는 목적지를 여는 일만 한다.
+ */
+function AskMoreAction({ onPress }: { onPress: () => void }) {
+  const { colors, typography } = useTheme();
+  const actionStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [
+      styles.askMore,
+      { opacity: pressed ? 0.5 : 1 },
+    ],
+    []
+  );
+
+  return (
+    <Pressable
+      accessibilityLabel="더 물어보기"
+      accessibilityRole="button"
+      onPress={onPress}
+      style={actionStyle}
+      testID="feedback-ask-more"
+    >
+      <RNSymbol color={colors.accent} symbol="askMore" />
+      <Text style={[typography.action, { color: colors.accent }]}>
+        더 물어보기
+      </Text>
+    </Pressable>
+  );
+}
+
+/**
  * 첨삭 시트. 번역이든 교정이든 **같은 시트**이며 내용만 다르다. 이미 저장된
  * 판정만 읽으므로 열 때 아무것도 다시 부르지 않는다.
  */
-export function FeedbackSheet({ feedback }: { feedback: MessageFeedback }) {
+export function FeedbackSheet({
+  feedback,
+  onAskMore,
+}: {
+  feedback: MessageFeedback;
+  onAskMore: () => void;
+}) {
   const { colors } = useTheme();
   const translated = messageMark(feedback) === "translated";
   const alternative =
@@ -174,6 +224,8 @@ export function FeedbackSheet({ feedback }: { feedback: MessageFeedback }) {
           <Reasons reasons={feedback.reasons} />
         </>
       ) : null}
+      <Rule />
+      <AskMoreAction onPress={onAskMore} />
     </ScrollView>
   );
 }

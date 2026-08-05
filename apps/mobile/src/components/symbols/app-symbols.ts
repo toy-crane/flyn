@@ -5,6 +5,13 @@ export const APP_SYMBOLS = {
     size: 10,
     weight: "bold",
   },
+  // 이 문장을 두고 더 묻는 자리로 가는 action. 말풍선 안에 글이 든 기호가
+  // "이 문장에 대해 이야기한다"를 그대로 말한다.
+  askMore: {
+    name: "text.bubble",
+    size: 17,
+    weight: "regular",
+  },
   // 제자리에서 접고 펴는 표시. 셰브론의 방향이 곧 다음에 일어날 일이라
   // 이름도 방향으로 둔다.
   chevronDown: {

@@ -53,6 +53,19 @@ export type EpisodeMessage = Pick<
   "content" | "created_at" | "id" | "role" | "status"
 >;
 
+/**
+ * 문장 질문이 물고 온 문장. 인용 카드에 세우는 것은 말풍선에 남은 것과 같은
+ * **전달된 문장**이고, 물어볼 수 있는 자리는 내가 쓴 발화뿐이다.
+ */
+export function questionedSentence(
+  messages: EpisodeMessage[],
+  messageId: string
+): string | null {
+  const message = messages.find((item) => item.id === messageId);
+
+  return message?.role === "user" ? message.content : null;
+}
+
 export function orderedGoals(episode: Episode): EpisodeGoal[] {
   return [...episode.episode_goals].sort(
     (left, right) => left.position - right.position

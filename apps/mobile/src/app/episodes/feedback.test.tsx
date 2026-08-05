@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 
 jest.mock("expo-router", () =>
   require("../../test-support/expo-router").expoRouterMock()
@@ -7,7 +7,7 @@ jest.mock("../../lib/use-episodes", () => ({ useStoredFeedback: jest.fn() }));
 
 import type { MessageFeedback } from "../../lib/message-feedback";
 import { useStoredFeedback } from "../../lib/use-episodes";
-import { setSearchParams } from "../../test-support/expo-router";
+import { routerStub, setSearchParams } from "../../test-support/expo-router";
 import FeedbackSheetScreen from "./feedback";
 
 const mockUseStoredFeedback = useStoredFeedback as jest.Mock;
@@ -36,6 +36,22 @@ describe("첨삭 시트 화면", () => {
     expect(mockUseStoredFeedback).toHaveBeenCalledWith("episode-1");
     expect(screen.getByTestId("feedback-improved")).toHaveTextContent(
       "Sounds good. Can you make it with oat milk?"
+    );
+  });
+
+  it("`더 물어보기`는 시트를 닫고 그 문장의 질문 화면을 push한다", async () => {
+    await render(<FeedbackSheetScreen />);
+
+    fireEvent.press(screen.getByTestId("feedback-ask-more"));
+
+    // 시트 위에 시트를 쌓지 않는다 — 닫은 뒤 대화 화면 위로 push한다.
+    expect(routerStub.back).toHaveBeenCalledTimes(1);
+    expect(routerStub.push).toHaveBeenCalledWith({
+      params: { episodeId: "episode-1", messageId: "user-2" },
+      pathname: "/episodes/question",
+    });
+    expect(routerStub.back.mock.invocationCallOrder[0]).toBeLessThan(
+      routerStub.push.mock.invocationCallOrder[0] as number
     );
   });
 

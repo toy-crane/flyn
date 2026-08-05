@@ -175,6 +175,20 @@ describe("Layout native stack header", () => {
     });
   });
 
+  it("문장 질문은 시트가 아니라 헤더를 가진 push 화면이다", async () => {
+    signedInWith({ kind: "ready" });
+
+    await render(<Layout />);
+
+    expect(mockRouteOptions["episodes/question"]).toMatchObject({
+      headerShown: true,
+      title: "문장 이야기",
+    });
+    expect(mockRouteOptions["episodes/question"]).not.toHaveProperty(
+      "presentation"
+    );
+  });
+
   it("설정 화면만 grouped background를 native header까지 이어 쓴다", async () => {
     signedInWith({ kind: "ready" });
 

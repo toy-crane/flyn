@@ -112,6 +112,14 @@ function Routes() {
               sheetGrabberVisible: true,
             }}
           />
+          {/*
+           * 문장 질문. 시트 위에 시트를 쌓지 않고 대화 위에 push한다. 헤더가
+           * 어느 에피소드에서 물고 왔는지를 나르므로 화면이 직접 세운다.
+           */}
+          <Stack.Screen
+            name="episodes/question"
+            options={{ headerShown: true, title: "문장 이야기" }}
+          />
           <Stack.Screen
             name="settings/index"
             options={{

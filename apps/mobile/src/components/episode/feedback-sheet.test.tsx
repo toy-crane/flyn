@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { MessageFeedback } from "../../lib/message-feedback";
 import { FeedbackSheet } from "./feedback-sheet";
 
@@ -23,6 +23,12 @@ const TRANSLATED: MessageFeedback = {
   verdict: "clear",
 };
 
+const askMore = jest.fn();
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
 function edits() {
   return screen
     .getAllByTestId("feedback-improved-edit")
@@ -31,7 +37,7 @@ function edits() {
 
 describe("첨삭 시트", () => {
   it("교정은 개선 문장과 항목별 이유를 보여준다", async () => {
-    await render(<FeedbackSheet feedback={IMPROVABLE} />);
+    await render(<FeedbackSheet feedback={IMPROVABLE} onAskMore={askMore} />);
 
     expect(screen.getByText("이렇게 쓰면 더 자연스러워요")).toBeTruthy();
     expect(screen.getByTestId("feedback-improved")).toHaveTextContent(
@@ -46,7 +52,7 @@ describe("첨삭 시트", () => {
   });
 
   it("밑줄은 개선 문장에서 바뀐 자리에만 있다", async () => {
-    await render(<FeedbackSheet feedback={IMPROVABLE} />);
+    await render(<FeedbackSheet feedback={IMPROVABLE} onAskMore={askMore} />);
 
     expect(edits()).toEqual(["s", "with"]);
 
@@ -58,7 +64,7 @@ describe("첨삭 시트", () => {
   });
 
   it("번역은 같은 시트에서 내가 쓴 한글과 전달된 문장을 보여준다", async () => {
-    await render(<FeedbackSheet feedback={TRANSLATED} />);
+    await render(<FeedbackSheet feedback={TRANSLATED} onAskMore={askMore} />);
 
     expect(screen.getByText("내가 쓴 한글")).toBeTruthy();
     expect(screen.getByText("오늘 커피 뭐가 좋아요?")).toBeTruthy();
@@ -74,9 +80,17 @@ describe("첨삭 시트", () => {
     expect(screen.queryByTestId("feedback-improved-edit")).toBeNull();
   });
 
-  it("아직 05가 붙일 자리라 더 물어보기는 두지 않는다", async () => {
-    await render(<FeedbackSheet feedback={IMPROVABLE} />);
+  it("하단 `더 물어보기`가 그 문장을 두고 묻는 자리를 연다", async () => {
+    await render(<FeedbackSheet feedback={IMPROVABLE} onAskMore={askMore} />);
 
-    expect(screen.queryByText("더 물어보기")).toBeNull();
+    fireEvent.press(screen.getByTestId("feedback-ask-more"));
+
+    expect(askMore).toHaveBeenCalledTimes(1);
+  });
+
+  it("번역 시트에도 같은 자리에 `더 물어보기`가 선다", async () => {
+    await render(<FeedbackSheet feedback={TRANSLATED} onAskMore={askMore} />);
+
+    expect(screen.getByLabelText("더 물어보기")).toBeTruthy();
   });
 });
