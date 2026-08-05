@@ -14,6 +14,7 @@ export interface ThemeColors {
   groupedBackground: ColorValue;
   inputFill: ColorValue;
   link: ColorValue;
+  loadingIndicator: ColorValue;
   onAccent: ColorValue;
   onPrimary: ColorValue;
   onUserBubble: ColorValue;
@@ -41,6 +42,7 @@ function resolveIosColors(colorScheme: AppColorScheme): ThemeColors {
     groupedBackground: Color.ios.systemGroupedBackground,
     inputFill: Color.ios.tertiarySystemFill,
     link: Color.ios.link,
+    loadingIndicator: Color.ios.systemGray,
     onAccent: "#FFFFFF",
     onPrimary: "#FFFFFF",
     onUserBubble: Color.ios.label,
@@ -91,6 +93,10 @@ function resolveAndroidColors(colorScheme: AppColorScheme): ThemeColors {
       material.surfaceContainerHighest
     ),
     link: primary,
+    loadingIndicator: androidColor(
+      dynamic.onSurfaceVariant,
+      material.onSurfaceVariant
+    ),
     onAccent: onPrimary,
     onPrimary,
     onUserBubble: androidColor(
