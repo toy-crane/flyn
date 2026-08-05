@@ -211,7 +211,7 @@ describe("설정 — 닉네임 편집 시트", () => {
     await fireEvent.press(screen.getByText("닉네임"));
   }
 
-  it("전체 높이 native Form과 규칙 footer를 쓴다", async () => {
+  it("전체 높이 plain sheet에 입력과 규칙 footer를 보여준다", async () => {
     await openNickname();
 
     const sheet = screen.getByTestId("nickname-edit-sheet");
@@ -219,6 +219,7 @@ describe("설정 — 닉네임 편집 시트", () => {
       showDragIndicator: true,
       snapPoints: ["full"],
     });
+    expect(within(sheet).queryByTestId("expo-ui-field-group")).toBeNull();
     expect(screen.getByLabelText("닉네임").props.value).toBe("한울");
     expect(
       screen.getByText("1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.")
@@ -297,6 +298,18 @@ describe("설정 — 아이디 편집 시트", () => {
     await render(<SettingsScreen />);
     await fireEvent.press(screen.getByText("아이디"));
   }
+
+  it("plain sheet에 입력과 상태 footer를 보여준다", async () => {
+    await openUsername();
+
+    const sheet = screen.getByTestId("username-edit-sheet");
+
+    expect(within(sheet).queryByTestId("expo-ui-field-group")).toBeNull();
+    expect(screen.getByLabelText("아이디").props.value).toBe("toycrane");
+    expect(
+      screen.getByText("4~20자, 영문 소문자·숫자·_·.만 사용할 수 있어요.")
+    ).toBeTruthy();
+  });
 
   it("현재 아이디는 사용 가능이어도 바뀐 값이 없어 저장하지 않는다", async () => {
     await openUsername();

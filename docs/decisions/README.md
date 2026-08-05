@@ -11,7 +11,7 @@
 - [self-contained-native-ui-boundaries](self-contained-native-ui-boundaries.md) — Read when 화면의 React Native와 `@expo/ui` 경계를 선택하거나 재사용 UI를 만들 때.
 - [native-style-foundation](uniwind-css-theme.md) — Read when StyleSheet, Uniwind, 앱 색·간격·타이포, light/dark, Navigation 또는 `@expo/ui` 테마 연결을 바꿀 때.
 - [native-motion](native-motion.md) — Read when 화면 전환, 상태 피드백, Reanimated 또는 Reduce Motion 동작을 추가할 때.
-- [settings-edits-use-native-form](settings-edits-use-native-form.md) — Read when 설정의 닉네임·아이디 편집 화면이나 네이티브 Form 시트를 바꿀 때.
+- [settings-edits-use-native-plain-sheet](settings-edits-use-native-form.md) — Read when 설정의 닉네임·아이디 편집 화면이나 네이티브 plain 시트를 바꿀 때.
 - [danggeun-voice-for-copy](danggeun-voice-for-copy.md) — Read when 사용자에게 보이는 한국어 문구를 쓰거나 검토할 때.
 - [hono-on-vercel](hono-on-vercel.md) — Read when API 런타임, 배포 표면 또는 모바일 API 계약을 바꿀 때.
 - [ai-gateway-for-model-calls](ai-gateway-for-model-calls.md) — Read when AI SDK, 모델, Gateway 또는 모바일 스트리밍 경계를 바꿀 때.

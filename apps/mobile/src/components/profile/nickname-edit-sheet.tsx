@@ -1,8 +1,10 @@
-import { FieldGroup, Text, TextInput, useNativeState } from "@expo/ui";
+import { Column, Text, TextInput, useNativeState } from "@expo/ui";
 import {
   accessibilityLabel,
+  controlSize,
   foregroundStyle,
   frame,
+  textFieldStyle,
 } from "@expo/ui/swift-ui/modifiers";
 import { useCallback, useState } from "react";
 import { Alert } from "react-native";
@@ -59,34 +61,32 @@ export function NicknameEditSheet({
       testID="nickname-edit-sheet"
       title="닉네임"
     >
-      <FieldGroup>
-        <FieldGroup.Section>
-          <TextInput
-            autoComplete="nickname"
-            autoFocus
-            editable={!save.isPending}
-            maxLength={DISPLAY_NAME_MAX}
-            modifiers={[
-              frame({ maxWidth: Number.POSITIVE_INFINITY }),
-              accessibilityLabel("닉네임"),
-            ]}
-            onChangeText={handleChangeText}
-            value={name}
-          />
-          <FieldGroup.SectionFooter>
-            <Text
-              modifiers={[
-                foregroundStyle({
-                  style: "secondary",
-                  type: "hierarchical",
-                }),
-              ]}
-            >
-              1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.
-            </Text>
-          </FieldGroup.SectionFooter>
-        </FieldGroup.Section>
-      </FieldGroup>
+      <Column spacing={8} style={{ paddingHorizontal: 32, paddingTop: 20 }}>
+        <TextInput
+          autoComplete="nickname"
+          autoFocus
+          editable={!save.isPending}
+          maxLength={DISPLAY_NAME_MAX}
+          modifiers={[
+            controlSize("large"),
+            textFieldStyle("roundedBorder"),
+            frame({ maxWidth: Number.POSITIVE_INFINITY }),
+            accessibilityLabel("닉네임"),
+          ]}
+          onChangeText={handleChangeText}
+          value={name}
+        />
+        <Text
+          modifiers={[
+            foregroundStyle({
+              style: "secondary",
+              type: "hierarchical",
+            }),
+          ]}
+        >
+          1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.
+        </Text>
+      </Column>
     </ProfileEditSheet>
   );
 }

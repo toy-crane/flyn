@@ -465,7 +465,7 @@ export function swiftUiMock() {
 // Passthrough를 그대로 Object.assign하면 Host·Group 등 같은 함수를 쓰는 다른
 // 자리까지 슬롯이 달라붙는다. 감싸는 함수를 따로 만든다.
 function MockFieldGroup({ children }: { children?: ReactNode }) {
-  return <View>{children}</View>;
+  return <View testID="expo-ui-field-group">{children}</View>;
 }
 
 const FieldGroup = Object.assign(MockFieldGroup, {

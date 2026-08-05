@@ -1,7 +1,7 @@
 import {
-  FieldGroup,
+  Button,
+  Column,
   Icon,
-  ListItem,
   Row,
   Text,
   TextInput,
@@ -9,8 +9,12 @@ import {
 } from "@expo/ui";
 import {
   accessibilityLabel,
+  buttonStyle,
+  controlSize,
+  font,
   foregroundStyle,
   frame,
+  textFieldStyle,
 } from "@expo/ui/swift-ui/modifiers";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
@@ -140,42 +144,51 @@ export function UsernameEditSheet({
       testID="username-edit-sheet"
       title="아이디"
     >
-      <FieldGroup>
-        <FieldGroup.Section>
-          <Row alignment="center" spacing={8}>
-            <TextInput
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoFocus
-              editable={!save.isPending}
-              keyboardType="ascii-capable"
-              maxLength={USERNAME_MAX}
-              modifiers={[
-                frame({ maxWidth: Number.POSITIVE_INFINITY }),
-                accessibilityLabel("아이디"),
-              ]}
-              onChangeText={handleChangeText}
-              value={username}
-            />
-            {trailing}
-          </Row>
-          <FieldGroup.SectionFooter>
-            <Text
-              modifiers={[
-                foregroundStyle(
-                  status === "taken"
-                    ? colors.danger
-                    : { style: "secondary", type: "hierarchical" }
-                ),
-              ]}
-            >
-              {footer}
-            </Text>
-          </FieldGroup.SectionFooter>
-        </FieldGroup.Section>
+      <Column spacing={8} style={{ paddingHorizontal: 32, paddingTop: 20 }}>
+        <Row alignment="center" spacing={8}>
+          <TextInput
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoFocus
+            editable={!save.isPending}
+            keyboardType="ascii-capable"
+            maxLength={USERNAME_MAX}
+            modifiers={[
+              controlSize("large"),
+              textFieldStyle("roundedBorder"),
+              frame({ maxWidth: Number.POSITIVE_INFINITY }),
+              accessibilityLabel("아이디"),
+            ]}
+            onChangeText={handleChangeText}
+            value={username}
+          />
+          {trailing}
+        </Row>
+        <Text
+          modifiers={[
+            foregroundStyle(
+              status === "taken"
+                ? colors.danger
+                : { style: "secondary", type: "hierarchical" }
+            ),
+          ]}
+        >
+          {footer}
+        </Text>
 
         {status === "taken" && suggestions.length > 0 ? (
-          <FieldGroup.Section title="추천">
+          <Column spacing={4} style={{ paddingTop: 16 }}>
+            <Text
+              modifiers={[
+                font({ textStyle: "footnote", weight: "semibold" }),
+                foregroundStyle({
+                  style: "secondary",
+                  type: "hierarchical",
+                }),
+              ]}
+            >
+              추천
+            </Text>
             {suggestions.map((suggestion) => (
               <UsernameSuggestion
                 disabled={save.isPending}
@@ -184,9 +197,9 @@ export function UsernameEditSheet({
                 value={suggestion}
               />
             ))}
-          </FieldGroup.Section>
+          </Column>
         ) : null}
-      </FieldGroup>
+      </Column>
     </ProfileEditSheet>
   );
 }
@@ -203,6 +216,19 @@ function UsernameSuggestion({
   const handlePress = useCallback(() => onSelect(value), [onSelect, value]);
 
   return (
-    <ListItem onPress={disabled ? undefined : handlePress}>{value}</ListItem>
+    <Button
+      disabled={disabled}
+      modifiers={[
+        buttonStyle("plain"),
+        frame({
+          alignment: "leading",
+          maxWidth: Number.POSITIVE_INFINITY,
+          minHeight: 44,
+        }),
+      ]}
+      onPress={handlePress}
+    >
+      <Text>{value}</Text>
+    </Button>
   );
 }
