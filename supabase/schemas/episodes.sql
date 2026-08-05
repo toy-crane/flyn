@@ -50,11 +50,16 @@ create table public.episode_goals (
   position smallint not null,
   sentence text not null,
   achieved_at timestamptz,
+  -- 대화 흐름에 남는 완료 줄의 자리를 정하는 값이다. 시각만으로는 어느 발화
+  -- 뒤에 끼울지 알 수 없다. 판정이 채우기 전에는 둘 다 비어 있다.
+  achieved_message_id text,
   primary key (episode_id, position),
   constraint episode_goals_position_range
     check (position between 1 and 3),
   constraint episode_goals_sentence_length
-    check (char_length(sentence) between 1 and 500)
+    check (char_length(sentence) between 1 and 500),
+  constraint episode_goals_achieved_together
+    check ((achieved_at is null) = (achieved_message_id is null))
 );
 
 -- 대화에 남는 메시지. **전달된 문장만** 담는다 — 한글로 썼을 때 사용자가 친
@@ -83,6 +88,46 @@ create table public.episode_messages (
 
 create index episode_messages_episode_created_idx
   on public.episode_messages (episode_id, created_at, id);
+
+-- 목표를 선언한 자리에서는 episode_messages가 아직 없다. 참조만 여기로 미룬다.
+alter table public.episode_goals
+  add constraint episode_goals_achieved_message_fkey
+  foreign key (episode_id, achieved_message_id)
+  references public.episode_messages (episode_id, id);
+
+-- 판정 한 번이 남기는 행. **행이 없음이 곧 판정 전**이므로 판정 전 상태를
+-- 나타내는 빈 행을 미리 만들지 않는다. AI 메시지는 판정 대상이 아니라 행이
+-- 아예 생기지 않고, 늦게 도착하는 판정도 도착한 순간에 처음 나타난다.
+create table public.message_feedback (
+  episode_id uuid not null,
+  message_id text not null,
+  -- 사용자가 실제로 친 말. 한글로 썼으면 여기 한글이 남는다. 전달된 영어는
+  -- episode_messages가 갖는다.
+  source_text text not null,
+  -- 그대로 잘 통했는지(clear), 더 자연스럽게 쓸 여지가 있는지(improvable).
+  verdict text not null,
+  -- 판정 호출 하나가 판정·개선문·이유를 함께 낸다. 시트를 열 때 따로 부르지
+  -- 않으므로 여기 없으면 화면에도 없다.
+  improved_sentence text,
+  reasons text[] not null default '{}',
+  created_at timestamptz not null default now(),
+  primary key (episode_id, message_id),
+  constraint message_feedback_message_fkey
+    foreign key (episode_id, message_id)
+    references public.episode_messages (episode_id, id) on delete cascade,
+  constraint message_feedback_verdict
+    check (verdict in ('clear', 'improvable')),
+  -- 그대로 통한 문장에는 고칠 것이 없고, 고칠 것이 있다고 판정했으면 개선문이
+  -- 반드시 있다. 표시와 시트가 이 둘을 따로 확인하지 않아도 되게 못박는다.
+  constraint message_feedback_improvable_has_sentence
+    check ((verdict = 'improvable') = (improved_sentence is not null)),
+  constraint message_feedback_source_text_length
+    check (char_length(source_text) between 1 and 20000),
+  constraint message_feedback_improved_sentence_length
+    check (char_length(improved_sentence) between 1 and 20000),
+  constraint message_feedback_reasons_count
+    check (cardinality(reasons) between 0 and 10)
+);
 
 -- 갱신 시각은 클라이언트가 보낼 수 없고 DB가 정한다.
 create function public.episodes_touch()
@@ -122,6 +167,7 @@ create trigger episode_messages_touch_episode
 alter table public.episodes enable row level security;
 alter table public.episode_goals enable row level security;
 alter table public.episode_messages enable row level security;
+alter table public.message_feedback enable row level security;
 
 create policy "own episodes readable" on public.episodes
   for select to authenticated
@@ -154,6 +200,17 @@ create policy "own episode messages readable" on public.episode_messages
     )
   );
 
+create policy "own message feedback readable" on public.message_feedback
+  for select to authenticated
+  using (
+    exists (
+      select 1
+      from public.episodes
+      where episodes.id = message_feedback.episode_id
+        and episodes.user_id = (select auth.uid())
+    )
+  );
+
 -- 정책은 어느 행을 만지는지만 가른다. 앱이 AI가 만든 값을 직접 쓰지 못하게 막는
 -- 것은 아래 grant다.
 revoke all on table public.episodes from anon, authenticated;
@@ -168,9 +225,17 @@ grant select on table public.episode_goals to authenticated;
 revoke all on table public.episode_messages from anon, authenticated;
 grant select on table public.episode_messages to authenticated;
 
+-- 판정도 AI가 낸 값이라 앱은 읽기만 한다. revoke를 빼면 새 테이블에 딸려 오는
+-- 기본 권한으로 앱 역할이 판정을 통째로 truncate할 수 있다 — RLS는 그것을
+-- 가르지 않는다.
+revoke all on table public.message_feedback from anon, authenticated;
+grant select on table public.message_feedback to authenticated;
+
 grant select, insert, update, delete
   on table public.episodes to service_role;
 grant select, insert, update, delete
   on table public.episode_goals to service_role;
 grant select, insert, update, delete
   on table public.episode_messages to service_role;
+grant select, insert, update, delete
+  on table public.message_feedback to service_role;

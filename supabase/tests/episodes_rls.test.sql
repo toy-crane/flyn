@@ -5,7 +5,7 @@
 -- 없애도 초록이 되므로, 각 경계의 양성 대조도 함께 둔다.
 
 begin;
-select plan(33);
+select plan(48);
 
 select tests.create_supabase_user('episode-alice');
 select tests.create_supabase_user('episode-bob');
@@ -13,6 +13,7 @@ select tests.create_supabase_user('episode-bob');
 select has_table('public', 'episodes', '에피소드 테이블이 존재한다');
 select has_table('public', 'episode_goals', '에피소드 목표 테이블이 존재한다');
 select has_table('public', 'episode_messages', '에피소드 메시지 테이블이 존재한다');
+select has_table('public', 'message_feedback', '판정 테이블이 존재한다');
 select hasnt_table('public', 'chat_rooms', '채팅방 테이블은 남아 있지 않다');
 select hasnt_table('public', 'chat_messages', '채팅 메시지 테이블은 남아 있지 않다');
 
@@ -26,6 +27,16 @@ select table_privs_are(
 select table_privs_are(
   'public', 'episode_messages', 'anon', array[]::text[],
   '미로그인 역할에는 대화 권한이 없다'
+);
+
+select table_privs_are(
+  'public', 'message_feedback', 'authenticated', array['SELECT'],
+  '앱 역할은 판정을 읽기만 할 수 있다'
+);
+
+select table_privs_are(
+  'public', 'message_feedback', 'anon', array[]::text[],
+  '미로그인 역할에는 판정 권한이 없다'
 );
 
 set local role postgres;
@@ -59,6 +70,91 @@ values
    'Could you recommend today''s coffee?'),
   ('assistant-1', '00000000-0000-0000-0000-0000000000a1', 'assistant',
    'Today''s single origin is a natural Ethiopian.');
+
+-- 판정 한 번이 판정·개선문·이유를 함께 남긴다.
+insert into public.message_feedback (
+  episode_id, message_id, source_text, verdict, improved_sentence, reasons
+)
+values (
+  '00000000-0000-0000-0000-0000000000a1', 'user-1',
+  '오늘 커피 뭐가 좋아요?', 'improvable',
+  'What would you recommend today?',
+  array['원어민은 recommend 앞에 would를 붙여 부드럽게 물어요.']
+);
+
+-- 달성한 목표는 어느 발화에서 달성했는지를 함께 갖는다.
+update public.episode_goals
+set achieved_at = now(), achieved_message_id = 'user-1'
+where episode_id = '00000000-0000-0000-0000-0000000000a1'
+  and position = 1;
+
+select is(
+  (select achieved_message_id from public.episode_goals
+   where episode_id = '00000000-0000-0000-0000-0000000000a1'
+     and position = 1),
+  'user-1',
+  '달성한 목표가 어느 발화에서 달성했는지 갖는다'
+);
+
+select throws_ok(
+  $$update public.episode_goals set achieved_at = now()
+    where episode_id = '00000000-0000-0000-0000-0000000000a1'
+      and position = 2$$,
+  '23514',
+  null,
+  '달성 시각만 있고 달성한 발화가 없는 목표는 저장할 수 없다'
+);
+
+select throws_ok(
+  $$update public.episode_goals
+    set achieved_at = now(), achieved_message_id = 'user-404'
+    where episode_id = '00000000-0000-0000-0000-0000000000a1'
+      and position = 2$$,
+  '23503',
+  null,
+  '없는 발화를 달성한 발화로 가리킬 수 없다'
+);
+
+-- 판정이 없는 상태는 행이 없음으로 나타낸다. 그대로 통한 문장에 고칠 것을 함께
+-- 남기거나, 고칠 것이 있다면서 개선문을 비우면 표시가 무엇을 뜻하는지 갈린다.
+select throws_ok(
+  $$insert into public.message_feedback (
+      episode_id, message_id, source_text, verdict, improved_sentence
+    )
+    values (
+      '00000000-0000-0000-0000-0000000000a1', 'assistant-1',
+      'That''s all, thanks!', 'clear', 'That is all, thank you!'
+    )$$,
+  '23514',
+  null,
+  '그대로 통한 문장에는 개선문을 함께 남길 수 없다'
+);
+
+select throws_ok(
+  $$insert into public.message_feedback (
+      episode_id, message_id, source_text, verdict
+    )
+    values (
+      '00000000-0000-0000-0000-0000000000a1', 'assistant-1',
+      'Sound good. make it oat milk?', 'improvable'
+    )$$,
+  '23514',
+  null,
+  '고칠 여지가 있다는 판정에는 개선문이 반드시 있다'
+);
+
+select throws_ok(
+  $$insert into public.message_feedback (
+      episode_id, message_id, source_text, verdict
+    )
+    values (
+      '00000000-0000-0000-0000-0000000000a1', 'user-404',
+      '없는 발화', 'clear'
+    )$$,
+  '23503',
+  null,
+  '없는 발화에는 판정을 남길 수 없다'
+);
 
 insert into public.episodes (
   id, user_id, scenario_title, scenario_description,
@@ -154,6 +250,12 @@ select is(
   '사용자는 자기 에피소드의 지난 대화를 볼 수 있다'
 );
 
+select is(
+  (select count(*)::int from public.message_feedback),
+  1,
+  '사용자는 자기 발화의 판정을 볼 수 있다'
+);
+
 select throws_ok(
   $$insert into public.episodes (
       user_id, scenario_title, scenario_description,
@@ -233,6 +335,33 @@ select throws_ok(
   '앱은 대화를 통째로 비울 수 없다'
 );
 
+-- 판정도 AI가 낸 값이다. 앱이 쓸 수 있으면 스스로 달성했다고 남길 수 있다.
+select throws_ok(
+  $$insert into public.message_feedback (
+      episode_id, message_id, source_text, verdict
+    )
+    values ('00000000-0000-0000-0000-0000000000a1', 'assistant-1',
+            '앱이 남긴 판정', 'clear')$$,
+  '42501',
+  'permission denied for table message_feedback',
+  '앱은 판정을 남길 수 없다'
+);
+
+select throws_ok(
+  $$delete from public.message_feedback
+    where episode_id = '00000000-0000-0000-0000-0000000000a1'$$,
+  '42501',
+  'permission denied for table message_feedback',
+  '앱은 판정을 지울 수 없다'
+);
+
+select throws_ok(
+  $$truncate public.message_feedback$$,
+  '42501',
+  'permission denied for table message_feedback',
+  '앱은 판정을 통째로 비울 수 없다'
+);
+
 delete from public.episodes
 where id = '00000000-0000-0000-0000-0000000000b1';
 
@@ -270,6 +399,13 @@ select is(
   '에피소드를 지우면 대화도 cascade된다'
 );
 
+select is(
+  (select count(*)::int from public.message_feedback
+   where episode_id = '00000000-0000-0000-0000-0000000000a1'),
+  0,
+  '에피소드를 지우면 판정도 cascade된다'
+);
+
 select tests.clear_authentication();
 
 select throws_ok(
@@ -291,6 +427,13 @@ select throws_ok(
   '42501',
   'permission denied for table episode_messages',
   '미로그인 사용자는 대화를 읽을 수 없다'
+);
+
+select throws_ok(
+  $$select count(*) from public.message_feedback$$,
+  '42501',
+  'permission denied for table message_feedback',
+  '미로그인 사용자는 판정을 읽을 수 없다'
 );
 
 set local role postgres;

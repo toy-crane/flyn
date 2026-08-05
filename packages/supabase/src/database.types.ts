@@ -12,23 +12,33 @@ export type Database = {
       episode_goals: {
         Row: {
           achieved_at: string | null
+          achieved_message_id: string | null
           episode_id: string
           position: number
           sentence: string
         }
         Insert: {
           achieved_at?: string | null
+          achieved_message_id?: string | null
           episode_id: string
           position: number
           sentence: string
         }
         Update: {
           achieved_at?: string | null
+          achieved_message_id?: string | null
           episode_id?: string
           position?: number
           sentence?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "episode_goals_achieved_message_fkey"
+            columns: ["episode_id", "achieved_message_id"]
+            isOneToOne: false
+            referencedRelation: "episode_messages"
+            referencedColumns: ["episode_id", "id"]
+          },
           {
             foreignKeyName: "episode_goals_episode_id_fkey"
             columns: ["episode_id"]
@@ -114,6 +124,44 @@ export type Database = {
           user_role?: string
         }
         Relationships: []
+      }
+      message_feedback: {
+        Row: {
+          created_at: string
+          episode_id: string
+          improved_sentence: string | null
+          message_id: string
+          reasons: string[]
+          source_text: string
+          verdict: string
+        }
+        Insert: {
+          created_at?: string
+          episode_id: string
+          improved_sentence?: string | null
+          message_id: string
+          reasons?: string[]
+          source_text: string
+          verdict: string
+        }
+        Update: {
+          created_at?: string
+          episode_id?: string
+          improved_sentence?: string | null
+          message_id?: string
+          reasons?: string[]
+          source_text?: string
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_feedback_message_fkey"
+            columns: ["episode_id", "message_id"]
+            isOneToOne: true
+            referencedRelation: "episode_messages"
+            referencedColumns: ["episode_id", "id"]
+          },
+        ]
       }
       profiles: {
         Row: {
