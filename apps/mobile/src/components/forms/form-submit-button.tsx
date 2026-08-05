@@ -1,6 +1,6 @@
 import { Button, Row, Text } from "@expo/ui";
 import { ProgressView } from "@expo/ui/swift-ui";
-import { controlSize, frame } from "@expo/ui/swift-ui/modifiers";
+import { controlSize, font, frame } from "@expo/ui/swift-ui/modifiers";
 
 export interface FormSubmitButtonProps {
   disabled?: boolean;
@@ -31,7 +31,9 @@ export function FormSubmitButton({
         testID="form-submit-content"
       >
         {pending ? <ProgressView testID="form-submit-progress" /> : null}
-        <Text>{label}</Text>
+        <Text modifiers={[font({ textStyle: "body", weight: "semibold" })]}>
+          {label}
+        </Text>
       </Row>
     </Button>
   );

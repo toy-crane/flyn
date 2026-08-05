@@ -27,6 +27,12 @@ describe("FormSubmitButton", () => {
         args: [{ maxWidth: Number.POSITIVE_INFINITY }],
       })
     );
+    expect(screen.getByText("저장").props.modifiers).toContainEqual(
+      expect.objectContaining({
+        $modifier: "font",
+        args: [{ textStyle: "body", weight: "semibold" }],
+      })
+    );
   });
 
   it("처리 중에도 같은 label을 유지하고 중복 제출을 막는다", async () => {
