@@ -110,25 +110,6 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
 jest.mock(
-  "expo-glass-effect",
-  () => {
-    const { View: NativeView } = require("react-native");
-    return {
-      GlassView: NativeView,
-      isLiquidGlassAvailable: () => false,
-    };
-  },
-  { virtual: true }
-);
-jest.mock(
-  "expo-blur",
-  () => {
-    const { View: NativeView } = require("react-native");
-    return { BlurView: NativeView };
-  },
-  { virtual: true }
-);
-jest.mock(
   "expo-symbols",
   () => {
     const ReactRuntime = require("react");
@@ -416,6 +397,14 @@ describe("채팅방 상세 대화", () => {
     const input = screen.getByPlaceholderText("메시지 보내기");
 
     expect(StyleSheet.flatten(input.props.style).lineHeight).toBeUndefined();
+  });
+
+  it("composer는 form과 같은 adaptive input fill을 사용한다", async () => {
+    await render(<ChatConversation chat={controller()} />);
+
+    expect(screen.getByTestId("chat-composer-surface")).toHaveStyle({
+      backgroundColor: "#222222",
+    });
   });
 
   it("보낼 내용이 있으면 전송 action을 실행한다", async () => {

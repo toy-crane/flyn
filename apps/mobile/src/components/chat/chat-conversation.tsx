@@ -4,8 +4,6 @@ import {
 } from "@legendapp/list/keyboard";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import type { ChatStatus } from "ai";
-import { BlurView } from "expo-blur";
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { SymbolView } from "expo-symbols";
 import {
   type ReactNode,
@@ -16,6 +14,7 @@ import {
 } from "react";
 import {
   ActivityIndicator,
+  type ColorValue,
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -275,27 +274,20 @@ function AssistantMessage({
   );
 }
 
-function ComposerSurface({ children }: { children: ReactNode }) {
-  if (isLiquidGlassAvailable()) {
-    return (
-      <GlassView
-        glassEffectStyle="regular"
-        isInteractive
-        style={styles.composerSurface}
-      >
-        {children}
-      </GlassView>
-    );
-  }
-
+function ComposerSurface({
+  backgroundColor,
+  children,
+}: {
+  backgroundColor: ColorValue;
+  children: ReactNode;
+}) {
   return (
-    <BlurView
-      intensity={72}
-      style={styles.composerSurface}
-      tint="systemChromeMaterial"
+    <View
+      style={[styles.composerSurface, { backgroundColor }]}
+      testID="chat-composer-surface"
     >
       {children}
-    </BlurView>
+    </View>
   );
 }
 
@@ -356,60 +348,58 @@ function Composer({
         </Reanimated.View>
       ) : null}
 
-      <View testID="chat-composer-surface">
-        <ComposerSurface>
-          <TextInput
-            accessibilityLabel="메시지"
-            cursorColor={colors.text}
-            maxLength={4000}
-            multiline
-            nativeID={COMPOSER_NATIVE_ID}
-            onChangeText={chat.setInput}
-            placeholder="메시지 보내기"
-            placeholderTextColor={colors.placeholder}
-            selectionColor={colors.text}
-            style={[
-              styles.composerInput,
-              typography.message,
-              {
-                color: colors.text,
-                lineHeight: undefined,
-              },
-            ]}
-            textAlignVertical="top"
-            value={chat.input}
-          />
-          <Pressable
-            accessibilityLabel={actionLabel}
-            accessibilityRole="button"
-            disabled={disabled}
-            onPress={handleAction}
-            style={[
-              styles.action,
-              {
-                backgroundColor: disabled ? colors.disabled : colors.primary,
-                opacity: disabled ? 0.7 : 1,
-              },
-            ]}
-          >
-            {chat.status === "submitted" ? (
-              <ActivityIndicator
-                accessible={false}
-                color={colors.onPrimary}
-                size="small"
-                testID="composer-submit-spinner"
-              />
-            ) : (
-              <SymbolView
-                name={chat.status === "streaming" ? "stop.fill" : "arrow.up"}
-                size={17}
-                tintColor={disabled ? colors.disabledText : colors.onPrimary}
-                weight="semibold"
-              />
-            )}
-          </Pressable>
-        </ComposerSurface>
-      </View>
+      <ComposerSurface backgroundColor={colors.inputFill}>
+        <TextInput
+          accessibilityLabel="메시지"
+          cursorColor={colors.text}
+          maxLength={4000}
+          multiline
+          nativeID={COMPOSER_NATIVE_ID}
+          onChangeText={chat.setInput}
+          placeholder="메시지 보내기"
+          placeholderTextColor={colors.placeholder}
+          selectionColor={colors.text}
+          style={[
+            styles.composerInput,
+            typography.message,
+            {
+              color: colors.text,
+              lineHeight: undefined,
+            },
+          ]}
+          textAlignVertical="top"
+          value={chat.input}
+        />
+        <Pressable
+          accessibilityLabel={actionLabel}
+          accessibilityRole="button"
+          disabled={disabled}
+          onPress={handleAction}
+          style={[
+            styles.action,
+            {
+              backgroundColor: disabled ? colors.disabled : colors.primary,
+              opacity: disabled ? 0.7 : 1,
+            },
+          ]}
+        >
+          {chat.status === "submitted" ? (
+            <ActivityIndicator
+              accessible={false}
+              color={colors.onPrimary}
+              size="small"
+              testID="composer-submit-spinner"
+            />
+          ) : (
+            <SymbolView
+              name={chat.status === "streaming" ? "stop.fill" : "arrow.up"}
+              size={17}
+              tintColor={disabled ? colors.disabledText : colors.onPrimary}
+              weight="semibold"
+            />
+          )}
+        </Pressable>
+      </ComposerSurface>
     </View>
   );
 }
