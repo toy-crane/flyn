@@ -135,6 +135,21 @@ const styles = StyleSheet.create({
     height: 44,
     width: 44,
   },
+  note: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.xs,
+    justifyContent: "center",
+    marginBottom: spacing.sm,
+    paddingVertical: spacing.xxs,
+  },
+  noteDot: {
+    alignItems: "center",
+    borderRadius: 8,
+    height: 16,
+    justifyContent: "center",
+    width: 16,
+  },
   retryAction: {
     justifyContent: "center",
     minHeight: 44,
@@ -191,14 +206,27 @@ const styles = StyleSheet.create({
 export interface DisplayChatMessage {
   content: string;
   id: string;
+  kind: "message";
   role: "assistant" | "user";
   status: "complete" | "stopped";
 }
 
+/**
+ * 대화 흐름에 영구히 남는 한 줄. 말풍선이 아니라 기록이라 가운데에 서고 누를
+ * 수 없다. 무엇을 적을지는 화면이 정한다.
+ */
+export interface DisplayChatNote {
+  id: string;
+  kind: "note";
+  text: string;
+}
+
+export type DisplayChatItem = DisplayChatMessage | DisplayChatNote;
+
 export interface ChatController {
   error: Error | null;
   input: string;
-  messages: DisplayChatMessage[];
+  messages: DisplayChatItem[];
   onRetry: () => void;
   onSend: () => void;
   setInput: (value: string) => void;
@@ -207,8 +235,8 @@ export interface ChatController {
   streamingStore: StreamingStore;
 }
 
-function messageKey(message: DisplayChatMessage) {
-  return message.id;
+function messageKey(item: DisplayChatItem) {
+  return item.id;
 }
 
 function isGeneratingStatus(status: ChatStatus) {
@@ -242,6 +270,30 @@ function UserMessage({ content }: { content: string }) {
           {content}
         </Text>
       </View>
+    </View>
+  );
+}
+
+/**
+ * 흐름에 남는 기록 한 줄. 스크롤만으로 언제 있었는지 되짚을 수 있어야 하므로
+ * 말풍선 사이에 그대로 선다.
+ */
+function ConversationNote({ text }: { text: string }) {
+  const { colors, typography } = useTheme();
+
+  return (
+    <View style={styles.note} testID="conversation-note">
+      <View style={[styles.noteDot, { backgroundColor: colors.success }]}>
+        <SymbolView
+          name="checkmark"
+          size={9}
+          tintColor={colors.onAccent}
+          weight="bold"
+        />
+      </View>
+      <Text style={[typography.caption, { color: colors.success }]}>
+        {text}
+      </Text>
     </View>
   );
 }
@@ -475,26 +527,29 @@ export function ChatConversation({
   );
 
   const renderMessage = useCallback(
-    ({ item, index }: { index: number; item: DisplayChatMessage }) => {
+    ({ item }: { item: DisplayChatItem }) => {
+      if (item.kind === "note") {
+        return <ConversationNote text={item.text} />;
+      }
+
       if (item.role === "user") {
         return <UserMessage content={item.content} />;
       }
 
-      const streaming =
-        isGeneratingStatus(chat.status) &&
-        index === chat.messages.length - 1 &&
-        item.content.length === 0;
-
+      // 본문이 빈 AI 메시지는 지금 받고 있는 응답 하나뿐이다. 늦게 도착한
+      // 기록이 목록 끝에 붙어도 어느 것이 스트리밍인지 흔들리지 않는다.
       return (
         <AssistantMessage
           content={item.content}
           status={item.status}
-          streaming={streaming}
+          streaming={
+            isGeneratingStatus(chat.status) && item.content.length === 0
+          }
           streamingStore={chat.streamingStore}
         />
       );
     },
-    [chat.messages.length, chat.status, chat.streamingStore]
+    [chat.status, chat.streamingStore]
   );
 
   return (

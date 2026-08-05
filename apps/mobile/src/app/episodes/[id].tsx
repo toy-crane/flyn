@@ -7,10 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import {
-  type ChatController,
-  ChatConversation,
-} from "../../components/chat/chat-conversation";
+import { ChatConversation } from "../../components/chat/chat-conversation";
 import { EpisodeContextCard } from "../../components/episode/episode-context-card";
 import { GoalDock } from "../../components/episode/goal-dock";
 import { LoadingIndicator } from "../../components/feedback/loading-indicator";
@@ -19,7 +16,6 @@ import {
   currentGoalPosition,
   type Episode,
   type EpisodeMessage,
-  orderedGoals,
   usedTurns,
 } from "../../lib/episodes";
 import { useEpisodeConversation } from "../../lib/use-episode-conversation";
@@ -61,19 +57,16 @@ function RoleplaySession({
   messages: EpisodeMessage[];
   userId: string;
 }) {
-  const chat: ChatController = useEpisodeConversation(
-    episode.id,
-    userId,
-    messages
-  );
-  const goals = orderedGoals(episode);
+  // 목표는 판정이 스트림으로 알려 오는 대로 바뀐다. 저장이 다시 읽히기를
+  // 기다리지 않아야 달성 즉시 다음 목표로 넘어간다.
+  const { chat, goals } = useEpisodeConversation(episode, userId, messages);
 
   return (
     <ChatConversation
       chat={chat}
       dock={
         <GoalDock
-          currentPosition={currentGoalPosition(episode)}
+          currentPosition={currentGoalPosition(goals)}
           goals={goals}
           turnLimit={episode.turn_limit}
           usedTurns={usedTurns(messages)}

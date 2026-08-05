@@ -24,13 +24,50 @@ jest.mock("./supabase", () => ({
   supabase: { auth: { getSession: () => mockGetSession() } },
 }));
 
-import type { EpisodeMessage } from "./episodes";
+import type { Episode, EpisodeGoal, EpisodeMessage } from "./episodes";
 import { useEpisodeConversation } from "./use-episode-conversation";
 
 const sendMessage = jest.fn();
 const regenerate = jest.fn();
 const stop = jest.fn();
 const clearError = jest.fn();
+
+const GOALS: EpisodeGoal[] = [
+  {
+    achieved_at: null,
+    achieved_message_id: null,
+    position: 1,
+    sentence: "오늘의 원두 추천 받기",
+  },
+  {
+    achieved_at: null,
+    achieved_message_id: null,
+    position: 2,
+    sentence: "우유를 오트밀크로 바꿔 주문하기",
+  },
+  {
+    achieved_at: null,
+    achieved_message_id: null,
+    position: 3,
+    sentence: "근처 가볼 만한 곳 물어보기",
+  },
+];
+
+function episode(overrides: Partial<Episode> = {}): Episode {
+  return {
+    created_at: "2026-08-05T00:00:00.000Z",
+    episode_goals: GOALS,
+    id: "episode-1",
+    partner_role: "바리스타 Maya",
+    scenario_description: "여행 중 들어간 작은 카페예요.",
+    scenario_title: "포틀랜드 카페에서 첫 주문",
+    status: "active",
+    turn_limit: 20,
+    updated_at: "2026-08-05T00:00:00.000Z",
+    user_role: "처음 방문한 여행객",
+    ...overrides,
+  };
+}
 
 const STORED_MESSAGES: EpisodeMessage[] = [
   {
@@ -46,6 +83,21 @@ const STORED_MESSAGES: EpisodeMessage[] = [
     id: "assistant-1",
     role: "assistant",
     status: "complete",
+  },
+];
+
+const STORED_UI_MESSAGES = [
+  {
+    id: "user-1",
+    parts: [{ text: "Could you recommend today's coffee?", type: "text" }],
+    role: "user",
+  },
+  {
+    id: "assistant-1",
+    parts: [
+      { text: "Today's single origin is a natural Ethiopian.", type: "text" },
+    ],
+    role: "assistant",
   },
 ];
 
@@ -73,7 +125,7 @@ beforeEach(() => {
 describe("에피소드 대화 transport", () => {
   it("저장된 대화를 초기 UI 상태로 복원한다", async () => {
     await renderHook(() =>
-      useEpisodeConversation("episode-1", "account-1", STORED_MESSAGES)
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES)
     );
 
     const options = mockUseChat.mock.calls[0]?.[0];
@@ -102,7 +154,11 @@ describe("에피소드 대화 transport", () => {
 
   it("에피소드 경계에 마지막 사용자 메시지 ID와 본문만 보낸다", async () => {
     await renderHook(() =>
-      useEpisodeConversation("episode/1", "account-1", STORED_MESSAGES)
+      useEpisodeConversation(
+        episode({ id: "episode/1" }),
+        "account-1",
+        STORED_MESSAGES
+      )
     );
 
     const transportOptions = mockTransport.mock.calls[0]?.[0];
@@ -142,11 +198,11 @@ describe("말풍선에 남는 문장", () => {
     mockUseChat.mockReturnValue(chatState({ messages: [typed] }));
 
     const { result } = await renderHook(() =>
-      useEpisodeConversation("episode-1", "account-1", [])
+      useEpisodeConversation(episode(), "account-1", [])
     );
     const options = mockUseChat.mock.calls[0]?.[0];
 
-    expect(result.current.messages[0]).toMatchObject({
+    expect(result.current.chat.messages[0]).toMatchObject({
       content: "오늘 커피 뭐가 좋아요?",
     });
 
@@ -160,7 +216,7 @@ describe("말풍선에 남는 문장", () => {
       });
     });
 
-    expect(result.current.messages[0]).toMatchObject({
+    expect(result.current.chat.messages[0]).toMatchObject({
       content: "What do you recommend today?",
       id: "new-user",
       role: "user",
@@ -181,7 +237,7 @@ describe("말풍선에 남는 문장", () => {
     );
 
     const { result } = await renderHook(() =>
-      useEpisodeConversation("episode-1", "account-1", [])
+      useEpisodeConversation(episode(), "account-1", [])
     );
     const options = mockUseChat.mock.calls[0]?.[0];
 
@@ -195,27 +251,126 @@ describe("말풍선에 남는 문장", () => {
       });
     });
 
-    expect(result.current.messages[0]).toMatchObject({
+    expect(result.current.chat.messages[0]).toMatchObject({
       content: "Sound good. make it oat milk?",
     });
+  });
+});
+
+describe("목표 달성 기록", () => {
+  it("판정이 도착하면 완료 줄이 그 발화의 턴 끝에 서고 목표가 넘어간다", async () => {
+    mockUseChat.mockReturnValue(chatState({ messages: STORED_UI_MESSAGES }));
+
+    const { result } = await renderHook(() =>
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES)
+    );
+    const options = mockUseChat.mock.calls[0]?.[0];
+
+    expect(result.current.chat.messages.map((item) => item.id)).toEqual([
+      "user-1",
+      "assistant-1",
+    ]);
+
+    await act(() => {
+      options.onData({
+        data: {
+          goals: [
+            {
+              achievedAt: "2026-08-05T01:00:02.000Z",
+              messageId: "user-1",
+              position: 1,
+            },
+          ],
+        },
+        type: "data-judgment",
+      });
+    });
+
+    expect(result.current.chat.messages).toEqual([
+      expect.objectContaining({ id: "user-1" }),
+      expect.objectContaining({ id: "assistant-1" }),
+      { id: "goal-1", kind: "note", text: "오늘의 원두 추천 받기 완료" },
+    ]);
+    expect(result.current.goals[0]).toEqual(
+      expect.objectContaining({
+        achieved_at: "2026-08-05T01:00:02.000Z",
+        achieved_message_id: "user-1",
+        position: 1,
+      })
+    );
+  });
+
+  it("저장된 목표만으로도 같은 자리에 완료 줄이 선다", async () => {
+    mockUseChat.mockReturnValue(
+      chatState({
+        messages: [
+          ...STORED_UI_MESSAGES,
+          {
+            id: "user-2",
+            parts: [{ text: "One oat latte please", type: "text" }],
+            role: "user",
+          },
+        ],
+      })
+    );
+
+    const { result } = await renderHook(() =>
+      useEpisodeConversation(
+        episode({
+          episode_goals: [
+            {
+              achieved_at: "2026-08-05T01:00:02.000Z",
+              achieved_message_id: "user-1",
+              position: 1,
+              sentence: "오늘의 원두 추천 받기",
+            },
+            ...GOALS.slice(1),
+          ],
+        }),
+        "account-1",
+        STORED_MESSAGES
+      )
+    );
+
+    expect(result.current.chat.messages.map((item) => item.id)).toEqual([
+      "user-1",
+      "assistant-1",
+      "goal-1",
+      "user-2",
+    ]);
+  });
+
+  it("판정이 오지 않으면 완료 줄도 없고 첫 목표가 그대로 남는다", async () => {
+    mockUseChat.mockReturnValue(chatState({ messages: STORED_UI_MESSAGES }));
+
+    const { result } = await renderHook(() =>
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES)
+    );
+
+    expect(
+      result.current.chat.messages.some((item) => item.kind === "note")
+    ).toBe(false);
+    expect(
+      result.current.goals.every((goal) => goal.achieved_at === null)
+    ).toBe(true);
   });
 });
 
 describe("에피소드 대화 controller", () => {
   it("입력을 정리해 보내고 composer를 비운다", async () => {
     const { result } = await renderHook(() =>
-      useEpisodeConversation("episode-1", "account-1", STORED_MESSAGES)
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES)
     );
 
     await act(() => {
-      result.current.setInput("  One oat latte please  ");
+      result.current.chat.setInput("  One oat latte please  ");
     });
     await act(() => {
-      result.current.onSend();
+      result.current.chat.onSend();
     });
 
     expect(sendMessage).toHaveBeenCalledWith({ text: "One oat latte please" });
-    expect(result.current.input).toBe("");
+    expect(result.current.chat.input).toBe("");
   });
 
   it("생성 중에는 streaming store만 갱신한다", async () => {
@@ -238,13 +393,13 @@ describe("에피소드 대화 controller", () => {
     );
 
     const { result } = await renderHook(() =>
-      useEpisodeConversation("episode-1", "account-1", [])
+      useEpisodeConversation(episode(), "account-1", [])
     );
 
     await waitFor(() => {
-      expect(result.current.streamingStore.get()).toBe("Welcome to");
+      expect(result.current.chat.streamingStore.get()).toBe("Welcome to");
     });
-    expect(result.current.messages.at(-1)).toMatchObject({
+    expect(result.current.chat.messages.at(-1)).toMatchObject({
       content: "",
       id: "new-assistant",
       role: "assistant",
@@ -256,12 +411,12 @@ describe("에피소드 대화 controller", () => {
       chatState({ error: new Error("failed"), status: "error" })
     );
     const { result } = await renderHook(() =>
-      useEpisodeConversation("episode-1", "account-1", STORED_MESSAGES)
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES)
     );
 
     await act(() => {
-      result.current.onRetry();
-      result.current.stop();
+      result.current.chat.onRetry();
+      result.current.chat.stop();
     });
 
     expect(clearError).not.toHaveBeenCalled();
@@ -276,9 +431,7 @@ describe("에피소드 대화 controller", () => {
       role: "assistant",
     };
     mockUseChat.mockReturnValue(chatState({ messages: [assistant] }));
-    await renderHook(() =>
-      useEpisodeConversation("episode-1", "account-1", [])
-    );
+    await renderHook(() => useEpisodeConversation(episode(), "account-1", []));
     const options = mockUseChat.mock.calls[0]?.[0];
 
     await act(() => {

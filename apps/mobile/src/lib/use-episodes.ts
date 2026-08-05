@@ -4,7 +4,7 @@ import { queryKeys } from "./query-keys";
 import { supabase } from "./supabase";
 
 const EPISODE_COLUMNS =
-  "id, scenario_title, scenario_description, partner_role, user_role, status, turn_limit, created_at, updated_at, episode_goals(position, sentence, achieved_at)";
+  "id, scenario_title, scenario_description, partner_role, user_role, status, turn_limit, created_at, updated_at, episode_goals(position, sentence, achieved_at, achieved_message_id)";
 const MESSAGE_COLUMNS = "id, role, content, status, created_at";
 
 export async function fetchEpisodes(userId: string): Promise<Episode[]> {

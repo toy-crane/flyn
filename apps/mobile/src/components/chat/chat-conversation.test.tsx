@@ -148,12 +148,14 @@ function controller(overrides: Partial<ChatController> = {}): ChatController {
       {
         content: "사용자 질문",
         id: "user-1",
+        kind: "message",
         role: "user",
         status: "complete",
       },
       {
         content: "**AI 답변**",
         id: "assistant-1",
+        kind: "message",
         role: "assistant",
         status: "complete",
       },
@@ -191,6 +193,39 @@ describe("스트리밍 대화 표면", () => {
       justifyContent: "flex-end",
     });
     expect(screen.getByTestId("assistant-message")).toBeTruthy();
+  });
+
+  it("기록 한 줄은 말풍선 사이에 가운데로 서고 누를 수 없다", async () => {
+    await render(
+      <ChatConversation
+        chat={controller({
+          messages: [
+            {
+              content: "사용자 질문",
+              id: "user-1",
+              kind: "message",
+              role: "user",
+              status: "complete",
+            },
+            {
+              id: "goal-1",
+              kind: "note",
+              text: "오늘의 원두 추천 받기 완료",
+            },
+          ],
+        })}
+      />
+    );
+
+    const note = screen.getByTestId("conversation-note");
+
+    expect(within(note).getByText("오늘의 원두 추천 받기 완료")).toBeTruthy();
+    // 체크는 상태 표시다. 누를 것이 아니므로 버튼으로 서지 않는다.
+    expect(within(note).getByText("checkmark")).toBeTruthy();
+    expect(note).toHaveStyle({ justifyContent: "center" });
+    expect(
+      screen.queryByRole("button", { name: "오늘의 원두 추천 받기 완료" })
+    ).toBeNull();
   });
 
   it("말풍선 곁의 표시는 44pt 고정 열에 자리를 비워 둔다", async () => {
@@ -433,12 +468,14 @@ describe("스트리밍 대화 표면", () => {
             {
               content: "질문",
               id: "user-1",
+              kind: "message",
               role: "user",
               status: "complete",
             },
             {
               content: "",
               id: "assistant-stream",
+              kind: "message",
               role: "assistant",
               status: "complete",
             },
@@ -463,6 +500,7 @@ describe("스트리밍 대화 표면", () => {
             {
               content: "",
               id: "assistant-stream",
+              kind: "message",
               role: "assistant",
               status: "complete",
             },
@@ -509,6 +547,7 @@ describe("스트리밍 대화 표면", () => {
             {
               content: "",
               id: "assistant-stream",
+              kind: "message",
               role: "assistant",
               status: "complete",
             },
@@ -537,6 +576,7 @@ describe("스트리밍 대화 표면", () => {
             {
               content: "여기까지 생성",
               id: "assistant-1",
+              kind: "message",
               role: "assistant",
               status: "stopped",
             },

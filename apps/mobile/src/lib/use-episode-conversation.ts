@@ -1,16 +1,22 @@
 import { useChat } from "@ai-sdk/react";
-import type { DeliveredSentence } from "@flyn/api";
+import type { DeliveredSentence, JudgmentUpdate } from "@flyn/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { DefaultChatTransport, isTextUIPart, type UIMessage } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   ChatController,
+  DisplayChatItem,
   DisplayChatMessage,
 } from "../components/chat/chat-conversation";
 import { createStreamingStore } from "../components/chat/streaming-store";
 import { API_BASE_URL } from "./api";
-import type { EpisodeMessage } from "./episodes";
+import type { Episode, EpisodeGoal, EpisodeMessage } from "./episodes";
+import {
+  type GoalAchievement,
+  orderedGoals,
+  withAchievements,
+} from "./episodes";
 import { queryKeys } from "./query-keys";
 import { supabase } from "./supabase";
 
@@ -20,8 +26,14 @@ interface EpisodeMessageMetadata {
 
 type EpisodeUiMessage = UIMessage<
   EpisodeMessageMetadata,
-  { delivered: DeliveredSentence }
+  { delivered: DeliveredSentence; judgment: JudgmentUpdate }
 >;
+
+/** 대화 화면이 한 번에 받는 것. 목표는 판정이 도착하는 대로 갱신된다. */
+export interface EpisodeConversation {
+  chat: ChatController;
+  goals: EpisodeGoal[];
+}
 
 function messageText(message: EpisodeUiMessage) {
   return message.parts
@@ -120,6 +132,7 @@ function toDisplayMessages({
         {
           content: streaming ? "" : content,
           id: message.id,
+          kind: "message" as const,
           role: message.role,
           status:
             storedStatus === "stopped" || stoppedMessageIds.has(message.id)
@@ -135,6 +148,7 @@ function toDisplayMessages({
     displayMessages.push({
       content: "",
       id: `pending-assistant-${lastMessage?.id ?? episodeId}`,
+      kind: "message",
       role: "assistant",
       status: "complete",
     });
@@ -143,11 +157,54 @@ function toDisplayMessages({
   return displayMessages;
 }
 
+function toNote(goal: EpisodeGoal): DisplayChatItem {
+  return {
+    id: `goal-${goal.position}`,
+    kind: "note",
+    text: `${goal.sentence} 완료`,
+  };
+}
+
+/**
+ * 완료 줄은 목표를 이룬 발화의 **턴 끝**에 선다. 상대의 대답까지 나와야 목표가
+ * 이뤄지므로 응답 뒤가 그 발화의 자리이고, 다음 발화 바로 앞이 곧 턴의 끝이다.
+ * 자리를 정하는 값이 저장돼 있어 다시 들어와도 같은 곳에 남는다.
+ */
+function withGoalNotes(
+  messages: DisplayChatMessage[],
+  goals: EpisodeGoal[]
+): DisplayChatItem[] {
+  const achieved = goals.filter((goal) => goal.achieved_message_id !== null);
+
+  if (achieved.length === 0) {
+    return messages;
+  }
+
+  const items: DisplayChatItem[] = [];
+  let anchored: EpisodeGoal[] = [];
+
+  for (const message of messages) {
+    if (message.role === "user" && anchored.length > 0) {
+      items.push(...anchored.map(toNote));
+      anchored = [];
+    }
+
+    items.push(message);
+    anchored = [
+      ...anchored,
+      ...achieved.filter((goal) => goal.achieved_message_id === message.id),
+    ];
+  }
+
+  return [...items, ...anchored.map(toNote)];
+}
+
 export function useEpisodeConversation(
-  episodeId: string,
+  episode: Episode,
   userId: string,
   storedMessages: EpisodeMessage[]
-): ChatController {
+): EpisodeConversation {
+  const episodeId = episode.id;
   const queryClient = useQueryClient();
   const initialMessages = useMemo(
     () => toUiMessages(storedMessages),
@@ -157,6 +214,9 @@ export function useEpisodeConversation(
   const streamingStore = useMemo(() => createStreamingStore(), []);
   const [input, setInput] = useState("");
   const [delivered, setDelivered] = useState<Record<string, string>>({});
+  const [achievements, setAchievements] = useState<
+    Record<number, GoalAchievement>
+  >({});
   const [stoppedMessageIds, setStoppedMessageIds] = useState(
     () => new Set<string>()
   );
@@ -182,6 +242,21 @@ export function useEpisodeConversation(
         const { messageId, text } = part.data;
 
         setDelivered((current) => ({ ...current, [messageId]: text }));
+      }
+
+      // 판정은 응답보다 늦게 올 수 있다. 도착하는 즉시 목표를 넘긴다.
+      if (part.type === "data-judgment") {
+        const { goals } = part.data;
+
+        setAchievements((current) => {
+          const next = { ...current };
+
+          for (const goal of goals) {
+            next[goal.position] ??= goal;
+          }
+
+          return next;
+        });
       }
     },
     onError: refreshStoredEpisode,
@@ -213,16 +288,30 @@ export function useEpisodeConversation(
     }
   }, [activeAssistant, isGenerating, streamingStore]);
 
+  const goals = useMemo(
+    () => withAchievements(orderedGoals(episode), achievements),
+    [achievements, episode]
+  );
   const messages = useMemo(
     () =>
-      toDisplayMessages({
-        delivered,
-        episodeId,
-        isGenerating,
-        messages: chat.messages,
-        stoppedMessageIds,
-      }),
-    [chat.messages, delivered, episodeId, isGenerating, stoppedMessageIds]
+      withGoalNotes(
+        toDisplayMessages({
+          delivered,
+          episodeId,
+          isGenerating,
+          messages: chat.messages,
+          stoppedMessageIds,
+        }),
+        goals
+      ),
+    [
+      chat.messages,
+      delivered,
+      episodeId,
+      goals,
+      isGenerating,
+      stoppedMessageIds,
+    ]
   );
 
   const onSend = useCallback(() => {
@@ -259,14 +348,17 @@ export function useEpisodeConversation(
   }, [chat]);
 
   return {
-    error: chat.error ?? null,
-    input,
-    messages,
-    onRetry,
-    onSend,
-    setInput,
-    status: chat.status,
-    stop,
-    streamingStore,
+    chat: {
+      error: chat.error ?? null,
+      input,
+      messages,
+      onRetry,
+      onSend,
+      setInput,
+      status: chat.status,
+      stop,
+      streamingStore,
+    },
+    goals,
   };
 }

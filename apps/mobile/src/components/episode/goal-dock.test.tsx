@@ -5,15 +5,22 @@ import { GoalDock } from "./goal-dock";
 const GOALS: EpisodeGoal[] = [
   {
     achieved_at: "2026-08-05T00:00:00.000Z",
+    achieved_message_id: "user-1",
     position: 1,
     sentence: "오늘의 원두 추천 받기",
   },
   {
     achieved_at: null,
+    achieved_message_id: null,
     position: 2,
     sentence: "우유를 오트밀크로 바꿔 주문하기",
   },
-  { achieved_at: null, position: 3, sentence: "근처 가볼 만한 곳 물어보기" },
+  {
+    achieved_at: null,
+    achieved_message_id: null,
+    position: 3,
+    sentence: "근처 가볼 만한 곳 물어보기",
+  },
 ];
 
 function renderDock({ usedTurns = 2 }: { usedTurns?: number } = {}) {

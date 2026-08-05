@@ -44,7 +44,7 @@ jest.mock("../../lib/use-episodes", () => ({
   useEpisodeMessages: jest.fn(),
 }));
 jest.mock("../../lib/use-episode-conversation", () => ({
-  useEpisodeConversation: jest.fn(() => ({ messages: [] })),
+  useEpisodeConversation: jest.fn(),
 }));
 jest.mock("../../lib/user-id", () => ({ useUserId: () => "account-1" }));
 
@@ -59,17 +59,30 @@ const mockUseEpisodeConversation = useEpisodeConversation as jest.Mock;
 const retryEpisode = jest.fn();
 const retryMessages = jest.fn();
 
+const GOALS = [
+  {
+    achieved_at: null,
+    achieved_message_id: null,
+    position: 2,
+    sentence: "우유를 오트밀크로 바꿔 주문하기",
+  },
+  {
+    achieved_at: null,
+    achieved_message_id: null,
+    position: 1,
+    sentence: "오늘의 원두 추천 받기",
+  },
+  {
+    achieved_at: null,
+    achieved_message_id: null,
+    position: 3,
+    sentence: "근처 가볼 만한 곳 물어보기",
+  },
+];
+
 const EPISODE = {
   created_at: "2026-08-05T00:00:00.000Z",
-  episode_goals: [
-    {
-      achieved_at: null,
-      position: 2,
-      sentence: "우유를 오트밀크로 바꿔 주문하기",
-    },
-    { achieved_at: null, position: 1, sentence: "오늘의 원두 추천 받기" },
-    { achieved_at: null, position: 3, sentence: "근처 가볼 만한 곳 물어보기" },
-  ],
+  episode_goals: GOALS,
   id: "episode-1",
   partner_role: "바리스타 Maya",
   scenario_description: "여행 중 들어간 작은 카페예요.",
@@ -112,7 +125,11 @@ beforeEach(() => {
     isPending: false,
     refetch: retryMessages,
   });
-  mockUseEpisodeConversation.mockReturnValue({ messages: [] });
+  // 목표 바가 보는 것은 저장된 목표가 아니라 판정이 얹힌 목표다.
+  mockUseEpisodeConversation.mockReturnValue({
+    chat: { messages: [] },
+    goals: [...GOALS].sort((left, right) => left.position - right.position),
+  });
 });
 
 describe("에피소드 대화 화면", () => {
@@ -173,9 +190,35 @@ describe("에피소드 대화 화면", () => {
     await render(<EpisodeConversationScreen />);
 
     expect(mockUseEpisodeConversation).toHaveBeenCalledWith(
-      "episode-1",
+      EPISODE,
       "account-1",
       MESSAGES
+    );
+  });
+
+  it("목표 바는 판정이 얹힌 목표를 본다", async () => {
+    mockUseEpisodeConversation.mockReturnValue({
+      chat: { messages: [] },
+      goals: [
+        {
+          achieved_at: "2026-08-05T00:00:03.000Z",
+          achieved_message_id: "user-1",
+          position: 1,
+          sentence: "오늘의 원두 추천 받기",
+        },
+        ...[...GOALS]
+          .sort((left, right) => left.position - right.position)
+          .slice(1),
+      ],
+    });
+
+    await render(<EpisodeConversationScreen />);
+
+    const dock = within(screen.getByTestId("surface-dock"));
+
+    // 달성 즉시 다음 목표로 넘어간다.
+    expect(dock.getByTestId("goal-dock-now")).toHaveTextContent(
+      "우유를 오트밀크로 바꿔 주문하기"
     );
   });
 

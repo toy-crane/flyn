@@ -8,7 +8,7 @@ import type { Tables } from "@flyn/supabase";
 export type EpisodeStatus = "active" | "goals_met" | "turns_exhausted";
 export type EpisodeGoal = Pick<
   Tables<"episode_goals">,
-  "achieved_at" | "position" | "sentence"
+  "achieved_at" | "achieved_message_id" | "position" | "sentence"
 >;
 export type Episode = Pick<
   Tables<"episodes">,
@@ -67,13 +67,40 @@ export function usedTurns(messages: EpisodeMessage[]): number {
   return messages.filter((message) => message.role === "user").length;
 }
 
-/**
- * 지금 할 목표. 아직 달성 표시가 없으므로 첫 목표가 현재 목표다. 목표 달성은
- * 판정이 붙는 태스크가 세운다.
- */
-export function currentGoalPosition(episode: Episode): number {
-  const goals = orderedGoals(episode);
+/** 지금 할 목표. 달성하면 곧바로 다음 목표가 여기로 온다. */
+export function currentGoalPosition(goals: EpisodeGoal[]): number {
   const pending = goals.find((goal) => goal.achieved_at === null);
 
   return pending?.position ?? goals.length;
+}
+
+/** 판정이 알려 온 목표 달성 하나. 스트림이 저장보다 먼저 도착한다. */
+export interface GoalAchievement {
+  achievedAt: string;
+  messageId: string;
+  position: number;
+}
+
+/**
+ * 판정은 저장이 앱에 다시 읽히기 전에 스트림으로 먼저 온다. 목표 바가 달성
+ * 즉시 다음 목표로 넘어가려면 도착한 판정을 저장된 목표에 얹어 봐야 한다.
+ * 이미 달성한 목표는 건드리지 않아 완료 줄의 자리가 뒤로 밀리지 않는다.
+ */
+export function withAchievements(
+  goals: EpisodeGoal[],
+  achievements: Record<number, GoalAchievement>
+): EpisodeGoal[] {
+  return goals.map((goal) => {
+    const achievement = achievements[goal.position];
+
+    if (!achievement || goal.achieved_at !== null) {
+      return goal;
+    }
+
+    return {
+      ...goal,
+      achieved_at: achievement.achievedAt,
+      achieved_message_id: achievement.messageId,
+    };
+  });
 }
