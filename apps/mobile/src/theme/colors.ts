@@ -11,6 +11,7 @@ export interface ThemeColors {
   danger: ColorValue;
   disabled: ColorValue;
   disabledText: ColorValue;
+  groupedBackground: ColorValue;
   link: ColorValue;
   onAccent: ColorValue;
   onPrimary: ColorValue;
@@ -18,7 +19,6 @@ export interface ThemeColors {
   overlay: ColorValue;
   placeholder: ColorValue;
   primary: ColorValue;
-  secondaryBackground: ColorValue;
   secondaryText: ColorValue;
   separator: ColorValue;
   success: ColorValue;
@@ -32,11 +32,12 @@ function resolveIosColors(colorScheme: AppColorScheme): ThemeColors {
 
   return {
     accent: Color.ios.link,
-    background: Color.ios.systemGroupedBackground,
+    background: Color.ios.systemBackground,
     border: Color.ios.opaqueSeparator,
     danger: state.danger,
     disabled: Color.ios.systemGray5,
     disabledText: Color.ios.tertiaryLabel,
+    groupedBackground: Color.ios.systemGroupedBackground,
     link: Color.ios.link,
     onAccent: "#FFFFFF",
     onPrimary: "#FFFFFF",
@@ -44,11 +45,10 @@ function resolveIosColors(colorScheme: AppColorScheme): ThemeColors {
     overlay: state.overlay,
     placeholder: Color.ios.placeholderText,
     primary: Color.ios.link,
-    secondaryBackground: Color.ios.systemBackground,
     secondaryText: Color.ios.secondaryLabel,
     separator: Color.ios.separator,
     success: state.success,
-    surface: Color.ios.secondarySystemGroupedBackground,
+    surface: Color.ios.secondarySystemBackground,
     text: Color.ios.label,
     userBubble: Color.ios.systemGray5,
   };
@@ -80,6 +80,10 @@ function resolveAndroidColors(colorScheme: AppColorScheme): ThemeColors {
       dynamic.onSurfaceVariant,
       material.onSurfaceVariant
     ),
+    groupedBackground: androidColor(
+      dynamic.surfaceContainer,
+      material.surfaceContainer
+    ),
     link: primary,
     onAccent: onPrimary,
     onPrimary,
@@ -93,10 +97,6 @@ function resolveAndroidColors(colorScheme: AppColorScheme): ThemeColors {
       material.onSurfaceVariant
     ),
     primary,
-    secondaryBackground: androidColor(
-      dynamic.surfaceContainer,
-      material.surfaceContainer
-    ),
     secondaryText: androidColor(
       dynamic.onSurfaceVariant,
       material.onSurfaceVariant

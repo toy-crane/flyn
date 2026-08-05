@@ -97,7 +97,7 @@ function Routes() {
             name="settings/index"
             options={{
               headerShown: true,
-              headerStyle: { backgroundColor: colors.background },
+              headerStyle: { backgroundColor: colors.groupedBackground },
               title: "설정",
             }}
           />

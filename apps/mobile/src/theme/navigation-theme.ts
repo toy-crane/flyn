@@ -10,7 +10,7 @@ export function getNavigationTheme(theme: AppTheme) {
       ...base.colors,
       background: theme.colors.background,
       border: theme.colors.separator,
-      card: theme.colors.secondaryBackground,
+      card: theme.colors.background,
       notification: theme.colors.accent,
       primary: theme.colors.accent,
       text: theme.colors.text,

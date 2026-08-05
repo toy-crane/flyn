@@ -13,7 +13,7 @@
   fallback을 쓴다. Android의 시스템 light/dark 변경에는 `useColorScheme()`을
   구독해 다시 계산한다. screen과 일반 컴포넌트는 플랫폼을 직접 판별하지 않는다.
 - 초기 색 역할은 system, action, 제품 역할로 나눈다.
-  - system: background, secondaryBackground, surface, text, secondaryText,
+  - system: background, groupedBackground, surface, text, secondaryText,
     separator, border, link
   - action: primary, onPrimary, accent, onAccent
   - 제품·상태: disabled, disabledText, placeholder, overlay, danger, success,
@@ -25,12 +25,17 @@
   `ThemeProvider`는 별도 bridge로 두어 header, tab bar와 기본 screen background를
   같은 색 원본에 연결한다. 두 provider의 역할을 합치거나 하나를 생략하지 않는다.
 - React Navigation 색은 `primary → accent`, `background → background`,
-  `card → secondaryBackground`, `text → text`, `border → separator`,
+  `card → background`, `text → text`, `border → separator`,
   `notification → accent`로 연결한다. navigation component의 높이, material,
   gesture와 interaction은 플랫폼 기본값을 유지한다.
+- plain screen canvas는 iOS `systemBackground`, 그 위 RN card·input·composer
+  surface는 `secondarySystemBackground`를 쓴다. Android에서는 각각 Material
+  `background`, `surfaceContainerHigh`에 연결한다.
+- `groupedBackground`는 grouped content가 화면의 주 surface일 때만 쓴다. iOS는
+  `systemGroupedBackground`, Android는 `surfaceContainer`에 연결한다.
 - grouped `Form` 자체가 화면의 주 surface인 Settings는 route의 native header에도
-  같은 semantic `background`를 사용한다. 이 화면 한정 연결은 grouped canvas의
-  연속성을 표현하며 다른 route의 공통 `card` 색은 바꾸지 않는다.
+  `groupedBackground`를 사용한다. 이 화면 한정 연결은 grouped canvas의 연속성을
+  표현하며 다른 route의 공통 `background` 색은 바꾸지 않는다.
 - 화면 배치와 컴포넌트 구조를 이루는 flex, alignment, position, 특정 크기는
   화면·컴포넌트 가까이의 `StyleSheet`가 소유한다. 임의의 `rowBetween` 같은 전역
   layout utility로 승격하지 않는다.

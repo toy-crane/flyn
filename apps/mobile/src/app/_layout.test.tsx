@@ -148,11 +148,12 @@ describe("Layout native stack header", () => {
 
     await render(<Layout />);
 
-    expect(mockRouteOptions["settings/index"]).toMatchObject({
-      headerStyle: {
-        backgroundColor: mockNavigationTheme.current.colors.background,
-      },
-    });
+    const settingsHeaderStyle = mockRouteOptions["settings/index"]
+      ?.headerStyle as { backgroundColor: unknown };
+
+    expect(settingsHeaderStyle.backgroundColor).not.toBe(
+      mockNavigationTheme.current.colors.background
+    );
     expect(mockRouteOptions.index).not.toHaveProperty("headerStyle");
     expect(mockRouteOptions["chats/[id]"]).not.toHaveProperty("headerStyle");
   });

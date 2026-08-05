@@ -7,7 +7,7 @@ jest.mock("expo-router", () => ({
       opaqueSeparator: "ios-opaque-separator",
       placeholderText: "ios-placeholder",
       secondaryLabel: "ios-secondary-label",
-      secondarySystemGroupedBackground: "ios-surface",
+      secondarySystemBackground: "ios-plain-surface",
       separator: "ios-separator",
       systemBackground: "ios-system-background",
       systemGray5: "ios-system-gray-5",
@@ -28,6 +28,7 @@ const COLOR_ROLES = [
   "danger",
   "disabled",
   "disabledText",
+  "groupedBackground",
   "link",
   "onAccent",
   "onPrimary",
@@ -35,7 +36,6 @@ const COLOR_ROLES = [
   "overlay",
   "placeholder",
   "primary",
-  "secondaryBackground",
   "secondaryText",
   "separator",
   "success",
@@ -51,18 +51,18 @@ describe("semantic color resolver", () => {
     expect(Object.keys(colors).sort()).toEqual([...COLOR_ROLES].sort());
     expect(colors).toMatchObject({
       accent: "ios-link",
-      background: "ios-grouped-background",
+      background: "ios-system-background",
       border: "ios-opaque-separator",
       disabled: "ios-system-gray-5",
       disabledText: "ios-tertiary-label",
+      groupedBackground: "ios-grouped-background",
       link: "ios-link",
       onPrimary: "#FFFFFF",
       placeholder: "ios-placeholder",
       primary: "ios-link",
-      secondaryBackground: "ios-system-background",
       secondaryText: "ios-secondary-label",
       separator: "ios-separator",
-      surface: "ios-surface",
+      surface: "ios-plain-surface",
       text: "ios-label",
       userBubble: "ios-system-gray-5",
     });
@@ -104,9 +104,11 @@ describe("semantic color resolver", () => {
       const colors = resolveColors("dark");
 
       expect(colors.background).toBe("dynamic-background");
+      expect(colors.groupedBackground).toBe("dynamic-surfaceContainer");
       expect(colors.primary).toBe("material-primary");
       expect(colors.accent).toBe("material-primary");
       expect(colors.onPrimary).toBe("dynamic-onPrimary");
+      expect(colors.surface).toBe("dynamic-surfaceContainerHigh");
       expect(colors.success).toBe("#32D74B");
     } finally {
       Object.defineProperty(Platform, "OS", {
