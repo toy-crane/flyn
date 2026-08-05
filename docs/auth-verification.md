@@ -83,5 +83,5 @@ docker logs supabase_auth_flyn --since 20m 2>&1 | grep id_token
 | native SDK → provider ID token | 사람이 Apple·Google 각각 확인 |
 | 세션 발급·복원·만료 | 이메일 OTP 자동 세션 |
 | RLS | pgTAP과 앱 통합 테스트 |
-| Hono JWT gate | `account.route.test.ts`, `chat.route.test.ts`의 `jose` 서명 token |
+| Hono JWT gate | `account.route.test.ts`, `roleplay.route.test.ts`의 `jose` 서명 token |
 | 로그아웃·계정 삭제 | 이메일 OTP session 기반 자동 검증 |
