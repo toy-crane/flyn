@@ -97,7 +97,9 @@ describe("채팅방 상세", () => {
 
     await render(<ChatDetailScreen />);
 
-    expect(screen.getByLabelText("채팅 불러오는 중")).toBeTruthy();
+    expect(screen.getByLabelText("채팅 불러오는 중").props.color).toBe(
+      "#777777"
+    );
     expect(screen.queryByText("대화 화면")).toBeNull();
   });
 

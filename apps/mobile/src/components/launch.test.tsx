@@ -42,6 +42,15 @@ describe("LaunchChecking", () => {
     expect(screen.queryByText(ANY_PROGRESS_COPY)).toBeNull();
   });
 
+  it("표시되는 progress는 수동형 의미 색을 사용한다", async () => {
+    await render(<LaunchChecking />);
+
+    expect(
+      screen.getByTestId("launch-progress", { includeHiddenElements: true })
+        .props.color
+    ).toBe("#777777");
+  });
+
   it("짧은 판정에는 progress를 숨기고 실제 대기에서만 보여준다", async () => {
     jest.useFakeTimers();
 

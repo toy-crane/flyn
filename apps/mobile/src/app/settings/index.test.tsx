@@ -10,6 +10,9 @@ import { Alert } from "react-native";
 jest.mock("@expo/ui", () =>
   require("../../test-support/expo-ui").universalMock()
 );
+jest.mock("@expo/ui/swift-ui", () =>
+  require("../../test-support/expo-ui").swiftUiMock()
+);
 jest.mock("@expo/ui/swift-ui/modifiers", () =>
   require("../../test-support/expo-ui").modifiersMock()
 );
@@ -254,6 +257,18 @@ describe("설정 — 계정 삭제", () => {
     await pressAlertButton("삭제");
 
     expect(mockDeleteAccount).toHaveBeenCalled();
+  });
+
+  it("삭제 중에는 수동형 의미 색의 progress로 화면을 잠근다", async () => {
+    mockDeleteAccount.mockReturnValue(new Promise(() => undefined));
+    await render(<SettingsScreen />);
+    await fireEvent.press(screen.getByText("계정 삭제"));
+
+    await pressAlertButton("삭제");
+
+    expect(
+      screen.getByTestId("settings-delete-loading-indicator").props.color
+    ).toBe("#777777");
   });
 
   // 서버가 지우지 못했으면 사용자는 왜 멈췄는지 알아야 한다.

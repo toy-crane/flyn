@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from "react";
-import { ActivityIndicator, StyleSheet, Text } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import { useTheme } from "../../theme/app-theme";
 import { spacing } from "../../theme/tokens";
+import { LoadingIndicator } from "../feedback/loading-indicator";
 import type { StreamingStore } from "./streaming-store";
 
 const styles = StyleSheet.create({
@@ -17,9 +18,8 @@ export function StreamingMessage({ store }: { store: StreamingStore }) {
 
   if (!text) {
     return (
-      <ActivityIndicator
+      <LoadingIndicator
         accessibilityLabel="응답 생성 중"
-        color={colors.secondaryText}
         size="small"
         style={styles.spinner}
         testID="assistant-response-spinner"

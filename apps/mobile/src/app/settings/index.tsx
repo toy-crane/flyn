@@ -1,5 +1,4 @@
 import { Column, FieldGroup, Host, ListItem, Row, Text } from "@expo/ui";
-import { ProgressView } from "@expo/ui/swift-ui";
 import {
   font,
   foregroundStyle,
@@ -12,6 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
+import { HostedLoadingIndicator } from "../../components/feedback/hosted-loading-indicator";
 import { ProfileAvatar } from "../../components/profile/profile-avatar";
 import { NativeSymbol } from "../../components/symbols/native-symbol";
 import { deleteAccount } from "../../lib/account";
@@ -234,9 +234,7 @@ export default function SettingsScreen() {
             { backgroundColor: colors.overlay },
           ]}
         >
-          <Host matchContents>
-            <ProgressView />
-          </Host>
+          <HostedLoadingIndicator testID="settings-delete-loading-indicator" />
         </View>
       ) : null}
     </View>

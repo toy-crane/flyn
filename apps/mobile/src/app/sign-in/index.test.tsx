@@ -222,6 +222,9 @@ describe("SignInScreen", () => {
     await fireEvent.press(screen.getByTestId("apple-button"));
 
     expect(screen.getByTestId("sign-in-loading-overlay")).toBeTruthy();
+    expect(screen.getByTestId("sign-in-loading-indicator").props.color).toBe(
+      "#777777"
+    );
     expect(
       screen.getByTestId("apple-button", { includeHiddenElements: true })
     ).toBeTruthy();

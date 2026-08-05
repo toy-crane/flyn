@@ -466,7 +466,10 @@ describe("채팅방 상세 대화", () => {
       />
     );
 
-    expect(screen.getByLabelText("응답 생성 중")).toHaveStyle({
+    const indicator = screen.getByLabelText("응답 생성 중");
+
+    expect(indicator.props.color).toBe("#777777");
+    expect(indicator).toHaveStyle({
       alignSelf: "flex-start",
       marginLeft: 8,
     });

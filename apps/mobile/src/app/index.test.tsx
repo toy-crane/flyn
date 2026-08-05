@@ -13,22 +13,32 @@ jest.mock("@legendapp/list/react-native", () => {
   return {
     LegendList: ({
       data,
-      onRefresh,
-      refreshing,
+      refreshControl,
       renderItem,
     }: {
       data: unknown[];
-      onRefresh: () => void;
-      refreshing: boolean;
+      refreshControl: {
+        props: {
+          onRefresh: () => void;
+          refreshing: boolean;
+          testID?: string;
+          tintColor?: string;
+        };
+      };
       renderItem: (info: { item: unknown }) => unknown;
-    }) =>
-      ReactRuntime.createElement(
+    }) => {
+      const refreshProps = refreshControl.props;
+
+      return ReactRuntime.createElement(
         View,
         null,
         ReactRuntime.createElement(Pressable, {
-          accessibilityState: { busy: refreshing },
-          onPress: onRefresh,
-          testID: "chat-room-list-refresh-control",
+          accessibilityState: {
+            busy: refreshProps.refreshing,
+          },
+          onPress: refreshProps.onRefresh,
+          testID: refreshProps.testID ?? "chat-room-list-refresh-control",
+          tintColor: refreshProps.tintColor,
         }),
         data.map((item, index) =>
           ReactRuntime.createElement(
@@ -37,7 +47,8 @@ jest.mock("@legendapp/list/react-native", () => {
             renderItem({ item })
           )
         )
-      ),
+      );
+    },
   };
 });
 jest.mock("expo-router", () =>
@@ -118,6 +129,30 @@ beforeEach(() => {
 });
 
 describe("채팅방 목록", () => {
+  it("최초 조회는 수동형 의미 색의 loading을 보여준다", async () => {
+    mockUseChatRooms.mockReturnValue({
+      data: undefined,
+      isError: false,
+      isFetching: true,
+      isPending: true,
+      refetch: retry,
+    });
+
+    await render(<HomeScreen />);
+
+    expect(screen.getByLabelText("채팅 불러오는 중").props.color).toBe(
+      "#777777"
+    );
+  });
+
+  it("당겨서 새로고침하는 progress도 수동형 의미 색을 사용한다", async () => {
+    await render(<HomeScreen />);
+
+    expect(
+      screen.getByTestId("chat-room-list-refresh-control").props.tintColor
+    ).toBe("#777777");
+  });
+
   it("최근 채팅방을 제목과 갱신 시각이 있는 행으로 보여준다", async () => {
     await render(<HomeScreen />);
 
