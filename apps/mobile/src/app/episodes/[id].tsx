@@ -1,15 +1,12 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { type ReactNode, useCallback } from "react";
-import {
-  Pressable,
-  type PressableStateCallbackType,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
 import { ChatConversation } from "../../components/chat/chat-conversation";
 import { EpisodeContextCard } from "../../components/episode/episode-context-card";
 import { GoalDock } from "../../components/episode/goal-dock";
+import {
+  CenteredAction,
+  CenteredState,
+} from "../../components/feedback/centered-action";
 import { LoadingIndicator } from "../../components/feedback/loading-indicator";
 import { HeaderTitles } from "../../components/navigation/header-titles";
 import {
@@ -26,27 +23,6 @@ import {
   useEpisodeMessages,
 } from "../../lib/use-episodes";
 import { useUserId } from "../../lib/user-id";
-import { useTheme } from "../../theme/app-theme";
-import { spacing } from "../../theme/tokens";
-
-const styles = StyleSheet.create({
-  action: {
-    borderRadius: 22,
-    justifyContent: "center",
-    minHeight: 44,
-    paddingHorizontal: spacing.lg,
-  },
-  centered: {
-    alignItems: "center",
-    flex: 1,
-    gap: spacing.sm,
-    justifyContent: "center",
-    paddingHorizontal: spacing.xxl,
-  },
-  message: {
-    textAlign: "center",
-  },
-});
 
 /** 헤더가 시나리오와 역할을 나른다. 상황 설명은 상황 카드 하나만 말한다. */
 function roleSubtitle(episode: Episode) {
@@ -105,45 +81,7 @@ function RoleplaySession({
   );
 }
 
-function CenteredAction({
-  actionLabel,
-  message,
-  onPress,
-}: {
-  actionLabel: string;
-  message: string;
-  onPress: () => void;
-}) {
-  const { colors, typography } = useTheme();
-  const actionStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.action,
-      { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 },
-    ],
-    [colors.primary]
-  );
-
-  return (
-    <View style={[styles.centered, { backgroundColor: colors.background }]}>
-      <Text style={[styles.message, typography.body, { color: colors.text }]}>
-        {message}
-      </Text>
-      <Pressable
-        accessibilityLabel={actionLabel}
-        accessibilityRole="button"
-        onPress={onPress}
-        style={actionStyle}
-      >
-        <Text style={[typography.action, { color: colors.onPrimary }]}>
-          {actionLabel}
-        </Text>
-      </Pressable>
-    </View>
-  );
-}
-
 export default function EpisodeConversationScreen() {
-  const { colors } = useTheme();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const router = useRouter();
   const userId = useUserId();
@@ -169,9 +107,9 @@ export default function EpisodeConversationScreen() {
     (messages.isPending && messages.data === undefined)
   ) {
     content = (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+      <CenteredState>
         <LoadingIndicator accessibilityLabel="대화 불러오는 중" />
-      </View>
+      </CenteredState>
     );
   } else if (
     (episode.isError && episode.data === undefined) ||
