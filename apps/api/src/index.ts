@@ -19,6 +19,12 @@ import {
   RoleplayHttpError,
   respondToEpisodeMessage,
 } from "./roleplay";
+import {
+  answerSentenceQuestion,
+  createProductionSentenceQuestionDependencies,
+  type SentenceQuestionDependencies,
+  SentenceQuestionHttpError,
+} from "./sentence-question";
 
 interface Env {
   Variables: {
@@ -29,6 +35,7 @@ interface Env {
 interface ApiDependencies {
   episode?: EpisodeDependencies;
   roleplay?: RoleplayDependencies;
+  sentenceQuestion?: SentenceQuestionDependencies;
 }
 
 /** 본문이 JSON이 아니면 파싱 오류도 같은 400 문구로 답한다. */
@@ -73,6 +80,9 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
   const episode = dependencies.episode ?? createProductionEpisodeDependencies();
   const roleplay =
     dependencies.roleplay ?? createProductionRoleplayDependencies();
+  const sentenceQuestion =
+    dependencies.sentenceQuestion ??
+    createProductionSentenceQuestionDependencies();
 
   // 체이닝해야 AppType에 포함된다 — 따로 등록한 라우트는 조용히 빠진다.
   // CORS는 @supabase/server가 처리하지 않는다.
@@ -258,6 +268,64 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
             });
             return c.json(
               { error: "대화 요청을 처리하지 못했습니다.", retryable: true },
+              500
+            );
+          }
+        }
+      )
+      /**
+       * 문장 하나를 두고 묻는 자리. 롤플레잉이 아니라 학습 질문이라 에피소드
+       * 대화와 다른 기록에 쌓이고 턴으로 세지 않는다. 진입점이 첨삭 시트
+       * 하나뿐이므로 목록을 내려 주는 라우트는 두지 않는다 — 앱은 그 문장의
+       * 지난 내용을 RLS 안에서 직접 읽는다.
+       */
+      .post(
+        "/episodes/:episodeId/messages/:messageId/questions",
+        withSupabase<Database>({ auth: "user" }),
+        async (c) => {
+          const context = c.var.supabaseContext;
+          const userId = context.userClaims?.id;
+
+          if (!userId) {
+            return c.json({ error: "no user" }, 401);
+          }
+
+          let input: unknown;
+          try {
+            input = await c.req.json();
+          } catch {
+            return c.json({ error: "질문 형식이 올바르지 않습니다." }, 400);
+          }
+
+          try {
+            return await answerSentenceQuestion({
+              context,
+              dependencies: sentenceQuestion,
+              episodeId: c.req.param("episodeId"),
+              input,
+              messageId: c.req.param("messageId"),
+              requestSignal: c.req.raw.signal,
+              userId,
+            });
+          } catch (error) {
+            if (error instanceof SentenceQuestionHttpError) {
+              return c.json(
+                {
+                  error: error.message,
+                  ...(error.retryable ? { retryable: true } : {}),
+                },
+                error.status
+              );
+            }
+
+            // 본문은 로그에 남기지 않는다. 어느 문장이 깨졌는지만 남긴다.
+            console.error("[sentence-question] request failed", {
+              episodeId: c.req.param("episodeId"),
+              message: error instanceof Error ? error.message : String(error),
+              messageId: c.req.param("messageId"),
+            });
+            return c.json(
+              { error: "질문을 처리하지 못했습니다.", retryable: true },
               500
             );
           }
