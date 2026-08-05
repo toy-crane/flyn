@@ -33,14 +33,22 @@ describe("FormInput", () => {
   it("adaptive fill과 capsule을 한 input surface에 적용한다", async () => {
     await render(<TestInput />);
 
-    expect(screen.getByTestId("display-name-input-surface")).toHaveStyle({
-      backgroundColor: "#222222",
-      borderColor: "#111111",
+    const surface = screen.getByTestId("display-name-input-surface");
+
+    expect(surface).toHaveStyle({
       borderRadius: 26,
-      borderWidth: 1,
       height: 52,
       paddingRight: 16,
     });
+    expect(surface.props.modifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          $modifier: "background",
+          args: ["#222222", { $shape: "capsule" }],
+        }),
+        expect.objectContaining({ $modifier: "strokeBorder" }),
+      ])
+    );
     expect(screen.getByTestId("display-name-input")).toHaveStyle({
       height: 52,
       paddingHorizontal: 18,

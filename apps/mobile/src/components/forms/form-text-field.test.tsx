@@ -33,8 +33,12 @@ describe("FormTextField", () => {
     expect(screen.getByPlaceholderText("이름을 입력해 주세요")).toBeTruthy();
     expect(screen.getByText("이름을 저장하지 못했습니다.")).toBeTruthy();
     expect(screen.getByLabelText("exclamationmark.circle.fill")).toBeTruthy();
-    expect(screen.getByTestId("display-name-input-surface")).toHaveStyle({
-      borderWidth: 1,
-    });
+    expect(
+      screen.getByTestId("display-name-input-surface").props.modifiers
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ $modifier: "strokeBorder" }),
+      ])
+    );
   });
 });

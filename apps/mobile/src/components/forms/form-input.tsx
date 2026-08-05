@@ -1,12 +1,7 @@
 import { Row, TextInput, type TextInputProps } from "@expo/ui";
-import { fillMaxWidth, weight } from "@expo/ui/jetpack-compose/modifiers";
-import {
-  accessibilityLabel,
-  frame,
-  textFieldStyle,
-} from "@expo/ui/swift-ui/modifiers";
 import type { ReactNode } from "react";
 import { useColors } from "../../theme/app-theme";
+import { getFormInputModifiers } from "./form-input-modifiers";
 
 type OwnedTextInputProps =
   | "cursorColor"
@@ -34,20 +29,20 @@ export function FormInput({
   ...inputProps
 }: FormInputProps) {
   const colors = useColors();
+  const modifiers = getFormInputModifiers({
+    danger: colors.danger,
+    fill: colors.inputFill,
+    invalid,
+    label,
+  });
 
   return (
     <Row
       alignment="center"
-      modifiers={[
-        frame({ height: 52, maxWidth: Number.POSITIVE_INFINITY }),
-        fillMaxWidth(),
-      ]}
+      modifiers={modifiers.surface}
       spacing={0}
       style={{
-        backgroundColor: colors.inputFill,
-        borderColor: colors.danger,
         borderRadius: 26,
-        borderWidth: invalid ? 1 : 0,
         height: 52,
         paddingRight: trailing ? 16 : 0,
       }}
@@ -55,12 +50,7 @@ export function FormInput({
     >
       <TextInput
         {...inputProps}
-        modifiers={[
-          textFieldStyle("plain"),
-          frame({ height: 52, maxWidth: Number.POSITIVE_INFINITY }),
-          weight(1),
-          accessibilityLabel(label),
-        ]}
+        modifiers={modifiers.input}
         style={{ height: 52, paddingHorizontal: 18 }}
         testID={testID}
       />
