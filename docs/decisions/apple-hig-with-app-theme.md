@@ -13,6 +13,10 @@
   secondary label, separator, 간격, 글자 위계, control 크기와 상호작용을
   소유한다. 시스템이 의미를 이미 아는 곳은 앱 스타일과 픽셀 단위로 맞추려고
   덮어쓰지 않는다.
+- native toolbar와 control action에 대응하는 시스템 symbol이 있으면 이를
+  우선한다. iOS는 SF Symbols를 `Stack.Toolbar` 같은 native API에 의미 이름으로
+  전달하고, 크기·굵기·tint·material·hit target은 시스템에 맡긴다. Android 구현은
+  같은 제품 의미를 Material system icon/resource로 표현한다.
 - plain canvas의 single-line form input, RN chat composer와 OTP slot은 입력 가능
   영역을 식별시키는 앱 소유 `inputFill`을 쓴다. form과 chat의 renderer는 합치지
   않고 system font·Dynamic Type·keyboard·focus 동작은 각 native control에 남긴다.
@@ -49,6 +53,9 @@ UI kit가 아니다. 다만 React Native 화면과 OS가 알 수 없는 제품 �
 - 앱이 직접 소유하는 foreground/background 조합은 접근성 대비를 검증한다.
 - native subtree에서 앱 색을 명시하는 경우는 실제 앱 accent, 제품 상태 또는 앱이
   직접 소유하는 canvas처럼 플랫폼이 의미를 추론할 수 없는 자리로 한정한다.
+- 시스템 symbol에는 사람이 이해하는 접근성 label을 함께 제공한다. 브랜드 mark,
+  제품 고유 개념 또는 시스템 symbol로 의미가 명확하지 않은 그림은 custom asset을
+  쓸 수 있으며 SF Symbol을 억지로 끼워 맞추지 않는다.
 - navigation chrome은 semantic color를 공유하는 renderer bridge다. header·tab
   bar의 공개 theme color prop은 쓸 수 있지만 platform material과 metric을 RN
   surface처럼 다시 만들지 않는다.
