@@ -47,6 +47,15 @@ function ToolbarView({ children }: { children?: ReactNode }) {
   return children;
 }
 
+/**
+ * 실물은 `asChild`로 받은 컴포넌트를 native header의 title 자리에 그린다.
+ * 목은 그 자리를 화면 트리에 그대로 두어, 헤더가 나르는 결정을 단언할 수 있게
+ * 한다.
+ */
+function Title({ children }: { children?: ReactNode }) {
+  return children;
+}
+
 /** 화면들이 부르는 라우터. 메서드만 jest.fn이라 resetAllMocks에 안전하다. */
 export const routerStub = {
   back: jest.fn(),
@@ -72,6 +81,7 @@ export function expoRouterMock() {
   const Stack = Object.assign(NOTHING, {
     Protected: NOTHING,
     Screen: NOTHING,
+    Title,
     Toolbar: Object.assign(Toolbar, {
       Button: ToolbarButton,
       View: ToolbarView,

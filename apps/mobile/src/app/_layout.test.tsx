@@ -130,7 +130,11 @@ describe("Layout native stack header", () => {
 
     expect(mockRouteOptions.index).toMatchObject({
       headerShown: true,
-      title: "채팅",
+      title: "에피소드",
+    });
+    expect(mockRouteOptions["episodes/new"]).toMatchObject({
+      headerShown: true,
+      title: "새 에피소드",
     });
     expect(mockRouteOptions["chats/[id]"]).toMatchObject({
       headerShown: true,

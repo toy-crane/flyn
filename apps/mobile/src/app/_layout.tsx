@@ -87,7 +87,12 @@ function Routes() {
           {/* 헤더를 켜야 우측 상단 설정 버튼이 설 자리가 생긴다. */}
           <Stack.Screen
             name="index"
-            options={{ headerShown: true, title: "채팅" }}
+            options={{ headerShown: true, title: "에피소드" }}
+          />
+          {/* 큰 제목과 서브타이틀은 생성 화면이 스텝마다 직접 바꾼다. */}
+          <Stack.Screen
+            name="episodes/new"
+            options={{ headerShown: true, title: "새 에피소드" }}
           />
           <Stack.Screen
             name="chats/[id]"

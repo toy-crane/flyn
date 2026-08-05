@@ -14,11 +14,13 @@ import {
 import { LoadingIndicator } from "../components/feedback/loading-indicator";
 import { RNSymbol } from "../components/symbols/rn-symbol";
 import {
-  type ChatRoom,
-  useChatRooms,
-  useCreateChatRoom,
-  useDeleteChatRoom,
-} from "../lib/use-chat-rooms";
+  achievedGoalCount,
+  type Episode,
+  isEpisodeActive,
+  listedEpisodes,
+  resumeEpisode,
+} from "../lib/episodes";
+import { useDeleteEpisode, useEpisodes } from "../lib/use-episodes";
 import { useUserId } from "../lib/user-id";
 import { useTheme } from "../theme/app-theme";
 import { spacing } from "../theme/tokens";
@@ -31,12 +33,32 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: spacing.lg,
   },
+  card: {
+    borderRadius: 16,
+    marginBottom: spacing.xl,
+    padding: spacing.md,
+  },
+  cardAction: {
+    alignItems: "center",
+    borderRadius: 12,
+    height: 44,
+    justifyContent: "center",
+    marginTop: spacing.sm,
+  },
   centered: {
     alignItems: "center",
     flex: 1,
     gap: spacing.sm,
     justifyContent: "center",
     paddingHorizontal: spacing.xxl,
+  },
+  dot: {
+    borderRadius: 4,
+    height: 8,
+    width: 8,
+  },
+  dotSlot: {
+    width: 8,
   },
   emptyAction: {
     marginTop: spacing.xs,
@@ -47,74 +69,137 @@ const styles = StyleSheet.create({
   errorMessage: {
     textAlign: "center",
   },
+  header: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+  },
+  list: {
+    paddingBottom: spacing.xxl,
+  },
   loading: {
     alignItems: "center",
     flex: 1,
     justifyContent: "center",
   },
-  roomContent: {
-    flex: 1,
-    gap: spacing.xxs,
-    paddingRight: spacing.md,
-  },
-  roomRow: {
+  row: {
     alignItems: "center",
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
-    minHeight: 72,
-    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+    marginHorizontal: spacing.md,
+    minHeight: 60,
     paddingVertical: spacing.sm,
+  },
+  rowContent: {
+    flex: 1,
   },
   screen: {
     flex: 1,
   },
+  sectionTitle: {
+    marginBottom: spacing.xs,
+    marginHorizontal: spacing.xxs,
+  },
+  supporting: {
+    marginTop: 2,
+  },
 });
 
-const TIME_FORMAT = new Intl.DateTimeFormat("ko-KR", {
-  hour: "numeric",
-  minute: "2-digit",
-});
 const DATE_FORMAT = new Intl.DateTimeFormat("ko-KR", {
   day: "numeric",
-  month: "short",
+  month: "long",
 });
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-function formatUpdatedAt(value: string) {
+function startOfDay(value: Date) {
+  return new Date(
+    value.getFullYear(),
+    value.getMonth(),
+    value.getDate()
+  ).getTime();
+}
+
+/** 끝난 에피소드의 보조 줄 앞머리. 오늘·어제·n일 전, 그 뒤로는 날짜다. */
+export function formatEpisodeDay(value: string, now = new Date()) {
   const date = new Date(value);
-  const today = new Date();
-  const sameDay =
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate();
+  const days = Math.round((startOfDay(now) - startOfDay(date)) / DAY_MS);
 
-  return sameDay ? TIME_FORMAT.format(date) : DATE_FORMAT.format(date);
+  if (days <= 0) {
+    return "오늘";
+  }
+
+  if (days === 1) {
+    return "어제";
+  }
+
+  if (days < 7) {
+    return `${days}일 전`;
+  }
+
+  return DATE_FORMAT.format(date);
 }
 
-function roomKey(room: ChatRoom) {
-  return room.id;
+function goalProgress(episode: Episode) {
+  return `목표 ${achievedGoalCount(episode)}/${episode.episode_goals.length}`;
 }
 
-function ChatRoomRow({
+function episodeKey(episode: Episode) {
+  return episode.id;
+}
+
+/**
+ * 가장 최근에 진행 중인 에피소드 하나. 카드에 오른 에피소드는 아래 목록에
+ * 다시 나오지 않는다. 대화 화면은 02가 연결한다.
+ */
+function ResumeCard({ episode }: { episode: Episode }) {
+  const { colors, typography } = useTheme();
+
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+      <Text style={[typography.caption, { color: colors.accent }]}>
+        이어서 하기
+      </Text>
+      <Text
+        numberOfLines={2}
+        style={[typography.body, { color: colors.text, fontWeight: "600" }]}
+      >
+        {episode.scenario_title}
+      </Text>
+      <Text
+        style={[
+          styles.supporting,
+          typography.supporting,
+          { color: colors.secondaryText },
+        ]}
+      >
+        {goalProgress(episode)}
+      </Text>
+      <View style={[styles.cardAction, { backgroundColor: colors.primary }]}>
+        <Text style={[typography.action, { color: colors.onPrimary }]}>
+          대화 이어가기
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function EpisodeRow({
   disclosureColor,
+  episode,
   onDelete,
-  onOpen,
-  room,
 }: {
   disclosureColor: ColorValue;
-  onDelete: (room: ChatRoom) => void;
-  onOpen: (roomId: string) => void;
-  room: ChatRoom;
+  episode: Episode;
+  onDelete: (episode: Episode) => void;
 }) {
   const { colors, typography } = useTheme();
+  const active = isEpisodeActive(episode);
   const handleDelete = useCallback(() => {
-    onDelete(room);
-  }, [onDelete, room]);
-  const handleOpen = useCallback(() => {
-    onOpen(room.id);
-  }, [onOpen, room.id]);
+    onDelete(episode);
+  }, [episode, onDelete]);
   const rowStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
-      styles.roomRow,
+      styles.row,
       { borderColor: colors.separator },
       pressed && { backgroundColor: colors.surface },
     ],
@@ -124,24 +209,40 @@ function ChatRoomRow({
   return (
     <Pressable
       accessibilityHint="길게 누르면 삭제할 수 있어요"
-      accessibilityLabel={room.title}
+      accessibilityLabel={episode.scenario_title}
       accessibilityRole="button"
       onLongPress={handleDelete}
-      onPress={handleOpen}
       style={rowStyle}
     >
-      <View style={styles.roomContent}>
+      {active ? (
+        <View
+          style={[styles.dot, { backgroundColor: colors.accent }]}
+          testID={`episode-active-dot-${episode.id}`}
+        />
+      ) : (
+        <View style={styles.dotSlot} />
+      )}
+      <View style={styles.rowContent}>
         <Text
-          numberOfLines={2}
-          style={[typography.body, { color: colors.text }]}
+          numberOfLines={1}
+          style={[
+            typography.supporting,
+            { color: colors.text, fontWeight: active ? "600" : "400" },
+          ]}
         >
-          {room.title}
+          {episode.scenario_title}
         </Text>
         <Text
-          style={[typography.caption, { color: colors.secondaryText }]}
-          testID="chat-room-updated-at"
+          style={[
+            styles.supporting,
+            typography.caption,
+            { color: colors.secondaryText },
+          ]}
+          testID={`episode-supporting-${episode.id}`}
         >
-          {formatUpdatedAt(room.updated_at)}
+          {active
+            ? goalProgress(episode)
+            : `${formatEpisodeDay(episode.updated_at)} · ${goalProgress(episode)}`}
         </Text>
       </View>
       <RNSymbol color={disclosureColor} symbol="disclosure" />
@@ -149,7 +250,7 @@ function ChatRoomRow({
   );
 }
 
-function EmptyRooms({ onCreate }: { onCreate: () => void }) {
+function EmptyEpisodes({ onCreate }: { onCreate: () => void }) {
   const { colors, typography } = useTheme();
   const actionStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
@@ -163,7 +264,7 @@ function EmptyRooms({ onCreate }: { onCreate: () => void }) {
   return (
     <View style={styles.centered}>
       <Text style={[typography.title, { color: colors.text }]}>
-        아직 채팅이 없어요
+        아직 만든 에피소드가 없어요
       </Text>
       <Text
         style={[
@@ -172,16 +273,16 @@ function EmptyRooms({ onCreate }: { onCreate: () => void }) {
           { color: colors.secondaryText },
         ]}
       >
-        궁금한 것을 보내면 대화가 여기에 저장돼요.
+        취향과 영어 수준에 맞는 상황을 만들어 드릴게요.
       </Text>
       <Pressable
-        accessibilityLabel="첫 채팅 시작하기"
+        accessibilityLabel="첫 에피소드 만들기"
         accessibilityRole="button"
         onPress={onCreate}
         style={actionStyle}
       >
         <Text style={[typography.action, { color: colors.onPrimary }]}>
-          첫 채팅 시작하기
+          첫 에피소드 만들기
         </Text>
       </Pressable>
     </View>
@@ -193,9 +294,8 @@ export default function HomeScreen() {
   const isFocused = useIsFocused();
   const router = useRouter();
   const userId = useUserId();
-  const rooms = useChatRooms(userId);
-  const createRoom = useCreateChatRoom(userId);
-  const deleteRoom = useDeleteChatRoom(userId);
+  const episodes = useEpisodes(userId);
+  const deleteEpisode = useDeleteEpisode(userId);
   const [manualRefreshing, setManualRefreshing] = useState(false);
 
   useEffect(() => {
@@ -208,39 +308,23 @@ export default function HomeScreen() {
     router.push("/settings");
   }, [router]);
 
-  const openRoom = useCallback(
-    (roomId: string) => {
-      router.push(`/chats/${roomId}`);
-    },
-    [router]
-  );
-
-  const makeRoom = useCallback(async () => {
-    if (createRoom.isPending) {
-      return;
-    }
-
-    try {
-      const room = await createRoom.mutateAsync();
-      openRoom(room.id);
-    } catch {
-      Alert.alert("새 채팅을 만들지 못했어요", "잠시 후 다시 시도해 주세요.");
-    }
-  }, [createRoom, openRoom]);
+  const createEpisode = useCallback(() => {
+    router.push("/episodes/new");
+  }, [router]);
 
   const confirmDelete = useCallback(
-    (room: ChatRoom) => {
+    (episode: Episode) => {
       Alert.alert(
-        "채팅을 삭제할까요?",
-        `"${room.title}"의 모든 메시지가 함께 삭제됩니다.`,
+        "에피소드를 지울까요?",
+        `"${episode.scenario_title}"의 목표도 함께 사라져요.`,
         [
           { style: "cancel", text: "취소" },
           {
             onPress: () => {
-              deleteRoom.mutate(room.id, {
+              deleteEpisode.mutate(episode.id, {
                 onError: () => {
                   Alert.alert(
-                    "채팅을 삭제하지 못했어요",
+                    "에피소드를 지우지 못했어요",
                     "잠시 후 다시 시도해 주세요."
                   );
                 },
@@ -252,63 +336,66 @@ export default function HomeScreen() {
         ]
       );
     },
-    [deleteRoom]
+    [deleteEpisode]
   );
 
-  const renderRoom = useCallback(
-    ({ item }: { item: ChatRoom }) => (
-      <ChatRoomRow
+  const renderEpisode = useCallback(
+    ({ item }: { item: Episode }) => (
+      <EpisodeRow
         disclosureColor={colors.secondaryText}
+        episode={item}
         onDelete={confirmDelete}
-        onOpen={openRoom}
-        room={item}
       />
     ),
-    [colors.secondaryText, confirmDelete, openRoom]
+    [colors.secondaryText, confirmDelete]
   );
-  const retryRooms = useCallback(() => {
-    rooms.refetch();
-  }, [rooms.refetch]);
-  const refreshRooms = useCallback(async () => {
+  const retryEpisodes = useCallback(() => {
+    episodes.refetch();
+  }, [episodes.refetch]);
+  const refreshEpisodes = useCallback(async () => {
     setManualRefreshing(true);
 
     try {
-      await rooms.refetch();
+      await episodes.refetch();
     } finally {
       setManualRefreshing(false);
     }
-  }, [rooms.refetch]);
+  }, [episodes.refetch]);
   const retryStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
       styles.action,
       {
         backgroundColor: colors.primary,
-        opacity: pressed || rooms.isFetching ? 0.7 : 1,
+        opacity: pressed || episodes.isFetching ? 0.7 : 1,
       },
     ],
-    [colors.primary, rooms.isFetching]
+    [colors.primary, episodes.isFetching]
   );
 
+  const data = episodes.data ?? [];
+  const resume = resumeEpisode(data);
+  const rest = listedEpisodes(data);
+
   let content: ReactNode;
-  if (rooms.isPending && !rooms.data) {
+  if (episodes.isPending && !episodes.data) {
     content = (
       <View style={styles.loading}>
-        <LoadingIndicator accessibilityLabel="채팅 불러오는 중" />
+        <LoadingIndicator accessibilityLabel="에피소드 불러오는 중" />
       </View>
     );
-  } else if (rooms.isError && !rooms.data) {
+  } else if (episodes.isError && !episodes.data) {
     content = (
       <View style={styles.centered}>
         <Text
           style={[styles.errorMessage, typography.body, { color: colors.text }]}
         >
-          채팅을 불러오지 못했어요.
+          에피소드를 불러오지 못했어요.
         </Text>
         <Pressable
           accessibilityLabel="다시 시도"
           accessibilityRole="button"
-          disabled={rooms.isFetching}
-          onPress={retryRooms}
+          disabled={episodes.isFetching}
+          onPress={retryEpisodes}
           style={retryStyle}
         >
           <Text style={[typography.action, { color: colors.onPrimary }]}>
@@ -317,25 +404,40 @@ export default function HomeScreen() {
         </Pressable>
       </View>
     );
-  } else if (rooms.data?.length === 0) {
-    content = <EmptyRooms onCreate={makeRoom} />;
+  } else if (data.length === 0) {
+    content = <EmptyEpisodes onCreate={createEpisode} />;
   } else {
     content = (
       <LegendList
+        contentContainerStyle={styles.list}
         contentInsetAdjustmentBehavior="automatic"
-        data={rooms.data ?? []}
-        keyExtractor={roomKey}
+        data={rest}
+        keyExtractor={episodeKey}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            {resume ? <ResumeCard episode={resume} /> : null}
+            <Text
+              style={[
+                styles.sectionTitle,
+                typography.caption,
+                { color: colors.secondaryText },
+              ]}
+            >
+              모든 에피소드
+            </Text>
+          </View>
+        }
         maintainVisibleContentPosition
         recycleItems
         refreshControl={
           <RefreshControl
-            onRefresh={refreshRooms}
+            onRefresh={refreshEpisodes}
             refreshing={isFocused && manualRefreshing}
-            testID="chat-room-list-refresh-control"
+            testID="episode-list-refresh-control"
             tintColor={colors.loadingIndicator}
           />
         }
-        renderItem={renderRoom}
+        renderItem={renderEpisode}
       />
     );
   }
@@ -348,12 +450,13 @@ export default function HomeScreen() {
           icon="gearshape"
           onPress={openSettings}
         />
-        <Stack.Toolbar.Button
-          accessibilityLabel="새 채팅"
-          disabled={createRoom.isPending}
-          icon="square.and.pencil"
-          onPress={makeRoom}
-        />
+        {data.length > 0 ? (
+          <Stack.Toolbar.Button
+            accessibilityLabel="새 에피소드"
+            icon="square.and.pencil"
+            onPress={createEpisode}
+          />
+        ) : null}
       </Stack.Toolbar>
 
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
