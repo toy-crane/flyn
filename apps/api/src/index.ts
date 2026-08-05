@@ -4,12 +4,6 @@ import { withSupabase } from "@supabase/server/adapters/hono";
 import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
 import {
-  type ChatDependencies,
-  ChatHttpError,
-  createProductionChatDependencies,
-  respondToChatMessage,
-} from "./chat";
-import {
   createEpisode,
   createEpisodeDraft,
   createProductionEpisodeDependencies,
@@ -19,6 +13,12 @@ import {
   regenerateEpisodeGoals,
   regenerateEpisodeRole,
 } from "./episode";
+import {
+  createProductionRoleplayDependencies,
+  type RoleplayDependencies,
+  RoleplayHttpError,
+  respondToEpisodeMessage,
+} from "./roleplay";
 
 interface Env {
   Variables: {
@@ -27,8 +27,8 @@ interface Env {
 }
 
 interface ApiDependencies {
-  chat?: ChatDependencies;
   episode?: EpisodeDependencies;
+  roleplay?: RoleplayDependencies;
 }
 
 /** 본문이 JSON이 아니면 파싱 오류도 같은 400 문구로 답한다. */
@@ -70,8 +70,9 @@ function episodeFailure(error: unknown, route: string) {
 }
 
 export function createApiApp(dependencies: ApiDependencies = {}) {
-  const chat = dependencies.chat ?? createProductionChatDependencies();
   const episode = dependencies.episode ?? createProductionEpisodeDependencies();
+  const roleplay =
+    dependencies.roleplay ?? createProductionRoleplayDependencies();
 
   // 체이닝해야 AppType에 포함된다 — 따로 등록한 라우트는 조용히 빠진다.
   // CORS는 @supabase/server가 처리하지 않는다.
@@ -79,58 +80,6 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
     new Hono<Env>()
       .use("*", cors())
       .get("/health", (c) => c.json({ service: "flyn-api", status: "ok" }))
-      .post(
-        "/chats/:chatId/messages",
-        withSupabase<Database>({ auth: "user" }),
-        async (c) => {
-          const context = c.var.supabaseContext;
-          const userId = context.userClaims?.id;
-
-          if (!userId) {
-            return c.json({ error: "no user" }, 401);
-          }
-
-          let input: unknown;
-          try {
-            input = await c.req.json();
-          } catch {
-            return c.json({ error: "메시지 형식이 올바르지 않습니다." }, 400);
-          }
-
-          try {
-            return await respondToChatMessage({
-              context,
-              dependencies: chat,
-              input,
-              requestSignal: c.req.raw.signal,
-              roomId: c.req.param("chatId"),
-              userId,
-            });
-          } catch (error) {
-            if (error instanceof ChatHttpError) {
-              return c.json(
-                {
-                  error: error.message,
-                  ...(error.retryable ? { retryable: true } : {}),
-                },
-                error.status
-              );
-            }
-
-            console.error("[chat] request failed", {
-              message: error instanceof Error ? error.message : String(error),
-              roomId: c.req.param("chatId"),
-            });
-            return c.json(
-              {
-                error: "채팅 요청을 처리하지 못했습니다.",
-                retryable: true,
-              },
-              500
-            );
-          }
-        }
-      )
       /**
        * 에피소드 생성은 두 번 부른다 — ① 상황 후보, ② 선택한 상황의 역할과
        * 목표. 재생성은 해당 부분만 다시 부르므로 역할·목표 라우트가 따로 있다.
@@ -260,6 +209,61 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
         }
       )
       /**
+       * 롤플레잉 한 턴. 모바일은 마지막 사용자 메시지만 보내고 서버가 DB
+       * 기록으로 답한다. 한글이면 이 경계가 전달 전에 번역하므로, 앱은 전달된
+       * 문장을 만들지 않고 스트림으로 돌려받는다.
+       */
+      .post(
+        "/episodes/:episodeId/messages",
+        withSupabase<Database>({ auth: "user" }),
+        async (c) => {
+          const context = c.var.supabaseContext;
+          const userId = context.userClaims?.id;
+
+          if (!userId) {
+            return c.json({ error: "no user" }, 401);
+          }
+
+          let input: unknown;
+          try {
+            input = await c.req.json();
+          } catch {
+            return c.json({ error: "메시지 형식이 올바르지 않습니다." }, 400);
+          }
+
+          try {
+            return await respondToEpisodeMessage({
+              context,
+              dependencies: roleplay,
+              episodeId: c.req.param("episodeId"),
+              input,
+              requestSignal: c.req.raw.signal,
+              userId,
+            });
+          } catch (error) {
+            if (error instanceof RoleplayHttpError) {
+              return c.json(
+                {
+                  error: error.message,
+                  ...(error.retryable ? { retryable: true } : {}),
+                },
+                error.status
+              );
+            }
+
+            // 본문은 로그에 남기지 않는다. 어느 에피소드가 깨졌는지만 남긴다.
+            console.error("[roleplay] request failed", {
+              episodeId: c.req.param("episodeId"),
+              message: error instanceof Error ? error.message : String(error),
+            });
+            return c.json(
+              { error: "대화 요청을 처리하지 못했습니다.", retryable: true },
+              500
+            );
+          }
+        }
+      )
+      /**
        * 전체 계정 삭제. Auth 사용자를 hard delete하면 프로필과 사용자 소유
        * 데이터가 `on delete cascade`로 함께 사라진다.
        *
@@ -314,5 +318,8 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
 const app = createApiApp();
 
 export type AppType = typeof app;
+
+/** 스트림에 얹어 보내는 값이라 RPC 타입에 잡히지 않는다. 앱이 함께 읽는다. */
+export type { DeliveredSentence } from "./roleplay";
 
 export default app;
