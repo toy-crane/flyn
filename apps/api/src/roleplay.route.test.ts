@@ -1,5 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { exportJWK, generateKeyPair, type JWK, SignJWT } from "jose";
+import type { EpisodeEndReason, SummaryModel } from "./ending";
 import type {
   GoalAchievement,
   JudgmentDraft,
@@ -25,6 +26,7 @@ let createApiApp: typeof import("./index").createApiApp;
 let repository: MemoryRoleplayRepository;
 let model: FakeRoleplayModel;
 let judgmentModel: FakeJudgmentModel;
+let summaryModel: FakeSummaryModel;
 let app: ReturnType<typeof createApiApp>;
 
 const EPISODE: RoleplayEpisode = {
@@ -52,6 +54,29 @@ class MemoryRoleplayRepository implements RoleplayRepository {
   messages: EpisodeMessage[] = [];
   feedback: MessageJudgment[] = [];
   achievements: (GoalAchievement & { episodeId: string })[] = [];
+  endings: {
+    episodeId: string;
+    reason: EpisodeEndReason;
+    summary: string | null;
+  }[] = [];
+
+  listMessageFeedback(_episodeId: string) {
+    return Promise.resolve(this.feedback);
+  }
+
+  finishEpisode(input: {
+    episodeId: string;
+    reason: EpisodeEndReason;
+    summary: string | null;
+  }) {
+    this.endings.push(input);
+
+    if (this.episode) {
+      this.episode.status = input.reason;
+    }
+
+    return Promise.resolve();
+  }
 
   listJudgedMessageIds(_episodeId: string) {
     return Promise.resolve(this.feedback.map((row) => row.messageId));
@@ -123,6 +148,7 @@ class MemoryRoleplayRepository implements RoleplayRepository {
 class FakeRoleplayModel implements RoleplayModel {
   delivered: DeliveredSentence[] = [];
   judgments: (JudgmentUpdate | null)[] = [];
+  endings: (EpisodeEndReason | null)[] = [];
   generatedHistories: EpisodeMessage[][] = [];
   generateCount = 0;
   replayCount = 0;
@@ -151,6 +177,7 @@ class FakeRoleplayModel implements RoleplayModel {
 
   async generate({
     delivered,
+    ending,
     judgment,
     messages,
     onFinish,
@@ -170,20 +197,39 @@ class FakeRoleplayModel implements RoleplayModel {
 
     // 실제 스트림처럼 판정을 응답 뒤에 얹는다.
     this.judgments.push(await judgment);
+    this.endings.push(await ending);
 
     return new Response(`stream:${delivered.text}|${this.outcome.text}`);
   }
 
   async replay({
     delivered,
+    ending,
     judgment,
     text,
   }: Parameters<RoleplayModel["replay"]>[0]) {
     this.replayCount += 1;
     this.delivered.push(delivered);
     this.judgments.push(await judgment);
+    this.endings.push(await ending);
 
     return new Response(`replay:${delivered.text}|${text}`);
+  }
+}
+
+class FakeSummaryModel implements SummaryModel {
+  calls = 0;
+  fails = Boolean(false);
+  text = "상황을 설명하는 문장은 잘 통했어요.";
+
+  summarize(_options: Parameters<SummaryModel["summarize"]>[0]) {
+    this.calls += 1;
+
+    if (this.fails) {
+      return Promise.reject(new Error("gateway unavailable"));
+    }
+
+    return Promise.resolve(this.text);
   }
 }
 
@@ -269,10 +315,12 @@ beforeEach(() => {
   repository = new MemoryRoleplayRepository();
   model = new FakeRoleplayModel();
   judgmentModel = new FakeJudgmentModel();
+  summaryModel = new FakeSummaryModel();
   const roleplay: RoleplayDependencies = {
     createRepository: () => repository,
     judgment: judgmentModel,
     model,
+    summary: summaryModel,
   };
   app = createApiApp({ roleplay });
 });
@@ -628,5 +676,150 @@ describe("목표 판정", () => {
     expect(judgmentModel.calls[1]).toEqual({ pending: ["user-2"] });
     // 같은 목표를 다시 채우면 완료 줄의 자리가 뒤로 밀린다.
     expect(repository.achievements).toHaveLength(1);
+  });
+});
+
+describe("대화 종료", () => {
+  it("목표를 모두 달성하면 그 턴에서 끝나고 총평이 함께 저장된다", async () => {
+    judgmentModel.draft = {
+      goals: [
+        { messageId: "user-1", position: 1 },
+        { messageId: "user-1", position: 2 },
+        { messageId: "user-1", position: 3 },
+      ],
+      sentences: [],
+    };
+
+    const response = await send({ content: "All three at once", id: "user-1" });
+    await response.text();
+
+    expect(repository.endings).toEqual([
+      {
+        episodeId: EPISODE_ID,
+        reason: "goals_met",
+        summary: "상황을 설명하는 문장은 잘 통했어요.",
+      },
+    ]);
+    expect(summaryModel.calls).toBe(1);
+    // 앱은 다시 읽기를 기다리지 않고 스트림에서 종료를 받는다.
+    expect(model.endings).toEqual(["goals_met"]);
+  });
+
+  it("턴 상한에 닿으면 끝나고, 상한은 에피소드가 든 값이다", async () => {
+    if (repository.episode) {
+      repository.episode.turnLimit = 2;
+    }
+
+    const first = await send({ content: "Hello", id: "user-1" });
+    await first.text();
+
+    expect(repository.endings).toEqual([]);
+
+    const second = await send({ content: "One more", id: "user-2" });
+    await second.text();
+
+    expect(repository.endings).toEqual([
+      {
+        episodeId: EPISODE_ID,
+        reason: "turns_exhausted",
+        summary: "상황을 설명하는 문장은 잘 통했어요.",
+      },
+    ]);
+  });
+
+  it("판정만 실패해도 턴 상한은 그대로 걸린다", async () => {
+    if (repository.episode) {
+      repository.episode.turnLimit = 1;
+    }
+    judgmentModel.fails = true;
+
+    const response = await send({ content: "Hello", id: "user-1" });
+    await response.text();
+
+    expect(response.status).toBe(200);
+    expect(repository.endings.map((ending) => ending.reason)).toEqual([
+      "turns_exhausted",
+    ]);
+  });
+
+  it("총평을 만들지 못해도 대화는 끝난다", async () => {
+    if (repository.episode) {
+      repository.episode.turnLimit = 1;
+    }
+    summaryModel.fails = true;
+
+    const response = await send({ content: "Hello", id: "user-1" });
+    await response.text();
+
+    expect(repository.endings).toEqual([
+      { episodeId: EPISODE_ID, reason: "turns_exhausted", summary: null },
+    ]);
+  });
+
+  it("끝나지 않은 턴에는 총평을 부르지 않는다", async () => {
+    const response = await send({ content: "Hello", id: "user-1" });
+    await response.text();
+
+    expect(summaryModel.calls).toBe(0);
+    expect(model.endings).toEqual([null]);
+  });
+});
+
+describe("POST /episodes/:episodeId/judgments", () => {
+  async function refill({ episodeId = EPISODE_ID, withAuth = true } = {}) {
+    const headers = new Headers({ "content-type": "application/json" });
+
+    if (withAuth) {
+      headers.set("authorization", `Bearer ${await mintToken()}`);
+    }
+
+    return app.request(`/episodes/${episodeId}/judgments`, {
+      headers,
+      method: "POST",
+    });
+  }
+
+  it("Authorization 헤더가 없으면 401", async () => {
+    expect((await refill({ withAuth: false })).status).toBe(401);
+  });
+
+  it("없거나 남의 에피소드는 404", async () => {
+    repository.ownerId = "44444444-4444-4444-4444-444444444444";
+
+    expect((await refill()).status).toBe(404);
+  });
+
+  it("끝내 비어 있던 발화만 판정해 그 자리에서 채운다", async () => {
+    judgmentModel.fails = true;
+    const turn = await send({ content: "Is the office open?", id: "user-1" });
+    await turn.text();
+
+    expect(repository.feedback).toEqual([]);
+
+    judgmentModel.fails = false;
+    const response = await refill();
+    const body = (await response.json()) as {
+      sentences: { messageId: string }[];
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.sentences.map((sentence) => sentence.messageId)).toEqual([
+      "user-1",
+    ]);
+    expect(repository.feedback.map((row) => row.messageId)).toEqual(["user-1"]);
+  });
+
+  it("판정이 또 실패하면 재시도할 수 있는 500으로 답한다", async () => {
+    judgmentModel.fails = true;
+    const turn = await send({ content: "Is the office open?", id: "user-1" });
+    await turn.text();
+
+    const response = await refill();
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: "판정을 받지 못했어요.",
+      retryable: true,
+    });
   });
 });

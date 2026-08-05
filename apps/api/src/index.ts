@@ -17,6 +17,7 @@ import {
   createProductionRoleplayDependencies,
   type RoleplayDependencies,
   RoleplayHttpError,
+  refillEpisodeJudgment,
   respondToEpisodeMessage,
 } from "./roleplay";
 import {
@@ -274,6 +275,55 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
         }
       )
       /**
+       * 못 채운 판정을 한 번 더 부르는 자리. 대화가 끝나면 다음 판정 호출이
+       * 없어 자동으로 메워질 기회가 사라지므로, 결과 화면의 `다시 확인`이
+       * 여기서 건진다. 판정 대상은 이 경계가 정한다 — 앱은 어느 발화가 비었는지
+       * 알려 주지 않는다.
+       */
+      .post(
+        "/episodes/:episodeId/judgments",
+        withSupabase<Database>({ auth: "user" }),
+        async (c) => {
+          const context = c.var.supabaseContext;
+          const userId = context.userClaims?.id;
+
+          if (!userId) {
+            return c.json({ error: "no user" }, 401);
+          }
+
+          try {
+            return c.json(
+              await refillEpisodeJudgment({
+                context,
+                dependencies: roleplay,
+                episodeId: c.req.param("episodeId"),
+                requestSignal: c.req.raw.signal,
+                userId,
+              })
+            );
+          } catch (error) {
+            if (error instanceof RoleplayHttpError) {
+              return c.json(
+                {
+                  error: error.message,
+                  ...(error.retryable ? { retryable: true } : {}),
+                },
+                error.status
+              );
+            }
+
+            console.error("[roleplay] judgment refill failed", {
+              episodeId: c.req.param("episodeId"),
+              message: error instanceof Error ? error.message : String(error),
+            });
+            return c.json(
+              { error: "판정을 받지 못했어요.", retryable: true },
+              500
+            );
+          }
+        }
+      )
+      /**
        * 문장 하나를 두고 묻는 자리. 롤플레잉이 아니라 학습 질문이라 에피소드
        * 대화와 다른 기록에 쌓이고 턴으로 세지 않는다. 진입점이 첨삭 시트
        * 하나뿐이므로 목록을 내려 주는 라우트는 두지 않는다 — 앱은 그 문장의
@@ -388,6 +438,7 @@ const app = createApiApp();
 export type AppType = typeof app;
 
 /** 스트림에 얹어 보내는 값이라 RPC 타입에 잡히지 않는다. 앱이 함께 읽는다. */
+export type { EpisodeEnding, EpisodeEndReason } from "./ending";
 export type {
   GoalAchievement,
   JudgedSentence,

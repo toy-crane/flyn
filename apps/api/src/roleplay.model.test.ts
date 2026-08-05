@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { simulateReadableStream } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
+import type { EpisodeEndReason } from "./ending";
 import type { JudgmentUpdate } from "./judgment";
 import {
   createGatewayRoleplayModel,
@@ -118,10 +119,12 @@ function createTranslationModel(text: string) {
 async function generate(
   model: RoleplayModel,
   {
+    ending = Promise.resolve(null),
     judgment = Promise.resolve(null),
     onResponse,
     signal = new AbortController().signal,
   }: {
+    ending?: Promise<EpisodeEndReason | null>;
     judgment?: Promise<JudgmentUpdate | null>;
     onResponse?: () => void;
     signal?: AbortSignal;
@@ -131,6 +134,7 @@ async function generate(
   const response = await model.generate({
     assistantMessageId: "assistant-1",
     delivered: DELIVERED,
+    ending,
     episode: EPISODE,
     judgment,
     messages: MESSAGES,
@@ -234,6 +238,7 @@ describe("롤플레잉 응답", () => {
     const response = await model.replay({
       assistantMessageId: "assistant-1",
       delivered: DELIVERED,
+      ending: Promise.resolve(null),
       judgment: Promise.resolve(null),
       status: "complete",
       text: "Sure thing.",
@@ -403,6 +408,7 @@ describe("같은 스트림에 얹히는 판정", () => {
     const response = await model.generate({
       assistantMessageId: "assistant-1",
       delivered: DELIVERED,
+      ending: Promise.resolve(null),
       episode: EPISODE,
       judgment,
       messages: MESSAGES,
@@ -471,12 +477,65 @@ describe("같은 스트림에 얹히는 판정", () => {
     const response = await model.replay({
       assistantMessageId: "assistant-1",
       delivered: DELIVERED,
+      ending: Promise.resolve(null),
       judgment: Promise.resolve(ACHIEVED),
       status: "complete",
       text: "Sure thing.",
     });
 
     expect(await response.text()).toContain('"type":"data-judgment"');
+  });
+});
+
+describe("종료 알림", () => {
+  it("끝난 턴에서만 종료 사유가 같은 스트림에 온다", async () => {
+    const model = createGatewayRoleplayModel({
+      logger: () => undefined,
+      model: createTextModel(),
+    });
+
+    const running = await generate(model, { ending: Promise.resolve(null) });
+    const finished = await generate(model, {
+      ending: Promise.resolve("goals_met"),
+    });
+
+    expect(running.body).not.toContain("data-ending");
+    expect(finished.body).toContain('"type":"data-ending"');
+    expect(finished.body).toContain('"reason":"goals_met"');
+  });
+
+  it("종료가 저장되기 전에 스트림이 닫히지 않는다", async () => {
+    let release: () => void = () => undefined;
+    const ending = new Promise<EpisodeEndReason | null>((resolve) => {
+      release = () => resolve("turns_exhausted");
+    });
+    const model = createGatewayRoleplayModel({
+      logger: () => undefined,
+      model: createTextModel(),
+    });
+    const response = await model.generate({
+      assistantMessageId: "assistant-1",
+      delivered: DELIVERED,
+      ending,
+      episode: EPISODE,
+      judgment: Promise.resolve(null),
+      messages: MESSAGES,
+      onFinish: () => Promise.resolve(),
+      signal: new AbortController().signal,
+    });
+    const reader = (
+      response.body as unknown as { getReader: () => ChunkReader }
+    ).getReader();
+
+    // 대화는 먼저 흐른다 — 답이 다 그려져도 스트림은 아직 열려 있다.
+    const beforeEnding = await readUntil(reader, '"type":"finish"');
+
+    expect(beforeEnding).toContain("one oat flat white");
+    expect(beforeEnding).not.toContain("data-ending");
+
+    release();
+
+    expect(await drain(reader)).toContain('"reason":"turns_exhausted"');
   });
 });
 

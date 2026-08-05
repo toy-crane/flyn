@@ -14,6 +14,13 @@ import {
   toUIMessageStream,
   type UIMessage,
 } from "ai";
+import {
+  createGatewaySummaryModel,
+  type EndingRepository,
+  type EpisodeEndReason,
+  finishEpisode,
+  type SummaryModel,
+} from "./ending";
 import type { EpisodeStatus } from "./episode";
 import {
   createGatewayJudgmentModel,
@@ -90,7 +97,9 @@ export interface DeliveredSentence {
   text: string;
 }
 
-export interface RoleplayRepository extends JudgmentRepository {
+export interface RoleplayRepository
+  extends JudgmentRepository,
+    EndingRepository {
   deleteStoppedAssistantMessage: (
     episodeId: string,
     messageId: string
@@ -111,6 +120,11 @@ export interface RoleplayRepository extends JudgmentRepository {
 interface RoleplayGenerateOptions {
   assistantMessageId: string;
   delivered: DeliveredSentence;
+  /**
+   * 이 턴이 대화를 끝냈는지. 판정이 나와야 정해지므로 판정 뒤에 이어 붙고,
+   * 스트림은 종료가 저장된 다음에 닫힌다.
+   */
+  ending: Promise<EpisodeEndReason | null>;
   episode: RoleplayEpisode;
   /** 롤플레잉과 병렬로 도는 판정. 늦게 도착하면 대화가 먼저 흐른다. */
   judgment: Promise<JudgmentUpdate | null>;
@@ -122,6 +136,7 @@ interface RoleplayGenerateOptions {
 interface RoleplayReplayOptions {
   assistantMessageId: string;
   delivered: DeliveredSentence;
+  ending: Promise<EpisodeEndReason | null>;
   judgment: Promise<JudgmentUpdate | null>;
   status: EpisodeMessageStatus;
   text: string;
@@ -147,6 +162,8 @@ export interface RoleplayDependencies {
    */
   judgment: JudgmentModel;
   model: RoleplayModel;
+  /** 결과 총평. 대화가 끝나는 턴에만 한 번 돈다. */
+  summary: SummaryModel;
 }
 
 export class RoleplayHttpError extends Error {
@@ -377,11 +394,37 @@ export async function respondToEpisodeMessage({
     return null;
   });
 
+  /**
+   * 종료는 판정이 나와야 정해진다 — 마지막 목표를 이룬 턴에서 곧바로 끝나야
+   * 하기 때문이다. 판정이 실패해도 턴 상한은 그대로 걸리므로 이 판단은 언제나
+   * 돈다.
+   */
+  const ending = judgment
+    .then((update) =>
+      finishEpisode({
+        achievements: update?.goals ?? [],
+        episode,
+        messages,
+        model: dependencies.summary,
+        repository,
+        signal: requestSignal,
+      })
+    )
+    .catch((error) => {
+      console.error("[roleplay] ending failed", {
+        episodeId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+
+      return null;
+    });
+
   if (existingAssistant?.status === "complete") {
     return withStreamingHeaders(
       await dependencies.model.replay({
         assistantMessageId,
         delivered,
+        ending,
         judgment,
         status: existingAssistant.status,
         text: existingAssistant.content,
@@ -393,6 +436,7 @@ export async function respondToEpisodeMessage({
     const response = await dependencies.model.generate({
       assistantMessageId,
       delivered,
+      ending,
       episode,
       judgment,
       messages,
@@ -422,6 +466,52 @@ export async function respondToEpisodeMessage({
       true,
       error
     );
+  }
+}
+
+/**
+ * 결과 화면의 `다시 확인`. 대화가 끝난 뒤에는 다음 판정 호출이 없어 자동으로
+ * 메워질 기회가 사라지므로, 여기서 못 채운 발화를 한 번 더 판정한다. 한 턴의
+ * 판정과 **같은 호출**이라 판정·개선문·이유가 함께 온다.
+ */
+export async function refillEpisodeJudgment({
+  context,
+  dependencies,
+  episodeId,
+  requestSignal,
+  userId,
+}: {
+  context: SupabaseContext<Database>;
+  dependencies: RoleplayDependencies;
+  episodeId: string;
+  requestSignal: AbortSignal;
+  userId: string;
+}): Promise<JudgmentUpdate> {
+  const repository = dependencies.createRepository(context);
+  const episode = await repository.findOwnedEpisode(episodeId, userId);
+
+  if (!episode) {
+    throw new RoleplayHttpError(404, "에피소드를 찾을 수 없습니다.");
+  }
+
+  const messages = await repository.listMessages(episodeId);
+
+  try {
+    const update = await judgeEpisodeTurn({
+      episode,
+      messages,
+      model: dependencies.judgment,
+      repository,
+      signal: requestSignal,
+      // 지난 턴의 원문은 어디에도 남아 있지 않다. 그때 전달된 문장이 곧
+      // 사용자가 쓴 말이었던 것으로 본다.
+      sourceTexts: {},
+    });
+
+    return update ?? { goals: [], sentences: [] };
+  } catch (error) {
+    // biome-ignore lint/style/useErrorCause: RoleplayHttpError의 네 번째 인자가 super의 cause로 전달된다.
+    throw new RoleplayHttpError(500, "판정을 받지 못했어요.", true, error);
   }
 }
 
@@ -604,6 +694,7 @@ class GatewayRoleplayModel implements RoleplayModel {
   generate({
     assistantMessageId,
     delivered,
+    ending,
     episode,
     judgment,
     messages,
@@ -700,6 +791,7 @@ class GatewayRoleplayModel implements RoleplayModel {
             writeDeliveredSentence(writer, delivered);
             writer.merge(replyStream);
             await writeJudgment(writer, judgment);
+            await writeEnding(writer, ending);
           },
           onError: () => "AI 응답을 생성하지 못했습니다.",
         }),
@@ -710,6 +802,7 @@ class GatewayRoleplayModel implements RoleplayModel {
   replay({
     assistantMessageId,
     delivered,
+    ending,
     judgment,
     text,
   }: RoleplayReplayOptions) {
@@ -723,6 +816,7 @@ class GatewayRoleplayModel implements RoleplayModel {
         writer.write({ id: textPartId, type: "text-end" });
         writer.write({ finishReason: "stop", type: "finish" });
         await writeJudgment(writer, judgment);
+        await writeEnding(writer, ending);
       },
     });
 
@@ -803,6 +897,24 @@ async function writeJudgment(
   }
 
   writer.write({ data: update, transient: true, type: "data-judgment" });
+}
+
+/**
+ * 대화가 끝났다는 사실. 저장이 이 스트림보다 먼저 끝나므로 앱은 다시 읽어도
+ * 같은 값을 본다. 그래도 스트림에 실어 보내는 이유는 판정이 목표 바를 넘기는
+ * 것과 같다 — 다시 읽기를 기다리지 않고 그 자리에서 composer가 사라진다.
+ */
+async function writeEnding(
+  writer: DeliveredWriter,
+  ending: Promise<EpisodeEndReason | null>
+) {
+  const reason = await ending;
+
+  if (!reason) {
+    return;
+  }
+
+  writer.write({ data: { reason }, transient: true, type: "data-ending" });
 }
 
 export function createGatewayRoleplayModel(
@@ -946,6 +1058,47 @@ class SupabaseRoleplayRepository implements RoleplayRepository {
     }
   }
 
+  async listMessageFeedback(episodeId: string) {
+    const { data, error } = await this.client
+      .from("message_feedback")
+      .select("message_id, source_text, verdict, improved_sentence, reasons")
+      .eq("episode_id", episodeId);
+
+    if (error) {
+      throw error;
+    }
+
+    return data.map((row) => ({
+      improvedSentence: row.improved_sentence,
+      messageId: row.message_id,
+      reasons: row.reasons,
+      sourceText: row.source_text,
+      verdict: row.verdict === "improvable" ? "improvable" : "clear",
+    })) satisfies MessageJudgment[];
+  }
+
+  async finishEpisode({
+    episodeId,
+    reason,
+    summary,
+  }: {
+    episodeId: string;
+    reason: EpisodeEndReason;
+    summary: string | null;
+  }) {
+    // `active`인 동안에만 끝난다. 같은 턴이 두 번 들어와도 먼저 정해진 종료
+    // 사유와 총평이 그대로 남는다.
+    const { error } = await this.client
+      .from("episodes")
+      .update({ status: reason, summary })
+      .eq("id", episodeId)
+      .eq("status", "active");
+
+    if (error) {
+      throw error;
+    }
+  }
+
   async deleteStoppedAssistantMessage(episodeId: string, messageId: string) {
     const { error } = await this.client
       .from("episode_messages")
@@ -998,5 +1151,6 @@ export function createProductionRoleplayDependencies(): RoleplayDependencies {
       new SupabaseRoleplayRepository(context.supabaseAdmin),
     judgment: createGatewayJudgmentModel(),
     model: createGatewayRoleplayModel(),
+    summary: createGatewaySummaryModel(),
   };
 }
