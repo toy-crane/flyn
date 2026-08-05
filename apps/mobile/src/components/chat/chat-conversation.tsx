@@ -485,12 +485,19 @@ function Composer({
 export function ChatConversation({
   chat,
   dock,
+  ending,
   listHeader,
   onMarkPress,
   placeholder = "메시지 보내기",
 }: {
   chat: ChatController;
   dock?: ReactNode;
+  /**
+   * 대화가 끝났을 때 composer 자리에 대신 서는 것. 있으면 목표 바와 입력이 함께
+   * 사라진다 — 더 보낼 수 없는 자리에 입력만 비워 두면 무엇이 끝났는지 말하지
+   * 못한다. 위의 대화는 그대로 남는다.
+   */
+  ending?: ReactNode;
   listHeader?: ReactElement | null;
   /** 표시를 눌렀을 때 무엇이 열리는지는 화면이 정한다. */
   onMarkPress?: (messageId: string) => void;
@@ -667,12 +674,16 @@ export function ChatConversation({
                 </Pressable>
               </Reanimated.View>
             </View>
-            {dock}
-            <Composer
-              bottomInset={insets.bottom}
-              chat={chat}
-              placeholder={placeholder}
-            />
+            {ending ?? (
+              <>
+                {dock}
+                <Composer
+                  bottomInset={insets.bottom}
+                  chat={chat}
+                  placeholder={placeholder}
+                />
+              </>
+            )}
           </View>
         </KeyboardStickyView>
       </KeyboardGestureArea>

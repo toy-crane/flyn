@@ -8,6 +8,9 @@ import {
 jest.mock("expo-router", () =>
   require("../../test-support/expo-router").expoRouterMock()
 );
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 34, left: 0, right: 0, top: 59 }),
+}));
 jest.mock("../../components/chat/chat-conversation", () => {
   const ReactRuntime = require("react");
   const { Pressable, Text, View } = require("react-native");
@@ -15,11 +18,13 @@ jest.mock("../../components/chat/chat-conversation", () => {
   return {
     ChatConversation: ({
       dock,
+      ending,
       listHeader,
       onMarkPress,
       placeholder,
     }: {
       dock: unknown;
+      ending?: unknown;
       listHeader: unknown;
       onMarkPress?: (messageId: string) => void;
       placeholder: string;
@@ -32,16 +37,31 @@ jest.mock("../../components/chat/chat-conversation", () => {
           { testID: "surface-list-header" },
           listHeader
         ),
-        ReactRuntime.createElement(View, { testID: "surface-dock" }, dock),
+        // 실물은 끝난 자리에 목표 바와 composer를 함께 내린다.
+        ending
+          ? ReactRuntime.createElement(
+              View,
+              { testID: "surface-ending" },
+              ending
+            )
+          : ReactRuntime.createElement(
+              View,
+              null,
+              ReactRuntime.createElement(
+                View,
+                { testID: "surface-dock" },
+                dock
+              ),
+              ReactRuntime.createElement(
+                Text,
+                { testID: "surface-placeholder" },
+                placeholder
+              )
+            ),
         ReactRuntime.createElement(Pressable, {
           onPress: () => onMarkPress?.("user-1"),
           testID: "surface-mark",
-        }),
-        ReactRuntime.createElement(
-          Text,
-          { testID: "surface-placeholder" },
-          placeholder
-        )
+        })
       ),
   };
 });
@@ -101,6 +121,7 @@ const EPISODE = {
   scenario_description: "여행 중 들어간 작은 카페예요.",
   scenario_title: "포틀랜드 카페에서 첫 주문",
   status: "active",
+  summary: null,
   turn_limit: 20,
   updated_at: "2026-08-05T00:00:00.000Z",
   user_role: "처음 방문한 여행객",
@@ -153,6 +174,7 @@ beforeEach(() => {
   // 목표 바가 보는 것은 저장된 목표가 아니라 판정이 얹힌 목표다.
   mockUseEpisodeConversation.mockReturnValue({
     chat: { messages: [] },
+    ending: null,
     goals: [...GOALS].sort((left, right) => left.position - right.position),
   });
 });
@@ -235,6 +257,7 @@ describe("에피소드 대화 화면", () => {
   it("목표 바는 판정이 얹힌 목표를 본다", async () => {
     mockUseEpisodeConversation.mockReturnValue({
       chat: { messages: [] },
+      ending: null,
       goals: [
         {
           achieved_at: "2026-08-05T00:00:03.000Z",
@@ -256,6 +279,60 @@ describe("에피소드 대화 화면", () => {
     expect(dock.getByTestId("goal-dock-now")).toHaveTextContent(
       "우유를 오트밀크로 바꿔 주문하기"
     );
+  });
+
+  it("목표를 모두 달성해 끝나면 composer 자리가 결과 보기로 바뀐다", async () => {
+    mockUseEpisodeConversation.mockReturnValue({
+      chat: { messages: [] },
+      ending: "goals_met",
+      goals: GOALS,
+    });
+
+    await render(<EpisodeConversationScreen />);
+
+    expect(screen.getByTestId("episode-end-note")).toHaveTextContent(
+      "목표를 모두 달성해서 대화가 끝났어요"
+    );
+    expect(screen.getByRole("button", { name: "결과 보기" })).toBeTruthy();
+    // 목표 바와 입력은 함께 내려간다.
+    expect(screen.queryByTestId("surface-dock")).toBeNull();
+    expect(screen.queryByTestId("surface-placeholder")).toBeNull();
+  });
+
+  it("턴 상한에 닿아 끝나면 에피소드가 든 상한을 그대로 말한다", async () => {
+    mockUseEpisode.mockReturnValue({
+      data: { ...EPISODE, status: "turns_exhausted", turn_limit: 12 },
+      isError: false,
+      isPending: false,
+      refetch: retryEpisode,
+    });
+    mockUseEpisodeConversation.mockReturnValue({
+      chat: { messages: [] },
+      ending: "turns_exhausted",
+      goals: GOALS,
+    });
+
+    await render(<EpisodeConversationScreen />);
+
+    expect(screen.getByTestId("episode-end-note")).toHaveTextContent(
+      "12턴을 다 써서 대화가 끝났어요"
+    );
+  });
+
+  it("결과 보기는 그 에피소드의 결과 화면을 연다", async () => {
+    mockUseEpisodeConversation.mockReturnValue({
+      chat: { messages: [] },
+      ending: "goals_met",
+      goals: GOALS,
+    });
+
+    await render(<EpisodeConversationScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "결과 보기" }));
+
+    expect(routerStub.push).toHaveBeenCalledWith({
+      params: { episodeId: "episode-1" },
+      pathname: "/episodes/result",
+    });
   });
 
   it("에피소드나 대화를 읽는 동안 loading을 보여준다", async () => {

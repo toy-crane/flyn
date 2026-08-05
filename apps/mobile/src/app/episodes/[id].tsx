@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { type ReactNode, useCallback } from "react";
 import { ChatConversation } from "../../components/chat/chat-conversation";
 import { EpisodeContextCard } from "../../components/episode/episode-context-card";
+import { EpisodeEndAction } from "../../components/episode/episode-end-action";
 import { GoalDock } from "../../components/episode/goal-dock";
 import {
   CenteredAction,
@@ -43,7 +44,7 @@ function RoleplaySession({
   const router = useRouter();
   // 목표는 판정이 스트림으로 알려 오는 대로 바뀐다. 저장이 다시 읽히기를
   // 기다리지 않아야 달성 즉시 다음 목표로 넘어간다.
-  const { chat, goals } = useEpisodeConversation(
+  const { chat, ending, goals } = useEpisodeConversation(
     episode,
     userId,
     messages,
@@ -59,6 +60,12 @@ function RoleplaySession({
     },
     [episode.id, router]
   );
+  const openResult = useCallback(() => {
+    router.push({
+      params: { episodeId: episode.id },
+      pathname: "/episodes/result",
+    });
+  }, [episode.id, router]);
 
   return (
     <ChatConversation
@@ -70,6 +77,16 @@ function RoleplaySession({
           turnLimit={episode.turn_limit}
           usedTurns={usedTurns(messages)}
         />
+      }
+      // 끝났으면 composer 자리가 끝난 이유와 `결과 보기`로 바뀐다.
+      ending={
+        ending ? (
+          <EpisodeEndAction
+            onOpenResult={openResult}
+            reason={ending}
+            turnLimit={episode.turn_limit}
+          />
+        ) : null
       }
       listHeader={
         <EpisodeContextCard description={episode.scenario_description} />

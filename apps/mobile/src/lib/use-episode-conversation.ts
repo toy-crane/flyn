@@ -1,5 +1,9 @@
 import { useChat } from "@ai-sdk/react";
-import type { DeliveredSentence, JudgmentUpdate } from "@flyn/api";
+import type {
+  DeliveredSentence,
+  EpisodeEnding,
+  JudgmentUpdate,
+} from "@flyn/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { DefaultChatTransport, isTextUIPart, type UIMessage } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
@@ -11,8 +15,14 @@ import type {
 } from "../components/chat/chat-conversation";
 import { createStreamingStore } from "../components/chat/streaming-store";
 import { API_BASE_URL } from "./api";
-import type { Episode, EpisodeGoal, EpisodeMessage } from "./episodes";
+import type {
+  Episode,
+  EpisodeEndReason,
+  EpisodeGoal,
+  EpisodeMessage,
+} from "./episodes";
 import {
+  episodeEndReason,
   type GoalAchievement,
   orderedGoals,
   withAchievements,
@@ -32,12 +42,18 @@ interface EpisodeMessageMetadata {
 
 type EpisodeUiMessage = UIMessage<
   EpisodeMessageMetadata,
-  { delivered: DeliveredSentence; judgment: JudgmentUpdate }
+  {
+    delivered: DeliveredSentence;
+    ending: EpisodeEnding;
+    judgment: JudgmentUpdate;
+  }
 >;
 
 /** 대화 화면이 한 번에 받는 것. 목표는 판정이 도착하는 대로 갱신된다. */
 export interface EpisodeConversation {
   chat: ChatController;
+  /** 끝났으면 왜 끝났는지. 아직이면 null이고 그동안 composer가 선다. */
+  ending: EpisodeEndReason | null;
   goals: EpisodeGoal[];
 }
 
@@ -233,6 +249,11 @@ export function useEpisodeConversation(
   const [stoppedMessageIds, setStoppedMessageIds] = useState(
     () => new Set<string>()
   );
+  // 종료도 판정처럼 스트림이 먼저 알려 온다. 저장을 다시 읽기를 기다리면 끝난
+  // 대화 앞에서 composer가 한 박자 더 서 있는다.
+  const [streamedEnding, setStreamedEnding] = useState<EpisodeEndReason | null>(
+    null
+  );
 
   const refreshStoredEpisode = useCallback(() => {
     queryClient.invalidateQueries({
@@ -279,6 +300,10 @@ export function useEpisodeConversation(
           queryKeys.episodeFeedback(episodeId),
           (current = []) => withArrivedFeedback(current, sentences)
         );
+      }
+
+      if (part.type === "data-ending") {
+        setStreamedEnding(part.data.reason);
       }
     },
     onError: refreshStoredEpisode,
@@ -383,6 +408,9 @@ export function useEpisodeConversation(
       stop,
       streamingStore,
     },
+    // 저장된 상태가 먼저다. 스트림이 알려 온 것은 그 저장이 다시 읽히기 전까지의
+    // 자리를 메운다.
+    ending: episodeEndReason(episode) ?? streamedEnding,
     goals,
   };
 }

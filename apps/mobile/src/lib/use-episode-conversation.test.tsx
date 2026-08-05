@@ -70,6 +70,7 @@ function episode(overrides: Partial<Episode> = {}): Episode {
     scenario_description: "여행 중 들어간 작은 카페예요.",
     scenario_title: "포틀랜드 카페에서 첫 주문",
     status: "active",
+    summary: null,
     turn_limit: 20,
     updated_at: "2026-08-05T00:00:00.000Z",
     user_role: "처음 방문한 여행객",
@@ -370,6 +371,44 @@ describe("말풍선의 세 표시", () => {
     // 저장에서 읽은 판정 위에 얹히고, 같은 발화가 두 번 오면 먼저 것을 둔다.
     expect(update(JUDGED.slice(0, 1))).toEqual([JUDGED[0], arrived]);
     expect(update([...JUDGED, arrived])).toEqual([...JUDGED, arrived]);
+  });
+});
+
+describe("대화 종료", () => {
+  it("저장된 상태가 곧 끝난 이유다", async () => {
+    const { result } = await renderHook(() =>
+      useEpisodeConversation(
+        episode({ status: "turns_exhausted" }),
+        "account-1",
+        STORED_MESSAGES,
+        FEEDBACK
+      )
+    );
+
+    expect(result.current.ending).toBe("turns_exhausted");
+  });
+
+  it("진행 중이면 끝난 이유가 없다", async () => {
+    const { result } = await renderHook(() =>
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES, FEEDBACK)
+    );
+
+    expect(result.current.ending).toBe(null);
+  });
+
+  it("스트림이 알려 온 종료는 저장을 다시 읽기 전에 자리를 메운다", async () => {
+    const { result } = await renderHook(() =>
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES, FEEDBACK)
+    );
+    const options = mockUseChat.mock.calls[0]?.[0];
+
+    expect(result.current.ending).toBe(null);
+
+    await act(() => {
+      options.onData({ data: { reason: "goals_met" }, type: "data-ending" });
+    });
+
+    expect(result.current.ending).toBe("goals_met");
   });
 });
 

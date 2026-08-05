@@ -4,8 +4,9 @@ import type { MessageFeedback } from "./message-feedback";
 import { queryKeys } from "./query-keys";
 import { supabase } from "./supabase";
 
+// 총평은 종료 시점에 한 번 만들어 저장된다. 결과 화면은 그것을 읽기만 한다.
 const EPISODE_COLUMNS =
-  "id, scenario_title, scenario_description, partner_role, user_role, status, turn_limit, created_at, updated_at, episode_goals(position, sentence, achieved_at, achieved_message_id)";
+  "id, scenario_title, scenario_description, partner_role, user_role, status, summary, turn_limit, created_at, updated_at, episode_goals(position, sentence, achieved_at, achieved_message_id)";
 const MESSAGE_COLUMNS = "id, role, content, status, created_at";
 // 판정과 그때 전달된 문장을 함께 읽는다. 시트가 둘을 나란히 놓기 때문이다.
 const FEEDBACK_COLUMNS =

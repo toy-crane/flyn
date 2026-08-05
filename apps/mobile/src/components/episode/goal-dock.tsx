@@ -55,9 +55,15 @@ const styles = StyleSheet.create({
   },
 });
 
+/** 셋을 다 이룬 뒤 접힌 바가 대신 말하는 것. 종료는 곧 화면이 알린다. */
+const ALL_GOALS_DONE = "목표를 모두 달성했어요";
+
 type GoalState = "done" | "now" | "todo";
 
-function goalState(goal: EpisodeGoal, currentPosition: number): GoalState {
+function goalState(
+  goal: EpisodeGoal,
+  currentPosition: number | null
+): GoalState {
   if (goal.achieved_at !== null) {
     return "done";
   }
@@ -128,7 +134,7 @@ export function GoalDock({
   turnLimit,
   usedTurns,
 }: {
-  currentPosition: number;
+  currentPosition: number | null;
   goals: EpisodeGoal[];
   turnLimit: number;
   usedTurns: number;
@@ -149,8 +155,7 @@ export function GoalDock({
     ],
     [colors.separator, colors.surface]
   );
-  const currentGoal =
-    goals.find((goal) => goal.position === currentPosition) ?? goals[0];
+  const currentGoal = goals.find((goal) => goal.position === currentPosition);
   const turnsLeft = Math.max(turnLimit - usedTurns, 0);
 
   return (
@@ -193,7 +198,7 @@ export function GoalDock({
             ]}
             testID="goal-dock-now"
           >
-            {currentGoal?.sentence ?? ""}
+            {currentGoal?.sentence ?? ALL_GOALS_DONE}
           </Text>
           {/*
            * 남은 턴이 임계값 이하일 때만 나타난다. 나타났다는 사실이 신호이므로

@@ -339,9 +339,18 @@ export default function HomeScreen() {
     router.push("/episodes/new");
   }, [router]);
 
+  // 끝난 에피소드는 이어서 할 것이 없다. 목록에서 열면 결과로 간다.
   const openEpisode = useCallback(
     (episode: Episode) => {
-      router.push(`/episodes/${episode.id}`);
+      if (isEpisodeActive(episode)) {
+        router.push(`/episodes/${episode.id}`);
+        return;
+      }
+
+      router.push({
+        params: { episodeId: episode.id },
+        pathname: "/episodes/result",
+      });
     },
     [router]
   );

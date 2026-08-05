@@ -100,6 +100,7 @@ function episode({
     scenario_description: "설명",
     scenario_title: title,
     status,
+    summary: null,
     turn_limit: 20,
     updated_at: updatedAt,
     user_role: "처음 방문한 여행객",
@@ -238,6 +239,19 @@ describe("홈의 카드와 목록", () => {
     );
 
     expect(routerStub.push).toHaveBeenCalledWith("/episodes/episode-2");
+  });
+
+  it("끝난 에피소드를 열면 대화가 아니라 결과로 간다", async () => {
+    await render(<HomeScreen />);
+
+    fireEvent.press(
+      screen.getByRole("button", { name: FINISHED.scenario_title })
+    );
+
+    expect(routerStub.push).toHaveBeenCalledWith({
+      params: { episodeId: "episode-3" },
+      pathname: "/episodes/result",
+    });
   });
 
   it("행을 길게 눌러 확인하면 에피소드와 목표를 함께 지운다", async () => {

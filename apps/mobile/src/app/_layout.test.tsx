@@ -175,6 +175,18 @@ describe("Layout native stack header", () => {
     });
   });
 
+  it("결과 화면은 헤더 타이틀 없이 선다", async () => {
+    signedInWith({ kind: "ready" });
+
+    await render(<Layout />);
+
+    // 시나리오 제목은 본문 맨 위 작은 줄이라 헤더에서 잘릴 자리가 없다.
+    expect(mockRouteOptions["episodes/result"]).toMatchObject({
+      headerShown: true,
+      title: "",
+    });
+  });
+
   it("문장 질문은 시트가 아니라 헤더를 가진 push 화면이다", async () => {
     signedInWith({ kind: "ready" });
 

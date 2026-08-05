@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { EpisodeGoal } from "../../lib/episodes";
+import { PRODUCT_STATE_COLORS } from "../../theme/product-colors";
 import { GoalDock } from "./goal-dock";
 
 const GOALS: EpisodeGoal[] = [
@@ -84,6 +85,42 @@ describe("목표 바", () => {
 
     expect(screen.getByTestId("goal-dock-turns-left")).toHaveTextContent(
       "5턴 남음"
+    );
+  });
+
+  it("남은 턴 표시는 경고색이 아니라 보조 텍스트다", async () => {
+    await renderDock({ usedTurns: 16 });
+    await fireEvent.press(screen.getByTestId("goal-dock"));
+    const expandedTurns = screen.getByTestId("goal-dock-turns");
+
+    await fireEvent.press(screen.getByTestId("goal-dock"));
+    const turnsLeft = screen.getByTestId("goal-dock-turns-left");
+
+    expect(turnsLeft).toHaveTextContent("4턴 남음");
+    // 나타난 것 자체가 신호다. 펼친 바의 턴과 같은 보조 텍스트 색을 쓴다.
+    expect(turnsLeft.props.style).toEqual(expandedTurns.props.style);
+    expect(JSON.stringify(turnsLeft.props.style)).not.toContain(
+      PRODUCT_STATE_COLORS.light.danger
+    );
+  });
+
+  it("목표를 다 이루면 지금 할 목표 자리가 다 됐다고 말한다", async () => {
+    await render(
+      <GoalDock
+        currentPosition={null}
+        goals={GOALS.map((goal) => ({
+          ...goal,
+          achieved_at: "2026-08-05T00:00:00.000Z",
+          achieved_message_id: "user-1",
+        }))}
+        turnLimit={20}
+        usedTurns={6}
+      />
+    );
+
+    // 마지막 목표 문장을 계속 세워 두면 다 된 표시 옆에 끝난 문장이 남는다.
+    expect(screen.getByTestId("goal-dock-now")).toHaveTextContent(
+      "목표를 모두 달성했어요"
     );
   });
 });

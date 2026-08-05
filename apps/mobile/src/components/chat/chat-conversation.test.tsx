@@ -493,6 +493,23 @@ describe("스트리밍 대화 표면", () => {
     expect(within(composerLayout).getByTestId("surface-dock")).toBeTruthy();
   });
 
+  it("끝난 자리가 오면 목표 바와 composer가 함께 내려가고 대화는 남는다", async () => {
+    await render(
+      <ChatConversation
+        chat={controller()}
+        dock={<Text testID="surface-dock">dock</Text>}
+        ending={<Text testID="surface-ending">결과 보기</Text>}
+      />
+    );
+
+    expect(screen.getByTestId("surface-ending")).toBeTruthy();
+    expect(screen.queryByTestId("surface-dock")).toBeNull();
+    expect(screen.queryByLabelText("메시지")).toBeNull();
+    expect(screen.queryByRole("button", { name: "메시지 보내기" })).toBeNull();
+    // 대화는 화면에 그대로 남는다.
+    expect(screen.getByText("사용자 질문")).toBeTruthy();
+  });
+
   it("composer placeholder는 화면이 정한다", async () => {
     await render(
       <ChatConversation chat={controller()} placeholder="영어로 써 보세요" />

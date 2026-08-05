@@ -3,9 +3,11 @@
  * 남는지는 조회와 무관한 규칙이라 여기서 혼자 정한다.
  */
 
+import type { EpisodeEndReason } from "@flyn/api";
 import type { Tables } from "@flyn/supabase";
 
 export type EpisodeStatus = "active" | "goals_met" | "turns_exhausted";
+export type { EpisodeEndReason } from "@flyn/api";
 export type EpisodeGoal = Pick<
   Tables<"episode_goals">,
   "achieved_at" | "achieved_message_id" | "position" | "sentence"
@@ -18,6 +20,7 @@ export type Episode = Pick<
   | "scenario_description"
   | "scenario_title"
   | "status"
+  | "summary"
   | "turn_limit"
   | "updated_at"
   | "user_role"
@@ -25,6 +28,18 @@ export type Episode = Pick<
 
 export function isEpisodeActive(episode: Episode) {
   return episode.status === "active";
+}
+
+/**
+ * 끝났다면 왜 끝났는지. **저장된 상태가 곧 이유다** — 코드의 턴 상한을 바꿔도
+ * 이미 끝난 에피소드가 다른 이유를 말하지 않는다.
+ */
+export function episodeEndReason(episode: Episode): EpisodeEndReason | null {
+  if (episode.status === "goals_met" || episode.status === "turns_exhausted") {
+    return episode.status;
+  }
+
+  return null;
 }
 
 /**
@@ -80,11 +95,15 @@ export function usedTurns(messages: EpisodeMessage[]): number {
   return messages.filter((message) => message.role === "user").length;
 }
 
-/** 지금 할 목표. 달성하면 곧바로 다음 목표가 여기로 온다. */
-export function currentGoalPosition(goals: EpisodeGoal[]): number {
+/**
+ * 지금 할 목표. 달성하면 곧바로 다음 목표가 여기로 온다. 셋을 다 이루면 지금
+ * 할 목표가 **없다** — 마지막 목표를 계속 세워 두면 다 된 표시 옆에 이미 끝난
+ * 문장이 남는다.
+ */
+export function currentGoalPosition(goals: EpisodeGoal[]): number | null {
   const pending = goals.find((goal) => goal.achieved_at === null);
 
-  return pending?.position ?? goals.length;
+  return pending?.position ?? null;
 }
 
 /** 판정이 알려 온 목표 달성 하나. 스트림이 저장보다 먼저 도착한다. */
