@@ -48,3 +48,30 @@
   이 태스크가 정한다.
 - 목표 달성 표시와 종료는 아직 없다. 목표 바는 첫 목표를 지금 할 목표로 두고,
   말풍선 옆 표시 자리는 비워 둔다.
+
+## 리뷰에서 남은 메모
+
+막은 것은 하나였고 고쳐서 다시 통과했다. `episode_messages` 마이그레이션이
+`supabase/schemas/episodes.sql`이 선언한 `revoke all`을 빼먹어 `authenticated`가 테이블을
+통째로 `truncate`할 수 있었다(RLS는 truncate를 막지 않는다). `9d80d6f`가 revoke 두 줄을
+되돌려 놓고 권한 집합 자체를 pgTAP에 못박았다.
+
+막지는 않았지만 PR이 안고 갈 것들.
+
+- `apps/mobile/src/lib/use-episodes.ts:62` — `useEpisode`/`useEpisodeMessages`에 `enabled`
+  가드가 없어 빈 `:id`가 uuid 칼럼에 `.eq("id", "")`로 나간다. Postgres가 22P02로 거절해
+  전용 분기인 `에피소드를 찾을 수 없어요` 대신 `대화를 불러오지 못했어요`가 뜬다.
+- `apps/mobile/src/app/episodes/[id].tsx:79` — `usedTurns`가 서버에서 받은 목록을 세므로
+  펼친 바의 턴 수가 무효화가 도착할 때까지 한 턴 늦다.
+- `apps/api/src/roleplay.ts:236` — 옛 채팅 경계는 같은 메시지 ID에 다른 내용이 오면 409를
+  냈지만, 새 경계는 저장된 문장을 다시 흘린다. 번역 때문에 내용 비교가 불가능해 고른 길이나,
+  ID를 재사용하는 클라이언트는 오류 대신 지난 턴을 조용히 돌려받는다.
+- `apps/api/src/roleplay.ts:43` — 한글 판별이 Jamo Extended-B(U+D7B0–U+D7FF)와 반각
+  한글(U+FFA0–U+FFDC)을 덮지 않아 그런 입력은 번역 없이 전달된다.
+- `apps/api/src/roleplay.ts:244` — 번역 실패만이 서버에 아무것도 남기지 않는 오류 경로라
+  복구가 `useChat`의 메모리 위 사용자 메시지가 살아 있는지에 온전히 기댄다. 그 끝단 경로에는
+  테스트가 없다.
+- `apps/mobile/src/components/chat/` — 채팅 제품이 사라진 뒤 공용 스트리밍 표면만 남았다.
+  디렉터리와 파일 이름이 남은 기능이 아니라 재사용하는 장치를 가리킨다.
+- `public.profiles`가 main에서부터 같은 `anon=Dxtm` 권한 누수를 안고 있다. 생성된
+  마이그레이션과 선언된 `revoke all`을 저장소 전체로 훑어 보는 별도 작업이 값어치가 있다.
