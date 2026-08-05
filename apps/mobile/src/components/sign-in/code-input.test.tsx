@@ -34,8 +34,8 @@ jest.mock("react-native-reanimated", () => {
 jest.mock("../../theme/app-theme", () => ({
   useColors: () => ({
     danger: "#d70015",
+    inputFill: "#eeeeef",
     primary: "#0066ff",
-    surface: "#ffffff",
     text: "#171719",
   }),
 }));
@@ -134,6 +134,7 @@ describe("CodeInput", () => {
       borderColor: "#0066ff",
     });
     expect(screen.getByTestId("code-slot-0", HIDDEN)).toHaveStyle({
+      backgroundColor: "#eeeeef",
       borderColor: "transparent",
     });
 

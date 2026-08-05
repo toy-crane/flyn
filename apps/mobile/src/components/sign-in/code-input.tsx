@@ -129,7 +129,7 @@ export function CodeInput({
               style={[
                 styles.slot,
                 {
-                  backgroundColor: colors.surface,
+                  backgroundColor: colors.inputFill,
                   borderColor,
                 },
               ]}
