@@ -1,6 +1,6 @@
 import { Button, Row, Text } from "@expo/ui";
 import { ProgressView } from "@expo/ui/swift-ui";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { controlSize, frame } from "@expo/ui/swift-ui/modifiers";
 
 export interface FormSubmitButtonProps {
   disabled?: boolean;
@@ -19,7 +19,11 @@ export function FormSubmitButton({
   const locked = Boolean(disabled || pending);
 
   return (
-    <Button disabled={locked} onPress={onPress}>
+    <Button
+      disabled={locked}
+      modifiers={[controlSize("large")]}
+      onPress={onPress}
+    >
       <Row
         alignment="center"
         modifiers={[frame({ maxWidth: Number.POSITIVE_INFINITY })]}
