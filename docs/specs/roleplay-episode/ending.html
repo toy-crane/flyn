@@ -1,0 +1,415 @@
+<!--
+  prototype shell: the review chrome every prototype starts from.
+
+  Contract (extend freely, never strip):
+  - Screens:  <section data-screen="slug" data-title="Label"> inside .sh-stage.
+  - States:   data-states="a,b,c" on the screen; data-when="a" on elements.
+              This file adds ?state=<name> URL support for headless capture.
+  - Viewport: "vp (m)" cycles full / 390 / 768.
+  - Tokens:   apps/mobile/src/theme (colors.ts iOS light, tokens.ts spacing/type).
+
+  Self-contained by design: no build, no framework, no network.
+
+  확정된 종료 흐름:
+  - 목표를 모두 달성하거나 20턴을 다 쓰면 composer가 `결과 보기`로 바뀐다.
+  - 결과 화면 헤더는 뒤로 가기와 `다시 하기`만 갖는다. 시나리오 제목은 본문 맨
+    위로 내려 잘림 없이 보이고 헤드라인과 한 덩어리로 읽힌다.
+  - 본문 순서: 시나리오 제목 → 결과 헤드라인 → 목표 → 이번 글쓰기(총평)
+    → 내가 쓴 문장.
+  - 문장 목록은 대화 화면의 세 표시(번역 / info / 체크)를 그대로 쓰고, 화살표가
+    있는 줄을 탭하면 대화 중과 같은 하단 시트가 열린다.
+-->
+<meta charset="utf-8">
+<title>flyn 대화 종료 프로토타입</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --background: #FFFFFF;
+    --surface: #F2F2F7;
+    --grouped-background: #F2F2F7;
+    --input-fill: rgba(118,118,128,0.12);
+    --text: #000000;
+    --secondary-text: rgba(60,60,67,0.60);
+    --separator: rgba(60,60,67,0.29);
+    --border: #C6C6C8;
+    --accent: #007AFF;
+    --placeholder: rgba(60,60,67,0.30);
+    --user-bubble: #E5E5EA;
+    --on-user-bubble: #000000;
+    --danger: #D70015;
+    --success: #1F7A35;
+    --overlay: rgba(0,0,0,0.18);
+    --sp-xxs: 4px; --sp-xs: 8px; --sp-sm: 12px; --sp-md: 16px;
+    --sp-lg: 20px; --sp-xl: 24px; --sp-xxl: 32px;
+    --foreground: var(--text);
+    --muted: var(--secondary-text);
+    --line: var(--separator);
+    --radius: 16px;
+    --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+  }
+
+  * { box-sizing: border-box }
+  body {
+    margin: 0; padding: 0 0 40px;
+    background: var(--background, #f6f6f6); color: var(--foreground, #3a3a3a);
+    font-family: var(--font, system-ui, sans-serif);
+  }
+  .sh-bar {
+    position: sticky; top: 0; z-index: 999;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    padding: 8px 12px; background: #191a1c; color: #d7d7d7;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .sh-bar b { color: #8a8f98; font-weight: 500 }
+  .sh-bar button {
+    border: 1px solid #3a3d42; background: none; color: inherit;
+    font: inherit; padding: 2px 9px; border-radius: 99px; cursor: pointer;
+  }
+  .sh-bar button.on { background: #d7d7d7; color: #191a1c; border-color: #d7d7d7 }
+  #sh-states:not([hidden])::before { content: "state"; color: #8a8f98; margin-right: 4px }
+  .sh-spacer { flex: 1 }
+  .sh-stage { max-width: 960px; margin: 0 auto; padding: 12px 16px 0 }
+  [hidden] { display: none !important }
+
+  .sh-vp-390 .sh-stage {
+    max-width: 390px; background: var(--background, #f6f6f6);
+    border: 10px solid #191a1c; border-radius: 28px;
+    padding: 0; height: min(844px, calc(100dvh - 52px));
+    overflow-y: auto; margin-top: 12px;
+  }
+  .sh-vp-768 .sh-stage {
+    max-width: 768px; border: 1px solid #c4c4c4; border-radius: 12px;
+    padding: 16px; margin-top: 12px;
+  }
+
+  section[data-screen] {
+    position: relative; display: flex; flex-direction: column;
+    min-height: 100%; background: var(--background);
+  }
+  .ep-header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: var(--sp-xs);
+    padding: var(--sp-sm) var(--sp-xs);
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(12px);
+    border-bottom: 0.5px solid var(--separator);
+    min-height: 52px;
+  }
+  .ep-header .back {
+    width: 44px; height: 44px; display: flex; align-items: center;
+    justify-content: center; color: var(--accent); flex: none;
+  }
+  .ep-header .titles { flex: 1; text-align: center; min-width: 0 }
+  .ep-header .titles .t {
+    font-size: 17px; font-weight: 600; line-height: 22px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ep-header .titles .s {
+    font-size: 13px; line-height: 18px; color: var(--secondary-text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ep-header .side { min-width: 44px; height: 44px; flex: none }
+  .ep-header .side.nav-action {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent); font-size: 17px; line-height: 22px;
+    padding: 0 var(--sp-xs); min-width: 60px; white-space: nowrap;
+  }
+
+  .content { flex: 1; padding: var(--sp-md) }
+
+  /* 끝나는 순간의 대화 화면 */
+  .ep-messages { display: flex; flex-direction: column; gap: var(--sp-md); padding: var(--sp-md) }
+  .msg-ai { font-size: 16px; line-height: 23px }
+  .msg-ai p { margin: 0 }
+  .user-row { display: flex; align-items: center; justify-content: flex-end; gap: 2px }
+  .msg-user {
+    max-width: 76%; background: var(--user-bubble); color: var(--on-user-bubble);
+    border-radius: 20px; padding: var(--sp-sm) var(--sp-md);
+    font-size: 16px; line-height: 23px;
+  }
+  .mark-status {
+    width: 44px; height: 44px; flex: none; display: flex;
+    align-items: center; justify-content: center; color: var(--success);
+  }
+  .goal-event {
+    display: flex; align-items: center; justify-content: center; gap: var(--sp-xs);
+    font-size: 13px; line-height: 18px; color: var(--success); padding: var(--sp-xxs) 0;
+  }
+  .goal-event .dot-check {
+    width: 16px; height: 16px; border-radius: 8px; flex: none;
+    background: var(--success); display: flex; align-items: center; justify-content: center;
+  }
+  .end-composer {
+    position: sticky; bottom: 0; z-index: 10;
+    padding: var(--sp-xs) var(--sp-md) var(--sp-xl);
+    background: var(--background); border-top: 0.5px solid var(--separator);
+  }
+  .end-composer .btn {
+    height: 50px; border-radius: 14px; background: var(--accent); color: #FFFFFF;
+    font-size: 16px; font-weight: 600; line-height: 20px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .end-note {
+    text-align: center; font-size: 13px; line-height: 18px;
+    color: var(--secondary-text); padding: var(--sp-sm) 0 var(--sp-xxs);
+  }
+
+  /* 결과 화면 */
+  .ep-name {
+    font-size: 14px; line-height: 20px; color: var(--secondary-text);
+    margin: var(--sp-xs) var(--sp-xxs) 2px;
+  }
+  .headline {
+    font-size: 22px; font-weight: 600; line-height: 30px;
+    margin: 0 var(--sp-xxs) var(--sp-lg);
+  }
+  .sec-title {
+    font-size: 13px; line-height: 18px; color: var(--secondary-text);
+    font-weight: 500; margin: 0 var(--sp-xxs) var(--sp-xs);
+  }
+
+  .goal-card { background: var(--surface); border-radius: 14px; padding: var(--sp-md); margin-bottom: var(--sp-xl) }
+  .goal-line { display: flex; align-items: center; gap: 10px; padding: 5px 0 }
+  .goal-line .txt { flex: 1; min-width: 0; font-size: 15px; line-height: 22px }
+  .goal-line.miss .txt { color: var(--secondary-text) }
+  .pip-done {
+    width: 20px; height: 20px; border-radius: 10px; flex: none;
+    background: var(--success); display: flex; align-items: center; justify-content: center;
+  }
+  .pip-miss { width: 20px; height: 20px; border-radius: 10px; flex: none; border: 1.5px solid var(--border) }
+
+  .review-card {
+    background: var(--surface); border-radius: 14px;
+    padding: var(--sp-md); margin-bottom: var(--sp-xl);
+    font-size: 15px; line-height: 23px;
+  }
+  .review-card b { font-weight: 600 }
+
+  .say-list { background: var(--surface); border-radius: 14px; padding: 2px var(--sp-md); margin-bottom: var(--sp-xl) }
+  .say-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: var(--sp-sm) 0; border-bottom: 0.5px solid var(--separator);
+    min-height: 44px;
+  }
+  .say-row:last-child { border-bottom: none }
+  .say-row .txt { flex: 1; min-width: 0; font-size: 15px; line-height: 22px }
+  .say-row .m { width: 24px; flex: none; display: flex; align-items: center; justify-content: center }
+  .say-row .m.ok { color: var(--success) }
+  .say-row .m.more { color: var(--secondary-text) }
+  .say-row .chev { color: var(--border); flex: none; display: flex }
+
+  .cta {
+    position: sticky; bottom: 0; z-index: 10;
+    padding: var(--sp-xs) var(--sp-md) var(--sp-xl);
+    background: var(--background); border-top: 0.5px solid var(--separator);
+    display: flex; flex-direction: column; gap: var(--sp-xs);
+  }
+  .cta .btn {
+    height: 50px; border-radius: 14px; background: var(--accent); color: #FFFFFF;
+    font-size: 16px; font-weight: 600; line-height: 20px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cta .btn.ghost { background: transparent; color: var(--accent) }
+</style>
+
+<header class="sh-bar">
+  <b>flyn 대화 종료</b>
+  <nav id="sh-tabs"></nav>
+  <span class="sh-spacer"></span>
+  <span id="sh-states" hidden></span>
+  <button id="sh-vp">vp: full (m)</button>
+</header>
+
+<main class="sh-stage">
+
+  <section data-screen="transition" data-title="대화가 끝나는 순간" data-states="목표 전부 달성,턴 소진">
+    <div class="ep-header" data-component="new:EpisodeHeader">
+      <div class="back" aria-label="뒤로">
+        <svg width="12" height="21" viewBox="0 0 12 21" fill="none"><path d="M10.5 1.5L2 10.5L10.5 19.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="titles">
+        <div class="t">공항에서 짐이 안 나왔을 때 항의하기</div>
+        <div class="s">수하물 담당 David · 짐을 잃은 여행객</div>
+      </div>
+      <div class="side"></div>
+    </div>
+
+    <div class="ep-messages" data-component="chat-conversation">
+      <div class="user-row">
+        <span class="mark-status" aria-label="그대로 잘 통했어요">
+          <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><path d="M3 9.6L7 13.4L15 4.6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <div class="msg-user">Could you call me when you find it?</div>
+      </div>
+
+      <div class="msg-ai" data-component="chat-markdown">
+        <p>Of course. I've got your number here — we'll call the moment it turns up. I'm really sorry about this.</p>
+      </div>
+
+      <div class="goal-event" data-when="목표 전부 달성">
+        <span class="dot-check"><svg width="9" height="7" viewBox="0 0 12 10" fill="none"><path d="M1.5 5L4.5 8L10.5 1.5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span>연락받을 방법 정하기 완료</span>
+      </div>
+    </div>
+
+    <div class="end-composer" data-component="new:EpisodeEndAction">
+      <div class="end-note" data-when="목표 전부 달성">목표를 모두 달성해서 대화가 끝났어요</div>
+      <div class="end-note" data-when="턴 소진">20턴을 다 써서 대화가 끝났어요</div>
+      <div class="btn">결과 보기</div>
+    </div>
+  </section>
+
+  <section data-screen="result" data-title="결과" data-states="전부 달성,일부 달성">
+    <div class="ep-header" data-component="new:EpisodeHeader">
+      <div class="back" aria-label="뒤로">
+        <svg width="12" height="21" viewBox="0 0 12 21" fill="none"><path d="M10.5 1.5L2 10.5L10.5 19.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="titles"></div>
+      <div class="side nav-action" data-component="new:RetryBarButton">다시 하기</div>
+    </div>
+
+    <div class="content">
+      <div class="ep-name">공항에서 짐이 안 나왔을 때 항의하기</div>
+      <div class="headline" data-when="전부 달성">목표 3개를 모두 해냈어요</div>
+      <div class="headline" data-when="일부 달성">목표 3개 중 2개를 해냈어요</div>
+
+      <div class="sec-title">이번 대화의 목표</div>
+      <div class="goal-card" data-component="new:GoalResultCard">
+        <div class="goal-line">
+          <span class="pip-done"><svg width="11" height="9" viewBox="0 0 12 10" fill="none"><path d="M1.5 5L4.5 8L10.5 1.5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="txt">짐이 안 나왔다고 알리기</span>
+        </div>
+        <div class="goal-line">
+          <span class="pip-done"><svg width="11" height="9" viewBox="0 0 12 10" fill="none"><path d="M1.5 5L4.5 8L10.5 1.5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="txt">가방 생김새 설명하기</span>
+        </div>
+        <div class="goal-line" data-when="전부 달성">
+          <span class="pip-done"><svg width="11" height="9" viewBox="0 0 12 10" fill="none"><path d="M1.5 5L4.5 8L10.5 1.5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="txt">연락받을 방법 정하기</span>
+        </div>
+        <div class="goal-line miss" data-when="일부 달성">
+          <span class="pip-miss"></span>
+          <span class="txt">연락받을 방법 정하기</span>
+        </div>
+      </div>
+
+      <div class="sec-title">이번 글쓰기</div>
+      <div class="review-card" data-component="new:WritingReviewCard">
+        상황을 설명하는 문장은 자연스러웠어요. 다만 <b>I want change</b>처럼 동사를
+        두 개 이어 쓸 때 <b>to</b>가 빠지는 경우가 두 번 있었어요. 다음엔
+        "무엇을 하고 싶다"고 말할 때 <b>want to</b>를 챙겨보세요.
+      </div>
+
+      <div class="sec-title">내가 쓴 문장 5개</div>
+      <div class="say-list" data-component="new:UtteranceReviewList">
+        <div class="say-row">
+          <span class="m more" aria-label="한글로 썼어요">
+            <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><path d="M2.4 5.4h7.2M6 3.2v2.2c0 2.9-1.5 5.1-3.9 6.1M8.4 11.9C7 11.4 5.8 10.3 5 8.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 15.4l3-7.2 3 7.2M10.6 13.1h3.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="txt">My suitcase didn't come out.</span>
+          <span class="chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1.5 1.5L6.5 7L1.5 12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="say-row">
+          <span class="m more" aria-label="더 자연스러운 표현이 있어요">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.7"/><path d="M12 10.7v6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="12" cy="7.7" r="1.05" fill="currentColor"/></svg>
+          </span>
+          <span class="txt">It's a big black bag, have wheels.</span>
+          <span class="chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1.5 1.5L6.5 7L1.5 12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="say-row">
+          <span class="m ok" aria-label="그대로 잘 통했어요">
+            <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><path d="M3 9.6L7 13.4L15 4.6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="txt">There's a red tag on the handle.</span>
+        </div>
+        <div class="say-row">
+          <span class="m more" aria-label="더 자연스러운 표현이 있어요">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.7"/><path d="M12 10.7v6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="12" cy="7.7" r="1.05" fill="currentColor"/></svg>
+          </span>
+          <span class="txt">I want change my flight time.</span>
+          <span class="chev"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1.5 1.5L6.5 7L1.5 12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="say-row">
+          <span class="m ok" aria-label="그대로 잘 통했어요">
+            <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><path d="M3 9.6L7 13.4L15 4.6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="txt">Could you call me when you find it?</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cta" data-component="new:EpisodeResultActions">
+      <div class="btn">새 에피소드 시작</div>
+      <div class="btn ghost">대화 보기</div>
+    </div>
+  </section>
+
+</main>
+
+<script>document.body.classList.add('sh-vp-390')</script>
+<script>
+  const stage = document.querySelector('.sh-stage');
+  const screens = [...stage.querySelectorAll('[data-screen]')];
+  const tabs = document.getElementById('sh-tabs');
+  const statebox = document.getElementById('sh-states');
+  const vpBtn = document.getElementById('sh-vp');
+  let current = null;
+
+  screens.forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s.dataset.title || s.dataset.screen;
+    b.dataset.for = s.dataset.screen;
+    b.onclick = () => show(s.dataset.screen);
+    tabs.append(b);
+  });
+
+  function show(slug) {
+    current = screens.find(s => s.dataset.screen === slug) || screens[0];
+    screens.forEach(s => s.hidden = s !== current);
+    [...tabs.children].forEach(b => b.classList.toggle('on', b.dataset.for === current.dataset.screen));
+    history.replaceState(null, '', '#' + current.dataset.screen);
+    buildStates();
+  }
+
+  function buildStates() {
+    const names = (current.dataset.states || '').split(',').map(x => x.trim()).filter(Boolean);
+    statebox.innerHTML = '';
+    statebox.hidden = !names.length;
+    names.forEach(name => {
+      const b = document.createElement('button');
+      b.textContent = name;
+      b.onclick = () => applyState(name);
+      statebox.append(b);
+    });
+    const q = new URLSearchParams(location.search).get('state');
+    applyState(q && names.includes(q) ? q : (names[0] || null));
+  }
+
+  function applyState(name) {
+    current.querySelectorAll('[data-when]').forEach(el => {
+      el.hidden = !name || !el.dataset.when.split(',').map(x => x.trim()).includes(name);
+    });
+    [...statebox.children].forEach(b => b.classList.toggle('on', b.textContent === name));
+  }
+
+  const VPS = ['full', '390', '768'];
+  let vp = VPS.find(v => document.body.classList.contains('sh-vp-' + v)) || 'full';
+  function applyVp() {
+    VPS.forEach(v => document.body.classList.toggle('sh-vp-' + v, v === vp && v !== 'full'));
+    vpBtn.textContent = 'vp: ' + vp + ' (m)';
+    vpBtn.classList.toggle('on', vp !== 'full');
+  }
+  vpBtn.onclick = () => { vp = VPS[(VPS.indexOf(vp) + 1) % VPS.length]; applyVp(); };
+  applyVp();
+
+  addEventListener('keydown', e => {
+    if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    const i = screens.indexOf(current);
+    if (e.key === 'ArrowRight') show(screens[(i + 1) % screens.length].dataset.screen);
+    if (e.key === 'ArrowLeft') show(screens[(i - 1 + screens.length) % screens.length].dataset.screen);
+    if (e.key === 'm') vpBtn.click();
+  });
+
+  addEventListener('hashchange', () => show(location.hash.slice(1)));
+  show(location.hash.slice(1));
+</script>
