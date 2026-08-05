@@ -190,6 +190,44 @@ export type Database = {
         }
         Relationships: []
       }
+      sentence_question_messages: {
+        Row: {
+          content: string
+          created_at: string
+          episode_id: string
+          id: string
+          message_id: string
+          role: string
+          status: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          episode_id: string
+          id: string
+          message_id: string
+          role: string
+          status?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          episode_id?: string
+          id?: string
+          message_id?: string
+          role?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sentence_question_messages_parent_fkey"
+            columns: ["episode_id", "message_id"]
+            isOneToOne: false
+            referencedRelation: "episode_messages"
+            referencedColumns: ["episode_id", "id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

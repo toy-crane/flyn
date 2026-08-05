@@ -129,6 +129,38 @@ create table public.message_feedback (
     check (cardinality(reasons) between 0 and 10)
 );
 
+-- 문장 질문에서 주고받은 말. **부모 발화를 참조한다** — 문장 질문은 문장당
+-- 하나뿐이라 방 테이블을 따로 두지 않는다. 롤플레잉이 아니라 학습 질문을
+-- 주고받는 자리라 episode_messages와 섞이지 않고 턴으로도 세지 않는다.
+create table public.sentence_question_messages (
+  -- AI SDK가 만든 ID를 그대로 받아 재요청의 멱등 키로 쓴다. 한 문장 안에서만
+  -- 유일하면 충분하다.
+  id text not null,
+  episode_id uuid not null,
+  message_id text not null,
+  role text not null,
+  content text not null,
+  status text not null default 'complete',
+  created_at timestamptz not null default now(),
+  primary key (episode_id, message_id, id),
+  -- 물어본 문장이 사라지면 그 문장에 대한 질문도 남을 자리가 없다.
+  constraint sentence_question_messages_parent_fkey
+    foreign key (episode_id, message_id)
+    references public.episode_messages (episode_id, id) on delete cascade,
+  constraint sentence_question_messages_id_length
+    check (char_length(id) between 1 and 128),
+  constraint sentence_question_messages_role
+    check (role in ('user', 'assistant')),
+  constraint sentence_question_messages_content_length
+    check (char_length(content) between 1 and 20000),
+  constraint sentence_question_messages_status
+    check (status in ('complete', 'stopped'))
+);
+
+-- 같은 문장에서 다시 열면 지난 내용이 이어서 나온다. 읽는 순서가 곧 이 인덱스다.
+create index sentence_question_messages_thread_idx
+  on public.sentence_question_messages (episode_id, message_id, created_at, id);
+
 -- 갱신 시각은 클라이언트가 보낼 수 없고 DB가 정한다.
 create function public.episodes_touch()
 returns trigger
@@ -168,6 +200,7 @@ alter table public.episodes enable row level security;
 alter table public.episode_goals enable row level security;
 alter table public.episode_messages enable row level security;
 alter table public.message_feedback enable row level security;
+alter table public.sentence_question_messages enable row level security;
 
 create policy "own episodes readable" on public.episodes
   for select to authenticated
@@ -211,6 +244,18 @@ create policy "own message feedback readable" on public.message_feedback
     )
   );
 
+create policy "own sentence question messages readable"
+  on public.sentence_question_messages
+  for select to authenticated
+  using (
+    exists (
+      select 1
+      from public.episodes
+      where episodes.id = sentence_question_messages.episode_id
+        and episodes.user_id = (select auth.uid())
+    )
+  );
+
 -- 정책은 어느 행을 만지는지만 가른다. 앱이 AI가 만든 값을 직접 쓰지 못하게 막는
 -- 것은 아래 grant다.
 revoke all on table public.episodes from anon, authenticated;
@@ -231,6 +276,11 @@ grant select on table public.episode_messages to authenticated;
 revoke all on table public.message_feedback from anon, authenticated;
 grant select on table public.message_feedback to authenticated;
 
+-- 문장 질문의 답도 모델이 낸다. 앱이 쓸 수 있으면 오가지 않은 말을 남길 수
+-- 있고, revoke를 빼면 기본 권한으로 지난 질문을 통째로 truncate할 수 있다.
+revoke all on table public.sentence_question_messages from anon, authenticated;
+grant select on table public.sentence_question_messages to authenticated;
+
 grant select, insert, update, delete
   on table public.episodes to service_role;
 grant select, insert, update, delete
@@ -239,3 +289,5 @@ grant select, insert, update, delete
   on table public.episode_messages to service_role;
 grant select, insert, update, delete
   on table public.message_feedback to service_role;
+grant select, insert, update, delete
+  on table public.sentence_question_messages to service_role;

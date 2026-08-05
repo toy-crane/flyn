@@ -5,7 +5,7 @@
 -- 없애도 초록이 되므로, 각 경계의 양성 대조도 함께 둔다.
 
 begin;
-select plan(48);
+select plan(59);
 
 select tests.create_supabase_user('episode-alice');
 select tests.create_supabase_user('episode-bob');
@@ -14,6 +14,9 @@ select has_table('public', 'episodes', '에피소드 테이블이 존재한다')
 select has_table('public', 'episode_goals', '에피소드 목표 테이블이 존재한다');
 select has_table('public', 'episode_messages', '에피소드 메시지 테이블이 존재한다');
 select has_table('public', 'message_feedback', '판정 테이블이 존재한다');
+select has_table(
+  'public', 'sentence_question_messages', '문장 질문 테이블이 존재한다'
+);
 select hasnt_table('public', 'chat_rooms', '채팅방 테이블은 남아 있지 않다');
 select hasnt_table('public', 'chat_messages', '채팅 메시지 테이블은 남아 있지 않다');
 
@@ -37,6 +40,16 @@ select table_privs_are(
 select table_privs_are(
   'public', 'message_feedback', 'anon', array[]::text[],
   '미로그인 역할에는 판정 권한이 없다'
+);
+
+select table_privs_are(
+  'public', 'sentence_question_messages', 'authenticated', array['SELECT'],
+  '앱 역할은 문장 질문을 읽기만 할 수 있다'
+);
+
+select table_privs_are(
+  'public', 'sentence_question_messages', 'anon', array[]::text[],
+  '미로그인 역할에는 문장 질문 권한이 없다'
 );
 
 set local role postgres;
@@ -80,6 +93,38 @@ values (
   '오늘 커피 뭐가 좋아요?', 'improvable',
   'What would you recommend today?',
   array['원어민은 recommend 앞에 would를 붙여 부드럽게 물어요.']
+);
+
+-- 문장 질문은 그 문장 하나에 딸린다. 방 테이블 없이 부모 발화가 곧 자리다.
+insert into public.sentence_question_messages (
+  id, episode_id, message_id, role, content
+)
+values
+  ('question-1', '00000000-0000-0000-0000-0000000000a1', 'user-1', 'user',
+   'recommend 앞에 would를 왜 붙여요?'),
+  ('answer-1', '00000000-0000-0000-0000-0000000000a1', 'user-1', 'assistant',
+   'would를 붙이면 부탁이 부드러워져요.');
+
+select throws_ok(
+  $$insert into public.sentence_question_messages (
+      id, episode_id, message_id, role, content
+    )
+    values ('question-404', '00000000-0000-0000-0000-0000000000a1',
+            'user-404', 'user', '없는 문장에 묻기')$$,
+  '23503',
+  null,
+  '없는 발화에는 문장 질문을 남길 수 없다'
+);
+
+select throws_ok(
+  $$insert into public.sentence_question_messages (
+      id, episode_id, message_id, role, content
+    )
+    values ('question-2', '00000000-0000-0000-0000-0000000000a1',
+            'user-1', 'system', '끼어든 지시')$$,
+  '23514',
+  null,
+  '문장 질문의 역할도 user·assistant 둘뿐이다'
 );
 
 -- 달성한 목표는 어느 발화에서 달성했는지를 함께 갖는다.
@@ -256,6 +301,14 @@ select is(
   '사용자는 자기 발화의 판정을 볼 수 있다'
 );
 
+-- 나갔다 같은 문장에서 다시 열면 지난 내용이 이어서 나온다.
+select is(
+  (select count(*)::int from public.sentence_question_messages
+   where message_id = 'user-1'),
+  2,
+  '사용자는 그 문장에서 지난번에 주고받은 말을 볼 수 있다'
+);
+
 select throws_ok(
   $$insert into public.episodes (
       user_id, scenario_title, scenario_description,
@@ -362,6 +415,33 @@ select throws_ok(
   '앱은 판정을 통째로 비울 수 없다'
 );
 
+-- 문장 질문의 답도 모델이 낸다. 앱이 쓸 수 있으면 오가지 않은 말을 남길 수 있다.
+select throws_ok(
+  $$insert into public.sentence_question_messages (
+      id, episode_id, message_id, role, content
+    )
+    values ('answer-2', '00000000-0000-0000-0000-0000000000a1',
+            'user-1', 'assistant', '앱이 남긴 답')$$,
+  '42501',
+  'permission denied for table sentence_question_messages',
+  '앱은 문장 질문을 남길 수 없다'
+);
+
+select throws_ok(
+  $$delete from public.sentence_question_messages
+    where episode_id = '00000000-0000-0000-0000-0000000000a1'$$,
+  '42501',
+  'permission denied for table sentence_question_messages',
+  '앱은 문장 질문을 지울 수 없다'
+);
+
+select throws_ok(
+  $$truncate public.sentence_question_messages$$,
+  '42501',
+  'permission denied for table sentence_question_messages',
+  '앱은 문장 질문을 통째로 비울 수 없다'
+);
+
 delete from public.episodes
 where id = '00000000-0000-0000-0000-0000000000b1';
 
@@ -406,6 +486,13 @@ select is(
   '에피소드를 지우면 판정도 cascade된다'
 );
 
+select is(
+  (select count(*)::int from public.sentence_question_messages
+   where episode_id = '00000000-0000-0000-0000-0000000000a1'),
+  0,
+  '에피소드를 지우면 문장 질문도 cascade된다'
+);
+
 select tests.clear_authentication();
 
 select throws_ok(
@@ -434,6 +521,13 @@ select throws_ok(
   '42501',
   'permission denied for table message_feedback',
   '미로그인 사용자는 판정을 읽을 수 없다'
+);
+
+select throws_ok(
+  $$select count(*) from public.sentence_question_messages$$,
+  '42501',
+  'permission denied for table sentence_question_messages',
+  '미로그인 사용자는 문장 질문을 읽을 수 없다'
 );
 
 set local role postgres;
