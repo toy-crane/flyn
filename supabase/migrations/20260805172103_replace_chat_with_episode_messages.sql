@@ -29,6 +29,8 @@ ALTER TABLE public.episode_messages ADD CONSTRAINT episode_messages_id_length CH
 ALTER TABLE public.episode_messages ADD CONSTRAINT episode_messages_pkey PRIMARY KEY (episode_id, id);
 ALTER TABLE public.episode_messages ADD CONSTRAINT episode_messages_role CHECK (role = ANY (ARRAY['user'::text, 'assistant'::text]));
 ALTER TABLE public.episode_messages ADD CONSTRAINT episode_messages_status CHECK (status = ANY (ARRAY['complete'::text, 'stopped'::text]));
+REVOKE ALL ON public.episode_messages FROM anon;
+REVOKE ALL ON public.episode_messages FROM authenticated;
 GRANT SELECT ON public.episode_messages TO authenticated;
 GRANT ALL ON public.episode_messages TO service_role;
 CREATE INDEX episode_messages_episode_created_idx ON public.episode_messages (episode_id, created_at, id);

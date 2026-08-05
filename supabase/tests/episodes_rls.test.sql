@@ -5,7 +5,7 @@
 -- 없애도 초록이 되므로, 각 경계의 양성 대조도 함께 둔다.
 
 begin;
-select plan(30);
+select plan(33);
 
 select tests.create_supabase_user('episode-alice');
 select tests.create_supabase_user('episode-bob');
@@ -15,6 +15,18 @@ select has_table('public', 'episode_goals', '에피소드 목표 테이블이 �
 select has_table('public', 'episode_messages', '에피소드 메시지 테이블이 존재한다');
 select hasnt_table('public', 'chat_rooms', '채팅방 테이블은 남아 있지 않다');
 select hasnt_table('public', 'chat_messages', '채팅 메시지 테이블은 남아 있지 않다');
+
+-- RLS는 TRUNCATE를 가르지 않는다. 새 테이블에 딸려 오는 기본 권한을 revoke하지
+-- 않으면 앱 역할이 대화를 통째로 비울 수 있으므로, 권한 집합 자체를 고정한다.
+select table_privs_are(
+  'public', 'episode_messages', 'authenticated', array['SELECT'],
+  '앱 역할은 대화를 읽기만 할 수 있다'
+);
+
+select table_privs_are(
+  'public', 'episode_messages', 'anon', array[]::text[],
+  '미로그인 역할에는 대화 권한이 없다'
+);
 
 set local role postgres;
 -- 어제 만든 에피소드다. 한 트랜잭션 안에서는 now()가 고정이라, 어제로 심어야
@@ -212,6 +224,13 @@ select throws_ok(
   '42501',
   'permission denied for table episode_messages',
   '앱은 메시지만 따로 지울 수 없다'
+);
+
+select throws_ok(
+  $$truncate public.episode_messages$$,
+  '42501',
+  'permission denied for table episode_messages',
+  '앱은 대화를 통째로 비울 수 없다'
 );
 
 delete from public.episodes
