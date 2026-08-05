@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react-native";
 const mockUseChat = jest.fn();
 const mockTransport = jest.fn((options) => ({ options }));
 const mockInvalidateQueries = jest.fn();
+const mockSetQueryData = jest.fn();
 const mockGetSession = jest.fn();
 
 function MockDefaultChatTransport(options: unknown) {
@@ -18,14 +19,21 @@ jest.mock("ai", () => ({
 }));
 jest.mock("expo/fetch", () => ({ fetch: jest.fn() }));
 jest.mock("@tanstack/react-query", () => ({
-  useQueryClient: () => ({ invalidateQueries: mockInvalidateQueries }),
+  useQueryClient: () => ({
+    invalidateQueries: mockInvalidateQueries,
+    setQueryData: mockSetQueryData,
+  }),
 }));
 jest.mock("./supabase", () => ({
   supabase: { auth: { getSession: () => mockGetSession() } },
 }));
 
 import type { Episode, EpisodeGoal, EpisodeMessage } from "./episodes";
+import type { MessageFeedback } from "./message-feedback";
 import { useEpisodeConversation } from "./use-episode-conversation";
+
+/** 저장된 판정이 없는 상태가 기본이다 — 그때는 표시도 없다. */
+const FEEDBACK: MessageFeedback[] = [];
 
 const sendMessage = jest.fn();
 const regenerate = jest.fn();
@@ -125,7 +133,7 @@ beforeEach(() => {
 describe("에피소드 대화 transport", () => {
   it("저장된 대화를 초기 UI 상태로 복원한다", async () => {
     await renderHook(() =>
-      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES)
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES, FEEDBACK)
     );
 
     const options = mockUseChat.mock.calls[0]?.[0];
@@ -157,7 +165,8 @@ describe("에피소드 대화 transport", () => {
       useEpisodeConversation(
         episode({ id: "episode/1" }),
         "account-1",
-        STORED_MESSAGES
+        STORED_MESSAGES,
+        FEEDBACK
       )
     );
 
@@ -198,7 +207,7 @@ describe("말풍선에 남는 문장", () => {
     mockUseChat.mockReturnValue(chatState({ messages: [typed] }));
 
     const { result } = await renderHook(() =>
-      useEpisodeConversation(episode(), "account-1", [])
+      useEpisodeConversation(episode(), "account-1", [], FEEDBACK)
     );
     const options = mockUseChat.mock.calls[0]?.[0];
 
@@ -237,7 +246,7 @@ describe("말풍선에 남는 문장", () => {
     );
 
     const { result } = await renderHook(() =>
-      useEpisodeConversation(episode(), "account-1", [])
+      useEpisodeConversation(episode(), "account-1", [], FEEDBACK)
     );
     const options = mockUseChat.mock.calls[0]?.[0];
 
@@ -257,12 +266,119 @@ describe("말풍선에 남는 문장", () => {
   });
 });
 
+describe("말풍선의 세 표시", () => {
+  const JUDGED: MessageFeedback[] = [
+    {
+      delivered: "Could you recommend today's coffee?",
+      improvedSentence: null,
+      messageId: "user-1",
+      reasons: [],
+      // 한글로 썼으므로 내가 쓴 말과 전달된 문장이 다르다.
+      sourceText: "오늘 커피 뭐가 좋아요?",
+      verdict: "clear",
+    },
+    {
+      delivered: "Sound good. make it oat milk?",
+      improvedSentence: "Sounds good. Can you make it with oat milk?",
+      messageId: "user-2",
+      reasons: ["Sound good은 Sounds good이 자연스러워요."],
+      sourceText: "Sound good. make it oat milk?",
+      verdict: "improvable",
+    },
+    {
+      delivered: "That's all, thanks!",
+      improvedSentence: null,
+      messageId: "user-3",
+      reasons: [],
+      sourceText: "That's all, thanks!",
+      verdict: "clear",
+    },
+  ];
+
+  function userMessage(id: string, text: string) {
+    return { id, parts: [{ text, type: "text" }], role: "user" };
+  }
+
+  it("판정 결과대로 번역·교정·통과 표시가 갈린다", async () => {
+    mockUseChat.mockReturnValue(
+      chatState({
+        messages: [
+          userMessage("user-1", "Could you recommend today's coffee?"),
+          userMessage("user-2", "Sound good. make it oat milk?"),
+          userMessage("user-3", "That's all, thanks!"),
+        ],
+      })
+    );
+
+    const { result } = await renderHook(() =>
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES, JUDGED)
+    );
+
+    expect(
+      result.current.chat.messages.map((item) =>
+        item.kind === "message" ? item.mark : null
+      )
+    ).toEqual(["translated", "improvable", "clear"]);
+  });
+
+  it("판정이 아직 없는 발화에는 표시가 없다", async () => {
+    mockUseChat.mockReturnValue(
+      chatState({
+        messages: [
+          userMessage("user-1", "Could you recommend today's coffee?"),
+          userMessage("user-9", "Anything else?"),
+        ],
+      })
+    );
+
+    const { result } = await renderHook(() =>
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES, JUDGED)
+    );
+    const [, pending] = result.current.chat.messages;
+
+    expect(pending).toEqual(
+      expect.objectContaining({ id: "user-9", role: "user" })
+    );
+    expect(pending && "mark" in pending).toBe(false);
+  });
+
+  it("도착한 판정을 시트가 읽는 자리에 얹는다", async () => {
+    mockUseChat.mockReturnValue(chatState({ messages: STORED_UI_MESSAGES }));
+    await renderHook(() =>
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES, JUDGED)
+    );
+    const options = mockUseChat.mock.calls[0]?.[0];
+    const arrived = {
+      delivered: "One oat latte please",
+      improvedSentence: null,
+      messageId: "user-4",
+      reasons: [],
+      sourceText: "One oat latte please",
+      verdict: "clear" as const,
+    };
+
+    await act(() => {
+      options.onData({
+        data: { goals: [], sentences: [arrived] },
+        type: "data-judgment",
+      });
+    });
+
+    const [key, update] = mockSetQueryData.mock.calls[0] ?? [];
+
+    expect(key).toEqual(["episode-feedback", "episode-1"]);
+    // 저장에서 읽은 판정 위에 얹히고, 같은 발화가 두 번 오면 먼저 것을 둔다.
+    expect(update(JUDGED.slice(0, 1))).toEqual([JUDGED[0], arrived]);
+    expect(update([...JUDGED, arrived])).toEqual([...JUDGED, arrived]);
+  });
+});
+
 describe("목표 달성 기록", () => {
   it("판정이 도착하면 완료 줄이 그 발화의 턴 끝에 서고 목표가 넘어간다", async () => {
     mockUseChat.mockReturnValue(chatState({ messages: STORED_UI_MESSAGES }));
 
     const { result } = await renderHook(() =>
-      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES)
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES, FEEDBACK)
     );
     const options = mockUseChat.mock.calls[0]?.[0];
 
@@ -281,6 +397,7 @@ describe("목표 달성 기록", () => {
               position: 1,
             },
           ],
+          sentences: [],
         },
         type: "data-judgment",
       });
@@ -328,7 +445,8 @@ describe("목표 달성 기록", () => {
           ],
         }),
         "account-1",
-        STORED_MESSAGES
+        STORED_MESSAGES,
+        FEEDBACK
       )
     );
 
@@ -344,7 +462,7 @@ describe("목표 달성 기록", () => {
     mockUseChat.mockReturnValue(chatState({ messages: STORED_UI_MESSAGES }));
 
     const { result } = await renderHook(() =>
-      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES)
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES, FEEDBACK)
     );
 
     expect(
@@ -359,7 +477,7 @@ describe("목표 달성 기록", () => {
 describe("에피소드 대화 controller", () => {
   it("입력을 정리해 보내고 composer를 비운다", async () => {
     const { result } = await renderHook(() =>
-      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES)
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES, FEEDBACK)
     );
 
     await act(() => {
@@ -393,7 +511,7 @@ describe("에피소드 대화 controller", () => {
     );
 
     const { result } = await renderHook(() =>
-      useEpisodeConversation(episode(), "account-1", [])
+      useEpisodeConversation(episode(), "account-1", [], FEEDBACK)
     );
 
     await waitFor(() => {
@@ -411,7 +529,7 @@ describe("에피소드 대화 controller", () => {
       chatState({ error: new Error("failed"), status: "error" })
     );
     const { result } = await renderHook(() =>
-      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES)
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES, FEEDBACK)
     );
 
     await act(() => {
@@ -431,7 +549,9 @@ describe("에피소드 대화 controller", () => {
       role: "assistant",
     };
     mockUseChat.mockReturnValue(chatState({ messages: [assistant] }));
-    await renderHook(() => useEpisodeConversation(episode(), "account-1", []));
+    await renderHook(() =>
+      useEpisodeConversation(episode(), "account-1", [], FEEDBACK)
+    );
     const options = mockUseChat.mock.calls[0]?.[0];
 
     await act(() => {
@@ -448,6 +568,7 @@ describe("에피소드 대화 controller", () => {
       mockInvalidateQueries.mock.calls.map(([call]) => call.queryKey)
     ).toEqual([
       ["episode-messages", "episode-1"],
+      ["episode-feedback", "episode-1"],
       ["episode", "episode-1"],
       ["episodes", "account-1"],
     ]);

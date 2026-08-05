@@ -18,8 +18,13 @@ import {
   type EpisodeMessage,
   usedTurns,
 } from "../../lib/episodes";
+import type { MessageFeedback } from "../../lib/message-feedback";
 import { useEpisodeConversation } from "../../lib/use-episode-conversation";
-import { useEpisode, useEpisodeMessages } from "../../lib/use-episodes";
+import {
+  useEpisode,
+  useEpisodeFeedback,
+  useEpisodeMessages,
+} from "../../lib/use-episodes";
 import { useUserId } from "../../lib/user-id";
 import { useTheme } from "../../theme/app-theme";
 import { spacing } from "../../theme/tokens";
@@ -50,16 +55,34 @@ function roleSubtitle(episode: Episode) {
 
 function RoleplaySession({
   episode,
+  feedback,
   messages,
   userId,
 }: {
   episode: Episode;
+  feedback: MessageFeedback[];
   messages: EpisodeMessage[];
   userId: string;
 }) {
+  const router = useRouter();
   // 목표는 판정이 스트림으로 알려 오는 대로 바뀐다. 저장이 다시 읽히기를
   // 기다리지 않아야 달성 즉시 다음 목표로 넘어간다.
-  const { chat, goals } = useEpisodeConversation(episode, userId, messages);
+  const { chat, goals } = useEpisodeConversation(
+    episode,
+    userId,
+    messages,
+    feedback
+  );
+  // 표시를 누르면 첨삭 시트 하나가 열린다. 시트가 읽을 판정은 이미 캐시에 있다.
+  const openFeedback = useCallback(
+    (messageId: string) => {
+      router.push({
+        params: { episodeId: episode.id, messageId },
+        pathname: "/episodes/feedback",
+      });
+    },
+    [episode.id, router]
+  );
 
   return (
     <ChatConversation
@@ -75,6 +98,7 @@ function RoleplaySession({
       listHeader={
         <EpisodeContextCard description={episode.scenario_description} />
       }
+      onMarkPress={openFeedback}
       // 한글 입력은 막힐 때 쓰는 비상구다. 문구가 앞세우지 않는다.
       placeholder="영어로 써 보세요"
     />
@@ -128,6 +152,8 @@ export default function EpisodeConversationScreen() {
     : (params.id ?? "");
   const episode = useEpisode(episodeId);
   const messages = useEpisodeMessages(episodeId);
+  // 판정은 대화를 막지 않는다. 늦게 와도 표시만 나중에 채워진다.
+  const feedback = useEpisodeFeedback(episodeId);
 
   const retry = useCallback(() => {
     episode.refetch();
@@ -162,6 +188,7 @@ export default function EpisodeConversationScreen() {
     content = (
       <RoleplaySession
         episode={episode.data}
+        feedback={feedback.data ?? []}
         messages={messages.data ?? []}
         userId={userId}
       />

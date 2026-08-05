@@ -228,7 +228,7 @@ describe("스트리밍 대화 표면", () => {
     ).toBeNull();
   });
 
-  it("말풍선 곁의 표시는 44pt 고정 열에 자리를 비워 둔다", async () => {
+  it("판정이 아직 없으면 44pt 고정 열이 비어 있다", async () => {
     await render(<ChatConversation chat={controller()} />);
 
     expect(screen.getByTestId("user-message-mark")).toHaveStyle({
@@ -236,6 +236,123 @@ describe("스트리밍 대화 표면", () => {
       width: 44,
     });
     expect(screen.getByTestId("user-message-mark")).toBeEmptyElement();
+  });
+
+  it("판정이 나중에 채워져도 말풍선은 같은 자리에 있다", async () => {
+    const { rerender } = await render(
+      <ChatConversation chat={controller()} onMarkPress={jest.fn()} />
+    );
+    const before = screen.getByTestId("user-message-mark").props.style;
+
+    await rerender(
+      <ChatConversation
+        chat={controller({
+          messages: [
+            {
+              content: "사용자 질문",
+              id: "user-1",
+              kind: "message",
+              mark: "improvable",
+              role: "user",
+              status: "complete",
+            },
+          ],
+        })}
+        onMarkPress={jest.fn()}
+      />
+    );
+
+    // 열의 크기는 그대로고 안에 값만 들어선다.
+    expect(screen.getByTestId("user-message-mark").props.style).toEqual(before);
+    expect(screen.getByTestId("user-message-mark")).not.toBeEmptyElement();
+    expect(screen.getByText("사용자 질문")).toBeTruthy();
+  });
+
+  it("누를 수 있는 두 표시만 버튼이고 44pt를 다 쓴다", async () => {
+    const onMarkPress = jest.fn();
+    await render(
+      <ChatConversation
+        chat={controller({
+          messages: [
+            {
+              content: "한글로 쓴 발화",
+              id: "user-1",
+              kind: "message",
+              mark: "translated",
+              role: "user",
+              status: "complete",
+            },
+            {
+              content: "더 자연스럽게 쓸 여지가 있는 발화",
+              id: "user-2",
+              kind: "message",
+              mark: "improvable",
+              role: "user",
+              status: "complete",
+            },
+            {
+              content: "그대로 통한 발화",
+              id: "user-3",
+              kind: "message",
+              mark: "clear",
+              role: "user",
+              status: "complete",
+            },
+          ],
+        })}
+        onMarkPress={onMarkPress}
+      />
+    );
+
+    const translated = screen.getByTestId("message-mark-translated");
+    const improvable = screen.getByTestId("message-mark-improvable");
+    const clear = screen.getByTestId("message-mark-clear");
+
+    expect(translated).toHaveStyle({ height: 44, width: 44 });
+    expect(improvable).toHaveStyle({ height: 44, width: 44 });
+    expect(clear).toHaveStyle({ height: 44, width: 44 });
+    expect(within(translated).getByText("translate")).toBeTruthy();
+    expect(within(improvable).getByText("info.circle")).toBeTruthy();
+    // 상태 표시인 체크는 배경 없는 플랫 아이콘이라 원형 버튼이 없다.
+    expect(within(clear).getByText("checkmark")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "그대로 잘 통했어요" })
+    ).toBeNull();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "한글로 쓴 문장 보기" })
+    );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "더 자연스러운 표현 보기" })
+    );
+
+    expect(onMarkPress.mock.calls).toEqual([["user-1"], ["user-2"]]);
+  });
+
+  it("말풍선 본문을 눌러서는 아무 일도 일어나지 않는다", async () => {
+    const onMarkPress = jest.fn();
+    await render(
+      <ChatConversation
+        chat={controller({
+          messages: [
+            {
+              content: "사용자 질문",
+              id: "user-1",
+              kind: "message",
+              mark: "improvable",
+              role: "user",
+              status: "complete",
+            },
+          ],
+        })}
+        onMarkPress={onMarkPress}
+      />
+    );
+
+    await fireEvent.press(screen.getByTestId("user-message"));
+
+    expect(onMarkPress).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "사용자 질문" })).toBeNull();
   });
 
   it("맨 아래에서는 목록이 스트리밍 높이 변화를 애니메이션 없이 따라간다", async () => {

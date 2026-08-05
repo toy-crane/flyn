@@ -1,5 +1,8 @@
 export const queryKeys = {
   episode: (episodeId: string) => ["episode", episodeId] as const,
+  // 표시와 첨삭 시트가 함께 읽는 자리다. 시트는 이 캐시만 보고 열린다.
+  episodeFeedback: (episodeId: string) =>
+    ["episode-feedback", episodeId] as const,
   episodeMessages: (episodeId: string) =>
     ["episode-messages", episodeId] as const,
   episodes: (userId: string) => ["episodes", userId] as const,

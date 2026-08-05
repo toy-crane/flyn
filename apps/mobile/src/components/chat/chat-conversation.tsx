@@ -38,9 +38,11 @@ import Reanimated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { MessageMark } from "../../lib/message-feedback";
 import { useTheme } from "../../theme/app-theme";
 import { spacing } from "../../theme/tokens";
 import { ChatMarkdown } from "./chat-markdown";
+import { MARK_COLUMN_SIZE, MessageMarkView } from "./message-mark";
 import { StreamingMessage } from "./streaming-message";
 import type { StreamingStore } from "./streaming-store";
 
@@ -132,8 +134,8 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
   },
   markColumn: {
-    height: 44,
-    width: 44,
+    height: MARK_COLUMN_SIZE,
+    width: MARK_COLUMN_SIZE,
   },
   note: {
     alignItems: "center",
@@ -207,6 +209,8 @@ export interface DisplayChatMessage {
   content: string;
   id: string;
   kind: "message";
+  /** 판정이 아직 없으면 비어 있다. 자리는 그대로 두고 값만 나중에 채운다. */
+  mark?: MessageMark;
   role: "assistant" | "user";
   status: "complete" | "stopped";
 }
@@ -243,16 +247,30 @@ function isGeneratingStatus(status: ChatStatus) {
   return status === "submitted" || status === "streaming";
 }
 
-function UserMessage({ content }: { content: string }) {
+/**
+ * 말풍선 본문은 누를 것이 아니다. 표시 없는 탭은 발견되지 않으므로 여는 일은
+ * 곁의 표시가 맡고, 본문은 애플 메시지처럼 눌러도 아무 일이 없다.
+ */
+function UserMessage({
+  content,
+  mark,
+  onMarkPress,
+}: {
+  content: string;
+  mark?: MessageMark;
+  onMarkPress?: () => void;
+}) {
   const { colors, typography } = useTheme();
 
   return (
     <View style={styles.userRow} testID="user-message-row">
       {/*
-       * 말풍선 곁의 표시는 본문이 아니라 44pt 고정 열에 둔다. 늦게 도착하는
-       * 값이 붙어도 레이아웃이 흔들리지 않는다. 지금은 비어 있다.
+       * 말풍선 곁의 표시는 본문이 아니라 44pt 고정 열에 둔다. 판정이 늦게
+       * 도착해 표시가 나중에 채워져도 말풍선은 제자리에 있다.
        */}
-      <View style={styles.markColumn} testID="user-message-mark" />
+      <View style={styles.markColumn} testID="user-message-mark">
+        {mark ? <MessageMarkView mark={mark} onPress={onMarkPress} /> : null}
+      </View>
       <View
         style={[styles.userMessage, { backgroundColor: colors.userBubble }]}
         testID="user-message"
@@ -468,11 +486,14 @@ export function ChatConversation({
   chat,
   dock,
   listHeader,
+  onMarkPress,
   placeholder = "메시지 보내기",
 }: {
   chat: ChatController;
   dock?: ReactNode;
   listHeader?: ReactElement | null;
+  /** 표시를 눌렀을 때 무엇이 열리는지는 화면이 정한다. */
+  onMarkPress?: (messageId: string) => void;
   placeholder?: string;
 }) {
   const insets = useSafeAreaInsets();
@@ -533,7 +554,13 @@ export function ChatConversation({
       }
 
       if (item.role === "user") {
-        return <UserMessage content={item.content} />;
+        return (
+          <UserMessage
+            content={item.content}
+            mark={item.mark}
+            onMarkPress={onMarkPress ? () => onMarkPress(item.id) : undefined}
+          />
+        );
       }
 
       // 본문이 빈 AI 메시지는 지금 받고 있는 응답 하나뿐이다. 늦게 도착한
@@ -549,7 +576,7 @@ export function ChatConversation({
         />
       );
     },
-    [chat.status, chat.streamingStore]
+    [chat.status, chat.streamingStore, onMarkPress]
   );
 
   return (

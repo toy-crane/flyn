@@ -17,6 +17,12 @@ import {
   orderedGoals,
   withAchievements,
 } from "./episodes";
+import {
+  findFeedback,
+  type MessageFeedback,
+  messageMark,
+  withArrivedFeedback,
+} from "./message-feedback";
 import { queryKeys } from "./query-keys";
 import { supabase } from "./supabase";
 
@@ -97,12 +103,14 @@ function createTransport(episodeId: string) {
 function toDisplayMessages({
   delivered,
   episodeId,
+  feedback,
   isGenerating,
   messages,
   stoppedMessageIds,
 }: {
   delivered: Record<string, string>;
   episodeId: string;
+  feedback: MessageFeedback[];
   isGenerating: boolean;
   messages: EpisodeUiMessage[];
   stoppedMessageIds: Set<string>;
@@ -127,12 +135,16 @@ function toDisplayMessages({
       }
 
       const storedStatus = message.metadata?.status;
+      // 판정이 아직 없는 발화에는 표시가 없다. 행이 없음이 곧 판정 전이다.
+      const judged =
+        message.role === "user" ? findFeedback(feedback, message.id) : null;
 
       return [
         {
           content: streaming ? "" : content,
           id: message.id,
           kind: "message" as const,
+          ...(judged ? { mark: messageMark(judged) } : {}),
           role: message.role,
           status:
             storedStatus === "stopped" || stoppedMessageIds.has(message.id)
@@ -202,7 +214,8 @@ function withGoalNotes(
 export function useEpisodeConversation(
   episode: Episode,
   userId: string,
-  storedMessages: EpisodeMessage[]
+  storedMessages: EpisodeMessage[],
+  feedback: MessageFeedback[]
 ): EpisodeConversation {
   const episodeId = episode.id;
   const queryClient = useQueryClient();
@@ -226,6 +239,9 @@ export function useEpisodeConversation(
       queryKey: queryKeys.episodeMessages(episodeId),
     });
     queryClient.invalidateQueries({
+      queryKey: queryKeys.episodeFeedback(episodeId),
+    });
+    queryClient.invalidateQueries({
       queryKey: queryKeys.episode(episodeId),
     });
     // 대화를 이어간 에피소드가 홈에서 가장 최근이 된다.
@@ -246,7 +262,7 @@ export function useEpisodeConversation(
 
       // 판정은 응답보다 늦게 올 수 있다. 도착하는 즉시 목표를 넘긴다.
       if (part.type === "data-judgment") {
-        const { goals } = part.data;
+        const { goals, sentences } = part.data;
 
         setAchievements((current) => {
           const next = { ...current };
@@ -257,6 +273,12 @@ export function useEpisodeConversation(
 
           return next;
         });
+        // 표시와 첨삭 시트가 같은 자리를 읽는다. 저장을 다시 읽기 전에 여기에
+        // 얹어야 시트가 지금 도착한 판정도 부르지 않고 연다.
+        queryClient.setQueryData<MessageFeedback[]>(
+          queryKeys.episodeFeedback(episodeId),
+          (current = []) => withArrivedFeedback(current, sentences)
+        );
       }
     },
     onError: refreshStoredEpisode,
@@ -298,6 +320,7 @@ export function useEpisodeConversation(
         toDisplayMessages({
           delivered,
           episodeId,
+          feedback,
           isGenerating,
           messages: chat.messages,
           stoppedMessageIds,
@@ -308,6 +331,7 @@ export function useEpisodeConversation(
       chat.messages,
       delivered,
       episodeId,
+      feedback,
       goals,
       isGenerating,
       stoppedMessageIds,

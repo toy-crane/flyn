@@ -10,16 +10,18 @@ jest.mock("expo-router", () =>
 );
 jest.mock("../../components/chat/chat-conversation", () => {
   const ReactRuntime = require("react");
-  const { Text, View } = require("react-native");
+  const { Pressable, Text, View } = require("react-native");
 
   return {
     ChatConversation: ({
       dock,
       listHeader,
+      onMarkPress,
       placeholder,
     }: {
       dock: unknown;
       listHeader: unknown;
+      onMarkPress?: (messageId: string) => void;
       placeholder: string;
     }) =>
       ReactRuntime.createElement(
@@ -31,6 +33,10 @@ jest.mock("../../components/chat/chat-conversation", () => {
           listHeader
         ),
         ReactRuntime.createElement(View, { testID: "surface-dock" }, dock),
+        ReactRuntime.createElement(Pressable, {
+          onPress: () => onMarkPress?.("user-1"),
+          testID: "surface-mark",
+        }),
         ReactRuntime.createElement(
           Text,
           { testID: "surface-placeholder" },
@@ -41,6 +47,7 @@ jest.mock("../../components/chat/chat-conversation", () => {
 });
 jest.mock("../../lib/use-episodes", () => ({
   useEpisode: jest.fn(),
+  useEpisodeFeedback: jest.fn(),
   useEpisodeMessages: jest.fn(),
 }));
 jest.mock("../../lib/use-episode-conversation", () => ({
@@ -48,13 +55,19 @@ jest.mock("../../lib/use-episode-conversation", () => ({
 }));
 jest.mock("../../lib/user-id", () => ({ useUserId: () => "account-1" }));
 
+import type { MessageFeedback } from "../../lib/message-feedback";
 import { useEpisodeConversation } from "../../lib/use-episode-conversation";
-import { useEpisode, useEpisodeMessages } from "../../lib/use-episodes";
-import { setSearchParams } from "../../test-support/expo-router";
+import {
+  useEpisode,
+  useEpisodeFeedback,
+  useEpisodeMessages,
+} from "../../lib/use-episodes";
+import { routerStub, setSearchParams } from "../../test-support/expo-router";
 import EpisodeConversationScreen from "./[id]";
 
 const mockUseEpisode = useEpisode as jest.Mock;
 const mockUseEpisodeMessages = useEpisodeMessages as jest.Mock;
+const mockUseEpisodeFeedback = useEpisodeFeedback as jest.Mock;
 const mockUseEpisodeConversation = useEpisodeConversation as jest.Mock;
 const retryEpisode = jest.fn();
 const retryMessages = jest.fn();
@@ -110,6 +123,17 @@ const MESSAGES = [
   },
 ];
 
+const FEEDBACK: MessageFeedback[] = [
+  {
+    delivered: "Could you recommend today's coffee?",
+    improvedSentence: null,
+    messageId: "user-1",
+    reasons: [],
+    sourceText: "오늘 커피 뭐가 좋아요?",
+    verdict: "clear",
+  },
+];
+
 beforeEach(() => {
   jest.clearAllMocks();
   setSearchParams({ id: "episode-1" });
@@ -125,6 +149,7 @@ beforeEach(() => {
     isPending: false,
     refetch: retryMessages,
   });
+  mockUseEpisodeFeedback.mockReturnValue({ data: FEEDBACK });
   // 목표 바가 보는 것은 저장된 목표가 아니라 판정이 얹힌 목표다.
   mockUseEpisodeConversation.mockReturnValue({
     chat: { messages: [] },
@@ -186,14 +211,25 @@ describe("에피소드 대화 화면", () => {
     );
   });
 
-  it("지난 대화를 그대로 controller에 넘긴다", async () => {
+  it("지난 대화와 저장된 판정을 그대로 controller에 넘긴다", async () => {
     await render(<EpisodeConversationScreen />);
 
     expect(mockUseEpisodeConversation).toHaveBeenCalledWith(
       EPISODE,
       "account-1",
-      MESSAGES
+      MESSAGES,
+      FEEDBACK
     );
+  });
+
+  it("표시를 누르면 그 발화의 첨삭 시트가 열린다", async () => {
+    await render(<EpisodeConversationScreen />);
+    await fireEvent.press(screen.getByTestId("surface-mark"));
+
+    expect(routerStub.push).toHaveBeenCalledWith({
+      params: { episodeId: "episode-1", messageId: "user-1" },
+      pathname: "/episodes/feedback",
+    });
   });
 
   it("목표 바는 판정이 얹힌 목표를 본다", async () => {

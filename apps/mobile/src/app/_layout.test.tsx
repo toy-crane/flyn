@@ -162,6 +162,19 @@ describe("Layout native stack header", () => {
     });
   });
 
+  it("첨삭 시트는 medium detent와 grabber를 쓰는 하단 시트 하나다", async () => {
+    signedInWith({ kind: "ready" });
+
+    await render(<Layout />);
+
+    expect(mockRouteOptions["episodes/feedback"]).toMatchObject({
+      headerShown: false,
+      presentation: "formSheet",
+      sheetAllowedDetents: [0.5],
+      sheetGrabberVisible: true,
+    });
+  });
+
   it("설정 화면만 grouped background를 native header까지 이어 쓴다", async () => {
     signedInWith({ kind: "ready" });
 

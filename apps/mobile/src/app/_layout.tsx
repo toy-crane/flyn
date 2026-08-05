@@ -99,6 +99,19 @@ function Routes() {
             name="episodes/[id]"
             options={{ headerShown: true, title: "대화" }}
           />
+          {/*
+           * 첨삭 시트. 번역이든 교정이든 같은 시트 하나이고, 라벨이 무엇을
+           * 보는지 말하므로 헤더 없이 medium detent와 grabber만 쓴다.
+           */}
+          <Stack.Screen
+            name="episodes/feedback"
+            options={{
+              headerShown: false,
+              presentation: "formSheet",
+              sheetAllowedDetents: [0.5],
+              sheetGrabberVisible: true,
+            }}
+          />
           <Stack.Screen
             name="settings/index"
             options={{
