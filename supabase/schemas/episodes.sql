@@ -57,6 +57,33 @@ create table public.episode_goals (
     check (char_length(sentence) between 1 and 500)
 );
 
+-- 대화에 남는 메시지. **전달된 문장만** 담는다 — 한글로 썼을 때 사용자가 친
+-- 원문은 여기가 아니라 판정 행이 갖는다. 말풍선에 남는 것과 모델이 본 것이
+-- 같아야 "내 영어가 실제로 통하는가"를 이 기록으로 되짚을 수 있다.
+create table public.episode_messages (
+  -- AI SDK가 만든 ID를 그대로 받아 재요청의 멱등 키로 쓴다. 에피소드 안에서만
+  -- 유일하면 충분하다.
+  id text not null,
+  episode_id uuid not null
+    references public.episodes (id) on delete cascade,
+  role text not null,
+  content text not null,
+  status text not null default 'complete',
+  created_at timestamptz not null default now(),
+  primary key (episode_id, id),
+  constraint episode_messages_id_length
+    check (char_length(id) between 1 and 128),
+  constraint episode_messages_role
+    check (role in ('user', 'assistant')),
+  constraint episode_messages_content_length
+    check (char_length(content) between 1 and 20000),
+  constraint episode_messages_status
+    check (status in ('complete', 'stopped'))
+);
+
+create index episode_messages_episode_created_idx
+  on public.episode_messages (episode_id, created_at, id);
+
 -- 갱신 시각은 클라이언트가 보낼 수 없고 DB가 정한다.
 create function public.episodes_touch()
 returns trigger
@@ -73,8 +100,28 @@ create trigger episodes_touch
   before update on public.episodes
   for each row execute function public.episodes_touch();
 
+-- 대화를 이어간 에피소드가 홈에서 가장 최근이 된다. 홈 카드가 "가장 최근에
+-- 진행 중인 하나"를 고르므로 메시지가 시각을 올려야 방금 하던 대화가 앞에 선다.
+create function public.episode_messages_touch_episode()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  update public.episodes
+  set updated_at = now()
+  where id = new.episode_id;
+  return new;
+end;
+$$;
+
+create trigger episode_messages_touch_episode
+  after insert on public.episode_messages
+  for each row execute function public.episode_messages_touch_episode();
+
 alter table public.episodes enable row level security;
 alter table public.episode_goals enable row level security;
+alter table public.episode_messages enable row level security;
 
 create policy "own episodes readable" on public.episodes
   for select to authenticated
@@ -96,6 +143,17 @@ create policy "own episode goals readable" on public.episode_goals
     )
   );
 
+create policy "own episode messages readable" on public.episode_messages
+  for select to authenticated
+  using (
+    exists (
+      select 1
+      from public.episodes
+      where episodes.id = episode_messages.episode_id
+        and episodes.user_id = (select auth.uid())
+    )
+  );
+
 -- 정책은 어느 행을 만지는지만 가른다. 앱이 AI가 만든 값을 직접 쓰지 못하게 막는
 -- 것은 아래 grant다.
 revoke all on table public.episodes from anon, authenticated;
@@ -104,7 +162,15 @@ grant select, delete on table public.episodes to authenticated;
 revoke all on table public.episode_goals from anon, authenticated;
 grant select on table public.episode_goals to authenticated;
 
+-- 메시지는 select만 준다. user 역할도 앱이 직접 쓰지 못하며, 사용자 메시지
+-- 저장과 모델 스트림을 Hono가 한 경계에서 처리한다. 전달된 문장을 앱이 쓸 수
+-- 있으면 번역 없이 아무 문장이나 남길 수 있다.
+revoke all on table public.episode_messages from anon, authenticated;
+grant select on table public.episode_messages to authenticated;
+
 grant select, insert, update, delete
   on table public.episodes to service_role;
 grant select, insert, update, delete
   on table public.episode_goals to service_role;
+grant select, insert, update, delete
+  on table public.episode_messages to service_role;

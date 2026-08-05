@@ -9,65 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      chat_messages: {
-        Row: {
-          chat_room_id: string
-          content: string
-          created_at: string
-          id: string
-          role: string
-          status: string
-        }
-        Insert: {
-          chat_room_id: string
-          content: string
-          created_at?: string
-          id: string
-          role: string
-          status?: string
-        }
-        Update: {
-          chat_room_id?: string
-          content?: string
-          created_at?: string
-          id?: string
-          role?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "chat_messages_chat_room_id_fkey"
-            columns: ["chat_room_id"]
-            isOneToOne: false
-            referencedRelation: "chat_rooms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      chat_rooms: {
-        Row: {
-          created_at: string
-          id: string
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          title?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          title?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       episode_goals: {
         Row: {
           achieved_at: string | null
@@ -90,6 +31,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "episode_goals_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "episodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      episode_messages: {
+        Row: {
+          content: string
+          created_at: string
+          episode_id: string
+          id: string
+          role: string
+          status: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          episode_id: string
+          id: string
+          role: string
+          status?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          episode_id?: string
+          id?: string
+          role?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "episode_messages_episode_id_fkey"
             columns: ["episode_id"]
             isOneToOne: false
             referencedRelation: "episodes"
