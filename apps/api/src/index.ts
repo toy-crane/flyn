@@ -1,7 +1,7 @@
 import type { Database } from "@flyn/supabase";
 import type { SupabaseContext } from "@supabase/server";
 import { withSupabase } from "@supabase/server/adapters/hono";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
 import {
   type ChatDependencies,
@@ -9,6 +9,16 @@ import {
   createProductionChatDependencies,
   respondToChatMessage,
 } from "./chat";
+import {
+  createEpisode,
+  createEpisodeDraft,
+  createProductionEpisodeDependencies,
+  type EpisodeDependencies,
+  EpisodeHttpError,
+  listEpisodeScenarios,
+  regenerateEpisodeGoals,
+  regenerateEpisodeRole,
+} from "./episode";
 
 interface Env {
   Variables: {
@@ -18,10 +28,50 @@ interface Env {
 
 interface ApiDependencies {
   chat?: ChatDependencies;
+  episode?: EpisodeDependencies;
+}
+
+/** 본문이 JSON이 아니면 파싱 오류도 같은 400 문구로 답한다. */
+async function readJsonBody(c: Context<Env>): Promise<unknown> {
+  try {
+    return await c.req.json();
+  } catch (error) {
+    // biome-ignore lint/style/useErrorCause: EpisodeHttpError의 네 번째 인자가 super의 cause로 전달된다.
+    throw new EpisodeHttpError(
+      400,
+      "에피소드 정보가 올바르지 않습니다.",
+      false,
+      error
+    );
+  }
+}
+
+function episodeFailure(error: unknown, route: string) {
+  if (error instanceof EpisodeHttpError) {
+    return {
+      body: {
+        error: error.message,
+        ...(error.retryable ? { retryable: true } : {}),
+      },
+      status: error.status,
+    } as const;
+  }
+
+  // 본문은 로그에 남기지 않는다. 어느 경계가 깨졌는지만 남긴다.
+  console.error("[episode] request failed", {
+    message: error instanceof Error ? error.message : String(error),
+    route,
+  });
+
+  return {
+    body: { error: "에피소드 요청을 처리하지 못했습니다.", retryable: true },
+    status: 500,
+  } as const;
 }
 
 export function createApiApp(dependencies: ApiDependencies = {}) {
   const chat = dependencies.chat ?? createProductionChatDependencies();
+  const episode = dependencies.episode ?? createProductionEpisodeDependencies();
 
   // 체이닝해야 AppType에 포함된다 — 따로 등록한 라우트는 조용히 빠진다.
   // CORS는 @supabase/server가 처리하지 않는다.
@@ -78,6 +128,134 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
               },
               500
             );
+          }
+        }
+      )
+      /**
+       * 에피소드 생성은 두 번 부른다 — ① 상황 후보, ② 선택한 상황의 역할과
+       * 목표. 재생성은 해당 부분만 다시 부르므로 역할·목표 라우트가 따로 있다.
+       * 어느 경로든 AI가 만든 값이라 앱이 아니라 이 경계가 저장한다.
+       */
+      .post(
+        "/episodes/scenarios",
+        withSupabase<Database>({ auth: "user" }),
+        async (c) => {
+          if (!c.var.supabaseContext.userClaims?.id) {
+            return c.json({ error: "no user" }, 401);
+          }
+
+          try {
+            return c.json(
+              await listEpisodeScenarios({
+                dependencies: episode,
+                input: await readJsonBody(c),
+                signal: c.req.raw.signal,
+              })
+            );
+          } catch (error) {
+            const { body, status } = episodeFailure(
+              error,
+              "/episodes/scenarios"
+            );
+            return c.json(body, status);
+          }
+        }
+      )
+      .post(
+        "/episodes/draft",
+        withSupabase<Database>({ auth: "user" }),
+        async (c) => {
+          if (!c.var.supabaseContext.userClaims?.id) {
+            return c.json({ error: "no user" }, 401);
+          }
+
+          try {
+            return c.json(
+              await createEpisodeDraft({
+                dependencies: episode,
+                input: await readJsonBody(c),
+                signal: c.req.raw.signal,
+              })
+            );
+          } catch (error) {
+            const { body, status } = episodeFailure(error, "/episodes/draft");
+            return c.json(body, status);
+          }
+        }
+      )
+      .post(
+        "/episodes/draft/role",
+        withSupabase<Database>({ auth: "user" }),
+        async (c) => {
+          if (!c.var.supabaseContext.userClaims?.id) {
+            return c.json({ error: "no user" }, 401);
+          }
+
+          try {
+            return c.json(
+              await regenerateEpisodeRole({
+                dependencies: episode,
+                input: await readJsonBody(c),
+                signal: c.req.raw.signal,
+              })
+            );
+          } catch (error) {
+            const { body, status } = episodeFailure(
+              error,
+              "/episodes/draft/role"
+            );
+            return c.json(body, status);
+          }
+        }
+      )
+      .post(
+        "/episodes/draft/goals",
+        withSupabase<Database>({ auth: "user" }),
+        async (c) => {
+          if (!c.var.supabaseContext.userClaims?.id) {
+            return c.json({ error: "no user" }, 401);
+          }
+
+          try {
+            return c.json(
+              await regenerateEpisodeGoals({
+                dependencies: episode,
+                input: await readJsonBody(c),
+                signal: c.req.raw.signal,
+              })
+            );
+          } catch (error) {
+            const { body, status } = episodeFailure(
+              error,
+              "/episodes/draft/goals"
+            );
+            return c.json(body, status);
+          }
+        }
+      )
+      .post(
+        "/episodes",
+        withSupabase<Database>({ auth: "user" }),
+        async (c) => {
+          const context = c.var.supabaseContext;
+          const userId = context.userClaims?.id;
+
+          if (!userId) {
+            return c.json({ error: "no user" }, 401);
+          }
+
+          try {
+            return c.json(
+              await createEpisode({
+                context,
+                dependencies: episode,
+                input: await readJsonBody(c),
+                userId,
+              })
+            );
+          } catch (error) {
+            const { body, status } = episodeFailure(error, "/episodes");
+            return c.json(body, status);
           }
         }
       )
