@@ -1,7 +1,7 @@
 # flyn
 
-Turborepo(bun) · Expo(`@expo/ui` · Uniwind) · Hono on Vercel(AI SDK + AI
-Gateway) · Supabase(Auth · Postgres · RLS).
+Turborepo(bun) · Expo(`@expo/ui` · HeroUI Native · Uniwind) · Hono on
+Vercel(AI SDK + AI Gateway) · Supabase(Auth · Postgres · RLS).
 
 현재 프로젝트 결정은 [docs/decisions/README.md](docs/decisions/README.md), 뜻이
 갈리는 용어는 [GLOSSARY.md](GLOSSARY.md)에서 찾는다. `docs/specs/<slug>/`는 아직
@@ -21,8 +21,8 @@ Gateway) · Supabase(Auth · Postgres · RLS).
 
 ## 벤더 문서
 
-Expo·Supabase·Vercel은 설치된 프로젝트 스킬을 먼저 사용한다. 플러그인이 없는
-벤더는 구현 전에 현재 문서 인덱스를 확인한다.
+Expo·Supabase·Vercel·HeroUI Native는 설치된 프로젝트 스킬을 먼저 사용한다.
+플러그인이 없는 벤더는 구현 전에 현재 문서 인덱스를 확인한다.
 
 - Uniwind: https://docs.uniwind.dev/llms.txt
 - Hono: https://hono.dev/llms-full.txt

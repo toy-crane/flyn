@@ -12,6 +12,8 @@
   사라진다. 빠르게 반전돼도 bounce·깜빡임·입력 차단이 없어야 한다.
 - SwiftUI 모션은 해당 `Host` subtree가, RN 모션은 Reanimated UI thread가,
   navigation은 시스템이 각각 소유한다.
+- HeroUI 컴포넌트에 내장된 모션과 press 피드백은 라이브러리가 소유한다. 같은
+  컴포넌트에 화면이 자체 모션을 겹치거나 재구현하지 않는다.
 - Reduce Motion에서는 scale과 이동을 제거하고 즉시 변화나 짧은 opacity로 의미를
   유지한다.
 

@@ -1,64 +1,59 @@
-# React Native와 Expo UI의 화면 경계
+# 화면 경계: Expo UI, HeroUI와 커스텀 확장
 
 ## Decisions
 
 - 라우팅, 서버 상태, mutation, 검증과 화면 상태는 React가 소유한다.
-- 새 native form·짧은 상태 화면의 기본 renderer는 universal `@expo/ui`다. 필요한
-  표현이 universal에 없으면 해당 플랫폼의 `@expo/ui/swift-ui` 또는
-  `@expo/ui/jetpack-compose` 경계로 내려가며, 비슷하지만 동작이 다른 universal
-  컴포넌트로 대체하지 않는다.
-- `@expo/ui` 레이아웃과 control은 완결된 `Host` subtree 하나에 모은다. RN
-  wrapper·overlay와 `Host`를 형제로 둘 수 있지만 control마다 경계를 왕복하지
-  않는다.
-- RN은 가상 목록, keyboard, vendor control 또는 hit testing처럼 화면의 핵심
-  경계가 Expo UI로 완결되지 않는 surface에만 쓴다.
-- 재사용 UI는 TSX React 컴포넌트로 만든다. Expo UI가 필요한 native capability를
-  표현하지 못할 때만 custom native module을 검토한다.
-- 같은 제품 의미를 RN과 Expo UI가 함께 표현해도 renderer primitive와 `Host`
-  소유권이 다르면 얇은 TSX 컴포넌트를 각각 둔다. 수동형 로딩 indicator는 RN
-  `ActivityIndicator`와 완결된 native `Host` + `ProgressView`가 의미 색만 공유한다.
-- universal API로 같은 동작을 표현할 수 있으면 공유하고, native capability가
-  실제로 다를 때만 플랫폼 파일로 나눈다. Android 지원을 이유로 아직 검증하지
-  못하는 빈 screen fallback을 만들지는 않는다.
-
-## Why
-
-Expo UI는 실제 SwiftUI·Jetpack Compose primitive를 제공하지만 `Host`는 RN과
-native UI 사이의 레이아웃 경계다. 한 subtree를 완결하면 native control의 관용을
-얻으면서 React 상태를 유지할 수 있고, 반복 왕복을 피하면 layout·focus·gesture
-소유권이 분명해진다.
+- 시스템 폼과 짧은 시스템 상태 화면의 renderer는 universal `@expo/ui`다.
+  레이아웃과 control은 완결된 `Host` subtree 하나에 모으고, control마다 RN과
+  경계를 왕복하지 않는다. universal에 없는 표현만 `@expo/ui/swift-ui`로
+  내려간다. RN wrapper·overlay와 `Host`를 형제로 두는 구조는 가능하다.
+- 그 외 RN이 그리는 모든 화면의 기본 renderer는 HeroUI Native다. 필요한 표현이
+  HeroUI에 없으면 HeroUI primitive(`Surface`, `PressableFeedback`, `Text` 등)와
+  토큰 위에 커스텀 컴포넌트를 만든다. 대응물이 전혀 없는 능력(가상 목록,
+  streaming 렌더링)만 전용 라이브러리나 raw RN으로 만들고, 그때도 Uniwind
+  토큰을 소비한다.
+- 재사용 UI는 TSX React 컴포넌트다. custom native module은 `@expo/ui`와 HeroUI가
+  모두 표현하지 못하는 native capability에만 검토한다.
+- 한 surface에는 하나의 주 renderer만 두고, 같은 화면에서 `@expo/ui` 폼과
+  HeroUI 컴포넌트를 control 단위로 섞지 않는다.
 
 ## Boundaries
 
-| surface | renderer | 이유 |
-| --- | --- | --- |
-| Settings·프로필 편집 시트·온보딩, 이메일 입력, launch progress | universal `@expo/ui` | form이나 짧은 상태가 한 `Host` 안에서 완결된다 |
-| root sign-in | RN | Apple·Google vendor button이 화면의 핵심이다 |
-| 이메일 OTP code | RN | 겹친 단일 입력과 6개 slot의 hit testing이 필요하다 |
-| 채팅 목록·상세 | RN | 가상 목록, streaming, keyboard controller와 composer가 하나의 scroll 경계를 공유한다 |
+| surface | renderer |
+| --- | --- |
+| Settings·프로필 편집 시트·온보딩·launch progress | universal `@expo/ui` — 시스템 폼과 시스템 상태 |
+| root sign-in·이메일 입력 | HeroUI. Apple·Google 버튼도 HeroUI `Button` 기반으로 만들되 브랜드 지침이 외형을 소유한다 |
+| 이메일 OTP code | HeroUI `InputOTP`. iOS SMS AutoFill·붙여넣기·hit testing 검증을 통과하지 못하면 HeroUI 토큰 위 커스텀으로 대체한다 |
+| 홈(에피소드 목록)·에피소드 생성·결과·피드백 시트 | HeroUI — `Card`, `BottomSheet`, `Dialog`, `Spinner`, `Toast` 등 |
+| 에피소드 대화·문장 질문 | HeroUI 조합 + 커스텀 확장 — 가상 목록(`@legendapp/list`), streaming markdown, composer만 커스텀이고 버튼·시트·상태 피드백은 HeroUI |
 
-RN surface도 iOS native view를 사용한다. 이 표는 native/non-native 구분이 아니라
-surface를 가장 잘 소유하는 renderer를 고른 결과다.
+## Why
+
+renderer 경계가 surface 단위로 완결돼야 layout·focus·gesture 소유권이 분명하다.
+`@expo/ui`는 시스템이 의미를 아는 폼과 상태에 native 관용을 주고, HeroUI는
+나머지 화면에 유지되는 브랜드 컴포넌트를 준다. 커스텀을 "HeroUI 위 확장"으로
+한정하면 라이브러리가 소유하는 상호작용·접근성·테마를 잃지 않으면서 진짜 필요한
+능력만 직접 만든다.
 
 ## Reconsider when
 
-Expo SDK가 올라 기존 focus·hit testing·interop 제약을 없애거나, 새 surface가
-현재 표와 다른 native capability를 요구하면 해당 surface만 다시 판정한다.
+Expo SDK나 HeroUI 릴리스가 기존 제약(아래 spike 근거, InputOTP 검증)을 바꾸거나
+새 surface가 표의 어느 행에도 맞지 않으면 그 surface만 다시 판정한다.
 
 ## Still-rejected alternatives
 
-- Expo UI를 통째로 기각하고 모든 화면을 RN으로 만들기.
-- 한 화면에서 renderer를 섞는 것 자체를 금지하기.
-- control마다 `Host`를 다시 열거나 `RNHostView`를 기본 구조로 삼기.
+- 콘텐츠 화면 컴포넌트를 맨땅 RN으로 자작하기 — 직전 계약. sync 유지비로 기각.
+- `@expo/ui`를 통째로 기각하고 시스템 폼까지 HeroUI로 통일하기.
+- 한 화면에서 renderer를 control 단위로 섞거나 control마다 `Host`를 다시 열기.
 - 재사용을 이유로 Expo UI 위에 별도 Swift 모듈 만들기.
 
 ## Evidence worth preserving
 
-- root sign-in을 SwiftUI로 감싸면 Apple UIKit button과 풀컬러 Google mark 때문에
-  경계를 반복해서 열어야 한다.
-- OTP spike에서 평범한 `TextField`와 `Button`은 동작했지만, `frame`을 건 필드와
-  `ZStack`의 투명 필드는 focus hit testing에 실패했다. 이 제약이 사라지기 전에는
-  code surface를 RN으로 유지한다.
-- swift-ui `TextField`의 native state는 `@expo/ui/swift-ui`에서 가져오고,
-  `Host`는 universal 패키지에서 가져온다. SwiftUI `Button`의 문자열은 children이
-  아니라 `label` prop으로 전달한다.
+- `@expo/ui` OTP spike: `frame`을 건 SwiftUI `TextField`와 `ZStack`의 투명
+  필드는 focus hit testing에 실패했다. OTP를 `@expo/ui`로 만들지 않는 근거로
+  남는다. HeroUI `InputOTP`는 RN 쪽이라 이 제약과 무관하지만 iOS SMS AutoFill과
+  붙여넣기는 채택 전 검증 대상이다.
+- root sign-in을 SwiftUI로 감싸면 vendor button 때문에 경계를 반복해서 열어야
+  했다. HeroUI 채택으로 sign-in 전체가 한 renderer 안에서 완결된다.
+- HeroUI Native v1.0.x는 39종 컴포넌트를 제공한다. 목록은 설치된
+  `heroui-native` 스킬의 `list_components.mjs`로 확인한다.

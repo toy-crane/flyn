@@ -7,9 +7,9 @@
 - [worktree-isolated-mobile-runtime](worktree-isolated-mobile-runtime.md) — Read when 병렬 워크트리의 포트, Metro 캐시, 시뮬레이터, 로컬 Supabase를 다룰 때.
 - [agent-device-for-simulator-checks](agent-device-for-simulator-checks.md) — Read when iOS 시뮬레이터를 조작하거나 화면 검증 증거를 남길 때.
 - [supported-platforms](ios-only.md) — Read when 플랫폼 분기, Android, web 또는 플랫폼별 구현을 제안할 때.
-- [native-conventions-with-style-foundation](apple-hig-with-app-theme.md) — Read when 앱 전반의 시각 체계, 시스템 컴포넌트, 디자인 토큰 범위를 바꿀 때.
-- [self-contained-native-ui-boundaries](self-contained-native-ui-boundaries.md) — Read when 화면의 React Native와 `@expo/ui` 경계를 선택하거나 재사용 UI를 만들 때.
-- [native-style-foundation](uniwind-css-theme.md) — Read when StyleSheet, Uniwind, 앱 색·간격·타이포, light/dark, Navigation 또는 `@expo/ui` 테마 연결을 바꿀 때.
+- [native-shell-with-heroui-content](apple-hig-with-app-theme.md) — Read when 셸·브랜드 층 경계, 시스템 컴포넌트 또는 브랜드 표현 범위를 바꿀 때.
+- [screen-renderer-boundaries](self-contained-native-ui-boundaries.md) — Read when 화면의 renderer(`@expo/ui`·HeroUI·커스텀 확장)를 고르거나 재사용 UI를 만들 때.
+- [heroui-uniwind-style-foundation](uniwind-css-theme.md) — Read when Uniwind, CSS `@theme` 토큰, HeroUI 테마, light/dark 또는 native 경계 bridge를 바꿀 때.
 - [native-motion](native-motion.md) — Read when 화면 전환, 상태 피드백, Reanimated 또는 Reduce Motion 동작을 추가할 때.
 - [settings-edits-use-native-form-sheet](settings-edits-use-native-form.md) — Read when 설정의 닉네임·아이디 편집 화면이나 native form sheet를 바꿀 때.
 - [danggeun-voice-for-copy](danggeun-voice-for-copy.md) — Read when 사용자에게 보이는 한국어 문구를 쓰거나 검토할 때.
