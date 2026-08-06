@@ -290,11 +290,10 @@ function Composer({
   chat: ChatController;
   placeholder: string;
 }) {
-  const [foreground, onAccent, placeholderColor, muted] = useThemeColor([
+  const [foreground, onAccent, placeholderColor] = useThemeColor([
     "foreground",
     "accent-foreground",
     "field-placeholder",
-    "muted",
   ]);
   const canSend = chat.input.trim().length > 0;
   const isGenerating = isGeneratingStatus(chat.status);
@@ -346,9 +345,11 @@ function Composer({
               testID="composer-submit-spinner"
             />
           ) : (
+            // 보낼 수 없는 상태는 라이브러리가 버튼 전체를 흐리게 만든다.
+            // 그 위에 회색 글리프를 얹으면 대비만 잃는다.
             <Ionicons
               accessibilityElementsHidden
-              color={disabled ? muted : onAccent}
+              color={onAccent}
               name={chat.status === "streaming" ? "stop" : "arrow-up"}
               size={17}
             />
@@ -541,7 +542,9 @@ export function ChatConversation({
                 <Button
                   accessibilityLabel="맨 아래로"
                   accessibilityRole="button"
-                  className="size-11 rounded-full"
+                  // 목록 위에 떠 있는 버튼이라 배경과 갈라지는 surface를 쓴다 —
+                  // secondary의 `default`는 background와 거의 같은 회색이다.
+                  className="size-11 rounded-full bg-surface"
                   isIconOnly
                   onPress={scrollToBottom}
                   variant="secondary"
