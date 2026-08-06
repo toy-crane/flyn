@@ -79,6 +79,24 @@ it("설명 문단 없이 닉네임 필드·규칙·다음 행동만 보여준다
   expect(screen.queryByText(LATER_IN_SETTINGS)).toBeNull();
 });
 
+// placeholder는 accessibilityLabel과 별개다 — 지워도 getByLabelText는 계속
+// 통과하므로 빈 칸에 남는 안내를 따로 붙잡는다.
+it("빈 칸에도 무엇을 넣는 자리인지 남긴다", async () => {
+  await renderScreen();
+
+  expect(screen.getByLabelText(FIELD).props.placeholder).toBe(FIELD);
+});
+
+// 전진 CTA는 부모의 정렬이 아니라 스스로 폭을 잡는다 — row 안에 감싸도 줄지
+// 않는다.
+it("하단 CTA가 가로를 꽉 채운다", async () => {
+  await renderScreen();
+
+  expect(
+    screen.getByRole("button", { name: SUBMIT }).props.className
+  ).toContain("w-full");
+});
+
 it("provider 이름을 미리 채우되 자동 저장하지 않는다", async () => {
   await renderScreen();
 

@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
-import { Alert, processColor } from "react-native";
+import { Alert, processColor, StyleSheet } from "react-native";
 
 jest.mock("uniwind", () =>
   require("../../test-support/heroui").uniwindThemeMock()
@@ -64,13 +64,15 @@ const FIELD = "아이디";
 const SUBMIT = "시작하기";
 const RULE = "4~20자, 영문 소문자·숫자·_·.만 사용할 수 있어요.";
 const TAKEN = "이미 사용 중인 아이디예요.";
-const AVAILABLE_SIGNAL = "사용 가능";
-const TAKEN_SIGNAL = "사용 중";
+const AVAILABLE_SIGNAL = "사용할 수 있는 아이디예요";
+const TAKEN_SIGNAL = "사용 중인 아이디예요";
 const SUGGESTIONS = ["toycrane1111", "toycrane2222", "toycrane3333"];
 const OTHER_PEOPLE = /다른 사람이/;
 const LOGIN = /로그인/;
 const ON_ACCENT = THEME_TOKEN_STUBS["--color-accent-foreground"];
 const NEUTRAL = THEME_TOKEN_STUBS["--color-muted"];
+const SUCCESS = THEME_TOKEN_STUBS["--color-success"];
+const DANGER = THEME_TOKEN_STUBS["--color-danger"];
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -116,6 +118,24 @@ it("사용 가능한 이메일 기반 아이디를 미리 채운다", async () =
   expect(screen.getByLabelText(FIELD).props.value).toBe("toycrane");
 });
 
+// placeholder는 accessibilityLabel과 별개다 — 지워도 getByLabelText는 계속
+// 통과하므로 빈 칸에 남는 안내를 따로 붙잡는다.
+it("빈 칸에도 무엇을 넣는 자리인지 남긴다", async () => {
+  await renderScreen();
+
+  expect(screen.getByLabelText(FIELD).props.placeholder).toBe(FIELD);
+});
+
+// 전진 CTA는 부모의 정렬이 아니라 스스로 폭을 잡는다 — row 안에 감싸도 줄지
+// 않는다.
+it("하단 CTA가 가로를 꽉 채운다", async () => {
+  await renderScreen();
+
+  expect(
+    screen.getByRole("button", { name: SUBMIT }).props.className
+  ).toContain("w-full");
+});
+
 it("아이디 입력은 라틴 키보드·소문자·자동수정 끔으로 설정한다", async () => {
   await renderScreen();
 
@@ -138,15 +158,36 @@ it.each(["invalid", "checking", "taken"])(
 it("사용 가능하면 필드 안에서 그렇게 말하고 저장을 연다", async () => {
   await renderScreen("available");
 
-  expect(screen.getByText(AVAILABLE_SIGNAL)).toBeTruthy();
+  expect(screen.getByLabelText(AVAILABLE_SIGNAL)).toBeTruthy();
   expect(screen.getByRole("button", { name: SUBMIT })).not.toBeDisabled();
 });
 
 it("가용성 요청이 실패한 unknown은 신호 없이 저장을 연다", async () => {
   await renderScreen("unknown");
 
-  expect(screen.queryByText(AVAILABLE_SIGNAL)).toBeNull();
+  expect(screen.queryByLabelText(AVAILABLE_SIGNAL)).toBeNull();
   expect(screen.getByRole("button", { name: SUBMIT })).not.toBeDisabled();
+});
+
+// 확인 중에는 아직 말할 것이 없다 — 어느 쪽 신호도 띄우지 않는다.
+it("확인 중에는 신호를 그리지 않는다", async () => {
+  await renderScreen("checking");
+
+  expect(screen.queryByLabelText(AVAILABLE_SIGNAL)).toBeNull();
+  expect(screen.queryByLabelText(TAKEN_SIGNAL)).toBeNull();
+});
+
+// 아이콘만 남는 신호라 뜻을 나르는 것은 모양과 색뿐이다. 두 색이 뒤바뀌어도
+// 문구가 대신 말해 주지 않으므로 여기서 색을 직접 붙잡는다.
+it.each([
+  ["available", AVAILABLE_SIGNAL, SUCCESS],
+  ["taken", TAKEN_SIGNAL, DANGER],
+])("%s 신호는 그 상태의 의미 색으로 칠한다", async (status, label, color) => {
+  await renderScreen(status);
+
+  const icon = screen.getByLabelText(label);
+
+  expect(StyleSheet.flatten(icon.props.style).color).toBe(color);
 });
 
 it("중복이면 규칙 각주를 오류로 바꾸고 추천 3개를 보여준다", async () => {
@@ -155,7 +196,7 @@ it("중복이면 규칙 각주를 오류로 바꾸고 추천 3개를 보여준�
   expect(screen.getByText(TAKEN)).toBeTruthy();
   // 규칙은 danger로 다시 칠하지 않고 오류에 자리를 내준다.
   expect(screen.queryByText(RULE)).toBeNull();
-  expect(screen.getByText(TAKEN_SIGNAL)).toBeTruthy();
+  expect(screen.getByLabelText(TAKEN_SIGNAL)).toBeTruthy();
   expect(screen.getByText("추천")).toBeTruthy();
   const suggestionNodes = await Promise.all(
     SUGGESTIONS.map((suggestion) =>

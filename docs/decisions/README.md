@@ -7,7 +7,7 @@
 - [worktree-isolated-mobile-runtime](worktree-isolated-mobile-runtime.md) — Read when 병렬 워크트리의 포트, Metro 캐시, 시뮬레이터, 로컬 Supabase를 다룰 때.
 - [agent-device-for-simulator-checks](agent-device-for-simulator-checks.md) — Read when iOS 시뮬레이터를 조작하거나 화면 검증 증거를 남길 때.
 - [supported-platforms](ios-only.md) — Read when 플랫폼 분기, Android, web 또는 플랫폼별 구현을 제안할 때.
-- [native-shell-with-heroui-content](apple-hig-with-app-theme.md) — Read when 셸·브랜드 층 경계, 시스템 컴포넌트 또는 브랜드 표현 범위를 바꿀 때.
+- [native-shell-with-heroui-content](apple-hig-with-app-theme.md) — Read when 셸·브랜드 층 경계, 시스템 컴포넌트, 아이콘 어휘 또는 브랜드 표현 범위를 바꿀 때.
 - [screen-renderer-boundaries](self-contained-native-ui-boundaries.md) — Read when 화면의 renderer(`@expo/ui`·HeroUI·커스텀 확장)를 고르거나 재사용 UI를 만들 때.
 - [heroui-uniwind-style-foundation](uniwind-css-theme.md) — Read when Uniwind, CSS `@theme` 토큰, HeroUI 테마, light/dark 또는 native 경계 bridge를 바꿀 때.
 - [native-motion](native-motion.md) — Read when 화면 전환, 상태 피드백, Reanimated 또는 Reduce Motion 동작을 추가할 때.

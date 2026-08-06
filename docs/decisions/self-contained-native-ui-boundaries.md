@@ -25,13 +25,23 @@
 | surface | renderer |
 | --- | --- |
 | Settings(grouped `Form` 화면) | universal `@expo/ui` — 시스템이 의미를 온전히 표현하는 현재 유일한 화면 |
-| 프로필 편집 시트(닉네임·아이디) | 셸 `formSheet`·native toolbar 유지, 본문은 HeroUI — `TextField`, `Description`·`FieldError`, `Chip` 추천, `Spinner` 가용성 신호 |
+| 프로필 편집 시트(닉네임·아이디) | 셸 `formSheet`·native toolbar 유지, 본문은 HeroUI — `TextField`, `Description`·`FieldError`, `Chip` 추천, 필드 안 trailing 가용성 아이콘 |
 | launch(세션 복원 대기·설정 오류) | HeroUI — `Spinner`와 `Text`. 지연 표시 등 모션 규칙은 native-motion 계약을 따른다 |
 | root sign-in·이메일 입력 | HeroUI. Apple·Google 버튼도 HeroUI `Button` 기반으로 만들되 브랜드 지침이 외형을 소유한다 |
 | 온보딩(닉네임·아이디) | HeroUI — sign-in과 같은 하단 CTA 전진 흐름이자 첫 브랜드 표면. 설정 편집과는 검증·정규화 순수 함수만 공유한다 |
 | 이메일 OTP code | HeroUI 토큰 위 커스텀 — `InputOTP`는 붙여넣기 검증에서 탈락했다(아래 근거) |
 | 홈(에피소드 목록)·에피소드 생성·결과·피드백 시트 | HeroUI — `Card`, `BottomSheet`, `Dialog`, `Spinner`, `Toast` 등 |
 | 에피소드 대화·문장 질문 | HeroUI 조합 + 커스텀 확장 — 가상 목록(`@legendapp/list`), streaming markdown, composer만 커스텀이고 버튼·시트·상태 피드백은 HeroUI |
+
+아이디의 가용성 신호는 세 상태다 — 가용 아이콘, 중복 아이콘, 그리고 확인 중과
+규칙 위반의 신호 없음. `Spinner`는 이 자리를 맡지 못한다. 보이는 상태가 하나뿐인
+컴포넌트라 셋을 구분할 수 없고, 중복에는 신호에 더해 danger 오류가 따로 필요하다
+(docs/decisions/settings-edits-use-native-form.md). 아이콘은 브랜드 층 어휘인
+`@expo/vector-icons`를 `useThemeColor`의 `success`·`danger`로 칠하고 상태를 읽는
+접근성 이름을 함께 둔다(docs/decisions/apple-hig-with-app-theme.md). 확인 중을
+눈에 보이게 만들기로 하면 그 한 상태에만 `Spinner`를 쓰고, 독립적으로 나타나는
+수동형 indicator이므로 중립 `muted`로 칠한다
+(docs/specs/neutral-loading-indicators/spec.md).
 
 ## Why
 

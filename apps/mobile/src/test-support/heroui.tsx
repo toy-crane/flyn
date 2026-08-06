@@ -26,7 +26,9 @@ export function HeroUIWrapper({ children }: { children: ReactNode }) {
 export const THEME_TOKEN_STUBS: Record<string, string> = {
   "--color-accent": "#0000ff",
   "--color-accent-foreground": "#ffffff",
+  "--color-danger": "#ff0000",
   "--color-muted": "#808080",
+  "--color-success": "#00ff00",
 };
 
 /**

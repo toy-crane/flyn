@@ -120,6 +120,8 @@ function NicknameForm({
         >
           <TextField>
             <Label>닉네임</Label>
+            {/* 이 화면은 `Redirect`로만 들어와 push 전환이 없다 — 아이디 화면이
+                focus를 한 틱 미루는 이유가 여기에는 없다. */}
             <Input
               accessibilityLabel="닉네임"
               autoComplete="nickname"
@@ -141,12 +143,20 @@ function NicknameForm({
         </ScrollView>
 
         {/*
+         * 전진 CTA는 부모의 정렬에 기대지 않고 스스로 가로를 채운다 — 나중에
+         * row 안에 감싸도 줄어들지 않는다.
+         *
          * 단일 form의 submit은 화면 전체 overlay가 아니라 같은 자리의
          * button-local progress를 쓴다. 버튼 안 progress는 수동형 indicator가
          * 아니라 그 action의 전경색을 따른다
          * (docs/specs/neutral-loading-indicators/spec.md).
          */}
-        <Button isDisabled={!submittable || pending} onPress={submit} size="lg">
+        <Button
+          className="w-full"
+          isDisabled={!submittable || pending}
+          onPress={submit}
+          size="lg"
+        >
           {pending ? <Spinner color={accentForeground} size="sm" /> : null}
           <Button.Label>아이디 정하기</Button.Label>
         </Button>
