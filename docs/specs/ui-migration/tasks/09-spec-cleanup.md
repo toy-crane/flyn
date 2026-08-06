@@ -43,11 +43,11 @@ neutral-loading-indicators — 가 사라지고, 그 안에서만 살아 있던 
 
 ## Status
 
-pending
+in-progress
 
 ## Execution
 
-- Base commit: —
+- Base commit: 200850de89b1f4751c3e4e0da6b7d3f0552b00cd
 - Task checkpoint commit: —
 - Verification: —
 - Task review: —
