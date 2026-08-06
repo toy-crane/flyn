@@ -10,7 +10,8 @@
 - 층 구조: [native-shell-with-heroui-content](../../decisions/apple-hig-with-app-theme.md)
   — 네이티브 셸 + HeroUI 브랜드 층, surface당 주 renderer 하나.
 - surface 배정: [screen-renderer-boundaries](../../decisions/self-contained-native-ui-boundaries.md)
-  — 배정 표 포함. 설정·온보딩·launch는 `@expo/ui` 유지로 이번 이전 대상이 아니다.
+  — 배정 표 포함. `@expo/ui`를 유지하는 화면은 Settings(grouped `Form`) 하나이고,
+  launch·온보딩·프로필 게이트는 배정 표에 따라 HeroUI로 이전한다.
 - 직접 만든 UI는 전부 제거한다. 커스텀은 HeroUI에 없는 능력을 HeroUI
   primitive·토큰 위에 확장할 때만 남는다. 결정 이유: native와 자작 UI의 시각
   sync 유지비 제거.
@@ -33,11 +34,13 @@
 - 인증이 걸린 surface 검증은 `bun run auth:session`의 이메일 OTP 세션을 쓴다.
 - 이전이 모두 끝나면 `theme/`(app-theme, colors, tokens, buttons,
   navigation-theme, product-colors)와 대체된 컴포넌트(loading-indicator·
-  hosted-loading-indicator, launch 화면, profile-avatar, code-input,
-  google-button, email-form, onboarding-form, `forms/` 입력 세트,
-  nickname·username-edit-form 본문, episode 카드·dock·sheet 류)가 저장소에 남지
-  않는다. bridge가 대체하는 navigation-theme만 새 형태로 존속하며, 이전이 끝나면
-  `@expo/ui` 사용처는 Settings 화면 하나다.
+  hosted-loading-indicator, launch 화면, code-input, google-button, email-form,
+  onboarding-form, `forms/` 입력 세트, nickname·username-edit-form 본문,
+  episode 카드·dock·sheet 류)가 저장소에 남지 않는다. bridge가 대체하는
+  navigation-theme만 새 형태로 존속하며, 이전이 끝나면 `@expo/ui` 사용처는
+  Settings 화면과 그 전용 컴포넌트(profile-avatar·native-symbol)뿐이다 —
+  아바타는 Settings의 `Host` subtree 안에 서는 SwiftUI 노드라 HeroUI로 바꾸면
+  그 화면이 깨진다.
 
 ## 가정 (반증 나오면 뒤집는 기본값)
 
@@ -87,6 +90,14 @@
   4.5:1에 살짝 못 미친다(dark `muted`는 7.72:1, `foreground`는 light 16.25:1로
   여유가 있다). 설정 오류 화면의 사유 문구가 이 조합을 쓴다. 아래 이연 항목의
   브랜드 팔레트 값을 확정할 때 `global.css`에서 `--muted`를 올려 해소한다.
+- **기본 대비 — light `danger`·`success`가 본문 기준에 못 미친다**: 폐기된 TS
+  `product-colors`는 danger·success를 4.5:1이 나오는 값(#D70015·#1F7A35)으로
+  고르고 `scripts/theme-contrast.test.ts`가 그것을 지켰다. HeroUI 기본 테마의
+  light `danger`(#FF383C)는 `background` 위에서 3.27:1, light
+  `success`(#17C964)는 2.01:1이다(dark는 각각 4.55:1·9.26:1로 통과). 아이디
+  가용성 아이콘과 설정의 `계정 삭제` 행이 이 조합을 쓴다. 색과 모양만으로 뜻을
+  나르지 않는 규칙이 살아 있어 정보는 잃지 않지만 대비 기준은 미달이다 —
+  `muted`와 같이 브랜드 팔레트 확정 때 `global.css`에서 올린다.
 - **채팅 상호작용 회귀**: streaming 중 스크롤·키보드·오류 배너 동작은
   [ai-chat-experience](../../decisions/ai-chat-experience.md) 계약 기준으로
   surface ④에서 재검증한다.

@@ -3,7 +3,9 @@
 ## 전달되는 행동
 
 설정의 닉네임·아이디 편집 시트에서 본문만 HeroUI `TextField`·`Description`·
-`FieldError`(아이디는 `Chip` 추천·`Spinner` 가용성 신호)로 바뀐다. native
+`FieldError`(아이디는 `Chip` 추천과 필드 안 trailing 가용성 아이콘)로 바뀐다.
+가용성은 가용·중복·신호 없음 세 상태라 `Spinner`가 맡지 못한다
+(docs/decisions/self-contained-native-ui-boundaries.md). native
 toolbar의 `xmark` 닫기·`checkmark` 저장, grabber, 닫으면 폐기하고 저장 성공만
 닫히는 규칙, 중복일 때만 danger, 저장 중 잠금 — 편집 interaction은 전부 이전과
 같다.

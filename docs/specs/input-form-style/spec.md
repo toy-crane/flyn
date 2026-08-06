@@ -2,9 +2,12 @@
 
 ## 상태
 
-승인·구현됐다. A의 adaptive filled capsule을 일반 single-line form input에 쓰고,
-Settings 편집 sheet도 같은 `FormInput` appearance를 소비한다. 프로토타입의 B와 C는
-기각된 비교안으로 남긴다.
+승인·구현됐고, 그 구현은 UI 이전으로 저장소에서 사라졌다. A의 adaptive filled
+capsule을 그리던 `FormInput`은 삭제됐고 single-line input의 외형은 이제 HeroUI
+`TextField`가 소유한다. 설정 편집 sheet의 field·label 표현은
+[settings-edits-use-native-form](../../decisions/settings-edits-use-native-form.md)이
+HeroUI 기본값으로 확정했다 — 아래 `## 결정`의 52pt·18pt 수치는 그 뒤로 다시
+확인되지 않았다. 프로토타입의 B와 C는 기각된 비교안으로 남긴다.
 
 ## 검토할 결과
 

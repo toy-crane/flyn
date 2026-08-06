@@ -24,7 +24,7 @@
   toolbar·form·sheet·alert)의 것이다. 의미 이름을 native API에 전달하고
   크기·굵기·tint·hit target은 시스템에 맡긴다. `expo-symbols`의 `SymbolView`는
   `@expo/ui`가 아니라 평범한 RN native view이므로, 브랜드 층에 SF Symbol을
-  들이는 뒷문이 되지 않는다.
+  들이는 뒷문이 되지 않는다 — 그래서 `expo-symbols`는 의존성에 두지 않는다.
 - 브랜드 층의 아이콘은 `@expo/vector-icons`(Ionicons)에서 가져오고 색은
   `useThemeColor`가 주는 의미 토큰으로 칠한다. hex 리터럴을 쓰지 않는다.
 - Apple·Google처럼 외부 브랜드가 규격을 소유한 표면은 HeroUI 컴포넌트로
@@ -57,8 +57,8 @@ HeroUI Native는 공개 아이콘 세트를 주지 않는다 — `exports`의 53
 - 브랜드 mark와 제품 고유 그림은 custom asset을 쓸 수 있고 SF Symbol을 억지로
   끼워 맞추지 않는다. 아이콘에는 어느 층이든 접근성 label을 함께 둔다 — 뜻을
   색과 모양만으로 나르지 않는다.
-- 브랜드 층 화면에는 `SymbolView` 래퍼(`apps/mobile/src/components/symbols/`)를
-  두지 않는다. 아직 그것을 쓰는 화면은 HeroUI로 옮길 때 Ionicons로 함께 바꾼다.
+- SF Symbol 래퍼(`apps/mobile/src/components/symbols/`)는 `@expo/ui` 표면만
+  소비한다. 브랜드 층 화면에 이 래퍼를 들이지 않는다.
 - 앱 안에 appearance 선택기를 만들지 않고 시스템 light/dark를 따른다.
 
 ## Reconsider when
