@@ -1,7 +1,5 @@
 # 05. 결과 화면과 첨삭 시트가 HeroUI로 그려진다
 
-상태: 대기
-
 ## 전달되는 행동
 
 에피소드 결과 화면과 첨삭 시트가 HeroUI로 그려진다. 첨삭 시트는 지금처럼 medium
@@ -9,7 +7,7 @@ detent와 grabber가 있는 route `formSheet`로 열리고(셸 소유), 본문�
 교정과 번역이 같은 시트에서 내용만 달라지는 구조, 개선 문장에만 그어지는 밑줄
 diff, 결과 화면 헤더의 뒤로·`다시 하기`가 모두 이전과 같다.
 
-## 블로커
+## Blockers
 
 - **01** — HeroUI 화면은 provider·토큰·빌드 기반 없이 설 수 없다.
 
@@ -26,3 +24,16 @@ diff, 결과 화면 헤더의 뒤로·`다시 하기`가 모두 이전과 같다
 - 시트의 `더 물어보기` 액션은 유지하되, 목적지인 문장 질문 화면의 이전은 06의
   몫이다 — 이 태스크에서 그 화면을 건드리지 않는다.
 - 시트 background·material은 iOS에 맡긴다 — 앱 색으로 다시 칠하지 않는다.
+
+## Status
+
+pending
+
+## Execution
+
+- Base commit: —
+- Task checkpoint commit: —
+- Verification: —
+- Task review: —
+- Task correction rounds: 0
+- Blocker: —

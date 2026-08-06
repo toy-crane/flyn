@@ -1,7 +1,5 @@
 # 02. 로그인과 인증 코드가 HeroUI로 그려진다
 
-상태: 대기
-
 ## 전달되는 행동
 
 미로그인 사용자가 보는 세 화면 — 루트 로그인, 이메일 입력, 인증 코드 — 이
@@ -10,7 +8,7 @@ HeroUI로 그려진다. Apple·Google 버튼은 HeroUI `Button` 기반이지만 
 AutoFill·붙여넣기·연속 입력까지 이전과 똑같이 동작한다. 로그인 성공 뒤 홈 또는
 온보딩으로 가는 흐름은 변하지 않는다.
 
-## 블로커
+## Blockers
 
 - **01** — HeroUI 화면은 provider·토큰·빌드 기반 없이 설 수 없다.
 
@@ -36,3 +34,16 @@ AutoFill·붙여넣기·연속 입력까지 이전과 똑같이 동작한다. �
   [native-motion](../../../decisions/native-motion.md)이 소유한다.
 - 소셜 로그인은 자동 검증하지 않는다 — 수동 확인 절차는
   [auth-verification](../../../auth-verification.md)을 따른다.
+
+## Status
+
+pending
+
+## Execution
+
+- Base commit: —
+- Task checkpoint commit: —
+- Verification: —
+- Task review: —
+- Task correction rounds: 0
+- Blocker: —

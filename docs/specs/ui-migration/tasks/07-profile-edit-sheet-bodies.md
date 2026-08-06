@@ -1,7 +1,5 @@
 # 07. 프로필 편집 시트 본문이 HeroUI로 바뀐다
 
-상태: 대기
-
 ## 전달되는 행동
 
 설정의 닉네임·아이디 편집 시트에서 본문만 HeroUI `TextField`·`Description`·
@@ -10,7 +8,7 @@ toolbar의 `xmark` 닫기·`checkmark` 저장, grabber, 닫으면 폐기하고 �
 닫히는 규칙, 중복일 때만 danger, 저장 중 잠금 — 편집 interaction은 전부 이전과
 같다.
 
-## 블로커
+## Blockers
 
 - **01** — HeroUI 본문은 provider·토큰·빌드 기반 없이 설 수 없다.
 
@@ -29,3 +27,16 @@ toolbar의 `xmark` 닫기·`checkmark` 저장, grabber, 닫으면 폐기하고 �
   interaction 결정이 이 태스크의 수용 기준이다 — 본문 renderer 외에는 아무것도
   바뀌지 않아야 한다.
 - Settings 화면 자체(grouped `Form`)는 건드리지 않는다.
+
+## Status
+
+pending
+
+## Execution
+
+- Base commit: —
+- Task checkpoint commit: —
+- Verification: —
+- Task review: —
+- Task correction rounds: 0
+- Blocker: —

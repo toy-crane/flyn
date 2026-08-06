@@ -1,7 +1,5 @@
 # 03. 온보딩이 HeroUI로 그려진다
 
-상태: 대기
-
 ## 전달되는 행동
 
 첫 로그인 뒤 닉네임과 아이디를 정하는 흐름이 HeroUI로 그려진다. 하단 CTA로
@@ -9,7 +7,7 @@
 프로필이 만들어져 홈으로 들어가는 동작이 모두 이전과 같다. 로그인 직후 화면부터
 홈 진입까지 한 층(HeroUI)에서 이어진다.
 
-## 블로커
+## Blockers
 
 - **01** — HeroUI 화면은 provider·토큰·빌드 기반 없이 설 수 없다.
 
@@ -26,3 +24,16 @@
 
 - 설정 편집과는 검증·정규화 순수 함수만 공유하고 입력 컴포넌트를 공유하지
   않는다 — [settings-edits-use-native-form](../../../decisions/settings-edits-use-native-form.md).
+
+## Status
+
+pending
+
+## Execution
+
+- Base commit: —
+- Task checkpoint commit: —
+- Verification: —
+- Task review: —
+- Task correction rounds: 0
+- Blocker: —

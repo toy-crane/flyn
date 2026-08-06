@@ -1,7 +1,5 @@
 # 04. 홈과 에피소드 생성이 HeroUI로 그려진다
 
-상태: 대기
-
 ## 전달되는 행동
 
 에피소드 목록(홈)과 새 에피소드 생성 화면이 HeroUI `Card` 등 브랜드 컴포넌트로
@@ -9,7 +7,7 @@
 제목 갱신, 생성 후 목록으로 돌아오는 흐름은 변하지 않는다. 빈 목록·로딩·오류
 상태도 HeroUI 상태 표현으로 같은 의미를 전달한다.
 
-## 블로커
+## Blockers
 
 - **01** — HeroUI 화면은 provider·토큰·빌드 기반 없이 설 수 없다.
 
@@ -24,3 +22,16 @@
 ## 제약
 
 - 라우팅·query key·데이터 흐름은 바꾸지 않는다 — 이 태스크는 표현만 바꾼다.
+
+## Status
+
+pending
+
+## Execution
+
+- Base commit: —
+- Task checkpoint commit: —
+- Verification: —
+- Task review: —
+- Task correction rounds: 0
+- Blocker: —

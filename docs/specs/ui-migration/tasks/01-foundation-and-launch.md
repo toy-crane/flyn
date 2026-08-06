@@ -1,7 +1,5 @@
 # 01. HeroUI 기반 위에서 launch 화면이 뜬다
 
-상태: 대기
-
 ## 전달되는 행동
 
 앱이 Uniwind(Tailwind v4)와 HeroUI Native 위에서 빌드되고, 앱을 켠 직후의 두
@@ -10,9 +8,9 @@
 버튼이 없다. 나머지 모든 화면은 이전 구현 그대로 동작한다 — 이 태스크가 두
 시스템의 공존 상태를 시작한다.
 
-## 블로커
+## Blockers
 
-없음.
+None.
 
 ## 완료 기준
 
@@ -40,3 +38,16 @@
 - 아직 이전되지 않은 화면의 `theme/` 소비는 건드리지 않는다. 공존은 이 태스크의
   결함이 아니라 설계다.
 - gesture-handler는 native 모듈이므로 `bun run ios`로 dev build를 다시 만든다.
+
+## Status
+
+pending
+
+## Execution
+
+- Base commit: —
+- Task checkpoint commit: —
+- Verification: —
+- Task review: —
+- Task correction rounds: 0
+- Blocker: —
