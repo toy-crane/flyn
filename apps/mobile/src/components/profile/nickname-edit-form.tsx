@@ -1,5 +1,4 @@
-import { Column, Text, useNativeState } from "@expo/ui";
-import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
+import { Description, Input, TextField } from "heroui-native";
 import { useCallback, useState } from "react";
 import { Alert } from "react-native";
 import {
@@ -8,13 +7,18 @@ import {
   normalizeDisplayName,
 } from "../../lib/display-name";
 import { useSaveDisplayName } from "../../lib/use-profile";
-import { FormInput } from "../forms/form-input";
 import { ProfileEditScreen } from "./profile-edit-screen";
+
+const NICKNAME_RULE = "1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.";
 
 function saveFailed() {
   Alert.alert("저장하지 못했어요", "잠시 후 다시 시도해 주세요.");
 }
 
+/**
+ * 닉네임 편집 시트의 본문. 저장·폐기·잠금은 toolbar가 소유하고 여기에는 필드와
+ * 규칙 각주만 둔다(docs/decisions/settings-edits-use-native-form.md).
+ */
 export function NicknameEditForm({
   initialValue,
   onDismiss,
@@ -25,27 +29,18 @@ export function NicknameEditForm({
   userId: string;
 }) {
   const save = useSaveDisplayName(userId);
-  const name = useNativeState(initialValue);
   const [typed, setTyped] = useState(initialValue);
   const normalized = normalizeDisplayName(typed);
   const canSave =
     normalized !== normalizeDisplayName(initialValue) &&
     isDisplayNameSubmittable(normalized);
 
-  const handleChangeText = useCallback(
-    (next: string) => {
-      name.value = next;
-      setTyped(next);
-    },
-    [name]
-  );
-
   const handleSave = useCallback(() => {
-    const value = normalizeDisplayName(name.value);
+    const value = normalizeDisplayName(typed);
     if (canSave && !save.isPending && isDisplayNameSubmittable(value)) {
       save.mutate(value, { onError: saveFailed, onSuccess: onDismiss });
     }
-  }, [canSave, name, onDismiss, save]);
+  }, [canSave, onDismiss, save, typed]);
 
   return (
     <ProfileEditScreen
@@ -54,27 +49,28 @@ export function NicknameEditForm({
       onSave={handleSave}
       pending={save.isPending}
     >
-      <Column spacing={8} style={{ paddingHorizontal: 20, paddingTop: 20 }}>
-        <FormInput
+      {/* 저장 중에는 필드를 잠근다 — `TextField`가 상태를 본문 전체에 내린다. */}
+      <TextField isDisabled={save.isPending}>
+        {/*
+         * 온보딩과 달리 보이는 `Label`을 두지 않는다. 시트 제목이 이미 무엇을
+         * 고치는지 말한다(docs/specs/input-form-style/spec.md) — 접근성 이름만
+         * 필드에 남긴다.
+         */}
+        <Input
+          accessibilityLabel="닉네임"
           autoComplete="nickname"
           autoFocus
-          editable={!save.isPending}
-          label="닉네임"
           maxLength={DISPLAY_NAME_MAX}
-          onChangeText={handleChangeText}
-          value={name}
+          onChangeText={setTyped}
+          value={typed}
         />
-        <Text
-          modifiers={[
-            foregroundStyle({
-              style: "secondary",
-              type: "hierarchical",
-            }),
-          ]}
-        >
-          1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.
-        </Text>
-      </Column>
+        {/*
+         * 규칙은 오류가 아니라 각주다. 이모지처럼 쓸 수 없는 문자는 빨간 오류를
+         * 띄우는 대신 저장만 잠근다
+         * (docs/decisions/settings-edits-use-native-form.md).
+         */}
+        <Description>{NICKNAME_RULE}</Description>
+      </TextField>
     </ProfileEditScreen>
   );
 }
