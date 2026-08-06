@@ -190,6 +190,12 @@ export function FeedbackSheet({
   // 같은 값을 본다 — 표시와 시트가 어긋날 수 없다.
   const sourceText =
     messageMark(feedback) === "translated" ? feedback.sourceText : null;
+  /**
+   * 첨삭은 **학습자가 영어로 직접 쓴 문장에만** 붙는다. 번역된 문장은 학습자가
+   * 쓴 것이 아니라 "더 자연스럽게 쓸 수 있다"는 말이 성립하지 않고, 판정도
+   * 그런 문장에는 개선문을 남기지 않는다. 그 자리는 `reasons`가 표현 노트로
+   * 채운다.
+   */
   const alternative =
     feedback.improvedSentence === null ? null : (
       <Block label="이렇게 쓰면 더 자연스러워요">
@@ -217,8 +223,6 @@ export function FeedbackSheet({
           <Block label="이렇게 전달됐어요">
             <Sentence>{feedback.delivered}</Sentence>
           </Block>
-          {alternative ? <Rule /> : null}
-          {alternative}
         </>
       )}
       {feedback.reasons.length > 0 ? (

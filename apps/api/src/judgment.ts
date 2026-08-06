@@ -270,12 +270,23 @@ function judgmentInstructions() {
     "",
     "판정할 것은 두 가지다.",
     "1) 아직 판정하지 않은 발화마다 판정을 하나씩 낸다.",
+    "   발화는 두 종류이고 해야 할 일이 서로 다르다.",
+    "",
+    "   (가) 학습자가 영어로 직접 쓴 발화 — 첨삭한다.",
     "   - 상황에 맞게 뜻이 그대로 통했고 어색하지 않으면 verdict는 clear다.",
     "   - 통하기는 하지만 더 자연스럽게 쓸 여지가 있으면 improvable이다.",
     "   - improvable이면 improvedSentence에 학습자의 뜻과 정보를 그대로 둔",
     "     자연스러운 문장을 쓰고, reasons에 무엇을 왜 바꿨는지 항목별로 적는다.",
     "   - clear면 improvedSentence는 빈 문자열이고 reasons는 빈 배열이다.",
     "   - 실력보다 나은 문장으로 다시 쓰지 않는다. 한 곳만 고쳐도 통하면 한 곳만 고친다.",
+    "",
+    "   (나) `한글로 씀`이 함께 적힌 발화 — **학습자가 쓴 문장이 아니다.**",
+    "       한글을 옮긴 영어이므로 고칠 것이 없다. 첨삭하지 말고 설명한다.",
+    "   - verdict는 언제나 clear, improvedSentence는 빈 문자열이다.",
+    "   - reasons에 **왜 이 영어가 되었는지**와 **달리 쓸 수 있는 표현**을 적는다.",
+    "     학습자는 이 영어를 직접 쓰지 않았으므로, 자기 뜻이 영어로 어떻게",
+    "     나가는지를 여기서 배운다.",
+    "   - 표현을 인용할 때는 영어를 그대로 적는다.",
     "2) 아직 이루지 못한 목표 중 대화에서 이미 이룬 것만 goals에 담는다.",
     "   - position과, 그 목표를 이룬 학습자 발화의 messageId를 함께 적는다.",
     "   - 상대의 대답까지 나와야 이룬 것이다. 아직이면 넣지 않는다.",
@@ -294,6 +305,21 @@ function conversationLines(messages: EpisodeMessage[]) {
       message.role === "user"
         ? `학습자(${message.id}): ${message.content}`
         : `상대: ${message.content}`
+    )
+    .join("\n");
+}
+
+/**
+ * 판정할 발화 목록. 한글을 옮겨 나간 문장에는 **원문을 함께 적는다** — 그것이
+ * 없으면 모델은 학습자가 직접 쓴 영어와 번역된 영어를 구분할 방법이 없고,
+ * 쓰지도 않은 문장을 고쳐 주게 된다.
+ */
+function pendingLines(pending: PendingUtterance[]) {
+  return pending
+    .map((item) =>
+      item.sourceText === null
+        ? `- ${item.id}: ${item.text}`
+        : `- ${item.id}: ${item.text}\n  한글로 씀: ${item.sourceText}`
     )
     .join("\n");
 }
@@ -318,9 +344,7 @@ function judgmentPrompt({
     conversationLines(messages),
     "",
     "[아직 판정하지 않은 발화]",
-    pending.length > 0
-      ? pending.map((item) => `- ${item.id}: ${item.text}`).join("\n")
-      : "없음",
+    pending.length > 0 ? pendingLines(pending) : "없음",
     "",
     "[아직 이루지 못한 목표]",
     openGoals.length > 0
@@ -477,6 +501,15 @@ function normalizeReasons(values: unknown) {
     .slice(0, MAX_REASON_COUNT);
 }
 
+/**
+ * 판정 하나를 저장 가능한 모양으로 깎는다. **번역된 문장과 학습자가 쓴 문장은
+ * 여기서 갈린다** — 프롬프트가 부탁이라면 이 함수는 보장이다. 모델이 지침을
+ * 어기고 번역된 문장에 개선문을 실어 보내도 여기서 떨어져 나가므로, 쓰지도
+ * 않은 문장을 고쳐 주는 화면이 아예 만들어질 수 없다.
+ *
+ * 표시·시트·결과 화면이 모두 이 결과를 읽으므로, 화면마다 막는 대신 여기 한
+ * 곳에서 자른다.
+ */
 function normalizeSentence(
   sentence: {
     improvedSentence?: unknown;
@@ -484,13 +517,29 @@ function normalizeSentence(
     reasons?: unknown;
     verdict?: unknown;
   },
-  deliveredById: Map<string, string>
+  pendingById: Map<string, PendingUtterance>
 ): JudgmentDraft["sentences"][number] | null {
   const messageId =
     typeof sentence.messageId === "string" ? sentence.messageId.trim() : "";
 
   if (messageId.length === 0) {
     return null;
+  }
+
+  const utterance = pendingById.get(messageId);
+
+  /**
+   * 한글을 옮겨 나간 문장은 학습자가 쓴 것이 아니다. 첨삭이라는 물음 자체가
+   * 성립하지 않으므로 개선문 없이 표현 노트만 남긴다. `reasons`는 학습자가
+   * 쓴 문장에서는 고친 이유이고, 여기서는 왜 이 표현인지다.
+   */
+  if (utterance?.sourceText !== undefined && utterance.sourceText !== null) {
+    return {
+      improvedSentence: null,
+      messageId,
+      reasons: normalizeReasons(sentence.reasons),
+      verdict: "clear",
+    };
   }
 
   const improved =
@@ -501,7 +550,7 @@ function normalizeSentence(
   const usable =
     sentence.verdict === "improvable" &&
     improved.length > 0 &&
-    improved !== deliveredById.get(messageId) &&
+    improved !== utterance?.text &&
     codePointLength(improved) <= MAX_IMPROVED_SENTENCE_LENGTH;
 
   return {
@@ -521,10 +570,10 @@ function normalizeSentences(
   }[],
   pending: PendingUtterance[]
 ): JudgmentDraft["sentences"] {
-  const deliveredById = new Map(pending.map((item) => [item.id, item.text]));
+  const pendingById = new Map(pending.map((item) => [item.id, item]));
 
   return sentences
-    .map((sentence) => normalizeSentence(sentence ?? {}, deliveredById))
+    .map((sentence) => normalizeSentence(sentence ?? {}, pendingById))
     .filter((sentence) => sentence !== null);
 }
 

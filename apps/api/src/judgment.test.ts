@@ -141,10 +141,11 @@ describe("한 턴의 판정", () => {
         goals: [],
         sentences: [
           {
-            improvedSentence: "Sounds good. Could you make it oat milk?",
+            // 번역된 문장이라 정규화가 이미 첨삭을 떼고 표현 노트만 남겼다.
+            improvedSentence: null,
             messageId: "user-2",
-            reasons: ["Sound good은 Sounds good이 자연스러워요."],
-            verdict: "improvable",
+            reasons: ["오트밀크는 oat milk라고 해요."],
+            verdict: "clear",
           },
           {
             improvedSentence: null,
@@ -172,11 +173,11 @@ describe("한 턴의 판정", () => {
       sentences: [
         {
           delivered: "Sound good. make it oat milk?",
-          improvedSentence: "Sounds good. Could you make it oat milk?",
+          improvedSentence: null,
           messageId: "user-2",
-          reasons: ["Sound good은 Sounds good이 자연스러워요."],
+          reasons: ["오트밀크는 oat milk라고 해요."],
           sourceText: "좋아요. 오트밀크로 해 줄래요?",
-          verdict: "improvable",
+          verdict: "clear",
         },
         {
           delivered: "Could you recommend today's coffee?",
@@ -196,10 +197,10 @@ describe("한 턴의 판정", () => {
     // 저장하는 행은 판정 결과만 든다. 무엇을 판정했는지는 메시지가 갖는다.
     expect(repository.feedback).toEqual([
       {
-        improvedSentence: "Sounds good. Could you make it oat milk?",
+        improvedSentence: null,
         messageId: "user-2",
-        reasons: ["Sound good은 Sounds good이 자연스러워요."],
-        verdict: "improvable",
+        reasons: ["오트밀크는 oat milk라고 해요."],
+        verdict: "clear",
       },
       {
         improvedSentence: null,
@@ -324,13 +325,83 @@ describe("한 턴의 판정", () => {
   });
 });
 
+/** 학습자가 영어로 직접 쓴 발화. 원문이 없다는 것이 곧 그 사실이다. */
 const PENDING: PendingUtterance[] = [
   {
     id: "user-2",
-    sourceText: "Sound good. make it oat milk?",
+    sourceText: null,
     text: "Sound good. make it oat milk?",
   },
 ];
+
+/** 한글을 옮겨 나간 발화. 학습자가 쓴 문장이 아니다. */
+const TRANSLATED: PendingUtterance[] = [
+  {
+    id: "user-2",
+    sourceText: "좋아요. 오트밀크로 해 줄래요?",
+    text: "Sounds good. Could you make it with oat milk?",
+  },
+];
+
+describe("번역된 문장의 판정", () => {
+  it("첨삭을 붙이지 않고 표현 노트만 남긴다", () => {
+    // 학습자가 쓴 문장이 아니므로 "더 자연스럽게 쓸 수 있다"는 말이 성립하지
+    // 않는다. 모델이 개선문을 실어 보내도 여기서 떨어진다.
+    expect(
+      normalizeDraft(
+        {
+          goals: [],
+          sentences: [
+            {
+              improvedSentence: "Could you make it oat milk instead?",
+              messageId: "user-2",
+              reasons: ["oat milk가 자연스러워요."],
+              verdict: "improvable",
+            },
+          ],
+        },
+        TRANSLATED
+      ).sentences
+    ).toEqual([
+      {
+        improvedSentence: null,
+        messageId: "user-2",
+        reasons: ["oat milk가 자연스러워요."],
+        verdict: "clear",
+      },
+    ]);
+  });
+
+  it("clear여도 표현 노트는 지우지 않는다", () => {
+    // 학습자가 쓴 문장이었다면 clear에 이유를 남기지 않는다. 번역된 문장에서는
+    // 그 자리가 "왜 이 영어인지"라 비면 시트에 배울 것이 없다.
+    expect(
+      normalizeDraft(
+        {
+          goals: [],
+          sentences: [
+            {
+              improvedSentence: "",
+              messageId: "user-2",
+              reasons: [
+                "'해 줄래요?'는 부탁이라 Could you로 옮겼어요.",
+                "가볍게는 Can you make it with oat milk?도 써요.",
+              ],
+              verdict: "clear",
+            },
+          ],
+        },
+        TRANSLATED
+      ).sentences[0]
+    ).toMatchObject({
+      reasons: [
+        "'해 줄래요?'는 부탁이라 Could you로 옮겼어요.",
+        "가볍게는 Can you make it with oat milk?도 써요.",
+      ],
+      verdict: "clear",
+    });
+  });
+});
 
 describe("판정 결과 다듬기", () => {
   it("그대로 통한 문장에는 개선문과 이유를 남기지 않는다", () => {
@@ -491,6 +562,44 @@ describe("판정 호출", () => {
     // 이미 달성한 목표는 다시 보지 않는다.
     expect(prompt).not.toContain("1: 오늘의 원두 추천 받기");
     expect(prompt).toContain("2: 우유를 오트밀크로 바꿔 주문하기");
+  });
+
+  it("번역된 발화에는 한글 원문을 함께 나른다", async () => {
+    const languageModel = createObjectModel({ goals: [], sentences: [] });
+    const model = createGatewayJudgmentModel({
+      logger: () => undefined,
+      model: languageModel,
+    });
+
+    await model.judge({
+      episode: episode(),
+      messages: MESSAGES,
+      pending: TRANSLATED,
+      signal: new AbortController().signal,
+    });
+    const prompt = promptText(languageModel.doGenerateCalls, "user");
+
+    // 원문이 없으면 모델은 학습자가 직접 쓴 영어와 번역된 영어를 구분할 수 없고,
+    // 쓰지도 않은 문장을 고쳐 주게 된다.
+    expect(prompt).toContain("한글로 씀: 좋아요. 오트밀크로 해 줄래요?");
+  });
+
+  it("영어로 쓴 발화에는 원문 줄을 붙이지 않는다", async () => {
+    const languageModel = createObjectModel({ goals: [], sentences: [] });
+    const model = createGatewayJudgmentModel({
+      logger: () => undefined,
+      model: languageModel,
+    });
+
+    await model.judge({
+      episode: episode(),
+      messages: MESSAGES,
+      pending: PENDING,
+      signal: new AbortController().signal,
+    });
+    const prompt = promptText(languageModel.doGenerateCalls, "user");
+
+    expect(prompt).not.toContain("한글로 씀");
   });
 
   it("판정 하나를 본문 없이 기록한다", async () => {
