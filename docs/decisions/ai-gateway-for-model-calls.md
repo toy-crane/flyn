@@ -59,7 +59,16 @@ Gateway가 필요한 provider·기능·지역 또는 비용 조건을 제공하�
 
 ## Evidence worth preserving
 
-설치된 `ai` 7.0.40은 `createUIMessageStream`·`createUIMessageStreamResponse`와
-`DataUIPart`·`isDataUIPart`·`ChatOnDataCallback`을 제공하고, `@ai-sdk/react`
-4.0.43은 이 타입들을 `ai`에서 그대로 가져다 쓴다. 같은 `id`로 다시 쓰면 기존
-data part가 갱신되므로 진행 상태를 단계적으로 보낼 수 있다.
+- 설치된 `ai` 7.0.40은 `createUIMessageStream`·`createUIMessageStreamResponse`와
+  `DataUIPart`·`isDataUIPart`·`ChatOnDataCallback`을 제공하고, `@ai-sdk/react`
+  4.0.43은 이 타입들을 `ai`에서 그대로 가져다 쓴다. 같은 `id`로 다시 쓰면 기존
+  data part가 갱신되므로 진행 상태를 단계적으로 보낼 수 있다.
+- **GPT-5.6 세 등급 중 중간(Terra)은 값을 못 한다.** Agents' Last Exam에서 Luna
+  50.3 · Terra 50.4로 사실상 같고, 블라인드 픽션 테스트에서도 Terra는 Luna와
+  함께 뒤에 남아 Sol만 앞섰다. Luna가 크게 뒤지는 곳은 긴 문맥 회수(41.3% 대
+  89.6%)뿐인데 20턴짜리 대화는 거기에 닿지 않는다. 그래서 무거운 역할을 위해
+  중간 등급을 따로 두는 구성은 돈만 쓰고 얻는 것이 없다.
+- 2026년 7월 30일 인하로 Luna는 1M당 입력 $0.20 · 출력 $1.20이 되어 같은 급의
+  다른 저가 모델들보다 5배 이상 싸다. Sol과는 25배 차이라, 품질이 아쉬운 역할이
+  나오면 전부를 올리거나 중간 등급으로 옮기는 대신 그 역할 하나만 Sol로 올리는
+  쪽이 비용을 지킨다 — 역할마다 모델 ID를 따로 적는 위 결정이 이걸 가능하게 한다.
