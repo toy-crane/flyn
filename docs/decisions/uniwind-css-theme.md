@@ -74,12 +74,17 @@ HeroUI Native 또는 Uniwind가 유지보수를 멈추거나 Expo SDK 업그레�
   래핑이 설치 계약이다.
 - 테마는 CSS 변수(HSL)다. Uniwind CSS 변수 API는 native `ColorValue`를 보존하지
   못한다(2026-08-05 확인). 이 제약은 이제 회피 대상이 아니라 받아들인 비용이다.
-- 필수 peer: `react-native-reanimated` ^4.1.1, `react-native-gesture-handler`
-  ^2.28.0, `react-native-worklets` ^0.5.1, `react-native-safe-area-context`,
-  `react-native-svg`, `tailwind-variants`, `tailwind-merge`. BottomSheet·Dialog류는
-  `react-native-screens`와 `@gorhom/bottom-sheet` 추가.
-- 2026-08-06 기준 앱의 worklets 0.10.0은 HeroUI 요구 ^0.5.1 범위 밖이다. 기반
-  태스크의 스파이크에서 호환을 확인해야 한다.
+- 배포된 peer 계약(v1.0.8): `react-native-reanimated` ^4.1.1,
+  `react-native-gesture-handler` ^2.28.0, `react-native-worklets` >=0.5.1,
+  `expo-blur` >=14, `react-native-screens` >=4, `@gorhom/bottom-sheet` ^5.2.9,
+  `react-native-safe-area-context`, `react-native-svg`, `tailwind-variants`,
+  `tailwind-merge`. 문서 quick-start 표보다 넓거나 많다 — 계약은 npm 메타데이터가
+  원본이다.
+- 2026-08-06 스파이크: RN 0.86·Expo 57·reanimated 4.5.0·worklets
+  0.10.0·gesture-handler 2.32.0 조합으로 dev build가 성공했고 Button
+  variant·Spinner 애니메이션·탭·앱 측 Tailwind 클래스가 시뮬레이터에서
+  동작했다. 모노레포 호이스팅은 `@source "../../node_modules/heroui-native/lib"`로
+  해결한다.
 - 컴포넌트 목록·문서·테마 변수는 설치된 `heroui-native` 스킬 스크립트로
   가져온다.
 
