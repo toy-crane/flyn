@@ -24,7 +24,8 @@
   toolbar·form·sheet·alert)의 것이다. 의미 이름을 native API에 전달하고
   크기·굵기·tint·hit target은 시스템에 맡긴다. `expo-symbols`의 `SymbolView`는
   `@expo/ui`가 아니라 평범한 RN native view이므로, 브랜드 층에 SF Symbol을
-  들이는 뒷문이 되지 않는다 — 그래서 `expo-symbols`는 의존성에 두지 않는다.
+  들이는 뒷문이 되지 않는다 — 그래서 `expo-symbols`를 앱이 직접 선언하지 않는다.
+  `expo-router`가 의존해서 `node_modules`에는 남지만 앱은 import하지 않는다.
 - 브랜드 층의 아이콘은 `@expo/vector-icons`(Ionicons)에서 가져오고 색은
   `useThemeColor`가 주는 의미 토큰으로 칠한다. hex 리터럴을 쓰지 않는다.
 - Apple·Google처럼 외부 브랜드가 규격을 소유한 표면은 HeroUI 컴포넌트로
