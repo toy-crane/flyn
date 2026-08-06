@@ -50,7 +50,8 @@ function episode(
 function message(
   id: string,
   role: "assistant" | "user",
-  content: string
+  content: string,
+  sourceText: string | null = null
 ): EpisodeMessage {
   return {
     content,
@@ -58,6 +59,7 @@ function message(
     episodeId: EPISODE_ID,
     id,
     role,
+    sourceText,
     status: "complete",
   };
 }
@@ -104,13 +106,11 @@ function judge({
   episode: subject = episode(),
   messages = MESSAGES,
   repository = new MemoryJudgmentRepository(),
-  sourceTexts = {},
 }: {
   draft: JudgmentDraft;
   episode?: RoleplayEpisode;
   messages?: EpisodeMessage[];
   repository?: MemoryJudgmentRepository;
-  sourceTexts?: Record<string, string>;
 }) {
   const { calls, model } = fakeModel(draft);
 
@@ -124,7 +124,6 @@ function judge({
       now: () => "2026-08-05T00:00:09.000Z",
       repository,
       signal: new AbortController().signal,
-      sourceTexts,
     }),
   };
 }
@@ -155,7 +154,16 @@ describe("한 턴의 판정", () => {
           },
         ],
       },
-      sourceTexts: { "user-2": "좋아요. 오트밀크로 해 줄래요?" },
+      messages: [
+        MESSAGES[0] as EpisodeMessage,
+        MESSAGES[1] as EpisodeMessage,
+        message(
+          "user-2",
+          "user",
+          "Sound good. make it oat milk?",
+          "좋아요. 오트밀크로 해 줄래요?"
+        ),
+      ],
     });
 
     // 판정·개선문·이유가 전달된 문장과 함께 그대로 스트림에 실린다.
@@ -175,7 +183,8 @@ describe("한 턴의 판정", () => {
           improvedSentence: null,
           messageId: "user-1",
           reasons: [],
-          sourceText: "Could you recommend today's coffee?",
+          // 영어로 쓴 발화에는 원문이 없다. 비어 있음이 곧 번역하지 않았음이다.
+          sourceText: null,
           verdict: "clear",
         },
       ],
@@ -184,21 +193,20 @@ describe("한 턴의 판정", () => {
       "user-1",
       "user-2",
     ]);
+    // 저장하는 행은 판정 결과만 든다. 무엇을 판정했는지는 메시지가 갖는다.
     expect(repository.feedback).toEqual([
-      expect.objectContaining({
+      {
         improvedSentence: "Sounds good. Could you make it oat milk?",
         messageId: "user-2",
         reasons: ["Sound good은 Sounds good이 자연스러워요."],
-        sourceText: "좋아요. 오트밀크로 해 줄래요?",
         verdict: "improvable",
-      }),
-      expect.objectContaining({
+      },
+      {
         improvedSentence: null,
         messageId: "user-1",
-        // 원문을 잃은 지난 발화는 전달된 문장이 곧 사용자가 쓴 말이다.
-        sourceText: "Could you recommend today's coffee?",
+        reasons: [],
         verdict: "clear",
-      }),
+      },
     ]);
   });
 
@@ -253,7 +261,6 @@ describe("한 턴의 판정", () => {
       improvedSentence: null,
       messageId: "user-1",
       reasons: [],
-      sourceText: "Could you recommend today's coffee?",
       verdict: "clear",
     });
 
@@ -292,14 +299,12 @@ describe("한 턴의 판정", () => {
         improvedSentence: null,
         messageId: "user-1",
         reasons: [],
-        sourceText: "…",
         verdict: "clear",
       },
       {
         improvedSentence: null,
         messageId: "user-2",
         reasons: [],
-        sourceText: "…",
         verdict: "clear",
       }
     );

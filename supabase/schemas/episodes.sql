@@ -62,9 +62,9 @@ create table public.episode_goals (
     check ((achieved_at is null) = (achieved_message_id is null))
 );
 
--- 대화에 남는 메시지. **전달된 문장만** 담는다 — 한글로 썼을 때 사용자가 친
--- 원문은 여기가 아니라 판정 행이 갖는다. 말풍선에 남는 것과 모델이 본 것이
--- 같아야 "내 영어가 실제로 통하는가"를 이 기록으로 되짚을 수 있다.
+-- 대화에 남는 메시지. `content`는 **언제나 상대에게 실제로 전달된 문장**이다.
+-- 말풍선에 남는 것과 모델이 본 것이 같아야 "내 영어가 실제로 통하는가"를 이
+-- 기록으로 되짚을 수 있다.
 create table public.episode_messages (
   -- AI SDK가 만든 ID를 그대로 받아 재요청의 멱등 키로 쓴다. 에피소드 안에서만
   -- 유일하면 충분하다.
@@ -73,6 +73,13 @@ create table public.episode_messages (
     references public.episodes (id) on delete cascade,
   role text not null,
   content text not null,
+  -- 사용자가 실제로 친 말. **비어 있음이 곧 번역하지 않았음**이라, 번역 여부를
+  -- 따로 표현할 필요가 없다. 원문이 판정 행이 아니라 메시지에 붙는 이유는
+  -- 판정이 언제 도는지와 무관하게 남아야 하기 때문이다 — 판정이 실패해 다음
+  -- 턴이 대신 채우면 그 요청에는 원문이 없다.
+  -- **모델에게 주는 문맥에는 절대 넣지 않는다.** 상대가 학습자의 한국어를 보면
+  -- 이 앱이 파는 전제가 깨진다.
+  source_text text,
   status text not null default 'complete',
   created_at timestamptz not null default now(),
   primary key (episode_id, id),
@@ -82,6 +89,11 @@ create table public.episode_messages (
     check (role in ('user', 'assistant')),
   constraint episode_messages_content_length
     check (char_length(content) between 1 and 20000),
+  constraint episode_messages_source_text_length
+    check (source_text is null or char_length(source_text) between 1 and 20000),
+  -- 원문은 사용자 발화에만 있다. AI 응답에 원문이 붙는 것은 앞뒤가 맞지 않는다.
+  constraint episode_messages_source_text_user_only
+    check (source_text is null or role = 'user'),
   constraint episode_messages_status
     check (status in ('complete', 'stopped'))
 );
@@ -101,9 +113,9 @@ alter table public.episode_goals
 create table public.message_feedback (
   episode_id uuid not null,
   message_id text not null,
-  -- 사용자가 실제로 친 말. 한글로 썼으면 여기 한글이 남는다. 전달된 영어는
-  -- episode_messages가 갖는다.
-  source_text text not null,
+  -- 판정 결과만 든다. 무엇을 판정했는지(전달된 문장과 사용자가 친 원문)는
+  -- episode_messages가 갖는다. 판정이 원문을 들면 판정이 없거나 늦은 발화의
+  -- 원문이 남을 자리가 사라진다.
   -- 그대로 잘 통했는지(clear), 더 자연스럽게 쓸 여지가 있는지(improvable).
   verdict text not null,
   -- 판정 호출 하나가 판정·개선문·이유를 함께 낸다. 시트를 열 때 따로 부르지
@@ -121,8 +133,6 @@ create table public.message_feedback (
   -- 반드시 있다. 표시와 시트가 이 둘을 따로 확인하지 않아도 되게 못박는다.
   constraint message_feedback_improvable_has_sentence
     check ((verdict = 'improvable') = (improved_sentence is not null)),
-  constraint message_feedback_source_text_length
-    check (char_length(source_text) between 1 and 20000),
   constraint message_feedback_improved_sentence_length
     check (char_length(improved_sentence) between 1 and 20000),
   constraint message_feedback_reasons_count

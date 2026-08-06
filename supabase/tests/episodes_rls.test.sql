@@ -5,7 +5,7 @@
 -- 없애도 초록이 되므로, 각 경계의 양성 대조도 함께 둔다.
 
 begin;
-select plan(59);
+select plan(63);
 
 select tests.create_supabase_user('episode-alice');
 select tests.create_supabase_user('episode-bob');
@@ -77,20 +77,20 @@ values
   ('00000000-0000-0000-0000-0000000000a1', 2, '우유를 오트밀크로 바꿔 주문하기'),
   ('00000000-0000-0000-0000-0000000000a1', 3, '근처 가볼 만한 곳 물어보기');
 
-insert into public.episode_messages (id, episode_id, role, content)
+insert into public.episode_messages (id, episode_id, role, content, source_text)
 values
   ('user-1', '00000000-0000-0000-0000-0000000000a1', 'user',
-   'Could you recommend today''s coffee?'),
+   'What do you recommend today?', '오늘 커피 뭐가 좋아요?'),
   ('assistant-1', '00000000-0000-0000-0000-0000000000a1', 'assistant',
-   'Today''s single origin is a natural Ethiopian.');
+   'Today''s single origin is a natural Ethiopian.', null);
 
 -- 판정 한 번이 판정·개선문·이유를 함께 남긴다.
 insert into public.message_feedback (
-  episode_id, message_id, source_text, verdict, improved_sentence, reasons
+  episode_id, message_id, verdict, improved_sentence, reasons
 )
 values (
   '00000000-0000-0000-0000-0000000000a1', 'user-1',
-  '오늘 커피 뭐가 좋아요?', 'improvable',
+  'improvable',
   'What would you recommend today?',
   array['원어민은 recommend 앞에 would를 붙여 부드럽게 물어요.']
 );
@@ -164,11 +164,11 @@ select throws_ok(
 -- 남기거나, 고칠 것이 있다면서 개선문을 비우면 표시가 무엇을 뜻하는지 갈린다.
 select throws_ok(
   $$insert into public.message_feedback (
-      episode_id, message_id, source_text, verdict, improved_sentence
+      episode_id, message_id, verdict, improved_sentence
     )
     values (
       '00000000-0000-0000-0000-0000000000a1', 'assistant-1',
-      'That''s all, thanks!', 'clear', 'That is all, thank you!'
+      'clear', 'That is all, thank you!'
     )$$,
   '23514',
   null,
@@ -177,11 +177,11 @@ select throws_ok(
 
 select throws_ok(
   $$insert into public.message_feedback (
-      episode_id, message_id, source_text, verdict
+      episode_id, message_id, verdict
     )
     values (
       '00000000-0000-0000-0000-0000000000a1', 'assistant-1',
-      'Sound good. make it oat milk?', 'improvable'
+      'improvable'
     )$$,
   '23514',
   null,
@@ -190,11 +190,11 @@ select throws_ok(
 
 select throws_ok(
   $$insert into public.message_feedback (
-      episode_id, message_id, source_text, verdict
+      episode_id, message_id, verdict
     )
     values (
       '00000000-0000-0000-0000-0000000000a1', 'user-404',
-      '없는 발화', 'clear'
+      'clear'
     )$$,
   '23503',
   null,
@@ -267,6 +267,38 @@ select throws_ok(
   '메시지 역할은 user·assistant 둘뿐이다'
 );
 
+-- 원문은 사용자가 친 말이다. AI 응답에 원문이 붙으면 앞뒤가 맞지 않는다.
+select throws_ok(
+  $$insert into public.episode_messages (id, episode_id, role, content, source_text)
+    values ('assistant-2', '00000000-0000-0000-0000-0000000000a1',
+            'assistant', 'Sure thing.', '그럼요.')$$,
+  '23514',
+  null,
+  'AI 응답에는 원문을 붙일 수 없다'
+);
+
+-- 영어로 쓴 발화에는 원문이 없다. **비어 있음이 곧 번역하지 않았음**이라
+-- 번역 여부를 표현하는 다른 칼럼을 두지 않는다.
+select lives_ok(
+  $$insert into public.episode_messages (id, episode_id, role, content)
+    values ('user-en', '00000000-0000-0000-0000-0000000000a1',
+            'user', 'Could you recommend today''s coffee?')$$,
+  '영어로 쓴 발화는 원문 없이 저장된다'
+);
+
+select is(
+  (select source_text from public.episode_messages where id = 'user-en'),
+  null,
+  '원문이 비어 있으면 번역하지 않았다는 뜻이다'
+);
+
+-- 판정이 언제 도는지와 무관하게 원문이 남아야 한다. 판정 행을 지워도 그대로다.
+select is(
+  (select source_text from public.episode_messages where id = 'user-1'),
+  '오늘 커피 뭐가 좋아요?',
+  '한글로 쓴 발화의 원문은 메시지가 든다'
+);
+
 -- 홈 카드가 가장 최근 진행 중 하나를 고르므로, 대화를 이어간 에피소드가 앞에
 -- 서려면 메시지가 에피소드의 시각을 올려야 한다.
 select ok(
@@ -291,7 +323,7 @@ select is(
 
 select is(
   (select count(*)::int from public.episode_messages),
-  2,
+  3,
   '사용자는 자기 에피소드의 지난 대화를 볼 수 있다'
 );
 
@@ -391,10 +423,10 @@ select throws_ok(
 -- 판정도 AI가 낸 값이다. 앱이 쓸 수 있으면 스스로 달성했다고 남길 수 있다.
 select throws_ok(
   $$insert into public.message_feedback (
-      episode_id, message_id, source_text, verdict
+      episode_id, message_id, verdict
     )
     values ('00000000-0000-0000-0000-0000000000a1', 'assistant-1',
-            '앱이 남긴 판정', 'clear')$$,
+            'clear')$$,
   '42501',
   'permission denied for table message_feedback',
   '앱은 판정을 남길 수 없다'

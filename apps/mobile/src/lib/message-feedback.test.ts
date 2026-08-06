@@ -11,7 +11,7 @@ function feedback(overrides: Partial<MessageFeedback> = {}): MessageFeedback {
     improvedSentence: null,
     messageId: "user-1",
     reasons: [],
-    sourceText: "That's all, thanks!",
+    sourceText: null,
     verdict: "clear",
     ...overrides,
   };
@@ -49,7 +49,7 @@ describe("말풍선 옆 표시", () => {
         feedback({
           delivered: "Sound good. make it oat milk?",
           improvedSentence: "Sounds good. Can you make it with oat milk?",
-          sourceText: "Sound good. make it oat milk?",
+          sourceText: null,
           verdict: "improvable",
         })
       )
@@ -58,6 +58,20 @@ describe("말풍선 옆 표시", () => {
 
   it("그대로 잘 통했으면 통과 표시다", () => {
     expect(messageMark(feedback())).toBe("clear");
+  });
+
+  it("두 문장을 견주지 않고 원문의 유무로만 가른다", () => {
+    // 전에는 원문과 전달문이 다른지로 짐작했다. 그래서 판정이 늦게 돌아 원문을
+    // 잃은 발화가 번역 표시를 통째로 잃었다. 두 문장이 같아도 원문이 있으면
+    // 한글로 쓴 것이다.
+    expect(
+      messageMark(
+        feedback({
+          delivered: "OK",
+          sourceText: "OK",
+        })
+      )
+    ).toBe("translated");
   });
 });
 

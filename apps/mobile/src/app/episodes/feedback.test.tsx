@@ -18,7 +18,7 @@ const FEEDBACK: MessageFeedback[] = [
     improvedSentence: "Sounds good. Can you make it with oat milk?",
     messageId: "user-2",
     reasons: ["앞의 that이 생략된 3인칭 주어라 동사에 -s가 붙어요."],
-    sourceText: "Sound good. Can you make it oat milk?",
+    sourceText: null,
     verdict: "improvable",
   },
 ];

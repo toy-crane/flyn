@@ -51,6 +51,7 @@ function userMessage(id: string, content: string): EpisodeMessage {
     episodeId: EPISODE.id,
     id,
     role: "user",
+    sourceText: null,
     status: "complete",
   };
 }
@@ -271,7 +272,6 @@ describe("총평 호출", () => {
           improvedSentence: "I want to change my flight time.",
           messageId: "user-1",
           reasons: ["want 다음에 to가 필요해요."],
-          sourceText: "I want change my flight time.",
           verdict: "improvable",
         },
       ],

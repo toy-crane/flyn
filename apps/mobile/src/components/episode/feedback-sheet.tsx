@@ -186,7 +186,10 @@ export function FeedbackSheet({
   onAskMore: () => void;
 }) {
   const { colors } = useTheme();
-  const translated = messageMark(feedback) === "translated";
+  // 원문이 있을 때만 한글 블록이 선다. `messageMark`가 번역 표시를 고르는 조건과
+  // 같은 값을 본다 — 표시와 시트가 어긋날 수 없다.
+  const sourceText =
+    messageMark(feedback) === "translated" ? feedback.sourceText : null;
   const alternative =
     feedback.improvedSentence === null ? null : (
       <Block label="이렇게 쓰면 더 자연스러워요">
@@ -203,10 +206,12 @@ export function FeedbackSheet({
       style={[styles.screen, { backgroundColor: colors.background }]}
       testID="feedback-sheet"
     >
-      {translated ? (
+      {sourceText === null ? (
+        alternative
+      ) : (
         <>
           <Block label="내가 쓴 한글">
-            <Sentence>{feedback.sourceText}</Sentence>
+            <Sentence>{sourceText}</Sentence>
           </Block>
           <Rule />
           <Block label="이렇게 전달됐어요">
@@ -215,8 +220,6 @@ export function FeedbackSheet({
           {alternative ? <Rule /> : null}
           {alternative}
         </>
-      ) : (
-        alternative
       )}
       {feedback.reasons.length > 0 ? (
         <>

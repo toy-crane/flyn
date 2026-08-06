@@ -18,15 +18,15 @@ export type MessageFeedback = JudgedSentence;
 export type MessageMark = "clear" | "improvable" | "translated";
 
 /**
- * 표시는 판정 하나에서 갈린다. 내가 쓴 말과 전달된 문장이 다르면 한글로 쓴
- * 것이고, 그때는 말풍선의 영어가 내 문장이 아니라서 번역 표시가 먼저다.
+ * 원문이 있으면 한글로 쓴 것이다. 그때는 말풍선의 영어가 내가 쓴 문장이 아니라서
+ * 번역 표시가 먼저다. **두 문장을 견주어 짐작하지 않는다** — 원문이 비어 있음이
+ * 곧 번역하지 않았음이라, 판정이 늦게 돌아도 표시가 뒤집히지 않는다.
  */
 export function messageMark({
-  delivered,
   sourceText,
   verdict,
 }: MessageFeedback): MessageMark {
-  if (sourceText !== delivered) {
+  if (sourceText !== null) {
     return "translated";
   }
 

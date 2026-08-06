@@ -27,12 +27,14 @@ const MAX_REASON_LENGTH = 1000;
 
 export type MessageVerdict = "clear" | "improvable";
 
-/** 판정 호출 하나가 내는 한 발화의 판정·개선문·이유. */
+/**
+ * 판정 호출 하나가 내는 한 발화의 판정·개선문·이유. **무엇을 판정했는지는 들지
+ * 않는다** — 전달된 문장과 사용자가 친 원문은 `episode_messages`가 갖는다.
+ */
 export interface MessageJudgment {
   improvedSentence: string | null;
   messageId: string;
   reasons: string[];
-  sourceText: string;
   verdict: MessageVerdict;
 }
 
@@ -47,12 +49,14 @@ export interface GoalAchievement {
 }
 
 /**
- * 스트림에 실리는 한 발화의 판정. 저장하는 행에 **전달된 문장**을 더해 보낸다 —
- * 첨삭 시트가 내가 쓴 말과 실제로 간 문장을 나란히 놓으려면 둘이 함께 와야 하고,
- * 시트는 열릴 때 아무것도 다시 부르지 않는다.
+ * 스트림에 실리는 한 발화의 판정. 저장하는 행에 **메시지가 든 두 문장**을 더해
+ * 보낸다 — 첨삭 시트가 내가 쓴 말과 실제로 간 문장을 나란히 놓으려면 둘이 함께
+ * 와야 하고, 시트는 열릴 때 아무것도 다시 부르지 않는다.
  */
 export interface JudgedSentence extends MessageJudgment {
   delivered: string;
+  /** 비어 있으면 사용자가 영어로 썼다는 뜻이다. */
+  sourceText: string | null;
 }
 
 /**
@@ -66,12 +70,12 @@ export interface JudgmentUpdate {
 }
 
 /**
- * 아직 판정이 없는 발화 하나. `sourceText`는 사용자가 실제로 친 말이고,
- * `text`는 상대에게 전달된 문장이다. 한글로 썼으면 둘이 다르다.
+ * 아직 판정이 없는 발화 하나. `text`는 상대에게 전달된 문장이고, `sourceText`는
+ * 사용자가 실제로 친 말이다. 영어로 썼으면 `sourceText`가 비어 있다.
  */
 export interface PendingUtterance {
   id: string;
-  sourceText: string;
+  sourceText: string | null;
   text: string;
 }
 
@@ -122,7 +126,6 @@ export async function judgeEpisodeTurn({
   now = () => new Date().toISOString(),
   repository,
   signal,
-  sourceTexts,
 }: {
   episode: RoleplayEpisode;
   messages: EpisodeMessage[];
@@ -130,7 +133,6 @@ export async function judgeEpisodeTurn({
   now?: () => string;
   repository: JudgmentRepository;
   signal: AbortSignal;
-  sourceTexts: Record<string, string>;
 }): Promise<JudgmentUpdate | null> {
   const judged = new Set(await repository.listJudgedMessageIds(episode.id));
   const userMessages = messages.filter((message) => message.role === "user");
@@ -138,9 +140,7 @@ export async function judgeEpisodeTurn({
     .filter((message) => !judged.has(message.id))
     .map((message) => ({
       id: message.id,
-      // 지난 턴의 원문은 어디에도 남아 있지 않다. 그때는 전달된 문장이 곧
-      // 사용자가 쓴 말이었던 것으로 본다.
-      sourceText: sourceTexts[message.id] ?? message.content,
+      sourceText: message.sourceText,
       text: message.content,
     }));
   const openGoals = episode.goals.filter((goal) => goal.achievedAt === null);
@@ -175,7 +175,17 @@ export async function judgeEpisodeTurn({
   }
 
   if (feedback.length > 0) {
-    await repository.insertMessageFeedback(episode.id, feedback);
+    // 저장하는 것은 판정 결과뿐이다. 전달된 문장과 원문은 스트림으로만 나가고
+    // 행에는 남지 않는다 — 그 둘은 메시지가 갖는다.
+    await repository.insertMessageFeedback(
+      episode.id,
+      feedback.map(({ improvedSentence, messageId, reasons, verdict }) => ({
+        improvedSentence,
+        messageId,
+        reasons,
+        verdict,
+      }))
+    );
   }
 
   const userMessageIds = new Set(userMessages.map((message) => message.id));

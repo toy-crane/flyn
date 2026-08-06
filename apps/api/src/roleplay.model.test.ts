@@ -40,6 +40,7 @@ const MESSAGES: EpisodeMessage[] = [
     episodeId: "episode-1",
     id: "user-1",
     role: "user",
+    sourceText: null,
     status: "complete",
   },
 ];
@@ -121,11 +122,13 @@ async function generate(
   {
     ending = Promise.resolve(null),
     judgment = Promise.resolve(null),
+    messages = MESSAGES,
     onResponse,
     signal = new AbortController().signal,
   }: {
     ending?: Promise<EpisodeEndReason | null>;
     judgment?: Promise<JudgmentUpdate | null>;
+    messages?: EpisodeMessage[];
     onResponse?: () => void;
     signal?: AbortSignal;
   } = {}
@@ -137,7 +140,7 @@ async function generate(
     ending,
     episode: EPISODE,
     judgment,
-    messages: MESSAGES,
+    messages,
     onFinish: (result) => {
       finish = result;
       return Promise.resolve();
@@ -202,6 +205,35 @@ describe("롤플레잉 응답", () => {
     expect(instructions).toContain("정말 알아들을 수 없을 때만");
     // 첨삭은 판정 호출의 몫이다. 롤플레잉 프롬프트가 함께 시키지 않는다.
     expect(instructions).toContain("고쳐 주지 않고");
+  });
+
+  it("상대에게 주는 문맥에 한글 원문을 넣지 않는다", async () => {
+    const languageModel = createTextModel();
+    const model = createGatewayRoleplayModel({
+      logger: () => undefined,
+      model: languageModel,
+    });
+
+    await generate(model, {
+      messages: [
+        {
+          content: "Could you make it oat milk?",
+          createdAt: "2026-08-05T00:00:00.000Z",
+          episodeId: "episode-1",
+          id: "user-1",
+          role: "user",
+          sourceText: "우유를 오트밀크로 바꿔 주세요.",
+          status: "complete",
+        },
+      ],
+    });
+
+    // 상대가 학습자의 한국어를 보면 "내 영어가 실제로 통하는가"가 성립하지
+    // 않는다. 메시지에 원문 칼럼이 있어도 모델이 보는 것은 전달된 문장뿐이다.
+    const sent = JSON.stringify(languageModel.doStreamCalls[0]?.prompt);
+
+    expect(sent).toContain("Could you make it oat milk?");
+    expect(sent).not.toContain("우유를 오트밀크로 바꿔 주세요.");
   });
 
   it("사람이 기다리는 호출이라 가장 낮은 reasoning으로 부른다", async () => {

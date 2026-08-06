@@ -77,7 +77,7 @@ const FEEDBACK: MessageFeedback[] = [
     improvedSentence: null,
     messageId: "user-2",
     reasons: [],
-    sourceText: "There's a red tag on the handle.",
+    sourceText: null,
     verdict: "clear",
   },
 ];

@@ -184,9 +184,7 @@ function utteranceLines({
 
       return [
         `${index + 1}. ${message.content}`,
-        row && row.sourceText !== message.content
-          ? `   한글로 씀: ${row.sourceText}`
-          : null,
+        message.sourceText ? `   한글로 씀: ${message.sourceText}` : null,
         row ? `   판정: ${row.verdict}` : "   판정: 아직 없음",
         row?.improvedSentence
           ? `   더 자연스러운 문장: ${row.improvedSentence}`

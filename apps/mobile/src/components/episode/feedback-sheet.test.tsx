@@ -10,7 +10,7 @@ const IMPROVABLE: MessageFeedback = {
     "앞의 that이 생략된 3인칭 주어라 동사에 -s가 붙어요.",
     "무엇으로 만들어 달라고 할 때는 make it with를 써요.",
   ],
-  sourceText: "Sound good. Can you make it oat milk?",
+  sourceText: null,
   verdict: "improvable",
 };
 

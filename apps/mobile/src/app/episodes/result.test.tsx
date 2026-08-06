@@ -134,7 +134,7 @@ const FEEDBACK: MessageFeedback[] = [
     improvedSentence: "It's a big black bag with wheels.",
     messageId: "user-2",
     reasons: ["동사를 이어 쓰지 않고 with로 이어요."],
-    sourceText: "It's a big black bag, have wheels.",
+    sourceText: null,
     verdict: "improvable",
   },
   {
@@ -142,7 +142,7 @@ const FEEDBACK: MessageFeedback[] = [
     improvedSentence: null,
     messageId: "user-3",
     reasons: [],
-    sourceText: "There's a red tag on the handle.",
+    sourceText: null,
     verdict: "clear",
   },
 ];
@@ -293,7 +293,7 @@ describe("에피소드 결과 화면", () => {
           improvedSentence: null,
           messageId: "user-4",
           reasons: [],
-          sourceText: "Is the office open tomorrow morning?",
+          sourceText: null,
           verdict: "clear" as const,
         },
       ],

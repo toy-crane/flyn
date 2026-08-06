@@ -55,6 +55,7 @@ export type Database = {
           episode_id: string
           id: string
           role: string
+          source_text: string | null
           status: string
         }
         Insert: {
@@ -63,6 +64,7 @@ export type Database = {
           episode_id: string
           id: string
           role: string
+          source_text?: string | null
           status?: string
         }
         Update: {
@@ -71,6 +73,7 @@ export type Database = {
           episode_id?: string
           id?: string
           role?: string
+          source_text?: string | null
           status?: string
         }
         Relationships: [
@@ -132,7 +135,6 @@ export type Database = {
           improved_sentence: string | null
           message_id: string
           reasons: string[]
-          source_text: string
           verdict: string
         }
         Insert: {
@@ -141,7 +143,6 @@ export type Database = {
           improved_sentence?: string | null
           message_id: string
           reasons?: string[]
-          source_text: string
           verdict: string
         }
         Update: {
@@ -150,7 +151,6 @@ export type Database = {
           improved_sentence?: string | null
           message_id?: string
           reasons?: string[]
-          source_text?: string
           verdict?: string
         }
         Relationships: [

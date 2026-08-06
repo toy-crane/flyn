@@ -8,9 +8,10 @@ import { supabase } from "./supabase";
 const EPISODE_COLUMNS =
   "id, scenario_title, scenario_description, partner_role, user_role, status, summary, turn_limit, created_at, updated_at, episode_goals(position, sentence, achieved_at, achieved_message_id)";
 const MESSAGE_COLUMNS = "id, role, content, status, created_at";
-// 판정과 그때 전달된 문장을 함께 읽는다. 시트가 둘을 나란히 놓기 때문이다.
+// 판정과 그 발화의 두 문장을 함께 읽는다. 시트가 내가 쓴 말과 실제로 간 문장을
+// 나란히 놓기 때문이다. 둘 다 메시지가 갖는다.
 const FEEDBACK_COLUMNS =
-  "message_id, source_text, verdict, improved_sentence, reasons, episode_messages(content)";
+  "message_id, verdict, improved_sentence, reasons, episode_messages(content, source_text)";
 
 export async function fetchEpisodes(userId: string): Promise<Episode[]> {
   const { data } = await supabase
@@ -67,7 +68,7 @@ export async function fetchEpisodeFeedback(
     improvedSentence: row.improved_sentence,
     messageId: row.message_id,
     reasons: row.reasons,
-    sourceText: row.source_text,
+    sourceText: row.episode_messages.source_text,
     verdict: row.verdict === "improvable" ? "improvable" : "clear",
   }));
 }

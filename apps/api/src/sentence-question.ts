@@ -663,13 +663,13 @@ class SupabaseSentenceQuestionRepository implements SentenceQuestionRepository {
     const [message, feedback] = await Promise.all([
       this.client
         .from("episode_messages")
-        .select("content, role")
+        .select("content, role, source_text")
         .eq("episode_id", episodeId)
         .eq("id", messageId)
         .maybeSingle(),
       this.client
         .from("message_feedback")
-        .select("source_text, improved_sentence, reasons")
+        .select("improved_sentence, reasons")
         .eq("episode_id", episodeId)
         .eq("message_id", messageId)
         .maybeSingle(),
@@ -691,7 +691,7 @@ class SupabaseSentenceQuestionRepository implements SentenceQuestionRepository {
       delivered: message.data.content,
       improvedSentence: feedback.data?.improved_sentence ?? null,
       reasons: feedback.data?.reasons ?? [],
-      sourceText: feedback.data?.source_text ?? message.data.content,
+      sourceText: message.data.source_text ?? message.data.content,
     };
   }
 

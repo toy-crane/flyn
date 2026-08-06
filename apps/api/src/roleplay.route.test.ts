@@ -376,6 +376,8 @@ describe("전달되는 문장", () => {
         content: "Could you recommend today's coffee?",
         id: "user-1",
         role: "user",
+        // 번역하지 않았으므로 원문을 따로 두지 않는다. 비어 있음이 곧 그 사실이다.
+        sourceText: null,
       })
     );
   });
@@ -390,11 +392,12 @@ describe("전달되는 문장", () => {
       "stream:What do you recommend today?|Sure thing."
     );
     expect(model.translated).toEqual(["오늘 커피 뭐가 좋아요?"]);
-    // 입력 원문은 여기 남지 않는다 — 판정 행이 갖는다.
+    // 전달된 영어는 content가, 사용자가 친 한글은 source_text가 든다.
     expect(repository.messages[0]).toEqual(
       expect.objectContaining({
         content: "What do you recommend today?",
         role: "user",
+        sourceText: "오늘 커피 뭐가 좋아요?",
       })
     );
     expect(model.generatedHistories[0]).toEqual([
@@ -594,16 +597,23 @@ describe("목표 판정", () => {
     });
     await response.text();
 
+    // 판정 행은 판정 결과만 든다.
     expect(repository.feedback).toEqual([
-      expect.objectContaining({
+      {
         improvedSentence: "What would you recommend today?",
         messageId: "user-1",
         reasons: ["원어민은 recommend 앞에 would를 붙여 부드럽게 물어요."],
-        // 사용자가 실제로 친 말은 이 행에만 남는다.
-        sourceText: "오늘 커피 뭐가 좋아요?",
         verdict: "improvable",
-      }),
+      },
     ]);
+    // 사용자가 실제로 친 말은 메시지가 든다. 판정이 언제 도는지와 무관하게
+    // 남아야 하므로 판정 행이 아니라 여기가 자리다.
+    expect(
+      repository.messages.find((message) => message.id === "user-1")
+    ).toMatchObject({
+      content: "What do you recommend today?",
+      sourceText: "오늘 커피 뭐가 좋아요?",
+    });
     // 표시와 첨삭 시트가 읽을 값이 저장과 같은 턴에 스트림으로도 나간다.
     expect(model.judgments).toEqual([
       {

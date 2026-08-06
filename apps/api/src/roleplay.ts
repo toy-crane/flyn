@@ -62,11 +62,17 @@ export type EpisodeMessageRole = "assistant" | "user";
 export type EpisodeMessageStatus = "complete" | "stopped";
 
 export interface EpisodeMessage {
+  /** 상대에게 실제로 전달된 문장. 모델이 보는 것은 언제나 이것뿐이다. */
   content: string;
   createdAt: string;
   episodeId: string;
   id: string;
   role: EpisodeMessageRole;
+  /**
+   * 사용자가 실제로 친 말. 비어 있으면 번역하지 않았다는 뜻이다. 판정이 언제
+   * 도는지와 무관하게 남아야 해서 판정 행이 아니라 메시지가 든다.
+   */
+  sourceText: string | null;
   status: EpisodeMessageStatus;
 }
 
@@ -282,20 +288,23 @@ async function deliverUserMessage({
     return stored;
   }
 
-  const delivered = needsTranslation(request.content)
+  const translated = needsTranslation(request.content)
     ? await dependencies.model.translate({
         episode,
         signal,
         text: request.content,
       })
-    : request.content;
+    : null;
 
   await repository.insertUserMessage({
-    content: delivered,
+    content: translated ?? request.content,
     createdAt: new Date().toISOString(),
     episodeId: episode.id,
     id: request.id,
     role: "user",
+    // 번역했을 때만 원문을 남긴다. 영어로 썼으면 전달된 문장이 곧 원문이라
+    // 같은 값을 두 자리에 둘 이유가 없다.
+    sourceText: translated === null ? null : request.content,
     status: "complete",
   });
 
@@ -382,9 +391,6 @@ export async function respondToEpisodeMessage({
     model: dependencies.judgment,
     repository,
     signal: requestSignal,
-    // 사용자가 실제로 친 말은 이 요청 안에만 있다. 전달된 문장만 저장되므로
-    // 판정 행이 아니면 원문을 남길 자리가 없다.
-    sourceTexts: { [userMessage.id]: request.content },
   }).catch((error) => {
     console.error("[roleplay] judgment failed", {
       episodeId,
@@ -451,6 +457,7 @@ export async function respondToEpisodeMessage({
           episodeId,
           id: assistantMessageId,
           role: "assistant",
+          sourceText: null,
           status: isAborted ? "stopped" : "complete",
         });
       },
@@ -503,9 +510,6 @@ export async function refillEpisodeJudgment({
       model: dependencies.judgment,
       repository,
       signal: requestSignal,
-      // 지난 턴의 원문은 어디에도 남아 있지 않다. 그때 전달된 문장이 곧
-      // 사용자가 쓴 말이었던 것으로 본다.
-      sourceTexts: {},
     });
 
     return update ?? { goals: [], sentences: [] };
@@ -562,6 +566,11 @@ function translationInstructions(episode: RoleplayEpisode) {
   ].join("\n");
 }
 
+/**
+ * **`content`만 넘긴다.** 상대역이 학습자의 한국어 원문을 보면 "내 영어가 실제로
+ * 통하는가"라는 이 앱의 전제가 깨진다. 펼쳐 쓰지 않고 필요한 두 값만 뽑는 것이
+ * 그 경계다 — 메시지에 칼럼이 늘어도 문맥은 넓어지지 않는다.
+ */
 function toModelMessages(messages: EpisodeMessage[]): ModelMessage[] {
   return messages.map(({ content, role }) => ({ content, role }));
 }
@@ -925,7 +934,8 @@ export function createGatewayRoleplayModel(
 
 const EPISODE_COLUMNS =
   "id, scenario_title, scenario_description, partner_role, user_role, status, turn_limit, episode_goals(position, sentence, achieved_at)";
-const MESSAGE_COLUMNS = "id, episode_id, role, content, status, created_at";
+const MESSAGE_COLUMNS =
+  "id, episode_id, role, content, source_text, status, created_at";
 
 class SupabaseRoleplayRepository implements RoleplayRepository {
   private readonly client: SupabaseContext<Database>["supabaseAdmin"];
@@ -1027,7 +1037,6 @@ class SupabaseRoleplayRepository implements RoleplayRepository {
         improved_sentence: row.improvedSentence,
         message_id: row.messageId,
         reasons: row.reasons,
-        source_text: row.sourceText,
         verdict: row.verdict,
       })),
       { ignoreDuplicates: true, onConflict: "episode_id,message_id" }
@@ -1061,7 +1070,7 @@ class SupabaseRoleplayRepository implements RoleplayRepository {
   async listMessageFeedback(episodeId: string) {
     const { data, error } = await this.client
       .from("message_feedback")
-      .select("message_id, source_text, verdict, improved_sentence, reasons")
+      .select("message_id, verdict, improved_sentence, reasons")
       .eq("episode_id", episodeId);
 
     if (error) {
@@ -1072,7 +1081,6 @@ class SupabaseRoleplayRepository implements RoleplayRepository {
       improvedSentence: row.improved_sentence,
       messageId: row.message_id,
       reasons: row.reasons,
-      sourceText: row.source_text,
       verdict: row.verdict === "improvable" ? "improvable" : "clear",
     })) satisfies MessageJudgment[];
   }
@@ -1121,6 +1129,7 @@ class SupabaseRoleplayRepository implements RoleplayRepository {
         episode_id: message.episodeId,
         id: message.id,
         role: message.role,
+        source_text: message.sourceText,
         status: message.status,
       },
       { ignoreDuplicates: true, onConflict: "episode_id,id" }
@@ -1141,6 +1150,7 @@ function mapDatabaseMessage(
     episodeId: row.episode_id,
     id: row.id,
     role: row.role as EpisodeMessageRole,
+    sourceText: row.source_text,
     status: row.status as EpisodeMessageStatus,
   };
 }

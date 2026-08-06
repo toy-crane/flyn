@@ -283,7 +283,7 @@ describe("말풍선의 세 표시", () => {
       improvedSentence: "Sounds good. Can you make it with oat milk?",
       messageId: "user-2",
       reasons: ["Sound good은 Sounds good이 자연스러워요."],
-      sourceText: "Sound good. make it oat milk?",
+      sourceText: null,
       verdict: "improvable",
     },
     {
@@ -291,7 +291,7 @@ describe("말풍선의 세 표시", () => {
       improvedSentence: null,
       messageId: "user-3",
       reasons: [],
-      sourceText: "That's all, thanks!",
+      sourceText: null,
       verdict: "clear",
     },
   ];
@@ -354,7 +354,7 @@ describe("말풍선의 세 표시", () => {
       improvedSentence: null,
       messageId: "user-4",
       reasons: [],
-      sourceText: "One oat latte please",
+      sourceText: null,
       verdict: "clear" as const,
     };
 
