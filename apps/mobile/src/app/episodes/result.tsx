@@ -80,8 +80,15 @@ function GoalResultLine({ goal }: { goal: GoalResult }) {
           testID={`goal-result-done-${goal.position}`}
         >
           {/* 브랜드 층의 아이콘은 Ionicons를 의미 토큰으로 칠한다
-              (docs/decisions/apple-hig-with-app-theme.md). */}
-          <Ionicons color={onSuccess} name="checkmark" size={12} />
+              (docs/decisions/apple-hig-with-app-theme.md). 줄이 읽는 것은 목표
+              문장뿐이고 달성 여부는 색과 모양으로만 말한다 — 매핑되지 않은
+              글리프가 정지점을 만들지 않게 체크는 트리에서 숨긴다. */}
+          <Ionicons
+            accessibilityElementsHidden
+            color={onSuccess}
+            name="checkmark"
+            size={12}
+          />
         </View>
       ) : (
         <View
@@ -184,15 +191,21 @@ function UtteranceRow({
     );
   }
 
+  /*
+   * 누름 피드백은 라이브러리가 소유한다(docs/decisions/native-motion.md) —
+   * ListGroup 문서가 정한 대로 `PressableFeedback`이 press를 받고 행은
+   * `disabled`로 넘긴다. 접근성 이름과 role도 누르는 쪽이 갖는다.
+   */
   return (
-    <ListGroup.Item
+    <PressableFeedback
       accessibilityLabel={utterance.text}
       accessibilityRole="button"
-      className="gap-2 px-4 py-2"
       onPress={open}
     >
-      {body}
-    </ListGroup.Item>
+      <ListGroup.Item className="gap-2 px-4 py-2" disabled>
+        {body}
+      </ListGroup.Item>
+    </PressableFeedback>
   );
 }
 

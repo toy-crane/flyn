@@ -1,5 +1,6 @@
 import {
   fireEvent,
+  isHiddenFromAccessibility,
   render,
   screen,
   within,
@@ -56,6 +57,8 @@ function renderResult() {
 /** 턴 수·문장 수를 요약하는 문장이 본문에 없는지 보는 자리다. */
 const TURN_COUNT = /20턴/;
 const SENTENCE_COUNT_SUMMARY = /문장 4개를/;
+/** 아이콘이 그리는 글리프 문자 — 무슨 글자든 하나 잡으면 된다. */
+const ANY_GLYPH = /\S/;
 const ACCENT = THEME_TOKEN_STUBS["--color-accent"];
 const NEUTRAL = THEME_TOKEN_STUBS["--color-muted"];
 
@@ -235,6 +238,16 @@ describe("에피소드 결과 화면", () => {
     expect(screen.queryByText("✕")).toBeNull();
     expect(screen.queryByText("X")).toBeNull();
     expect(screen.queryByLabelText("미달성")).toBeNull();
+  });
+
+  it("달성 체크는 접근성 트리에 정지점을 만들지 않는다", async () => {
+    await renderResult();
+    const pip = within(screen.getByTestId("goal-result-done-1"));
+    // 아이콘은 매핑되지 않은 글리프 문자를 Text로 그린다. 숨기지 않으면 달성한
+    // 목표 하나당 정지점이 하나씩 늘고 그 글자가 그대로 읽힌다.
+    const glyph = pip.getByText(ANY_GLYPH, { includeHiddenElements: true });
+
+    expect(isHiddenFromAccessibility(glyph)).toBe(true);
   });
 
   it("이번 글쓰기는 저장된 총평을 읽기만 한다", async () => {
