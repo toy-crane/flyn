@@ -30,11 +30,11 @@ toolbar의 `xmark` 닫기·`checkmark` 저장, grabber, 닫으면 폐기하고 �
 
 ## Status
 
-pending
+in-progress
 
 ## Execution
 
-- Base commit: —
+- Base commit: 46b2b7ebea59dbe9c15cba130eb149d5522d0c92
 - Task checkpoint commit: —
 - Verification: —
 - Task review: —
