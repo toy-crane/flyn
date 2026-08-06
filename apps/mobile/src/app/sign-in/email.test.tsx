@@ -16,11 +16,9 @@ jest.mock("uniwind", () =>
 
 // 네이티브 모듈이라 jest에서는 서지 않는다. 키보드를 피해 CTA를 올리는 일은
 // 시뮬레이터가 확인하고, 여기서는 자리만 세운다.
-jest.mock(
-  "react-native-keyboard-controller",
-  () => ({ KeyboardAvoidingView: require("react-native").View }),
-  { virtual: true }
-);
+jest.mock("react-native-keyboard-controller", () => ({
+  KeyboardAvoidingView: require("react-native").View,
+}));
 
 // HeroUINativeProvider가 insets 구독에 SafeAreaListener를 쓴다 — 네이티브 뷰라
 // jest에서는 자리만 세운다.

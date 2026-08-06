@@ -6,11 +6,9 @@ jest.mock("uniwind", () =>
 );
 
 // 네이티브 모듈이라 jest에서는 서지 않는다 — 자리만 세운다.
-jest.mock(
-  "react-native-keyboard-controller",
-  () => ({ KeyboardAvoidingView: require("react-native").View }),
-  { virtual: true }
-);
+jest.mock("react-native-keyboard-controller", () => ({
+  KeyboardAvoidingView: require("react-native").View,
+}));
 
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaListener: ({ children }: { children: unknown }) => children,

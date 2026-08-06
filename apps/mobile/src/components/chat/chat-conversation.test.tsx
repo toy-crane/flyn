@@ -12,67 +12,63 @@ const mockOnComposerLayout = jest.fn();
 const mockKeyboardHeight = { value: 0 };
 const mockKeyboardProgress = { value: 0 };
 
-jest.mock(
-  "@legendapp/list/keyboard",
-  () => {
-    const ReactRuntime = require("react");
-    const { View: NativeView } = require("react-native");
+// 아래 mock에 `{ virtual: true }`를 붙이지 않는다. jest의 virtual은 디스크에
+// 없는 모듈 전용이다. 실재하는 모듈에 붙이면 resolver가 실제 경로 대신 이름
+// 문자열로 module id를 만들어 worker 안에서 공유되는 캐시에 굳히고, 같은
+// 모듈을 mock하는 다음 test 파일이 진짜 native 모듈을 받게 된다.
+jest.mock("@legendapp/list/keyboard", () => {
+  const ReactRuntime = require("react");
+  const { View: NativeView } = require("react-native");
 
-    return {
-      KeyboardAwareLegendList: ReactRuntime.forwardRef(
-        (
-          {
-            data,
-            keyExtractor,
-            renderItem,
-            ...props
-          }: {
-            data: unknown[];
-            keyExtractor: (item: unknown) => string;
-            renderItem: (info: { index: number; item: unknown }) => unknown;
-          },
-          ref: unknown
-        ) => {
-          ReactRuntime.useImperativeHandle(ref, () => ({
-            scrollToEnd: mockScrollToEnd,
-          }));
+  return {
+    KeyboardAwareLegendList: ReactRuntime.forwardRef(
+      (
+        {
+          data,
+          keyExtractor,
+          renderItem,
+          ...props
+        }: {
+          data: unknown[];
+          keyExtractor: (item: unknown) => string;
+          renderItem: (info: { index: number; item: unknown }) => unknown;
+        },
+        ref: unknown
+      ) => {
+        ReactRuntime.useImperativeHandle(ref, () => ({
+          scrollToEnd: mockScrollToEnd,
+        }));
 
-          return ReactRuntime.createElement(
-            NativeView,
-            props,
-            data.map((item, index) =>
-              ReactRuntime.createElement(
-                ReactRuntime.Fragment,
-                { key: keyExtractor(item) },
-                renderItem({ index, item })
-              )
+        return ReactRuntime.createElement(
+          NativeView,
+          props,
+          data.map((item, index) =>
+            ReactRuntime.createElement(
+              ReactRuntime.Fragment,
+              { key: keyExtractor(item) },
+              renderItem({ index, item })
             )
-          );
-        }
-      ),
-      useKeyboardChatComposerInset: () => ({
-        contentInsetEndAdjustment: mockContentInsetEndAdjustment,
-        onComposerLayout: mockOnComposerLayout,
-      }),
-    };
-  },
-  { virtual: true }
-);
-jest.mock(
-  "react-native-keyboard-controller",
-  () => {
-    const { View: NativeView } = require("react-native");
-    return {
-      KeyboardGestureArea: NativeView,
-      KeyboardStickyView: NativeView,
-      useReanimatedKeyboardAnimation: () => ({
-        height: mockKeyboardHeight,
-        progress: mockKeyboardProgress,
-      }),
-    };
-  },
-  { virtual: true }
-);
+          )
+        );
+      }
+    ),
+    useKeyboardChatComposerInset: () => ({
+      contentInsetEndAdjustment: mockContentInsetEndAdjustment,
+      onComposerLayout: mockOnComposerLayout,
+    }),
+  };
+});
+jest.mock("react-native-keyboard-controller", () => {
+  const { View: NativeView } = require("react-native");
+  return {
+    KeyboardGestureArea: NativeView,
+    KeyboardStickyView: NativeView,
+    useReanimatedKeyboardAnimation: () => ({
+      height: mockKeyboardHeight,
+      progress: mockKeyboardProgress,
+    }),
+  };
+});
 jest.mock("react-native-reanimated", () => {
   const { View: NativeView } = require("react-native");
 
@@ -110,30 +106,22 @@ jest.mock("react-native-reanimated", () => {
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
-jest.mock(
-  "expo-symbols",
-  () => {
-    const ReactRuntime = require("react");
-    const { Text: NativeText } = require("react-native");
-    return {
-      SymbolView: ({ name }: { name: string }) =>
-        ReactRuntime.createElement(NativeText, null, name),
-    };
-  },
-  { virtual: true }
-);
-jest.mock(
-  "./chat-markdown",
-  () => {
-    const ReactRuntime = require("react");
-    const { Text: NativeText } = require("react-native");
-    return {
-      ChatMarkdown: ({ children }: { children: string }) =>
-        ReactRuntime.createElement(NativeText, null, children),
-    };
-  },
-  { virtual: true }
-);
+jest.mock("expo-symbols", () => {
+  const ReactRuntime = require("react");
+  const { Text: NativeText } = require("react-native");
+  return {
+    SymbolView: ({ name }: { name: string }) =>
+      ReactRuntime.createElement(NativeText, null, name),
+  };
+});
+jest.mock("./chat-markdown", () => {
+  const ReactRuntime = require("react");
+  const { Text: NativeText } = require("react-native");
+  return {
+    ChatMarkdown: ({ children }: { children: string }) =>
+      ReactRuntime.createElement(NativeText, null, children),
+  };
+});
 
 import { type ChatController, ChatConversation } from "./chat-conversation";
 

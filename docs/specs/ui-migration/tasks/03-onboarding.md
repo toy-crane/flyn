@@ -35,6 +35,6 @@ in-progress
 - Task checkpoint commit: 9365247304d81aba0d46171f5eaad86bc6ba1cdf
 - Verification: 불안정 — `bun run check`가 약 50% 확률로 실패한다. 아래 blocker 참조.
 - Task review: 블로킹 없음. 교정 1회로 사람이 정한 아이콘 어휘(Ionicons)를 반영하고, `Spinner 가용성 신호` 표 행과 `InteractionManager` 주석을 사실에 맞췄으며, placeholder·CTA full-width 가드를 복원했다.
-- Task correction rounds: 1
+- Task correction rounds: 2
 - Blocker: verification — `bun run check`가 결정론적이지 않다. `chat-conversation.test.tsx`와 `rn-symbol.test.tsx`가 같은 프로세스에 들어가면 **나중에 도는 쪽**이 깨진다: `RNSymbol`이 그린 `ViewManagerAdapter_SymbolModule`이 `name`을 접근성 레이블로 내보내지 못해 `getByLabelText("chevron.right")`가 실패한다. `--runInBand`면 4/4 실패, 병렬이면 워커 배정에 따라 약 50%이고 실패로 보고되는 파일 이름도 둘 사이를 오간다. 두 파일 모두 태스크 01~03이 건드리지 않았지만 `jest.config.js`·`jest-setup.js`는 태스크 01(`78b1b00`)이 바꿨다 — gesture-handler jestSetup 추가가 유력한 원인이다. 게이트가 동전 던지기인 채로는 남은 태스크의 검증을 신뢰할 수 없다.
 - Superseded blocker (resolved): task-review — (1) 사람이 브랜드 층 아이콘 소스를 `@expo/vector-icons`(Ionicons)로 정했고, SF Symbol은 `@expo/ui`가 그리는 표면에만 남긴다. 아이디 가용성 신호를 텍스트에서 아이콘으로 되돌린다 — "HeroUI에 아이콘 세트가 없다"는 사실이지만 HeroUI 문서 자체가 Button·Chip·InputGroup 예제에서 외부 아이콘 라이브러리를 쓰는 것을 관용으로 제시한다. (2) `self-contained-native-ui-boundaries.md:28`의 프로필 편집 시트 행이 `Spinner 가용성 신호`라고 적었으나 `Spinner`의 prop은 `size`·`color`·`isLoading`뿐이라 3상태를 표현할 수 없다 — 태스크 07이 읽을 표다. (3) `username.tsx:139-144` 주석이 `InteractionManager`가 전환 종료를 기다린다고 말하지만 네비게이션 스택은 `createInteractionHandle`을 부르지 않아 실제로는 한 틱 지연이다. (4) 잃은 가드: placeholder 단언, CTA full-width 고정.
