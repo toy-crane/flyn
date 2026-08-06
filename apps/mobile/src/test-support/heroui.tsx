@@ -29,6 +29,7 @@ export const THEME_TOKEN_STUBS: Record<string, string> = {
   "--color-danger": "#ff0000",
   "--color-muted": "#808080",
   "--color-success": "#00ff00",
+  "--color-success-foreground": "#00ffff",
 };
 
 /**

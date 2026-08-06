@@ -4,11 +4,18 @@ import {
   screen,
   within,
 } from "@testing-library/react-native";
+import { processColor } from "react-native";
 
+jest.mock("uniwind", () =>
+  require("../../test-support/heroui").uniwindThemeMock()
+);
 jest.mock("expo-router", () =>
   require("../../test-support/expo-router").expoRouterMock()
 );
 jest.mock("react-native-safe-area-context", () => ({
+  // HeroUI provider가 이 모듈에서 함께 가져다 쓴다 — 통째로 대체하면 provider가
+  // 렌더되지 않는다.
+  SafeAreaListener: ({ children }: { children: unknown }) => children,
   useSafeAreaInsets: () => ({ bottom: 34, left: 0, right: 0, top: 59 }),
 }));
 jest.mock("../../lib/use-episodes", () => ({
@@ -34,11 +41,23 @@ import {
   useEpisodeMessages,
 } from "../../lib/use-episodes";
 import { routerStub, setSearchParams } from "../../test-support/expo-router";
+import {
+  HeroUIWrapper,
+  paintedColors,
+  THEME_TOKEN_STUBS,
+} from "../../test-support/heroui";
 import EpisodeResultScreen from "./result";
+
+/** HeroUI 컴포넌트는 provider 아래에서만 선다. */
+function renderResult() {
+  return render(<EpisodeResultScreen />, { wrapper: HeroUIWrapper });
+}
 
 /** 턴 수·문장 수를 요약하는 문장이 본문에 없는지 보는 자리다. */
 const TURN_COUNT = /20턴/;
 const SENTENCE_COUNT_SUMMARY = /문장 4개를/;
+const ACCENT = THEME_TOKEN_STUBS["--color-accent"];
+const NEUTRAL = THEME_TOKEN_STUBS["--color-muted"];
 
 const mockUseEpisode = useEpisode as jest.Mock;
 const mockUseEpisodeMessages = useEpisodeMessages as jest.Mock;
@@ -164,7 +183,7 @@ beforeEach(() => {
 
 describe("에피소드 결과 화면", () => {
   it("헤더에는 `다시 하기`만 있고 시나리오 제목은 본문 첫 줄이다", async () => {
-    await render(<EpisodeResultScreen />);
+    await renderResult();
 
     expect(screen.getByRole("button", { name: "다시 하기" })).toBeTruthy();
     expect(screen.getByTestId("result-episode-name")).toHaveTextContent(
@@ -177,7 +196,7 @@ describe("에피소드 결과 화면", () => {
   });
 
   it("헤드라인은 목표를 몇 개 해냈는지만 말한다", async () => {
-    await render(<EpisodeResultScreen />);
+    await renderResult();
 
     expect(screen.getByTestId("result-headline")).toHaveTextContent(
       "목표 3개 중 2개를 해냈어요"
@@ -200,7 +219,7 @@ describe("에피소드 결과 화면", () => {
       refetch: retryEpisode,
     });
 
-    await render(<EpisodeResultScreen />);
+    await renderResult();
 
     expect(screen.getByTestId("result-headline")).toHaveTextContent(
       "목표 3개를 모두 해냈어요"
@@ -208,7 +227,7 @@ describe("에피소드 결과 화면", () => {
   });
 
   it("미달성 목표는 빈 원이고 X 표시는 어디에도 없다", async () => {
-    await render(<EpisodeResultScreen />);
+    await renderResult();
 
     expect(screen.getByTestId("goal-result-done-1")).toBeTruthy();
     expect(screen.getByTestId("goal-result-done-2")).toBeTruthy();
@@ -219,7 +238,7 @@ describe("에피소드 결과 화면", () => {
   });
 
   it("이번 글쓰기는 저장된 총평을 읽기만 한다", async () => {
-    await render(<EpisodeResultScreen />);
+    await renderResult();
 
     expect(screen.getByTestId("result-summary")).toHaveTextContent(
       "상황을 설명하는 문장은 자연스러웠어요."
@@ -227,7 +246,7 @@ describe("에피소드 결과 화면", () => {
   });
 
   it("문장 목록은 발화 전체이고 개수는 섹션 타이틀이 담는다", async () => {
-    await render(<EpisodeResultScreen />);
+    await renderResult();
     const list = within(screen.getByTestId("result-utterances"));
 
     expect(screen.getByText("내가 쓴 문장 4개")).toBeTruthy();
@@ -240,7 +259,7 @@ describe("에피소드 결과 화면", () => {
   });
 
   it("표시는 대화 화면의 세 표시를 그대로 쓴다", async () => {
-    await render(<EpisodeResultScreen />);
+    await renderResult();
 
     // 한글로 쓴 문장은 번역, 고칠 여지가 있으면 info, 그대로 통했으면 체크다.
     expect(screen.getByTestId("message-mark-translated")).toBeTruthy();
@@ -249,7 +268,7 @@ describe("에피소드 결과 화면", () => {
   });
 
   it("화살표가 있는 줄을 누르면 대화 중과 같은 시트가 열린다", async () => {
-    await render(<EpisodeResultScreen />);
+    await renderResult();
 
     await fireEvent.press(
       screen.getByRole("button", { name: "It's a big black bag, have wheels." })
@@ -262,7 +281,7 @@ describe("에피소드 결과 화면", () => {
   });
 
   it("그대로 통한 문장에는 열 것이 없다", async () => {
-    await render(<EpisodeResultScreen />);
+    await renderResult();
 
     expect(
       screen.queryByRole("button", { name: "There's a red tag on the handle." })
@@ -270,7 +289,7 @@ describe("에피소드 결과 화면", () => {
   });
 
   it("끝까지 판정이 없는 문장에만 `다시 확인`이 있고 누르면 채운다", async () => {
-    await render(<EpisodeResultScreen />);
+    await renderResult();
 
     expect(screen.getByTestId("utterance-refill-user-4")).toBeTruthy();
     expect(screen.queryByTestId("utterance-refill-user-1")).toBeNull();
@@ -282,8 +301,21 @@ describe("에피소드 결과 화면", () => {
     expect(refill).toHaveBeenCalled();
   });
 
+  it("`다시 확인` 안의 progress는 그 action의 전경색을 쓴다", async () => {
+    mockUseRefillJudgment.mockReturnValue({ isPending: true, mutate: refill });
+
+    await renderResult();
+
+    // 눌러서 시작된 일이라 중립 회색이 아니라 action의 accent다
+    // (docs/specs/neutral-loading-indicators/spec.md).
+    const painted = paintedColors(screen.toJSON());
+
+    expect(painted).toContain(processColor(ACCENT));
+    expect(painted).not.toContain(processColor(NEUTRAL));
+  });
+
   it("판정이 채워지면 `다시 확인` 자리에 표시가 선다", async () => {
-    const { rerender } = await render(<EpisodeResultScreen />);
+    const { rerender } = await renderResult();
 
     mockUseEpisodeFeedback.mockReturnValue({
       data: [
@@ -305,7 +337,7 @@ describe("에피소드 결과 화면", () => {
   });
 
   it("하단 액션은 결과와 무관하게 같다", async () => {
-    await render(<EpisodeResultScreen />);
+    await renderResult();
 
     await fireEvent.press(
       screen.getByRole("button", { name: "새 에피소드 시작" })
@@ -323,7 +355,7 @@ describe("에피소드 결과 화면", () => {
       onSuccess({ id: "episode-2" });
     });
 
-    await render(<EpisodeResultScreen />);
+    await renderResult();
     await fireEvent.press(screen.getByRole("button", { name: "다시 하기" }));
 
     expect(saveEpisode).toHaveBeenCalledWith(
@@ -355,11 +387,31 @@ describe("에피소드 결과 화면", () => {
       refetch: retryEpisode,
     });
 
-    await render(<EpisodeResultScreen />);
+    await renderResult();
 
     expect(screen.getByTestId("result-summary")).toHaveTextContent(
       "이번 글쓰기 총평은 만들지 못했어요."
     );
+  });
+
+  it("결과를 불러오는 동안의 progress는 수동형 중립색이다", async () => {
+    mockUseEpisode.mockReturnValue({
+      data: undefined,
+      isError: false,
+      isPending: true,
+      refetch: retryEpisode,
+    });
+
+    await renderResult();
+
+    expect(screen.getByLabelText("결과 불러오는 중")).toBeTruthy();
+
+    // 스스로 나타나는 수동형 진행이라 accent가 아니다
+    // (docs/specs/neutral-loading-indicators/spec.md).
+    const painted = paintedColors(screen.toJSON());
+
+    expect(painted).toContain(processColor(NEUTRAL));
+    expect(painted).not.toContain(processColor(ACCENT));
   });
 
   it("결과를 읽지 못하면 다시 시도할 수 있다", async () => {
@@ -370,7 +422,7 @@ describe("에피소드 결과 화면", () => {
       refetch: retryEpisode,
     });
 
-    await render(<EpisodeResultScreen />);
+    await renderResult();
     await fireEvent.press(screen.getByRole("button", { name: "다시 시도" }));
 
     expect(retryEpisode).toHaveBeenCalled();
