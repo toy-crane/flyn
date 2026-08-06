@@ -1,11 +1,5 @@
 import { render, screen } from "@testing-library/react-native";
 
-jest.mock("@expo/ui/swift-ui", () =>
-  require("../../test-support/expo-ui").swiftUiMock()
-);
-jest.mock("@expo/ui/swift-ui/modifiers", () =>
-  require("../../test-support/expo-ui").modifiersMock()
-);
 jest.mock("expo-router", () => {
   const React = require("react");
   const { Text } = require("react-native");
