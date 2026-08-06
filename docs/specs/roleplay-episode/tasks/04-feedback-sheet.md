@@ -51,9 +51,11 @@
   `feedback.reasons`만 먹는데 `apps/api/src/judgment.ts:500`이 `clear`면 `reasons: []`로 못박는다.
   기계 번역은 거의 언제나 `clear`라, 흔한 번역 시트는 `내가 쓴 한글` → `이렇게 전달됐어요`만
   보여 준다. 태스크 산문과 승인된 `conversation.html`의 TranslationSheet보다 얇다.
+  → **고쳤다** — ee83f98이 번역된 문장에 표현 노트를 내게 했다. `clear` + `reasons`가 이제 정상 출력이다.
 - `apps/mobile/src/components/episode/feedback-sheet.test.tsx:17` — `TRANSLATED` 픽스처가
   `verdict: "clear"`에 `reasons`가 찬 행이다. 판정 파이프라인이 만들지 않는 모양이라, 번역 시트가
   노트를 그린다는 그 테스트는 닿을 수 없는 입력 위에서 통과한다.
+  → **고쳤다** — 같은 커밋으로 그 픽스처가 실제로 도달 가능한 모양이 됐다.
 - `apps/mobile/src/lib/use-episode-conversation.ts:265` — `sentences` 없이 `data-judgment`가 오면
   `withArrivedFeedback`이 던진다(이 변경 전에 배포된 API). `sentences = []` 기본값이면 새 클라이언트가
   옛 서버를 견딘다. 반대 방향은 안전하다.

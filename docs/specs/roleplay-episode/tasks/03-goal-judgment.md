@@ -48,19 +48,24 @@
   기다려 SSE 응답이 판정이 끝날 때까지 열려 있다(`JUDGMENT_TIMEOUT_MS` 25초로 상한).
   `useChat`은 HTTP 스트림이 닫혀야 `ready`로 넘어가므로, 답이 다 그려진 뒤에도 클라이언트가
   남은 판정 시간만큼 `streaming`에 머문다.
+  → **고쳤다** — b4cffd4가 판정을 응답 스트림에서 떼어 두 번째 요청으로 나눴다. 응답이 끝나면 스트림이 곧바로 닫힌다.
 - `apps/mobile/src/components/chat/chat-conversation.tsx:358` — 그 사이 composer는 정지 기호를
   유지하고 `onSend`가 무시되어 다음 발화를 보낼 수 없다. 답도 스트림이 닫히기 전까지는
   `ChatMarkdown`이 아니라 `StreamingMessage`의 맨 `<Text>`로 그려진다.
+  → **고쳤다** — 위와 같은 커밋. 후행 창 자체가 없어졌다.
 - `apps/mobile/src/lib/use-episode-conversation.ts:263` — 그 창에서 정지를 누르면 이미 글이 다 찬
   메시지에 `isAbort: true`로 `onFinish`가 불려 `stoppedMessageIds`에 들어간다. 서버가 `complete`로
   저장한 답이 화면이 사는 동안 `중단됨`으로 보인다.
+  → **고쳤다** — 위와 같은 커밋. 판정을 기다리는 창이 없으니 그때 정지를 누를 일도 없다.
 - `apps/api/src/judgment.ts:377` — 판정의 `generateObject`에는 `reasoning` 설정이 없다(롤플레잉은
   `low`로 못박음). 판정이 응답의 임계 경로에 있으므로 공급자 기본값이 스트림이 열려 있는 시간을
   그대로 늘린다.
+  → **강등됐다** — 판정이 더는 응답의 임계 경로에 있지 않다. 지적의 근거였던 "스트림이 열려 있는 시간"은 사라졌고, 판정 자체의 지연·비용에만 남는다.
 - `apps/api/src/roleplay.ts:362`, `apps/api/src/judgment.ts:142` — 판정은 이번 턴의 상대 답이 생기기
   전 대화를 받는데 프롬프트는 상대가 답했을 것을 요구한다. 그래서 실제로는 목표가 다음 턴에
   잡히고, 초록 줄과 목표 바 전진이 그 발화보다 한 턴 늦게 온다(앵커인 `achieved_message_id`가
   자리는 제대로 잡아 준다).
+  → **고쳤다** — b4cffd4 이후 판정이 응답 뒤에 돌아 이번 턴의 상대 답까지 본다.
 - `supabase/schemas/episodes.sql:93` — `message_feedback`을 사용자 메시지로 묶는 제약이 DB에 없다.
   "AI 메시지는 행이 아예 생기지 않는다"는 불변식이 `judgeEpisodeTurn`의 pending 필터에만 산다.
 - `apps/api/src/roleplay.ts:896`, `:909`, `:928` — 새 `SupabaseRoleplayRepository` 메서드 셋에
