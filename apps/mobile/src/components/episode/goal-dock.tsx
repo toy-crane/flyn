@@ -1,59 +1,16 @@
-import { useCallback, useState } from "react";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import {
-  Pressable,
-  type PressableStateCallbackType,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+  PressableFeedback,
+  Separator,
+  Typography,
+  useThemeColor,
+} from "heroui-native";
+import { useCallback, useState } from "react";
+import { View } from "react-native";
 import type { EpisodeGoal } from "../../lib/episodes";
-import { useTheme } from "../../theme/app-theme";
-import { spacing } from "../../theme/tokens";
-import { RNSymbol } from "../symbols/rn-symbol";
 
 /** 이만큼 남았을 때부터 접힌 바에도 턴이 나타난다. 나타난 것 자체가 신호다. */
 const TURNS_LEFT_THRESHOLD = 5;
-
-const styles = StyleSheet.create({
-  bar: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.xs,
-    minHeight: 44,
-  },
-  dock: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-  },
-  goalLine: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.xs,
-    minHeight: 32,
-  },
-  goalText: {
-    flex: 1,
-  },
-  now: {
-    flex: 1,
-  },
-  openHead: {
-    alignItems: "center",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    minHeight: 36,
-    paddingBottom: spacing.xs,
-  },
-  pip: {
-    alignItems: "center",
-    borderRadius: 9,
-    height: 18,
-    justifyContent: "center",
-    width: 18,
-  },
-});
 
 /** 셋을 다 이룬 뒤 접힌 바가 대신 말하는 것. 종료는 곧 화면이 알린다. */
 const ALL_GOALS_DONE = "목표를 모두 달성했어요";
@@ -71,52 +28,58 @@ function goalState(
   return goal.position === currentPosition ? "now" : "todo";
 }
 
-/** 완료는 초록 체크, 현재는 파란 링, 남은 것은 회색 원. */
+/** 완료는 초록 체크, 현재는 accent 링, 남은 것은 회색 원. */
 function GoalPip({ state }: { state: GoalState }) {
-  const { colors } = useTheme();
+  const onSuccess = useThemeColor("success-foreground");
 
   if (state === "done") {
     return (
       <View
-        style={[styles.pip, { backgroundColor: colors.success }]}
+        className="size-4.5 items-center justify-center rounded-full bg-success"
         testID="goal-pip-done"
       >
-        <RNSymbol color={colors.onAccent} symbol="achieved" />
+        {/* 줄이 읽는 것은 목표 문장뿐이고 달성 여부는 색과 모양으로만 말한다 —
+            매핑되지 않은 글리프가 정지점을 만들지 않게 숨긴다
+            (docs/decisions/apple-hig-with-app-theme.md). */}
+        <Ionicons
+          accessibilityElementsHidden
+          color={onSuccess}
+          name="checkmark"
+          size={10}
+        />
       </View>
+    );
+  }
+
+  if (state === "now") {
+    return (
+      <View
+        className="size-4.5 rounded-full border-2 border-accent"
+        testID="goal-pip-now"
+      />
     );
   }
 
   return (
     <View
-      style={[
-        styles.pip,
-        state === "now"
-          ? { borderColor: colors.accent, borderWidth: 2 }
-          : { borderColor: colors.border, borderWidth: 1.5 },
-      ]}
-      testID={state === "now" ? "goal-pip-now" : "goal-pip-todo"}
+      className="size-4.5 rounded-full border-[1.5px] border-border"
+      testID="goal-pip-todo"
     />
   );
 }
 
 function GoalLine({ goal, state }: { goal: EpisodeGoal; state: GoalState }) {
-  const { colors, typography } = useTheme();
-
   return (
-    <View style={styles.goalLine}>
+    <View className="min-h-8 flex-row items-center gap-2">
       <GoalPip state={state} />
-      <Text
-        style={[
-          styles.goalText,
-          typography.supporting,
-          {
-            color: state === "now" ? colors.text : colors.secondaryText,
-            fontWeight: state === "now" ? "600" : "400",
-          },
-        ]}
+      <Typography
+        className="flex-1"
+        color={state === "now" ? "default" : "muted"}
+        type="body-sm"
+        weight={state === "now" ? "semibold" : "normal"}
       >
         {goal.sentence}
-      </Text>
+      </Typography>
     </View>
   );
 }
@@ -139,82 +102,80 @@ export function GoalDock({
   turnLimit: number;
   usedTurns: number;
 }) {
-  const { colors, typography } = useTheme();
+  const muted = useThemeColor("muted");
   const [expanded, setExpanded] = useState(false);
   const toggle = useCallback(() => {
     setExpanded((current) => !current);
   }, []);
-  const dockStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.dock,
-      {
-        backgroundColor: colors.surface,
-        borderTopColor: colors.separator,
-        opacity: pressed ? 0.7 : 1,
-      },
-    ],
-    [colors.separator, colors.surface]
-  );
   const currentGoal = goals.find((goal) => goal.position === currentPosition);
   const turnsLeft = Math.max(turnLimit - usedTurns, 0);
 
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityState={{ expanded }}
       onPress={toggle}
-      style={dockStyle}
       testID="goal-dock"
     >
-      {expanded ? (
-        <>
-          <View
-            style={[styles.openHead, { borderBottomColor: colors.separator }]}
-          >
-            <Text
-              style={[typography.caption, { color: colors.secondaryText }]}
-              testID="goal-dock-turns"
+      <Separator />
+      <View className="bg-surface px-4 py-2">
+        {expanded ? (
+          <>
+            <View className="min-h-9 flex-row items-center justify-between pb-2">
+              <Typography color="muted" testID="goal-dock-turns" type="body-xs">
+                턴 {usedTurns}/{turnLimit}
+              </Typography>
+              <Ionicons
+                accessibilityElementsHidden
+                color={muted}
+                name="chevron-down"
+                size={14}
+              />
+            </View>
+            <Separator />
+            <View className="pt-1">
+              {goals.map((goal) => (
+                <GoalLine
+                  goal={goal}
+                  key={goal.position}
+                  state={goalState(goal, currentPosition)}
+                />
+              ))}
+            </View>
+          </>
+        ) : (
+          <View className="min-h-11 flex-row items-center gap-2">
+            <Typography
+              className="flex-1"
+              numberOfLines={1}
+              testID="goal-dock-now"
+              type="body-sm"
+              weight="semibold"
             >
-              턴 {usedTurns}/{turnLimit}
-            </Text>
-            <RNSymbol color={colors.secondaryText} symbol="chevronDown" />
-          </View>
-          {goals.map((goal) => (
-            <GoalLine
-              goal={goal}
-              key={goal.position}
-              state={goalState(goal, currentPosition)}
+              {currentGoal?.sentence ?? ALL_GOALS_DONE}
+            </Typography>
+            {/*
+             * 남은 턴이 임계값 이하일 때만 나타난다. 나타났다는 사실이 신호이므로
+             * 경고색 없이 보조 텍스트로 둔다.
+             */}
+            {turnsLeft <= TURNS_LEFT_THRESHOLD ? (
+              <Typography
+                color="muted"
+                testID="goal-dock-turns-left"
+                type="body-xs"
+              >
+                {turnsLeft}턴 남음
+              </Typography>
+            ) : null}
+            <Ionicons
+              accessibilityElementsHidden
+              color={muted}
+              name="chevron-up"
+              size={14}
             />
-          ))}
-        </>
-      ) : (
-        <View style={styles.bar}>
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.now,
-              typography.supporting,
-              { color: colors.text, fontWeight: "600" },
-            ]}
-            testID="goal-dock-now"
-          >
-            {currentGoal?.sentence ?? ALL_GOALS_DONE}
-          </Text>
-          {/*
-           * 남은 턴이 임계값 이하일 때만 나타난다. 나타났다는 사실이 신호이므로
-           * 경고색 없이 보조 텍스트로 둔다.
-           */}
-          {turnsLeft <= TURNS_LEFT_THRESHOLD ? (
-            <Text
-              style={[typography.caption, { color: colors.secondaryText }]}
-              testID="goal-dock-turns-left"
-            >
-              {turnsLeft}턴 남음
-            </Text>
-          ) : null}
-          <RNSymbol color={colors.secondaryText} symbol="chevronUp" />
-        </View>
-      )}
-    </Pressable>
+          </View>
+        )}
+      </View>
+    </PressableFeedback>
   );
 }

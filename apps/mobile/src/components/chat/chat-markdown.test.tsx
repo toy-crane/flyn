@@ -1,15 +1,30 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Linking } from "react-native";
+
+jest.mock("uniwind", () =>
+  require("../../test-support/heroui").uniwindThemeMock()
+);
+jest.mock("react-native-safe-area-context", () => ({
+  // HeroUI provider가 이 모듈에서 함께 가져다 쓴다 — 통째로 대체하면 provider가
+  // 렌더되지 않는다.
+  SafeAreaListener: ({ children }: { children: unknown }) => children,
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
+
+import { HeroUIWrapper } from "../../test-support/heroui";
 import { ChatMarkdown } from "./chat-markdown";
+
+/** HeroUI `Typography`는 provider 아래에서만 선다. */
+function renderMarkdown(markdown: string) {
+  return render(<ChatMarkdown>{markdown}</ChatMarkdown>, {
+    wrapper: HeroUIWrapper,
+  });
+}
 
 describe("AI 응답 Markdown", () => {
   it("필수 텍스트 서식과 표를 네이티브 컴포넌트로 렌더링한다", async () => {
-    await render(
-      <ChatMarkdown>
-        {
-          "# 제목\n\n**굵게**와 *기울임*\n\n- 첫 항목\n- 둘째 항목\n\n`inline`\n\n```ts\nconst answer = 42;\n```\n\n| 열 | 값 |\n| --- | --- |\n| A | B |"
-        }
-      </ChatMarkdown>
+    await renderMarkdown(
+      "# 제목\n\n**굵게**와 *기울임*\n\n- 첫 항목\n- 둘째 항목\n\n`inline`\n\n```ts\nconst answer = 42;\n```\n\n| 열 | 값 |\n| --- | --- |\n| A | B |"
     );
 
     expect(screen.getByText("제목")).toBeTruthy();
@@ -26,17 +41,23 @@ describe("AI 응답 Markdown", () => {
       .spyOn(Linking, "openURL")
       .mockResolvedValueOnce(undefined);
 
-    await render(
-      <ChatMarkdown>
-        {
-          "[공식 문서](https://example.com)\n\n![이미지](https://example.com/a.png)"
-        }
-      </ChatMarkdown>
+    await renderMarkdown(
+      "[공식 문서](https://example.com)\n\n![이미지](https://example.com/a.png)"
     );
 
     fireEvent.press(screen.getByRole("link", { name: "공식 문서" }));
 
     expect(openUrl).toHaveBeenCalledWith("https://example.com");
     expect(screen.queryByLabelText("이미지")).toBeNull();
+  });
+
+  it("본문 서식은 HeroUI 토큰 클래스가 나른다", async () => {
+    await renderMarkdown("[공식 문서](https://example.com)");
+
+    // 색을 직접 칠하지 않고 의미 토큰 클래스만 얹는다
+    // (docs/decisions/uniwind-css-theme.md).
+    expect(
+      screen.getByRole("link", { name: "공식 문서" }).props.className
+    ).toContain("text-accent");
   });
 });

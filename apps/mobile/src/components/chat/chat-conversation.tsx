@@ -1,10 +1,18 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import {
   KeyboardAwareLegendList,
   useKeyboardChatComposerInset,
 } from "@legendapp/list/keyboard";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import type { ChatStatus } from "ai";
-import { SymbolView } from "expo-symbols";
+import {
+  Button,
+  LinkButton,
+  Spinner,
+  Surface,
+  Typography,
+  useThemeColor,
+} from "heroui-native";
 import {
   type ReactElement,
   type ReactNode,
@@ -14,14 +22,10 @@ import {
   useState,
 } from "react";
 import {
-  ActivityIndicator,
-  type ColorValue,
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  Pressable,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from "react-native";
@@ -39,10 +43,8 @@ import Reanimated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { MessageMark } from "../../lib/message-feedback";
-import { useTheme } from "../../theme/app-theme";
-import { spacing } from "../../theme/tokens";
 import { ChatMarkdown } from "./chat-markdown";
-import { MARK_COLUMN_SIZE, MessageMarkView } from "./message-mark";
+import { MessageMarkView } from "./message-mark";
 import { StreamingMessage } from "./streaming-message";
 import type { StreamingStore } from "./streaming-store";
 
@@ -50,6 +52,12 @@ const COMPOSER_NATIVE_ID = "chat-composer";
 const BOTTOM_THRESHOLD = 72;
 const COMPOSER_MIN_HEIGHT = 52;
 const COMPOSER_MARGIN = 8;
+/** safe area가 없는 기기에서도 composer가 화면 끝에 붙지 않게 두는 최소 여백. */
+const MIN_COMPOSER_INSET = 8;
+const SCROLL_BUTTON_TIMING = {
+  duration: 160,
+  reduceMotion: ReduceMotion.System,
+};
 const CHAT_ERROR_ENTERING = new Keyframe({
   0: {
     opacity: 0,
@@ -78,49 +86,12 @@ const CHAT_RECOVERY_LAYOUT = LinearTransition.duration(160).reduceMotion(
   ReduceMotion.System
 );
 
+/**
+ * 가상 목록과 키보드 컴포넌트는 Uniwind가 감싸는 대상이 아니라 `className`을
+ * 받지 못한다. 이 네 개만 style로 남고 나머지 표현은 전부 토큰 클래스가 나른다
+ * (docs/decisions/uniwind-css-theme.md).
+ */
 const styles = StyleSheet.create({
-  action: {
-    alignItems: "center",
-    borderRadius: 22,
-    justifyContent: "center",
-    margin: spacing.xxs,
-    minHeight: 44,
-    minWidth: 44,
-  },
-  assistantMessage: {
-    marginBottom: spacing.md,
-    width: "100%",
-  },
-  composer: {
-    paddingHorizontal: spacing.sm,
-    paddingTop: spacing.xs,
-  },
-  composerInput: {
-    flex: 1,
-    maxHeight: 112,
-    minHeight: 52,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 14,
-  },
-  composerSurface: {
-    alignItems: "flex-end",
-    borderRadius: 24,
-    flexDirection: "row",
-    minHeight: 52,
-    overflow: "hidden",
-  },
-  errorBanner: {
-    alignItems: "center",
-    borderRadius: 16,
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  errorText: {
-    flex: 1,
-  },
   keyboardArea: {
     flex: 1,
   },
@@ -129,79 +100,15 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   listContent: {
-    paddingBottom: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-  },
-  markColumn: {
-    height: MARK_COLUMN_SIZE,
-    width: MARK_COLUMN_SIZE,
-  },
-  note: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.xs,
-    justifyContent: "center",
-    marginBottom: spacing.sm,
-    paddingVertical: spacing.xxs,
-  },
-  noteDot: {
-    alignItems: "center",
-    borderRadius: 8,
-    height: 16,
-    justifyContent: "center",
-    width: 16,
-  },
-  retryAction: {
-    justifyContent: "center",
-    minHeight: 44,
-    paddingHorizontal: spacing.xs,
-  },
-  retryText: {
-    fontWeight: "600",
-  },
-  screen: {
-    flex: 1,
-  },
-  scrollButton: {
-    alignItems: "center",
-    borderRadius: 22,
-    justifyContent: "center",
-    minHeight: 44,
-    minWidth: 44,
-  },
-  scrollButtonAnchor: {
-    left: "50%",
-    position: "absolute",
-    top: -60,
-    transform: [{ translateX: -22 }],
-    zIndex: 1,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   stickyComposer: {
     bottom: 0,
     left: 0,
     position: "absolute",
     right: 0,
-  },
-  stopped: {
-    fontSize: 12,
-    marginTop: spacing.xxs,
-  },
-  userMessage: {
-    borderRadius: 20,
-    maxWidth: "76%",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  userRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginBottom: spacing.sm,
-  },
-  viewport: {
-    flex: 1,
-    minHeight: 0,
   },
 });
 
@@ -260,33 +167,23 @@ function UserMessage({
   mark?: MessageMark;
   onMarkPress?: () => void;
 }) {
-  const { colors, typography } = useTheme();
-
   return (
-    <View style={styles.userRow} testID="user-message-row">
+    <View
+      className="mb-3 flex-row items-center justify-end"
+      testID="user-message-row"
+    >
       {/*
        * 말풍선 곁의 표시는 본문이 아니라 44pt 고정 열에 둔다. 판정이 늦게
        * 도착해 표시가 나중에 채워져도 말풍선은 제자리에 있다.
        */}
-      <View style={styles.markColumn} testID="user-message-mark">
+      <View className="size-11" testID="user-message-mark">
         {mark ? <MessageMarkView mark={mark} onPress={onMarkPress} /> : null}
       </View>
       <View
-        style={[styles.userMessage, { backgroundColor: colors.userBubble }]}
+        className="max-w-3/4 rounded-3xl bg-default px-4 py-3"
         testID="user-message"
       >
-        <Text
-          selectable
-          style={[
-            typography.message,
-            {
-              color: colors.onUserBubble,
-              lineHeight: 22,
-            },
-          ]}
-        >
-          {content}
-        </Text>
+        <Typography selectable>{content}</Typography>
       </View>
     </View>
   );
@@ -297,21 +194,30 @@ function UserMessage({
  * 말풍선 사이에 그대로 선다.
  */
 function ConversationNote({ text }: { text: string }) {
-  const { colors, typography } = useTheme();
+  const onSuccess = useThemeColor("success-foreground");
 
   return (
-    <View style={styles.note} testID="conversation-note">
-      <View style={[styles.noteDot, { backgroundColor: colors.success }]}>
-        <SymbolView
+    <View
+      className="mb-3 flex-row items-center justify-center gap-2 py-1"
+      testID="conversation-note"
+    >
+      <View
+        className="size-4 items-center justify-center rounded-full bg-success"
+        testID="conversation-note-check"
+      >
+        {/* 줄 전체가 이미 무슨 일이 있었는지 말한다 — 매핑되지 않은 글리프가
+            정지점을 만들지 않게 체크는 트리에서 숨긴다
+            (docs/decisions/apple-hig-with-app-theme.md). */}
+        <Ionicons
+          accessibilityElementsHidden
+          color={onSuccess}
           name="checkmark"
           size={9}
-          tintColor={colors.onAccent}
-          weight="bold"
         />
       </View>
-      <Text style={[typography.caption, { color: colors.success }]}>
+      <Typography className="text-success" type="body-xs">
         {text}
-      </Text>
+      </Typography>
     </View>
   );
 }
@@ -327,38 +233,51 @@ function AssistantMessage({
   streaming: boolean;
   streamingStore: StreamingStore;
 }) {
-  const { colors } = useTheme();
-
   return (
-    <View style={styles.assistantMessage} testID="assistant-message">
+    <View className="mb-4 w-full" testID="assistant-message">
       {streaming ? (
         <StreamingMessage store={streamingStore} />
       ) : (
         <ChatMarkdown>{content}</ChatMarkdown>
       )}
       {status === "stopped" ? (
-        <Text style={[styles.stopped, { color: colors.secondaryText }]}>
+        <Typography className="mt-1" color="muted" type="body-xs">
           중단됨
-        </Text>
+        </Typography>
       ) : null}
     </View>
   );
 }
 
-function ComposerSurface({
-  backgroundColor,
-  children,
-}: {
-  backgroundColor: ColorValue;
-  children: ReactNode;
-}) {
+/**
+ * 오류 배너. composer와의 공간 관계를 유지하며 나타나고 사라진다
+ * (docs/decisions/native-motion.md). 새 입력은 그대로 보낼 수 있으므로 배너는
+ * composer를 막지 않고 그 위에 얹힌다.
+ */
+function ChatErrorBanner({ onRetry }: { onRetry: () => void }) {
   return (
-    <View
-      style={[styles.composerSurface, { backgroundColor }]}
-      testID="chat-composer-surface"
+    <Reanimated.View
+      entering={CHAT_ERROR_ENTERING}
+      exiting={CHAT_ERROR_EXITING}
+      layout={CHAT_RECOVERY_LAYOUT}
+      testID="chat-error-banner"
     >
-      {children}
-    </View>
+      <Surface className="mb-2 flex-row items-center gap-3 rounded-panel px-4 py-3">
+        <Typography className="flex-1" type="body-xs">
+          응답을 만들지 못했어요.
+        </Typography>
+        {/* 손가락이 닿을 44pt를 세로로 확보한다 — LinkButton은 높이·padding을
+            스스로 0으로 두므로 min-height로만 늘린다. */}
+        <LinkButton
+          accessibilityLabel="다시 시도"
+          className="min-h-11"
+          onPress={onRetry}
+          size="sm"
+        >
+          <LinkButton.Label>다시 시도</LinkButton.Label>
+        </LinkButton>
+      </Surface>
+    </Reanimated.View>
   );
 }
 
@@ -371,7 +290,12 @@ function Composer({
   chat: ChatController;
   placeholder: string;
 }) {
-  const { colors, typography } = useTheme();
+  const [foreground, onAccent, placeholderColor, muted] = useThemeColor([
+    "foreground",
+    "accent-foreground",
+    "field-placeholder",
+    "muted",
+  ]);
   const canSend = chat.input.trim().length > 0;
   const isGenerating = isGeneratingStatus(chat.status);
   const actionLabel = isGenerating ? "응답 중단" : "메시지 보내기";
@@ -380,99 +304,57 @@ function Composer({
 
   return (
     <View
-      style={[
-        styles.composer,
-        { paddingBottom: Math.max(bottomInset, spacing.xs) },
-      ]}
+      className="px-3 pt-2"
+      // safe area는 런타임 값이라 토큰으로 접을 수 없는 자리다.
+      style={{ paddingBottom: Math.max(bottomInset, MIN_COMPOSER_INSET) }}
     >
-      {chat.error ? (
-        <Reanimated.View
-          entering={CHAT_ERROR_ENTERING}
-          exiting={CHAT_ERROR_EXITING}
-          layout={CHAT_RECOVERY_LAYOUT}
-          style={[styles.errorBanner, { backgroundColor: colors.surface }]}
-          testID="chat-error-banner"
-        >
-          <Text
-            style={[
-              styles.errorText,
-              typography.caption,
-              { color: colors.text },
-            ]}
-          >
-            응답을 만들지 못했어요.
-          </Text>
-          <Pressable
-            accessibilityLabel="다시 시도"
-            accessibilityRole="button"
-            onPress={chat.onRetry}
-            style={styles.retryAction}
-          >
-            <Text
-              style={[
-                typography.caption,
-                styles.retryText,
-                { color: colors.text },
-              ]}
-            >
-              다시 시도
-            </Text>
-          </Pressable>
-        </Reanimated.View>
-      ) : null}
+      {chat.error ? <ChatErrorBanner onRetry={chat.onRetry} /> : null}
 
-      <ComposerSurface backgroundColor={colors.inputFill}>
+      <View
+        className="min-h-13 flex-row items-end overflow-hidden rounded-3xl bg-field"
+        testID="chat-composer-surface"
+      >
         <TextInput
           accessibilityLabel="메시지"
-          cursorColor={colors.text}
+          className="max-h-28 min-h-13 flex-1 px-4 py-3.5 text-base text-field-foreground"
+          cursorColor={foreground}
           maxLength={4000}
           multiline
           nativeID={COMPOSER_NATIVE_ID}
           onChangeText={chat.setInput}
           placeholder={placeholder}
-          placeholderTextColor={colors.placeholder}
-          selectionColor={colors.text}
-          style={[
-            styles.composerInput,
-            typography.message,
-            {
-              color: colors.text,
-              lineHeight: undefined,
-            },
-          ]}
+          placeholderTextColor={placeholderColor}
+          selectionColor={foreground}
           textAlignVertical="top"
           value={chat.input}
         />
-        <Pressable
+        <Button
           accessibilityLabel={actionLabel}
           accessibilityRole="button"
-          disabled={disabled}
+          className="m-1 size-11 rounded-full"
+          isDisabled={disabled}
+          isIconOnly
           onPress={handleAction}
-          style={[
-            styles.action,
-            {
-              backgroundColor: disabled ? colors.disabled : colors.primary,
-              opacity: disabled ? 0.7 : 1,
-            },
-          ]}
         >
           {chat.status === "submitted" ? (
-            <ActivityIndicator
+            // 눌러서 시작된 일이라 이 progress는 action의 전경색을 따른다
+            // (docs/specs/neutral-loading-indicators/spec.md).
+            <Spinner
               accessible={false}
-              color={colors.onPrimary}
-              size="small"
+              color={onAccent}
+              size="sm"
               testID="composer-submit-spinner"
             />
           ) : (
-            <SymbolView
-              name={chat.status === "streaming" ? "stop.fill" : "arrow.up"}
+            <Ionicons
+              accessibilityElementsHidden
+              color={disabled ? muted : onAccent}
+              name={chat.status === "streaming" ? "stop" : "arrow-up"}
               size={17}
-              tintColor={disabled ? colors.disabledText : colors.onPrimary}
-              weight="semibold"
             />
           )}
-        </Pressable>
-      </ComposerSurface>
+        </Button>
+      </View>
     </View>
   );
 }
@@ -504,7 +386,7 @@ export function ChatConversation({
   placeholder?: string;
 }) {
   const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
+  const muted = useThemeColor("muted");
   const listRef = useRef<LegendListRef>(null);
   const composerRef = useRef<View>(null);
   const [listViewportHeight, setListViewportHeight] = useState(0);
@@ -524,10 +406,10 @@ export function ChatConversation({
   }));
 
   useEffect(() => {
-    scrollButtonProgress.value = withTiming(showScrollButton ? 1 : 0, {
-      duration: 160,
-      reduceMotion: ReduceMotion.System,
-    });
+    scrollButtonProgress.value = withTiming(
+      showScrollButton ? 1 : 0,
+      SCROLL_BUTTON_TIMING
+    );
   }, [scrollButtonProgress, showScrollButton]);
 
   const scrollToBottom = useCallback(() => {
@@ -587,7 +469,7 @@ export function ChatConversation({
   );
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+    <View className="flex-1 bg-background">
       <KeyboardGestureArea
         interpolator="ios"
         offset={COMPOSER_MIN_HEIGHT}
@@ -596,8 +478,8 @@ export function ChatConversation({
         textInputNativeID={COMPOSER_NATIVE_ID}
       >
         <View
+          className="min-h-0 flex-1"
           onLayout={handleViewportLayout}
-          style={styles.viewport}
           testID="chat-message-viewport"
         >
           <KeyboardAwareLegendList
@@ -645,33 +527,32 @@ export function ChatConversation({
           >
             <View
               accessibilityElementsHidden={!showScrollButton}
+              className="absolute inset-x-0 -top-15 z-10 items-center"
               importantForAccessibility={
                 showScrollButton ? "auto" : "no-hide-descendants"
               }
               pointerEvents={showScrollButton ? "auto" : "none"}
-              style={styles.scrollButtonAnchor}
               testID="chat-scroll-to-bottom-anchor"
             >
               <Reanimated.View
                 style={scrollButtonStyle}
                 testID="chat-scroll-to-bottom-motion"
               >
-                <Pressable
+                <Button
                   accessibilityLabel="맨 아래로"
                   accessibilityRole="button"
+                  className="size-11 rounded-full"
+                  isIconOnly
                   onPress={scrollToBottom}
-                  style={[
-                    styles.scrollButton,
-                    { backgroundColor: colors.surface },
-                  ]}
+                  variant="secondary"
                 >
-                  <SymbolView
-                    name="chevron.down"
+                  <Ionicons
+                    accessibilityElementsHidden
+                    color={muted}
+                    name="chevron-down"
                     size={16}
-                    tintColor={colors.secondaryText}
-                    weight="semibold"
                   />
-                </Pressable>
+                </Button>
               </Reanimated.View>
             </View>
             {ending ?? (

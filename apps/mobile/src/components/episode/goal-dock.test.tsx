@@ -1,6 +1,17 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
+
+jest.mock("uniwind", () =>
+  require("../../test-support/heroui").uniwindThemeMock()
+);
+jest.mock("react-native-safe-area-context", () => ({
+  // HeroUI provider가 이 모듈에서 함께 가져다 쓴다 — 통째로 대체하면 provider가
+  // 렌더되지 않는다.
+  SafeAreaListener: ({ children }: { children: unknown }) => children,
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
+
 import type { EpisodeGoal } from "../../lib/episodes";
-import { PRODUCT_STATE_COLORS } from "../../theme/product-colors";
+import { HeroUIWrapper } from "../../test-support/heroui";
 import { GoalDock } from "./goal-dock";
 
 const GOALS: EpisodeGoal[] = [
@@ -24,6 +35,7 @@ const GOALS: EpisodeGoal[] = [
   },
 ];
 
+/** HeroUI 컴포넌트는 provider 아래에서만 선다. */
 function renderDock({ usedTurns = 2 }: { usedTurns?: number } = {}) {
   return render(
     <GoalDock
@@ -31,11 +43,18 @@ function renderDock({ usedTurns = 2 }: { usedTurns?: number } = {}) {
       goals={GOALS}
       turnLimit={20}
       usedTurns={usedTurns}
-    />
+    />,
+    { wrapper: HeroUIWrapper }
   );
 }
 
 describe("목표 바", () => {
+  beforeEach(() => {
+    // 아이콘 글리프는 jest-expo의 asset registry mock 위에서만 마운트된다 —
+    // `resetAllMocks`는 그 mock까지 지운다.
+    jest.clearAllMocks();
+  });
+
   it("접히면 지금 할 목표 한 줄만 보여준다", async () => {
     await renderDock();
 
@@ -91,17 +110,18 @@ describe("목표 바", () => {
   it("남은 턴 표시는 경고색이 아니라 보조 텍스트다", async () => {
     await renderDock({ usedTurns: 16 });
     await fireEvent.press(screen.getByTestId("goal-dock"));
-    const expandedTurns = screen.getByTestId("goal-dock-turns");
+    // 노드 핸들은 다시 렌더될 때 재사용되므로 그 자리의 값을 바로 꺼낸다.
+    const expandedTurns: string =
+      screen.getByTestId("goal-dock-turns").props.className;
 
     await fireEvent.press(screen.getByTestId("goal-dock"));
     const turnsLeft = screen.getByTestId("goal-dock-turns-left");
 
     expect(turnsLeft).toHaveTextContent("4턴 남음");
-    // 나타난 것 자체가 신호다. 펼친 바의 턴과 같은 보조 텍스트 색을 쓴다.
-    expect(turnsLeft.props.style).toEqual(expandedTurns.props.style);
-    expect(JSON.stringify(turnsLeft.props.style)).not.toContain(
-      PRODUCT_STATE_COLORS.light.danger
-    );
+    // 나타난 것 자체가 신호다. 펼친 바의 턴과 같은 보조 텍스트 토큰을 쓴다.
+    expect(turnsLeft.props.className).toEqual(expandedTurns);
+    expect(turnsLeft.props.className).toContain("color-muted");
+    expect(turnsLeft.props.className).not.toContain("danger");
   });
 
   it("목표를 다 이루면 지금 할 목표 자리가 다 됐다고 말한다", async () => {
@@ -115,7 +135,8 @@ describe("목표 바", () => {
         }))}
         turnLimit={20}
         usedTurns={6}
-      />
+      />,
+      { wrapper: HeroUIWrapper }
     );
 
     // 마지막 목표 문장을 계속 세워 두면 다 된 표시 옆에 끝난 문장이 남는다.

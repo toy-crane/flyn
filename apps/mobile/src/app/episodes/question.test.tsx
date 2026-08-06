@@ -1,5 +1,14 @@
 import { render, screen, within } from "@testing-library/react-native";
 
+jest.mock("uniwind", () =>
+  require("../../test-support/heroui").uniwindThemeMock()
+);
+jest.mock("react-native-safe-area-context", () => ({
+  // HeroUI provider가 이 모듈에서 함께 가져다 쓴다 — 통째로 대체하면 provider가
+  // 렌더되지 않는다.
+  SafeAreaListener: ({ children }: { children: unknown }) => children,
+  useSafeAreaInsets: () => ({ bottom: 34, left: 0, right: 0, top: 59 }),
+}));
 jest.mock("expo-router", () =>
   require("../../test-support/expo-router").expoRouterMock()
 );
@@ -56,7 +65,13 @@ import { useSentenceQuestion as useStoredSentenceQuestion } from "../../lib/sent
 import { useEpisode, useEpisodeMessages } from "../../lib/use-episodes";
 import { useSentenceQuestion } from "../../lib/use-sentence-question";
 import { setSearchParams } from "../../test-support/expo-router";
+import { HeroUIWrapper } from "../../test-support/heroui";
 import SentenceQuestionScreen from "./question";
+
+/** HeroUI 컴포넌트는 provider 아래에서만 선다. */
+function renderQuestion() {
+  return render(<SentenceQuestionScreen />, { wrapper: HeroUIWrapper });
+}
 
 const mockUseEpisode = useEpisode as jest.Mock;
 const mockUseEpisodeMessages = useEpisodeMessages as jest.Mock;
@@ -153,7 +168,7 @@ beforeEach(() => {
 
 describe("문장 질문 화면", () => {
   it("대상 문장을 대화 목록 바깥의 인용 카드에 고정한다", async () => {
-    await render(<SentenceQuestionScreen />);
+    await renderQuestion();
 
     expect(screen.getByTestId("quoted-sentence")).toHaveTextContent(
       "Sound good. Can you make it oat milk?"
@@ -167,14 +182,14 @@ describe("문장 질문 화면", () => {
   });
 
   it("헤더 서브타이틀이 원래 에피소드 이름을 나른다", async () => {
-    await render(<SentenceQuestionScreen />);
+    await renderQuestion();
 
     expect(screen.getByText("문장 이야기")).toBeTruthy();
     expect(screen.getByText("포틀랜드 카페에서 첫 주문")).toBeTruthy();
   });
 
   it("나갔다 다시 열면 지난 내용이 이어서 나온다", async () => {
-    await render(<SentenceQuestionScreen />);
+    await renderQuestion();
 
     expect(mockUseStoredSentenceQuestion).toHaveBeenCalledWith(
       "episode-1",
@@ -200,7 +215,7 @@ describe("문장 질문 화면", () => {
     mockUseStoredSentenceQuestion.mockReturnValue(query({ data: [] }));
     mockUseSentenceQuestion.mockReturnValue(chatWith([]));
 
-    await render(<SentenceQuestionScreen />);
+    await renderQuestion();
 
     expect(mockUseStoredSentenceQuestion).toHaveBeenCalledWith(
       "episode-1",
@@ -212,7 +227,7 @@ describe("문장 질문 화면", () => {
   });
 
   it("롤플레잉이 아니라 학습 질문이라 한국어도 앞길이다", async () => {
-    await render(<SentenceQuestionScreen />);
+    await renderQuestion();
 
     expect(screen.getByTestId("surface-placeholder")).toHaveTextContent(
       "영어나 한국어로 써 보세요"
@@ -222,7 +237,7 @@ describe("문장 질문 화면", () => {
   it("지난 내용을 불러오지 못하면 다시 시도할 자리를 준다", async () => {
     mockUseStoredSentenceQuestion.mockReturnValue(query({ isError: true }));
 
-    await render(<SentenceQuestionScreen />);
+    await renderQuestion();
 
     expect(screen.getByText("지난 내용을 불러오지 못했어요.")).toBeTruthy();
     expect(screen.queryByTestId("quoted-sentence")).toBeNull();
