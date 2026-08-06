@@ -32,11 +32,11 @@
 
 ## Status
 
-pending
+in-progress
 
 ## Execution
 
-- Base commit: —
+- Base commit: 99c438754d64b100a17c23cfe31c6d396301fcee
 - Task checkpoint commit: —
 - Verification: —
 - Task review: —
