@@ -22,3 +22,4 @@
 - [no-apple-token-revocation](no-apple-token-revocation.md) — Read when 계정 삭제, Apple token 취소 또는 사용자 데이터 정리를 바꿀 때.
 - [profile-identity](profile-identity.md) — Read when 프로필 스키마, 공개 닉네임·아이디, 온보딩 판정 또는 프로필 권한을 바꿀 때.
 - [hybrid-data-access](hybrid-data-access.md) — Read when 모바일 직접 CRUD, RLS, Hono 경계 또는 AI가 만든 기록의 쓰기 권한을 바꿀 때.
+- [table-privileges](table-privileges.md) — Read when public에 테이블을 만들거나 GRANT·REVOKE, 권한 마이그레이션, 권한 테스트를 바꿀 때.
