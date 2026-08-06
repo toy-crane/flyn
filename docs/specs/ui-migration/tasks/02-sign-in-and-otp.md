@@ -14,16 +14,16 @@ AutoFill·붙여넣기·연속 입력까지 이전과 똑같이 동작한다. �
 
 ## 완료 기준
 
-- [ ] 루트 로그인의 provider 버튼이 HeroUI `Button` 기반으로 브랜드 지침을
+- [x] 루트 로그인의 provider 버튼이 HeroUI `Button` 기반으로 브랜드 지침을
       지키고, [social-sign-in-presentation](../../../decisions/social-sign-in-presentation.md)의
       위계·pending 표현이 유지된다
-- [ ] 이메일 입력이 HeroUI `TextField`로 동작하고 검증·제출·오류 문구가 이전과
+- [x] 이메일 입력이 HeroUI `TextField`로 동작하고 검증·제출·오류 문구가 이전과
       같다
-- [ ] OTP가 HeroUI `InputOTP`로 SMS AutoFill·붙여넣기·연속 입력·slot 피드백을
+- [x] OTP가 HeroUI `InputOTP`로 SMS AutoFill·붙여넣기·연속 입력·slot 피드백을
       통과했거나, 실패 증거와 함께 HeroUI 토큰 위 커스텀으로 대체됐다
-- [ ] 재전송 쿨다운·haptic·오류 상태가 회귀 없다
-- [ ] `bun run auth:session` 경로로 이메일 OTP 로그인 완주가 재현된다
-- [ ] 기존 email-form·code-input·google-button이 제거됐다
+- [x] 재전송 쿨다운·haptic·오류 상태가 회귀 없다
+- [x] `bun run auth:session` 경로로 이메일 OTP 로그인 완주가 재현된다
+- [x] 기존 email-form·code-input·google-button이 제거됐다
 
 ## 제약
 
@@ -37,13 +37,13 @@ AutoFill·붙여넣기·연속 입력까지 이전과 똑같이 동작한다. �
 
 ## Status
 
-in-progress
+completed
 
 ## Execution
 
 - Base commit: 61b28d73ae2208ec78b4042c88e0a9a99e99dff9
-- Task checkpoint commit: 263ff617dd3364f54d6c15d9c8770911186dd322
-- Verification: `bun run check --force` — 8/8 tasks, 0 cached, jest 424/424 (52 suites), lint·typecheck 통과
-- Task review: —
+- Task checkpoint commit: f14f489d55e1ce3384a4728ddcb2244521ad6e95
+- Verification: `bun run check --force` — 8/8 tasks, 0 cached, jest 428/428 (52 suites), lint·typecheck 통과. 이메일 OTP 완주는 `bun run auth:session`으로 세션을 얻고 시뮬레이터에서 온보딩 진입까지 재현했다(작업자 보고, 증거는 세션 scratchpad의 `16-signed-in.png`·`23-crop.png` — 저장소 안에는 남지 않는다).
+- Task review: 교정 1회로 닫았다. 리뷰가 결정 문서 두 개가 코드와 어긋나는 것을 블로킹으로 잡았고 — InputOTP의 `maxLength`는 "풀 수 없는" 것이 아니라 공개 타입이 `Omit`으로 닫은 키였고(런타임에는 뒤에 오는 `textInputProps` spread가 이긴다), `social-sign-in-presentation`은 코드가 버린 17pt를 계속 규정하고 있었다 — 둘 다 사실에 맞게 고쳤다. 기각 결론과 16px 코드는 유지했다. 여기에 `code.tsx`의 "확인 중…" 수동형 스피너가 accent로 남은 것과 이메일 테스트가 잃은 가드 3개(`.trim()`·`autoComplete`·보이는 `<Label>`)를 더해 함께 고쳤고, 각 가드는 대상을 지우면 실패하는 것을 확인했다. 다크 scrim이 HeroUI `backdrop` 20%로 떨어져 다크 배경(oklch 12%) 위에서 보이지 않던 것도 앱 토큰(라이트 18%·다크 62%)으로 되돌렸다.
 - Task correction rounds: 1
-- Blocker: task-review — (1) `self-contained-native-ui-boundaries.md:65-67`이 InputOTP의 `maxLength` 고정을 "밖에서 풀 수 없다"고 적었으나 사실이 아니다. `input-otp.tsx:307`의 `maxLength` 뒤에 `:327`의 `{...textInputProps}`가 와서 런타임에는 덮인다(배포 번들도 같은 순서). 막는 것은 공개 타입의 `Omit`뿐이다. 기각 자체는 타당하나(문서화되지 않은 spread 순서 의존), 기록된 근거와 `Reconsider when`의 재채택 조건이 영영 발동하지 않는 형태다. (2) `social-sign-in-presentation.md:9`가 "17pt muted text action"을 유지하는데 코드는 HeroUI `body`(16px)로 그린다 — 리뷰 판정은 코드가 옳고 문서가 낡았다. (3) `code.tsx:147`·`:158`의 "보내는 중…"·"확인 중…" 스피너가 `useThemeColor("accent")`라 파란 action tint다. 태스크 01에서 같은 계약(`neutral-loading-indicators`)으로 교정한 것과 어긋난다 — 최소한 버튼이 없는 "확인 중…"은 수동형이다. (4) 이메일 화면 테스트가 잃은 가드 3개: `.trim()` 단언(제거해도 통과한다), `autoComplete="email"`, 보이는 `<Label>`.
+- Blocker: resolved task-review — 결정 문서 두 개를 사실에 맞췄고, 수동형 스피너를 중립으로, 잃은 테스트 가드 3개를 복원했다.
