@@ -41,11 +41,12 @@
 
 막은 것은 없다.
 
-- `apps/mobile/src/lib/message-feedback.ts:29` — 번역 표시를 `sourceText !== delivered`로 미루어
+- ~~`apps/mobile/src/lib/message-feedback.ts:29` — 번역 표시를 `sourceText !== delivered`로 미루어
   짐작하는데, `apps/api/src/judgment.ts:143`이 다음 턴에 채우는 판정에서는 `sourceText`를
   `message.content`로 되돌린다. 그래서 첫 판정이 실패한 한글 발화는 영영 교정·통과 표시로 남고
-  시트에서 `내가 쓴 한글` 블록을 잃는다. "이건 번역된 문장이다"를 적어 두는 자리가 스키마에
-  없어, 제대로 고치려면 03이 칼럼이나 플래그를 내어 주어야 한다.
+  시트에서 `내가 쓴 한글` 블록을 잃는다.~~ **고쳤다** — `de45691`이 원문을
+  `episode_messages.source_text`로 옮겨, 판정이 언제 도는지와 무관하게 남게 했다. 표시는 두
+  문장을 견주지 않고 원문의 유무로 가른다.
 - `apps/mobile/src/components/episode/feedback-sheet.tsx:156` — 번역 시트의 `표현 노트와 대체 표현`은
   `feedback.reasons`만 먹는데 `apps/api/src/judgment.ts:500`이 `clear`면 `reasons: []`로 못박는다.
   기계 번역은 거의 언제나 `clear`라, 흔한 번역 시트는 `내가 쓴 한글` → `이렇게 전달됐어요`만
