@@ -1,9 +1,57 @@
 import { act, render, screen } from "@testing-library/react-native";
+import { processColor } from "react-native";
 import { HeroUIWrapper } from "../test-support/heroui";
 import { LaunchChecking, LaunchFailed } from "./launch-screens";
 
+// jest는 Metro를 거치지 않아 CSS 토큰이 비어 있다(jest.config.js). 토큰 resolve
+// 한 단계만 대신 세우면 실제 HeroUI 컴포넌트가 칠하는 색을 단언할 수 있다.
+// 팩토리는 import 시점에 돌지만 이 함수 본문은 렌더 시점에 돈다 —
+// `mockThemeTokens`는 그때 이미 초기화돼 있다.
+jest.mock("uniwind", () => ({
+  ...jest.requireActual("uniwind"),
+  useCSSVariable: (names: string[]) =>
+    names.map((name) => mockThemeTokens[name] ?? "invalid"),
+}));
+
+// 역할이 뒤바뀌면 바로 드러나도록 회색과 파랑으로 갈라 둔다. 실제 팔레트 값이
+// 아니라 자리다 — 값의 원본은 global.css다.
+const NEUTRAL = "#808080";
+const ACCENT = "#0000ff";
+const mockThemeTokens: Record<string, string> = {
+  "--color-accent": ACCENT,
+  "--color-muted": NEUTRAL,
+};
+
 const MISSING_ENV = /환경변수 없음/;
 const ANY_PROGRESS_COPY = /확인|불러오|로딩/;
+
+/**
+ * HeroUI `Spinner`의 색은 SVG gradient stop으로만 남는다 — react-native-svg가
+ * stop을 부모의 `gradient` prop(offset, ARGB 정수가 번갈아 오는 배열)으로 접어
+ * 넣기 때문이다. 실제로 칠해진 색을 그 자리에서 꺼낸다. gradient는 signed
+ * int32로 접히고 `processColor`는 unsigned를 주므로 축을 맞춰 돌려준다.
+ */
+function paintedColors(node: unknown): number[] {
+  if (Array.isArray(node)) {
+    return node.flatMap(paintedColors);
+  }
+  if (!node || typeof node !== "object") {
+    return [];
+  }
+
+  const { props, children } = node as {
+    children?: unknown;
+    props?: { gradient?: unknown };
+  };
+  const gradient = props?.gradient;
+  const own = Array.isArray(gradient)
+    ? gradient
+        .filter((_, index) => index % 2 === 1)
+        .map((color: number) => (color < 0 ? color + 2 ** 32 : color))
+    : [];
+
+  return [...own, ...paintedColors(children)];
+}
 
 describe("LaunchFailed", () => {
   it("무엇이 잘못됐는지 그대로 보여준다", async () => {
@@ -75,6 +123,27 @@ describe("LaunchChecking", () => {
         jest.advanceTimersByTime(1);
       });
       expect(screen.getByRole("progressbar")).toBeTruthy();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  // 수동형 indicator는 진행 중임을 조용히 알릴 뿐 누를 수 있는 것이 아니다.
+  // Spinner 기본값(`color="default"`)은 브랜드 accent라 그대로 두면 파란 action
+  // tint가 남는다(docs/specs/neutral-loading-indicators/spec.md).
+  it("중립 회색으로 그린다 — 브랜드 accent를 쓰지 않는다", async () => {
+    jest.useFakeTimers();
+
+    try {
+      await render(<LaunchChecking />, { wrapper: HeroUIWrapper });
+      await act(() => {
+        jest.advanceTimersByTime(200);
+      });
+
+      const painted = paintedColors(screen.toJSON());
+
+      expect(painted).toContain(processColor(NEUTRAL));
+      expect(painted).not.toContain(processColor(ACCENT));
     } finally {
       jest.useRealTimers();
     }

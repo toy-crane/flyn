@@ -49,5 +49,5 @@ in-progress
 - Task checkpoint commit: 0ea0e022b5510843b45a23554a2a864369694be4
 - Verification: `bun run check --force` — 8/8 tasks, 0 cached, jest 424/424 (53 suites), lint·typecheck 통과
 - Task review: —
-- Task correction rounds: 0
+- Task correction rounds: 1
 - Blocker: task-review — launch 대기 스피너가 중립 회색을 잃고 accent(파랑)로 그려진다. `launch-screens.tsx`의 `<Spinner>`가 기본 `color="default"`를 쓰고, HeroUI가 이를 `themeColorAccent`로 매핑한다(spinner.tsx:132). 살아 있는 계약 `docs/specs/neutral-loading-indicators/spec.md`의 완료 조건 "수동형 indicator에 파란 system action tint가 남지 않는다"를 어긴다. 이전 구현은 `colors.loadingIndicator`(system gray)였다.

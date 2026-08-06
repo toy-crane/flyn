@@ -1,4 +1,4 @@
-import { Spinner, Typography } from "heroui-native";
+import { Spinner, Typography, useThemeColor } from "heroui-native";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
@@ -13,6 +13,17 @@ import { View } from "react-native";
 
 const PROGRESS_REVEAL_DELAY_MS = 200;
 
+/**
+ * 화면에 홀로 뜨는 수동형 로딩 indicator는 중립 회색이다
+ * (docs/specs/neutral-loading-indicators/spec.md). `Spinner`의 기본
+ * `color="default"`는 브랜드 accent라 그대로 두면 누를 수 있는 것처럼 보인다.
+ *
+ * `muted`를 고른 이유는 이름이 아니라 의미다 — HeroUI 테마에서 약한 전경을
+ * 뜻하는 유일한 토큰이고(placeholder·보조 문구가 같은 값을 쓴다), 값의 원본은
+ * `global.css`의 CSS `@theme` 하나다(docs/decisions/uniwind-css-theme.md).
+ */
+const PASSIVE_INDICATOR_COLOR = "muted" as const;
+
 function LaunchScreen({ children }: { children: ReactNode }) {
   return (
     <View className="flex-1 items-center justify-center bg-background px-8">
@@ -23,6 +34,7 @@ function LaunchScreen({ children }: { children: ReactNode }) {
 
 export function LaunchChecking() {
   const [waiting, setWaiting] = useState(false);
+  const neutral = useThemeColor(PASSIVE_INDICATOR_COLOR);
 
   // 판정이 한순간에 끝나면 스피너는 정보가 아니라 번쩍임이다. 실제 대기가
   // 생겼을 때만 마운트한다(docs/decisions/native-motion.md). 등장 모션은
@@ -39,7 +51,9 @@ export function LaunchChecking() {
 
   return (
     <LaunchScreen>
-      {waiting ? <Spinner accessibilityLabel="세션 확인 중" /> : null}
+      {waiting ? (
+        <Spinner accessibilityLabel="세션 확인 중" color={neutral} />
+      ) : null}
     </LaunchScreen>
   );
 }
