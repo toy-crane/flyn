@@ -56,9 +56,9 @@ completed
 
 ## Run completion
 
-- Cumulative status: pending
-- Cumulative base commit: —
-- Cumulative candidate commit: —
+- Cumulative status: in-progress
+- Cumulative base commit: bc9a5dea80f41d22a6aa62db493d99d7d13d5f65
+- Cumulative candidate commit: 0557b6ab431fdaada860a3751d839018ba93184e
 - Cumulative reviewed commit: —
 - Cumulative verification: —
 - Cumulative review: —
