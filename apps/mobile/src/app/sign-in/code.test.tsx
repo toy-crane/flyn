@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { processColor } from "react-native";
 
 jest.mock("../../lib/supabase", () => ({
   supabase: { auth: { signInWithOtp: jest.fn(), verifyOtp: jest.fn() } },
@@ -22,7 +23,11 @@ jest.mock("react-native-safe-area-context", () => ({
 
 import { supabase } from "../../lib/supabase";
 import { setSearchParams } from "../../test-support/expo-router";
-import { HeroUIWrapper } from "../../test-support/heroui";
+import {
+  HeroUIWrapper,
+  paintedColors,
+  THEME_TOKEN_STUBS,
+} from "../../test-support/heroui";
 import CodeScreen from "./code";
 
 const mockAuth = supabase.auth as unknown as {
@@ -37,6 +42,8 @@ const NETWORK_COPY = /인터넷에 연결/;
 const RATE_LIMIT_COPY = /요청이 너무 잦아요/;
 const RAW_VENDOR_COPY = /Token has expired/;
 const RESEND = "코드 다시 받기";
+const ACCENT = THEME_TOKEN_STUBS["--color-accent"];
+const NEUTRAL = THEME_TOKEN_STUBS["--color-muted"];
 
 async function typeCode(code: string) {
   await fireEvent.changeText(screen.getByLabelText(FIELD), code);
@@ -156,6 +163,44 @@ describe("CodeScreen", () => {
       settle?.({ error: null });
       await Promise.resolve();
     });
+  });
+
+  // 여섯 자리가 채워지면 스스로 제출한다 — 누른 버튼이 없는 수동형 진행이라
+  // 중립 회색이다. accent를 쓰면 파란 action tint가 남는다
+  // (docs/specs/neutral-loading-indicators/spec.md).
+  it("검증 progress는 중립 회색이다 — 브랜드 accent를 쓰지 않는다", async () => {
+    mockAuth.verifyOtp.mockReturnValue(new Promise(() => undefined));
+    await render(<CodeScreen />, { wrapper: HeroUIWrapper });
+
+    await typeCode("123456");
+
+    const painted = paintedColors(screen.toJSON());
+
+    expect(screen.getByText("확인 중…")).toBeTruthy();
+    expect(painted).toContain(processColor(NEUTRAL));
+    expect(painted).not.toContain(processColor(ACCENT));
+  });
+
+  // 같은 계약의 반대쪽 절반. 재전송 progress는 방금 누른 accent action의 자리에서
+  // 그 action의 진행을 말하므로 action의 전경색을 따른다 — 두 indicator는 서로
+  // 다른 foreground 소유권을 가진다.
+  it("재전송 progress는 눌린 action의 전경색을 따른다", async () => {
+    mockAuth.signInWithOtp.mockReturnValue(new Promise(() => undefined));
+    await render(<CodeScreen />, { wrapper: HeroUIWrapper });
+    await finishCooldown();
+
+    // press가 돌려주는 promise는 기다리지 않는다 — 끝나지 않는 발송을 붙잡아 두는
+    // 테스트라 기다리면 그대로 멈춘다. React만 따라잡게 한다.
+    await act(async () => {
+      fireEvent.press(screen.getByRole("button", { name: RESEND }));
+      await Promise.resolve();
+    });
+
+    const painted = paintedColors(screen.toJSON());
+
+    expect(screen.getByText("보내는 중…")).toBeTruthy();
+    expect(painted).toContain(processColor(ACCENT));
+    expect(painted).not.toContain(processColor(NEUTRAL));
   });
 
   it("첫 30초 동안 남은 시간을 보이고 끝나면 재전송을 연다", async () => {

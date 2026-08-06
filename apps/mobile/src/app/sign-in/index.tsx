@@ -92,9 +92,8 @@ export default function SignInScreen() {
             {/*
              * 이메일은 소셜과 대등하지 않다 — 구분선도 카드도 없이 Google 바로
              * 아래의 muted 텍스트 action이고, 44pt를 넘는 hit target만 지킨다
-             * (docs/decisions/social-sign-in-presentation.md). 문구 크기는
-             * 위 설명 줄과 같은 HeroUI body preset을 쓴다 — 앱이 따로 정하던
-             * 17pt 대신 라이브러리의 타이포와 iOS body ramp를 따른다.
+             * (docs/decisions/social-sign-in-presentation.md). 크기는 그 계약이
+             * 정하지 않는다 — 위 설명 줄과 같은 HeroUI body preset을 그대로 쓴다.
              */}
             <Button
               className="mt-1"

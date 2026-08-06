@@ -79,8 +79,10 @@ describe("EmailScreen", () => {
     });
   });
 
-  // 코드를 보낸 주소와 코드 화면이 검증할 주소가 갈리면 사용자는 이유를 알 수 없다.
-  it("보낸 주소와 넘기는 주소가 같다", async () => {
+  // 앞뒤 공백은 자동완성·붙여넣기에서 흔하다. 여기서 다듬지 않으면 코드를 보낸
+  // 주소와 검증할 주소가 갈려 사용자는 이유를 알 수 없다. 둘이 같은지만 보면
+  // 부족하다 — 제출 가능 판정이 안에서 trim하므로 공백을 그대로 보내도 통과한다.
+  it("앞뒤 공백을 떼고 보내며 같은 주소를 넘긴다", async () => {
     mockAuth.signInWithOtp.mockResolvedValue({ error: null });
     await renderScreen();
 
@@ -89,7 +91,8 @@ describe("EmailScreen", () => {
     const sent = mockAuth.signInWithOtp.mock.calls[0][0].email;
     const handed = routerStub.push.mock.calls[0][0].params.email;
 
-    expect(handed).toBe(sent);
+    expect(sent).toBe("me@example.test");
+    expect(handed).toBe("me@example.test");
   });
 
   // 주소가 될 수 없는 값에는 CTA를 열지 않는다.
@@ -101,6 +104,21 @@ describe("EmailScreen", () => {
     await fireEvent.changeText(screen.getByLabelText(FIELD), "me@example.test");
 
     expect(screen.getByRole("button", { name: SUBMIT })).not.toBeDisabled();
+  });
+
+  it("이메일 자동완성을 켠다", async () => {
+    await renderScreen();
+
+    expect(screen.getByLabelText(FIELD).props.autoComplete).toBe("email");
+  });
+
+  // getByLabelText는 accessibilityLabel로 닿으므로 이 단언이 없으면 눈에 보이는
+  // label을 지워도 아무 테스트가 깨지지 않는다. label은 field 밖에 남는다
+  // (docs/specs/input-form-style/spec.md).
+  it("입력창 밖에 label을 보여준다", async () => {
+    await renderScreen();
+
+    expect(screen.getByText(FIELD)).toBeTruthy();
   });
 
   it("코드 발송에 실패하면 넘어가지 않고 각주로 알린다", async () => {

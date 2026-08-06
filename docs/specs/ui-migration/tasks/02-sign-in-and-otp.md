@@ -45,5 +45,5 @@ in-progress
 - Task checkpoint commit: 263ff617dd3364f54d6c15d9c8770911186dd322
 - Verification: `bun run check --force` — 8/8 tasks, 0 cached, jest 424/424 (52 suites), lint·typecheck 통과
 - Task review: —
-- Task correction rounds: 0
+- Task correction rounds: 1
 - Blocker: task-review — (1) `self-contained-native-ui-boundaries.md:65-67`이 InputOTP의 `maxLength` 고정을 "밖에서 풀 수 없다"고 적었으나 사실이 아니다. `input-otp.tsx:307`의 `maxLength` 뒤에 `:327`의 `{...textInputProps}`가 와서 런타임에는 덮인다(배포 번들도 같은 순서). 막는 것은 공개 타입의 `Omit`뿐이다. 기각 자체는 타당하나(문서화되지 않은 spread 순서 의존), 기록된 근거와 `Reconsider when`의 재채택 조건이 영영 발동하지 않는 형태다. (2) `social-sign-in-presentation.md:9`가 "17pt muted text action"을 유지하는데 코드는 HeroUI `body`(16px)로 그린다 — 리뷰 판정은 코드가 옳고 문서가 낡았다. (3) `code.tsx:147`·`:158`의 "보내는 중…"·"확인 중…" 스피너가 `useThemeColor("accent")`라 파란 action tint다. 태스크 01에서 같은 계약(`neutral-loading-indicators`)으로 교정한 것과 어긋난다 — 최소한 버튼이 없는 "확인 중…"은 수동형이다. (4) 이메일 화면 테스트가 잃은 가드 3개: `.trim()` 단언(제거해도 통과한다), `autoComplete="email"`, 보이는 `<Label>`.

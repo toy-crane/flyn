@@ -16,3 +16,24 @@
  * 닿지 않는다. 이 등록이 없으면 라이브러리 클래스가 통째로 tree-shaking된다.
  */
 @source "../../node_modules/heroui-native/lib";
+
+/*
+ * HeroUI는 scrim을 두 테마 모두 검정 20%로 둔다. 다크의 `--background`가
+ * oklch(12%)라 20% 검정은 몇 RGB 단위 차이라 scrim으로 읽히지 않는다 — 라이트와
+ * 다크는 같은 무게를 쓸 수 없다. 앱이 쓰던 값(라이트 18%, 다크 62%)으로 되돌린다.
+ * dialog·bottom sheet의 scrim도 같은 토큰을 소비한다.
+ */
+@layer theme {
+  :root {
+    @variant light {
+      --backdrop: oklch(0% 0 0 / 18%);
+    }
+  }
+
+  /* light와 한 `:root`로 묶으면 린터가 `@variant`를 못 읽고 중복 선언으로 본다. */
+  :root {
+    @variant dark {
+      --backdrop: oklch(0% 0 0 / 62%);
+    }
+  }
+}

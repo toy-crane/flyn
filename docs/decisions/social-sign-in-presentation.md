@@ -6,8 +6,10 @@
   같은 너비·시각적 무게의 주 수단으로 묶는다.
 - 소셜 버튼 높이는 52pt, corner radius는 16pt, 버튼 사이는 12pt다. Apple과
   Google의 공식 light/dark appearance와 컬러 mark를 유지한다.
-- 이메일은 Google 아래의 17pt muted text action으로 두고 최소 44pt hit target을
-  유지한다. card, icon, border 또는 `또는` 구분선을 추가하지 않는다.
+- 이메일은 Google 바로 아래의 muted text action으로 두어 provider 버튼보다 낮은
+  위계에 있음을 색과 무게로 말하고, 최소 44pt hit target을 유지한다. card, icon,
+  border 또는 `또는` 구분선을 추가하지 않는다. 글자 크기는 이 계약이 pt로 고정하지
+  않는다 — 브랜드 층의 타이포 스케일이 소유한다.
 - wordmark와 설명은 위에, 인증 action 묶음은 safe area를 지켜 화면 아래에 둔다.
 - Apple 또는 Google 요청 중에는 기존 action을 움직이지 않은 채 모두 잠그고
   화면 중앙에 full-screen progress overlay를 표시한다.

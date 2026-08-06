@@ -43,10 +43,11 @@ renderer 경계가 surface 단위로 완결돼야 layout·focus·gesture 소유�
 
 ## Reconsider when
 
-Expo SDK나 HeroUI 릴리스가 기존 제약(아래 spike 근거, InputOTP의 `maxLength`)을
-바꾸거나 새 surface가 표의 어느 행에도 맞지 않으면 그 surface만 다시 판정한다.
-`InputOTP`가 밑단 `TextInput`의 `maxLength`를 열어 주면 커스텀을 버리고 다시
-채택한다.
+Expo SDK나 HeroUI 릴리스가 기존 제약(아래 spike 근거)을 바꾸거나 새 surface가
+표의 어느 행에도 맞지 않으면 그 surface만 다시 판정한다. `InputOTP`는 업그레이드
+때 `input-otp.types.ts`의 `textInputProps`가 더 이상 `maxLength`를 `Omit`하지
+않거나 붙여넣기 원문을 자르기 전에 넘기는 공개 수단이 생기면, 그 버전으로
+`"코드: 448183"` 붙여넣기를 다시 재현하고 통과하면 커스텀을 버린다.
 
 ## Still-rejected alternatives
 
@@ -63,12 +64,19 @@ Expo SDK나 HeroUI 릴리스가 기존 제약(아래 spike 근거, InputOTP의 `
 - HeroUI `InputOTP` 판정(2026-08-06, iPhone 17e·heroui-native 1.0.8): 연속
   입력·hit testing(가운데 칸 탭으로 포커스 복귀)·오류 상태는 통과했지만
   **붙여넣기에서 탈락**했다. primitive가 밑단 `TextInput`에 `maxLength`를 박고
-  공개 `textInputProps`의 타입에서 그 키를 빼 두어(`Omit<TextInputProps, …
-  'maxLength' …>`) 밖에서 풀 수 없다. iOS는 `maxLength`를 JS보다 먼저 적용하므로
-  장식이 섞인 코드는 `pasteTransformer`에 닿기 전에 잘린다 — 빈 칸에
-  `"코드: 448183"`을 붙여넣으면 `44`만 남았고, 그 뒤 backspace는 digit 패턴에
-  걸려 값이 멈췄다. 같은 붙여넣기로 커스텀 구현은 6자리를 그대로 제출한다.
-  `textContentType="oneTimeCode"` 자동완성 계약 자체는 양쪽 모두 갖고 있다.
+  iOS는 그것을 JS보다 먼저 적용하므로 장식이 섞인 코드는 `pasteTransformer`에
+  닿기 전에 잘린다 — 빈 칸에 `"코드: 448183"`을 붙여넣으면 `44`만 남았고, 그 뒤
+  backspace는 digit 패턴에 걸려 값이 멈췄다. 같은 붙여넣기로 커스텀 구현은
+  6자리를 그대로 제출한다. `textContentType="oneTimeCode"` 자동완성 계약 자체는
+  양쪽 모두 갖고 있다.
+- 그 `maxLength`가 런타임에서 못 풀리는 것은 아니다. `input-otp.tsx`는
+  `maxLength` 뒤에 `{...textInputProps}`를 펼치므로(배포 번들도 같은 순서)
+  `maxLength: undefined`를 직접 넘기면 이긴다. 그럼에도 기각하는 이유는 그 길이
+  **지원되는 길이 아니기 때문**이다 — 공개 `textInputProps` 타입이 그 키를
+  `Omit`으로 명시해 닫아 두었고(`input-otp.types.ts`), 통과시키려면 캐스팅해서
+  타입을 우회해야 한다. 그러면 붙여넣기 동작이 문서화되지 않은 prop spread 순서에
+  걸리고, 라이브러리가 순서를 바꾸거나 자체 clamp를 넣는 패치 하나로 조용히
+  깨진다. 커스텀은 그 순서에 아무것도 걸지 않는다.
 - root sign-in을 SwiftUI로 감싸면 vendor button 때문에 경계를 반복해서 열어야
   했다. HeroUI 채택으로 sign-in 전체가 한 renderer 안에서 완결된다.
 - HeroUI Native v1.0.x는 39종 컴포넌트를 제공한다. 목록은 설치된
