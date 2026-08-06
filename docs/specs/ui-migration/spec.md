@@ -30,13 +30,13 @@
 - 인증이 걸린 surface 검증은 `bun run auth:session`의 이메일 OTP 세션을 쓴다.
 - 이전이 모두 끝나면 `theme/`(app-theme, colors, tokens, buttons,
   navigation-theme, product-colors)와 대체된 컴포넌트(loading-indicator,
-  profile-avatar, code-input, google-button, email-form, episode 카드·dock·sheet
-  류)가 저장소에 남지 않는다. bridge가 대체하는 navigation-theme만 새 형태로
+  profile-avatar, code-input, google-button, email-form, onboarding-form,
+  episode 카드·dock·sheet 류)가 저장소에 남지 않는다. bridge가 대체하는 navigation-theme만 새 형태로
   존속한다.
 
 ## 가정 (반증 나오면 뒤집는 기본값)
 
-- 이전 순서: ① 기반+스파이크 ② sign-in·이메일·OTP ③ 홈·에피소드
+- 이전 순서: ① 기반+스파이크 ② sign-in·이메일·OTP·온보딩 ③ 홈·에피소드
   생성·결과·피드백 ④ 에피소드 대화·문장 질문 ⑤ 잔여 제거·정리.
 - 채팅의 가상 목록은 `@legendapp/list`, 키보드는
   `react-native-keyboard-controller`를 유지하고 HeroUI로 대체하지 않는다.
@@ -45,7 +45,7 @@
 
 ## 손대지 않는 것
 
-- `@expo/ui` surface(Settings·프로필 편집 시트·온보딩·launch progress)와
+- `@expo/ui` surface(Settings·프로필 편집 시트·launch progress)와
   [settings-edits-use-native-form](../../decisions/settings-edits-use-native-form.md)
   계약 전체.
 - 라우팅 구조, 서버 상태·데이터 흐름, API 계약, 인증 흐름.

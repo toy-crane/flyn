@@ -21,8 +21,9 @@
 
 | surface | renderer |
 | --- | --- |
-| Settings·프로필 편집 시트·온보딩·launch progress | universal `@expo/ui` — 시스템 폼과 시스템 상태 |
+| Settings·프로필 편집 시트·launch progress | universal `@expo/ui` — 시스템 폼과 시스템 상태 |
 | root sign-in·이메일 입력 | HeroUI. Apple·Google 버튼도 HeroUI `Button` 기반으로 만들되 브랜드 지침이 외형을 소유한다 |
+| 온보딩(닉네임·아이디) | HeroUI — sign-in과 같은 하단 CTA 전진 흐름이자 첫 브랜드 표면. 설정 편집과는 검증·정규화 순수 함수만 공유한다 |
 | 이메일 OTP code | HeroUI `InputOTP`. iOS SMS AutoFill·붙여넣기·hit testing 검증을 통과하지 못하면 HeroUI 토큰 위 커스텀으로 대체한다 |
 | 홈(에피소드 목록)·에피소드 생성·결과·피드백 시트 | HeroUI — `Card`, `BottomSheet`, `Dialog`, `Spinner`, `Toast` 등 |
 | 에피소드 대화·문장 질문 | HeroUI 조합 + 커스텀 확장 — 가상 목록(`@legendapp/list`), streaming markdown, composer만 커스텀이고 버튼·시트·상태 피드백은 HeroUI |
