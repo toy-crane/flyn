@@ -37,11 +37,11 @@ AutoFill·붙여넣기·연속 입력까지 이전과 똑같이 동작한다. �
 
 ## Status
 
-pending
+in-progress
 
 ## Execution
 
-- Base commit: —
+- Base commit: 61b28d73ae2208ec78b4042c88e0a9a99e99dff9
 - Task checkpoint commit: —
 - Verification: —
 - Task review: —
