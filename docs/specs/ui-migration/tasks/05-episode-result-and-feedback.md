@@ -33,7 +33,7 @@ in-progress
 
 - Base commit: f39e49b9c292f7c8cae77831191830e0793bb5fc
 - Task checkpoint commit: 45911d92bfafe9a5c3198a5ae9074acdab906a86
-- Verification: —
+- Verification: `bun run check --force` 3회 연속 exit 0 — 매회 8/8 tasks, 0 cached, jest 438/438 (49 suites), lint·typecheck 통과
 - Task review: —
 - Task correction rounds: 0
-- Blocker: —
+- Blocker: task-review — (1) `result.tsx:84`의 목표 달성 체크가 접근성 트리에 노출된다. `RNSymbol`은 모든 인스턴스에 `accessibilityElementsHidden`을 걸었는데(`rn-symbol.tsx:15`) Ionicons 교체본에는 없고, 감싼 `View`도 `accessible`을 주지 않아 그룹으로 묶이지 않는다. 달성한 목표 하나당 VoiceOver 정지점이 하나씩 늘고 매핑되지 않은 글리프 문자가 읽힌다. 앱 전체에서 레이블도 없고 숨기지도 않고 `accessible` Pressable 안에도 없는 유일한 Ionicons다 — 같은 diff의 세 JSX 노드 옆 셰브론(`:141-149`)은 제대로 숨겼으므로 실수다. 완료 기준 "목표 달성 표시와 결과 데이터 표시가 회귀 없다"에 걸린다. (2) 발화 행의 누름 피드백이 사라졌다. base는 `opacity: pressed ? 0.5 : 1`이었고 한 태스크 전에 이전한 홈 목록은 `PressableFeedback`을 쓰는데(`index.tsx:147`), `ListGroup.Item`은 피드백 없는 맨 `Pressable`이라 열리는 행을 눌러도 시각적으로 무반응이다.
