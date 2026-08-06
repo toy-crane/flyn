@@ -51,7 +51,7 @@ in-progress
 - Task checkpoint commit: 859e872bf1b9c2775e01af989df693d0310169e4
 - Verification: `bun run check --force` 3회 연속 exit 0 — 매회 8/8 tasks, 0 cached, jest 447/447 (43 suites), lint·typecheck 통과. 결정 인덱스 20개가 파일마다 정확히 한 줄, 링크 전부 해석됨. 코드는 건드리지 않았다.
 - Task review: —
-- Task correction rounds: 0
+- Task correction rounds: 1
 - Blocker: task-review — 이전이 두 곳에서 덜 끝났다. (1) `ai-chat-reliability.md:37-38`이 아직 "해당 작업 단위 문서"에 위임하는데 그 문서가 이번에 삭제됐다. 위임된 규칙(판정만 실패하면 대화 중에 아무것도 알리지 않고, 다음 판정이 조용히 메우며, 끝까지 못 채운 것만 결과 화면 `다시 확인`으로 드러난다)의 **what**은 코드 주석에만 남았고 **why**("실패가 대화 화면에 쌓이면 시끄럽다")는 저장소에서 사라졌다. 제약이 "옮길 곳이 마땅치 않으면 남긴다"인데 자리는 있었다 — 같은 diff가 `ai-chat-experience.md:100-104`에서 말풍선 곁 표시를 직접 소유하게 만든 그 자리다. 미래 에이전트가 `use-episode-conversation.ts:284-290`의 맨 `.catch()`를 보고 소유 계약을 못 찾아 눈에 보이는 실패 상태를 추가하는 것이 정확히 기각된 접근의 재발이다. (2) `README.md:10`과 `:18`의 `Read when`이 이번에 들어온 주제를 말하지 않는다 — `:10`은 이제 로딩 indicator 색 규칙으로 가는 **유일한 색인 경로**인데 진행·로딩을 언급하지 않고, `:18`은 목표 바·상황 카드·말풍선 곁 표시를 소유하게 됐는데 그 역시 없다. 삭제 전에는 폴더 이름과 주석 30곳이 경로였다. 규칙 본문은 강하지만 닿을 수 없는 규칙은 지워진 규칙과 같다 — 태스크 01·02·05가 각각 틀렸던 바로 그 규칙이다.
 
 ## Run completion

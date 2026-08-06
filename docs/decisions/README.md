@@ -7,7 +7,7 @@
 - [worktree-isolated-mobile-runtime](worktree-isolated-mobile-runtime.md) — Read when 병렬 워크트리의 포트, Metro 캐시, 시뮬레이터, 로컬 Supabase를 다룰 때.
 - [agent-device-for-simulator-checks](agent-device-for-simulator-checks.md) — Read when iOS 시뮬레이터를 조작하거나 화면 검증 증거를 남길 때.
 - [supported-platforms](ios-only.md) — Read when 플랫폼 분기, Android, web 또는 플랫폼별 구현을 제안할 때.
-- [native-shell-with-heroui-content](apple-hig-with-app-theme.md) — Read when 셸·브랜드 층 경계, 시스템 컴포넌트, 아이콘 어휘 또는 브랜드 표현 범위를 바꿀 때.
+- [native-shell-with-heroui-content](apple-hig-with-app-theme.md) — Read when 셸·브랜드 층 경계, 시스템 컴포넌트, 아이콘 어휘, 진행·로딩 indicator나 spinner의 색 또는 브랜드 표현 범위를 바꿀 때.
 - [screen-renderer-boundaries](self-contained-native-ui-boundaries.md) — Read when 화면의 renderer(`@expo/ui`·HeroUI·커스텀 확장)를 고르거나 재사용 UI를 만들 때.
 - [heroui-uniwind-style-foundation](uniwind-css-theme.md) — Read when Uniwind, CSS `@theme` 토큰, HeroUI 테마, light/dark 또는 native 경계 bridge를 바꿀 때.
 - [native-motion](native-motion.md) — Read when 화면 전환, 상태 피드백, Reanimated 또는 Reduce Motion 동작을 추가할 때.
@@ -15,7 +15,7 @@
 - [danggeun-voice-for-copy](danggeun-voice-for-copy.md) — Read when 사용자에게 보이는 한국어 문구를 쓰거나 검토할 때.
 - [hono-on-vercel](hono-on-vercel.md) — Read when API 런타임, 배포 표면 또는 모바일 API 계약을 바꿀 때.
 - [ai-gateway-for-model-calls](ai-gateway-for-model-calls.md) — Read when AI SDK, 역할별 모델, Gateway 또는 한 요청의 여러 모델 호출을 다룰 때.
-- [streaming-conversation-experience](ai-chat-experience.md) — Read when 스트리밍 대화 화면의 생성 상태, 스크롤, 키보드 또는 새로고침 동작을 바꿀 때.
+- [streaming-conversation-experience](ai-chat-experience.md) — Read when 스트리밍 대화 화면의 생성 상태, 스크롤, 키보드, 새로고침 동작이나 목표 바·상황 카드·말풍선 곁 표시를 바꿀 때.
 - [ai-chat-reliability](ai-chat-reliability.md) — Read when 모델 호출 재시도, timeout, 출력 상한 또는 운영 로그를 바꿀 때.
 - [sign-in-methods](sign-in-methods.md) — Read when 로그인 provider, 이메일 OTP, 매직링크 또는 인증 자동화를 바꿀 때.
 - [social-sign-in-presentation](social-sign-in-presentation.md) — Read when root sign-in의 provider 버튼, 이메일 위계 또는 pending 표현을 바꿀 때.
