@@ -1,7 +1,6 @@
 import { Typography } from "heroui-native";
 import { type Ref, useCallback, useImperativeHandle, useRef } from "react";
 import {
-  StyleSheet,
   TextInput,
   type TextInput as TextInputInstance,
   View,
@@ -45,11 +44,6 @@ const DIGIT_ENTERING = new Keyframe({
 })
   .duration(140)
   .reduceMotion(ReduceMotion.System);
-
-const styles = StyleSheet.create({
-  // 글리프와 캐럿만 감춘다 — 필드 자체는 칸 줄을 그대로 덮고 있어야 한다.
-  input: { color: "transparent" },
-});
 
 function slotBorder(active: boolean, invalid: boolean): string {
   if (invalid) {
@@ -149,12 +143,13 @@ export function OtpInput({
         autoComplete="one-time-code"
         autoFocus
         caretHidden
+        // 칸 줄 전체를 덮되 글리프와 캐럿만 감춘다.
+        className="absolute inset-0 text-transparent"
         editable={!disabled}
         keyboardType="number-pad"
         onChangeText={handleChangeText}
         ref={inputRef}
         selectionColor="transparent"
-        style={[StyleSheet.absoluteFill, styles.input]}
         textContentType="oneTimeCode"
         value={value}
       />
