@@ -3,9 +3,6 @@ import { PressableFeedback, useThemeColor } from "heroui-native";
 import { View } from "react-native";
 import type { MessageMark } from "../../lib/message-feedback";
 
-/** 표시 자리는 44pt 고정 열이다. 비었다가 채워지는 것이 기본 동작이다. */
-export const MARK_COLUMN_SIZE = 44;
-
 const LABELS: Record<MessageMark, string> = {
   clear: "그대로 잘 통했어요",
   improvable: "더 자연스러운 표현 보기",
