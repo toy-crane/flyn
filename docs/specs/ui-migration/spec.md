@@ -11,7 +11,9 @@
   — 네이티브 셸 + HeroUI 브랜드 층, surface당 주 renderer 하나.
 - surface 배정: [screen-renderer-boundaries](../../decisions/self-contained-native-ui-boundaries.md)
   — 배정 표 포함. `@expo/ui`를 유지하는 화면은 Settings(grouped `Form`) 하나이고,
-  launch·온보딩·프로필 게이트는 배정 표에 따라 HeroUI로 이전한다.
+  launch·온보딩은 배정 표의 행에 따라 HeroUI로 이전한다. 프로필 게이트는 표에
+  행이 없다 — "그 외 RN이 그리는 모든 화면의 기본 renderer는 HeroUI Native다"는
+  같은 계약의 catch-all이 근거다.
 - 직접 만든 UI는 전부 제거한다. 커스텀은 HeroUI에 없는 능력을 HeroUI
   primitive·토큰 위에 확장할 때만 남는다. 결정 이유: native와 자작 UI의 시각
   sync 유지비 제거.
@@ -85,19 +87,44 @@
   화면 문구가 잘림 없이 줄바꿈으로 커지는 것을 확인했다. 다만 상한
   (`maxFontSizeMultiplier`)이 없고 launch 화면에는 스크롤이 없다 — 문구가 지금보다
   길어지면 최대 크기에서 넘칠 수 있다.
-- **기본 대비 — light `muted`가 4.43:1**: HeroUI 기본 테마의 light
-  `muted`(#71717a)를 `background`(#f5f5f5) 위에 놓으면 4.43:1로 본문 기준
-  4.5:1에 살짝 못 미친다(dark `muted`는 7.72:1, `foreground`는 light 16.25:1로
-  여유가 있다). 설정 오류 화면의 사유 문구가 이 조합을 쓴다. 아래 이연 항목의
-  브랜드 팔레트 값을 확정할 때 `global.css`에서 `--muted`를 올려 해소한다.
-- **기본 대비 — light `danger`·`success`가 본문 기준에 못 미친다**: 폐기된 TS
-  `product-colors`는 danger·success를 4.5:1이 나오는 값(#D70015·#1F7A35)으로
-  고르고 `scripts/theme-contrast.test.ts`가 그것을 지켰다. HeroUI 기본 테마의
-  light `danger`(#FF383C)는 `background` 위에서 3.27:1, light
-  `success`(#17C964)는 2.01:1이다(dark는 각각 4.55:1·9.26:1로 통과). 아이디
-  가용성 아이콘과 설정의 `계정 삭제` 행이 이 조합을 쓴다. 색과 모양만으로 뜻을
-  나르지 않는 규칙이 살아 있어 정보는 잃지 않지만 대비 기준은 미달이다 —
-  `muted`와 같이 브랜드 팔레트 확정 때 `global.css`에서 올린다.
+- **기본 대비 — HeroUI 기본 팔레트가 기준에 못 미치는 자리 여섯**: 사람이
+  HeroUI 기본값 유지를 결정했으므로 값은 지금 바꾸지 않는다. 대신
+  `scripts/style-foundation.test.ts`의 `앱이 소유하는 색 대비`가 미달 수치를
+  **측정값 그대로 고정**한다 — 아래 수치를 움직이는 변경은 문단이 아니라
+  실패하는 테스트로 먼저 나타난다. 기준은 둘이고 자리마다 다르다: 글자는 WCAG
+  1.4.3의 4.5:1, 뜻을 나르는 아이콘·도형은 1.4.11의 3:1이다.
+
+  | 자리 | 역할 | 기준 | light | dark |
+  | --- | --- | --- | --- | --- |
+  | `components/chat/chat-conversation.tsx:218` — `text-success` | 본문 글자 | 4.5 | 2.01 | 9.26 |
+  | `components/chat/message-mark.tsx:38-43` — 맨 `checkmark` | 아이콘 단독("그대로 잘 통했어요") | 3 | 2.01 | 9.26 |
+  | `components/profile/username-edit-form.tsx:123-128` — `checkmark-circle` | 아이콘 단독(가용) | 3 | 2.19 | 8.08 |
+  | `app/onboarding/username.tsx:224-229` — 같은 아이콘 | 아이콘 단독(가용) | 3 | 2.19 | 8.08 |
+  | `app/sign-in/code.tsx:201/208/214` — `text-danger` | 본문 글자 | 4.5 | 3.27 | 4.55 |
+  | `app/settings/index.tsx:213` — `계정 삭제` | 본문 글자 | 4.5 | 3.57 | 3.97 |
+
+  미달 칸은 light 여섯과 dark 하나다. danger 쪽 셋(code.tsx light, `계정 삭제`
+  light·dark)은 3:1을 넘으므로 **아이콘이었다면 통과**하고 글자이기 때문에
+  떨어진다. success 쪽 넷(표의 위 네 행, 모두 light)은 두 기준 모두 미달이다. `계정 삭제`는 이번 이전에서 5.38 → 3.57로 **후퇴**했다 —
+  폐기된 TS `product-colors`가 4.5:1이 나오는 값(#D70015·#1F7A35)을 고르고
+  `scripts/theme-contrast.test.ts`가 그것을 지켰는데, HeroUI 기본값은 light
+  `danger` #FF383C, light `success` #17C964다.
+
+  화면 하나에 매이지 않아 표에 없지만 같이 올려야 하는 것: light `muted`(#71717a)를
+  `background`(#f5f5f5) 위에 놓으면 4.43:1로 본문 기준에 살짝 못 미친다. 자리가
+  특정 화면이 아니라 header subtitle·launch 사유·프로필 게이트 등 보조 설명
+  전반이라 토큰 수준으로 적는다(dark `muted`는 7.72:1, `foreground`는 light
+  16.25:1로 여유가 있다). 가드는 이것도 함께 고정한다.
+
+  실패가 **아닌** 자리: `components/episode/goal-dock.tsx:38`,
+  `app/episodes/result.tsx:79`, `components/chat/chat-conversation.tsx:205`는
+  success를 **채움**으로 쓰고 그 위에 `success-foreground` 글리프를 얹어
+  8.08:1이며, 채워짐/비어 있음이라는 모양이 상태를 따로 나른다. 아이디 필드의
+  중복 아이콘(danger on field)도 3.57·3.97로 아이콘 기준을 넘는다.
+
+  색과 모양만으로 뜻을 나르지 않는 규칙이 살아 있어 정보는 잃지 않지만 대비
+  기준은 미달이다. 아래 이연 항목의 브랜드 팔레트 값을 확정할 때 `global.css`
+  한 곳에서 올리고, 그때 가드에 고정된 수치를 함께 갱신한다.
 - **채팅 상호작용 회귀**: streaming 중 스크롤·키보드·오류 배너 동작은
   [ai-chat-experience](../../decisions/ai-chat-experience.md) 계약 기준으로
   surface ④에서 재검증한다.

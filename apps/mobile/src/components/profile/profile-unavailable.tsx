@@ -5,9 +5,11 @@ import { View } from "react-native";
 /**
  * 프로필 게이트가 앱 대신 그리는 화면 둘의 공통 모양.
  *
- * launch 화면과 같은 자리에 서는 브랜드 층이라 renderer도 HeroUI다
- * (docs/decisions/self-contained-native-ui-boundaries.md의 배정표). `<Stack>`
- * 자체가 아직 마운트되지 않은 상태에서 뜨므로 셸이 줄 것이 없다.
+ * renderer는 HeroUI다. 배정 표에는 이 화면의 행이 없고, "그 외 RN이 그리는 모든
+ * 화면의 기본 renderer는 HeroUI Native다"라는 catch-all이 근거다
+ * (docs/decisions/self-contained-native-ui-boundaries.md). 표 밖 surface를
+ * 따로 판정하라는 같은 계약의 조건에 비춰 봐도 결론은 같다 — `<Stack>` 자체가
+ * 아직 마운트되지 않은 상태에서 뜨므로 셸이 줄 것이 없다.
  *
  * **어느 쪽이든 로그아웃이 있어야 한다.** 이 화면들이 뜨면 설정에 닿을 수 없다
  * — 나갈 문이 없으면 앱이 막다른 길이 된다.
