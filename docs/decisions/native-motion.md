@@ -5,7 +5,7 @@
 - 모션은 상태·공간 관계를 설명할 때만 사용하고 화면 전체 장식이나 대기 시간을
   만들지 않는다. action은 애니메이션 종료를 기다리지 않고 즉시 사용할 수 있다.
 - 빠른 인증 완료에는 launch progress를 번쩍이지 않는다. 실제 대기가 생길 때만
-  완결된 launch `Host` 안에서 progress를 표시하고, native stack 전환을 덮지 않는다.
+  launch 화면 안에서 progress를 표시하고, native stack 전환을 덮지 않는다.
 - 직접 입력한 OTP slot은 짧은 opacity/scale 피드백을 주되, 연속 입력은 현재
   상태에서 이어지고 AutoFill·붙여넣기는 최종 값을 즉시 표시한다.
 - 채팅 맨 아래 action과 오류 배너는 composer와의 공간 관계를 유지하며 나타나고

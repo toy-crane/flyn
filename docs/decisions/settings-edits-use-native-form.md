@@ -5,10 +5,10 @@
 - 설정에서 값을 고치는 작업은 Expo Router의 별도 `formSheet` 라우트로 연다.
   닉네임과 아이디 route는 전체 높이 detent 하나와 system grabber를 쓰며, route가
   열림·닫힘 수명을 소유한다.
-- 시트 본문은 grouped `Form`이 아니라 sheet의 기본 `systemBackground`를 그대로
-  드러내는 완결된 `@expo/ui` `Host`와 `Column`이다. 입력은 native large
-  rounded-border text field로 두고 규칙과 상태 문구를 바로 아래 hierarchical
-  secondary footer로 표시한다.
+- 시트 본문은 HeroUI 기반 RN이다. grouped canvas를 만들지 않고 sheet의 기본
+  background를 그대로 드러낸다. 입력은 HeroUI `TextField` 하나로 두고 규칙과
+  상태 문구를 바로 아래 `Description`·`FieldError`로 표시한다. 시트
+  프레젠테이션·toolbar·material 같은 chrome은 셸이 소유한다.
 - 헤더는 Expo Router `Stack.Toolbar`가 소유한다. 왼쪽 닫기는 `xmark`, 오른쪽
   저장은 `checkmark` SF Symbol을 쓰며 앱이 원형 배경·아이콘 크기·44pt frame을
   직접 만들지 않는다. route의 기본 back item은 숨겨 중복 액션을 만들지 않는다.
@@ -32,12 +32,13 @@
 하단 CTA를 쓰면 가벼운 편집이 온보딩처럼 보인다. 반면 값 하나를 편집하는 sheet에
 grouped `Form`을 채우면 넓은 회색 canvas가 중첩된 설정 화면처럼 읽혀 입력보다 더
 강해진다. plain sheet는 Apple의 짧은 시스템 편집 modal처럼 작업과 입력에 바로
-집중시키면서 native field·footer·control appearance를 유지한다.
+집중시킨다. sheet chrome과 toolbar의 native appearance는 셸이 유지하고, 본문
+field·footer는 브랜드 층의 표현을 쓴다.
 
 전체 높이는 규칙과 추천이 나타나도 시트 높이와 키보드 위치를 안정적으로 유지한다.
 route `formSheet`를 쓰면 modal presentation, grabber, safe area와 header toolbar가
-한 native stack 경계에 놓인다. plain `Column`은 별도 scroll container가 없어 단일
-필드의 focus와 키보드 소유권도 단순하다. 값 편집이라는 닫힌 작업은 URL을 외부
+한 native stack 경계에 놓인다. 본문은 별도 scroll container가 없는 단일 필드
+구성이라 focus와 키보드 소유권도 단순하다. 값 편집이라는 닫힌 작업은 URL을 외부
 deep link 계약으로 노출할 필요는 없지만, 앱 내부 route로 분리해 native header와
 presentation 수명을 함께 얻는다.
 
@@ -48,8 +49,8 @@ presentation 수명을 함께 얻는다.
   닫는다.
 - 값 하나에 검증과 서버 왕복이 모두 없다면 설정 목록에서 직접 편집할 수 있다.
 - 제목 정렬, safe area, toolbar item 크기와 material은 native stack이 책임진다.
-- 제품 상태인 가용성·중복은 앱의 success·danger 의미를 쓰고, sheet·field·label의
-  일반 appearance는 native 기본값을 유지한다.
+- 제품 상태인 가용성·중복은 앱의 success·danger 의미를 쓴다. sheet chrome은
+  native 기본값을, field·label 표현은 HeroUI 기본값을 유지한다.
 - 아이디 변경 빈도와 이전 아이디 경고는 검색 표면이 생길 때까지 두지 않는다.
 - 구현과 무관하게 유지할 편집 interaction 계약은 이 결정 문서가 소유한다.
 
@@ -62,6 +63,8 @@ presentation 수명을 함께 얻는다.
 ## Still-rejected alternatives
 
 - 설정 편집을 push navigation으로 만들기.
+- 시트 본문을 `@expo/ui` `Host`와 native text field로 유지하기 — 2026-08-06
+  HeroUI 브랜드 층 통합으로 기각. interaction 계약은 renderer와 무관하게 남는다.
 - `@expo/ui BottomSheet` 안에 custom `Row` header와 크기를 고정한 원형 버튼을
   다시 만들기.
 - 내용에 따라 높이가 바뀌는 부분 detent를 쓰기.

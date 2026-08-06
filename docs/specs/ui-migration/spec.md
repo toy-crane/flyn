@@ -29,15 +29,18 @@
   제거한다.
 - 인증이 걸린 surface 검증은 `bun run auth:session`의 이메일 OTP 세션을 쓴다.
 - 이전이 모두 끝나면 `theme/`(app-theme, colors, tokens, buttons,
-  navigation-theme, product-colors)와 대체된 컴포넌트(loading-indicator,
-  profile-avatar, code-input, google-button, email-form, onboarding-form,
-  episode 카드·dock·sheet 류)가 저장소에 남지 않는다. bridge가 대체하는 navigation-theme만 새 형태로
-  존속한다.
+  navigation-theme, product-colors)와 대체된 컴포넌트(loading-indicator·
+  hosted-loading-indicator, launch 화면, profile-avatar, code-input,
+  google-button, email-form, onboarding-form, `forms/` 입력 세트,
+  nickname·username-edit-form 본문, episode 카드·dock·sheet 류)가 저장소에 남지
+  않는다. bridge가 대체하는 navigation-theme만 새 형태로 존속하며, 이전이 끝나면
+  `@expo/ui` 사용처는 Settings 화면 하나다.
 
 ## 가정 (반증 나오면 뒤집는 기본값)
 
-- 이전 순서: ① 기반+스파이크 ② sign-in·이메일·OTP·온보딩 ③ 홈·에피소드
-  생성·결과·피드백 ④ 에피소드 대화·문장 질문 ⑤ 잔여 제거·정리.
+- 이전 순서: ① 기반+스파이크(launch 화면을 첫 검증 표면으로) ② sign-in·이메일·
+  OTP·온보딩 ③ 홈·에피소드 생성·결과·피드백 ④ 에피소드 대화·문장 질문
+  ⑤ 프로필 편집 시트 본문 ⑥ 잔여 제거·정리.
 - 채팅의 가상 목록은 `@legendapp/list`, 키보드는
   `react-native-keyboard-controller`를 유지하고 HeroUI로 대체하지 않는다.
 - `components/symbols/`의 SF Symbol 래퍼는 native toolbar 쪽만 남기고, 브랜드 층
@@ -45,9 +48,10 @@
 
 ## 손대지 않는 것
 
-- `@expo/ui` surface(Settings·프로필 편집 시트·launch progress)와
-  [settings-edits-use-native-form](../../decisions/settings-edits-use-native-form.md)
-  계약 전체.
+- Settings 화면(grouped `Form`)과 셸 chrome(navigation·`formSheet`·toolbar).
+  [settings-edits-use-native-form](../../decisions/settings-edits-use-native-form.md)의
+  편집 interaction 결정(폐기·저장·중복만 danger·toolbar 규칙)은 renderer와
+  무관하게 유지된다.
 - 라우팅 구조, 서버 상태·데이터 흐름, API 계약, 인증 흐름.
 - navigation chrome의 플랫폼 관용과 vendor 브랜드 외형 규격.
 

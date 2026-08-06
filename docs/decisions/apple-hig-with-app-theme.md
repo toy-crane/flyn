@@ -9,8 +9,9 @@
 - renderer 배정은 surface 단위다.
   - 앱 셸 — Expo Router native stack/tabs. navigation, toolbar, formSheet,
     back gesture와 그 위 시스템 표현(Liquid Glass 등)을 시스템이 소유한다.
-  - 설정·시스템 폼·짧은 시스템 상태 — `@expo/ui`. SwiftUI 기반 입력·선택·토글과
-    플랫폼 표현을 유지한다.
+  - 시스템이 의미를 온전히 표현하는 화면(현재 Settings의 grouped `Form` 하나) —
+    `@expo/ui`. 플랫폼 표현을 유지한다. 폼 요소가 필요하다는 이유만으로 이 층을
+    고르지 않으며, native toolbar가 있는 시트라도 본문은 HeroUI다.
   - 그 외 RN이 그리는 모든 화면 — HeroUI Native가 기본 renderer다. 필요한
     표현이 없으면 HeroUI primitive·토큰 위에 커스텀을 만들고, 대응물이 전혀
     없는 능력만 raw RN으로 만든다.
