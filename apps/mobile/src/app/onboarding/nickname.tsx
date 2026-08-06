@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
 import { FormTextField } from "../../components/forms/form-text-field";
-import { LaunchChecking } from "../../components/launch";
+import { LaunchChecking } from "../../components/launch-screens";
 import { OnboardingForm } from "../../components/profile/onboarding-form";
 import { fetchNameCandidate } from "../../lib/auth/name-candidate";
 import {

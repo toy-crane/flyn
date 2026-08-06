@@ -1,0 +1,18 @@
+/*
+ * 앱의 semantic token 원본. HeroUI Native의 테마 변수를 기본값으로 깔고, 앱이
+ * 확장하는 색·간격·타이포는 이 파일의 @theme 한 곳에만 쓴다
+ * (docs/decisions/uniwind-css-theme.md). React Navigation과 @expo/ui로 나가는
+ * 값은 bridge가 여기서 읽어 가고, 반대 방향은 없다.
+ *
+ * 브랜드 팔레트 실제 값은 아직 정해지지 않았다 — HeroUI 기본 테마로 시작하고
+ * 확정되면 이 파일에서 갈아끼운다.
+ */
+@import "tailwindcss";
+@import "uniwind";
+@import "heroui-native/styles";
+
+/*
+ * 모노레포에서는 heroui-native가 루트로 호이스팅돼 패키지 자신의 @source가
+ * 닿지 않는다. 이 등록이 없으면 라이브러리 클래스가 통째로 tree-shaking된다.
+ */
+@source "../../node_modules/heroui-native/lib";

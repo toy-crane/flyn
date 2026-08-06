@@ -2,9 +2,13 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { ThemeProvider } from "expo-router/react-navigation";
 import { StatusBar } from "expo-status-bar";
-import { type ReactNode, useMemo } from "react";
+import { HeroUINativeProvider } from "heroui-native";
+import type { ReactNode } from "react";
+import { StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-import { LaunchChecking, LaunchFailed } from "../components/launch";
+import { LaunchChecking, LaunchFailed } from "../components/launch-screens";
+import { useNavigationTheme } from "../components/navigation/navigation-theme";
 import {
   ProfileMissing,
   ProfileUnavailable,
@@ -15,7 +19,13 @@ import { useAuth } from "../lib/use-auth";
 import { useProfileGate } from "../lib/use-profile";
 import { UserIdProvider } from "../lib/user-id";
 import { AppThemeProvider, useTheme } from "../theme/app-theme";
-import { getNavigationTheme } from "../theme/navigation-theme";
+import "../../global.css";
+
+// GestureHandlerRootView는 uniwind가 감싸는 컴포넌트가 아니라 className을 받지
+// 못한다 — 루트를 채우는 flex만 style로 남는다.
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});
 
 // signOut은 실패를 스스로 콘솔에 남기고, 어느 경우든 로컬 세션은 지워진다 —
 // 여기서 돌려받아 처리할 것이 없다.
@@ -24,8 +34,7 @@ function discardSession() {
 }
 
 function AppNavigationTheme({ children }: { children: ReactNode }) {
-  const theme = useTheme();
-  const value = useMemo(() => getNavigationTheme(theme), [theme]);
+  const value = useNavigationTheme();
 
   return <ThemeProvider value={value}>{children}</ThemeProvider>;
 }
@@ -201,15 +210,22 @@ function Routes() {
 
 export default function Layout() {
   return (
-    <AppThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <KeyboardProvider>
-          <AppNavigationTheme>
-            <Routes />
-            <StatusBar style="auto" />
-          </AppNavigationTheme>
-        </KeyboardProvider>
-      </QueryClientProvider>
-    </AppThemeProvider>
+    // HeroUI 설치 계약이 요구하는 두 래퍼가 가장 바깥이다. AppThemeProvider는
+    // 아직 이전되지 않은 화면들이 쓰는 TS 토큰을 계속 공급한다 — 두 시스템의
+    // 공존은 이전이 끝날 때까지의 설계다.
+    <GestureHandlerRootView style={styles.root}>
+      <HeroUINativeProvider>
+        <AppThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <KeyboardProvider>
+              <AppNavigationTheme>
+                <Routes />
+                <StatusBar style="auto" />
+              </AppNavigationTheme>
+            </KeyboardProvider>
+          </QueryClientProvider>
+        </AppThemeProvider>
+      </HeroUINativeProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -11,7 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
-import { HostedLoadingIndicator } from "../../components/feedback/hosted-loading-indicator";
+import { LoadingIndicator } from "../../components/feedback/loading-indicator";
 import { ProfileAvatar } from "../../components/profile/profile-avatar";
 import { NativeSymbol } from "../../components/symbols/native-symbol";
 import { deleteAccount } from "../../lib/account";
@@ -234,7 +234,7 @@ export default function SettingsScreen() {
             { backgroundColor: colors.overlay },
           ]}
         >
-          <HostedLoadingIndicator testID="settings-delete-loading-indicator" />
+          <LoadingIndicator testID="settings-delete-loading-indicator" />
         </View>
       ) : null}
     </View>

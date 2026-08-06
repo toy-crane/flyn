@@ -1,5 +1,5 @@
 import { Redirect } from "expo-router";
-import { LaunchChecking } from "../../components/launch";
+import { LaunchChecking } from "../../components/launch-screens";
 import { useProfile } from "../../lib/use-profile";
 import { useUserId } from "../../lib/user-id";
 

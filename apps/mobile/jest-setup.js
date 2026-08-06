@@ -10,6 +10,10 @@ jest.mock("react-native-worklets", () =>
 );
 require("react-native-reanimated").setUpTests();
 
+// gesture-handler도 native 모듈이다. HeroUI 설치 계약이 루트에 세우는
+// GestureHandlerRootView는 이 공식 mock 없이는 jest에서 install에 실패한다.
+require("react-native-gesture-handler/jestSetup");
+
 // 화면 테스트는 앱 root 밖에서 각 surface를 직접 렌더한다. 실제 provider 계약은
 // theme 전용 테스트가 검증하고, 나머지 테스트에는 역할이 구분되는 결정적 값을 준다.
 jest.mock("./src/theme/app-theme", () => {
