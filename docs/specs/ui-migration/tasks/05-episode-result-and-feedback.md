@@ -27,11 +27,11 @@ diff, 결과 화면 헤더의 뒤로·`다시 하기`가 모두 이전과 같다
 
 ## Status
 
-pending
+in-progress
 
 ## Execution
 
-- Base commit: —
+- Base commit: f39e49b9c292f7c8cae77831191830e0793bb5fc
 - Task checkpoint commit: —
 - Verification: —
 - Task review: —
