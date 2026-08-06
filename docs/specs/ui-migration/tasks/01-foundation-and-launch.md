@@ -41,11 +41,11 @@ None.
 
 ## Status
 
-pending
+in-progress
 
 ## Execution
 
-- Base commit: —
+- Base commit: bc9a5dea80f41d22a6aa62db493d99d7d13d5f65
 - Task checkpoint commit: —
 - Verification: —
 - Task review: —
