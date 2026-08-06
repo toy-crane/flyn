@@ -26,6 +26,16 @@
    * 늘어난다 — `--text-composer--line-height`를 만들지 않는다.
    */
   --text-composer: 1rem;
+
+  /*
+   * native header의 두 줄 title. Tailwind 스케일에는 17pt·13pt가 없고 임의
+   * 값(`text-[17px]`)은 토큰 체계를 우회한다. 값은 셸의 관용이라 앱이 고르는
+   * 것이 아니다 — iOS의 기본 header title과 그 아래 보조 줄의 크기다.
+   */
+  --text-header-title: 1.0625rem;
+  --text-header-title--line-height: 1.5rem;
+  --text-header-subtitle: 0.8125rem;
+  --text-header-subtitle--line-height: 1.125rem;
 }
 
 /*

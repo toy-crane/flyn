@@ -164,12 +164,12 @@ function declarationsOf(styleSheet: string, className: string): string {
 }
 
 describe("스타일 파운데이션 구조", () => {
-  // 앱 안에 appearance 선택기를 두지 않고 시스템 light/dark를 따른다. RN 쪽
-  // 구독처가 늘어나면 화면마다 다른 시점에 테마가 바뀐다.
-  test("system appearance는 root theme provider에서만 구독한다", () => {
-    const providerPath = path.join(sourceRoot, "theme/app-theme.tsx");
+  // 앱 안에 appearance 선택기를 두지 않고 시스템 light/dark를 따른다. 이제 그
+  // 구독은 HeroUINativeProvider 아래 Uniwind가 통째로 소유하므로 앱 소스에는
+  // 구독처가 하나도 없어야 한다 — 하나라도 생기면 화면마다 다른 시점에 테마가
+  // 바뀐다.
+  test("system appearance를 직접 구독하는 앱 소스가 없다", () => {
     const directSubscribers = productionSources(sourceRoot)
-      .filter((filePath) => filePath !== providerPath)
       .filter((filePath) =>
         COLOR_SCHEME_HOOK_PATTERN.test(readFileSync(filePath, "utf8"))
       )
