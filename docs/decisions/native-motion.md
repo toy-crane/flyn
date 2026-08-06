@@ -47,3 +47,14 @@ navigation 경계를 가로지르는 모션은 gesture·keyboard·scroll 소유�
 Reanimated layout transition과 keyboard-aware composer는 같은 frame을 바꿀 수
 있다. 오류 배너와 keyboard가 동시에 변하는 상태, Reduce Motion on/off, 빠른 OTP
 입력과 AutoFill은 회귀 검증 대상으로 남긴다.
+
+HeroUI `Spinner`의 회전은 `withRepeat`에 `reduceMotion`을 주지 않아 Reanimated
+기본값 `ReduceMotion.System`을 따른다 — Reduce Motion을 켜면 회전이 즉시 끝나
+멈춘 그림으로 선다(`heroui-native/src/components/spinner/spinner.animation.ts`).
+`animation` prop은 `rotation.speed`와 `rotation.easing`만 받아 이 값을 바꿀 길이
+없고, 고치려면 `isAnimatedStyleActive={false}`로 라이브러리 모션을 끄고 회전을
+직접 다시 만들어야 한다. 라이브러리가 자기 모션을 소유한다는 결정을 지켜 그대로
+두고, 무엇이 진행 중인지는 accessibility label(`응답 생성 중`, `대화 불러오는
+중`, `지난 내용 불러오는 중`)과 composer의 중단 action이 나른다. 멈춘 스피너가
+"멈춘 화면"으로 읽히는 일이 실제로 보고되면 자작 회전이 아니라 라이브러리에
+`reduceMotion`을 여는 것이 먼저다.

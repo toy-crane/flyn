@@ -40,6 +40,16 @@ describe("상황 카드", () => {
     ).toMatchObject({ expanded: false });
   });
 
+  it("카드 반지름은 12pt로 고정한다", async () => {
+    await renderCard();
+
+    // HeroUI 스케일의 `--radius-xl`이 12pt다. 이 클래스가 없으면 `Surface`
+    // 기본값(`--radius-3xl`, 24pt)이 그대로 나간다.
+    expect(
+      screen.getByTestId("episode-context-surface").props.className
+    ).toContain("rounded-xl");
+  });
+
   it("탭하면 같은 카드 안에서 상황 설명이 펼쳐진다", async () => {
     await renderCard();
 

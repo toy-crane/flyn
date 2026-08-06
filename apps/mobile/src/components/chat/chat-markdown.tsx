@@ -13,7 +13,7 @@ import { fromMarkdown } from "mdast-util-from-markdown";
 import { gfmTableFromMarkdown } from "mdast-util-gfm-table";
 import { gfmTable } from "micromark-extension-gfm-table";
 import { Fragment, type ReactNode, useCallback, useMemo } from "react";
-import { Linking, ScrollView, View } from "react-native";
+import { Linking, ScrollView, Text, View } from "react-native";
 
 /**
  * AI 응답 Markdown. HeroUI에 대응물이 없는 능력이라 직접 만들지만 표현은 전부
@@ -34,6 +34,14 @@ function headingType(depth: number) {
   return "h5" as const;
 }
 
+/**
+ * 인라인 서식은 감싸는 글의 크기를 그대로 물려받아야 한다. HeroUI
+ * `Typography`는 언제나 `type` 클래스를 내고 기본이 `body`(16px)인데, RN의
+ * 중첩 `Text`에서는 자식이 스스로 정한 font-size가 이긴다 — 제목(24px) 안의
+ * 굵은 글씨가 16px로 내려앉고 표 칸(14px) 안에서는 16px로 튄다. 그래서 굵게·
+ * 기울임·취소선·링크는 크기를 건드리지 않는 RN `Text`에 토큰 클래스만 얹는다
+ * (docs/decisions/uniwind-css-theme.md).
+ */
 function MarkdownLink({
   children,
   label,
@@ -48,7 +56,7 @@ function MarkdownLink({
   }, [url]);
 
   return (
-    <Typography
+    <Text
       accessibilityLabel={label}
       accessibilityRole="link"
       // HeroUI의 `link` 토큰은 전경색과 같은 무채색이라 본문 안에서 링크로 읽히지
@@ -57,7 +65,7 @@ function MarkdownLink({
       onPress={openLink}
     >
       {children}
-    </Typography>
+    </Text>
   );
 }
 
@@ -98,23 +106,25 @@ function renderInline(node: PhrasingContent, key: string): ReactNode {
           {node.value}
         </Typography>
       );
+    // 굵게·기울임·취소선은 감싸는 글의 크기를 물려받는다 — 이유는
+    // `MarkdownLink` 위 주석에 있다.
     case "strong":
       return (
-        <Typography key={key} weight="bold">
+        <Text className="font-bold" key={key}>
           {renderInlineChildren(node.children, key)}
-        </Typography>
+        </Text>
       );
     case "emphasis":
       return (
-        <Typography className="italic" key={key}>
+        <Text className="italic" key={key}>
           {renderInlineChildren(node.children, key)}
-        </Typography>
+        </Text>
       );
     case "delete":
       return (
-        <Typography className="line-through" key={key}>
+        <Text className="line-through" key={key}>
           {renderInlineChildren(node.children, key)}
-        </Typography>
+        </Text>
       );
     case "link": {
       const label = textContent(node.children);

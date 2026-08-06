@@ -262,7 +262,11 @@ function ChatErrorBanner({ onRetry }: { onRetry: () => void }) {
       layout={CHAT_RECOVERY_LAYOUT}
       testID="chat-error-banner"
     >
-      <Surface className="mb-2 flex-row items-center gap-3 rounded-panel px-4 py-3">
+      {/* 반지름은 HeroUI 스케일에서 고른다 — `--radius-2xl`이 곧 16pt다. */}
+      <Surface
+        className="mb-2 flex-row items-center gap-3 rounded-2xl px-4 py-3"
+        testID="chat-error-surface"
+      >
         <Typography className="flex-1" type="body-xs">
           응답을 만들지 못했어요.
         </Typography>
@@ -315,7 +319,10 @@ function Composer({
       >
         <TextInput
           accessibilityLabel="메시지"
-          className="max-h-28 min-h-13 flex-1 px-4 py-3.5 text-base text-field-foreground"
+          // 글자 크기는 `text-base`가 아니라 짝 line-height가 없는 앱 토큰을
+          // 쓴다. 고정 line-height는 큰 Dynamic Type에서 글자를 자른다
+          // (apps/mobile/global.css).
+          className="max-h-28 min-h-13 flex-1 px-4 py-3.5 text-composer text-field-foreground"
           cursorColor={foreground}
           maxLength={4000}
           multiline
@@ -526,13 +533,20 @@ export function ChatConversation({
             ref={composerRef}
             testID="chat-composer-layout"
           >
+            {/*
+             * 버튼을 composer 위 가운데에 세우는 자리다. 전체 폭을 덮으므로
+             * 스스로 터치를 받으면 안 된다 — 버튼이 보이는 때는 사용자가
+             * 스크롤을 올린 때뿐이라, 여기서 터치를 삼키면 목록 드래그와
+             * 말풍선 곁 표시 탭이 막힌다. `box-none`은 자식만 터치 대상으로
+             * 남기고 나머지는 아래 목록으로 흘려보낸다.
+             */}
             <View
               accessibilityElementsHidden={!showScrollButton}
               className="absolute inset-x-0 -top-15 z-10 items-center"
               importantForAccessibility={
                 showScrollButton ? "auto" : "no-hide-descendants"
               }
-              pointerEvents={showScrollButton ? "auto" : "none"}
+              pointerEvents={showScrollButton ? "box-none" : "none"}
               testID="chat-scroll-to-bottom-anchor"
             >
               <Reanimated.View

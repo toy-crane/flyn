@@ -9,7 +9,11 @@ import { View } from "react-native";
 export function QuotedSentenceCard({ sentence }: { sentence: string }) {
   return (
     <View className="bg-background px-4 pt-3" testID="quoted-sentence-card">
-      <Surface className="rounded-panel-inner px-4 py-3">
+      {/* 반지름은 HeroUI 스케일에서 고른다 — `--radius-xl`이 곧 12pt다. */}
+      <Surface
+        className="rounded-xl px-4 py-3"
+        testID="quoted-sentence-surface"
+      >
         <Typography className="mb-1" color="muted" type="body-xs">
           이 문장에 대해
         </Typography>

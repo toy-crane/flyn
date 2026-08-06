@@ -5,7 +5,7 @@ import {
   screen,
   within,
 } from "@testing-library/react-native";
-import { processColor, Text } from "react-native";
+import { processColor, StyleSheet, Text } from "react-native";
 
 // 아래 mock에 `{ virtual: true }`를 붙이지 않는다. jest의 virtual은 디스크에
 // 없는 모듈 전용이다. 실재하는 모듈에 붙이면 resolver가 실제 경로 대신 이름
@@ -122,6 +122,9 @@ const SCROLL_BUTTON_TIMING = {
 };
 const ON_ACCENT = THEME_TOKEN_STUBS["--color-accent-foreground"];
 const NEUTRAL = THEME_TOKEN_STUBS["--color-muted"];
+/** 짝 line-height를 함께 내는 Tailwind 글자 크기 스케일. */
+const PAIRED_TEXT_SCALE = /\btext-(?:xs|sm|base|lg|\d*xl)\b/;
+const LINE_HEIGHT_UTILITY = /\bleading-/;
 
 function controller(overrides: Partial<ChatController> = {}): ChatController {
   return {
@@ -449,10 +452,15 @@ describe("스트리밍 대화 표면", () => {
       name: "맨 아래로",
     });
 
-    // composer 바로 위 가운데에 선다.
-    expect(
-      screen.getByTestId("chat-scroll-to-bottom-anchor").props.className
-    ).toContain("items-center");
+    // composer 바로 위 전체 폭에 걸쳐 서서 버튼을 가운데에 세운다. 이 두 단언은
+    // 짝이다 — 전체 폭을 덮는 자리가 스스로 터치를 받으면(`auto`) 버튼이 보이는
+    // 동안(=스크롤을 올린 동안) composer 위 44pt 띠가 목록 드래그와 말풍선 곁
+    // 표시 탭을 삼킨다. `box-none`은 자식만 터치 대상으로 남긴다.
+    const anchor = screen.getByTestId("chat-scroll-to-bottom-anchor");
+
+    expect(anchor.props.className).toContain("inset-x-0");
+    expect(anchor.props.className).toContain("items-center");
+    expect(anchor.props.pointerEvents).toBe("box-none");
 
     await fireEvent.press(button);
 
@@ -472,6 +480,8 @@ describe("스트리밍 대화 표면", () => {
     expect(
       within(stickyComposer).queryByRole("button", { name: "맨 아래로" })
     ).toBeNull();
+    // 버튼이 사라진 뒤에는 자식까지 통째로 터치에서 빠진다.
+    expect(anchor.props.pointerEvents).toBe("none");
   });
 
   it("목록 머리는 대화의 첫 요소로, dock은 composer 바로 위에 둔다", async () => {
@@ -566,9 +576,19 @@ describe("스트리밍 대화 표면", () => {
     await renderChat(<ChatConversation chat={controller()} />);
 
     const input = screen.getByPlaceholderText("메시지 보내기");
+    const className: string = input.props.className;
 
-    expect(input.props.style).toBeUndefined();
-    expect(input.props.className).not.toContain("leading-");
+    // Tailwind의 `text-*` 스케일은 font-size만이 아니라 짝 line-height도 낸다.
+    // RN은 Dynamic Type로 fontSize만 키우므로 고정 line height는 큰 글자에서
+    // 글자를 자른다. 그래서 짝이 없는 앱 토큰 하나만 쓴다 — 그 토큰이 정말
+    // line-height를 내지 않는지는 실제 CSS를 컴파일하는
+    // `scripts/style-foundation.test.ts`가 확인한다.
+    expect(className).toContain("text-composer");
+    expect(className).not.toMatch(PAIRED_TEXT_SCALE);
+    expect(className).not.toMatch(LINE_HEIGHT_UTILITY);
+    expect(
+      StyleSheet.flatten(input.props.style ?? {}).lineHeight
+    ).toBeUndefined();
   });
 
   it("composer는 form과 같은 adaptive input fill을 사용한다", async () => {
@@ -758,6 +778,11 @@ describe("스트리밍 대화 표면", () => {
     const retry = within(banner).getByRole("button", { name: "다시 시도" });
 
     expect(retry.props.className).toContain("min-h-11");
+    // 배너의 반지름은 16pt다 — HeroUI 스케일의 `--radius-2xl`. `Surface` 기본값
+    // (`--radius-3xl`, 24pt)로 흘러가지 않게 클래스로 고정한다.
+    expect(screen.getByTestId("chat-error-surface").props.className).toContain(
+      "rounded-2xl"
+    );
   });
 
   it("모델 오류 중에도 새 입력은 일반 전송 버튼으로 보낼 수 있다", async () => {

@@ -28,7 +28,11 @@ export function EpisodeContextCard({ description }: { description: string }) {
       onPress={toggle}
       testID="episode-context-card"
     >
-      <Surface className="min-h-11 justify-center rounded-panel-inner px-4 py-3">
+      {/* 반지름은 HeroUI 스케일에서 고른다 — `--radius-xl`이 곧 12pt다. */}
+      <Surface
+        className="min-h-11 justify-center rounded-xl px-4 py-3"
+        testID="episode-context-surface"
+      >
         <View className="flex-row items-center gap-2">
           <Typography className="flex-1" numberOfLines={1} type="body-sm">
             {expanded ? "상황" : "상황 자세히 보기"}

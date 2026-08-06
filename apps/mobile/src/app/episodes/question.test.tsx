@@ -179,6 +179,11 @@ describe("문장 질문 화면", () => {
         "quoted-sentence-card"
       )
     ).toBeNull();
+    // 인용 카드 반지름은 12pt다 — HeroUI 스케일의 `--radius-xl`. 클래스가 없으면
+    // `Surface` 기본값(`--radius-3xl`, 24pt)이 그대로 나간다.
+    expect(
+      screen.getByTestId("quoted-sentence-surface").props.className
+    ).toContain("rounded-xl");
   });
 
   it("헤더 서브타이틀이 원래 에피소드 이름을 나른다", async () => {
