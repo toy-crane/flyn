@@ -70,8 +70,20 @@
   재수행한다.
 - **InputOTP 검증 조건부**: iOS SMS AutoFill·붙여넣기·연속 입력이 현재
   code-input과 동등해야 채택. 실패 시 HeroUI 토큰 위 커스텀 유지(계약에 명시).
-- **Dynamic Type·접근성**: HeroUI `Text`의 Dynamic Type 반응과 기본 대비는 기반
-  태스크에서 확인하고, 앱 토큰 정의 시 4.5:1 대비를 검증한다.
+- **Dynamic Type — 해소(2026-08-06 기반 태스크 확인)**: HeroUI의 `Text`는
+  `Typography`로 이름이 바뀌었고(구 이름은 deprecated alias), 내부적으로 RN
+  `Text`를 쓰므로 `allowFontScaling` 기본값을 그대로 따른다.
+  `Typography.Paragraph`·`Typography.Heading`은 type에 맞는 iOS Dynamic Type
+  ramp(`body`·`largeTitle` 등)까지 함께 건다. iPhone 17e에서 content size를
+  `extra-small`에서 `accessibility-extra-extra-extra-large`까지 바꾸며 설정 오류
+  화면 문구가 잘림 없이 줄바꿈으로 커지는 것을 확인했다. 다만 상한
+  (`maxFontSizeMultiplier`)이 없고 launch 화면에는 스크롤이 없다 — 문구가 지금보다
+  길어지면 최대 크기에서 넘칠 수 있다.
+- **기본 대비 — light `muted`가 4.43:1**: HeroUI 기본 테마의 light
+  `muted`(#71717a)를 `background`(#f5f5f5) 위에 놓으면 4.43:1로 본문 기준
+  4.5:1에 살짝 못 미친다(dark `muted`는 7.72:1, `foreground`는 light 16.25:1로
+  여유가 있다). 설정 오류 화면의 사유 문구가 이 조합을 쓴다. 아래 이연 항목의
+  브랜드 팔레트 값을 확정할 때 `global.css`에서 `--muted`를 올려 해소한다.
 - **채팅 상호작용 회귀**: streaming 중 스크롤·키보드·오류 배너 동작은
   [ai-chat-experience](../../decisions/ai-chat-experience.md) 계약 기준으로
   surface ④에서 재검증한다.
