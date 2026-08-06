@@ -8,7 +8,20 @@
 -- 자기 표시 이름을 바꿀 수 있다는 양성 대조를 함께 둔다.
 
 begin;
-select plan(44);
+select plan(47);
+
+-- 권한 집합 자체를 고정한다. table_grants.test.sql이 "위험한 것이 없다"를 전
+-- 스키마에서 훑는다면, 여기서는 이 테이블이 **정확히 무엇을 주는지**를 박아둔다.
+-- 열 단위 update는 테이블 단위 ACL에 잡히지 않으므로 SELECT 하나가 전부다.
+select table_privs_are(
+  'public', 'profiles', 'authenticated', array['SELECT'],
+  '앱 역할은 프로필을 읽기만 할 수 있다'
+);
+
+select table_privs_are(
+  'public', 'profiles', 'anon', array[]::text[],
+  '미로그인 역할에는 프로필 권한이 없다'
+);
 
 select tests.create_supabase_user('alice');
 select tests.create_supabase_user('bob');
@@ -287,6 +300,15 @@ select throws_ok(
   '42501',
   'permission denied for table profiles',
   '프로필 삭제는 클라이언트 권한이 아니다'
+);
+
+-- delete가 막힌다고 안심할 수 없다. RLS도 열 권한도 truncate는 가르지 않아,
+-- 위의 delete가 막힌 상태에서도 테이블을 통째로 비우는 길이 따로 열려 있었다.
+select throws_ok(
+  $$truncate public.profiles$$,
+  '42501',
+  'permission denied for table profiles',
+  '앱은 프로필을 통째로 비울 수 없다'
 );
 
 select tests.clear_authentication();

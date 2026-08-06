@@ -113,6 +113,13 @@ create policy "own profile updatable" on public.profiles
 
 -- RLS와 열 권한을 함께 쓴다. 정책은 어느 **행**을 만지는지만 가르고, 그 행의
 -- 어느 **열**을 바꾸는지는 못 막는다 — email·id를 지키는 것은 아래 grant다.
+--
+-- revoke가 먼저 오는 이유: create table이 anon·authenticated에 Dxtm(TRUNCATE·
+-- REFERENCES·TRIGGER·MAINTAIN)을 자동으로 붙이는데, RLS는 테이블 전체 연산을
+-- 가르지 않아 truncate가 정책을 그대로 지나간다. 권한을 열거해 지우면 지금 모르는
+-- 권한(MAINTAIN이 PG17에서 그랬듯)을 놓치므로 `revoke all`로 0에서 시작한다.
+-- **순서가 뒤집히면 아래 grant까지 함께 지워진다.**
+revoke all on table public.profiles from anon, authenticated;
 grant select on table public.profiles to authenticated;
 grant update (display_name, username) on table public.profiles to authenticated;
 
