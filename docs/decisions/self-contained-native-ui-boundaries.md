@@ -41,7 +41,7 @@
 접근성 이름을 함께 둔다(docs/decisions/apple-hig-with-app-theme.md). 확인 중을
 눈에 보이게 만들기로 하면 그 한 상태에만 `Spinner`를 쓰고, 독립적으로 나타나는
 수동형 indicator이므로 중립 `muted`로 칠한다
-(docs/specs/neutral-loading-indicators/spec.md).
+(docs/decisions/apple-hig-with-app-theme.md).
 
 ## Why
 

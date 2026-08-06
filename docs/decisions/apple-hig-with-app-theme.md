@@ -28,6 +28,13 @@
   `expo-router`가 의존해서 `node_modules`에는 남지만 앱은 import하지 않는다.
 - 브랜드 층의 아이콘은 `@expo/vector-icons`(Ionicons)에서 가져오고 색은
   `useThemeColor`가 주는 의미 토큰으로 칠한다. hex 리터럴을 쓰지 않는다.
+- **진행 표시의 색은 그 표시가 무엇의 전경인지가 정한다.** 화면에 홀로 뜨는
+  수동형 진행 표시 — launch의 세션 확인, 목록·상세의 최초 조회, 화면을 막는
+  overlay, 실제 text 전의 AI 응답 대기, 사용자가 직접 당긴 pull-to-refresh —
+  는 중립 `muted`로 칠한다. 반대로 **action 안의 진행 표시는 그 action의
+  전경색을 따른다.** filled primary 안에서는 흰색을 유지한다.
+- 그래서 수동형 indicator와 action 안의 spinner를 하나의 variant 집합으로 묶지
+  않는다. 전경 소유자가 다르다.
 - Apple·Google처럼 외부 브랜드가 규격을 소유한 표면은 HeroUI 컴포넌트로
   렌더링하되 브랜드 지침이 외형(로고, 문구, 최소 크기, 대비)을 소유한다. 앱
   accent로 다시 칠하지 않는다.
@@ -41,6 +48,14 @@
 시각 sync를 사람이 계속 맞춰야 했고, 이 유지비가 native 모사의 이익을 넘었다.
 유지되는 디자인 시스템이 브랜드 층을 소유하고 시스템이 셸을 소유하면 sync를
 맞출 표면 자체가 사라진다. 두 층이 다르게 보이는 것은 결함이 아니라 경계다.
+
+진행 표시가 전경 소유자를 따르는 이유는 색이 위계를 나르기 때문이다. HeroUI
+`Spinner`의 기본 `color="default"`는 브랜드 accent라, 누를 것이 없는 수동형
+표시에 그대로 두면 사용 가능한 action처럼 읽힌다. 기본값이 accent이므로 이
+자리는 아무것도 하지 않으면 틀린 쪽으로 간다 — HeroUI 이전 중 여러 표면이 같은
+실수로 되돌아왔다. 반대 방향도 틀린다. 눌린 버튼 안의 진행까지 중립으로 만들면
+방금 누른 action의 전경이 배경 쪽으로 물러나 무엇이 진행 중인지 흐려진다.
+기준은 컴포넌트 이름이 아니라 그 표시가 누구의 전경인가다.
 
 아이콘이 층을 따르는 이유도 같다. SF Symbol은 시스템이 크기·굵기·tint·정렬을
 함께 소유할 때 값을 하고, 브랜드 층에서는 그 소유권이 없어 셸 흉내만 남는다.
@@ -61,6 +76,8 @@ HeroUI Native는 공개 아이콘 세트를 주지 않는다 — `exports`의 53
 - SF Symbol 래퍼(`apps/mobile/src/components/symbols/`)는 `@expo/ui` 표면만
   소비한다. 브랜드 층 화면에 이 래퍼를 들이지 않는다.
 - 앱 안에 appearance 선택기를 만들지 않고 시스템 light/dark를 따른다.
+- 수동형 진행 표시의 중립 색은 그 indicator 자리에만 건다. 제품 accent나
+  navigation tint 자체를 회색으로 내리지 않는다.
 
 ## Reconsider when
 
@@ -78,3 +95,7 @@ HeroUI의 시각 언어가 제품 브랜드와 충돌해 대규모 재정의가 
   기술적으로는 되지만 셸의 어휘를 브랜드 표면에 빌려 오는 것이라 기각.
 - HeroUI 내부 아이콘 파일(`search-icon`, `person-icon` 등)을 직접 import하기 —
   `exports`에 없는 경로다.
+- 수동형 진행 표시에 `Spinner`의 기본 accent를 그대로 두기.
+- 그 반대로 버튼 안의 흰 spinner까지 중립 회색으로 내리기 — 과교정이다.
+- 고정 gray hex를 화면마다 복사하거나, 로딩 상태·표시 지연·overlay layout을
+  공통 indicator 컴포넌트 안으로 옮기기 — 그것은 화면이 소유한다.
