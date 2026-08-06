@@ -29,7 +29,7 @@
 | launch(세션 복원 대기·설정 오류) | HeroUI — `Spinner`와 `Text`. 지연 표시 등 모션 규칙은 native-motion 계약을 따른다 |
 | root sign-in·이메일 입력 | HeroUI. Apple·Google 버튼도 HeroUI `Button` 기반으로 만들되 브랜드 지침이 외형을 소유한다 |
 | 온보딩(닉네임·아이디) | HeroUI — sign-in과 같은 하단 CTA 전진 흐름이자 첫 브랜드 표면. 설정 편집과는 검증·정규화 순수 함수만 공유한다 |
-| 이메일 OTP code | HeroUI `InputOTP`. iOS SMS AutoFill·붙여넣기·hit testing 검증을 통과하지 못하면 HeroUI 토큰 위 커스텀으로 대체한다 |
+| 이메일 OTP code | HeroUI 토큰 위 커스텀 — `InputOTP`는 붙여넣기 검증에서 탈락했다(아래 근거) |
 | 홈(에피소드 목록)·에피소드 생성·결과·피드백 시트 | HeroUI — `Card`, `BottomSheet`, `Dialog`, `Spinner`, `Toast` 등 |
 | 에피소드 대화·문장 질문 | HeroUI 조합 + 커스텀 확장 — 가상 목록(`@legendapp/list`), streaming markdown, composer만 커스텀이고 버튼·시트·상태 피드백은 HeroUI |
 
@@ -43,8 +43,10 @@ renderer 경계가 surface 단위로 완결돼야 layout·focus·gesture 소유�
 
 ## Reconsider when
 
-Expo SDK나 HeroUI 릴리스가 기존 제약(아래 spike 근거, InputOTP 검증)을 바꾸거나
-새 surface가 표의 어느 행에도 맞지 않으면 그 surface만 다시 판정한다.
+Expo SDK나 HeroUI 릴리스가 기존 제약(아래 spike 근거, InputOTP의 `maxLength`)을
+바꾸거나 새 surface가 표의 어느 행에도 맞지 않으면 그 surface만 다시 판정한다.
+`InputOTP`가 밑단 `TextInput`의 `maxLength`를 열어 주면 커스텀을 버리고 다시
+채택한다.
 
 ## Still-rejected alternatives
 
@@ -57,8 +59,16 @@ Expo SDK나 HeroUI 릴리스가 기존 제약(아래 spike 근거, InputOTP 검�
 
 - `@expo/ui` OTP spike: `frame`을 건 SwiftUI `TextField`와 `ZStack`의 투명
   필드는 focus hit testing에 실패했다. OTP를 `@expo/ui`로 만들지 않는 근거로
-  남는다. HeroUI `InputOTP`는 RN 쪽이라 이 제약과 무관하지만 iOS SMS AutoFill과
-  붙여넣기는 채택 전 검증 대상이다.
+  남는다.
+- HeroUI `InputOTP` 판정(2026-08-06, iPhone 17e·heroui-native 1.0.8): 연속
+  입력·hit testing(가운데 칸 탭으로 포커스 복귀)·오류 상태는 통과했지만
+  **붙여넣기에서 탈락**했다. primitive가 밑단 `TextInput`에 `maxLength`를 박고
+  공개 `textInputProps`의 타입에서 그 키를 빼 두어(`Omit<TextInputProps, …
+  'maxLength' …>`) 밖에서 풀 수 없다. iOS는 `maxLength`를 JS보다 먼저 적용하므로
+  장식이 섞인 코드는 `pasteTransformer`에 닿기 전에 잘린다 — 빈 칸에
+  `"코드: 448183"`을 붙여넣으면 `44`만 남았고, 그 뒤 backspace는 digit 패턴에
+  걸려 값이 멈췄다. 같은 붙여넣기로 커스텀 구현은 6자리를 그대로 제출한다.
+  `textContentType="oneTimeCode"` 자동완성 계약 자체는 양쪽 모두 갖고 있다.
 - root sign-in을 SwiftUI로 감싸면 vendor button 때문에 경계를 반복해서 열어야
   했다. HeroUI 채택으로 sign-in 전체가 한 renderer 안에서 완결된다.
 - HeroUI Native v1.0.x는 39종 컴포넌트를 제공한다. 목록은 설치된

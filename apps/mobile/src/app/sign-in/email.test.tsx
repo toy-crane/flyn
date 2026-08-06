@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { processColor } from "react-native";
 
 jest.mock("../../lib/supabase", () => ({
   supabase: { auth: { signInWithOtp: jest.fn(), verifyOtp: jest.fn() } },
@@ -9,18 +10,32 @@ jest.mock("expo-router", () =>
   require("../../test-support/expo-router").expoRouterMock()
 );
 
-jest.mock("@expo/ui", () =>
-  require("../../test-support/expo-ui").universalMock()
+jest.mock("uniwind", () =>
+  require("../../test-support/heroui").uniwindThemeMock()
 );
-jest.mock("@expo/ui/swift-ui", () =>
-  require("../../test-support/expo-ui").swiftUiMock()
+
+// 네이티브 모듈이라 jest에서는 서지 않는다. 키보드를 피해 CTA를 올리는 일은
+// 시뮬레이터가 확인하고, 여기서는 자리만 세운다.
+jest.mock(
+  "react-native-keyboard-controller",
+  () => ({ KeyboardAvoidingView: require("react-native").View }),
+  { virtual: true }
 );
-jest.mock("@expo/ui/swift-ui/modifiers", () =>
-  require("../../test-support/expo-ui").modifiersMock()
-);
+
+// HeroUINativeProvider가 insets 구독에 SafeAreaListener를 쓴다 — 네이티브 뷰라
+// jest에서는 자리만 세운다.
+jest.mock("react-native-safe-area-context", () => ({
+  SafeAreaListener: ({ children }: { children: unknown }) => children,
+  useSafeAreaInsets: () => ({ bottom: 34, left: 0, right: 0, top: 59 }),
+}));
 
 import { supabase } from "../../lib/supabase";
 import { routerStub } from "../../test-support/expo-router";
+import {
+  HeroUIWrapper,
+  paintedColors,
+  THEME_TOKEN_STUBS,
+} from "../../test-support/heroui";
 import EmailScreen from "./email";
 
 const mockAuth = supabase.auth as unknown as { signInWithOtp: jest.Mock };
@@ -28,6 +43,12 @@ const FIELD = "이메일 주소";
 const SUBMIT = "코드 받기";
 const RATE_LIMIT_COPY = /요청이 너무 잦아요/;
 const RAW_VENDOR_COPY = /rate limit/;
+const ON_ACCENT = THEME_TOKEN_STUBS["--color-accent-foreground"];
+const NEUTRAL = THEME_TOKEN_STUBS["--color-muted"];
+
+function renderScreen() {
+  return render(<EmailScreen />, { wrapper: HeroUIWrapper });
+}
 
 async function sendCodeTo(address: string) {
   await fireEvent.changeText(screen.getByLabelText(FIELD), address);
@@ -44,7 +65,7 @@ beforeEach(() => {
 describe("EmailScreen", () => {
   it("코드 발송에 성공하면 코드 화면으로 넘어간다", async () => {
     mockAuth.signInWithOtp.mockResolvedValue({ error: null });
-    await render(<EmailScreen />);
+    await renderScreen();
 
     await sendCodeTo("me@example.test");
 
@@ -61,7 +82,7 @@ describe("EmailScreen", () => {
   // 코드를 보낸 주소와 코드 화면이 검증할 주소가 갈리면 사용자는 이유를 알 수 없다.
   it("보낸 주소와 넘기는 주소가 같다", async () => {
     mockAuth.signInWithOtp.mockResolvedValue({ error: null });
-    await render(<EmailScreen />);
+    await renderScreen();
 
     await sendCodeTo("  me@example.test  ");
 
@@ -71,11 +92,22 @@ describe("EmailScreen", () => {
     expect(handed).toBe(sent);
   });
 
+  // 주소가 될 수 없는 값에는 CTA를 열지 않는다.
+  it("주소 꼴이 아니면 제출을 잠근다", async () => {
+    await renderScreen();
+
+    expect(screen.getByRole("button", { name: SUBMIT })).toBeDisabled();
+
+    await fireEvent.changeText(screen.getByLabelText(FIELD), "me@example.test");
+
+    expect(screen.getByRole("button", { name: SUBMIT })).not.toBeDisabled();
+  });
+
   it("코드 발송에 실패하면 넘어가지 않고 각주로 알린다", async () => {
     mockAuth.signInWithOtp.mockResolvedValue({
       error: { message: "rate limit" },
     });
-    await render(<EmailScreen />);
+    await renderScreen();
 
     await sendCodeTo("me@example.test");
 
@@ -98,7 +130,7 @@ describe("EmailScreen", () => {
         release = resolve;
       })
     );
-    await render(<EmailScreen />);
+    await renderScreen();
 
     await fireEvent.changeText(screen.getByLabelText(FIELD), "me@example.test");
     await fireEvent.press(screen.getByText(SUBMIT));
@@ -109,8 +141,28 @@ describe("EmailScreen", () => {
     await act(async () => {
       release({ error: null });
       await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
     });
 
     expect(routerStub.push).toHaveBeenCalledTimes(1);
+  });
+
+  // 단일 form의 submit은 화면 전체 overlay가 아니라 같은 자리의 button-local
+  // progress다. 버튼 안 spinner는 중립 회색이 아니라 버튼 전경색을 따른다
+  // (docs/specs/neutral-loading-indicators/spec.md).
+  it("발송 중에는 버튼 자리에 버튼 전경색 progress를 그린다", async () => {
+    mockAuth.signInWithOtp.mockReturnValue(new Promise(() => undefined));
+    await renderScreen();
+
+    await fireEvent.changeText(screen.getByLabelText(FIELD), "me@example.test");
+    await fireEvent.press(screen.getByText(SUBMIT));
+
+    const painted = paintedColors(screen.toJSON());
+
+    // 버튼은 자리를 지키되 잠긴다 — 화면 전체를 덮는 overlay가 아니다.
+    expect(screen.getByRole("button", { name: SUBMIT })).toBeDisabled();
+    expect(painted).toContain(processColor(ON_ACCENT));
+    expect(painted).not.toContain(processColor(NEUTRAL));
   });
 });

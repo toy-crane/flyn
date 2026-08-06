@@ -68,8 +68,11 @@
   상호작용(gesture-handler)·앱 측 Tailwind 클래스·접근성 role 노출까지
   확인했다. 스파이크 코드는 되돌렸고 기반 태스크가 같은 구성을 정식으로
   재수행한다.
-- **InputOTP 검증 조건부**: iOS SMS AutoFill·붙여넣기·연속 입력이 현재
-  code-input과 동등해야 채택. 실패 시 HeroUI 토큰 위 커스텀 유지(계약에 명시).
+- **InputOTP — 해소(2026-08-06 sign-in 태스크 판정)**: 연속 입력·hit
+  testing·오류 상태는 통과했지만 붙여넣기에서 탈락했다. primitive가 밑단
+  `TextInput`에 `maxLength`를 박고 공개 API에서 그 키를 빼 두어 장식 섞인 코드가
+  `pasteTransformer` 이전에 잘린다. HeroUI 토큰 위 커스텀 `OtpInput`을 유지하며,
+  근거와 재채택 조건은 screen-renderer-boundaries 계약에 있다.
 - **Dynamic Type — 해소(2026-08-06 기반 태스크 확인)**: HeroUI의 `Text`는
   `Typography`로 이름이 바뀌었고(구 이름은 deprecated alias), 내부적으로 RN
   `Text`를 쓰므로 `allowFontScaling` 기본값을 그대로 따른다.

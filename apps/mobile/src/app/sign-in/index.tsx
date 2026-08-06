@@ -1,84 +1,30 @@
-import {
-  AppleAuthenticationButton,
-  AppleAuthenticationButtonStyle,
-  AppleAuthenticationButtonType,
-} from "expo-apple-authentication";
 import { useRouter } from "expo-router";
+import { Button, Spinner, Typography, useThemeColor } from "heroui-native";
 import { useCallback, useEffect } from "react";
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LoadingIndicator } from "../../components/feedback/loading-indicator";
-import { GoogleButton } from "../../components/sign-in/google-button";
+import {
+  AppleContinueButton,
+  GoogleContinueButton,
+} from "../../components/sign-in/provider-buttons";
 import { signInWithApple } from "../../lib/auth/apple";
 import { signInWithGoogle } from "../../lib/auth/google";
 import { authFailedFeedback } from "../../lib/haptics";
 import { useAuthAction } from "../../lib/use-auth-action";
-import { useTheme } from "../../theme/app-theme";
-import {
-  SOCIAL_BUTTON_HEIGHT,
-  SOCIAL_BUTTON_RADIUS,
-} from "../../theme/buttons";
-import { spacing } from "../../theme/tokens";
-
-const styles = StyleSheet.create({
-  actionsSpacer: {
-    flex: 1,
-    minHeight: 40,
-  },
-  emailAction: {
-    alignItems: "center",
-    marginTop: spacing.xxs,
-    paddingVertical: spacing.sm,
-  },
-  header: {
-    gap: spacing.xs,
-  },
-  inner: {
-    flex: 1,
-  },
-  overlay: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  screen: {
-    flex: 1,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.lg,
-  },
-  socialActions: {
-    gap: spacing.sm,
-  },
-  wordmark: {
-    fontSize: 36,
-    fontWeight: "700",
-    letterSpacing: -0.9,
-  },
-});
 
 /**
- * 소셜 우선. 화면을 지배하는 두 버튼이 SwiftUI로 표현할 수 없는 RN 뷰라
- * 이 화면은 RN이다(docs/decisions/self-contained-native-ui-boundaries.md).
+ * 소셜 우선. HeroUI가 그리는 브랜드 표면이고 vendor 버튼만 각 브랜드 지침을
+ * 따른다(docs/decisions/self-contained-native-ui-boundaries.md의 배정표).
  *
  * 성공하면 onAuthStateChange가 가드를 뒤집어 스택째 벗어난다 — 여기선 실패만 다룬다.
  */
 export default function SignInScreen() {
-  const { colorScheme, colors, typography } = useTheme();
   const { clearFailure, failure, pending, run } = useAuthAction();
   const router = useRouter();
-  const dark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+  // 화면에 홀로 뜨는 수동형 progress는 브랜드 accent가 아니라 중립이다
+  // (docs/specs/neutral-loading-indicators/spec.md). launch 화면과 같은 토큰.
+  const neutral = useThemeColor("muted");
 
   // 소셜 실패는 폼 검증이 아니라 OS 시트가 닫히면서 돌아오는 모달 흐름의 결과다.
   // 시트가 사라진 자리에서 버튼 아래 작은 빨간 줄은 놓치기 쉬워 iOS 관용은 얼럿이다.
@@ -110,67 +56,56 @@ export default function SignInScreen() {
   }, [pending, router]);
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+    <View className="flex-1 bg-background">
       <ScrollView
-        contentContainerStyle={StyleSheet.flatten([
-          styles.scrollContent,
-          {
-            paddingBottom: insets.bottom + spacing.xs,
-            paddingTop: insets.top + spacing.xl,
-          },
-        ])}
+        className="flex-1"
+        contentContainerClassName="grow px-5"
+        // safe area는 런타임 값이라 토큰으로 접을 수 없는 자리다.
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 8,
+          paddingTop: insets.top + 24,
+        }}
         contentInsetAdjustmentBehavior="never"
-        style={styles.scroll}
         testID="sign-in-scroll"
       >
         <View
           accessibilityElementsHidden={pending}
+          className="flex-1"
           importantForAccessibility={pending ? "no-hide-descendants" : "auto"}
-          style={styles.inner}
         >
-          {/* 헤더가 없는 화면이라 워드마크는 스택 타이틀이 아니라 본문 Text다. */}
-          <View style={styles.header}>
-            <Text style={[styles.wordmark, { color: colors.text }]}>flyn</Text>
-            <Text style={[typography.body, { color: colors.secondaryText }]}>
+          {/* 헤더가 없는 화면이라 워드마크는 스택 타이틀이 아니라 본문 텍스트다. */}
+          <View className="gap-2">
+            <Typography.Heading type="h1">flyn</Typography.Heading>
+            <Typography.Paragraph color="muted">
               로그인하고 시작하세요.
-            </Text>
+            </Typography.Paragraph>
           </View>
 
-          <View style={styles.actionsSpacer} testID="sign-in-flex-spacer" />
+          <View className="min-h-10 flex-1" testID="sign-in-flex-spacer" />
 
           <View testID="sign-in-actions">
-            <View style={styles.socialActions} testID="sign-in-social-actions">
-              {/* Apple이 기준이고 Google을 여기 맞춘다. cornerRadius와 buttonStyle 말고는
-                  우리가 건드릴 수 있는 손잡이가 없다 — style의 배경·모서리는 동작하지
-                  않을뿐더러 App Store 가이드라인 위반이다. */}
-              <View pointerEvents={pending ? "none" : "auto"}>
-                <AppleAuthenticationButton
-                  buttonStyle={
-                    dark
-                      ? AppleAuthenticationButtonStyle.WHITE
-                      : AppleAuthenticationButtonStyle.BLACK
-                  }
-                  buttonType={AppleAuthenticationButtonType.CONTINUE}
-                  cornerRadius={SOCIAL_BUTTON_RADIUS}
-                  onPress={handleApple}
-                  // 명시적 크기는 선택이 아니다 — 없으면 버튼이 아예 렌더되지 않는다.
-                  style={{ height: SOCIAL_BUTTON_HEIGHT, width: "100%" }}
-                />
-              </View>
-
-              <GoogleButton disabled={pending} onPress={handleGoogle} />
+            <View className="gap-3" testID="sign-in-social-actions">
+              <AppleContinueButton disabled={pending} onPress={handleApple} />
+              <GoogleContinueButton disabled={pending} onPress={handleGoogle} />
             </View>
 
-            <Pressable
-              accessibilityRole="button"
-              disabled={pending}
+            {/*
+             * 이메일은 소셜과 대등하지 않다 — 구분선도 카드도 없이 Google 바로
+             * 아래의 muted 텍스트 action이고, 44pt를 넘는 hit target만 지킨다
+             * (docs/decisions/social-sign-in-presentation.md). 문구 크기는
+             * 위 설명 줄과 같은 HeroUI body preset을 쓴다 — 앱이 따로 정하던
+             * 17pt 대신 라이브러리의 타이포와 iOS body ramp를 따른다.
+             */}
+            <Button
+              className="mt-1"
+              isDisabled={pending}
               onPress={handleEmail}
-              style={styles.emailAction}
+              variant="ghost"
             >
-              <Text style={[typography.body, { color: colors.secondaryText }]}>
+              <Typography.Paragraph color="muted">
                 이메일로 계속하기
-              </Text>
-            </Pressable>
+              </Typography.Paragraph>
+            </Button>
           </View>
         </View>
       </ScrollView>
@@ -180,14 +115,10 @@ export default function SignInScreen() {
           accessibilityLabel="로그인 중"
           accessibilityRole="progressbar"
           accessibilityViewIsModal
-          style={[
-            StyleSheet.absoluteFill,
-            styles.overlay,
-            { backgroundColor: colors.overlay },
-          ]}
+          className="absolute inset-0 items-center justify-center bg-backdrop"
           testID="sign-in-loading-overlay"
         >
-          <LoadingIndicator testID="sign-in-loading-indicator" />
+          <Spinner color={neutral} />
         </View>
       ) : null}
     </View>
