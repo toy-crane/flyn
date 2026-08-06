@@ -1,14 +1,31 @@
 import type { Database } from "@flyn/supabase";
 import type { SupabaseContext } from "@supabase/server";
 import { withSupabase } from "@supabase/server/adapters/hono";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
 import {
-  type ChatDependencies,
-  ChatHttpError,
-  createProductionChatDependencies,
-  respondToChatMessage,
-} from "./chat";
+  createEpisode,
+  createEpisodeDraft,
+  createProductionEpisodeDependencies,
+  type EpisodeDependencies,
+  EpisodeHttpError,
+  listEpisodeScenarios,
+  regenerateEpisodeGoals,
+  regenerateEpisodeRole,
+} from "./episode";
+import {
+  createProductionRoleplayDependencies,
+  type RoleplayDependencies,
+  RoleplayHttpError,
+  respondToEpisodeMessage,
+  runEpisodeJudgment,
+} from "./roleplay";
+import {
+  answerSentenceQuestion,
+  createProductionSentenceQuestionDependencies,
+  type SentenceQuestionDependencies,
+  SentenceQuestionHttpError,
+} from "./sentence-question";
 
 interface Env {
   Variables: {
@@ -17,11 +34,56 @@ interface Env {
 }
 
 interface ApiDependencies {
-  chat?: ChatDependencies;
+  episode?: EpisodeDependencies;
+  roleplay?: RoleplayDependencies;
+  sentenceQuestion?: SentenceQuestionDependencies;
+}
+
+/** 본문이 JSON이 아니면 파싱 오류도 같은 400 문구로 답한다. */
+async function readJsonBody(c: Context<Env>): Promise<unknown> {
+  try {
+    return await c.req.json();
+  } catch (error) {
+    // biome-ignore lint/style/useErrorCause: EpisodeHttpError의 네 번째 인자가 super의 cause로 전달된다.
+    throw new EpisodeHttpError(
+      400,
+      "에피소드 정보가 올바르지 않습니다.",
+      false,
+      error
+    );
+  }
+}
+
+function episodeFailure(error: unknown, route: string) {
+  if (error instanceof EpisodeHttpError) {
+    return {
+      body: {
+        error: error.message,
+        ...(error.retryable ? { retryable: true } : {}),
+      },
+      status: error.status,
+    } as const;
+  }
+
+  // 본문은 로그에 남기지 않는다. 어느 경계가 깨졌는지만 남긴다.
+  console.error("[episode] request failed", {
+    message: error instanceof Error ? error.message : String(error),
+    route,
+  });
+
+  return {
+    body: { error: "에피소드 요청을 처리하지 못했습니다.", retryable: true },
+    status: 500,
+  } as const;
 }
 
 export function createApiApp(dependencies: ApiDependencies = {}) {
-  const chat = dependencies.chat ?? createProductionChatDependencies();
+  const episode = dependencies.episode ?? createProductionEpisodeDependencies();
+  const roleplay =
+    dependencies.roleplay ?? createProductionRoleplayDependencies();
+  const sentenceQuestion =
+    dependencies.sentenceQuestion ??
+    createProductionSentenceQuestionDependencies();
 
   // 체이닝해야 AppType에 포함된다 — 따로 등록한 라우트는 조용히 빠진다.
   // CORS는 @supabase/server가 처리하지 않는다.
@@ -29,8 +91,141 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
     new Hono<Env>()
       .use("*", cors())
       .get("/health", (c) => c.json({ service: "flyn-api", status: "ok" }))
+      /**
+       * 에피소드 생성은 두 번 부른다 — ① 상황 후보, ② 선택한 상황의 역할과
+       * 목표. 재생성은 해당 부분만 다시 부르므로 역할·목표 라우트가 따로 있다.
+       * 어느 경로든 AI가 만든 값이라 앱이 아니라 이 경계가 저장한다.
+       */
       .post(
-        "/chats/:chatId/messages",
+        "/episodes/scenarios",
+        withSupabase<Database>({ auth: "user" }),
+        async (c) => {
+          if (!c.var.supabaseContext.userClaims?.id) {
+            return c.json({ error: "no user" }, 401);
+          }
+
+          try {
+            return c.json(
+              await listEpisodeScenarios({
+                dependencies: episode,
+                input: await readJsonBody(c),
+                signal: c.req.raw.signal,
+              })
+            );
+          } catch (error) {
+            const { body, status } = episodeFailure(
+              error,
+              "/episodes/scenarios"
+            );
+            return c.json(body, status);
+          }
+        }
+      )
+      .post(
+        "/episodes/draft",
+        withSupabase<Database>({ auth: "user" }),
+        async (c) => {
+          if (!c.var.supabaseContext.userClaims?.id) {
+            return c.json({ error: "no user" }, 401);
+          }
+
+          try {
+            return c.json(
+              await createEpisodeDraft({
+                dependencies: episode,
+                input: await readJsonBody(c),
+                signal: c.req.raw.signal,
+              })
+            );
+          } catch (error) {
+            const { body, status } = episodeFailure(error, "/episodes/draft");
+            return c.json(body, status);
+          }
+        }
+      )
+      .post(
+        "/episodes/draft/role",
+        withSupabase<Database>({ auth: "user" }),
+        async (c) => {
+          if (!c.var.supabaseContext.userClaims?.id) {
+            return c.json({ error: "no user" }, 401);
+          }
+
+          try {
+            return c.json(
+              await regenerateEpisodeRole({
+                dependencies: episode,
+                input: await readJsonBody(c),
+                signal: c.req.raw.signal,
+              })
+            );
+          } catch (error) {
+            const { body, status } = episodeFailure(
+              error,
+              "/episodes/draft/role"
+            );
+            return c.json(body, status);
+          }
+        }
+      )
+      .post(
+        "/episodes/draft/goals",
+        withSupabase<Database>({ auth: "user" }),
+        async (c) => {
+          if (!c.var.supabaseContext.userClaims?.id) {
+            return c.json({ error: "no user" }, 401);
+          }
+
+          try {
+            return c.json(
+              await regenerateEpisodeGoals({
+                dependencies: episode,
+                input: await readJsonBody(c),
+                signal: c.req.raw.signal,
+              })
+            );
+          } catch (error) {
+            const { body, status } = episodeFailure(
+              error,
+              "/episodes/draft/goals"
+            );
+            return c.json(body, status);
+          }
+        }
+      )
+      .post(
+        "/episodes",
+        withSupabase<Database>({ auth: "user" }),
+        async (c) => {
+          const context = c.var.supabaseContext;
+          const userId = context.userClaims?.id;
+
+          if (!userId) {
+            return c.json({ error: "no user" }, 401);
+          }
+
+          try {
+            return c.json(
+              await createEpisode({
+                context,
+                dependencies: episode,
+                input: await readJsonBody(c),
+                userId,
+              })
+            );
+          } catch (error) {
+            const { body, status } = episodeFailure(error, "/episodes");
+            return c.json(body, status);
+          }
+        }
+      )
+      /**
+       * 롤플레잉 한 턴. 모바일은 마지막 사용자 메시지만 보내고 서버가 DB
+       * 기록으로 답한다. 한글이면 이 경계가 전달 전에 번역하므로, 앱은 전달된
+       * 문장을 만들지 않고 스트림으로 돌려받는다.
+       */
+      .post(
+        "/episodes/:episodeId/messages",
         withSupabase<Database>({ auth: "user" }),
         async (c) => {
           const context = c.var.supabaseContext;
@@ -48,16 +243,16 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
           }
 
           try {
-            return await respondToChatMessage({
+            return await respondToEpisodeMessage({
               context,
-              dependencies: chat,
+              dependencies: roleplay,
+              episodeId: c.req.param("episodeId"),
               input,
               requestSignal: c.req.raw.signal,
-              roomId: c.req.param("chatId"),
               userId,
             });
           } catch (error) {
-            if (error instanceof ChatHttpError) {
+            if (error instanceof RoleplayHttpError) {
               return c.json(
                 {
                   error: error.message,
@@ -67,15 +262,120 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
               );
             }
 
-            console.error("[chat] request failed", {
+            // 본문은 로그에 남기지 않는다. 어느 에피소드가 깨졌는지만 남긴다.
+            console.error("[roleplay] request failed", {
+              episodeId: c.req.param("episodeId"),
               message: error instanceof Error ? error.message : String(error),
-              roomId: c.req.param("chatId"),
             });
             return c.json(
-              {
-                error: "채팅 요청을 처리하지 못했습니다.",
-                retryable: true,
-              },
+              { error: "대화 요청을 처리하지 못했습니다.", retryable: true },
+              500
+            );
+          }
+        }
+      )
+      /**
+       * 못 채운 판정을 한 번 더 부르는 자리. 대화가 끝나면 다음 판정 호출이
+       * 없어 자동으로 메워질 기회가 사라지므로, 결과 화면의 `다시 확인`이
+       * 여기서 건진다. 판정 대상은 이 경계가 정한다 — 앱은 어느 발화가 비었는지
+       * 알려 주지 않는다.
+       */
+      .post(
+        "/episodes/:episodeId/judgments",
+        withSupabase<Database>({ auth: "user" }),
+        async (c) => {
+          const context = c.var.supabaseContext;
+          const userId = context.userClaims?.id;
+
+          if (!userId) {
+            return c.json({ error: "no user" }, 401);
+          }
+
+          try {
+            return c.json(
+              await runEpisodeJudgment({
+                context,
+                dependencies: roleplay,
+                episodeId: c.req.param("episodeId"),
+                requestSignal: c.req.raw.signal,
+                userId,
+              })
+            );
+          } catch (error) {
+            if (error instanceof RoleplayHttpError) {
+              return c.json(
+                {
+                  error: error.message,
+                  ...(error.retryable ? { retryable: true } : {}),
+                },
+                error.status
+              );
+            }
+
+            console.error("[roleplay] judgment refill failed", {
+              episodeId: c.req.param("episodeId"),
+              message: error instanceof Error ? error.message : String(error),
+            });
+            return c.json(
+              { error: "판정을 받지 못했어요.", retryable: true },
+              500
+            );
+          }
+        }
+      )
+      /**
+       * 문장 하나를 두고 묻는 자리. 롤플레잉이 아니라 학습 질문이라 에피소드
+       * 대화와 다른 기록에 쌓이고 턴으로 세지 않는다. 진입점이 첨삭 시트
+       * 하나뿐이므로 목록을 내려 주는 라우트는 두지 않는다 — 앱은 그 문장의
+       * 지난 내용을 RLS 안에서 직접 읽는다.
+       */
+      .post(
+        "/episodes/:episodeId/messages/:messageId/questions",
+        withSupabase<Database>({ auth: "user" }),
+        async (c) => {
+          const context = c.var.supabaseContext;
+          const userId = context.userClaims?.id;
+
+          if (!userId) {
+            return c.json({ error: "no user" }, 401);
+          }
+
+          let input: unknown;
+          try {
+            input = await c.req.json();
+          } catch {
+            return c.json({ error: "질문 형식이 올바르지 않습니다." }, 400);
+          }
+
+          try {
+            return await answerSentenceQuestion({
+              context,
+              dependencies: sentenceQuestion,
+              episodeId: c.req.param("episodeId"),
+              input,
+              messageId: c.req.param("messageId"),
+              requestSignal: c.req.raw.signal,
+              userId,
+            });
+          } catch (error) {
+            if (error instanceof SentenceQuestionHttpError) {
+              return c.json(
+                {
+                  error: error.message,
+                  ...(error.retryable ? { retryable: true } : {}),
+                },
+                error.status
+              );
+            }
+
+            // 본문은 로그에 남기지 않는다. 어느 문장이 깨졌는지만 남긴다.
+            console.error("[sentence-question] request failed", {
+              episodeId: c.req.param("episodeId"),
+              message: error instanceof Error ? error.message : String(error),
+              messageId: c.req.param("messageId"),
+            });
+            return c.json(
+              { error: "질문을 처리하지 못했습니다.", retryable: true },
               500
             );
           }
@@ -136,5 +436,17 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
 const app = createApiApp();
 
 export type AppType = typeof app;
+
+/** 스트림에 얹어 보내거나 판정 응답이 나르는 값. 앱이 함께 읽는다. */
+export type { EpisodeEnding, EpisodeEndReason } from "./ending";
+export type {
+  GoalAchievement,
+  JudgedSentence,
+  JudgmentUpdate,
+} from "./judgment";
+export type {
+  DeliveredSentence,
+  EpisodeJudgmentResult,
+} from "./roleplay";
 
 export default app;

@@ -24,3 +24,25 @@ async function _contract() {
 }
 
 export { _contract };
+
+type ScenarioCandidates = InferResponseType<
+  (typeof rpc.episodes.scenarios)["$post"],
+  200
+>;
+
+async function _episodeContract() {
+  const res = await rpc.episodes.scenarios.$post({ json: { excluded: ["a"] } });
+
+  if (res.ok) {
+    const body: ScenarioCandidates = await res.json();
+
+    // @ts-expect-error 상황 후보 응답에는 goals가 없다
+    const { goals } = body;
+
+    return goals;
+  }
+
+  return null;
+}
+
+export { _episodeContract };

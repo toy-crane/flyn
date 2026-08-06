@@ -6,6 +6,7 @@ import type { LegendListRef } from "@legendapp/list/react-native";
 import type { ChatStatus } from "ai";
 import { SymbolView } from "expo-symbols";
 import {
+  type ReactElement,
   type ReactNode,
   useCallback,
   useEffect,
@@ -27,7 +28,6 @@ import {
 import {
   KeyboardGestureArea,
   KeyboardStickyView,
-  useReanimatedKeyboardAnimation,
 } from "react-native-keyboard-controller";
 import Reanimated, {
   Keyframe,
@@ -38,9 +38,11 @@ import Reanimated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { MessageMark } from "../../lib/message-feedback";
 import { useTheme } from "../../theme/app-theme";
 import { spacing } from "../../theme/tokens";
 import { ChatMarkdown } from "./chat-markdown";
+import { MARK_COLUMN_SIZE, MessageMarkView } from "./message-mark";
 import { StreamingMessage } from "./streaming-message";
 import type { StreamingStore } from "./streaming-store";
 
@@ -107,20 +109,6 @@ const styles = StyleSheet.create({
     minHeight: 52,
     overflow: "hidden",
   },
-  emptyDescription: {
-    textAlign: "center",
-  },
-  emptyState: {
-    alignItems: "center",
-    bottom: 0,
-    gap: spacing.xs,
-    justifyContent: "center",
-    left: 0,
-    paddingHorizontal: spacing.xl,
-    position: "absolute",
-    right: 0,
-    top: 0,
-  },
   errorBanner: {
     alignItems: "center",
     borderRadius: 16,
@@ -144,6 +132,25 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
+  },
+  markColumn: {
+    height: MARK_COLUMN_SIZE,
+    width: MARK_COLUMN_SIZE,
+  },
+  note: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.xs,
+    justifyContent: "center",
+    marginBottom: spacing.sm,
+    paddingVertical: spacing.xxs,
+  },
+  noteDot: {
+    alignItems: "center",
+    borderRadius: 8,
+    height: 16,
+    justifyContent: "center",
+    width: 16,
   },
   retryAction: {
     justifyContent: "center",
@@ -181,12 +188,16 @@ const styles = StyleSheet.create({
     marginTop: spacing.xxs,
   },
   userMessage: {
-    alignSelf: "flex-end",
     borderRadius: 20,
-    marginBottom: spacing.sm,
-    maxWidth: "80%",
+    maxWidth: "76%",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+  },
+  userRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginBottom: spacing.sm,
   },
   viewport: {
     flex: 1,
@@ -197,14 +208,29 @@ const styles = StyleSheet.create({
 export interface DisplayChatMessage {
   content: string;
   id: string;
+  kind: "message";
+  /** 판정이 아직 없으면 비어 있다. 자리는 그대로 두고 값만 나중에 채운다. */
+  mark?: MessageMark;
   role: "assistant" | "user";
   status: "complete" | "stopped";
 }
 
+/**
+ * 대화 흐름에 영구히 남는 한 줄. 말풍선이 아니라 기록이라 가운데에 서고 누를
+ * 수 없다. 무엇을 적을지는 화면이 정한다.
+ */
+export interface DisplayChatNote {
+  id: string;
+  kind: "note";
+  text: string;
+}
+
+export type DisplayChatItem = DisplayChatMessage | DisplayChatNote;
+
 export interface ChatController {
   error: Error | null;
   input: string;
-  messages: DisplayChatMessage[];
+  messages: DisplayChatItem[];
   onRetry: () => void;
   onSend: () => void;
   setInput: (value: string) => void;
@@ -213,33 +239,78 @@ export interface ChatController {
   streamingStore: StreamingStore;
 }
 
-function messageKey(message: DisplayChatMessage) {
-  return message.id;
+function messageKey(item: DisplayChatItem) {
+  return item.id;
 }
 
 function isGeneratingStatus(status: ChatStatus) {
   return status === "submitted" || status === "streaming";
 }
 
-function UserMessage({ content }: { content: string }) {
+/**
+ * 말풍선 본문은 누를 것이 아니다. 표시 없는 탭은 발견되지 않으므로 여는 일은
+ * 곁의 표시가 맡고, 본문은 애플 메시지처럼 눌러도 아무 일이 없다.
+ */
+function UserMessage({
+  content,
+  mark,
+  onMarkPress,
+}: {
+  content: string;
+  mark?: MessageMark;
+  onMarkPress?: () => void;
+}) {
   const { colors, typography } = useTheme();
 
   return (
-    <View
-      style={[styles.userMessage, { backgroundColor: colors.userBubble }]}
-      testID="user-message"
-    >
-      <Text
-        selectable
-        style={[
-          typography.message,
-          {
-            color: colors.onUserBubble,
-            lineHeight: 22,
-          },
-        ]}
+    <View style={styles.userRow} testID="user-message-row">
+      {/*
+       * 말풍선 곁의 표시는 본문이 아니라 44pt 고정 열에 둔다. 판정이 늦게
+       * 도착해 표시가 나중에 채워져도 말풍선은 제자리에 있다.
+       */}
+      <View style={styles.markColumn} testID="user-message-mark">
+        {mark ? <MessageMarkView mark={mark} onPress={onMarkPress} /> : null}
+      </View>
+      <View
+        style={[styles.userMessage, { backgroundColor: colors.userBubble }]}
+        testID="user-message"
       >
-        {content}
+        <Text
+          selectable
+          style={[
+            typography.message,
+            {
+              color: colors.onUserBubble,
+              lineHeight: 22,
+            },
+          ]}
+        >
+          {content}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * 흐름에 남는 기록 한 줄. 스크롤만으로 언제 있었는지 되짚을 수 있어야 하므로
+ * 말풍선 사이에 그대로 선다.
+ */
+function ConversationNote({ text }: { text: string }) {
+  const { colors, typography } = useTheme();
+
+  return (
+    <View style={styles.note} testID="conversation-note">
+      <View style={[styles.noteDot, { backgroundColor: colors.success }]}>
+        <SymbolView
+          name="checkmark"
+          size={9}
+          tintColor={colors.onAccent}
+          weight="bold"
+        />
+      </View>
+      <Text style={[typography.caption, { color: colors.success }]}>
+        {text}
       </Text>
     </View>
   );
@@ -294,9 +365,11 @@ function ComposerSurface({
 function Composer({
   chat,
   bottomInset,
+  placeholder,
 }: {
   bottomInset: number;
   chat: ChatController;
+  placeholder: string;
 }) {
   const { colors, typography } = useTheme();
   const canSend = chat.input.trim().length > 0;
@@ -356,7 +429,7 @@ function Composer({
           multiline
           nativeID={COMPOSER_NATIVE_ID}
           onChangeText={chat.setInput}
-          placeholder="메시지 보내기"
+          placeholder={placeholder}
           placeholderTextColor={colors.placeholder}
           selectionColor={colors.text}
           style={[
@@ -404,24 +477,41 @@ function Composer({
   );
 }
 
-export function ChatConversation({ chat }: { chat: ChatController }) {
+/**
+ * 스트리밍 대화 표면. 목록 머리와 composer 위 자리는 화면이 채운다 —
+ * 무엇이 대화 위에 얹히는지는 이 컴포넌트가 정하지 않는다
+ * (docs/decisions/ai-chat-experience.md).
+ */
+export function ChatConversation({
+  chat,
+  dock,
+  ending,
+  listHeader,
+  onMarkPress,
+  placeholder = "메시지 보내기",
+}: {
+  chat: ChatController;
+  dock?: ReactNode;
+  /**
+   * 대화가 끝났을 때 composer 자리에 대신 서는 것. 있으면 목표 바와 입력이 함께
+   * 사라진다 — 더 보낼 수 없는 자리에 입력만 비워 두면 무엇이 끝났는지 말하지
+   * 못한다. 위의 대화는 그대로 남는다.
+   */
+  ending?: ReactNode;
+  listHeader?: ReactElement | null;
+  /** 표시를 눌렀을 때 무엇이 열리는지는 화면이 정한다. */
+  onMarkPress?: (messageId: string) => void;
+  placeholder?: string;
+}) {
   const insets = useSafeAreaInsets();
-  const { colors, typography } = useTheme();
+  const { colors } = useTheme();
   const listRef = useRef<LegendListRef>(null);
   const composerRef = useRef<View>(null);
   const [listViewportHeight, setListViewportHeight] = useState(0);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const { contentInsetEndAdjustment, onComposerLayout } =
     useKeyboardChatComposerInset(listRef, composerRef);
-  const { height: keyboardHeight, progress: keyboardProgress } =
-    useReanimatedKeyboardAnimation();
   const keyboardOffset = Math.max(insets.bottom - COMPOSER_MARGIN, 0);
-  const emptyStateStyle = useAnimatedStyle(() => ({
-    bottom:
-      contentInsetEndAdjustment.value -
-      keyboardHeight.value -
-      keyboardProgress.value * keyboardOffset,
-  }));
   const showScrollButton = !isAtBottom;
   const maintainScrollAtEndThreshold =
     listViewportHeight > 0
@@ -465,26 +555,35 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
   );
 
   const renderMessage = useCallback(
-    ({ item, index }: { index: number; item: DisplayChatMessage }) => {
-      if (item.role === "user") {
-        return <UserMessage content={item.content} />;
+    ({ item }: { item: DisplayChatItem }) => {
+      if (item.kind === "note") {
+        return <ConversationNote text={item.text} />;
       }
 
-      const streaming =
-        isGeneratingStatus(chat.status) &&
-        index === chat.messages.length - 1 &&
-        item.content.length === 0;
+      if (item.role === "user") {
+        return (
+          <UserMessage
+            content={item.content}
+            mark={item.mark}
+            onMarkPress={onMarkPress ? () => onMarkPress(item.id) : undefined}
+          />
+        );
+      }
 
+      // 본문이 빈 AI 메시지는 지금 받고 있는 응답 하나뿐이다. 늦게 도착한
+      // 기록이 목록 끝에 붙어도 어느 것이 스트리밍인지 흔들리지 않는다.
       return (
         <AssistantMessage
           content={item.content}
           status={item.status}
-          streaming={streaming}
+          streaming={
+            isGeneratingStatus(chat.status) && item.content.length === 0
+          }
           streamingStore={chat.streamingStore}
         />
       );
     },
-    [chat.messages.length, chat.status, chat.streamingStore]
+    [chat.status, chat.streamingStore, onMarkPress]
   );
 
   return (
@@ -512,6 +611,7 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
             keyboardOffset={keyboardOffset}
             keyboardShouldPersistTaps="handled"
             keyExtractor={messageKey}
+            ListHeaderComponent={listHeader}
             maintainScrollAtEnd={{
               animated: false,
               on: {
@@ -529,27 +629,6 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
             style={styles.list}
             testID="chat-message-list"
           />
-
-          {chat.messages.length === 0 ? (
-            <Reanimated.View
-              pointerEvents="none"
-              style={[styles.emptyState, emptyStateStyle]}
-              testID="chat-empty-state"
-            >
-              <Text style={[typography.title, { color: colors.text }]}>
-                무엇이든 물어보세요
-              </Text>
-              <Text
-                style={[
-                  styles.emptyDescription,
-                  typography.supporting,
-                  { color: colors.secondaryText },
-                ]}
-              >
-                메시지는 이 채팅방에 안전하게 저장돼요.
-              </Text>
-            </Reanimated.View>
-          ) : null}
         </View>
 
         <KeyboardStickyView
@@ -595,7 +674,16 @@ export function ChatConversation({ chat }: { chat: ChatController }) {
                 </Pressable>
               </Reanimated.View>
             </View>
-            <Composer bottomInset={insets.bottom} chat={chat} />
+            {ending ?? (
+              <>
+                {dock}
+                <Composer
+                  bottomInset={insets.bottom}
+                  chat={chat}
+                  placeholder={placeholder}
+                />
+              </>
+            )}
           </View>
         </KeyboardStickyView>
       </KeyboardGestureArea>

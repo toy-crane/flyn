@@ -87,11 +87,46 @@ function Routes() {
           {/* 헤더를 켜야 우측 상단 설정 버튼이 설 자리가 생긴다. */}
           <Stack.Screen
             name="index"
-            options={{ headerShown: true, title: "채팅" }}
+            options={{ headerShown: true, title: "에피소드" }}
           />
+          {/* 큰 제목과 서브타이틀은 생성 화면이 스텝마다 직접 바꾼다. */}
           <Stack.Screen
-            name="chats/[id]"
-            options={{ headerShown: true, title: "새 채팅" }}
+            name="episodes/new"
+            options={{ headerShown: true, title: "새 에피소드" }}
+          />
+          {/* 시나리오 제목과 역할은 대화 화면이 헤더에 직접 세운다. */}
+          <Stack.Screen
+            name="episodes/[id]"
+            options={{ headerShown: true, title: "대화" }}
+          />
+          {/*
+           * 결과 화면. 헤더에는 뒤로 가기와 `다시 하기`만 둔다 — 시나리오
+           * 제목은 본문 맨 위 작은 줄로 내려 잘림 없이 보인다.
+           */}
+          <Stack.Screen
+            name="episodes/result"
+            options={{ headerShown: true, title: "" }}
+          />
+          {/*
+           * 첨삭 시트. 번역이든 교정이든 같은 시트 하나이고, 라벨이 무엇을
+           * 보는지 말하므로 헤더 없이 medium detent와 grabber만 쓴다.
+           */}
+          <Stack.Screen
+            name="episodes/feedback"
+            options={{
+              headerShown: false,
+              presentation: "formSheet",
+              sheetAllowedDetents: [0.5],
+              sheetGrabberVisible: true,
+            }}
+          />
+          {/*
+           * 문장 질문. 시트 위에 시트를 쌓지 않고 대화 위에 push한다. 헤더가
+           * 어느 에피소드에서 물고 왔는지를 나르므로 화면이 직접 세운다.
+           */}
+          <Stack.Screen
+            name="episodes/question"
+            options={{ headerShown: true, title: "문장 이야기" }}
           />
           <Stack.Screen
             name="settings/index"

@@ -130,11 +130,15 @@ describe("Layout native stack header", () => {
 
     expect(mockRouteOptions.index).toMatchObject({
       headerShown: true,
-      title: "채팅",
+      title: "에피소드",
     });
-    expect(mockRouteOptions["chats/[id]"]).toMatchObject({
+    expect(mockRouteOptions["episodes/new"]).toMatchObject({
       headerShown: true,
-      title: "새 채팅",
+      title: "새 에피소드",
+    });
+    expect(mockRouteOptions["episodes/[id]"]).toMatchObject({
+      headerShown: true,
+      title: "대화",
     });
     expect(mockRouteOptions["settings/index"]).toMatchObject({
       headerShown: true,
@@ -158,6 +162,45 @@ describe("Layout native stack header", () => {
     });
   });
 
+  it("첨삭 시트는 medium detent와 grabber를 쓰는 하단 시트 하나다", async () => {
+    signedInWith({ kind: "ready" });
+
+    await render(<Layout />);
+
+    expect(mockRouteOptions["episodes/feedback"]).toMatchObject({
+      headerShown: false,
+      presentation: "formSheet",
+      sheetAllowedDetents: [0.5],
+      sheetGrabberVisible: true,
+    });
+  });
+
+  it("결과 화면은 헤더 타이틀 없이 선다", async () => {
+    signedInWith({ kind: "ready" });
+
+    await render(<Layout />);
+
+    // 시나리오 제목은 본문 맨 위 작은 줄이라 헤더에서 잘릴 자리가 없다.
+    expect(mockRouteOptions["episodes/result"]).toMatchObject({
+      headerShown: true,
+      title: "",
+    });
+  });
+
+  it("문장 질문은 시트가 아니라 헤더를 가진 push 화면이다", async () => {
+    signedInWith({ kind: "ready" });
+
+    await render(<Layout />);
+
+    expect(mockRouteOptions["episodes/question"]).toMatchObject({
+      headerShown: true,
+      title: "문장 이야기",
+    });
+    expect(mockRouteOptions["episodes/question"]).not.toHaveProperty(
+      "presentation"
+    );
+  });
+
   it("설정 화면만 grouped background를 native header까지 이어 쓴다", async () => {
     signedInWith({ kind: "ready" });
 
@@ -170,7 +213,7 @@ describe("Layout native stack header", () => {
       mockNavigationTheme.current.colors.background
     );
     expect(mockRouteOptions.index).not.toHaveProperty("headerStyle");
-    expect(mockRouteOptions["chats/[id]"]).not.toHaveProperty("headerStyle");
+    expect(mockRouteOptions["episodes/[id]"]).not.toHaveProperty("headerStyle");
   });
 
   it("온보딩 두 단계의 제목을 native header에 선언한다", async () => {

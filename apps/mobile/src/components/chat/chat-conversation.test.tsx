@@ -4,6 +4,7 @@ import {
   screen,
   within,
 } from "@testing-library/react-native";
+import { Text } from "react-native";
 
 const mockScrollToEnd = jest.fn();
 const mockContentInsetEndAdjustment = { value: 0 };
@@ -147,12 +148,14 @@ function controller(overrides: Partial<ChatController> = {}): ChatController {
       {
         content: "사용자 질문",
         id: "user-1",
+        kind: "message",
         role: "user",
         status: "complete",
       },
       {
         content: "**AI 답변**",
         id: "assistant-1",
+        kind: "message",
         role: "assistant",
         status: "complete",
       },
@@ -171,7 +174,7 @@ function controller(overrides: Partial<ChatController> = {}): ChatController {
   };
 }
 
-describe("채팅방 상세 대화", () => {
+describe("스트리밍 대화 표면", () => {
   beforeEach(() => {
     mockContentInsetEndAdjustment.value = 0;
     mockKeyboardHeight.value = 0;
@@ -186,10 +189,170 @@ describe("채팅방 상세 대화", () => {
 
     expect(screen.getByText("사용자 질문")).toBeTruthy();
     expect(screen.getByText("**AI 답변**")).toBeTruthy();
-    expect(screen.getByTestId("user-message")).toHaveStyle({
-      alignSelf: "flex-end",
+    expect(screen.getByTestId("user-message-row")).toHaveStyle({
+      justifyContent: "flex-end",
     });
     expect(screen.getByTestId("assistant-message")).toBeTruthy();
+  });
+
+  it("기록 한 줄은 말풍선 사이에 가운데로 서고 누를 수 없다", async () => {
+    await render(
+      <ChatConversation
+        chat={controller({
+          messages: [
+            {
+              content: "사용자 질문",
+              id: "user-1",
+              kind: "message",
+              role: "user",
+              status: "complete",
+            },
+            {
+              id: "goal-1",
+              kind: "note",
+              text: "오늘의 원두 추천 받기 완료",
+            },
+          ],
+        })}
+      />
+    );
+
+    const note = screen.getByTestId("conversation-note");
+
+    expect(within(note).getByText("오늘의 원두 추천 받기 완료")).toBeTruthy();
+    // 체크는 상태 표시다. 누를 것이 아니므로 버튼으로 서지 않는다.
+    expect(within(note).getByText("checkmark")).toBeTruthy();
+    expect(note).toHaveStyle({ justifyContent: "center" });
+    expect(
+      screen.queryByRole("button", { name: "오늘의 원두 추천 받기 완료" })
+    ).toBeNull();
+  });
+
+  it("판정이 아직 없으면 44pt 고정 열이 비어 있다", async () => {
+    await render(<ChatConversation chat={controller()} />);
+
+    expect(screen.getByTestId("user-message-mark")).toHaveStyle({
+      height: 44,
+      width: 44,
+    });
+    expect(screen.getByTestId("user-message-mark")).toBeEmptyElement();
+  });
+
+  it("판정이 나중에 채워져도 말풍선은 같은 자리에 있다", async () => {
+    const { rerender } = await render(
+      <ChatConversation chat={controller()} onMarkPress={jest.fn()} />
+    );
+    const before = screen.getByTestId("user-message-mark").props.style;
+
+    await rerender(
+      <ChatConversation
+        chat={controller({
+          messages: [
+            {
+              content: "사용자 질문",
+              id: "user-1",
+              kind: "message",
+              mark: "improvable",
+              role: "user",
+              status: "complete",
+            },
+          ],
+        })}
+        onMarkPress={jest.fn()}
+      />
+    );
+
+    // 열의 크기는 그대로고 안에 값만 들어선다.
+    expect(screen.getByTestId("user-message-mark").props.style).toEqual(before);
+    expect(screen.getByTestId("user-message-mark")).not.toBeEmptyElement();
+    expect(screen.getByText("사용자 질문")).toBeTruthy();
+  });
+
+  it("누를 수 있는 두 표시만 버튼이고 44pt를 다 쓴다", async () => {
+    const onMarkPress = jest.fn();
+    await render(
+      <ChatConversation
+        chat={controller({
+          messages: [
+            {
+              content: "한글로 쓴 발화",
+              id: "user-1",
+              kind: "message",
+              mark: "translated",
+              role: "user",
+              status: "complete",
+            },
+            {
+              content: "더 자연스럽게 쓸 여지가 있는 발화",
+              id: "user-2",
+              kind: "message",
+              mark: "improvable",
+              role: "user",
+              status: "complete",
+            },
+            {
+              content: "그대로 통한 발화",
+              id: "user-3",
+              kind: "message",
+              mark: "clear",
+              role: "user",
+              status: "complete",
+            },
+          ],
+        })}
+        onMarkPress={onMarkPress}
+      />
+    );
+
+    const translated = screen.getByTestId("message-mark-translated");
+    const improvable = screen.getByTestId("message-mark-improvable");
+    const clear = screen.getByTestId("message-mark-clear");
+
+    expect(translated).toHaveStyle({ height: 44, width: 44 });
+    expect(improvable).toHaveStyle({ height: 44, width: 44 });
+    expect(clear).toHaveStyle({ height: 44, width: 44 });
+    expect(within(translated).getByText("translate")).toBeTruthy();
+    expect(within(improvable).getByText("info.circle")).toBeTruthy();
+    // 상태 표시인 체크는 배경 없는 플랫 아이콘이라 원형 버튼이 없다.
+    expect(within(clear).getByText("checkmark")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "그대로 잘 통했어요" })
+    ).toBeNull();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "한글로 쓴 문장 보기" })
+    );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "더 자연스러운 표현 보기" })
+    );
+
+    expect(onMarkPress.mock.calls).toEqual([["user-1"], ["user-2"]]);
+  });
+
+  it("말풍선 본문을 눌러서는 아무 일도 일어나지 않는다", async () => {
+    const onMarkPress = jest.fn();
+    await render(
+      <ChatConversation
+        chat={controller({
+          messages: [
+            {
+              content: "사용자 질문",
+              id: "user-1",
+              kind: "message",
+              mark: "improvable",
+              role: "user",
+              status: "complete",
+            },
+          ],
+        })}
+        onMarkPress={onMarkPress}
+      />
+    );
+
+    await fireEvent.press(screen.getByTestId("user-message"));
+
+    expect(onMarkPress).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "사용자 질문" })).toBeNull();
   });
 
   it("맨 아래에서는 목록이 스트리밍 높이 변화를 애니메이션 없이 따라간다", async () => {
@@ -314,35 +477,47 @@ describe("채팅방 상세 대화", () => {
     ).toBeNull();
   });
 
-  it("빈 안내는 목록 높이에 참여하지 않는 overlay로 표시한다", async () => {
-    const { rerender } = await render(
-      <ChatConversation chat={controller({ messages: [] })} />
+  it("목록 머리는 대화의 첫 요소로, dock은 composer 바로 위에 둔다", async () => {
+    await render(
+      <ChatConversation
+        chat={controller()}
+        dock={<Text testID="surface-dock">dock</Text>}
+        listHeader={<Text testID="surface-header">header</Text>}
+      />
     );
 
     const list = screen.getByTestId("chat-message-list");
-    const viewport = screen.getByTestId("chat-message-viewport");
-    const emptyState = within(viewport).getByTestId("chat-empty-state");
+    const composerLayout = screen.getByTestId("chat-composer-layout");
 
-    expect(list.props.ListEmptyComponent).toBeUndefined();
-    expect(emptyState.props.pointerEvents).toBe("none");
-    expect(screen.getByText("무엇이든 물어보세요")).toBeTruthy();
-
-    await rerender(<ChatConversation chat={controller()} />);
-
-    expect(screen.queryByTestId("chat-empty-state")).toBeNull();
+    expect(list.props.ListHeaderComponent.props.testID).toBe("surface-header");
+    expect(within(composerLayout).getByTestId("surface-dock")).toBeTruthy();
   });
 
-  it("빈 안내는 키보드와 composer를 제외한 영역 안에서 중앙 정렬된다", async () => {
-    mockContentInsetEndAdjustment.value = 96;
-    mockKeyboardHeight.value = -300;
-    mockKeyboardProgress.value = 1;
+  it("끝난 자리가 오면 목표 바와 composer가 함께 내려가고 대화는 남는다", async () => {
+    await render(
+      <ChatConversation
+        chat={controller()}
+        dock={<Text testID="surface-dock">dock</Text>}
+        ending={<Text testID="surface-ending">결과 보기</Text>}
+      />
+    );
 
-    await render(<ChatConversation chat={controller({ messages: [] })} />);
+    expect(screen.getByTestId("surface-ending")).toBeTruthy();
+    expect(screen.queryByTestId("surface-dock")).toBeNull();
+    expect(screen.queryByLabelText("메시지")).toBeNull();
+    expect(screen.queryByRole("button", { name: "메시지 보내기" })).toBeNull();
+    // 대화는 화면에 그대로 남는다.
+    expect(screen.getByText("사용자 질문")).toBeTruthy();
+  });
 
-    const emptyState = screen.getByTestId("chat-empty-state");
+  it("composer placeholder는 화면이 정한다", async () => {
+    await render(
+      <ChatConversation chat={controller()} placeholder="영어로 써 보세요" />
+    );
 
-    expect(emptyState).toHaveStyle({ bottom: 396 });
-    expect(emptyState).toHaveStyle({ top: 0 });
+    expect(screen.getByLabelText("메시지").props.placeholder).toBe(
+      "영어로 써 보세요"
+    );
   });
 
   it("맨 아래에서는 목록과 composer가 같은 키보드 전환을 따른다", async () => {
@@ -427,12 +602,14 @@ describe("채팅방 상세 대화", () => {
             {
               content: "질문",
               id: "user-1",
+              kind: "message",
               role: "user",
               status: "complete",
             },
             {
               content: "",
               id: "assistant-stream",
+              kind: "message",
               role: "assistant",
               status: "complete",
             },
@@ -457,6 +634,7 @@ describe("채팅방 상세 대화", () => {
             {
               content: "",
               id: "assistant-stream",
+              kind: "message",
               role: "assistant",
               status: "complete",
             },
@@ -503,6 +681,7 @@ describe("채팅방 상세 대화", () => {
             {
               content: "",
               id: "assistant-stream",
+              kind: "message",
               role: "assistant",
               status: "complete",
             },
@@ -531,6 +710,7 @@ describe("채팅방 상세 대화", () => {
             {
               content: "여기까지 생성",
               id: "assistant-1",
+              kind: "message",
               role: "assistant",
               status: "stopped",
             },

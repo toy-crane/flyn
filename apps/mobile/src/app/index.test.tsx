@@ -1,9 +1,4 @@
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Alert } from "react-native";
 
 jest.mock("@legendapp/list/react-native", () => {
@@ -12,10 +7,12 @@ jest.mock("@legendapp/list/react-native", () => {
 
   return {
     LegendList: ({
+      ListHeaderComponent,
       data,
       refreshControl,
       renderItem,
     }: {
+      ListHeaderComponent: unknown;
       data: unknown[];
       refreshControl: {
         props: {
@@ -32,12 +29,13 @@ jest.mock("@legendapp/list/react-native", () => {
       return ReactRuntime.createElement(
         View,
         null,
+        ListHeaderComponent,
         ReactRuntime.createElement(Pressable, {
           accessibilityState: {
             busy: refreshProps.refreshing,
           },
           onPress: refreshProps.onRefresh,
-          testID: refreshProps.testID ?? "chat-room-list-refresh-control",
+          testID: refreshProps.testID ?? "episode-list-refresh-control",
           tintColor: refreshProps.tintColor,
         }),
         data.map((item, index) =>
@@ -54,47 +52,80 @@ jest.mock("@legendapp/list/react-native", () => {
 jest.mock("expo-router", () =>
   require("../test-support/expo-router").expoRouterMock()
 );
-jest.mock("../lib/use-chat-rooms", () => ({
-  useChatRooms: jest.fn(),
-  useCreateChatRoom: jest.fn(),
-  useDeleteChatRoom: jest.fn(),
-}));
-jest.mock("../lib/use-profile", () => ({
-  useProfile: () => ({ data: { display_name: "테스터" } }),
+jest.mock("../lib/use-episodes", () => ({
+  useDeleteEpisode: jest.fn(),
+  useEpisodes: jest.fn(),
 }));
 jest.mock("../lib/user-id", () => ({ useUserId: () => "user-1" }));
 
-import {
-  useChatRooms,
-  useCreateChatRoom,
-  useDeleteChatRoom,
-} from "../lib/use-chat-rooms";
+import { useDeleteEpisode, useEpisodes } from "../lib/use-episodes";
 import { routerStub, setIsFocused } from "../test-support/expo-router";
-import HomeScreen from "./index";
+import HomeScreen, { formatEpisodeDay } from "./index";
 
-const mockUseChatRooms = useChatRooms as jest.Mock;
-const mockUseCreateChatRoom = useCreateChatRoom as jest.Mock;
-const mockUseDeleteChatRoom = useDeleteChatRoom as jest.Mock;
-const createRoom = jest.fn();
-const deleteRoom = jest.fn();
+const GOAL_PROGRESS_TAIL = /목표 3\/3$/;
+const mockUseEpisodes = useEpisodes as jest.Mock;
+const mockUseDeleteEpisode = useDeleteEpisode as jest.Mock;
+const deleteEpisode = jest.fn();
 const retry = jest.fn();
 
-const ROOMS = [
-  {
-    created_at: "2026-07-28T01:00:00.000Z",
-    id: "room-1",
-    title: "첫 번째 채팅",
-    updated_at: "2026-07-28T02:00:00.000Z",
-    user_id: "user-1",
-  },
-  {
-    created_at: "2026-07-27T01:00:00.000Z",
-    id: "room-2",
-    title: "두 번째 채팅",
-    updated_at: "2026-07-27T02:00:00.000Z",
-    user_id: "user-1",
-  },
-];
+function goals(achieved: number) {
+  return [1, 2, 3].map((position) => ({
+    achieved_at:
+      position <= achieved
+        ? "2026-08-04T00:00:00.000Z"
+        : (null as string | null),
+    position,
+    sentence: `목표 ${position}`,
+  }));
+}
+
+function episode({
+  achieved = 0,
+  id,
+  status = "active",
+  title,
+  updatedAt,
+}: {
+  achieved?: number;
+  id: string;
+  status?: string;
+  title: string;
+  updatedAt: string;
+}) {
+  return {
+    created_at: "2026-08-01T00:00:00.000Z",
+    episode_goals: goals(achieved),
+    id,
+    partner_role: "바리스타 Maya",
+    scenario_description: "설명",
+    scenario_title: title,
+    status,
+    summary: null,
+    turn_limit: 20,
+    updated_at: updatedAt,
+    user_role: "처음 방문한 여행객",
+  };
+}
+
+const RECENT_ACTIVE = episode({
+  achieved: 1,
+  id: "episode-1",
+  title: "포틀랜드 카페에서 첫 주문",
+  updatedAt: "2026-08-05T04:00:00.000Z",
+});
+const OLDER_ACTIVE = episode({
+  achieved: 2,
+  id: "episode-2",
+  title: "공항에서 짐이 안 나왔을 때",
+  updatedAt: "2026-08-05T01:00:00.000Z",
+});
+const FINISHED = episode({
+  achieved: 3,
+  id: "episode-3",
+  status: "goals_met",
+  title: "호스텔 체크인이 꼬였어요",
+  updatedAt: "2026-08-04T01:00:00.000Z",
+});
 
 function alertButtons() {
   const spy = Alert.alert as unknown as jest.Mock;
@@ -106,67 +137,151 @@ function alertButtons() {
   }[];
 }
 
-beforeEach(() => {
-  jest.resetAllMocks();
-  setIsFocused(true);
-  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
-  createRoom.mockResolvedValue({ id: "new-room" });
-  mockUseChatRooms.mockReturnValue({
-    data: ROOMS,
+function episodesAre(data: unknown[]) {
+  mockUseEpisodes.mockReturnValue({
+    data,
     isError: false,
     isFetching: false,
     isPending: false,
     refetch: retry,
   });
-  mockUseCreateChatRoom.mockReturnValue({
+}
+
+beforeEach(() => {
+  jest.resetAllMocks();
+  setIsFocused(true);
+  jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  episodesAre([RECENT_ACTIVE, OLDER_ACTIVE, FINISHED]);
+  mockUseDeleteEpisode.mockReturnValue({
     isPending: false,
-    mutateAsync: createRoom,
-  });
-  mockUseDeleteChatRoom.mockReturnValue({
-    isPending: false,
-    mutate: deleteRoom,
+    mutate: deleteEpisode,
   });
 });
 
-describe("채팅방 목록", () => {
-  it("최초 조회는 수동형 의미 색의 loading을 보여준다", async () => {
-    mockUseChatRooms.mockReturnValue({
-      data: undefined,
-      isError: false,
-      isFetching: true,
-      isPending: true,
-      refetch: retry,
-    });
+describe("에피소드가 없는 홈", () => {
+  it("첫 에피소드를 만들자는 안내만 보여준다", async () => {
+    episodesAre([]);
 
     await render(<HomeScreen />);
 
-    expect(screen.getByLabelText("채팅 불러오는 중").props.color).toBe(
-      "#777777"
-    );
+    expect(screen.getByText("아직 만든 에피소드가 없어요")).toBeTruthy();
+    expect(screen.queryByText("모든 에피소드")).toBeNull();
+    expect(screen.queryByText("이어서 하기")).toBeNull();
+    expect(screen.queryByRole("button", { name: "새 에피소드" })).toBeNull();
   });
 
-  it("당겨서 새로고침하는 progress도 수동형 의미 색을 사용한다", async () => {
+  it("안내의 action이 생성 화면을 연다", async () => {
+    episodesAre([]);
+
+    await render(<HomeScreen />);
+    fireEvent.press(screen.getByRole("button", { name: "첫 에피소드 만들기" }));
+
+    expect(routerStub.push).toHaveBeenCalledWith("/episodes/new");
+  });
+});
+
+describe("홈의 카드와 목록", () => {
+  it("가장 최근 진행 중 하나만 카드에 오르고 목록에는 없다", async () => {
     await render(<HomeScreen />);
 
+    expect(screen.getByText("이어서 하기")).toBeTruthy();
+    expect(screen.getByText("대화 이어가기")).toBeTruthy();
     expect(
-      screen.getByTestId("chat-room-list-refresh-control").props.tintColor
-    ).toBe("#777777");
+      screen.queryByRole("button", { name: RECENT_ACTIVE.scenario_title })
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: OLDER_ACTIVE.scenario_title })
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: FINISHED.scenario_title })
+    ).toBeTruthy();
   });
 
-  it("최근 채팅방을 제목과 갱신 시각이 있는 행으로 보여준다", async () => {
+  it("진행 중이 하나도 없으면 카드만 사라지고 목록은 남는다", async () => {
+    episodesAre([FINISHED]);
+
     await render(<HomeScreen />);
 
-    expect(screen.getByText("첫 번째 채팅")).toBeTruthy();
-    expect(screen.getByText("두 번째 채팅")).toBeTruthy();
-    expect(screen.getAllByTestId("chat-room-updated-at")).toHaveLength(2);
+    expect(screen.queryByText("이어서 하기")).toBeNull();
+    expect(screen.getByText("모든 에피소드")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: FINISHED.scenario_title })
+    ).toBeTruthy();
   });
 
-  it("채팅방 행을 누르면 상세 화면으로 push한다", async () => {
+  it("진행 중인 행에는 파란 점과 어디까지 했는지가 붙는다", async () => {
     await render(<HomeScreen />);
 
-    fireEvent.press(screen.getByRole("button", { name: "첫 번째 채팅" }));
+    expect(screen.getByTestId("episode-active-dot-episode-2")).toBeTruthy();
+    expect(screen.queryByTestId("episode-active-dot-episode-3")).toBeNull();
+    expect(
+      screen.getByTestId("episode-supporting-episode-2")
+    ).toHaveTextContent("목표 2/3");
+    // 끝난 행은 앞에 날짜가 붙는다. 날짜 규칙은 아래 formatEpisodeDay가 본다.
+    expect(
+      screen.getByTestId("episode-supporting-episode-3")
+    ).toHaveTextContent(GOAL_PROGRESS_TAIL);
+  });
 
-    expect(routerStub.push).toHaveBeenCalledWith("/chats/room-1");
+  it("카드의 대화 이어가기가 그 에피소드의 대화를 연다", async () => {
+    await render(<HomeScreen />);
+
+    fireEvent.press(screen.getByRole("button", { name: "대화 이어가기" }));
+
+    expect(routerStub.push).toHaveBeenCalledWith("/episodes/episode-1");
+  });
+
+  it("목록 행을 누르면 그 에피소드의 대화를 연다", async () => {
+    await render(<HomeScreen />);
+
+    fireEvent.press(
+      screen.getByRole("button", { name: OLDER_ACTIVE.scenario_title })
+    );
+
+    expect(routerStub.push).toHaveBeenCalledWith("/episodes/episode-2");
+  });
+
+  it("끝난 에피소드를 열면 대화가 아니라 결과로 간다", async () => {
+    await render(<HomeScreen />);
+
+    fireEvent.press(
+      screen.getByRole("button", { name: FINISHED.scenario_title })
+    );
+
+    expect(routerStub.push).toHaveBeenCalledWith({
+      params: { episodeId: "episode-3" },
+      pathname: "/episodes/result",
+    });
+  });
+
+  it("행을 길게 눌러 확인하면 에피소드와 목표를 함께 지운다", async () => {
+    await render(<HomeScreen />);
+
+    fireEvent(
+      screen.getByRole("button", { name: OLDER_ACTIVE.scenario_title }),
+      "longPress"
+    );
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "에피소드를 지울까요?",
+      expect.stringContaining("목표도 함께 사라져요"),
+      expect.anything()
+    );
+    expect(deleteEpisode).not.toHaveBeenCalled();
+
+    alertButtons()
+      .find((button) => button.style === "destructive")
+      ?.onPress?.();
+
+    expect(deleteEpisode).toHaveBeenCalledWith("episode-2", expect.anything());
+  });
+
+  it("native toolbar의 새 에피소드 action이 생성 화면을 연다", async () => {
+    await render(<HomeScreen />);
+
+    fireEvent.press(screen.getByRole("button", { name: "새 에피소드" }));
+
+    expect(routerStub.push).toHaveBeenCalledWith("/episodes/new");
   });
 
   it("native toolbar의 설정 action으로 설정 화면을 연다", async () => {
@@ -176,69 +291,35 @@ describe("채팅방 목록", () => {
 
     expect(routerStub.push).toHaveBeenCalledWith("/settings");
   });
+});
 
-  it("native toolbar의 새 채팅 action은 방을 만든 뒤 상세로 이동한다", async () => {
-    await render(<HomeScreen />);
-
-    fireEvent.press(screen.getByRole("button", { name: "새 채팅" }));
-
-    expect(createRoom).toHaveBeenCalled();
-    await waitFor(() => {
-      expect(routerStub.push).toHaveBeenCalledWith("/chats/new-room");
-    });
-  });
-
-  it("행을 길게 누르면 확인 전에는 삭제하지 않는다", async () => {
-    await render(<HomeScreen />);
-
-    fireEvent(
-      screen.getByRole("button", { name: "첫 번째 채팅" }),
-      "longPress"
-    );
-
-    expect(Alert.alert).toHaveBeenCalled();
-    expect(deleteRoom).not.toHaveBeenCalled();
-    expect(alertButtons().find((button) => button.text === "삭제")?.style).toBe(
-      "destructive"
-    );
-  });
-
-  it("삭제 확인을 누르면 해당 채팅방을 지운다", async () => {
-    await render(<HomeScreen />);
-    fireEvent(
-      screen.getByRole("button", { name: "첫 번째 채팅" }),
-      "longPress"
-    );
-
-    alertButtons()
-      .find((button) => button.text === "삭제")
-      ?.onPress?.();
-
-    expect(deleteRoom).toHaveBeenCalledWith(
-      "room-1",
-      expect.objectContaining({ onError: expect.any(Function) })
-    );
-  });
-
-  it("채팅방이 없으면 설명과 새 채팅 action을 보여준다", async () => {
-    mockUseChatRooms.mockReturnValue({
-      data: [],
+describe("홈의 조회 상태", () => {
+  it("최초 조회는 수동형 의미 색의 loading을 보여준다", async () => {
+    mockUseEpisodes.mockReturnValue({
+      data: undefined,
       isError: false,
-      isFetching: false,
-      isPending: false,
+      isFetching: true,
+      isPending: true,
       refetch: retry,
     });
 
     await render(<HomeScreen />);
 
-    expect(screen.getByText("아직 채팅이 없어요")).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "첫 채팅 시작하기" })
-    ).toBeTruthy();
+    expect(screen.getByLabelText("에피소드 불러오는 중").props.color).toBe(
+      "#777777"
+    );
   });
 
-  it("목록 조회 실패는 같은 화면에서 다시 시도할 수 있다", async () => {
-    mockUseChatRooms.mockReturnValue({
+  it("당겨서 새로고침하는 progress도 수동형 의미 색을 사용한다", async () => {
+    await render(<HomeScreen />);
+
+    expect(
+      screen.getByTestId("episode-list-refresh-control").props.tintColor
+    ).toBe("#777777");
+  });
+
+  it("조회가 실패하면 다시 시도할 수 있다", async () => {
+    mockUseEpisodes.mockReturnValue({
       data: undefined,
       isError: true,
       isFetching: false,
@@ -251,80 +332,16 @@ describe("채팅방 목록", () => {
 
     expect(retry).toHaveBeenCalled();
   });
+});
 
-  it("백그라운드 재조회는 당겨서 새로고침하는 표시를 켜지 않는다", async () => {
-    mockUseChatRooms.mockReturnValue({
-      data: ROOMS,
-      isError: false,
-      isFetching: true,
-      isPending: false,
-      refetch: retry,
-    });
+describe("보조 줄의 날짜", () => {
+  it("오늘·어제·n일 전 다음에는 날짜를 쓴다", () => {
+    // 하루의 경계는 기기의 시간대가 정한다 — 고정 오프셋을 섞지 않는다.
+    const now = new Date("2026-08-05T09:00:00");
 
-    await render(<HomeScreen />);
-
-    expect(
-      screen.getByTestId("chat-room-list-refresh-control").props
-        .accessibilityState.busy
-    ).toBe(false);
-  });
-
-  it("사용자가 당긴 새로고침 요청이 끝날 때까지만 표시한다", async () => {
-    let finishRefresh: (() => void) | undefined;
-    retry.mockReturnValue(
-      new Promise<void>((resolve) => {
-        finishRefresh = resolve;
-      })
-    );
-    await render(<HomeScreen />);
-
-    fireEvent.press(screen.getByTestId("chat-room-list-refresh-control"));
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("chat-room-list-refresh-control").props
-          .accessibilityState.busy
-      ).toBe(true);
-    });
-
-    finishRefresh?.();
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("chat-room-list-refresh-control").props
-          .accessibilityState.busy
-      ).toBe(false);
-    });
-  });
-
-  it("새로고침 중 화면을 나가면 복귀해도 표시를 다시 켜지 않는다", async () => {
-    retry.mockReturnValue(new Promise<void>(() => undefined));
-    const view = await render(<HomeScreen />);
-    const refreshControl = screen.getByTestId("chat-room-list-refresh-control");
-
-    fireEvent.press(refreshControl);
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("chat-room-list-refresh-control").props
-          .accessibilityState.busy
-      ).toBe(true);
-    });
-
-    setIsFocused(false);
-    await view.rerender(<HomeScreen />);
-    expect(
-      screen.getByTestId("chat-room-list-refresh-control").props
-        .accessibilityState.busy
-    ).toBe(false);
-
-    setIsFocused(true);
-    await view.rerender(<HomeScreen />);
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("chat-room-list-refresh-control").props
-          .accessibilityState.busy
-      ).toBe(false);
-    });
+    expect(formatEpisodeDay("2026-08-05T01:00:00", now)).toBe("오늘");
+    expect(formatEpisodeDay("2026-08-04T23:00:00", now)).toBe("어제");
+    expect(formatEpisodeDay("2026-08-02T01:00:00", now)).toBe("3일 전");
+    expect(formatEpisodeDay("2026-07-20T01:00:00", now)).toBe("7월 20일");
   });
 });

@@ -144,8 +144,8 @@ bun run check
 Supabase를 쓰는 화면·엔드포인트에는 위 **Supabase 로컬 스택**의 키가 더 필요하다.
 `apps/api`도 `.env.local`을 쓴다([apps/api/.env.example](apps/api/.env.example) 참고) —
 `SUPABASE_SECRET_KEY`는 서버 전용이라 여기에만 두고 절대 커밋하지 않는다.
-채팅 모델은 API 코드의 `inclusionai/ling-3.0-flash-free`로 고정되어 `AI_MODEL`이
-필요하지 않다. Gateway 호출에는 `AI_GATEWAY_API_KEY`가 필요하다.
+모델 ID는 역할마다 API 코드에 고정되어 있어 `AI_MODEL`이 필요하지 않다. Gateway
+호출에는 `AI_GATEWAY_API_KEY`가 필요하다.
 
 ## 알아둘 것
 
@@ -157,9 +157,9 @@ Supabase를 쓰는 화면·엔드포인트에는 위 **Supabase 로컬 스택**�
 - Metro transformer와 file-map cache는 각 워크트리의 `apps/mobile/.expo/` 아래에
   격리된다. 전환 전에 남은 공용 캐시 때문에 Worklets mismatch가 한 번 보이면 해당
   워크트리에서 `bunx expo start --clear`로 정리한 뒤 다시 `bun run dev`를 쓴다.
-- 채팅 상세에서 뒤로 온 뒤 pull-to-refresh spinner가 남으면
-  [AI 채팅 화면 계약](docs/decisions/ai-chat-experience.md)의 수동 새로고침 경계부터
-  확인한다.
+- 대화 화면에서 뒤로 온 뒤 pull-to-refresh spinner가 남으면
+  [스트리밍 대화 화면 계약](docs/decisions/ai-chat-experience.md)의 수동 새로고침
+  경계부터 확인한다.
 - **Uniwind는 무료(MIT) 범위로 충분하다.** Pro는 C++ 엔진·Reanimated 4 className
   애니메이션 같은 성능 계층이다. 판단 근거는
   [uniwind-css-theme](docs/decisions/uniwind-css-theme.md).

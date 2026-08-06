@@ -9,64 +9,159 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      chat_messages: {
+      episode_goals: {
         Row: {
-          chat_room_id: string
-          content: string
-          created_at: string
-          id: string
-          role: string
-          status: string
+          achieved_at: string | null
+          achieved_message_id: string | null
+          episode_id: string
+          position: number
+          sentence: string
         }
         Insert: {
-          chat_room_id: string
-          content: string
-          created_at?: string
-          id: string
-          role: string
-          status?: string
+          achieved_at?: string | null
+          achieved_message_id?: string | null
+          episode_id: string
+          position: number
+          sentence: string
         }
         Update: {
-          chat_room_id?: string
-          content?: string
-          created_at?: string
-          id?: string
-          role?: string
-          status?: string
+          achieved_at?: string | null
+          achieved_message_id?: string | null
+          episode_id?: string
+          position?: number
+          sentence?: string
         }
         Relationships: [
           {
-            foreignKeyName: "chat_messages_chat_room_id_fkey"
-            columns: ["chat_room_id"]
+            foreignKeyName: "episode_goals_achieved_message_fkey"
+            columns: ["episode_id", "achieved_message_id"]
             isOneToOne: false
-            referencedRelation: "chat_rooms"
+            referencedRelation: "episode_messages"
+            referencedColumns: ["episode_id", "id"]
+          },
+          {
+            foreignKeyName: "episode_goals_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "episodes"
             referencedColumns: ["id"]
           },
         ]
       }
-      chat_rooms: {
+      episode_messages: {
+        Row: {
+          content: string
+          created_at: string
+          episode_id: string
+          id: string
+          role: string
+          source_text: string | null
+          status: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          episode_id: string
+          id: string
+          role: string
+          source_text?: string | null
+          status?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          episode_id?: string
+          id?: string
+          role?: string
+          source_text?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "episode_messages_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "episodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      episodes: {
         Row: {
           created_at: string
           id: string
-          title: string
+          partner_role: string
+          scenario_description: string
+          scenario_title: string
+          status: string
+          summary: string | null
+          turn_limit: number
           updated_at: string
           user_id: string
+          user_role: string
         }
         Insert: {
           created_at?: string
           id?: string
-          title?: string
+          partner_role: string
+          scenario_description: string
+          scenario_title: string
+          status?: string
+          summary?: string | null
+          turn_limit: number
           updated_at?: string
-          user_id?: string
+          user_id: string
+          user_role: string
         }
         Update: {
           created_at?: string
           id?: string
-          title?: string
+          partner_role?: string
+          scenario_description?: string
+          scenario_title?: string
+          status?: string
+          summary?: string | null
+          turn_limit?: number
           updated_at?: string
           user_id?: string
+          user_role?: string
         }
         Relationships: []
+      }
+      message_feedback: {
+        Row: {
+          created_at: string
+          episode_id: string
+          improved_sentence: string | null
+          message_id: string
+          reasons: string[]
+          verdict: string
+        }
+        Insert: {
+          created_at?: string
+          episode_id: string
+          improved_sentence?: string | null
+          message_id: string
+          reasons?: string[]
+          verdict: string
+        }
+        Update: {
+          created_at?: string
+          episode_id?: string
+          improved_sentence?: string | null
+          message_id?: string
+          reasons?: string[]
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_feedback_message_fkey"
+            columns: ["episode_id", "message_id"]
+            isOneToOne: true
+            referencedRelation: "episode_messages"
+            referencedColumns: ["episode_id", "id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -94,6 +189,44 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      sentence_question_messages: {
+        Row: {
+          content: string
+          created_at: string
+          episode_id: string
+          id: string
+          message_id: string
+          role: string
+          status: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          episode_id: string
+          id: string
+          message_id: string
+          role: string
+          status?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          episode_id?: string
+          id?: string
+          message_id?: string
+          role?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sentence_question_messages_parent_fkey"
+            columns: ["episode_id", "message_id"]
+            isOneToOne: false
+            referencedRelation: "episode_messages"
+            referencedColumns: ["episode_id", "id"]
+          },
+        ]
       }
     }
     Views: {
