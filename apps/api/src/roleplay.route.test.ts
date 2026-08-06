@@ -177,8 +177,6 @@ class FakeRoleplayModel implements RoleplayModel {
 
   async generate({
     delivered,
-    ending,
-    judgment,
     messages,
     onFinish,
   }: Parameters<RoleplayModel["generate"]>[0]) {
@@ -195,23 +193,12 @@ class FakeRoleplayModel implements RoleplayModel {
       text: this.outcome.text,
     });
 
-    // 실제 스트림처럼 판정을 응답 뒤에 얹는다.
-    this.judgments.push(await judgment);
-    this.endings.push(await ending);
-
     return new Response(`stream:${delivered.text}|${this.outcome.text}`);
   }
 
-  async replay({
-    delivered,
-    ending,
-    judgment,
-    text,
-  }: Parameters<RoleplayModel["replay"]>[0]) {
+  replay({ delivered, text }: Parameters<RoleplayModel["replay"]>[0]) {
     this.replayCount += 1;
     this.delivered.push(delivered);
-    this.judgments.push(await judgment);
-    this.endings.push(await ending);
 
     return new Response(`replay:${delivered.text}|${text}`);
   }
@@ -288,6 +275,29 @@ async function send(
 
   return app.request(`/episodes/${episodeId}/messages`, {
     body: JSON.stringify(body),
+    headers,
+    method: "POST",
+  });
+}
+
+/**
+ * 판정은 응답과 나뉜 두 번째 요청이다. 앱은 한 턴이 끝난 직후 이것을 부르고,
+ * 결과 화면의 `다시 확인`도 같은 것을 부른다.
+ */
+async function judge({
+  episodeId = EPISODE_ID,
+  withAuth = true,
+}: {
+  episodeId?: string;
+  withAuth?: boolean;
+} = {}) {
+  const headers = new Headers();
+
+  if (withAuth) {
+    headers.set("authorization", `Bearer ${await mintToken()}`);
+  }
+
+  return app.request(`/episodes/${episodeId}/judgments`, {
     headers,
     method: "POST",
   });
@@ -547,20 +557,28 @@ describe("저장과 스트리밍", () => {
 });
 
 describe("목표 판정", () => {
-  it("발화 한 번에 요청 한 번으로 롤플레잉과 판정이 함께 돈다", async () => {
+  it("응답과 판정이 나뉜 두 요청으로 돈다", async () => {
     judgmentModel.draft = {
       goals: [{ messageId: "user-1", position: 1 }],
       sentences: [],
     };
 
-    const response = await send({
+    const reply = await send({
       content: "Could you recommend today's coffee?",
       id: "user-1",
     });
-    await response.text();
+    const stream = await reply.text();
 
-    expect(response.status).toBe(200);
+    // 응답 요청은 판정을 부르지 않는다. 그래야 답이 끝나는 즉시 스트림이 닫힌다.
+    expect(reply.status).toBe(200);
     expect(model.generateCount).toBe(1);
+    expect(judgmentModel.calls).toEqual([]);
+    expect(stream).not.toContain("data-judgment");
+
+    const judged = await judge();
+    const body = await judged.json();
+
+    expect(judged.status).toBe(200);
     expect(judgmentModel.calls).toEqual([{ pending: ["user-1"] }]);
     expect(repository.achievements).toEqual([
       expect.objectContaining({
@@ -569,13 +587,10 @@ describe("목표 판정", () => {
         position: 1,
       }),
     ]);
-    // 판정 결과가 같은 응답에 실려 나간다.
-    expect(model.judgments).toEqual([
-      {
-        goals: [expect.objectContaining({ messageId: "user-1", position: 1 })],
-        sentences: [expect.objectContaining({ messageId: "user-1" })],
-      },
-    ]);
+    expect(body).toMatchObject({
+      ending: null,
+      goals: [expect.objectContaining({ messageId: "user-1", position: 1 })],
+    });
   });
 
   it("판정 한 번이 판정·개선문·이유를 함께 남긴다", async () => {
@@ -591,11 +606,12 @@ describe("목표 판정", () => {
       ],
     };
 
-    const response = await send({
+    const reply = await send({
       content: "오늘 커피 뭐가 좋아요?",
       id: "user-1",
     });
-    await response.text();
+    await reply.text();
+    const body = await (await judge()).json();
 
     // 판정 행은 판정 결과만 든다.
     expect(repository.feedback).toEqual([
@@ -614,33 +630,34 @@ describe("목표 판정", () => {
       content: "What do you recommend today?",
       sourceText: "오늘 커피 뭐가 좋아요?",
     });
-    // 표시와 첨삭 시트가 읽을 값이 저장과 같은 턴에 스트림으로도 나간다.
-    expect(model.judgments).toEqual([
-      {
-        goals: [],
-        sentences: [
-          {
-            // 한글로 썼으므로 내가 쓴 말과 전달된 문장이 다르다.
-            delivered: "What do you recommend today?",
-            improvedSentence: "What would you recommend today?",
-            messageId: "user-1",
-            reasons: ["원어민은 recommend 앞에 would를 붙여 부드럽게 물어요."],
-            sourceText: "오늘 커피 뭐가 좋아요?",
-            verdict: "improvable",
-          },
-        ],
-      },
-    ]);
+    // 표시와 첨삭 시트가 읽을 값이 판정 응답으로 그대로 온다.
+    expect(body).toMatchObject({
+      sentences: [
+        {
+          // 한글로 썼으므로 내가 쓴 말과 전달된 문장이 다르다.
+          delivered: "What do you recommend today?",
+          improvedSentence: "What would you recommend today?",
+          messageId: "user-1",
+          reasons: ["원어민은 recommend 앞에 would를 붙여 부드럽게 물어요."],
+          sourceText: "오늘 커피 뭐가 좋아요?",
+          verdict: "improvable",
+        },
+      ],
+    });
   });
 
-  it("판정만 실패하면 대화 화면에 알릴 것 없이 그대로 흐른다", async () => {
+  it("판정만 실패해도 대화는 그대로 남는다", async () => {
     judgmentModel.fails = true;
 
-    const response = await send({ content: "Hi there", id: "user-1" });
+    const reply = await send({ content: "Hi there", id: "user-1" });
 
-    expect(response.status).toBe(200);
-    expect(await response.text()).toBe("stream:Hi there|Sure thing.");
-    expect(model.judgments).toEqual([null]);
+    // 응답은 판정과 무관하게 끝난다 — 나뉜 요청이라 실패가 닿지 않는다.
+    expect(reply.status).toBe(200);
+    expect(await reply.text()).toBe("stream:Hi there|Sure thing.");
+
+    const judged = await judge();
+
+    expect(judged.status).toBe(500);
     expect(repository.feedback).toEqual([]);
     expect(repository.achievements).toEqual([]);
     // 대화는 그대로 남는다.
@@ -649,15 +666,14 @@ describe("목표 판정", () => {
 
   it("판정이 빠진 발화를 다음 판정이 함께 채운다", async () => {
     judgmentModel.fails = true;
-    const first = await send({ content: "Hi there", id: "user-1" });
-    await first.text();
+    await (await send({ content: "Hi there", id: "user-1" })).text();
+    await judge();
 
     judgmentModel.fails = false;
-    const second = await send({
-      content: "One oat latte please",
-      id: "user-2",
-    });
-    await second.text();
+    await (
+      await send({ content: "One oat latte please", id: "user-2" })
+    ).text();
+    await judge();
 
     expect(judgmentModel.calls).toEqual([
       { pending: ["user-1"] },
@@ -674,14 +690,13 @@ describe("목표 판정", () => {
       goals: [{ messageId: "user-1", position: 1 }],
       sentences: [],
     };
-    const first = await send({ content: "Hi there", id: "user-1" });
-    await first.text();
+    await (await send({ content: "Hi there", id: "user-1" })).text();
+    await judge();
 
-    const second = await send({
-      content: "One oat latte please",
-      id: "user-2",
-    });
-    await second.text();
+    await (
+      await send({ content: "One oat latte please", id: "user-2" })
+    ).text();
+    await judge();
 
     expect(judgmentModel.calls[1]).toEqual({ pending: ["user-2"] });
     // 같은 목표를 다시 채우면 완료 줄의 자리가 뒤로 밀린다.
@@ -700,8 +715,8 @@ describe("대화 종료", () => {
       sentences: [],
     };
 
-    const response = await send({ content: "All three at once", id: "user-1" });
-    await response.text();
+    await (await send({ content: "All three at once", id: "user-1" })).text();
+    const body = await (await judge()).json();
 
     expect(repository.endings).toEqual([
       {
@@ -711,8 +726,8 @@ describe("대화 종료", () => {
       },
     ]);
     expect(summaryModel.calls).toBe(1);
-    // 앱은 다시 읽기를 기다리지 않고 스트림에서 종료를 받는다.
-    expect(model.endings).toEqual(["goals_met"]);
+    // 앱은 다시 읽기를 기다리지 않고 판정 응답에서 종료를 받는다.
+    expect(body).toMatchObject({ ending: "goals_met" });
   });
 
   it("턴 상한에 닿으면 끝나고, 상한은 에피소드가 든 값이다", async () => {
@@ -720,13 +735,13 @@ describe("대화 종료", () => {
       repository.episode.turnLimit = 2;
     }
 
-    const first = await send({ content: "Hello", id: "user-1" });
-    await first.text();
+    await (await send({ content: "Hello", id: "user-1" })).text();
+    await judge();
 
     expect(repository.endings).toEqual([]);
 
-    const second = await send({ content: "One more", id: "user-2" });
-    await second.text();
+    await (await send({ content: "One more", id: "user-2" })).text();
+    const body = await (await judge()).json();
 
     expect(repository.endings).toEqual([
       {
@@ -735,6 +750,7 @@ describe("대화 종료", () => {
         summary: "상황을 설명하는 문장은 잘 통했어요.",
       },
     ]);
+    expect(body).toMatchObject({ ending: "turns_exhausted" });
   });
 
   it("판정만 실패해도 턴 상한은 그대로 걸린다", async () => {
@@ -743,10 +759,11 @@ describe("대화 종료", () => {
     }
     judgmentModel.fails = true;
 
-    const response = await send({ content: "Hello", id: "user-1" });
-    await response.text();
+    await (await send({ content: "Hello", id: "user-1" })).text();
+    const judged = await judge();
 
-    expect(response.status).toBe(200);
+    // 판정 실패는 알리되, 상한 종료는 판정과 무관하므로 함께 건너뛰지 않는다.
+    expect(judged.status).toBe(500);
     expect(repository.endings.map((ending) => ending.reason)).toEqual([
       "turns_exhausted",
     ]);
@@ -758,8 +775,8 @@ describe("대화 종료", () => {
     }
     summaryModel.fails = true;
 
-    const response = await send({ content: "Hello", id: "user-1" });
-    await response.text();
+    await (await send({ content: "Hello", id: "user-1" })).text();
+    await judge();
 
     expect(repository.endings).toEqual([
       { episodeId: EPISODE_ID, reason: "turns_exhausted", summary: null },
@@ -767,11 +784,28 @@ describe("대화 종료", () => {
   });
 
   it("끝나지 않은 턴에는 총평을 부르지 않는다", async () => {
-    const response = await send({ content: "Hello", id: "user-1" });
-    await response.text();
+    await (await send({ content: "Hello", id: "user-1" })).text();
+    const body = await (await judge()).json();
 
     expect(summaryModel.calls).toBe(0);
-    expect(model.endings).toEqual([null]);
+    expect(body).toMatchObject({ ending: null });
+  });
+
+  it("끝난 에피소드에는 턴을 더 붙일 수 없다", async () => {
+    if (repository.episode) {
+      repository.episode.turnLimit = 1;
+    }
+
+    await (await send({ content: "Hello", id: "user-1" })).text();
+    await judge();
+
+    // 종료가 나뉜 요청에서 정해지므로 그 사이에 도착한 발화를 서버가 막는다.
+    const late = await send({ content: "One more", id: "user-2" });
+
+    expect(late.status).toBe(409);
+    expect(repository.messages.filter((m) => m.role === "user")).toHaveLength(
+      1
+    );
   });
 });
 

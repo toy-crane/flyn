@@ -5,6 +5,16 @@ const mockTransport = jest.fn((options) => ({ options }));
 const mockInvalidateQueries = jest.fn();
 const mockSetQueryData = jest.fn();
 const mockGetSession = jest.fn();
+/** 판정은 응답이 끝난 뒤 부르는 두 번째 요청이다. */
+const mockRequestJudgment = jest.fn(
+  (
+    _episodeId: string
+  ): Promise<{
+    ending: string | null;
+    goals: unknown[];
+    sentences: unknown[];
+  }> => Promise.resolve({ ending: null, goals: [], sentences: [] })
+);
 
 function MockDefaultChatTransport(options: unknown) {
   mockTransport(options);
@@ -26,6 +36,9 @@ jest.mock("@tanstack/react-query", () => ({
 }));
 jest.mock("./supabase", () => ({
   supabase: { auth: { getSession: () => mockGetSession() } },
+}));
+jest.mock("./use-episode-judgment", () => ({
+  requestJudgment: (episodeId: string) => mockRequestJudgment(episodeId),
 }));
 
 import type { Episode, EpisodeGoal, EpisodeMessage } from "./episodes";
@@ -358,11 +371,19 @@ describe("말풍선의 세 표시", () => {
       verdict: "clear" as const,
     };
 
-    await act(() => {
-      options.onData({
-        data: { goals: [], sentences: [arrived] },
-        type: "data-judgment",
+    mockRequestJudgment.mockResolvedValueOnce({
+      ending: null,
+      goals: [],
+      sentences: [arrived],
+    });
+
+    await act(async () => {
+      options.onFinish({
+        isAbort: false,
+        isError: false,
+        message: { id: "assistant-1", parts: [] },
       });
+      await Promise.resolve();
     });
 
     const [key, update] = mockSetQueryData.mock.calls[0] ?? [];
@@ -396,7 +417,29 @@ describe("대화 종료", () => {
     expect(result.current.ending).toBe(null);
   });
 
-  it("스트림이 알려 온 종료는 저장을 다시 읽기 전에 자리를 메운다", async () => {
+  it("판정은 응답이 끝난 뒤에 따로 부른다", async () => {
+    await renderHook(() =>
+      useEpisodeConversation(episode(), "account-1", STORED_MESSAGES, FEEDBACK)
+    );
+    const options = mockUseChat.mock.calls[0]?.[0];
+
+    // 응답이 흐르는 동안에는 부르지 않는다. 같은 요청에 얹으면 답이 끝나도
+    // 스트림이 닫히지 않아 그동안 다음 발화를 보낼 수 없다.
+    expect(mockRequestJudgment).not.toHaveBeenCalled();
+
+    await act(async () => {
+      options.onFinish({
+        isAbort: false,
+        isError: false,
+        message: { id: "assistant-1", parts: [] },
+      });
+      await Promise.resolve();
+    });
+
+    expect(mockRequestJudgment).toHaveBeenCalledWith("episode-1");
+  });
+
+  it("판정 응답이 알려 온 종료는 저장을 다시 읽기 전에 자리를 메운다", async () => {
     const { result } = await renderHook(() =>
       useEpisodeConversation(episode(), "account-1", STORED_MESSAGES, FEEDBACK)
     );
@@ -404,8 +447,19 @@ describe("대화 종료", () => {
 
     expect(result.current.ending).toBe(null);
 
-    await act(() => {
-      options.onData({ data: { reason: "goals_met" }, type: "data-ending" });
+    mockRequestJudgment.mockResolvedValueOnce({
+      ending: "goals_met",
+      goals: [],
+      sentences: [],
+    });
+
+    await act(async () => {
+      options.onFinish({
+        isAbort: false,
+        isError: false,
+        message: { id: "assistant-1", parts: [] },
+      });
+      await Promise.resolve();
     });
 
     expect(result.current.ending).toBe("goals_met");
@@ -426,20 +480,25 @@ describe("목표 달성 기록", () => {
       "assistant-1",
     ]);
 
-    await act(() => {
-      options.onData({
-        data: {
-          goals: [
-            {
-              achievedAt: "2026-08-05T01:00:02.000Z",
-              messageId: "user-1",
-              position: 1,
-            },
-          ],
-          sentences: [],
+    mockRequestJudgment.mockResolvedValueOnce({
+      ending: null,
+      goals: [
+        {
+          achievedAt: "2026-08-05T01:00:02.000Z",
+          messageId: "user-1",
+          position: 1,
         },
-        type: "data-judgment",
+      ],
+      sentences: [],
+    });
+
+    await act(async () => {
+      options.onFinish({
+        isAbort: false,
+        isError: false,
+        message: { id: "assistant-1", parts: [] },
       });
+      await Promise.resolve();
     });
 
     expect(result.current.chat.messages).toEqual([

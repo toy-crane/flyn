@@ -1,8 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { simulateReadableStream } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
-import type { EpisodeEndReason } from "./ending";
-import type { JudgmentUpdate } from "./judgment";
 import {
   createGatewayRoleplayModel,
   type EpisodeMessage,
@@ -120,14 +118,10 @@ function createTranslationModel(text: string) {
 async function generate(
   model: RoleplayModel,
   {
-    ending = Promise.resolve(null),
-    judgment = Promise.resolve(null),
     messages = MESSAGES,
     onResponse,
     signal = new AbortController().signal,
   }: {
-    ending?: Promise<EpisodeEndReason | null>;
-    judgment?: Promise<JudgmentUpdate | null>;
     messages?: EpisodeMessage[];
     onResponse?: () => void;
     signal?: AbortSignal;
@@ -137,9 +131,7 @@ async function generate(
   const response = await model.generate({
     assistantMessageId: "assistant-1",
     delivered: DELIVERED,
-    ending,
     episode: EPISODE,
-    judgment,
     messages,
     onFinish: (result) => {
       finish = result;
@@ -270,8 +262,6 @@ describe("롤플레잉 응답", () => {
     const response = await model.replay({
       assistantMessageId: "assistant-1",
       delivered: DELIVERED,
-      ending: Promise.resolve(null),
-      judgment: Promise.resolve(null),
       status: "complete",
       text: "Sure thing.",
     });
@@ -349,225 +339,49 @@ describe("롤플레잉 응답", () => {
   });
 });
 
-const ACHIEVED: JudgmentUpdate = {
-  goals: [
-    {
-      achievedAt: "2026-08-05T00:00:05.000Z",
-      messageId: "user-1",
-      position: 1,
-    },
-  ],
-  sentences: [],
-};
-
-const JUDGED: JudgmentUpdate = {
-  goals: [],
-  sentences: [
-    {
-      delivered: "Sound good. Can you make it oat milk?",
-      improvedSentence: "Sounds good. Can you make it with oat milk?",
-      messageId: "user-1",
-      reasons: ["앞의 that이 생략된 3인칭 주어라 동사에 -s가 붙어요."],
-      sourceText: "Sound good. Can you make it oat milk?",
-      verdict: "improvable",
-    },
-  ],
-};
-
-/** lib 사이의 ReadableStream 타입 차이를 피해 읽는 모양만 요구한다. */
-interface ChunkReader {
-  read: () => Promise<{ done: boolean; value?: Uint8Array }>;
-}
-
-async function readUntil(reader: ChunkReader, marker: string) {
-  const decoder = new TextDecoder();
-  let seen = "";
-  let done = false;
-
-  while (!(done || seen.includes(marker))) {
-    // biome-ignore lint/performance/noAwaitInLoops: 스트림은 앞 청크를 받아야 다음 청크가 온다.
-    const { done: finished, value } = await reader.read();
-
-    done = finished;
-    seen += decoder.decode(value, { stream: true });
-  }
-
-  return seen;
-}
-
-async function drain(reader: ChunkReader) {
-  const decoder = new TextDecoder();
-  let rest = "";
-  let done = false;
-
-  while (!done) {
-    // biome-ignore lint/performance/noAwaitInLoops: 스트림은 앞 청크를 받아야 다음 청크가 온다.
-    const { done: finished, value } = await reader.read();
-
-    done = finished;
-    rest += decoder.decode(value, { stream: true });
-  }
-
-  return rest;
-}
-
-describe("같은 스트림에 얹히는 판정", () => {
-  it("판정을 롤플레잉 응답과 같은 스트림에 data part로 얹는다", async () => {
+describe("응답만 나르는 스트림", () => {
+  it("응답이 끝나면 스트림이 곧바로 닫힌다", async () => {
     const model = createGatewayRoleplayModel({
       logger: () => undefined,
       model: createTextModel(),
     });
 
-    const { body } = await generate(model, {
-      judgment: Promise.resolve(ACHIEVED),
-    });
+    const { body } = await generate(model);
 
-    expect(body).toContain('"type":"data-judgment"');
-    expect(body).toContain('"position":1');
-    expect(body).toContain('"messageId":"user-1"');
+    // 판정과 종료는 나뉜 두 번째 요청이 나른다. 곁가지가 이 스트림의 수명에
+    // 얹혀 있으면 답이 다 그려진 뒤에도 닫히지 않아 다음 발화가 막힌다.
+    expect(body).toContain("one oat flat white");
+    expect(body).toContain('"type":"finish"');
+    expect(body).not.toContain("data-judgment");
+    expect(body).not.toContain("data-ending");
   });
 
-  it("판정이 늦게 와도 대화가 먼저 흐르고 응답은 그 전에 저장된다", async () => {
-    let release: () => void = () => undefined;
-    const judgment = new Promise<JudgmentUpdate | null>((resolve) => {
-      release = () => resolve(ACHIEVED);
-    });
-    let finish: { isAborted: boolean; text: string } | undefined;
-    const model = createGatewayRoleplayModel({
-      logger: () => undefined,
-      model: createTextModel(),
-    });
-    const response = await model.generate({
-      assistantMessageId: "assistant-1",
-      delivered: DELIVERED,
-      ending: Promise.resolve(null),
-      episode: EPISODE,
-      judgment,
-      messages: MESSAGES,
-      onFinish: (result) => {
-        finish = result;
-        return Promise.resolve();
-      },
-      signal: new AbortController().signal,
-    });
-    const reader = (
-      response.body as unknown as { getReader: () => ChunkReader }
-    ).getReader();
-
-    const beforeJudgment = await readUntil(reader, '"type":"finish"');
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(beforeJudgment).toContain("one oat flat white");
-    expect(beforeJudgment).not.toContain("data-judgment");
-    // 응답 저장은 판정을 기다리지 않는다.
-    expect(finish).toEqual({
-      isAborted: false,
-      text: "Sure thing — one oat flat white coming up.",
-    });
-
-    release();
-
-    expect(await drain(reader)).toContain('"type":"data-judgment"');
-  });
-
-  it("목표를 채우지 못한 턴에도 문장 판정은 같은 스트림에 온다", async () => {
+  it("전달된 문장만 응답과 함께 얹힌다", async () => {
     const model = createGatewayRoleplayModel({
       logger: () => undefined,
       model: createTextModel(),
     });
 
-    const { body } = await generate(model, {
-      judgment: Promise.resolve(JUDGED),
-    });
+    const { body } = await generate(model);
 
-    // 표시와 첨삭 시트가 읽는 값이 판정 호출 하나에서 그대로 실려 온다.
-    expect(body).toContain('"type":"data-judgment"');
-    expect(body).toContain('"verdict":"improvable"');
-    expect(body).toContain("Sounds good. Can you make it with oat milk?");
-    expect(body).toContain("동사에 -s가 붙어요");
+    // 말풍선을 전달본으로 바꾸는 데 필요하고, 응답과 같은 순간에 정해진다.
+    expect(body).toContain('"type":"data-delivered"');
   });
 
-  it("판정이 실패하거나 채운 것이 없으면 아무것도 얹지 않는다", async () => {
-    const model = createGatewayRoleplayModel({
-      logger: () => undefined,
-      model: createTextModel(),
-    });
-
-    const failed = await generate(model, { judgment: Promise.resolve(null) });
-    const empty = await generate(model, {
-      judgment: Promise.resolve({ goals: [], sentences: [] }),
-    });
-
-    expect(failed.body).not.toContain("data-judgment");
-    expect(failed.body).toContain("one oat flat white");
-    expect(empty.body).not.toContain("data-judgment");
-  });
-
-  it("저장된 응답을 재생할 때도 판정이 같은 스트림에 온다", async () => {
+  it("저장된 응답을 재생할 때도 응답만 나른다", async () => {
     const model = createGatewayRoleplayModel({ logger: () => undefined });
 
     const response = await model.replay({
       assistantMessageId: "assistant-1",
       delivered: DELIVERED,
-      ending: Promise.resolve(null),
-      judgment: Promise.resolve(ACHIEVED),
       status: "complete",
       text: "Sure thing.",
     });
+    const body = await response.text();
 
-    expect(await response.text()).toContain('"type":"data-judgment"');
-  });
-});
-
-describe("종료 알림", () => {
-  it("끝난 턴에서만 종료 사유가 같은 스트림에 온다", async () => {
-    const model = createGatewayRoleplayModel({
-      logger: () => undefined,
-      model: createTextModel(),
-    });
-
-    const running = await generate(model, { ending: Promise.resolve(null) });
-    const finished = await generate(model, {
-      ending: Promise.resolve("goals_met"),
-    });
-
-    expect(running.body).not.toContain("data-ending");
-    expect(finished.body).toContain('"type":"data-ending"');
-    expect(finished.body).toContain('"reason":"goals_met"');
-  });
-
-  it("종료가 저장되기 전에 스트림이 닫히지 않는다", async () => {
-    let release: () => void = () => undefined;
-    const ending = new Promise<EpisodeEndReason | null>((resolve) => {
-      release = () => resolve("turns_exhausted");
-    });
-    const model = createGatewayRoleplayModel({
-      logger: () => undefined,
-      model: createTextModel(),
-    });
-    const response = await model.generate({
-      assistantMessageId: "assistant-1",
-      delivered: DELIVERED,
-      ending,
-      episode: EPISODE,
-      judgment: Promise.resolve(null),
-      messages: MESSAGES,
-      onFinish: () => Promise.resolve(),
-      signal: new AbortController().signal,
-    });
-    const reader = (
-      response.body as unknown as { getReader: () => ChunkReader }
-    ).getReader();
-
-    // 대화는 먼저 흐른다 — 답이 다 그려져도 스트림은 아직 열려 있다.
-    const beforeEnding = await readUntil(reader, '"type":"finish"');
-
-    expect(beforeEnding).toContain("one oat flat white");
-    expect(beforeEnding).not.toContain("data-ending");
-
-    release();
-
-    expect(await drain(reader)).toContain('"reason":"turns_exhausted"');
+    expect(body).toContain("Sure thing.");
+    expect(body).not.toContain("data-judgment");
+    expect(body).not.toContain("data-ending");
   });
 });
 

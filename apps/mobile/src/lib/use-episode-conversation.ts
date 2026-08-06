@@ -1,9 +1,5 @@
 import { useChat } from "@ai-sdk/react";
-import type {
-  DeliveredSentence,
-  EpisodeEnding,
-  JudgmentUpdate,
-} from "@flyn/api";
+import type { DeliveredSentence } from "@flyn/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { DefaultChatTransport, isTextUIPart, type UIMessage } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
@@ -35,18 +31,19 @@ import {
 } from "./message-feedback";
 import { queryKeys } from "./query-keys";
 import { supabase } from "./supabase";
+import { requestJudgment } from "./use-episode-judgment";
 
 interface EpisodeMessageMetadata {
   status: "complete" | "stopped";
 }
 
+/**
+ * 스트림이 나르는 것은 응답과 전달된 문장뿐이다. 판정과 종료는 나뉜 두 번째
+ * 요청의 응답으로 온다.
+ */
 type EpisodeUiMessage = UIMessage<
   EpisodeMessageMetadata,
-  {
-    delivered: DeliveredSentence;
-    ending: EpisodeEnding;
-    judgment: JudgmentUpdate;
-  }
+  { delivered: DeliveredSentence }
 >;
 
 /** 대화 화면이 한 번에 받는 것. 목표는 판정이 도착하는 대로 갱신된다. */
@@ -249,11 +246,50 @@ export function useEpisodeConversation(
   const [stoppedMessageIds, setStoppedMessageIds] = useState(
     () => new Set<string>()
   );
-  // 종료도 판정처럼 스트림이 먼저 알려 온다. 저장을 다시 읽기를 기다리면 끝난
-  // 대화 앞에서 composer가 한 박자 더 서 있는다.
-  const [streamedEnding, setStreamedEnding] = useState<EpisodeEndReason | null>(
+  // 종료는 판정 응답이 나른다. 저장을 다시 읽기를 기다리면 끝난 대화 앞에서
+  // composer가 한 박자 더 서 있는다.
+  const [judgedEnding, setJudgedEnding] = useState<EpisodeEndReason | null>(
     null
   );
+
+  /**
+   * 한 턴이 끝난 뒤의 판정. 실패해도 대화 화면에는 아무것도 알리지 않는다 —
+   * 못 채운 발화는 다음 턴의 판정이 함께 판정해 조용히 메운다.
+   */
+  const judge = useCallback(() => {
+    requestJudgment(episodeId)
+      .then((result) => {
+        setAchievements((current) => {
+          const next = { ...current };
+
+          for (const goal of result.goals) {
+            next[goal.position] ??= goal;
+          }
+
+          return next;
+        });
+        // 표시와 첨삭 시트가 같은 자리를 읽는다. 저장을 다시 읽기 전에 여기에
+        // 얹어야 시트가 지금 도착한 판정도 부르지 않고 연다.
+        queryClient.setQueryData<MessageFeedback[]>(
+          queryKeys.episodeFeedback(episodeId),
+          (current = []) => withArrivedFeedback(current, result.sentences)
+        );
+
+        if (result.ending) {
+          setJudgedEnding(result.ending);
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.episode(episodeId),
+          });
+        }
+      })
+      .catch(() => {
+        // 판정만 실패하면 대화 화면에는 아무것도 알리지 않는다. 다만 판정이
+        // 실패해도 턴 상한 종료는 저장되므로, 저장을 다시 읽어 끝났는지 본다.
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.episode(episodeId),
+        });
+      });
+  }, [episodeId, queryClient]);
 
   const refreshStoredEpisode = useCallback(() => {
     queryClient.invalidateQueries({
@@ -280,31 +316,6 @@ export function useEpisodeConversation(
 
         setDelivered((current) => ({ ...current, [messageId]: text }));
       }
-
-      // 판정은 응답보다 늦게 올 수 있다. 도착하는 즉시 목표를 넘긴다.
-      if (part.type === "data-judgment") {
-        const { goals, sentences } = part.data;
-
-        setAchievements((current) => {
-          const next = { ...current };
-
-          for (const goal of goals) {
-            next[goal.position] ??= goal;
-          }
-
-          return next;
-        });
-        // 표시와 첨삭 시트가 같은 자리를 읽는다. 저장을 다시 읽기 전에 여기에
-        // 얹어야 시트가 지금 도착한 판정도 부르지 않고 연다.
-        queryClient.setQueryData<MessageFeedback[]>(
-          queryKeys.episodeFeedback(episodeId),
-          (current = []) => withArrivedFeedback(current, sentences)
-        );
-      }
-
-      if (part.type === "data-ending") {
-        setStreamedEnding(part.data.reason);
-      }
     },
     onError: refreshStoredEpisode,
     onFinish: ({ isAbort, isError, message }) => {
@@ -316,6 +327,11 @@ export function useEpisodeConversation(
         });
       }
       refreshStoredEpisode();
+
+      // 판정은 응답이 끝난 **뒤에** 따로 부른다. 같은 요청에 얹으면 응답이 끝나도
+      // 스트림이 닫히지 않아 그동안 다음 발화를 보낼 수 없다. 나눈 덕에 판정이
+      // 이번 턴의 상대 답까지 보고 판단한다.
+      judge();
     },
     throttle: 32,
     transport,
@@ -408,9 +424,9 @@ export function useEpisodeConversation(
       stop,
       streamingStore,
     },
-    // 저장된 상태가 먼저다. 스트림이 알려 온 것은 그 저장이 다시 읽히기 전까지의
-    // 자리를 메운다.
-    ending: episodeEndReason(episode) ?? streamedEnding,
+    // 저장된 상태가 먼저다. 판정 응답이 알려 온 것은 그 저장이 다시 읽히기
+    // 전까지의 자리를 메운다.
+    ending: episodeEndReason(episode) ?? judgedEnding,
     goals,
   };
 }

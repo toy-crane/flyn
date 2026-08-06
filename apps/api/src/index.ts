@@ -17,8 +17,8 @@ import {
   createProductionRoleplayDependencies,
   type RoleplayDependencies,
   RoleplayHttpError,
-  refillEpisodeJudgment,
   respondToEpisodeMessage,
+  runEpisodeJudgment,
 } from "./roleplay";
 import {
   answerSentenceQuestion,
@@ -293,7 +293,7 @@ export function createApiApp(dependencies: ApiDependencies = {}) {
 
           try {
             return c.json(
-              await refillEpisodeJudgment({
+              await runEpisodeJudgment({
                 context,
                 dependencies: roleplay,
                 episodeId: c.req.param("episodeId"),
@@ -437,13 +437,16 @@ const app = createApiApp();
 
 export type AppType = typeof app;
 
-/** 스트림에 얹어 보내는 값이라 RPC 타입에 잡히지 않는다. 앱이 함께 읽는다. */
+/** 스트림에 얹어 보내거나 판정 응답이 나르는 값. 앱이 함께 읽는다. */
 export type { EpisodeEnding, EpisodeEndReason } from "./ending";
 export type {
   GoalAchievement,
   JudgedSentence,
   JudgmentUpdate,
 } from "./judgment";
-export type { DeliveredSentence } from "./roleplay";
+export type {
+  DeliveredSentence,
+  EpisodeJudgmentResult,
+} from "./roleplay";
 
 export default app;
