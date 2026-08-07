@@ -62,7 +62,7 @@ function StepTitle({ children }: { children: string }) {
 
 /**
  * 만들어지는 동안 자리를 지키는 수동형 진행. 누를 것이 없으므로 중립 회색이다
- * (docs/specs/neutral-loading-indicators/spec.md).
+ * (docs/decisions/apple-hig-with-app-theme.md).
  */
 function Pending({ label }: { label: string }) {
   const neutral = useThemeColor("muted");
@@ -159,7 +159,7 @@ function RoleField({
   value: string;
 }) {
   // 보조 아이콘과 수동형 progress는 둘 다 약한 전경이다
-  // (docs/specs/neutral-loading-indicators/spec.md).
+  // (docs/decisions/apple-hig-with-app-theme.md).
   const muted = useThemeColor("muted");
 
   return (
@@ -526,7 +526,7 @@ export default function NewEpisodeScreen() {
         </ScrollView>
 
         {/* 전진 CTA는 스크롤 밖 바닥에 상주한다. 버튼 안 progress는 그 action의
-            전경색을 따른다(docs/specs/neutral-loading-indicators/spec.md). */}
+            전경색을 따른다(docs/decisions/apple-hig-with-app-theme.md). */}
         <Separator />
         <View className="px-4 pt-2 pb-6">
           <Button

@@ -344,7 +344,7 @@ function Composer({
         >
           {chat.status === "submitted" ? (
             // 눌러서 시작된 일이라 이 progress는 action의 전경색을 따른다
-            // (docs/specs/neutral-loading-indicators/spec.md).
+            // (docs/decisions/apple-hig-with-app-theme.md).
             <Spinner
               accessible={false}
               color={onAccent}

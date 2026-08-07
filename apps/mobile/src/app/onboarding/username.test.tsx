@@ -253,7 +253,7 @@ it("일반 저장 실패는 입력값을 둔 채 alert로 알린다", async () =
 });
 
 // 버튼 안 progress는 수동형 indicator의 중립 회색이 아니라 버튼 전경색이다
-// (docs/specs/neutral-loading-indicators/spec.md).
+// (docs/decisions/apple-hig-with-app-theme.md).
 it("저장 중에는 버튼 자리에 버튼 전경색 progress를 그린다", async () => {
   mockUseSave.mockReturnValue({ isPending: true, mutate });
   await renderScreen("available");

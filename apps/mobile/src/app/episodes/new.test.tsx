@@ -170,7 +170,7 @@ describe("① 상황", () => {
 
   // 스스로 나타나는 수동형 진행이라 중립 회색이다. Spinner 기본값
   // (`color="default"`)은 브랜드 accent라 그대로 두면 누를 수 있는 것처럼
-  // 보인다(docs/specs/neutral-loading-indicators/spec.md).
+  // 보인다(docs/decisions/apple-hig-with-app-theme.md).
   it("만드는 중 표시는 중립 회색이다 — 브랜드 accent를 쓰지 않는다", async () => {
     await renderCreation();
 
@@ -368,7 +368,7 @@ describe("③ 목표", () => {
   });
 
   // 버튼 안의 진행 표시는 수동형 indicator가 아니라 그 action의 전경이다
-  // (docs/specs/neutral-loading-indicators/spec.md).
+  // (docs/decisions/apple-hig-with-app-theme.md).
   it("만드는 동안 CTA 안의 progress는 그 버튼의 전경색을 따른다", async () => {
     await reachGoals();
 

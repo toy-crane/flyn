@@ -62,5 +62,5 @@ completed
 - Cumulative reviewed commit: —
 - Cumulative verification: `bun run check --force` 4회 연속 exit 0 — 매회 8/8 tasks, 0 cached, jest 447/447 (43 suites), scripts 46, lint·typecheck 통과. `jest --runInBand` 직렬도 447/447 — 실행 중반에 실제로 깨져 있던 경로다.
 - Cumulative review: —
-- Cumulative correction rounds: 0
+- Cumulative correction rounds: 1
 - Cumulative blocker: cumulative-review — (1) `accent`를 **텍스트로** 칠하는 제품 사이트 8곳이 라이트에서 기준 미달인데(background 3.38:1, surface 3.68:1) 복원된 가드에도 스펙 리스크 표에도 없다. `OWNED_PAIRS`에 accent 행이 아예 없고, `spec.md:90`·`:106`은 "자리 여섯"·"미달 칸은 light 여섯과 dark 하나"라고 적어 candidate 시점에 사실이 아니다. 태스크 08 블로커와 **같은 결함이 토큰만 바꿔 재발**했다. 게다가 이 공백의 유일한 기록이 `08-legacy-removal.md:42`인데, 태스크 09가 끝난 spec 폴더를 지우는 규칙을 세우고 실행했으므로 `docs/specs/ui-migration/`도 다음 차례다 — 태스크 08이 세운 기준("팔레트 작업은 문단이 아니라 실패하는 테스트를 물려받는다")을 accent는 둘 다 못 받는다. 사람이 HeroUI 기본값 유지를 정했으므로 값은 바꾸지 않고 고정만 한다. (2) 삭제된 spec 경로를 인용하는 주석 30곳(`neutral-loading-indicators`)은 지금 고친다 — 대상이 `apple-hig-with-app-theme.md:31-38`에 실재하고, 같은 치환 선례가 태스크 09 커밋 `5704437` 안에 있으며, **이 뒤에 게이트가 없다**. 이 실행에서 교정을 세 번 잡아먹은 최다 재발 규칙이고 그 주석들이 코드에서 규칙으로 가는 유일한 색인이다.

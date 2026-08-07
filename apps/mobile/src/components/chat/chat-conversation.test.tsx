@@ -667,7 +667,7 @@ describe("스트리밍 대화 표면", () => {
     expect(indicator.props.className).toContain("self-start");
     // 대화 영역의 진행은 스스로 나타나는 수동형이라 중립 회색이고, composer
     // action 안의 진행은 그 action의 전경색을 따른다
-    // (docs/specs/neutral-loading-indicators/spec.md).
+    // (docs/decisions/apple-hig-with-app-theme.md).
     expect(painted).toContain(processColor(NEUTRAL));
     expect(painted).toContain(processColor(ON_ACCENT));
     expect(screen.queryByText("…")).toBeNull();

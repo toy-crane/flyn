@@ -291,7 +291,7 @@ describe("SignInScreen", () => {
   });
 
   // 화면을 막는 수동형 progress는 누를 수 있는 것이 아니다 — 브랜드 accent를
-  // 쓰지 않는다(docs/specs/neutral-loading-indicators/spec.md).
+  // 쓰지 않는다(docs/decisions/apple-hig-with-app-theme.md).
   it("잠금 progress를 중립 회색으로 그린다", async () => {
     mockSignInAsync.mockReturnValue(new Promise(() => undefined));
     await renderScreen();

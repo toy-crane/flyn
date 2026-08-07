@@ -94,7 +94,7 @@ describe("LaunchChecking", () => {
 
   // 수동형 indicator는 진행 중임을 조용히 알릴 뿐 누를 수 있는 것이 아니다.
   // Spinner 기본값(`color="default"`)은 브랜드 accent라 그대로 두면 파란 action
-  // tint가 남는다(docs/specs/neutral-loading-indicators/spec.md).
+  // tint가 남는다(docs/decisions/apple-hig-with-app-theme.md).
   it("중립 회색으로 그린다 — 브랜드 accent를 쓰지 않는다", async () => {
     jest.useFakeTimers();
 

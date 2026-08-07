@@ -23,7 +23,7 @@ export default function SignInScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   // 화면에 홀로 뜨는 수동형 progress는 브랜드 accent가 아니라 중립이다
-  // (docs/specs/neutral-loading-indicators/spec.md). launch 화면과 같은 토큰.
+  // (docs/decisions/apple-hig-with-app-theme.md). launch 화면과 같은 토큰.
   const neutral = useThemeColor("muted");
 
   // 소셜 실패는 폼 검증이 아니라 OS 시트가 닫히면서 돌아오는 모달 흐름의 결과다.

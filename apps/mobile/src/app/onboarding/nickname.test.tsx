@@ -139,7 +139,7 @@ it("저장 실패는 입력 규칙 자리가 아니라 alert로 알린다", asyn
 });
 
 // 버튼 안 spinner는 수동형 indicator의 중립 회색이 아니라 버튼 전경색을 따른다
-// (docs/specs/neutral-loading-indicators/spec.md).
+// (docs/decisions/apple-hig-with-app-theme.md).
 it("저장 중에는 버튼 자리에 버튼 전경색 progress를 그린다", async () => {
   mockUseSave.mockReturnValue({ isPending: true, mutate });
   await renderScreen();

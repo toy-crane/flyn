@@ -320,7 +320,7 @@ describe("에피소드 결과 화면", () => {
     await renderResult();
 
     // 눌러서 시작된 일이라 중립 회색이 아니라 action의 accent다
-    // (docs/specs/neutral-loading-indicators/spec.md).
+    // (docs/decisions/apple-hig-with-app-theme.md).
     const painted = paintedColors(screen.toJSON());
 
     expect(painted).toContain(processColor(ACCENT));
@@ -420,7 +420,7 @@ describe("에피소드 결과 화면", () => {
     expect(screen.getByLabelText("결과 불러오는 중")).toBeTruthy();
 
     // 스스로 나타나는 수동형 진행이라 accent가 아니다
-    // (docs/specs/neutral-loading-indicators/spec.md).
+    // (docs/decisions/apple-hig-with-app-theme.md).
     const painted = paintedColors(screen.toJSON());
 
     expect(painted).toContain(processColor(NEUTRAL));

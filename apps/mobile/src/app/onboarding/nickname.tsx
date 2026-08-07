@@ -149,7 +149,7 @@ function NicknameForm({
          * 단일 form의 submit은 화면 전체 overlay가 아니라 같은 자리의
          * button-local progress를 쓴다. 버튼 안 progress는 수동형 indicator가
          * 아니라 그 action의 전경색을 따른다
-         * (docs/specs/neutral-loading-indicators/spec.md).
+         * (docs/decisions/apple-hig-with-app-theme.md).
          */}
         <Button
           className="w-full"

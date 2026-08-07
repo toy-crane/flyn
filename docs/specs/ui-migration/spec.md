@@ -87,7 +87,7 @@
   화면 문구가 잘림 없이 줄바꿈으로 커지는 것을 확인했다. 다만 상한
   (`maxFontSizeMultiplier`)이 없고 launch 화면에는 스크롤이 없다 — 문구가 지금보다
   길어지면 최대 크기에서 넘칠 수 있다.
-- **기본 대비 — HeroUI 기본 팔레트가 기준에 못 미치는 자리 여섯**: 사람이
+- **기본 대비 — HeroUI 기본 팔레트가 기준에 못 미치는 자리 여덟**: 사람이
   HeroUI 기본값 유지를 결정했으므로 값은 지금 바꾸지 않는다. 대신
   `scripts/style-foundation.test.ts`의 `앱이 소유하는 색 대비`가 미달 수치를
   **측정값 그대로 고정**한다 — 아래 수치를 움직이는 변경은 문단이 아니라
@@ -102,10 +102,14 @@
   | `app/onboarding/username.tsx:224-229` — 같은 아이콘 | 아이콘 단독(가용) | 3 | 2.19 | 8.08 |
   | `app/sign-in/code.tsx:201/208/214` — `text-danger` | 본문 글자 | 4.5 | 3.27 | 4.55 |
   | `app/settings/index.tsx:213` — `계정 삭제` | 본문 글자 | 4.5 | 3.57 | 3.97 |
+  | `app/episodes/new.tsx:102`·`app/episodes/result.tsx:170`·`:360`·`app/episodes/feedback.tsx:128`·`app/sign-in/code.tsx:142`·`components/chat/chat-markdown.tsx:64`·`components/profile/profile-unavailable.tsx:62` — `text-accent` | 본문 글자 | 4.5 | 3.38 | 5.51 |
+  | `app/index.tsx:103` — 카드 안 `text-accent` | 본문 글자 | 4.5 | 3.68 | 4.81 |
 
-  미달 칸은 light 여섯과 dark 하나다. danger 쪽 셋(code.tsx light, `계정 삭제`
+  미달 칸은 light 여덟과 dark 하나다. danger 쪽 셋(code.tsx light, `계정 삭제`
   light·dark)은 3:1을 넘으므로 **아이콘이었다면 통과**하고 글자이기 때문에
-  떨어진다. success 쪽 넷(표의 위 네 행, 모두 light)은 두 기준 모두 미달이다. `계정 삭제`는 이번 이전에서 5.38 → 3.57로 **후퇴**했다 —
+  떨어진다. accent 쪽 둘(표의 아래 두 행, 모두 light)도 같은 이유다 —
+  3.38·3.68로 도형 기준은 넘고 글자라서 떨어진다. success 쪽 넷(표의 위 네 행,
+  모두 light)은 두 기준 모두 미달이다. `계정 삭제`는 이번 이전에서 5.38 → 3.57로 **후퇴**했다 —
   폐기된 TS `product-colors`가 4.5:1이 나오는 값(#D70015·#1F7A35)을 고르고
   `scripts/theme-contrast.test.ts`가 그것을 지켰는데, HeroUI 기본값은 light
   `danger` #FF383C, light `success` #17C964다.
@@ -120,7 +124,11 @@
   `app/episodes/result.tsx:79`, `components/chat/chat-conversation.tsx:205`는
   success를 **채움**으로 쓰고 그 위에 `success-foreground` 글리프를 얹어
   8.08:1이며, 채워짐/비어 있음이라는 모양이 상태를 따로 나른다. 아이디 필드의
-  중복 아이콘(danger on field)도 3.57·3.97로 아이콘 기준을 넘는다.
+  중복 아이콘(danger on field)도 3.57·3.97로 아이콘 기준을 넘는다. accent를
+  **도형**으로 쓰는 자리도 마찬가지다 — `app/index.tsx:159`의 점,
+  `components/episode/goal-dock.tsx:57`의 링, `app/episodes/new.tsx:133`의 선택
+  외곽선, `components/sign-in/otp-input.tsx:53`의 활성 칸 테두리는 같은 3.38·3.68로
+  1.4.11의 3:1을 넘는다. 위 표에 accent가 오르는 것은 **글자로 칠할 때**뿐이다.
 
   색과 모양만으로 뜻을 나르지 않는 규칙이 살아 있어 정보는 잃지 않지만 대비
   기준은 미달이다. 아래 이연 항목의 브랜드 팔레트 값을 확정할 때 `global.css`

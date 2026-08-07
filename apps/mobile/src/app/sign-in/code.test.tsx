@@ -167,7 +167,7 @@ describe("CodeScreen", () => {
 
   // 여섯 자리가 채워지면 스스로 제출한다 — 누른 버튼이 없는 수동형 진행이라
   // 중립 회색이다. accent를 쓰면 파란 action tint가 남는다
-  // (docs/specs/neutral-loading-indicators/spec.md).
+  // (docs/decisions/apple-hig-with-app-theme.md).
   it("검증 progress는 중립 회색이다 — 브랜드 accent를 쓰지 않는다", async () => {
     mockAuth.verifyOtp.mockReturnValue(new Promise(() => undefined));
     await render(<CodeScreen />, { wrapper: HeroUIWrapper });

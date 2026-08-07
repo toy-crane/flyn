@@ -329,7 +329,7 @@ describe("홈의 조회 상태", () => {
 
     // 스스로 나타나는 수동형 진행이라 중립 회색이다. Spinner 기본값
     // (`color="default"`)은 브랜드 accent라 그대로 두면 누를 수 있는 것처럼
-    // 보인다(docs/specs/neutral-loading-indicators/spec.md).
+    // 보인다(docs/decisions/apple-hig-with-app-theme.md).
     expect(screen.getByLabelText("에피소드 불러오는 중")).toBeTruthy();
 
     const painted = paintedColors(screen.toJSON());

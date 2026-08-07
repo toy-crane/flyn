@@ -116,7 +116,7 @@ export default function EpisodeConversationScreen() {
   // 판정은 대화를 막지 않는다. 늦게 와도 표시만 나중에 채워진다.
   const feedback = useEpisodeFeedback(episodeId);
   // 스스로 나타나는 수동형 진행이라 중립 회색이다
-  // (docs/specs/neutral-loading-indicators/spec.md).
+  // (docs/decisions/apple-hig-with-app-theme.md).
   const neutral = useThemeColor("muted");
 
   const retry = useCallback(() => {

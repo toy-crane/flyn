@@ -219,7 +219,7 @@ export default function HomeScreen() {
   const [manualRefreshing, setManualRefreshing] = useState(false);
   /*
    * 최초 조회와 당겨서 새로고침은 둘 다 스스로 나타나는 수동형 진행이라 중립
-   * 회색이다(docs/specs/neutral-loading-indicators/spec.md). 셰브론은 보조
+   * 회색이다(docs/decisions/apple-hig-with-app-theme.md). 셰브론은 보조
    * 정보라 같은 약한 전경을 쓴다.
    */
   const neutral = useThemeColor("muted");

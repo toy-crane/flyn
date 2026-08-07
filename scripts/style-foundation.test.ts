@@ -69,14 +69,146 @@ function classNameExpression(source: string, start: number): string {
   return source.slice(start + 1, cursor);
 }
 
-const CLASS_NAME_PROP_PATTERN = /className\s*=\s*/g;
-const STRING_LITERAL_PATTERN = /"([^"\\]*)"|'([^'\\]*)'|`([^`\\$]*)`/g;
+// `className`만이 아니라 `contentContainerClassName`처럼 뒤에 붙는 변형까지
+// 받는다 — 그 자리도 uniwind가 같은 규칙으로 해석하므로 빠지면 통째로 안 보인다.
+const CLASS_NAME_PROP_PATTERN = /[cC]lassName\s*=\s*/g;
 const WHITESPACE_PATTERN = /\s+/;
+const LEADING_WHITESPACE_PATTERN = /^\s/;
+const TRAILING_WHITESPACE_PATTERN = /\s$/;
+
+/** `{` 하나에 짝이 되는 `}`의 위치. 못 찾으면 문자열 끝이다. */
+function matchingBrace(source: string, start: number): number {
+  let depth = 0;
+
+  for (let cursor = start; cursor < source.length; cursor += 1) {
+    if (source[cursor] === "{") {
+      depth += 1;
+    } else if (source[cursor] === "}") {
+      depth -= 1;
+
+      if (depth === 0) {
+        return cursor;
+      }
+    }
+  }
+
+  return source.length;
+}
+
+/**
+ * 템플릿 리터럴의 정적 구간 하나를 토큰으로 자른다. 보간에 **맞닿은** 토막은
+ * 클래스 이름이 아니라 그 조각이므로(`` `text-${size}` ``의 `text-`) 공백으로
+ * 끊기지 않은 양 끝은 버린다 — 남기면 조각이 "없는 클래스"로 잘못 잡힌다.
+ */
+function staticTokens(
+  text: string,
+  afterInterpolation: boolean,
+  beforeInterpolation: boolean
+): string[] {
+  const parts = text.split(WHITESPACE_PATTERN);
+
+  if (afterInterpolation && !LEADING_WHITESPACE_PATTERN.test(text)) {
+    parts.shift();
+  }
+
+  if (beforeInterpolation && !TRAILING_WHITESPACE_PATTERN.test(text)) {
+    parts.pop();
+  }
+
+  return parts;
+}
+
+/**
+ * 한 식 안의 문자열 리터럴에서 클래스 토큰을 모은다. 템플릿 리터럴은 정적
+ * 구간만 읽고 `${...}` 안은 **계산하지 않는다** — 대신 그 안의 문자열 리터럴은
+ * 계속 본다(삼항의 양쪽 가지가 여기 산다).
+ */
+function literalTokens(expression: string): string[] {
+  const tokens: string[] = [];
+  let cursor = 0;
+
+  while (cursor < expression.length) {
+    const character = expression[cursor];
+
+    if (character === '"' || character === "'") {
+      const end = expression.indexOf(character, cursor + 1);
+
+      if (end === -1) {
+        break;
+      }
+
+      tokens.push(
+        ...expression.slice(cursor + 1, end).split(WHITESPACE_PATTERN)
+      );
+      cursor = end + 1;
+      continue;
+    }
+
+    if (character === "`") {
+      const template = templateTokens(expression, cursor);
+
+      tokens.push(...template.tokens);
+      cursor = template.next;
+      continue;
+    }
+
+    cursor += 1;
+  }
+
+  return tokens;
+}
+
+/** 백틱 하나를 끝까지 읽어 정적 구간의 토큰과 다음 커서를 돌려준다. */
+function templateTokens(
+  source: string,
+  start: number
+): { next: number; tokens: string[] } {
+  const tokens: string[] = [];
+  let cursor = start + 1;
+  let statics = "";
+  let afterInterpolation = false;
+
+  while (cursor < source.length) {
+    const character = source[cursor];
+
+    if (character === "\\") {
+      statics += source.slice(cursor, cursor + 2);
+      cursor += 2;
+      continue;
+    }
+
+    if (character === "`") {
+      tokens.push(...staticTokens(statics, afterInterpolation, false));
+
+      return { next: cursor + 1, tokens };
+    }
+
+    if (character === "$" && source[cursor + 1] === "{") {
+      const end = matchingBrace(source, cursor + 1);
+
+      tokens.push(...staticTokens(statics, afterInterpolation, true));
+      tokens.push(...literalTokens(source.slice(cursor + 2, end)));
+
+      statics = "";
+      afterInterpolation = true;
+      cursor = end + 1;
+      continue;
+    }
+
+    statics += character;
+    cursor += 1;
+  }
+
+  tokens.push(...staticTokens(statics, afterInterpolation, false));
+
+  return { next: cursor, tokens };
+}
 
 /**
  * 화면이 실제로 쓰는 유틸리티 클래스만 모은다. Tailwind의 `@source` 스캐너는
- * 클래스가 아닌 토막까지 후보로 주워 오므로 여기서는 `className`이 받는 문자열
- * 리터럴만 본다 — 그래야 "안 붙는 클래스"와 "그냥 지나가는 단어"를 가른다.
+ * 클래스가 아닌 토막까지 후보로 주워 오므로 여기서는 `className` 계열 prop이
+ * 받는 문자열 리터럴만 본다 — 그래야 "안 붙는 클래스"와 "그냥 지나가는 단어"를
+ * 가른다.
  */
 function classNameCandidates(filePath: string): string[] {
   const source = readFileSync(filePath, "utf8");
@@ -95,13 +227,7 @@ function classNameCandidates(filePath: string): string[] {
       continue;
     }
 
-    for (const literal of expression.matchAll(STRING_LITERAL_PATTERN)) {
-      found.push(
-        ...(literal[1] ?? literal[2] ?? literal[3] ?? "").split(
-          WHITESPACE_PATTERN
-        )
-      );
-    }
+    found.push(...literalTokens(expression));
   }
 
   return found.filter(Boolean);
@@ -445,6 +571,21 @@ const OWNED_PAIRS: OwnedPair[] = [
     where:
       "채워진 원 위의 체크 — goal-dock.tsx, episodes/result.tsx, chat-conversation.tsx",
   },
+  {
+    background: "--background",
+    bar: TEXT_CONTRAST,
+    foreground: "--accent",
+    pinned: { light: 3.38 },
+    where:
+      "accent를 글자로 칠하는 자리 — episodes/new.tsx, episodes/result.tsx, episodes/feedback.tsx, sign-in/code.tsx의 link/ghost 라벨과 chat-markdown.tsx 링크, profile-unavailable.tsx의 로그아웃",
+  },
+  {
+    background: "--surface",
+    bar: TEXT_CONTRAST,
+    foreground: "--accent",
+    pinned: { light: 3.68 },
+    where: "카드 위 accent 글자 — app/index.tsx의 `이어서 하기` 배지",
+  },
 ];
 
 const COLOR_SCHEMES: ColorScheme[] = ["light", "dark"];
@@ -491,7 +632,7 @@ describe("앱이 소유하는 색 대비", () => {
   });
 
   /**
-   * 아래 여섯은 기준 미달이며 **브랜드 팔레트 확정 전까지 받아들인 값**이다.
+   * 아래 여덟은 기준 미달이며 **브랜드 팔레트 확정 전까지 받아들인 값**이다.
    * 색과 모양만으로 뜻을 나르지 않는 규칙이 살아 있어 정보는 잃지 않지만 대비는
    * 미달이다. 값이 움직이면(좋아지든 나빠지든) 여기서 먼저 깨진다.
    */

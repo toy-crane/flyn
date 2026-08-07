@@ -15,7 +15,7 @@ const PROGRESS_REVEAL_DELAY_MS = 200;
 
 /**
  * 화면에 홀로 뜨는 수동형 로딩 indicator는 중립 회색이다
- * (docs/specs/neutral-loading-indicators/spec.md). `Spinner`의 기본
+ * (docs/decisions/apple-hig-with-app-theme.md). `Spinner`의 기본
  * `color="default"`는 브랜드 accent라 그대로 두면 누를 수 있는 것처럼 보인다.
  *
  * `muted`를 고른 이유는 이름이 아니라 의미다 — HeroUI 테마에서 약한 전경을

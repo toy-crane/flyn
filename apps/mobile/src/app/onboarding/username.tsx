@@ -300,7 +300,7 @@ function UsernameForm({
 
         {/* 전진 CTA는 부모의 정렬에 기대지 않고 스스로 가로를 채운다 — 나중에
             row 안에 감싸도 줄어들지 않는다. 버튼 안 progress는 그 action의
-            전경색을 따른다(docs/specs/neutral-loading-indicators/spec.md). */}
+            전경색을 따른다(docs/decisions/apple-hig-with-app-theme.md). */}
         <Button
           className="w-full"
           isDisabled={locked}

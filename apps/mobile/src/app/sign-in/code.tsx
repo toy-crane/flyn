@@ -36,7 +36,7 @@ export default function CodeScreen() {
   const codeInputRef = useRef<OtpInputRef>(null);
   const lastSubmittedCode = useRef<string | null>(null);
   const locked = verifyPending || resendPending;
-  // 두 indicator의 전경 소유자가 다르다(docs/specs/neutral-loading-indicators/spec.md).
+  // 두 indicator의 전경 소유자가 다르다(docs/decisions/apple-hig-with-app-theme.md).
   // 재전송은 accent LinkButton이 눌린 자리에서 그 action의 진행을 대신 말하므로
   // action의 전경색을 따르고, 검증은 누를 것이 없는 자동 제출의 수동형 진행이라
   // 중립이다 — 여기에 accent를 쓰면 누를 수 있는 것처럼 보인다.

@@ -89,7 +89,7 @@ export default function SentenceQuestionScreen() {
   const question = useStoredSentenceQuestion(episodeId, messageId);
   const sentence = questionedSentence(messages.data ?? [], messageId);
   // 스스로 나타나는 수동형 진행이라 중립 회색이다
-  // (docs/specs/neutral-loading-indicators/spec.md).
+  // (docs/decisions/apple-hig-with-app-theme.md).
   const neutral = useThemeColor("muted");
 
   const retry = useCallback(() => {
