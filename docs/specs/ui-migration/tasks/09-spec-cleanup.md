@@ -56,11 +56,11 @@ completed
 
 ## Run completion
 
-- Cumulative status: in-progress
+- Cumulative status: passed
 - Cumulative base commit: bc9a5dea80f41d22a6aa62db493d99d7d13d5f65
-- Cumulative candidate commit: 0557b6ab431fdaada860a3751d839018ba93184e
-- Cumulative reviewed commit: —
-- Cumulative verification: `bun run check --force` 4회 연속 exit 0 — 매회 8/8 tasks, 0 cached, jest 447/447 (43 suites), scripts 46, lint·typecheck 통과. `jest --runInBand` 직렬도 447/447 — 실행 중반에 실제로 깨져 있던 경로다.
-- Cumulative review: —
+- Cumulative candidate commit: 30b47c38549f5992e22a4f724c32a0f4db6eec1f
+- Cumulative reviewed commit: 30b47c38549f5992e22a4f724c32a0f4db6eec1f
+- Cumulative verification: `bun run check --force` 4회 연속 exit 0 — 매회 8/8 tasks, 0 cached, mobile jest 447/447 (43 suites), scripts 44, api 109, lint·typecheck 통과. `jest --runInBand` 직렬도 447/447 — 실행 중반에 실제로 깨져 있던 경로라 통과가 의미 있다.
+- Cumulative review: 교정 1회로 닫았다. 리뷰가 태스크 간 상호작용만 봤고 블로커 둘을 잡았다 — 어느 개별 리뷰도 볼 수 없던 것들이다. (1) `accent`를 텍스트로 쓰는 8곳이 라이트에서 미달(background 3.38:1, surface 3.68:1)인데 가드에도 리스크 표에도 없었다. 태스크 08 블로커와 같은 결함이 토큰만 바꿔 재발한 것이고, 유일한 기록이 지워질 예정인 파일에 있었다. 값은 그대로 두고(사람이 HeroUI 기본값 유지를 결정) 두 쌍을 고정했다 — dark는 floor로 남겨 실제로 평가되는 것을 변이로 확인했다. (2) 삭제된 spec 경로를 인용하던 주석 30곳을 새 소유자로 옮겼다. 리뷰어 지적대로 **이 뒤에 게이트가 없어서** 지금이 마지막 기회였다. 함께 가드 자체의 맹점 둘(`contentContainerClassName`, `${}` 든 템플릿 리터럴)을 막았고 — 내가 직접 변이를 넣어 확인했다 — 후보 클래스가 123개에서 127개로 늘고 잃은 것은 없다. 앞선 교정 7건이 candidate 시점에도 전부 유효함을 리뷰가 확인했다: 스피너 18곳 전부 규칙대로, `{ virtual: true }` 0개, composer 고정 line-height 없음, 태스크 05의 접근성·누름 피드백 수정 존속. 두 시스템 공존 종료와 표면 간 일관성도 확인됐다. 남긴 것: label 규칙을 인용하는 주석 7곳은 소유자를 사람이 정한다(N1), 그리고 `docs/specs/ui-migration/`을 은퇴시키기 전에 그 안에만 있는 것들 — 브랜드 팔레트 이연 항목, 대비 리스크 표, 사람에게 남긴 carryover — 이 계약이나 테스트로 옮겨져야 한다(N2).
 - Cumulative correction rounds: 1
 - Cumulative blocker: cumulative-review — (1) `accent`를 **텍스트로** 칠하는 제품 사이트 8곳이 라이트에서 기준 미달인데(background 3.38:1, surface 3.68:1) 복원된 가드에도 스펙 리스크 표에도 없다. `OWNED_PAIRS`에 accent 행이 아예 없고, `spec.md:90`·`:106`은 "자리 여섯"·"미달 칸은 light 여섯과 dark 하나"라고 적어 candidate 시점에 사실이 아니다. 태스크 08 블로커와 **같은 결함이 토큰만 바꿔 재발**했다. 게다가 이 공백의 유일한 기록이 `08-legacy-removal.md:42`인데, 태스크 09가 끝난 spec 폴더를 지우는 규칙을 세우고 실행했으므로 `docs/specs/ui-migration/`도 다음 차례다 — 태스크 08이 세운 기준("팔레트 작업은 문단이 아니라 실패하는 테스트를 물려받는다")을 accent는 둘 다 못 받는다. 사람이 HeroUI 기본값 유지를 정했으므로 값은 바꾸지 않고 고정만 한다. (2) 삭제된 spec 경로를 인용하는 주석 30곳(`neutral-loading-indicators`)은 지금 고친다 — 대상이 `apple-hig-with-app-theme.md:31-38`에 실재하고, 같은 치환 선례가 태스크 09 커밋 `5704437` 안에 있으며, **이 뒤에 게이트가 없다**. 이 실행에서 교정을 세 번 잡아먹은 최다 재발 규칙이고 그 주석들이 코드에서 규칙으로 가는 유일한 색인이다.
