@@ -1,11 +1,18 @@
-import { Column, Text, useNativeState } from "@expo/ui";
-import { font, foregroundStyle } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
+import {
+  Button,
+  Description,
+  Input,
+  Label,
+  Spinner,
+  TextField,
+  useThemeColor,
+} from "heroui-native";
 import { useCallback, useEffect, useState } from "react";
-import { Alert } from "react-native";
-import { FormTextField } from "../../components/forms/form-text-field";
-import { LaunchChecking } from "../../components/launch";
-import { OnboardingForm } from "../../components/profile/onboarding-form";
+import { Alert, ScrollView, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { withUniwind } from "uniwind";
+import { LaunchChecking } from "../../components/launch-screens";
 import { fetchNameCandidate } from "../../lib/auth/name-candidate";
 import {
   DISPLAY_NAME_MAX,
@@ -15,10 +22,26 @@ import {
 import { useSaveDisplayName } from "../../lib/use-profile";
 import { useUserId } from "../../lib/user-id";
 
+/**
+ * RN 기본 `KeyboardAvoidingView`는 native stack 헤더 높이만큼 덜 밀어 올린다 —
+ * `automaticOffset`이 화면 안 실제 위치를 재서 그 차이를 없앤다. uniwind는 RN
+ * 코어 컴포넌트만 자동으로 감싸므로 className을 받으려면 이 래핑이 필요하다.
+ */
+const KeyboardAvoiding = withUniwind(KeyboardAvoidingView);
+
+const NICKNAME_RULE = "1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.";
+
 function saveFailed() {
   Alert.alert("저장하지 못했어요", "잠시 후 다시 시도해 주세요.");
 }
 
+/**
+ * 온보딩 첫 단계. HeroUI가 그리는 브랜드 표면이고 로그인과 같은 하단 CTA 전진
+ * 흐름을 쓴다(docs/decisions/self-contained-native-ui-boundaries.md의 배정표).
+ *
+ * provider 이름은 입력칸에 미리 채우는 후보일 뿐이다 — 사용자가 제출해야
+ * 프로필의 값이 된다(docs/decisions/profile-identity.md).
+ */
 export default function NicknameOnboardingScreen() {
   const router = useRouter();
   const userId = useUserId();
@@ -47,6 +70,7 @@ export default function NicknameOnboardingScreen() {
     };
   }, []);
 
+  // 후보를 받기 전에 그리면 빈 칸이 한 번 보였다가 값이 튀어 들어온다.
   if (candidate === null) {
     return <LaunchChecking />;
   }
@@ -69,56 +93,74 @@ function NicknameForm({
   onSubmit: (name: string) => void;
   pending: boolean;
 }) {
-  const name = useNativeState(initialValue);
-  const [typed, setTyped] = useState(initialValue);
+  const [name, setName] = useState(initialValue);
+  const accentForeground = useThemeColor("accent-foreground");
+  const submittable = isDisplayNameSubmittable(name);
 
-  const handleChangeText = useCallback(
-    (next: string) => {
-      name.value = next;
-      setTyped(next);
-    },
-    [name]
-  );
-
-  const submit = useCallback(
-    (raw: string) => {
-      const normalized = normalizeDisplayName(raw);
-      if (!pending && isDisplayNameSubmittable(normalized)) {
-        onSubmit(normalized);
-      }
-    },
-    [onSubmit, pending]
-  );
-  const handlePress = useCallback(() => submit(name.value), [name, submit]);
+  const submit = useCallback(() => {
+    const normalized = normalizeDisplayName(name);
+    if (!pending && isDisplayNameSubmittable(normalized)) {
+      onSubmit(normalized);
+    }
+  }, [name, onSubmit, pending]);
 
   return (
-    <OnboardingForm
-      disabled={!isDisplayNameSubmittable(typed)}
-      onSubmit={handlePress}
-      pending={pending}
-      submitLabel="아이디 정하기"
+    <KeyboardAvoiding
+      automaticOffset
+      behavior="padding"
+      className="flex-1 bg-background"
     >
-      <Column alignment="start" spacing={8}>
-        <FormTextField
-          autoComplete="nickname"
-          autoFocus
-          label="닉네임"
-          maxLength={DISPLAY_NAME_MAX}
-          onChangeText={handleChangeText}
-          onSubmitEditing={submit}
-          placeholder="닉네임"
-          returnKeyType="next"
-          value={name}
-        />
-        <Text
-          modifiers={[
-            font({ textStyle: "footnote" }),
-            foregroundStyle({ style: "secondary", type: "hierarchical" }),
-          ]}
+      <View className="flex-1 gap-3 px-5 pt-6 pb-3">
+        {/* 가장 큰 Dynamic Type에서 규칙 각주가 두 줄이 되어도 CTA를 밀어내지
+            않도록 입력은 스크롤 안에 둔다. */}
+        <ScrollView
+          className="flex-1"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          1~32자, 글자·숫자·공백과 - ' .만 사용할 수 있어요.
-        </Text>
-      </Column>
-    </OnboardingForm>
+          <TextField>
+            <Label>닉네임</Label>
+            {/* 이 화면은 `Redirect`로만 들어와 push 전환이 없다 — 아이디 화면이
+                focus를 한 틱 미루는 이유가 여기에는 없다. */}
+            <Input
+              accessibilityLabel="닉네임"
+              autoComplete="nickname"
+              autoFocus
+              maxLength={DISPLAY_NAME_MAX}
+              onChangeText={setName}
+              onSubmitEditing={submit}
+              placeholder="닉네임"
+              returnKeyType="next"
+              value={name}
+            />
+            {/*
+             * 규칙은 오류가 아니라 각주다. 이모지처럼 쓸 수 없는 문자는 빨간
+             * 오류를 띄우는 대신 CTA만 잠근다
+             * (docs/decisions/settings-edits-use-native-form.md).
+             */}
+            <Description>{NICKNAME_RULE}</Description>
+          </TextField>
+        </ScrollView>
+
+        {/*
+         * 전진 CTA는 부모의 정렬에 기대지 않고 스스로 가로를 채운다 — 나중에
+         * row 안에 감싸도 줄어들지 않는다.
+         *
+         * 단일 form의 submit은 화면 전체 overlay가 아니라 같은 자리의
+         * button-local progress를 쓴다. 버튼 안 progress는 수동형 indicator가
+         * 아니라 그 action의 전경색을 따른다
+         * (docs/decisions/apple-hig-with-app-theme.md).
+         */}
+        <Button
+          className="w-full"
+          isDisabled={!submittable || pending}
+          onPress={submit}
+          size="lg"
+        >
+          {pending ? <Spinner color={accentForeground} size="sm" /> : null}
+          <Button.Label>아이디 정하기</Button.Label>
+        </Button>
+      </View>
+    </KeyboardAvoiding>
   );
 }

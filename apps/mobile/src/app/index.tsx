@@ -1,18 +1,17 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { LegendList } from "@legendapp/list/react-native";
 import { Stack, useIsFocused, useRouter } from "expo-router";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
 import {
-  Alert,
-  type ColorValue,
-  Pressable,
-  type PressableStateCallbackType,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { LoadingIndicator } from "../components/feedback/loading-indicator";
-import { RNSymbol } from "../components/symbols/rn-symbol";
+  Button,
+  Card,
+  PressableFeedback,
+  Separator,
+  Spinner,
+  Typography,
+  useThemeColor,
+} from "heroui-native";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { Alert, RefreshControl, View } from "react-native";
 import {
   achievedGoalCount,
   type Episode,
@@ -22,88 +21,15 @@ import {
 } from "../lib/episodes";
 import { useDeleteEpisode, useEpisodes } from "../lib/use-episodes";
 import { useUserId } from "../lib/user-id";
-import { useTheme } from "../theme/app-theme";
-import { spacing } from "../theme/tokens";
 
-const styles = StyleSheet.create({
-  action: {
-    alignSelf: "center",
-    borderRadius: 22,
-    justifyContent: "center",
-    minHeight: 44,
-    paddingHorizontal: spacing.lg,
-  },
-  card: {
-    borderRadius: 16,
-    marginBottom: spacing.xl,
-    padding: spacing.md,
-  },
-  cardAction: {
-    alignItems: "center",
-    borderRadius: 12,
-    height: 44,
-    justifyContent: "center",
-    marginTop: spacing.sm,
-  },
-  centered: {
-    alignItems: "center",
-    flex: 1,
-    gap: spacing.sm,
-    justifyContent: "center",
-    paddingHorizontal: spacing.xxl,
-  },
-  dot: {
-    borderRadius: 4,
-    height: 8,
-    width: 8,
-  },
-  dotSlot: {
-    width: 8,
-  },
-  emptyAction: {
-    marginTop: spacing.xs,
-  },
-  emptyDescription: {
-    textAlign: "center",
-  },
-  errorMessage: {
-    textAlign: "center",
-  },
-  header: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-  },
-  list: {
-    paddingBottom: spacing.xxl,
-  },
-  loading: {
-    alignItems: "center",
-    flex: 1,
-    justifyContent: "center",
-  },
-  row: {
-    alignItems: "center",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginHorizontal: spacing.md,
-    minHeight: 60,
-    paddingVertical: spacing.sm,
-  },
-  rowContent: {
-    flex: 1,
-  },
-  screen: {
-    flex: 1,
-  },
-  sectionTitle: {
-    marginBottom: spacing.xs,
-    marginHorizontal: spacing.xxs,
-  },
-  supporting: {
-    marginTop: 2,
-  },
-});
+/**
+ * 홈은 HeroUI가 그리는 브랜드 층이다
+ * (docs/decisions/self-contained-native-ui-boundaries.md의 배정표). 헤더 타이틀,
+ * 설정·새 에피소드 toolbar는 계속 셸이 소유한다.
+ *
+ * 가상 목록만 `@legendapp/list`로 남는다 — HeroUI에 대응물이 없는 능력이다.
+ * 그때도 간격은 Uniwind 토큰이 준다(docs/decisions/uniwind-css-theme.md).
+ */
 
 const DATE_FORMAT = new Intl.DateTimeFormat("ko-KR", {
   day: "numeric",
@@ -147,6 +73,15 @@ function episodeKey(episode: Episode) {
   return episode.id;
 }
 
+/** 화면이 설 수 없거나 아직 아무것도 없을 때 쓰는 한 프레임. */
+function CenteredState({ children }: { children: ReactNode }) {
+  return (
+    <View className="flex-1 items-center justify-center gap-3 px-8">
+      {children}
+    </View>
+  );
+}
+
 /**
  * 가장 최근에 진행 중인 에피소드 하나. 카드에 오른 에피소드는 아래 목록에
  * 다시 나오지 않는다.
@@ -158,64 +93,47 @@ function ResumeCard({
   episode: Episode;
   onOpen: (episode: Episode) => void;
 }) {
-  const { colors, typography } = useTheme();
   const handleOpen = useCallback(() => {
     onOpen(episode);
   }, [episode, onOpen]);
-  const actionStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.cardAction,
-      { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 },
-    ],
-    [colors.primary]
-  );
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface }]}>
-      <Text style={[typography.caption, { color: colors.accent }]}>
-        이어서 하기
-      </Text>
-      <Text
-        numberOfLines={2}
-        style={[typography.body, { color: colors.text, fontWeight: "600" }]}
-      >
-        {episode.scenario_title}
-      </Text>
-      <Text
-        style={[
-          styles.supporting,
-          typography.supporting,
-          { color: colors.secondaryText },
-        ]}
-      >
-        {goalProgress(episode)}
-      </Text>
-      <Pressable
-        accessibilityLabel="대화 이어가기"
-        accessibilityRole="button"
-        onPress={handleOpen}
-        style={actionStyle}
-      >
-        <Text style={[typography.action, { color: colors.onPrimary }]}>
-          대화 이어가기
-        </Text>
-      </Pressable>
-    </View>
+    <Card className="mb-6 gap-3">
+      <Card.Body className="gap-1">
+        <Typography className="text-accent" type="body-xs" weight="semibold">
+          이어서 하기
+        </Typography>
+        <Card.Title numberOfLines={2}>{episode.scenario_title}</Card.Title>
+        <Typography color="muted" type="body-sm">
+          {goalProgress(episode)}
+        </Typography>
+      </Card.Body>
+      {/* CTA는 부모 정렬에 기대지 않고 스스로 가로를 채운다. */}
+      <Card.Footer>
+        <Button className="w-full" onPress={handleOpen}>
+          <Button.Label>대화 이어가기</Button.Label>
+        </Button>
+      </Card.Footer>
+    </Card>
   );
 }
 
+/**
+ * 행은 `Card`가 아니라 전체 폭 목록 행이다 — 감싸는 surface 없이 구분선으로만
+ * 나뉜다. press 피드백은 HeroUI가 소유하므로 `PressableFeedback`을 그대로 쓰고
+ * 화면이 자체 모션을 겹치지 않는다(docs/decisions/native-motion.md).
+ */
 function EpisodeRow({
   disclosureColor,
   episode,
   onDelete,
   onOpen,
 }: {
-  disclosureColor: ColorValue;
+  disclosureColor: string;
   episode: Episode;
   onDelete: (episode: Episode) => void;
   onOpen: (episode: Episode) => void;
 }) {
-  const { colors, typography } = useTheme();
   const active = isEpisodeActive(episode);
   const handleDelete = useCallback(() => {
     onDelete(episode);
@@ -223,107 +141,88 @@ function EpisodeRow({
   const handleOpen = useCallback(() => {
     onOpen(episode);
   }, [episode, onOpen]);
-  const rowStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.row,
-      { borderColor: colors.separator },
-      pressed && { backgroundColor: colors.surface },
-    ],
-    [colors.separator, colors.surface]
-  );
 
   return (
-    <Pressable
-      accessibilityHint="길게 누르면 삭제할 수 있어요"
-      accessibilityLabel={episode.scenario_title}
-      accessibilityRole="button"
-      onLongPress={handleDelete}
-      onPress={handleOpen}
-      style={rowStyle}
-    >
-      {active ? (
-        <View
-          style={[styles.dot, { backgroundColor: colors.accent }]}
-          testID={`episode-active-dot-${episode.id}`}
-        />
-      ) : (
-        <View style={styles.dotSlot} />
-      )}
-      <View style={styles.rowContent}>
-        <Text
-          numberOfLines={1}
-          style={[
-            typography.supporting,
-            { color: colors.text, fontWeight: active ? "600" : "400" },
-          ]}
-        >
-          {episode.scenario_title}
-        </Text>
-        <Text
-          style={[
-            styles.supporting,
-            typography.caption,
-            { color: colors.secondaryText },
-          ]}
-          testID={`episode-supporting-${episode.id}`}
-        >
-          {active
-            ? goalProgress(episode)
-            : `${formatEpisodeDay(episode.updated_at)} · ${goalProgress(episode)}`}
-        </Text>
-      </View>
-      <RNSymbol color={disclosureColor} symbol="disclosure" />
-    </Pressable>
-  );
-}
-
-function EmptyEpisodes({ onCreate }: { onCreate: () => void }) {
-  const { colors, typography } = useTheme();
-  const actionStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.action,
-      styles.emptyAction,
-      { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 },
-    ],
-    [colors.primary]
-  );
-
-  return (
-    <View style={styles.centered}>
-      <Text style={[typography.title, { color: colors.text }]}>
-        아직 만든 에피소드가 없어요
-      </Text>
-      <Text
-        style={[
-          styles.emptyDescription,
-          typography.supporting,
-          { color: colors.secondaryText },
-        ]}
-      >
-        취향과 영어 수준에 맞는 상황을 만들어 드릴게요.
-      </Text>
-      <Pressable
-        accessibilityLabel="첫 에피소드 만들기"
+    <View>
+      <PressableFeedback
+        accessibilityHint="길게 누르면 삭제할 수 있어요"
+        accessibilityLabel={episode.scenario_title}
         accessibilityRole="button"
-        onPress={onCreate}
-        style={actionStyle}
+        className="min-h-15 flex-row items-center gap-3 px-4 py-3"
+        onLongPress={handleDelete}
+        onPress={handleOpen}
       >
-        <Text style={[typography.action, { color: colors.onPrimary }]}>
-          첫 에피소드 만들기
-        </Text>
-      </Pressable>
+        {/* 진행 중 표시. 점이 없어도 자리는 남아 제목이 흔들리지 않는다. */}
+        <View className="w-2">
+          {active ? (
+            <View
+              className="size-2 rounded-full bg-accent"
+              testID={`episode-active-dot-${episode.id}`}
+            />
+          ) : null}
+        </View>
+        <View className="flex-1">
+          <Typography.Paragraph
+            truncate
+            type="body-sm"
+            weight={active ? "semibold" : "normal"}
+          >
+            {episode.scenario_title}
+          </Typography.Paragraph>
+          <Typography.Paragraph
+            color="muted"
+            testID={`episode-supporting-${episode.id}`}
+            type="body-xs"
+          >
+            {active
+              ? goalProgress(episode)
+              : `${formatEpisodeDay(episode.updated_at)} · ${goalProgress(episode)}`}
+          </Typography.Paragraph>
+        </View>
+        {/* 브랜드 층의 아이콘은 Ionicons를 의미 토큰으로 칠한다
+            (docs/decisions/apple-hig-with-app-theme.md). 행 전체가 이미 접근성
+            이름을 가지므로 셰브론은 트리에서 숨긴다. */}
+        <Ionicons
+          accessibilityElementsHidden
+          color={disclosureColor}
+          name="chevron-forward"
+          size={16}
+        />
+      </PressableFeedback>
+      <Separator className="mx-4" />
     </View>
   );
 }
 
+function EmptyEpisodes({ onCreate }: { onCreate: () => void }) {
+  return (
+    <CenteredState>
+      <Typography.Heading align="center" type="h4">
+        아직 만든 에피소드가 없어요
+      </Typography.Heading>
+      <Typography.Paragraph align="center" color="muted" type="body-sm">
+        취향과 영어 수준에 맞는 상황을 만들어 드릴게요.
+      </Typography.Paragraph>
+      <Button className="mt-2" onPress={onCreate}>
+        <Button.Label>첫 에피소드 만들기</Button.Label>
+      </Button>
+    </CenteredState>
+  );
+}
+
 export default function HomeScreen() {
-  const { colors, typography } = useTheme();
   const isFocused = useIsFocused();
   const router = useRouter();
   const userId = useUserId();
   const episodes = useEpisodes(userId);
   const deleteEpisode = useDeleteEpisode(userId);
   const [manualRefreshing, setManualRefreshing] = useState(false);
+  /*
+   * 최초 조회와 당겨서 새로고침은 둘 다 스스로 나타나는 수동형 진행이라 중립
+   * 회색이다(docs/decisions/apple-hig-with-app-theme.md). 셰브론은 보조
+   * 정보라 같은 약한 전경을 쓴다.
+   */
+  const neutral = useThemeColor("muted");
 
   useEffect(() => {
     if (!isFocused) {
@@ -385,13 +284,13 @@ export default function HomeScreen() {
   const renderEpisode = useCallback(
     ({ item }: { item: Episode }) => (
       <EpisodeRow
-        disclosureColor={colors.secondaryText}
+        disclosureColor={neutral}
         episode={item}
         onDelete={confirmDelete}
         onOpen={openEpisode}
       />
     ),
-    [colors.secondaryText, confirmDelete, openEpisode]
+    [confirmDelete, neutral, openEpisode]
   );
   const retryEpisodes = useCallback(() => {
     episodes.refetch();
@@ -405,16 +304,6 @@ export default function HomeScreen() {
       setManualRefreshing(false);
     }
   }, [episodes.refetch]);
-  const retryStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.action,
-      {
-        backgroundColor: colors.primary,
-        opacity: pressed || episodes.isFetching ? 0.7 : 1,
-      },
-    ],
-    [colors.primary, episodes.isFetching]
-  );
 
   const data = episodes.data ?? [];
   const resume = resumeEpisode(data);
@@ -423,54 +312,40 @@ export default function HomeScreen() {
   let content: ReactNode;
   if (episodes.isPending && !episodes.data) {
     content = (
-      <View style={styles.loading}>
-        <LoadingIndicator accessibilityLabel="에피소드 불러오는 중" />
+      <View className="flex-1 items-center justify-center">
+        <Spinner accessibilityLabel="에피소드 불러오는 중" color={neutral} />
       </View>
     );
   } else if (episodes.isError && !episodes.data) {
     content = (
-      <View style={styles.centered}>
-        <Text
-          style={[styles.errorMessage, typography.body, { color: colors.text }]}
-        >
+      <CenteredState>
+        <Typography.Paragraph align="center">
           에피소드를 불러오지 못했어요.
-        </Text>
-        <Pressable
-          accessibilityLabel="다시 시도"
-          accessibilityRole="button"
-          disabled={episodes.isFetching}
-          onPress={retryEpisodes}
-          style={retryStyle}
-        >
-          <Text style={[typography.action, { color: colors.onPrimary }]}>
-            다시 시도
-          </Text>
-        </Pressable>
-      </View>
+        </Typography.Paragraph>
+        <Button isDisabled={episodes.isFetching} onPress={retryEpisodes}>
+          <Button.Label>다시 시도</Button.Label>
+        </Button>
+      </CenteredState>
     );
   } else if (data.length === 0) {
     content = <EmptyEpisodes onCreate={createEpisode} />;
   } else {
     content = (
       <LegendList
-        contentContainerStyle={styles.list}
         contentInsetAdjustmentBehavior="automatic"
         data={rest}
         keyExtractor={episodeKey}
+        // 마지막 행이 화면 바닥에 붙지 않게 띄운다. 목록 자체는 제네릭이라
+        // 래핑하면 item 타입을 잃는다 — 여백은 RN View의 className이 준다.
+        ListFooterComponent={<View className="h-8" />}
         ListHeaderComponent={
-          <View style={styles.header}>
+          <View className="px-4 pt-4">
             {resume ? (
               <ResumeCard episode={resume} onOpen={openEpisode} />
             ) : null}
-            <Text
-              style={[
-                styles.sectionTitle,
-                typography.caption,
-                { color: colors.secondaryText },
-              ]}
-            >
+            <Typography className="mx-1 mb-2" color="muted" type="body-xs">
               모든 에피소드
-            </Text>
+            </Typography>
           </View>
         }
         maintainVisibleContentPosition
@@ -480,7 +355,7 @@ export default function HomeScreen() {
             onRefresh={refreshEpisodes}
             refreshing={isFocused && manualRefreshing}
             testID="episode-list-refresh-control"
-            tintColor={colors.loadingIndicator}
+            tintColor={neutral}
           />
         }
         renderItem={renderEpisode}
@@ -505,9 +380,7 @@ export default function HomeScreen() {
         ) : null}
       </Stack.Toolbar>
 
-      <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        {content}
-      </View>
+      <View className="flex-1 bg-background">{content}</View>
     </>
   );
 }

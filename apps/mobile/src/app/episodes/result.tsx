@@ -1,23 +1,19 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  type PressableStateCallbackType,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+  Button,
+  Card,
+  ListGroup,
+  PressableFeedback,
+  Separator,
+  Spinner,
+  Typography,
+  useThemeColor,
+} from "heroui-native";
+import { Fragment, type ReactNode, useCallback } from "react";
+import { Alert, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MessageMarkView } from "../../components/chat/message-mark";
-import {
-  CenteredAction,
-  CenteredState,
-} from "../../components/feedback/centered-action";
-import { LoadingIndicator } from "../../components/feedback/loading-indicator";
-import { RNSymbol } from "../../components/symbols/rn-symbol";
 import {
   type GoalResult,
   goalResults,
@@ -34,88 +30,18 @@ import {
   useEpisodeMessages,
 } from "../../lib/use-episodes";
 import { useUserId } from "../../lib/user-id";
-import { useTheme } from "../../theme/app-theme";
-import { spacing } from "../../theme/tokens";
+
+/**
+ * 결과 화면은 HeroUI가 그리는 브랜드 층이다
+ * (docs/decisions/self-contained-native-ui-boundaries.md의 배정표). 헤더의 뒤로
+ * 가기와 `다시 하기`는 계속 셸이 소유한다.
+ */
 
 /** 총평을 만들지 못한 채 끝난 에피소드. 없는 것을 있는 척하지 않는다. */
 const MISSING_SUMMARY = "이번 글쓰기 총평은 만들지 못했어요.";
 
-const styles = StyleSheet.create({
-  action: {
-    alignItems: "center",
-    borderRadius: 14,
-    height: 50,
-    justifyContent: "center",
-  },
-  actions: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
-  },
-  card: {
-    borderRadius: 14,
-    marginBottom: spacing.xl,
-    padding: spacing.md,
-  },
-  content: {
-    padding: spacing.md,
-  },
-  goalLine: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 10,
-    paddingVertical: 5,
-  },
-  goalText: {
-    flex: 1,
-  },
-  headline: {
-    marginBottom: spacing.lg,
-    marginHorizontal: spacing.xxs,
-  },
-  name: {
-    marginBottom: 2,
-    marginHorizontal: spacing.xxs,
-    marginTop: spacing.xs,
-  },
-  pip: {
-    alignItems: "center",
-    borderRadius: 10,
-    height: 20,
-    justifyContent: "center",
-    width: 20,
-  },
-  refill: {
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 44,
-    minWidth: 60,
-  },
-  screen: {
-    flex: 1,
-  },
-  sectionTitle: {
-    marginBottom: spacing.xs,
-    marginHorizontal: spacing.xxs,
-  },
-  utteranceList: {
-    borderRadius: 14,
-    marginBottom: spacing.xl,
-    paddingHorizontal: spacing.md,
-  },
-  utteranceRow: {
-    alignItems: "center",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    gap: spacing.xs,
-    minHeight: 44,
-    paddingVertical: spacing.xs,
-  },
-  utteranceText: {
-    flex: 1,
-  },
-});
+/** safe area가 없는 기기에서도 바닥 action이 화면 끝에 붙지 않게 두는 최소 여백. */
+const MIN_BOTTOM_INSET = 20;
 
 function single(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -125,50 +51,58 @@ function single(value: string | string[] | undefined) {
   return value ?? "";
 }
 
-function SectionTitle({ children }: { children: string }) {
-  const { colors, typography } = useTheme();
-
+/** 화면이 설 수 없거나 아직 아무것도 없을 때 쓰는 한 프레임. */
+function CenteredState({ children }: { children: ReactNode }) {
   return (
-    <Text
-      style={[
-        styles.sectionTitle,
-        typography.caption,
-        { color: colors.secondaryText },
-      ]}
-    >
+    <View className="flex-1 items-center justify-center gap-3 bg-background px-8">
       {children}
-    </Text>
+    </View>
+  );
+}
+
+function SectionTitle({ children }: { children: string }) {
+  return (
+    <Typography className="mx-1 mb-2" color="muted" type="body-xs">
+      {children}
+    </Typography>
   );
 }
 
 /** 달성은 체크, 미달성은 빈 원이다. X 표시는 어디에도 쓰지 않는다. */
 function GoalResultLine({ goal }: { goal: GoalResult }) {
-  const { colors, typography } = useTheme();
+  const onSuccess = useThemeColor("success-foreground");
 
   return (
-    <View style={styles.goalLine}>
+    <View className="flex-row items-center gap-2.5">
       {goal.achieved ? (
         <View
-          style={[styles.pip, { backgroundColor: colors.success }]}
+          className="size-5 items-center justify-center rounded-full bg-success"
           testID={`goal-result-done-${goal.position}`}
         >
-          <RNSymbol color={colors.onAccent} symbol="achieved" />
+          {/* 브랜드 층의 아이콘은 Ionicons를 의미 토큰으로 칠한다
+              (docs/decisions/apple-hig-with-app-theme.md). 줄이 읽는 것은 목표
+              문장뿐이고 달성 여부는 색과 모양으로만 말한다 — 매핑되지 않은
+              글리프가 정지점을 만들지 않게 체크는 트리에서 숨긴다. */}
+          <Ionicons
+            accessibilityElementsHidden
+            color={onSuccess}
+            name="checkmark"
+            size={12}
+          />
         </View>
       ) : (
         <View
-          style={[styles.pip, { borderColor: colors.border, borderWidth: 1.5 }]}
+          className="size-5 rounded-full border-[1.5px] border-border"
           testID={`goal-result-missed-${goal.position}`}
         />
       )}
-      <Text
-        style={[
-          styles.goalText,
-          typography.supporting,
-          { color: goal.achieved ? colors.text : colors.secondaryText },
-        ]}
+      <Typography
+        className="flex-1"
+        color={goal.achieved ? "default" : "muted"}
+        type="body-sm"
       >
         {goal.sentence}
-      </Text>
+      </Typography>
     </View>
   );
 }
@@ -188,19 +122,16 @@ function UtteranceRow({
   refilling: boolean;
   utterance: ReviewedUtterance;
 }) {
-  const { colors, typography } = useTheme();
+  /*
+   * 셰브론은 보조 정보라 약한 전경을 쓰고, `다시 확인` 안의 progress는 그
+   * action의 전경색을 따른다(docs/decisions/apple-hig-with-app-theme.md).
+   */
+  const [accent, muted] = useThemeColor(["accent", "muted"]);
   const openable =
     utterance.mark === "improvable" || utterance.mark === "translated";
   const open = useCallback(() => {
     onOpenFeedback(utterance.id);
   }, [onOpenFeedback, utterance.id]);
-  const rowStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.utteranceRow,
-      { borderBottomColor: colors.separator, opacity: pressed ? 0.5 : 1 },
-    ],
-    [colors.separator]
-  );
   const body = (
     <>
       <View testID={`utterance-mark-${utterance.id}`}>
@@ -211,62 +142,75 @@ function UtteranceRow({
           />
         ) : null}
       </View>
-      <Text
-        style={[
-          styles.utteranceText,
-          typography.supporting,
-          { color: colors.text },
-        ]}
-      >
+      <Typography className="flex-1" type="body-sm">
         {utterance.text}
-      </Text>
-      {openable ? <RNSymbol color={colors.border} symbol="disclosure" /> : null}
+      </Typography>
+      {openable ? (
+        // 줄 전체가 이미 접근성 이름을 가지므로 셰브론은 트리에서 숨긴다.
+        <Ionicons
+          accessibilityElementsHidden
+          color={muted}
+          name="chevron-forward"
+          size={16}
+        />
+      ) : null}
       {utterance.mark ? null : (
-        <Pressable
+        <PressableFeedback
           accessibilityLabel="다시 확인"
           accessibilityRole="button"
-          disabled={refilling}
+          className="min-h-11 min-w-15 items-center justify-center"
+          isDisabled={refilling}
           onPress={onRefill}
-          style={styles.refill}
           testID={`utterance-refill-${utterance.id}`}
         >
           {refilling ? (
-            <ActivityIndicator accessible={false} color={colors.accent} />
+            <Spinner accessible={false} color={accent} size="sm" />
           ) : (
-            <Text style={[typography.label, { color: colors.accent }]}>
+            <Typography
+              className="text-accent"
+              type="body-sm"
+              weight="semibold"
+            >
               다시 확인
-            </Text>
+            </Typography>
           )}
-        </Pressable>
+        </PressableFeedback>
       )}
     </>
   );
 
   if (!openable) {
+    /*
+     * 누를 것이 없는 줄이다. `accessible`을 끄지 않으면 밑단 Pressable이 자식을
+     * 한 덩어리로 묶어, 그 안의 `다시 확인` 버튼이 스크린 리더에서 사라진다.
+     */
     return (
-      <View
-        style={[styles.utteranceRow, { borderBottomColor: colors.separator }]}
-      >
+      <ListGroup.Item accessible={false} className="gap-2 px-4 py-2">
         {body}
-      </View>
+      </ListGroup.Item>
     );
   }
 
+  /*
+   * 누름 피드백은 라이브러리가 소유한다(docs/decisions/native-motion.md) —
+   * ListGroup 문서가 정한 대로 `PressableFeedback`이 press를 받고 행은
+   * `disabled`로 넘긴다. 접근성 이름과 role도 누르는 쪽이 갖는다.
+   */
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityLabel={utterance.text}
       accessibilityRole="button"
       onPress={open}
-      style={rowStyle}
     >
-      {body}
-    </Pressable>
+      <ListGroup.Item className="gap-2 px-4 py-2" disabled>
+        {body}
+      </ListGroup.Item>
+    </PressableFeedback>
   );
 }
 
 function EpisodeResult({ episode }: { episode: Episode }) {
   const insets = useSafeAreaInsets();
-  const { colors, typography } = useTheme();
   const router = useRouter();
   const userId = useUserId();
   const messages = useEpisodeMessages(episode.id);
@@ -328,21 +272,6 @@ function EpisodeResult({ episode }: { episode: Episode }) {
     );
   }, [episode, restart, router]);
 
-  const primaryStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.action,
-      { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 },
-    ],
-    [colors.primary]
-  );
-  const ghostStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.action,
-      { opacity: pressed ? 0.5 : 1 },
-    ],
-    []
-  );
-
   return (
     <>
       {/* 헤더는 뒤로 가기와 `다시 하기`만 갖는다. 시나리오 제목은 본문 첫 줄이다. */}
@@ -356,94 +285,80 @@ function EpisodeResult({ episode }: { episode: Episode }) {
         </Stack.Toolbar.Button>
       </Stack.Toolbar>
 
-      <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text
-            style={[
-              styles.name,
-              typography.label,
-              { color: colors.secondaryText },
-            ]}
+      <View className="flex-1 bg-background">
+        <ScrollView contentContainerClassName="p-4">
+          <Typography
+            className="mx-1 mt-2 mb-0.5"
+            color="muted"
             testID="result-episode-name"
+            type="body-sm"
           >
             {episode.scenario_title}
-          </Text>
-          <Text
-            style={[styles.headline, typography.title, { color: colors.text }]}
+          </Typography>
+          <Typography.Heading
+            className="mx-1 mb-5"
             testID="result-headline"
+            type="h4"
           >
             {resultHeadline(episode)}
-          </Text>
+          </Typography.Heading>
 
           <SectionTitle>이번 대화의 목표</SectionTitle>
-          <View style={[styles.card, { backgroundColor: colors.surface }]}>
-            {goalResults(episode).map((goal) => (
-              <GoalResultLine goal={goal} key={goal.position} />
-            ))}
-          </View>
+          <Card className="mb-6">
+            <Card.Body className="gap-2">
+              {goalResults(episode).map((goal) => (
+                <GoalResultLine goal={goal} key={goal.position} />
+              ))}
+            </Card.Body>
+          </Card>
 
           <SectionTitle>이번 글쓰기</SectionTitle>
-          <View style={[styles.card, { backgroundColor: colors.surface }]}>
-            <Text
-              style={[
-                typography.supporting,
-                {
-                  color: episode.summary ? colors.text : colors.secondaryText,
-                },
-              ]}
-              testID="result-summary"
-            >
-              {episode.summary ?? MISSING_SUMMARY}
-            </Text>
-          </View>
+          <Card className="mb-6">
+            <Card.Body>
+              <Typography
+                color={episode.summary ? "default" : "muted"}
+                testID="result-summary"
+                type="body-sm"
+              >
+                {episode.summary ?? MISSING_SUMMARY}
+              </Typography>
+            </Card.Body>
+          </Card>
 
           <SectionTitle>{`내가 쓴 문장 ${utterances.length}개`}</SectionTitle>
-          <View
-            style={[styles.utteranceList, { backgroundColor: colors.surface }]}
-            testID="result-utterances"
-          >
-            {utterances.map((utterance) => (
-              <UtteranceRow
-                key={utterance.id}
-                onOpenFeedback={openFeedback}
-                onRefill={refillJudgment}
-                refilling={refill.isPending}
-                utterance={utterance}
-              />
+          <ListGroup className="mb-6" testID="result-utterances">
+            {utterances.map((utterance, index) => (
+              <Fragment key={utterance.id}>
+                {index > 0 ? <Separator className="mx-4" /> : null}
+                <UtteranceRow
+                  onOpenFeedback={openFeedback}
+                  onRefill={refillJudgment}
+                  refilling={refill.isPending}
+                  utterance={utterance}
+                />
+              </Fragment>
             ))}
-          </View>
+          </ListGroup>
         </ScrollView>
 
         {/* 하단은 결과와 무관하게 같다. */}
+        <Separator />
         <View
-          style={[
-            styles.actions,
-            {
-              borderTopColor: colors.separator,
-              paddingBottom: Math.max(insets.bottom, spacing.lg),
-            },
-          ]}
+          className="gap-2 px-4 pt-2"
+          // safe area는 런타임 값이라 토큰으로 접을 수 없는 자리다.
+          style={{ paddingBottom: Math.max(insets.bottom, MIN_BOTTOM_INSET) }}
         >
-          <Pressable
-            accessibilityLabel="새 에피소드 시작"
-            accessibilityRole="button"
-            onPress={createEpisode}
-            style={primaryStyle}
-          >
-            <Text style={[typography.action, { color: colors.onPrimary }]}>
-              새 에피소드 시작
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityLabel="대화 보기"
-            accessibilityRole="button"
+          <Button className="w-full" onPress={createEpisode} size="lg">
+            <Button.Label>새 에피소드 시작</Button.Label>
+          </Button>
+          <Button
+            className="w-full"
             onPress={openConversation}
-            style={ghostStyle}
+            size="lg"
+            variant="ghost"
           >
-            <Text style={[typography.action, { color: colors.accent }]}>
-              대화 보기
-            </Text>
-          </Pressable>
+            <Button.Label className="text-accent">대화 보기</Button.Label>
+          </Button>
         </View>
       </View>
     </>
@@ -459,6 +374,9 @@ export default function EpisodeResultScreen() {
   const router = useRouter();
   const episodeId = single(params.episodeId);
   const episode = useEpisode(episodeId);
+  // 스스로 나타나는 수동형 진행이라 중립 회색이다
+  // (docs/decisions/apple-hig-with-app-theme.md).
+  const neutral = useThemeColor("muted");
 
   const retry = useCallback(() => {
     episode.refetch();
@@ -470,28 +388,34 @@ export default function EpisodeResultScreen() {
   if (episode.isPending && episode.data === undefined) {
     return (
       <CenteredState>
-        <LoadingIndicator accessibilityLabel="결과 불러오는 중" />
+        <Spinner accessibilityLabel="결과 불러오는 중" color={neutral} />
       </CenteredState>
     );
   }
 
   if (episode.isError && episode.data === undefined) {
     return (
-      <CenteredAction
-        actionLabel="다시 시도"
-        message="결과를 불러오지 못했어요."
-        onPress={retry}
-      />
+      <CenteredState>
+        <Typography.Paragraph align="center">
+          결과를 불러오지 못했어요.
+        </Typography.Paragraph>
+        <Button onPress={retry}>
+          <Button.Label>다시 시도</Button.Label>
+        </Button>
+      </CenteredState>
     );
   }
 
   if (!episode.data) {
     return (
-      <CenteredAction
-        actionLabel="에피소드 목록으로"
-        message="에피소드를 찾을 수 없어요."
-        onPress={goBack}
-      />
+      <CenteredState>
+        <Typography.Paragraph align="center">
+          에피소드를 찾을 수 없어요.
+        </Typography.Paragraph>
+        <Button onPress={goBack}>
+          <Button.Label>에피소드 목록으로</Button.Label>
+        </Button>
+      </CenteredState>
     );
   }
 

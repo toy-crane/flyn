@@ -1,3 +1,4 @@
+import { Typography } from "heroui-native";
 import type {
   List,
   ListItem,
@@ -12,115 +13,35 @@ import { fromMarkdown } from "mdast-util-from-markdown";
 import { gfmTableFromMarkdown } from "mdast-util-gfm-table";
 import { gfmTable } from "micromark-extension-gfm-table";
 import { Fragment, type ReactNode, useCallback, useMemo } from "react";
-import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
-import { type AppTheme, useTheme } from "../../theme/app-theme";
-import type { ThemeColors } from "../../theme/colors";
-import { spacing } from "../../theme/tokens";
+import { Linking, ScrollView, Text, View } from "react-native";
 
-interface MarkdownRenderTheme extends ThemeColors {
-  typography: AppTheme["typography"];
+/**
+ * AI 응답 Markdown. HeroUI에 대응물이 없는 능력이라 직접 만들지만 표현은 전부
+ * HeroUI `Typography`와 CSS 토큰이 나른다
+ * (docs/decisions/uniwind-css-theme.md). 이미지와 syntax highlighting은
+ * 지원하지 않는다(docs/decisions/ai-chat-experience.md).
+ */
+
+/** 제목 깊이는 본문 위 세 단계까지만 쓴다. 그 아래는 같은 크기로 접는다. */
+function headingType(depth: number) {
+  if (depth === 1) {
+    return "h3" as const;
+  }
+  if (depth === 2) {
+    return "h4" as const;
+  }
+
+  return "h5" as const;
 }
 
-const styles = StyleSheet.create({
-  blockquote: {
-    borderLeftWidth: 2,
-    marginBottom: spacing.sm,
-    paddingLeft: spacing.sm,
-  },
-  codeBlock: {
-    borderRadius: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  codeText: {
-    fontFamily: "monospace",
-    fontSize: 14,
-    lineHeight: 20,
-    padding: spacing.md,
-  },
-  deleted: {
-    textDecorationLine: "line-through",
-  },
-  emphasis: {
-    fontStyle: "italic",
-  },
-  heading1: {
-    fontSize: 24,
-    fontWeight: "700",
-    lineHeight: 32,
-    marginBottom: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  heading2: {
-    fontSize: 21,
-    fontWeight: "700",
-    lineHeight: 28,
-    marginBottom: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  heading3: {
-    fontSize: 18,
-    fontWeight: "600",
-    lineHeight: 24,
-    marginBottom: spacing.xs,
-    marginTop: spacing.xxs,
-  },
-  inlineCode: {
-    borderRadius: spacing.xxs,
-    fontFamily: "monospace",
-    fontSize: 15,
-  },
-  link: {
-    textDecorationLine: "underline",
-  },
-  list: {
-    marginBottom: spacing.sm,
-  },
-  listContent: {
-    flex: 1,
-  },
-  listItem: {
-    flexDirection: "row",
-    marginBottom: spacing.xxs,
-  },
-  listMarker: {
-    width: spacing.xl,
-  },
-  paragraphSpacing: {
-    marginBottom: spacing.sm,
-  },
-  strong: {
-    fontWeight: "700",
-  },
-  table: {
-    marginBottom: spacing.md,
-  },
-  tableBody: {
-    borderTopWidth: 1,
-  },
-  tableCell: {
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    minWidth: 112,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  tableHeader: {
-    fontWeight: "600",
-  },
-  tableRow: {
-    borderLeftWidth: 1,
-    flexDirection: "row",
-  },
-  tableText: {
-    fontSize: 14,
-  },
-  thematicBreak: {
-    height: 1,
-    marginBottom: spacing.md,
-    marginTop: spacing.xxs,
-  },
-});
-
+/**
+ * 인라인 서식은 감싸는 글의 크기를 그대로 물려받아야 한다. HeroUI
+ * `Typography`는 언제나 `type` 클래스를 내고 기본이 `body`(16px)인데, RN의
+ * 중첩 `Text`에서는 자식이 스스로 정한 font-size가 이긴다 — 제목(24px) 안의
+ * 굵은 글씨가 16px로 내려앉고 표 칸(14px) 안에서는 16px로 튄다. 그래서 굵게·
+ * 기울임·취소선·링크는 크기를 건드리지 않는 RN `Text`에 토큰 클래스만 얹는다
+ * (docs/decisions/uniwind-css-theme.md).
+ */
 function MarkdownLink({
   children,
   label,
@@ -130,7 +51,6 @@ function MarkdownLink({
   label: string;
   url: string;
 }) {
-  const { colors } = useTheme();
   const openLink = useCallback(() => {
     Linking.openURL(url).catch(() => undefined);
   }, [url]);
@@ -139,8 +59,10 @@ function MarkdownLink({
     <Text
       accessibilityLabel={label}
       accessibilityRole="link"
+      // HeroUI의 `link` 토큰은 전경색과 같은 무채색이라 본문 안에서 링크로 읽히지
+      // 않는다. 누를 수 있는 것은 앱의 action 색을 쓴다.
+      className="text-accent underline"
       onPress={openLink}
-      style={[styles.link, { color: colors.link }]}
     >
       {children}
     </Text>
@@ -172,11 +94,7 @@ function textContent(nodes: PhrasingContent[]): string {
     .join("");
 }
 
-function renderInline(
-  node: PhrasingContent,
-  key: string,
-  colors: MarkdownRenderTheme
-): ReactNode {
+function renderInline(node: PhrasingContent, key: string): ReactNode {
   switch (node.type) {
     case "text":
       return node.value;
@@ -184,46 +102,42 @@ function renderInline(
       return "\n";
     case "inlineCode":
       return (
-        <Text
-          key={key}
-          style={[
-            styles.inlineCode,
-            { backgroundColor: colors.surface, color: colors.text },
-          ]}
-        >
+        <Typography key={key} type="code">
           {node.value}
-        </Text>
+        </Typography>
       );
+    // 굵게·기울임·취소선은 감싸는 글의 크기를 물려받는다 — 이유는
+    // `MarkdownLink` 위 주석에 있다.
     case "strong":
       return (
-        <Text key={key} style={styles.strong}>
-          {renderInlineChildren(node.children, key, colors)}
+        <Text className="font-bold" key={key}>
+          {renderInlineChildren(node.children, key)}
         </Text>
       );
     case "emphasis":
       return (
-        <Text key={key} style={styles.emphasis}>
-          {renderInlineChildren(node.children, key, colors)}
+        <Text className="italic" key={key}>
+          {renderInlineChildren(node.children, key)}
         </Text>
       );
     case "delete":
       return (
-        <Text key={key} style={styles.deleted}>
-          {renderInlineChildren(node.children, key, colors)}
+        <Text className="line-through" key={key}>
+          {renderInlineChildren(node.children, key)}
         </Text>
       );
     case "link": {
       const label = textContent(node.children);
       return (
         <MarkdownLink key={key} label={label} url={node.url}>
-          {renderInlineChildren(node.children, key, colors)}
+          {renderInlineChildren(node.children, key)}
         </MarkdownLink>
       );
     }
     case "linkReference":
       return (
         <Fragment key={key}>
-          {renderInlineChildren(node.children, key, colors)}
+          {renderInlineChildren(node.children, key)}
         </Fragment>
       );
     case "image":
@@ -236,116 +150,79 @@ function renderInline(
   }
 }
 
-function renderInlineChildren(
-  children: PhrasingContent[],
-  prefix: string,
-  colors: MarkdownRenderTheme
-) {
+function renderInlineChildren(children: PhrasingContent[], prefix: string) {
   return children.map((child, index) =>
-    renderInline(child, `${prefix}-inline-${index}`, colors)
+    renderInline(child, `${prefix}-inline-${index}`)
   );
 }
 
-function headingStyle(depth: number) {
-  if (depth === 1) {
-    return styles.heading1;
-  }
-  if (depth === 2) {
-    return styles.heading2;
-  }
-  return styles.heading3;
-}
-
-function renderTableCell(
-  cell: TableCell,
-  key: string,
-  header: boolean,
-  colors: MarkdownRenderTheme
-) {
+function renderTableCell(cell: TableCell, key: string, header: boolean) {
   return (
-    <View key={key} style={[styles.tableCell, { borderColor: colors.border }]}>
-      <Text
+    <View
+      className="min-w-28 border-border border-r border-b px-3 py-2"
+      key={key}
+    >
+      <Typography
         selectable
-        style={[
-          styles.tableText,
-          header && styles.tableHeader,
-          { color: colors.text },
-        ]}
+        type="body-sm"
+        weight={header ? "semibold" : "normal"}
       >
-        {renderInlineChildren(cell.children, key, colors)}
-      </Text>
+        {renderInlineChildren(cell.children, key)}
+      </Typography>
     </View>
   );
 }
 
-function renderTableRow(
-  row: TableRow,
-  key: string,
-  header: boolean,
-  colors: MarkdownRenderTheme
-) {
+function renderTableRow(row: TableRow, key: string, header: boolean) {
   return (
-    <View key={key} style={[styles.tableRow, { borderColor: colors.border }]}>
+    <View className="flex-row border-border border-l" key={key}>
       {row.children.map((cell, index) =>
-        renderTableCell(cell, `${key}-cell-${index}`, header, colors)
+        renderTableCell(cell, `${key}-cell-${index}`, header)
       )}
     </View>
   );
 }
 
-function renderTable(table: Table, key: string, colors: MarkdownRenderTheme) {
+function renderTable(table: Table, key: string) {
   return (
     <ScrollView
+      className="mb-4"
       horizontal
       key={key}
       showsHorizontalScrollIndicator={false}
-      style={styles.table}
     >
-      <View style={[styles.tableBody, { borderColor: colors.border }]}>
+      <View className="border-border border-t">
         {table.children.map((row, index) =>
-          renderTableRow(row, `${key}-row-${index}`, index === 0, colors)
+          renderTableRow(row, `${key}-row-${index}`, index === 0)
         )}
       </View>
     </ScrollView>
   );
 }
 
-function renderListItem(
-  item: ListItem,
-  key: string,
-  marker: string,
-  colors: MarkdownRenderTheme
-) {
+function renderListItem(item: ListItem, key: string, marker: string) {
   return (
-    <View key={key} style={styles.listItem}>
-      <Text
-        style={[
-          styles.listMarker,
-          colors.typography.message,
-          { color: colors.text },
-        ]}
-      >
-        {marker}
-      </Text>
-      <View style={styles.listContent}>
+    <View className="mb-1 flex-row" key={key}>
+      <Typography className="w-6">{marker}</Typography>
+      <View className="flex-1">
         {item.children.map((child, index) =>
-          renderBlock(child, `${key}-block-${index}`, colors, true)
+          renderBlock(child, `${key}-block-${index}`, true)
         )}
       </View>
     </View>
   );
 }
 
-function renderList(list: List, key: string, colors: MarkdownRenderTheme) {
+function renderList(list: List, key: string) {
   const start = list.start ?? 1;
+
   return (
-    <View key={key} style={styles.list}>
+    <View className="mb-3" key={key}>
       {list.children.map((item, index) =>
         renderListItem(
           item,
           `${key}-item-${index}`,
-          list.ordered ? `${start + index}.` : "•",
-          colors
+          list.ordered ? `${start + index}.` : "•"
         )
       )}
     </View>
@@ -355,69 +232,57 @@ function renderList(list: List, key: string, colors: MarkdownRenderTheme) {
 function renderBlock(
   node: RootContent,
   key: string,
-  colors: MarkdownRenderTheme,
   compact = false
 ): ReactNode {
   switch (node.type) {
     case "paragraph":
       return (
-        <Text
+        <Typography
+          className={compact ? undefined : "mb-3"}
           key={key}
           selectable
-          style={[
-            colors.typography.message,
-            !compact && styles.paragraphSpacing,
-            { color: colors.text },
-          ]}
         >
-          {renderInlineChildren(node.children, key, colors)}
-        </Text>
+          {renderInlineChildren(node.children, key)}
+        </Typography>
       );
     case "heading":
       return (
-        <Text
+        <Typography.Heading
+          className="mt-1 mb-2"
           key={key}
           selectable
-          style={[headingStyle(node.depth), { color: colors.text }]}
+          type={headingType(node.depth)}
         >
-          {renderInlineChildren(node.children, key, colors)}
-        </Text>
+          {renderInlineChildren(node.children, key)}
+        </Typography.Heading>
       );
     case "code":
       return (
         <ScrollView
+          className="mb-4"
           horizontal
           key={key}
           showsHorizontalScrollIndicator={false}
-          style={[styles.codeBlock, { backgroundColor: colors.surface }]}
         >
-          <Text selectable style={[styles.codeText, { color: colors.text }]}>
+          <Typography className="px-4 py-3" selectable type="code">
             {node.value}
-          </Text>
+          </Typography>
         </ScrollView>
       );
     case "blockquote":
       return (
-        <View
-          key={key}
-          style={[styles.blockquote, { borderColor: colors.secondaryText }]}
-        >
+        <View className="mb-3 border-muted border-l-2 pl-3" key={key}>
           {node.children.map((child, index) =>
-            renderBlock(child, `${key}-quote-${index}`, colors)
+            renderBlock(child, `${key}-quote-${index}`)
           )}
         </View>
       );
     case "list":
-      return renderList(node, key, colors);
+      return renderList(node, key);
     case "table":
-      return renderTable(node, key, colors);
+      return renderTable(node, key);
     case "thematicBreak":
-      return (
-        <View
-          key={key}
-          style={[styles.thematicBreak, { backgroundColor: colors.separator }]}
-        />
-      );
+      return <View className="mt-1 mb-4 h-px bg-separator" key={key} />;
     case "html":
     case "definition":
     case "footnoteDefinition":
@@ -440,25 +305,16 @@ function parseMarkdown(markdown: string): Root | null {
 }
 
 export function ChatMarkdown({ children }: { children: string }) {
-  const { colors, typography } = useTheme();
   const document = useMemo(() => parseMarkdown(children), [children]);
-  const renderTheme = useMemo<MarkdownRenderTheme>(
-    () => ({ ...colors, typography }),
-    [colors, typography]
-  );
 
   if (!document) {
-    return (
-      <Text selectable style={[typography.message, { color: colors.text }]}>
-        {children}
-      </Text>
-    );
+    return <Typography selectable>{children}</Typography>;
   }
 
   return (
     <View>
       {document.children.map((node, index) =>
-        renderBlock(node, `markdown-${index}`, renderTheme)
+        renderBlock(node, `markdown-${index}`)
       )}
     </View>
   );

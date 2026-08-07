@@ -1,0 +1,60 @@
+/*
+ * 앱의 semantic token 원본. HeroUI Native의 테마 변수를 기본값으로 깔고, 앱이
+ * 확장하는 색·간격·타이포는 이 파일의 @theme 한 곳에만 쓴다
+ * (docs/decisions/uniwind-css-theme.md). React Navigation과 @expo/ui로 나가는
+ * 값은 bridge가 여기서 읽어 가고, 반대 방향은 없다.
+ *
+ * 브랜드 팔레트 실제 값은 아직 정해지지 않았다 — HeroUI 기본 테마로 시작하고
+ * 확정되면 이 파일에서 갈아끼운다.
+ */
+@import "tailwindcss";
+@import "uniwind";
+@import "heroui-native/styles";
+
+/*
+ * 모노레포에서는 heroui-native가 루트로 호이스팅돼 패키지 자신의 @source가
+ * 닿지 않는다. 이 등록이 없으면 라이브러리 클래스가 통째로 tree-shaking된다.
+ */
+@source "../../node_modules/heroui-native/lib";
+
+@theme {
+  /*
+   * composer 입력의 글자 크기. Tailwind의 `text-*` 스케일은 짝 line-height를
+   * 가진 토큰이라 font-size와 line-height를 함께 낸다. RN은 Dynamic Type로
+   * fontSize만 키우고 lineHeight는 그대로 두므로, 고정 line-height는 큰 글자
+   * 설정에서 글자를 자른다. 짝 line-height가 없는 토큰이라야 입력이 글자를 따라
+   * 늘어난다 — `--text-composer--line-height`를 만들지 않는다.
+   */
+  --text-composer: 1rem;
+
+  /*
+   * native header의 두 줄 title. Tailwind 스케일에는 17pt·13pt가 없고 임의
+   * 값(`text-[17px]`)은 토큰 체계를 우회한다. 값은 셸의 관용이라 앱이 고르는
+   * 것이 아니다 — iOS의 기본 header title과 그 아래 보조 줄의 크기다.
+   */
+  --text-header-title: 1.0625rem;
+  --text-header-title--line-height: 1.5rem;
+  --text-header-subtitle: 0.8125rem;
+  --text-header-subtitle--line-height: 1.125rem;
+}
+
+/*
+ * HeroUI는 scrim을 두 테마 모두 검정 20%로 둔다. 다크의 `--background`가
+ * oklch(12%)라 20% 검정은 몇 RGB 단위 차이라 scrim으로 읽히지 않는다 — 라이트와
+ * 다크는 같은 무게를 쓸 수 없다. 앱이 쓰던 값(라이트 18%, 다크 62%)으로 되돌린다.
+ * dialog·bottom sheet의 scrim도 같은 토큰을 소비한다.
+ */
+@layer theme {
+  :root {
+    @variant light {
+      --backdrop: oklch(0% 0 0 / 18%);
+    }
+  }
+
+  /* light와 한 `:root`로 묶으면 린터가 `@variant`를 못 읽고 중복 선언으로 본다. */
+  :root {
+    @variant dark {
+      --backdrop: oklch(0% 0 0 / 62%);
+    }
+  }
+}

@@ -35,6 +35,15 @@ describe("Metro config", () => {
     );
   });
 
+  // 안쪽에서 다른 래퍼가 transformer를 나중에 덮으면 className이 스타일로
+  // 변환되지 않는다. uniwind가 심은 transformer가 그대로 남아 있어야 한다.
+  test("withUniwindConfig가 가장 바깥 래퍼다", () => {
+    expect(config.transformerPath).toContain(
+      path.join("uniwind", "dist", "metro", "transformer")
+    );
+    expect(config.transformer.uniwind).toBeDefined();
+  });
+
   test("Expo Router의 route-test 차단 설정을 유지한다", () => {
     expect(config.resolver.blockList.map(String)).toContain(
       String(ROUTE_TEST_PATTERN)

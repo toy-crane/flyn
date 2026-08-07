@@ -1,39 +1,18 @@
-import { Button, Column, Host, Text } from "@expo/ui";
-import {
-  controlSize,
-  font,
-  foregroundStyle,
-  multilineTextAlignment,
-} from "@expo/ui/swift-ui/modifiers";
+import { Button, Typography } from "heroui-native";
 import type { ReactNode } from "react";
-import { StyleSheet, View } from "react-native";
-import { useColors } from "../../theme/app-theme";
-import { spacing } from "../../theme/tokens";
-
-const styles = StyleSheet.create({
-  screen: {
-    alignItems: "center",
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: spacing.xxl,
-  },
-});
-
-function Screen({ children }: { children: ReactNode }) {
-  const colors = useColors();
-
-  return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <Host matchContents>{children}</Host>
-    </View>
-  );
-}
+import { View } from "react-native";
 
 /**
  * 프로필 게이트가 앱 대신 그리는 화면 둘의 공통 모양.
  *
- * **어느 쪽이든 로그아웃이 있어야 한다.** 이 화면들이 뜨면 `<Stack>` 자체가
- * 마운트되지 않아 설정에 닿을 수 없다 — 나갈 문이 없으면 앱이 막다른 길이 된다.
+ * renderer는 HeroUI다. 배정 표에는 이 화면의 행이 없고, "그 외 RN이 그리는 모든
+ * 화면의 기본 renderer는 HeroUI Native다"라는 catch-all이 근거다
+ * (docs/decisions/self-contained-native-ui-boundaries.md). 표 밖 surface를
+ * 따로 판정하라는 같은 계약의 조건에 비춰 봐도 결론은 같다 — `<Stack>` 자체가
+ * 아직 마운트되지 않은 상태에서 뜨므로 셸이 줄 것이 없다.
+ *
+ * **어느 쪽이든 로그아웃이 있어야 한다.** 이 화면들이 뜨면 설정에 닿을 수 없다
+ * — 나갈 문이 없으면 앱이 막다른 길이 된다.
  */
 function ProfileProblem({
   actions,
@@ -43,20 +22,14 @@ function ProfileProblem({
   message: string;
 }) {
   return (
-    <Screen>
-      <Column alignment="center" spacing={12} style={{ padding: 8 }}>
-        <Text
-          modifiers={[
-            font({ textStyle: "body" }),
-            foregroundStyle({ style: "secondary", type: "hierarchical" }),
-            multilineTextAlignment("center"),
-          ]}
-        >
-          {message}
-        </Text>
-        {actions}
-      </Column>
-    </Screen>
+    <View className="flex-1 items-center justify-center gap-3 bg-background px-8">
+      {/* Paragraph는 iOS Dynamic Type ramp(body)를 함께 건다 — 본문 문구는
+          시스템 글자 크기를 따라야 한다. */}
+      <Typography.Paragraph align="center" color="muted">
+        {message}
+      </Typography.Paragraph>
+      {actions}
+    </View>
   );
 }
 
@@ -82,13 +55,12 @@ export function ProfileUnavailable({
     <ProfileProblem
       actions={
         <>
-          <Button
-            disabled={retrying}
-            label="다시 시도"
-            modifiers={[controlSize("large")]}
-            onPress={onRetry}
-          />
-          <Button label="로그아웃" onPress={onSignOut} variant="text" />
+          <Button isDisabled={retrying} onPress={onRetry} size="lg">
+            <Button.Label>다시 시도</Button.Label>
+          </Button>
+          <Button onPress={onSignOut} variant="ghost">
+            <Button.Label className="text-accent">로그아웃</Button.Label>
+          </Button>
         </>
       }
       message="계정 정보를 불러오지 못했어요. 인터넷 연결을 확인해 주세요."
@@ -104,11 +76,9 @@ export function ProfileMissing({ onSignOut }: { onSignOut: () => void }) {
   return (
     <ProfileProblem
       actions={
-        <Button
-          label="로그아웃"
-          modifiers={[controlSize("large")]}
-          onPress={onSignOut}
-        />
+        <Button onPress={onSignOut} size="lg">
+          <Button.Label>로그아웃</Button.Label>
+        </Button>
       }
       message="계정 정보가 올바르지 않아요. 로그아웃한 뒤 다시 로그인해 주세요. 문제가 계속되면 문의해 주세요."
     />

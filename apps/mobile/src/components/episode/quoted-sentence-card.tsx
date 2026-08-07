@@ -1,21 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
-import { useTheme } from "../../theme/app-theme";
-import { spacing } from "../../theme/tokens";
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 12,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  holder: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-  },
-  label: {
-    marginBottom: spacing.xxs,
-  },
-});
+import { Surface, Typography } from "heroui-native";
+import { View } from "react-native";
 
 /**
  * 창 상단에 **고정되는** 인용 카드. 목록 머리에 두면 스크롤과 함께 사라져,
@@ -23,31 +7,20 @@ const styles = StyleSheet.create({
  * 바깥에 서고 스크롤을 타지 않는다.
  */
 export function QuotedSentenceCard({ sentence }: { sentence: string }) {
-  const { colors, typography } = useTheme();
-
   return (
-    <View
-      style={[styles.holder, { backgroundColor: colors.background }]}
-      testID="quoted-sentence-card"
-    >
-      <View style={[styles.card, { backgroundColor: colors.surface }]}>
-        <Text
-          style={[
-            styles.label,
-            typography.caption,
-            { color: colors.secondaryText },
-          ]}
-        >
+    <View className="bg-background px-4 pt-3" testID="quoted-sentence-card">
+      {/* 반지름은 HeroUI 스케일에서 고른다 — `--radius-xl`이 곧 12pt다. */}
+      <Surface
+        className="rounded-xl px-4 py-3"
+        testID="quoted-sentence-surface"
+      >
+        <Typography className="mb-1" color="muted" type="body-xs">
           이 문장에 대해
-        </Text>
-        <Text
-          selectable
-          style={[typography.supporting, { color: colors.text }]}
-          testID="quoted-sentence"
-        >
+        </Typography>
+        <Typography selectable testID="quoted-sentence" type="body-sm">
           {sentence}
-        </Text>
-      </View>
+        </Typography>
+      </Surface>
     </View>
   );
 }

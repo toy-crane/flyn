@@ -1,144 +1,130 @@
 import {
   fireEvent,
+  isHiddenFromAccessibility,
   render,
   screen,
   within,
 } from "@testing-library/react-native";
-import { Text } from "react-native";
+import { processColor, StyleSheet, Text } from "react-native";
+
+// 아래 mock에 `{ virtual: true }`를 붙이지 않는다. jest의 virtual은 디스크에
+// 없는 모듈 전용이다. 실재하는 모듈에 붙이면 resolver가 실제 경로 대신 이름
+// 문자열로 module id를 만들어 worker 안에서 공유되는 캐시에 굳히고, 같은
+// 모듈을 mock하는 다음 test 파일이 진짜 native 모듈을 받게 된다.
+jest.mock("@legendapp/list/keyboard", () => {
+  const ReactRuntime = require("react");
+  const { View: NativeView } = require("react-native");
+
+  return {
+    KeyboardAwareLegendList: ReactRuntime.forwardRef(
+      (
+        {
+          data,
+          keyExtractor,
+          renderItem,
+          ...props
+        }: {
+          data: unknown[];
+          keyExtractor: (item: unknown) => string;
+          renderItem: (info: { index: number; item: unknown }) => unknown;
+        },
+        ref: unknown
+      ) => {
+        ReactRuntime.useImperativeHandle(ref, () => ({
+          scrollToEnd: mockScrollToEnd,
+        }));
+
+        return ReactRuntime.createElement(
+          NativeView,
+          props,
+          data.map((item, index) =>
+            ReactRuntime.createElement(
+              ReactRuntime.Fragment,
+              { key: keyExtractor(item) },
+              renderItem({ index, item })
+            )
+          )
+        );
+      }
+    ),
+    useKeyboardChatComposerInset: () => ({
+      contentInsetEndAdjustment: mockContentInsetEndAdjustment,
+      onComposerLayout: mockOnComposerLayout,
+    }),
+  };
+});
+jest.mock("react-native-keyboard-controller", () => {
+  const { View: NativeView } = require("react-native");
+  return {
+    KeyboardGestureArea: NativeView,
+    KeyboardStickyView: NativeView,
+    useReanimatedKeyboardAnimation: () => ({
+      height: { value: 0 },
+      progress: { value: 0 },
+    }),
+  };
+});
+/**
+ * reanimated는 실물 그대로 쓴다 — HeroUI 컴포넌트가 이 모듈 위에 서 있어
+ * 통째로 대체하면 버튼과 spinner가 마운트되지 않는다. 화면이 직접 정하는
+ * 모션 값만 관찰할 수 있게 `withTiming`에 spy를 씌운다.
+ */
+jest.mock("react-native-reanimated", () => {
+  const actual = jest.requireActual("react-native-reanimated");
+
+  return {
+    ...actual,
+    // Babel은 `__esModule`을 열거되지 않게 정의한다 — 펼치기만 하면 표식과
+    // default export가 함께 사라져 `Reanimated.View`가 undefined가 된다.
+    __esModule: true,
+    default: actual.default,
+    withTiming: jest.fn(actual.withTiming),
+  };
+});
+jest.mock("uniwind", () =>
+  require("../../test-support/heroui").uniwindThemeMock()
+);
+jest.mock("react-native-safe-area-context", () => ({
+  // HeroUI provider가 이 모듈에서 함께 가져다 쓴다 — 통째로 대체하면 provider가
+  // 렌더되지 않는다.
+  SafeAreaListener: ({ children }: { children: unknown }) => children,
+  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
+}));
+jest.mock("./chat-markdown", () => {
+  const ReactRuntime = require("react");
+  const { Text: NativeText } = require("react-native");
+  return {
+    ChatMarkdown: ({ children }: { children: string }) =>
+      ReactRuntime.createElement(NativeText, null, children),
+  };
+});
+
+import { ReduceMotion } from "react-native-reanimated";
+import {
+  HeroUIWrapper,
+  paintedColors,
+  THEME_TOKEN_STUBS,
+} from "../../test-support/heroui";
+import { type ChatController, ChatConversation } from "./chat-conversation";
 
 const mockScrollToEnd = jest.fn();
 const mockContentInsetEndAdjustment = { value: 0 };
 const mockOnComposerLayout = jest.fn();
-const mockKeyboardHeight = { value: 0 };
-const mockKeyboardProgress = { value: 0 };
-
-jest.mock(
-  "@legendapp/list/keyboard",
-  () => {
-    const ReactRuntime = require("react");
-    const { View: NativeView } = require("react-native");
-
-    return {
-      KeyboardAwareLegendList: ReactRuntime.forwardRef(
-        (
-          {
-            data,
-            keyExtractor,
-            renderItem,
-            ...props
-          }: {
-            data: unknown[];
-            keyExtractor: (item: unknown) => string;
-            renderItem: (info: { index: number; item: unknown }) => unknown;
-          },
-          ref: unknown
-        ) => {
-          ReactRuntime.useImperativeHandle(ref, () => ({
-            scrollToEnd: mockScrollToEnd,
-          }));
-
-          return ReactRuntime.createElement(
-            NativeView,
-            props,
-            data.map((item, index) =>
-              ReactRuntime.createElement(
-                ReactRuntime.Fragment,
-                { key: keyExtractor(item) },
-                renderItem({ index, item })
-              )
-            )
-          );
-        }
-      ),
-      useKeyboardChatComposerInset: () => ({
-        contentInsetEndAdjustment: mockContentInsetEndAdjustment,
-        onComposerLayout: mockOnComposerLayout,
-      }),
-    };
-  },
-  { virtual: true }
-);
-jest.mock(
-  "react-native-keyboard-controller",
-  () => {
-    const { View: NativeView } = require("react-native");
-    return {
-      KeyboardGestureArea: NativeView,
-      KeyboardStickyView: NativeView,
-      useReanimatedKeyboardAnimation: () => ({
-        height: mockKeyboardHeight,
-        progress: mockKeyboardProgress,
-      }),
-    };
-  },
-  { virtual: true }
-);
-jest.mock("react-native-reanimated", () => {
-  const { View: NativeView } = require("react-native");
-
-  class MockAnimationBuilder {
-    config?: unknown;
-    durationMs?: number;
-    reduceMotionV?: string;
-
-    constructor(config?: unknown) {
-      this.config = config;
-    }
-
-    duration(value: number) {
-      this.durationMs = value;
-      return this;
-    }
-
-    reduceMotion(value: string) {
-      this.reduceMotionV = value;
-      return this;
-    }
-  }
-
-  return {
-    __esModule: true,
-    default: { View: NativeView },
-    Keyframe: MockAnimationBuilder,
-    LinearTransition: new MockAnimationBuilder(),
-    ReduceMotion: { System: "system" },
-    useAnimatedStyle: (style: () => object) => style(),
-    useSharedValue: (value: number) => ({ value }),
-    withTiming: jest.fn((value: number) => value),
-  };
-});
-jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
-}));
-jest.mock(
-  "expo-symbols",
-  () => {
-    const ReactRuntime = require("react");
-    const { Text: NativeText } = require("react-native");
-    return {
-      SymbolView: ({ name }: { name: string }) =>
-        ReactRuntime.createElement(NativeText, null, name),
-    };
-  },
-  { virtual: true }
-);
-jest.mock(
-  "./chat-markdown",
-  () => {
-    const ReactRuntime = require("react");
-    const { Text: NativeText } = require("react-native");
-    return {
-      ChatMarkdown: ({ children }: { children: string }) =>
-        ReactRuntime.createElement(NativeText, null, children),
-    };
-  },
-  { virtual: true }
-);
-
-import { type ChatController, ChatConversation } from "./chat-conversation";
-
 const mockWithTiming = jest.requireMock("react-native-reanimated")
   .withTiming as jest.Mock;
+
+/** 아이콘이 그리는 글리프 문자 — 무슨 글자든 하나 잡으면 된다. */
+const ANY_GLYPH = /\S/;
+/** 맨 아래 action이 나타나고 사라지는 데 화면이 정한 모션. */
+const SCROLL_BUTTON_TIMING = {
+  duration: 160,
+  reduceMotion: ReduceMotion.System,
+};
+const ON_ACCENT = THEME_TOKEN_STUBS["--color-accent-foreground"];
+const NEUTRAL = THEME_TOKEN_STUBS["--color-muted"];
+/** 짝 line-height를 함께 내는 Tailwind 글자 크기 스케일. */
+const PAIRED_TEXT_SCALE = /\btext-(?:xs|sm|base|lg|\d*xl)\b/;
+const LINE_HEIGHT_UTILITY = /\bleading-/;
 
 function controller(overrides: Partial<ChatController> = {}): ChatController {
   return {
@@ -174,29 +160,32 @@ function controller(overrides: Partial<ChatController> = {}): ChatController {
   };
 }
 
+/** HeroUI 컴포넌트는 provider 아래에서만 선다. */
+function renderChat(ui: Parameters<typeof render>[0]) {
+  return render(ui, { wrapper: HeroUIWrapper });
+}
+
 describe("스트리밍 대화 표면", () => {
   beforeEach(() => {
     mockContentInsetEndAdjustment.value = 0;
-    mockKeyboardHeight.value = 0;
-    mockKeyboardProgress.value = 0;
-    mockScrollToEnd.mockClear();
-    mockOnComposerLayout.mockClear();
-    mockWithTiming.mockClear();
+    // 아이콘 글리프는 jest-expo의 asset registry mock 위에서만 마운트된다 —
+    // `resetAllMocks`는 그 mock까지 지운다.
+    jest.clearAllMocks();
   });
 
   it("사용자 말풍선과 전체 폭 AI 응답을 함께 보여준다", async () => {
-    await render(<ChatConversation chat={controller()} />);
+    await renderChat(<ChatConversation chat={controller()} />);
 
     expect(screen.getByText("사용자 질문")).toBeTruthy();
     expect(screen.getByText("**AI 답변**")).toBeTruthy();
-    expect(screen.getByTestId("user-message-row")).toHaveStyle({
-      justifyContent: "flex-end",
-    });
+    expect(screen.getByTestId("user-message-row").props.className).toContain(
+      "justify-end"
+    );
     expect(screen.getByTestId("assistant-message")).toBeTruthy();
   });
 
   it("기록 한 줄은 말풍선 사이에 가운데로 서고 누를 수 없다", async () => {
-    await render(
+    await renderChat(
       <ChatConversation
         chat={controller({
           messages: [
@@ -220,29 +209,36 @@ describe("스트리밍 대화 표면", () => {
     const note = screen.getByTestId("conversation-note");
 
     expect(within(note).getByText("오늘의 원두 추천 받기 완료")).toBeTruthy();
-    // 체크는 상태 표시다. 누를 것이 아니므로 버튼으로 서지 않는다.
-    expect(within(note).getByText("checkmark")).toBeTruthy();
-    expect(note).toHaveStyle({ justifyContent: "center" });
+    expect(note.props.className).toContain("justify-center");
+    // 체크는 상태 표시다. 누를 것이 아니므로 버튼으로 서지 않고, 글리프가
+    // 스크린 리더의 정지점을 만들지도 않는다.
+    expect(
+      isHiddenFromAccessibility(
+        within(screen.getByTestId("conversation-note-check")).getByText(
+          ANY_GLYPH,
+          { includeHiddenElements: true }
+        )
+      )
+    ).toBe(true);
     expect(
       screen.queryByRole("button", { name: "오늘의 원두 추천 받기 완료" })
     ).toBeNull();
   });
 
   it("판정이 아직 없으면 44pt 고정 열이 비어 있다", async () => {
-    await render(<ChatConversation chat={controller()} />);
+    await renderChat(<ChatConversation chat={controller()} />);
 
-    expect(screen.getByTestId("user-message-mark")).toHaveStyle({
-      height: 44,
-      width: 44,
-    });
+    expect(screen.getByTestId("user-message-mark").props.className).toContain(
+      "size-11"
+    );
     expect(screen.getByTestId("user-message-mark")).toBeEmptyElement();
   });
 
   it("판정이 나중에 채워져도 말풍선은 같은 자리에 있다", async () => {
-    const { rerender } = await render(
+    const { rerender } = await renderChat(
       <ChatConversation chat={controller()} onMarkPress={jest.fn()} />
     );
-    const before = screen.getByTestId("user-message-mark").props.style;
+    const before = screen.getByTestId("user-message-mark").props.className;
 
     await rerender(
       <ChatConversation
@@ -263,14 +259,16 @@ describe("스트리밍 대화 표면", () => {
     );
 
     // 열의 크기는 그대로고 안에 값만 들어선다.
-    expect(screen.getByTestId("user-message-mark").props.style).toEqual(before);
+    expect(screen.getByTestId("user-message-mark").props.className).toEqual(
+      before
+    );
     expect(screen.getByTestId("user-message-mark")).not.toBeEmptyElement();
     expect(screen.getByText("사용자 질문")).toBeTruthy();
   });
 
   it("누를 수 있는 두 표시만 버튼이고 44pt를 다 쓴다", async () => {
     const onMarkPress = jest.fn();
-    await render(
+    await renderChat(
       <ChatConversation
         chat={controller({
           messages: [
@@ -304,17 +302,23 @@ describe("스트리밍 대화 표면", () => {
       />
     );
 
-    const translated = screen.getByTestId("message-mark-translated");
-    const improvable = screen.getByTestId("message-mark-improvable");
-    const clear = screen.getByTestId("message-mark-clear");
+    for (const testID of [
+      "message-mark-translated",
+      "message-mark-improvable",
+      "message-mark-clear",
+    ]) {
+      const mark = screen.getByTestId(testID);
 
-    expect(translated).toHaveStyle({ height: 44, width: 44 });
-    expect(improvable).toHaveStyle({ height: 44, width: 44 });
-    expect(clear).toHaveStyle({ height: 44, width: 44 });
-    expect(within(translated).getByText("translate")).toBeTruthy();
-    expect(within(improvable).getByText("info.circle")).toBeTruthy();
-    // 상태 표시인 체크는 배경 없는 플랫 아이콘이라 원형 버튼이 없다.
-    expect(within(clear).getByText("checkmark")).toBeTruthy();
+      expect(mark.props.className).toContain("size-11");
+      // 뜻은 표시 자리의 접근성 이름이 나른다 — 글리프 문자가 읽히지 않는다.
+      expect(
+        isHiddenFromAccessibility(
+          within(mark).getByText(ANY_GLYPH, { includeHiddenElements: true })
+        )
+      ).toBe(true);
+    }
+
+    // 상태 표시인 체크는 누를 것이 아니다.
     expect(
       screen.queryByRole("button", { name: "그대로 잘 통했어요" })
     ).toBeNull();
@@ -331,7 +335,7 @@ describe("스트리밍 대화 표면", () => {
 
   it("말풍선 본문을 눌러서는 아무 일도 일어나지 않는다", async () => {
     const onMarkPress = jest.fn();
-    await render(
+    await renderChat(
       <ChatConversation
         chat={controller({
           messages: [
@@ -356,7 +360,7 @@ describe("스트리밍 대화 표면", () => {
   });
 
   it("맨 아래에서는 목록이 스트리밍 높이 변화를 애니메이션 없이 따라간다", async () => {
-    await render(<ChatConversation chat={controller()} />);
+    await renderChat(<ChatConversation chat={controller()} />);
 
     const list = screen.getByTestId("chat-message-list");
 
@@ -378,7 +382,7 @@ describe("스트리밍 대화 표면", () => {
   });
 
   it("목록 높이에 상관없이 맨 아래 72pt를 자동 추적 범위로 사용한다", async () => {
-    await render(<ChatConversation chat={controller()} />);
+    await renderChat(<ChatConversation chat={controller()} />);
 
     await fireEvent(screen.getByTestId("chat-message-viewport"), "onLayout", {
       nativeEvent: {
@@ -392,7 +396,7 @@ describe("스트리밍 대화 표면", () => {
   });
 
   it("키보드 전환과 하단 버튼은 inset을 포함한 같은 72pt 경계를 따른다", async () => {
-    await render(<ChatConversation chat={controller()} />);
+    await renderChat(<ChatConversation chat={controller()} />);
 
     const list = screen.getByTestId("chat-message-list");
     const stickyComposer = screen.getByTestId("chat-composer-sticky");
@@ -410,10 +414,10 @@ describe("스트리밍 대화 표면", () => {
     expect(
       within(stickyComposer).getByRole("button", { name: "맨 아래로" })
     ).toBeTruthy();
-    expect(mockWithTiming).toHaveBeenLastCalledWith(1, {
-      duration: 160,
-      reduceMotion: "system",
-    });
+    // HeroUI 컴포넌트도 같은 함수로 자기 모션을 돌리므로 마지막 호출이 아니라
+    // 화면이 정한 값이 있었는지를 본다.
+    expect(mockWithTiming).toHaveBeenCalledWith(1, SCROLL_BUTTON_TIMING);
+    mockWithTiming.mockClear();
 
     await fireEvent(list, "onScroll", {
       nativeEvent: {
@@ -428,14 +432,11 @@ describe("스트리밍 대화 표면", () => {
     expect(
       within(stickyComposer).queryByRole("button", { name: "맨 아래로" })
     ).toBeNull();
-    expect(mockWithTiming).toHaveBeenLastCalledWith(0, {
-      duration: 160,
-      reduceMotion: "system",
-    });
+    expect(mockWithTiming).toHaveBeenCalledWith(0, SCROLL_BUTTON_TIMING);
   });
 
   it("중앙 버튼으로 맨 아래에 도착한 뒤 자동 추적 상태로 돌아간다", async () => {
-    await render(<ChatConversation chat={controller()} />);
+    await renderChat(<ChatConversation chat={controller()} />);
 
     const list = screen.getByTestId("chat-message-list");
     await fireEvent(list, "onScroll", {
@@ -451,11 +452,15 @@ describe("스트리밍 대화 표면", () => {
       name: "맨 아래로",
     });
 
-    expect(screen.getByTestId("chat-scroll-to-bottom-anchor")).toHaveStyle({
-      left: "50%",
-      top: -60,
-      transform: [{ translateX: -22 }],
-    });
+    // composer 바로 위 전체 폭에 걸쳐 서서 버튼을 가운데에 세운다. 이 두 단언은
+    // 짝이다 — 전체 폭을 덮는 자리가 스스로 터치를 받으면(`auto`) 버튼이 보이는
+    // 동안(=스크롤을 올린 동안) composer 위 44pt 띠가 목록 드래그와 말풍선 곁
+    // 표시 탭을 삼킨다. `box-none`은 자식만 터치 대상으로 남긴다.
+    const anchor = screen.getByTestId("chat-scroll-to-bottom-anchor");
+
+    expect(anchor.props.className).toContain("inset-x-0");
+    expect(anchor.props.className).toContain("items-center");
+    expect(anchor.props.pointerEvents).toBe("box-none");
 
     await fireEvent.press(button);
 
@@ -475,10 +480,12 @@ describe("스트리밍 대화 표면", () => {
     expect(
       within(stickyComposer).queryByRole("button", { name: "맨 아래로" })
     ).toBeNull();
+    // 버튼이 사라진 뒤에는 자식까지 통째로 터치에서 빠진다.
+    expect(anchor.props.pointerEvents).toBe("none");
   });
 
   it("목록 머리는 대화의 첫 요소로, dock은 composer 바로 위에 둔다", async () => {
-    await render(
+    await renderChat(
       <ChatConversation
         chat={controller()}
         dock={<Text testID="surface-dock">dock</Text>}
@@ -494,7 +501,7 @@ describe("스트리밍 대화 표면", () => {
   });
 
   it("끝난 자리가 오면 목표 바와 composer가 함께 내려가고 대화는 남는다", async () => {
-    await render(
+    await renderChat(
       <ChatConversation
         chat={controller()}
         dock={<Text testID="surface-dock">dock</Text>}
@@ -511,7 +518,7 @@ describe("스트리밍 대화 표면", () => {
   });
 
   it("composer placeholder는 화면이 정한다", async () => {
-    await render(
+    await renderChat(
       <ChatConversation chat={controller()} placeholder="영어로 써 보세요" />
     );
 
@@ -521,7 +528,7 @@ describe("스트리밍 대화 표면", () => {
   });
 
   it("맨 아래에서는 목록과 composer가 같은 키보드 전환을 따른다", async () => {
-    await render(<ChatConversation chat={controller()} />);
+    await renderChat(<ChatConversation chat={controller()} />);
 
     const list = screen.getByTestId("chat-message-list");
 
@@ -539,7 +546,7 @@ describe("스트리밍 대화 표면", () => {
   });
 
   it("composer 높이 변화는 메시지 목록의 아래 inset에 반영한다", async () => {
-    await render(<ChatConversation chat={controller()} />);
+    await renderChat(<ChatConversation chat={controller()} />);
 
     await fireEvent(screen.getByTestId("chat-composer-layout"), "onLayout", {
       nativeEvent: {
@@ -556,7 +563,7 @@ describe("스트리밍 대화 표면", () => {
 
   it("composer는 텍스트만 4,000자까지 받고 내용을 컨트롤러에 전한다", async () => {
     const setInput = jest.fn();
-    await render(<ChatConversation chat={controller({ setInput })} />);
+    await renderChat(<ChatConversation chat={controller({ setInput })} />);
 
     const input = screen.getByPlaceholderText("메시지 보내기");
     fireEvent.changeText(input, "새 질문");
@@ -566,25 +573,35 @@ describe("스트리밍 대화 표면", () => {
   });
 
   it("composer 입력은 Dynamic Type 글자를 자르는 고정 line height를 쓰지 않는다", async () => {
-    const { StyleSheet } = require("react-native");
-    await render(<ChatConversation chat={controller()} />);
+    await renderChat(<ChatConversation chat={controller()} />);
 
     const input = screen.getByPlaceholderText("메시지 보내기");
+    const className: string = input.props.className;
 
-    expect(StyleSheet.flatten(input.props.style).lineHeight).toBeUndefined();
+    // Tailwind의 `text-*` 스케일은 font-size만이 아니라 짝 line-height도 낸다.
+    // RN은 Dynamic Type로 fontSize만 키우므로 고정 line height는 큰 글자에서
+    // 글자를 자른다. 그래서 짝이 없는 앱 토큰 하나만 쓴다 — 그 토큰이 정말
+    // line-height를 내지 않는지는 실제 CSS를 컴파일하는
+    // `scripts/style-foundation.test.ts`가 확인한다.
+    expect(className).toContain("text-composer");
+    expect(className).not.toMatch(PAIRED_TEXT_SCALE);
+    expect(className).not.toMatch(LINE_HEIGHT_UTILITY);
+    expect(
+      StyleSheet.flatten(input.props.style ?? {}).lineHeight
+    ).toBeUndefined();
   });
 
   it("composer는 form과 같은 adaptive input fill을 사용한다", async () => {
-    await render(<ChatConversation chat={controller()} />);
+    await renderChat(<ChatConversation chat={controller()} />);
 
-    expect(screen.getByTestId("chat-composer-surface")).toHaveStyle({
-      backgroundColor: "#222222",
-    });
+    expect(
+      screen.getByTestId("chat-composer-surface").props.className
+    ).toContain("bg-field");
   });
 
   it("보낼 내용이 있으면 전송 action을 실행한다", async () => {
     const onSend = jest.fn();
-    await render(
+    await renderChat(
       <ChatConversation chat={controller({ input: "질문", onSend })} />
     );
 
@@ -595,7 +612,7 @@ describe("스트리밍 대화 표면", () => {
 
   it("스트리밍 중에는 전송 대신 중단 action을 보여준다", async () => {
     const stop = jest.fn();
-    await render(
+    await renderChat(
       <ChatConversation
         chat={controller({
           messages: [
@@ -627,7 +644,7 @@ describe("스트리밍 대화 표면", () => {
   });
 
   it("첫 AI 텍스트 전에는 대화 영역에 응답 생성 스피너를 보여준다", async () => {
-    await render(
+    await renderChat(
       <ChatConversation
         chat={controller({
           messages: [
@@ -645,19 +662,21 @@ describe("스트리밍 대화 표면", () => {
     );
 
     const indicator = screen.getByLabelText("응답 생성 중");
+    const painted = paintedColors(screen.toJSON());
 
-    expect(indicator.props.color).toBe("#777777");
-    expect(indicator).toHaveStyle({
-      alignSelf: "flex-start",
-      marginLeft: 8,
-    });
+    expect(indicator.props.className).toContain("self-start");
+    // 대화 영역의 진행은 스스로 나타나는 수동형이라 중립 회색이고, composer
+    // action 안의 진행은 그 action의 전경색을 따른다
+    // (docs/decisions/apple-hig-with-app-theme.md).
+    expect(painted).toContain(processColor(NEUTRAL));
+    expect(painted).toContain(processColor(ON_ACCENT));
     expect(screen.queryByText("…")).toBeNull();
-    expect(screen.queryByText("\u258c")).toBeNull();
+    expect(screen.queryByText("▌")).toBeNull();
   });
 
   it("요청 대기 중에는 composer 스피너로 중단 action을 제공한다", async () => {
     const stop = jest.fn();
-    await render(
+    await renderChat(
       <ChatConversation
         chat={controller({
           status: "submitted",
@@ -670,11 +689,10 @@ describe("스트리밍 대화 표면", () => {
     fireEvent.press(screen.getByRole("button", { name: "응답 중단" }));
 
     expect(stop).toHaveBeenCalled();
-    expect(screen.queryByText("stop.fill")).toBeNull();
   });
 
   it("첫 AI 텍스트가 오면 대화 스피너와 cursor 없이 응답만 보여준다", async () => {
-    await render(
+    await renderChat(
       <ChatConversation
         chat={controller({
           messages: [
@@ -698,12 +716,12 @@ describe("스트리밍 대화 표면", () => {
 
     expect(screen.getByText("첫 응답")).toBeTruthy();
     expect(screen.queryByTestId("assistant-response-spinner")).toBeNull();
-    expect(screen.queryByText("\u258c")).toBeNull();
-    expect(screen.getByText("stop.fill")).toBeTruthy();
+    expect(screen.queryByText("▌")).toBeNull();
+    expect(screen.getByRole("button", { name: "응답 중단" })).toBeTruthy();
   });
 
   it("중단 저장된 AI 응답에는 중단됨을 표시한다", async () => {
-    await render(
+    await renderChat(
       <ChatConversation
         chat={controller({
           messages: [
@@ -724,7 +742,7 @@ describe("스트리밍 대화 표면", () => {
 
   it("모델 오류는 현재 화면에서 재시도할 수 있다", async () => {
     const onRetry = jest.fn();
-    await render(
+    await renderChat(
       <ChatConversation
         chat={controller({
           error: new Error("gateway failed"),
@@ -737,33 +755,39 @@ describe("스트리밍 대화 표면", () => {
     const banner = screen.getByTestId("chat-error-banner");
     const composerSurface = screen.getByTestId("chat-composer-surface");
 
-    expect(banner.props.entering).toMatchObject({
-      durationMs: 160,
-      reduceMotionV: "system",
-    });
-    expect(banner.props.exiting).toMatchObject({
-      durationMs: 140,
-      reduceMotionV: "system",
-    });
+    // 배너는 composer와의 공간 관계를 유지하며 나타나고 사라진다. Reduce
+    // Motion은 시스템 설정을 따른다(docs/decisions/native-motion.md).
+    expect(banner.props.entering.durationV).toBe(160);
+    expect(banner.props.entering.reduceMotionV).toBe(ReduceMotion.System);
+    expect(banner.props.exiting.durationV).toBe(140);
+    expect(banner.props.exiting.reduceMotionV).toBe(ReduceMotion.System);
     expect(composerSurface.props.layout).toBeUndefined();
     fireEvent.press(screen.getByRole("button", { name: "다시 시도" }));
 
     expect(onRetry).toHaveBeenCalled();
   });
 
-  it("모델 오류의 재시도 action은 semibold 위계를 유지한다", async () => {
-    await render(
+  it("모델 오류의 재시도 action은 배너 안에서 44pt로 선다", async () => {
+    await renderChat(
       <ChatConversation
         chat={controller({ error: new Error("gateway failed") })}
       />
     );
 
-    expect(screen.getByText("다시 시도")).toHaveStyle({ fontWeight: "600" });
+    const banner = screen.getByTestId("chat-error-banner");
+    const retry = within(banner).getByRole("button", { name: "다시 시도" });
+
+    expect(retry.props.className).toContain("min-h-11");
+    // 배너의 반지름은 16pt다 — HeroUI 스케일의 `--radius-2xl`. `Surface` 기본값
+    // (`--radius-3xl`, 24pt)로 흘러가지 않게 클래스로 고정한다.
+    expect(screen.getByTestId("chat-error-surface").props.className).toContain(
+      "rounded-2xl"
+    );
   });
 
   it("모델 오류 중에도 새 입력은 일반 전송 버튼으로 보낼 수 있다", async () => {
     const onSend = jest.fn();
-    await render(
+    await renderChat(
       <ChatConversation
         chat={controller({
           error: new Error("gateway failed"),

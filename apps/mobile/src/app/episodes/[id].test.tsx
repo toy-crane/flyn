@@ -4,11 +4,18 @@ import {
   screen,
   within,
 } from "@testing-library/react-native";
+import { processColor } from "react-native";
 
+jest.mock("uniwind", () =>
+  require("../../test-support/heroui").uniwindThemeMock()
+);
 jest.mock("expo-router", () =>
   require("../../test-support/expo-router").expoRouterMock()
 );
 jest.mock("react-native-safe-area-context", () => ({
+  // HeroUI provider가 이 모듈에서 함께 가져다 쓴다 — 통째로 대체하면 provider가
+  // 렌더되지 않는다.
+  SafeAreaListener: ({ children }: { children: unknown }) => children,
   useSafeAreaInsets: () => ({ bottom: 34, left: 0, right: 0, top: 59 }),
 }));
 jest.mock("../../components/chat/chat-conversation", () => {
@@ -83,8 +90,20 @@ import {
   useEpisodeMessages,
 } from "../../lib/use-episodes";
 import { routerStub, setSearchParams } from "../../test-support/expo-router";
+import {
+  HeroUIWrapper,
+  paintedColors,
+  THEME_TOKEN_STUBS,
+} from "../../test-support/heroui";
 import EpisodeConversationScreen from "./[id]";
 
+/** HeroUI 컴포넌트는 provider 아래에서만 선다. */
+function renderConversation() {
+  return render(<EpisodeConversationScreen />, { wrapper: HeroUIWrapper });
+}
+
+const ACCENT = THEME_TOKEN_STUBS["--color-accent"];
+const NEUTRAL = THEME_TOKEN_STUBS["--color-muted"];
 const mockUseEpisode = useEpisode as jest.Mock;
 const mockUseEpisodeMessages = useEpisodeMessages as jest.Mock;
 const mockUseEpisodeFeedback = useEpisodeFeedback as jest.Mock;
@@ -181,7 +200,7 @@ beforeEach(() => {
 
 describe("에피소드 대화 화면", () => {
   it("헤더가 시나리오 제목과 역할을 나른다", async () => {
-    await render(<EpisodeConversationScreen />);
+    await renderConversation();
 
     expect(screen.getByText("포틀랜드 카페에서 첫 주문")).toBeTruthy();
     expect(screen.getByText("바리스타 Maya · 처음 방문한 여행객")).toBeTruthy();
@@ -190,7 +209,7 @@ describe("에피소드 대화 화면", () => {
   });
 
   it("상황 카드가 대화 목록의 첫 요소다", async () => {
-    await render(<EpisodeConversationScreen />);
+    await renderConversation();
 
     const listHeader = screen.getByTestId("surface-list-header");
 
@@ -206,7 +225,7 @@ describe("에피소드 대화 화면", () => {
   });
 
   it("목표 바가 composer 바로 위에 탭 없이 항상 있다", async () => {
-    await render(<EpisodeConversationScreen />);
+    await renderConversation();
 
     const dock = within(screen.getByTestId("surface-dock"));
 
@@ -218,7 +237,7 @@ describe("에피소드 대화 화면", () => {
   });
 
   it("펼친 목표 바가 사용자 메시지로 센 턴을 보여준다", async () => {
-    await render(<EpisodeConversationScreen />);
+    await renderConversation();
 
     await fireEvent.press(screen.getByTestId("goal-dock"));
 
@@ -226,7 +245,7 @@ describe("에피소드 대화 화면", () => {
   });
 
   it("composer는 영어를 먼저 권한다", async () => {
-    await render(<EpisodeConversationScreen />);
+    await renderConversation();
 
     expect(screen.getByTestId("surface-placeholder")).toHaveTextContent(
       "영어로 써 보세요"
@@ -234,7 +253,7 @@ describe("에피소드 대화 화면", () => {
   });
 
   it("지난 대화와 저장된 판정을 그대로 controller에 넘긴다", async () => {
-    await render(<EpisodeConversationScreen />);
+    await renderConversation();
 
     expect(mockUseEpisodeConversation).toHaveBeenCalledWith(
       EPISODE,
@@ -245,7 +264,7 @@ describe("에피소드 대화 화면", () => {
   });
 
   it("표시를 누르면 그 발화의 첨삭 시트가 열린다", async () => {
-    await render(<EpisodeConversationScreen />);
+    await renderConversation();
     await fireEvent.press(screen.getByTestId("surface-mark"));
 
     expect(routerStub.push).toHaveBeenCalledWith({
@@ -271,7 +290,7 @@ describe("에피소드 대화 화면", () => {
       ],
     });
 
-    await render(<EpisodeConversationScreen />);
+    await renderConversation();
 
     const dock = within(screen.getByTestId("surface-dock"));
 
@@ -288,7 +307,7 @@ describe("에피소드 대화 화면", () => {
       goals: GOALS,
     });
 
-    await render(<EpisodeConversationScreen />);
+    await renderConversation();
 
     expect(screen.getByTestId("episode-end-note")).toHaveTextContent(
       "목표를 모두 달성해서 대화가 끝났어요"
@@ -312,7 +331,7 @@ describe("에피소드 대화 화면", () => {
       goals: GOALS,
     });
 
-    await render(<EpisodeConversationScreen />);
+    await renderConversation();
 
     expect(screen.getByTestId("episode-end-note")).toHaveTextContent(
       "12턴을 다 써서 대화가 끝났어요"
@@ -326,7 +345,7 @@ describe("에피소드 대화 화면", () => {
       goals: GOALS,
     });
 
-    await render(<EpisodeConversationScreen />);
+    await renderConversation();
     await fireEvent.press(screen.getByRole("button", { name: "결과 보기" }));
 
     expect(routerStub.push).toHaveBeenCalledWith({
@@ -343,11 +362,15 @@ describe("에피소드 대화 화면", () => {
       refetch: retryMessages,
     });
 
-    await render(<EpisodeConversationScreen />);
+    await renderConversation();
 
-    expect(screen.getByLabelText("대화 불러오는 중").props.color).toBe(
-      "#777777"
-    );
+    expect(screen.getByLabelText("대화 불러오는 중")).toBeTruthy();
+    // 스스로 나타나는 수동형 진행이라 accent가 아니다
+    // (docs/decisions/apple-hig-with-app-theme.md).
+    const painted = paintedColors(screen.toJSON());
+
+    expect(painted).toContain(processColor(NEUTRAL));
+    expect(painted).not.toContain(processColor(ACCENT));
     expect(screen.queryByTestId("goal-dock")).toBeNull();
   });
 
@@ -359,7 +382,7 @@ describe("에피소드 대화 화면", () => {
       refetch: retryEpisode,
     });
 
-    await render(<EpisodeConversationScreen />);
+    await renderConversation();
     await fireEvent.press(screen.getByRole("button", { name: "다시 시도" }));
 
     expect(retryEpisode).toHaveBeenCalled();
@@ -374,7 +397,7 @@ describe("에피소드 대화 화면", () => {
       refetch: retryEpisode,
     });
 
-    await render(<EpisodeConversationScreen />);
+    await renderConversation();
 
     expect(screen.getByText("에피소드를 찾을 수 없어요.")).toBeTruthy();
     expect(

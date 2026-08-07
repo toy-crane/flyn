@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { processColor } from "react-native";
 
 jest.mock("../../lib/supabase", () => ({
   supabase: { auth: { signInWithOtp: jest.fn(), verifyOtp: jest.fn() } },
@@ -9,8 +10,24 @@ jest.mock("expo-router", () =>
   require("../../test-support/expo-router").expoRouterMock()
 );
 
+jest.mock("uniwind", () =>
+  require("../../test-support/heroui").uniwindThemeMock()
+);
+
+// HeroUINativeProvider가 insets 구독에 SafeAreaListener를 쓴다 — 네이티브 뷰라
+// jest에서는 자리만 세운다.
+jest.mock("react-native-safe-area-context", () => ({
+  SafeAreaListener: ({ children }: { children: unknown }) => children,
+  useSafeAreaInsets: () => ({ bottom: 34, left: 0, right: 0, top: 59 }),
+}));
+
 import { supabase } from "../../lib/supabase";
 import { setSearchParams } from "../../test-support/expo-router";
+import {
+  HeroUIWrapper,
+  paintedColors,
+  THEME_TOKEN_STUBS,
+} from "../../test-support/heroui";
 import CodeScreen from "./code";
 
 const mockAuth = supabase.auth as unknown as {
@@ -25,6 +42,8 @@ const NETWORK_COPY = /인터넷에 연결/;
 const RATE_LIMIT_COPY = /요청이 너무 잦아요/;
 const RAW_VENDOR_COPY = /Token has expired/;
 const RESEND = "코드 다시 받기";
+const ACCENT = THEME_TOKEN_STUBS["--color-accent"];
+const NEUTRAL = THEME_TOKEN_STUBS["--color-muted"];
 
 async function typeCode(code: string) {
   await fireEvent.changeText(screen.getByLabelText(FIELD), code);
@@ -55,7 +74,7 @@ describe("CodeScreen", () => {
   it("긴 이메일은 코드 안내와 분리해 전체 주소를 보여준다", async () => {
     setSearchParams({ email: LONG_EMAIL });
 
-    await render(<CodeScreen />);
+    await render(<CodeScreen />, { wrapper: HeroUIWrapper });
 
     expect(screen.getByText("6자리 코드를 입력해 주세요.")).toBeTruthy();
     expect(screen.getByText(LONG_EMAIL)).toBeTruthy();
@@ -63,7 +82,7 @@ describe("CodeScreen", () => {
 
   it("붙여넣은 코드에서 숫자만 남기고 즉시 검증한다", async () => {
     mockAuth.verifyOtp.mockResolvedValue({ error: null });
-    await render(<CodeScreen />);
+    await render(<CodeScreen />, { wrapper: HeroUIWrapper });
 
     // maxLength로 앞부분만 잘리면 6자로 보여도 검증은 실패한다.
     await typeCode("코드: 448183");
@@ -77,7 +96,7 @@ describe("CodeScreen", () => {
 
   it("6자리를 채워야 코드를 검증한다", async () => {
     mockAuth.verifyOtp.mockResolvedValue({ error: null });
-    await render(<CodeScreen />);
+    await render(<CodeScreen />, { wrapper: HeroUIWrapper });
 
     await typeCode("12345");
     expect(mockAuth.verifyOtp).not.toHaveBeenCalled();
@@ -94,7 +113,7 @@ describe("CodeScreen", () => {
     mockAuth.verifyOtp.mockResolvedValue({
       error: { message: "Token has expired" },
     });
-    await render(<CodeScreen />);
+    await render(<CodeScreen />, { wrapper: HeroUIWrapper });
 
     await typeCode("123456");
 
@@ -105,7 +124,7 @@ describe("CodeScreen", () => {
 
   it("별도 로그인 CTA 없이 여섯 자리에서 한 번만 자동 제출한다", async () => {
     mockAuth.verifyOtp.mockResolvedValue({ error: null });
-    await render(<CodeScreen />);
+    await render(<CodeScreen />, { wrapper: HeroUIWrapper });
 
     await typeCode("123456");
     await typeCode("123456");
@@ -118,7 +137,7 @@ describe("CodeScreen", () => {
   // 검증을 때린다.
   it("주소 없이 열리면 검증하지 않는다", async () => {
     setSearchParams({});
-    await render(<CodeScreen />);
+    await render(<CodeScreen />, { wrapper: HeroUIWrapper });
 
     await typeCode("123456");
 
@@ -133,7 +152,7 @@ describe("CodeScreen", () => {
         settle = resolve;
       })
     );
-    await render(<CodeScreen />);
+    await render(<CodeScreen />, { wrapper: HeroUIWrapper });
 
     await typeCode("123456");
 
@@ -146,8 +165,46 @@ describe("CodeScreen", () => {
     });
   });
 
+  // 여섯 자리가 채워지면 스스로 제출한다 — 누른 버튼이 없는 수동형 진행이라
+  // 중립 회색이다. accent를 쓰면 파란 action tint가 남는다
+  // (docs/decisions/apple-hig-with-app-theme.md).
+  it("검증 progress는 중립 회색이다 — 브랜드 accent를 쓰지 않는다", async () => {
+    mockAuth.verifyOtp.mockReturnValue(new Promise(() => undefined));
+    await render(<CodeScreen />, { wrapper: HeroUIWrapper });
+
+    await typeCode("123456");
+
+    const painted = paintedColors(screen.toJSON());
+
+    expect(screen.getByText("확인 중…")).toBeTruthy();
+    expect(painted).toContain(processColor(NEUTRAL));
+    expect(painted).not.toContain(processColor(ACCENT));
+  });
+
+  // 같은 계약의 반대쪽 절반. 재전송 progress는 방금 누른 accent action의 자리에서
+  // 그 action의 진행을 말하므로 action의 전경색을 따른다 — 두 indicator는 서로
+  // 다른 foreground 소유권을 가진다.
+  it("재전송 progress는 눌린 action의 전경색을 따른다", async () => {
+    mockAuth.signInWithOtp.mockReturnValue(new Promise(() => undefined));
+    await render(<CodeScreen />, { wrapper: HeroUIWrapper });
+    await finishCooldown();
+
+    // press가 돌려주는 promise는 기다리지 않는다 — 끝나지 않는 발송을 붙잡아 두는
+    // 테스트라 기다리면 그대로 멈춘다. React만 따라잡게 한다.
+    await act(async () => {
+      fireEvent.press(screen.getByRole("button", { name: RESEND }));
+      await Promise.resolve();
+    });
+
+    const painted = paintedColors(screen.toJSON());
+
+    expect(screen.getByText("보내는 중…")).toBeTruthy();
+    expect(painted).toContain(processColor(ACCENT));
+    expect(painted).not.toContain(processColor(NEUTRAL));
+  });
+
   it("첫 30초 동안 남은 시간을 보이고 끝나면 재전송을 연다", async () => {
-    await render(<CodeScreen />);
+    await render(<CodeScreen />, { wrapper: HeroUIWrapper });
 
     expect(screen.getByText("30초 후 다시 받기")).toBeTruthy();
 
@@ -158,7 +215,7 @@ describe("CodeScreen", () => {
 
   it("재전송에 성공하면 입력을 비우고 cooldown을 다시 시작한다", async () => {
     mockAuth.signInWithOtp.mockResolvedValue({ error: null });
-    await render(<CodeScreen />);
+    await render(<CodeScreen />, { wrapper: HeroUIWrapper });
     await typeCode("123");
     await finishCooldown();
 
@@ -183,7 +240,7 @@ describe("CodeScreen", () => {
           "For security purposes, you can only request this after 47 seconds.",
       },
     });
-    await render(<CodeScreen />);
+    await render(<CodeScreen />, { wrapper: HeroUIWrapper });
     await finishCooldown();
 
     await fireEvent.press(screen.getByRole("button", { name: RESEND }));
@@ -200,7 +257,7 @@ describe("CodeScreen", () => {
     mockAuth.signInWithOtp.mockResolvedValue({
       error: { message: "Network request failed" },
     });
-    await render(<CodeScreen />);
+    await render(<CodeScreen />, { wrapper: HeroUIWrapper });
     await finishCooldown();
 
     await fireEvent.press(screen.getByRole("button", { name: RESEND }));

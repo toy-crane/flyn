@@ -8,7 +8,12 @@
       "cache": false
     },
     "//#test:scripts": {
-      "inputs": ["scripts/**/*.ts", "apps/mobile/metro.config.js"],
+      "inputs": [
+        "scripts/**/*.ts",
+        "apps/mobile/metro.config.js",
+        "apps/mobile/global.css",
+        "apps/mobile/src/**/*.{ts,tsx}"
+      ],
       "outputs": []
     },
     "//#typecheck:scripts": {

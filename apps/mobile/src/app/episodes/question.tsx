@@ -1,34 +1,19 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Button, Spinner, Typography, useThemeColor } from "heroui-native";
 import { type ReactNode, useCallback } from "react";
-import { StyleSheet, View } from "react-native";
+import { View } from "react-native";
 import { ChatConversation } from "../../components/chat/chat-conversation";
 import { ChatMarkdown } from "../../components/chat/chat-markdown";
 import { QuotedSentenceCard } from "../../components/episode/quoted-sentence-card";
-import {
-  CenteredAction,
-  CenteredState,
-} from "../../components/feedback/centered-action";
-import { LoadingIndicator } from "../../components/feedback/loading-indicator";
 import { HeaderTitles } from "../../components/navigation/header-titles";
 import { questionedSentence } from "../../lib/episodes";
 import type { SentenceQuestionMessage } from "../../lib/sentence-question";
 import { useSentenceQuestion as useStoredSentenceQuestion } from "../../lib/sentence-question";
 import { useEpisode, useEpisodeMessages } from "../../lib/use-episodes";
 import { useSentenceQuestion } from "../../lib/use-sentence-question";
-import { useTheme } from "../../theme/app-theme";
-import { spacing } from "../../theme/tokens";
 
 const INTRO =
   "무엇이든 물어보세요. 왜 이렇게 고치면 좋은지, 다른 표현은 없는지, 비슷한 상황에서 어떻게 말하는지 다 좋아요.";
-
-const styles = StyleSheet.create({
-  intro: {
-    paddingBottom: spacing.sm,
-  },
-  screen: {
-    flex: 1,
-  },
-});
 
 function single(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -38,13 +23,22 @@ function single(value: string | string[] | undefined) {
   return value ?? "";
 }
 
+/** 화면이 설 수 없거나 아직 아무것도 없을 때 쓰는 한 프레임. */
+function CenteredState({ children }: { children: ReactNode }) {
+  return (
+    <View className="flex-1 items-center justify-center gap-3 bg-background px-8">
+      {children}
+    </View>
+  );
+}
+
 /**
  * 무엇을 물어봐도 되는 자리인지 한 번 말해 준다. 오간 말이 아니라 안내라
  * 저장되지 않고 목록 머리에 서서 지난 내용 위에 남는다.
  */
 function QuestionIntro() {
   return (
-    <View style={styles.intro} testID="sentence-question-intro">
+    <View className="pb-3" testID="sentence-question-intro">
       <ChatMarkdown>{INTRO}</ChatMarkdown>
     </View>
   );
@@ -61,11 +55,10 @@ function SentenceQuestionSession({
   sentence: string;
   storedMessages: SentenceQuestionMessage[];
 }) {
-  const { colors } = useTheme();
   const { chat } = useSentenceQuestion(episodeId, messageId, storedMessages);
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+    <View className="flex-1 bg-background">
       {/* 인용 카드는 목록 바깥에 서서 스크롤해도 대상 문장을 놓치지 않는다. */}
       <QuotedSentenceCard sentence={sentence} />
       <ChatConversation
@@ -95,6 +88,9 @@ export default function SentenceQuestionScreen() {
   const messages = useEpisodeMessages(episodeId);
   const question = useStoredSentenceQuestion(episodeId, messageId);
   const sentence = questionedSentence(messages.data ?? [], messageId);
+  // 스스로 나타나는 수동형 진행이라 중립 회색이다
+  // (docs/decisions/apple-hig-with-app-theme.md).
+  const neutral = useThemeColor("muted");
 
   const retry = useCallback(() => {
     messages.refetch();
@@ -111,7 +107,7 @@ export default function SentenceQuestionScreen() {
   ) {
     content = (
       <CenteredState>
-        <LoadingIndicator accessibilityLabel="지난 내용 불러오는 중" />
+        <Spinner accessibilityLabel="지난 내용 불러오는 중" color={neutral} />
       </CenteredState>
     );
   } else if (
@@ -119,11 +115,14 @@ export default function SentenceQuestionScreen() {
     (question.isError && question.data === undefined)
   ) {
     content = (
-      <CenteredAction
-        actionLabel="다시 시도"
-        message="지난 내용을 불러오지 못했어요."
-        onPress={retry}
-      />
+      <CenteredState>
+        <Typography.Paragraph align="center">
+          지난 내용을 불러오지 못했어요.
+        </Typography.Paragraph>
+        <Button onPress={retry}>
+          <Button.Label>다시 시도</Button.Label>
+        </Button>
+      </CenteredState>
     );
   } else if (sentence) {
     content = (
@@ -136,11 +135,14 @@ export default function SentenceQuestionScreen() {
     );
   } else {
     content = (
-      <CenteredAction
-        actionLabel="대화로 돌아가기"
-        message="문장을 찾을 수 없어요."
-        onPress={goBack}
-      />
+      <CenteredState>
+        <Typography.Paragraph align="center">
+          문장을 찾을 수 없어요.
+        </Typography.Paragraph>
+        <Button onPress={goBack}>
+          <Button.Label>대화로 돌아가기</Button.Label>
+        </Button>
+      </CenteredState>
     );
   }
 

@@ -9,26 +9,15 @@ import {
   multilineTextAlignment,
 } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
+import { Spinner, useThemeColor } from "heroui-native";
 import { useCallback, useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
-import { HostedLoadingIndicator } from "../../components/feedback/hosted-loading-indicator";
+import { Alert, View } from "react-native";
 import { ProfileAvatar } from "../../components/profile/profile-avatar";
 import { NativeSymbol } from "../../components/symbols/native-symbol";
 import { deleteAccount } from "../../lib/account";
 import { signOut } from "../../lib/auth/sign-out";
 import { useProfile } from "../../lib/use-profile";
 import { useUserId } from "../../lib/user-id";
-import { useColors } from "../../theme/app-theme";
-
-const styles = StyleSheet.create({
-  overlay: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  screen: {
-    flex: 1,
-  },
-});
 
 /** 값 표시는 두 행이 같은 모양이어야 한다 — 하나는 누를 수 있을 뿐이다. */
 function Value({ children }: { children: string }) {
@@ -105,7 +94,10 @@ function ProfileHeader({
  * 항목을 미리 만들지 않는다.
  */
 export default function SettingsScreen() {
-  const colors = useColors();
+  // native `Host`에 넘기는 값은 앱 semantic 토큰의 resolved 값이다 — 원본은
+  // `global.css`의 CSS `@theme` 하나이고 여기가 bridge다
+  // (docs/decisions/uniwind-css-theme.md).
+  const [danger, neutral] = useThemeColor(["danger", "muted"]);
   const router = useRouter();
   const userId = useUserId();
   const profile = useProfile(userId);
@@ -166,7 +158,8 @@ export default function SettingsScreen() {
   }, [handleDelete]);
 
   return (
-    <View style={styles.screen}>
+    <View className="flex-1">
+      {/* `Host`는 uniwind가 감싸는 컴포넌트가 아니라 className을 받지 못한다. */}
       <Host
         style={{ flex: 1 }}
         // Form은 남은 공간을 채워야 한다. 없으면 내용 높이만큼만 잡혀 스크롤이
@@ -217,9 +210,7 @@ export default function SettingsScreen() {
               destructive 역할은 얼럿 버튼이 들고, 행 자체는 붉은 글자로 되돌릴
               수 없는 일임을 알린다. */}
             <ListItem onPress={confirmDelete}>
-              <Text modifiers={[foregroundStyle(colors.danger)]}>
-                계정 삭제
-              </Text>
+              <Text modifiers={[foregroundStyle(danger)]}>계정 삭제</Text>
             </ListItem>
           </FieldGroup.Section>
         </FieldGroup>
@@ -227,14 +218,14 @@ export default function SettingsScreen() {
 
       {/* 서버가 지우는 동안 화면이 멀쩡해 보이면 사용자가 다시 누른다. */}
       {deleting ? (
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            styles.overlay,
-            { backgroundColor: colors.overlay },
-          ]}
-        >
-          <HostedLoadingIndicator testID="settings-delete-loading-indicator" />
+        <View className="absolute inset-0 items-center justify-center bg-backdrop">
+          {/* 스스로 나타나는 수동형 진행이라 중립 회색이다
+              (docs/decisions/apple-hig-with-app-theme.md). */}
+          <Spinner
+            accessibilityLabel="계정 삭제 중"
+            color={neutral}
+            testID="settings-delete-loading-indicator"
+          />
         </View>
       ) : null}
     </View>

@@ -35,7 +35,7 @@
 - user·assistant 메시지 쓰기와 idempotency는 인증된 Hono stream이 소유한다.
 - 모델은 AI SDK와 Gateway를 통하며 역할별 모델 ID는 코드에 고정한다.
 - 곁가지 호출이 실패했을 때 화면에 무엇을 보일지는 이 계약이 정하지 않는다.
-  해당 작업 단위 문서가 소유한다.
+  [스트리밍 대화 계약](ai-chat-experience.md)이 소유한다.
 - context compaction, 사용자별 rate limit과 과금은 아직 이 계약의 범위가 아니다.
 
 ## Reconsider when

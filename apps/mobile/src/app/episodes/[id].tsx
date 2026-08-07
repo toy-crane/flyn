@@ -1,14 +1,11 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Button, Spinner, Typography, useThemeColor } from "heroui-native";
 import { type ReactNode, useCallback } from "react";
+import { View } from "react-native";
 import { ChatConversation } from "../../components/chat/chat-conversation";
 import { EpisodeContextCard } from "../../components/episode/episode-context-card";
 import { EpisodeEndAction } from "../../components/episode/episode-end-action";
 import { GoalDock } from "../../components/episode/goal-dock";
-import {
-  CenteredAction,
-  CenteredState,
-} from "../../components/feedback/centered-action";
-import { LoadingIndicator } from "../../components/feedback/loading-indicator";
 import { HeaderTitles } from "../../components/navigation/header-titles";
 import {
   currentGoalPosition,
@@ -28,6 +25,15 @@ import { useUserId } from "../../lib/user-id";
 /** 헤더가 시나리오와 역할을 나른다. 상황 설명은 상황 카드 하나만 말한다. */
 function roleSubtitle(episode: Episode) {
   return `${episode.partner_role} · ${episode.user_role}`;
+}
+
+/** 화면이 설 수 없거나 아직 아무것도 없을 때 쓰는 한 프레임. */
+function CenteredState({ children }: { children: ReactNode }) {
+  return (
+    <View className="flex-1 items-center justify-center gap-3 bg-background px-8">
+      {children}
+    </View>
+  );
 }
 
 function RoleplaySession({
@@ -109,6 +115,9 @@ export default function EpisodeConversationScreen() {
   const messages = useEpisodeMessages(episodeId);
   // 판정은 대화를 막지 않는다. 늦게 와도 표시만 나중에 채워진다.
   const feedback = useEpisodeFeedback(episodeId);
+  // 스스로 나타나는 수동형 진행이라 중립 회색이다
+  // (docs/decisions/apple-hig-with-app-theme.md).
+  const neutral = useThemeColor("muted");
 
   const retry = useCallback(() => {
     episode.refetch();
@@ -125,7 +134,7 @@ export default function EpisodeConversationScreen() {
   ) {
     content = (
       <CenteredState>
-        <LoadingIndicator accessibilityLabel="대화 불러오는 중" />
+        <Spinner accessibilityLabel="대화 불러오는 중" color={neutral} />
       </CenteredState>
     );
   } else if (
@@ -133,11 +142,14 @@ export default function EpisodeConversationScreen() {
     (messages.isError && messages.data === undefined)
   ) {
     content = (
-      <CenteredAction
-        actionLabel="다시 시도"
-        message="대화를 불러오지 못했어요."
-        onPress={retry}
-      />
+      <CenteredState>
+        <Typography.Paragraph align="center">
+          대화를 불러오지 못했어요.
+        </Typography.Paragraph>
+        <Button onPress={retry}>
+          <Button.Label>다시 시도</Button.Label>
+        </Button>
+      </CenteredState>
     );
   } else if (episodeId && episode.data) {
     content = (
@@ -150,11 +162,14 @@ export default function EpisodeConversationScreen() {
     );
   } else {
     content = (
-      <CenteredAction
-        actionLabel="에피소드 목록으로"
-        message="에피소드를 찾을 수 없어요."
-        onPress={goBack}
-      />
+      <CenteredState>
+        <Typography.Paragraph align="center">
+          에피소드를 찾을 수 없어요.
+        </Typography.Paragraph>
+        <Button onPress={goBack}>
+          <Button.Label>에피소드 목록으로</Button.Label>
+        </Button>
+      </CenteredState>
     );
   }
 

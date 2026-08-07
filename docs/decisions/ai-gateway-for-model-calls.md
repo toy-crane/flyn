@@ -43,7 +43,8 @@ Gateway는 provider 교체를 모델 ID 변경으로 제한하고 provider별 �
 - AI SDK API는 버전마다 바뀐다. 구현할 때 기억이나 이 계약의 예전 예제가 아니라
   현재 설치 버전의 번들 문서(`node_modules/ai/docs`)와 타입을 확인한다.
 - 이 계약은 어떤 역할에 어떤 모델을 쓰는지 정하지 않는다. 역할의 목록과 각
-  호출이 무엇을 내놓는지는 해당 작업 단위 문서가 소유한다.
+  호출이 무엇을 내놓는지는 `apps/api/src/`의 역할별 모듈과 거기서 export하는
+  모델 ID 상수가 소유한다.
 
 ## Reconsider when
 
@@ -56,10 +57,23 @@ Gateway가 필요한 provider·기능·지역 또는 비용 조건을 제공하�
 - 운영 환경 변수나 모바일 UI가 모델을 고르게 하기.
 - 역할이 다른 일을 한 번의 모델 호출에 몰아 시키기.
 - 곁가지 결과를 별도 엔드포인트로 다시 받아오게 하기.
+- 한 역할의 호출이 한 번에 낼 수 있는 출력을 나중 호출로 미루기 — 호출 경로가
+  하나 더 생기고 그 결과를 쓰는 화면이 네트워크에 다시 의존한다.
+- 사용자가 고르는 순간 다음 단계의 모델 호출을 백그라운드로 앞당기기 — 복잡성에
+  비해 이득이 적다.
 
 ## Evidence worth preserving
 
-설치된 `ai` 7.0.40은 `createUIMessageStream`·`createUIMessageStreamResponse`와
-`DataUIPart`·`isDataUIPart`·`ChatOnDataCallback`을 제공하고, `@ai-sdk/react`
-4.0.43은 이 타입들을 `ai`에서 그대로 가져다 쓴다. 같은 `id`로 다시 쓰면 기존
-data part가 갱신되므로 진행 상태를 단계적으로 보낼 수 있다.
+- 설치된 `ai` 7.0.40은 `createUIMessageStream`·`createUIMessageStreamResponse`와
+  `DataUIPart`·`isDataUIPart`·`ChatOnDataCallback`을 제공하고, `@ai-sdk/react`
+  4.0.43은 이 타입들을 `ai`에서 그대로 가져다 쓴다. 같은 `id`로 다시 쓰면 기존
+  data part가 갱신되므로 진행 상태를 단계적으로 보낼 수 있다.
+- **GPT-5.6 세 등급 중 중간(Terra)은 값을 못 한다.** Agents' Last Exam에서 Luna
+  50.3 · Terra 50.4로 사실상 같고, 블라인드 픽션 테스트에서도 Terra는 Luna와
+  함께 뒤에 남아 Sol만 앞섰다. Luna가 크게 뒤지는 곳은 긴 문맥 회수(41.3% 대
+  89.6%)뿐인데 20턴짜리 대화는 거기에 닿지 않는다. 그래서 무거운 역할을 위해
+  중간 등급을 따로 두는 구성은 돈만 쓰고 얻는 것이 없다.
+- 2026년 7월 30일 인하로 Luna는 1M당 입력 $0.20 · 출력 $1.20이 되어 같은 급의
+  다른 저가 모델들보다 5배 이상 싸다. Sol과는 25배 차이라, 품질이 아쉬운 역할이
+  나오면 전부를 올리거나 중간 등급으로 옮기는 대신 그 역할 하나만 Sol로 올리는
+  쪽이 비용을 지킨다 — 역할마다 모델 ID를 따로 적는 위 결정이 이걸 가능하게 한다.

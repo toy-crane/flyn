@@ -5,6 +5,11 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
+import { processColor } from "react-native";
+
+jest.mock("uniwind", () =>
+  require("../../test-support/heroui").uniwindThemeMock()
+);
 
 jest.mock("expo-router", () =>
   require("../../test-support/expo-router").expoRouterMock()
@@ -26,6 +31,11 @@ import {
   useScenarioCandidates,
 } from "../../lib/use-episode-creation";
 import { routerStub } from "../../test-support/expo-router";
+import {
+  HeroUIWrapper,
+  paintedColors,
+  THEME_TOKEN_STUBS,
+} from "../../test-support/heroui";
 import NewEpisodeScreen from "./new";
 
 interface MutationCallbacks<TData> {
@@ -33,6 +43,13 @@ interface MutationCallbacks<TData> {
   onSuccess?: (data: TData) => void;
 }
 
+/** HeroUI 컴포넌트는 provider 아래에서만 선다. */
+function renderCreation() {
+  return render(<NewEpisodeScreen />, { wrapper: HeroUIWrapper });
+}
+
+const NEUTRAL = THEME_TOKEN_STUBS["--color-muted"];
+const ACCENT = THEME_TOKEN_STUBS["--color-accent"];
 const TURN_WORD = /턴/;
 const TURN_LIMIT_NUMBER = /20/;
 
@@ -98,7 +115,7 @@ function connect() {
 
 /** ① 상황까지 온 상태. 후보 3개가 보이고 첫 후보를 골랐다. */
 async function pickFirstScenario() {
-  await render(<NewEpisodeScreen />);
+  await renderCreation();
   await candidates.resolve(FIRST_SCENARIOS);
   await screen.findByText(FIRST_SCENARIOS[0].title);
   await fireEvent.press(
@@ -122,7 +139,13 @@ async function reachGoals() {
 }
 
 beforeEach(() => {
-  jest.resetAllMocks();
+  /*
+   * `resetAllMocks`가 아니다. 그것은 jest-expo가 세운 asset registry 대역
+   * (`@react-native/assets-registry/registry`)의 구현까지 지워
+   * `getAssetByID`가 undefined를 돌려주고, 브랜드 층 아이콘(Ionicons)이 폰트를
+   * 실으려다 "Module 1 is missing from the asset registry"로 마운트에 실패한다.
+   */
+  jest.clearAllMocks();
   candidates = deferredMutation();
   draft = deferredMutation();
   goals = deferredMutation();
@@ -133,7 +156,7 @@ beforeEach(() => {
 
 describe("① 상황", () => {
   it("들어오면 후보 3개를 만들고 그 사이 만드는 중이 보인다", async () => {
-    await render(<NewEpisodeScreen />);
+    await renderCreation();
 
     expect(candidates.mutate).toHaveBeenCalledWith([], expect.anything());
     expect(screen.getByLabelText("상황 만드는 중")).toBeTruthy();
@@ -143,6 +166,18 @@ describe("① 상황", () => {
     for (const scenario of FIRST_SCENARIOS) {
       expect(screen.getByText(scenario.title)).toBeTruthy();
     }
+  });
+
+  // 스스로 나타나는 수동형 진행이라 중립 회색이다. Spinner 기본값
+  // (`color="default"`)은 브랜드 accent라 그대로 두면 누를 수 있는 것처럼
+  // 보인다(docs/decisions/apple-hig-with-app-theme.md).
+  it("만드는 중 표시는 중립 회색이다 — 브랜드 accent를 쓰지 않는다", async () => {
+    await renderCreation();
+
+    const painted = paintedColors(screen.toJSON());
+
+    expect(painted).toContain(processColor(NEUTRAL));
+    expect(painted).not.toContain(processColor(ACCENT));
   });
 
   it("`다른 상황 보기`가 후보 3개 전체를 교체한다", async () => {
@@ -330,6 +365,23 @@ describe("③ 목표", () => {
     await waitFor(() => {
       expect(routerStub.back).toHaveBeenCalled();
     });
+  });
+
+  // 버튼 안의 진행 표시는 수동형 indicator가 아니라 그 action의 전경이다
+  // (docs/decisions/apple-hig-with-app-theme.md).
+  it("만드는 동안 CTA 안의 progress는 그 버튼의 전경색을 따른다", async () => {
+    await reachGoals();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "이 상황으로 시작" })
+    );
+
+    const painted = paintedColors(screen.toJSON());
+
+    expect(painted).toContain(
+      processColor(THEME_TOKEN_STUBS["--color-accent-foreground"])
+    );
+    expect(painted).not.toContain(processColor(NEUTRAL));
   });
 });
 

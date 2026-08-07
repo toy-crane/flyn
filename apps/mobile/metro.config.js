@@ -1,6 +1,7 @@
 const { getDefaultConfig } = require("expo/metro-config");
 const { mkdirSync } = require("node:fs");
 const path = require("node:path");
+const { withUniwindConfig } = require("uniwind/metro");
 
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
@@ -20,10 +21,27 @@ mkdirSync(transformerCacheDirectory, { recursive: true });
 mkdirSync(fileMapCacheDirectory, { recursive: true });
 config.fileMapCacheDirectory = fileMapCacheDirectory;
 
-config.cacheStores = ({ FileStore }) => [
-  new FileStore({
-    root: transformerCacheDirectory,
+module.exports = {
+  // withUniwindConfig를 가장 바깥 래퍼로 둔다 — 안쪽에서 다른 래퍼가
+  // transformer를 나중에 덮으면 className이 스타일로 변환되지 않는다.
+  ...withUniwindConfig(config, {
+    cssEntryFile: "./global.css",
+    dtsFile: "./src/uniwind-types.d.ts",
   }),
-];
+  // uniwind는 transformer 캐시를 os.tmpdir() 공용 경로로 되돌린다. 워크트리마다
+  // Worklets·Babel 조합이 달라 공용 캐시는 JS와 네이티브를 어긋나게 만든다
+  // (docs/decisions/worktree-isolated-mobile-runtime.md). 캐시 자리만 워크트리로
+  // 되돌리고, CSS 모듈을 캐시에 넣지 않는 uniwind의 가드는 그대로 가져온다 —
+  // 넣으면 토큰을 고쳐도 이전 스타일시트가 계속 나온다.
+  cacheStores: ({ FileStore }) => [
+    new (class extends FileStore {
+      async set(key, value) {
+        if (value?.output?.[0]?.data?.css?.skipCache) {
+          return;
+        }
 
-module.exports = config;
+        return await super.set(key, value);
+      }
+    })({ root: transformerCacheDirectory }),
+  ],
+};

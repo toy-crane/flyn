@@ -1,18 +1,21 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Stack, useRouter } from "expo-router";
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import {
-  Alert,
-  Pressable,
-  type PressableStateCallbackType,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import { LoadingIndicator } from "../../components/feedback/loading-indicator";
+  Button,
+  Card,
+  Input,
+  Label,
+  LinkButton,
+  PressableFeedback,
+  Separator,
+  Spinner,
+  TextField,
+  Typography,
+  useThemeColor,
+} from "heroui-native";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { Alert, ScrollView, View } from "react-native";
 import { HeaderTitles } from "../../components/navigation/header-titles";
-import { RNSymbol } from "../../components/symbols/rn-symbol";
 import {
   canContinue,
   draftGoals,
@@ -33,132 +36,48 @@ import {
   useScenarioCandidates,
 } from "../../lib/use-episode-creation";
 import { useUserId } from "../../lib/user-id";
-import { useTheme } from "../../theme/app-theme";
-import { spacing } from "../../theme/tokens";
 
 /**
  * 생성은 화면 하나다. ① 상황 → ② 역할 → ③ 목표로 큰 제목만 바뀌고, 이전
  * 스텝의 결정은 내비게이션이 나른다.
  *
- * renderer가 RN인 이유: 스크롤 본문·키보드에 붙는 입력·바닥에 상주하는 CTA가
- * 한 scroll 경계를 공유한다(docs/decisions/self-contained-native-ui-boundaries.md의
- * 채팅 표면과 같은 이유).
+ * 본문은 HeroUI가 그리는 브랜드 층이다
+ * (docs/decisions/self-contained-native-ui-boundaries.md의 배정표). 스크롤
+ * 본문·키보드에 붙는 입력·바닥에 상주하는 CTA가 한 scroll 경계를 공유하므로
+ * 시스템 폼이 아니라 RN 표면이다.
  */
-
-const styles = StyleSheet.create({
-  candidate: {
-    borderRadius: 16,
-    borderWidth: 1.5,
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-  },
-  content: {
-    padding: spacing.md,
-    paddingBottom: spacing.xxl,
-  },
-  cta: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingBottom: spacing.xl,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
-  },
-  ctaButton: {
-    alignItems: "center",
-    borderRadius: 14,
-    height: 50,
-    justifyContent: "center",
-  },
-  fieldGap: {
-    height: spacing.md,
-  },
-  goal: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.xs,
-  },
-  goalCard: {
-    borderRadius: 16,
-    gap: spacing.xs,
-    padding: spacing.md,
-  },
-  goalCircle: {
-    borderRadius: 9,
-    borderWidth: 1.5,
-    height: 18,
-    width: 18,
-  },
-  goalText: {
-    flex: 1,
-  },
-  input: {
-    borderRadius: 12,
-    minHeight: 46,
-    paddingHorizontal: 14,
-    paddingVertical: spacing.sm,
-  },
-  labelRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 6,
-    marginHorizontal: spacing.xxs,
-    minHeight: 28,
-  },
-  pending: {
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.xxl,
-  },
-  regenerateButton: {
-    alignItems: "center",
-    height: 28,
-    justifyContent: "center",
-    width: 28,
-  },
-  regenerateLink: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 6,
-    minHeight: 44,
-    paddingHorizontal: spacing.xxs,
-  },
-  screen: {
-    flex: 1,
-  },
-  stepTitle: {
-    marginBottom: spacing.md,
-    marginHorizontal: spacing.xxs,
-    marginTop: spacing.xs,
-  },
-});
 
 function failed(message: string) {
   Alert.alert("지금은 만들지 못했어요", message);
 }
 
+/** 스텝마다 바뀌는 큰 제목. 한 화면 안에서 지금 무엇을 묻는지 말한다. */
 function StepTitle({ children }: { children: string }) {
-  const { colors, typography } = useTheme();
-
   return (
-    <Text style={[styles.stepTitle, typography.title, { color: colors.text }]}>
+    <Typography.Heading className="mx-1 mt-2 mb-4" type="h4">
       {children}
-    </Text>
+    </Typography.Heading>
   );
 }
 
+/**
+ * 만들어지는 동안 자리를 지키는 수동형 진행. 누를 것이 없으므로 중립 회색이다
+ * (docs/decisions/apple-hig-with-app-theme.md).
+ */
 function Pending({ label }: { label: string }) {
-  const { colors, typography } = useTheme();
+  const neutral = useThemeColor("muted");
 
   return (
-    <View style={styles.pending}>
-      <LoadingIndicator accessibilityLabel={label} />
-      <Text style={[typography.supporting, { color: colors.secondaryText }]}>
+    <View className="items-center gap-3 py-8">
+      <Spinner accessibilityLabel={label} color={neutral} />
+      <Typography color="muted" type="body-sm">
         {label}
-      </Text>
+      </Typography>
     </View>
   );
 }
 
+/** 같은 자리를 다시 만들어 채우는 action. 목록·목표 아래에 한 줄로 선다. */
 function RegenerateLink({
   label,
   onPress,
@@ -166,27 +85,22 @@ function RegenerateLink({
   label: string;
   onPress: () => void;
 }) {
-  const { colors, typography } = useTheme();
-  const style = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.regenerateLink,
-      { opacity: pressed ? 0.6 : 1 },
-    ],
-    []
-  );
+  const accent = useThemeColor("accent");
 
   return (
-    <Pressable
+    // 손가락이 닿을 44pt를 세로로 확보한다 — LinkButton은 높이·padding을 스스로
+    // 0으로 두므로 min-height로만 늘린다.
+    <LinkButton
       accessibilityLabel={label}
-      accessibilityRole="button"
+      className="min-h-11 self-start"
       onPress={onPress}
-      style={style}
+      size="sm"
     >
-      <RNSymbol color={colors.accent} symbol="regenerate" />
-      <Text style={[typography.supporting, { color: colors.accent }]}>
-        {label}
-      </Text>
-    </Pressable>
+      {/* 브랜드 층의 아이콘은 Ionicons를 의미 토큰으로 칠한다
+          (docs/decisions/apple-hig-with-app-theme.md). */}
+      <Ionicons color={accent} name="refresh" size={16} />
+      <LinkButton.Label className="text-accent">{label}</LinkButton.Label>
+    </LinkButton>
   );
 }
 
@@ -199,37 +113,35 @@ function ScenarioCandidate({
   scenario: EpisodeScenario;
   selected: boolean;
 }) {
-  const { colors, typography } = useTheme();
   const handlePress = useCallback(() => {
     onSelect(scenario);
   }, [onSelect, scenario]);
 
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityLabel={scenario.title}
       accessibilityRole="button"
       accessibilityState={{ selected }}
+      className="mb-3"
       onPress={handlePress}
-      style={[
-        styles.candidate,
-        {
-          backgroundColor: selected ? colors.inputFill : colors.surface,
-          borderColor: selected ? colors.accent : "transparent",
-        },
-      ]}
     >
-      <Text
-        style={[
-          typography.supporting,
-          { color: colors.text, fontWeight: "600" },
-        ]}
+      {/* 고른 후보는 accent 외곽선과 한 단계 다른 surface로 말한다 — 색과
+          모양만으로 나르지 않도록 accessibilityState의 selected를 함께 둔다.
+          배경은 유틸리티로 덮지 않고 라이브러리의 variant로 바꾼다. */}
+      <Card
+        className={
+          selected ? "border-2 border-accent" : "border-2 border-transparent"
+        }
+        variant={selected ? "secondary" : "default"}
       >
-        {scenario.title}
-      </Text>
-      <Text style={[typography.supporting, { color: colors.text }]}>
-        {scenario.description}
-      </Text>
-    </Pressable>
+        <Card.Body className="gap-1">
+          <Typography type="body-sm" weight="semibold">
+            {scenario.title}
+          </Typography>
+          <Typography type="body-sm">{scenario.description}</Typography>
+        </Card.Body>
+      </Card>
+    </PressableFeedback>
   );
 }
 
@@ -246,45 +158,45 @@ function RoleField({
   pending: boolean;
   value: string;
 }) {
-  const { colors, typography } = useTheme();
+  // 보조 아이콘과 수동형 progress는 둘 다 약한 전경이다
+  // (docs/decisions/apple-hig-with-app-theme.md).
+  const muted = useThemeColor("muted");
 
   return (
-    <View>
-      <View style={styles.labelRow}>
-        <Text style={[typography.caption, { color: colors.secondaryText }]}>
-          {label}
-        </Text>
+    <TextField>
+      {/* 다시 만들기는 라벨 오른쪽에 붙는다 — 입력 안에 넣으면 값 편집과
+          경쟁한다. */}
+      <View className="min-h-7 flex-row items-center justify-between">
+        <Label>{label}</Label>
         {pending ? null : (
-          <Pressable
+          <PressableFeedback
             accessibilityLabel={`${label} 다시 만들기`}
             accessibilityRole="button"
+            className="size-7 items-center justify-center"
             onPress={onRegenerate}
-            style={styles.regenerateButton}
           >
-            <RNSymbol color={colors.secondaryText} symbol="regenerate" />
-          </Pressable>
+            <Ionicons color={muted} name="refresh" size={16} />
+          </PressableFeedback>
         )}
       </View>
+      {/* 만드는 동안에도 입력이 서던 자리를 그대로 지킨다 — 값이 도착할 때
+          레이아웃이 튀지 않는다. */}
       {pending ? (
-        <View style={[styles.input, { backgroundColor: colors.inputFill }]}>
-          <LoadingIndicator
+        <View className="min-h-12 justify-center rounded-field bg-field px-3">
+          <Spinner
             accessibilityLabel={`${label} 만드는 중`}
-            size="small"
+            color={muted}
+            size="sm"
           />
         </View>
       ) : (
-        <TextInput
+        <Input
           accessibilityLabel={label}
           onChangeText={onChange}
-          style={[
-            styles.input,
-            typography.supporting,
-            { backgroundColor: colors.inputFill, color: colors.text },
-          ]}
           value={value}
         />
       )}
-    </View>
+    </TextField>
   );
 }
 
@@ -298,7 +210,6 @@ type PendingWork =
   | "user-role";
 
 export default function NewEpisodeScreen() {
-  const { colors, typography } = useTheme();
   const router = useRouter();
   const userId = useUserId();
   const [state, dispatch] = useReducer(
@@ -313,6 +224,7 @@ export default function NewEpisodeScreen() {
   const role = useRoleGeneration();
   const save = useSaveEpisode(userId);
   const requested = useRef(false);
+  const accentForeground = useThemeColor("accent-foreground");
 
   const loadScenarios = useCallback(
     (excluded: string[]) => {
@@ -505,6 +417,12 @@ export default function NewEpisodeScreen() {
   if (pending === "save") {
     ctaLabel = "에피소드를 만들고 있어요";
   }
+  /*
+   * CTA 안의 progress는 CTA를 눌러서 시작된 일에만 붙는다 — 후보 조회나 역할
+   * 재생성은 본문이 이미 자기 자리에서 말하고 있고, 여기까지 돌면 화면에 진행
+   * 표시가 둘이 된다. 문구가 바뀌는 세 상태와 정확히 같은 집합이다.
+   */
+  const ctaPending = rolesPending || pending === "goals" || pending === "save";
 
   return (
     <>
@@ -527,9 +445,9 @@ export default function NewEpisodeScreen() {
         </>
       )}
 
-      <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <View className="flex-1 bg-background">
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerClassName="p-4 pb-8"
           contentInsetAdjustmentBehavior="automatic"
           keyboardDismissMode="interactive"
         >
@@ -558,7 +476,7 @@ export default function NewEpisodeScreen() {
           ) : null}
 
           {state.step === "roles" ? (
-            <>
+            <View className="gap-4">
               <StepTitle>이런 역할 어때요?</StepTitle>
               <RoleField
                 label="상대"
@@ -567,7 +485,6 @@ export default function NewEpisodeScreen() {
                 pending={rolesPending || pending === "partner-role"}
                 value={state.roles?.partnerRole ?? ""}
               />
-              <View style={styles.fieldGap} />
               <RoleField
                 label="내 역할"
                 onChange={editUserRole}
@@ -575,7 +492,7 @@ export default function NewEpisodeScreen() {
                 pending={rolesPending || pending === "user-role"}
                 value={state.roles?.userRole ?? ""}
               />
-            </>
+            </View>
           ) : null}
 
           {state.step === "goals" ? (
@@ -583,32 +500,22 @@ export default function NewEpisodeScreen() {
               <StepTitle>이번 대화의 목표예요</StepTitle>
               {sentences ? (
                 <>
-                  <View
-                    style={[
-                      styles.goalCard,
-                      { backgroundColor: colors.surface },
-                    ]}
-                  >
-                    {sentences.map((sentence) => (
-                      <View key={sentence} style={styles.goal}>
+                  <Card className="mb-3">
+                    <Card.Body className="gap-2">
+                      {sentences.map((sentence) => (
                         <View
-                          style={[
-                            styles.goalCircle,
-                            { borderColor: colors.border },
-                          ]}
-                        />
-                        <Text
-                          style={[
-                            styles.goalText,
-                            typography.supporting,
-                            { color: colors.text },
-                          ]}
+                          className="flex-row items-center gap-2"
+                          key={sentence}
                         >
-                          {sentence}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
+                          {/* 아직 아무것도 달성하지 않은 상태다 — 빈 원만 둔다. */}
+                          <View className="size-[18px] rounded-full border-[1.5px] border-border" />
+                          <Typography className="flex-1" type="body-sm">
+                            {sentence}
+                          </Typography>
+                        </View>
+                      ))}
+                    </Card.Body>
+                  </Card>
                   <RegenerateLink label="다른 목표 보기" onPress={loadGoals} />
                 </>
               ) : (
@@ -618,35 +525,19 @@ export default function NewEpisodeScreen() {
           ) : null}
         </ScrollView>
 
-        <View
-          style={[
-            styles.cta,
-            {
-              backgroundColor: colors.background,
-              borderTopColor: colors.separator,
-            },
-          ]}
-        >
-          <Pressable
-            accessibilityLabel={ctaLabel}
-            accessibilityRole="button"
-            accessibilityState={{ disabled }}
-            disabled={disabled}
+        {/* 전진 CTA는 스크롤 밖 바닥에 상주한다. 버튼 안 progress는 그 action의
+            전경색을 따른다(docs/decisions/apple-hig-with-app-theme.md). */}
+        <Separator />
+        <View className="px-4 pt-2 pb-6">
+          <Button
+            className="w-full"
+            isDisabled={disabled}
             onPress={advance}
-            style={[
-              styles.ctaButton,
-              { backgroundColor: disabled ? colors.disabled : colors.primary },
-            ]}
+            size="lg"
           >
-            <Text
-              style={[
-                typography.action,
-                { color: disabled ? colors.disabledText : colors.onPrimary },
-              ]}
-            >
-              {ctaLabel}
-            </Text>
-          </Pressable>
+            {ctaPending ? <Spinner color={accentForeground} size="sm" /> : null}
+            <Button.Label>{ctaLabel}</Button.Label>
+          </Button>
         </View>
       </View>
     </>

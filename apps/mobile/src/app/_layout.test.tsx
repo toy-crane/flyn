@@ -42,7 +42,13 @@ jest.mock("expo-router", () => {
     return React.createElement(Text, null, `screen:${name}`);
   };
 
-  return { Stack };
+  // 설정 header만 플랫폼 grouped 배경을 그대로 잇는다. 실물은 native dynamic
+  // color라 값을 읽을 수 없고, 목은 그 자리에 서는 값이 앱 토큰이 아님만 남긴다.
+  const Color = {
+    ios: { systemGroupedBackground: "ios:systemGroupedBackground" },
+  };
+
+  return { Color, Stack };
 });
 
 jest.mock("expo-router/react-navigation", () => ({
@@ -63,14 +69,10 @@ jest.mock("react-native-keyboard-controller", () => ({
   KeyboardProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-// launch·프로필 오류 화면이 SwiftUI다. 목이 없으면 불투명한 네이티브 뷰 하나로
-// 그려져 아래 문구 단언이 아무것도 찾지 못한다.
-jest.mock("@expo/ui", () => require("../test-support/expo-ui").universalMock());
-jest.mock("@expo/ui/swift-ui", () =>
-  require("../test-support/expo-ui").swiftUiMock()
-);
-jest.mock("@expo/ui/swift-ui/modifiers", () =>
-  require("../test-support/expo-ui").modifiersMock()
+// launch·프로필 오류 화면은 HeroUI라 실물이 그대로 선다. 토큰 resolve 한
+// 단계만 세워 provider 아래 컴포넌트가 색을 찾게 한다.
+jest.mock("uniwind", () =>
+  require("../test-support/heroui").uniwindThemeMock()
 );
 
 jest.mock("../lib/query-client", () => ({

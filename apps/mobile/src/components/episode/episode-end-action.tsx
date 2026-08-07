@@ -1,34 +1,10 @@
-import { useCallback } from "react";
-import {
-  Pressable,
-  type PressableStateCallbackType,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Button, Separator, Typography } from "heroui-native";
+import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { EpisodeEndReason } from "../../lib/episodes";
-import { useTheme } from "../../theme/app-theme";
-import { spacing } from "../../theme/tokens";
 
-const styles = StyleSheet.create({
-  action: {
-    alignItems: "center",
-    borderRadius: 14,
-    height: 50,
-    justifyContent: "center",
-  },
-  note: {
-    paddingBottom: spacing.xxs,
-    paddingTop: spacing.sm,
-    textAlign: "center",
-  },
-  surface: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
-  },
-});
+/** safe area가 없는 기기에서도 바닥 action이 화면 끝에 붙지 않게 두는 최소 여백. */
+const MIN_BOTTOM_INSET = 20;
 
 /**
  * 끝난 이유 한 줄. 턴 상한은 **에피소드가 든 값**을 그대로 읽는다 — 코드 상수를
@@ -54,47 +30,28 @@ export function EpisodeEndAction({
   turnLimit: number;
 }) {
   const insets = useSafeAreaInsets();
-  const { colors, typography } = useTheme();
-  const actionStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.action,
-      { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 },
-    ],
-    [colors.primary]
-  );
 
   return (
-    <View
-      style={[
-        styles.surface,
-        {
-          backgroundColor: colors.background,
-          borderTopColor: colors.separator,
-          paddingBottom: Math.max(insets.bottom, spacing.lg),
-        },
-      ]}
-      testID="episode-end-action"
-    >
-      <Text
-        style={[
-          styles.note,
-          typography.caption,
-          { color: colors.secondaryText },
-        ]}
-        testID="episode-end-note"
+    <View className="bg-background" testID="episode-end-action">
+      <Separator />
+      <View
+        className="px-4 pt-2"
+        // safe area는 런타임 값이라 토큰으로 접을 수 없는 자리다.
+        style={{ paddingBottom: Math.max(insets.bottom, MIN_BOTTOM_INSET) }}
       >
-        {endingNote(reason, turnLimit)}
-      </Text>
-      <Pressable
-        accessibilityLabel="결과 보기"
-        accessibilityRole="button"
-        onPress={onOpenResult}
-        style={actionStyle}
-      >
-        <Text style={[typography.action, { color: colors.onPrimary }]}>
-          결과 보기
-        </Text>
-      </Pressable>
+        <Typography
+          align="center"
+          className="pt-3 pb-1"
+          color="muted"
+          testID="episode-end-note"
+          type="body-xs"
+        >
+          {endingNote(reason, turnLimit)}
+        </Typography>
+        <Button className="w-full" onPress={onOpenResult} size="lg">
+          <Button.Label>결과 보기</Button.Label>
+        </Button>
+      </View>
     </View>
   );
 }

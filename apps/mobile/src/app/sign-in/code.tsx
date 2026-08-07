@@ -1,58 +1,23 @@
 import { useLocalSearchParams } from "expo-router";
+import { LinkButton, Spinner, Typography, useThemeColor } from "heroui-native";
 import { useCallback, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import {
-  CodeInput,
-  type CodeInputRef,
-} from "../../components/sign-in/code-input";
+import { ScrollView, View } from "react-native";
+import { OtpInput, type OtpInputRef } from "../../components/sign-in/otp-input";
 import { sendEmailCode, verifyEmailCode } from "../../lib/auth/email";
 import { describeAuthError } from "../../lib/auth/errors";
 import { authFailedFeedback, authSucceededFeedback } from "../../lib/haptics";
 import { isCodeComplete } from "../../lib/otp-code";
 import { IGNORED, useAuthAction } from "../../lib/use-auth-action";
 import { useResendCooldown } from "../../lib/use-resend-cooldown";
-import { useTheme } from "../../theme/app-theme";
-import { spacing } from "../../theme/tokens";
-
-const styles = StyleSheet.create({
-  codeSection: {
-    gap: spacing.sm,
-  },
-  content: {
-    gap: spacing.xl,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
-  },
-  guidance: {
-    gap: spacing.xxs,
-  },
-  inlineAction: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.xs,
-    justifyContent: "center",
-    minHeight: 24,
-  },
-  screen: {
-    flex: 1,
-  },
-});
 
 /**
- * 코드 입력. 6칸 합성이 RN이라 이 화면도 RN이다
- * (docs/decisions/self-contained-native-ui-boundaries.md의 스파이크 결과).
+ * 코드 입력. 6칸과 그 위에 겹친 단일 필드는 HeroUI 토큰 위의 커스텀
+ * `OtpInput`이 소유한다 — 라이브러리 `InputOTP`가 붙여넣기 검증에서 탈락했다
+ * (docs/decisions/self-contained-native-ui-boundaries.md의 배정표와 근거).
  *
  * `다른 이메일로 받기`는 없다 — 헤더의 뒤로가기가 그 역할을 한다.
  */
 export default function CodeScreen() {
-  const { colors, typography } = useTheme();
   const params = useLocalSearchParams<{ email?: string }>();
   const email = typeof params.email === "string" ? params.email : "";
   const {
@@ -68,9 +33,15 @@ export default function CodeScreen() {
   } = useAuthAction();
   const { canResend, remaining, restart } = useResendCooldown();
   const [code, setCode] = useState("");
-  const codeInputRef = useRef<CodeInputRef>(null);
+  const codeInputRef = useRef<OtpInputRef>(null);
   const lastSubmittedCode = useRef<string | null>(null);
   const locked = verifyPending || resendPending;
+  // 두 indicator의 전경 소유자가 다르다(docs/decisions/apple-hig-with-app-theme.md).
+  // 재전송은 accent LinkButton이 눌린 자리에서 그 action의 진행을 대신 말하므로
+  // action의 전경색을 따르고, 검증은 누를 것이 없는 자동 제출의 수동형 진행이라
+  // 중립이다 — 여기에 accent를 쓰면 누를 수 있는 것처럼 보인다.
+  const resendForeground = useThemeColor("accent");
+  const neutral = useThemeColor("muted");
 
   const focusCodeInput = useCallback(() => {
     requestAnimationFrame(() => codeInputRef.current?.focus());
@@ -164,34 +135,24 @@ export default function CodeScreen() {
   const resendLocked = !(email && canResend) || locked;
   let inlineAction = (
     <>
-      <Text style={[typography.label, { color: colors.secondaryText }]}>
+      <Typography color="muted" type="body-sm">
         코드가 안 왔나요?
-      </Text>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ disabled: resendLocked }}
-        disabled={resendLocked}
-        onPress={handleResend}
-      >
-        <Text
-          style={[
-            typography.label,
-            { color: resendLocked ? colors.disabledText : colors.primary },
-          ]}
-        >
+      </Typography>
+      <LinkButton isDisabled={resendLocked} onPress={handleResend} size="sm">
+        <LinkButton.Label className="text-accent">
           {resendLabel}
-        </Text>
-      </Pressable>
+        </LinkButton.Label>
+      </LinkButton>
     </>
   );
 
   if (resendPending) {
     inlineAction = (
       <>
-        <ActivityIndicator color={colors.primary} size="small" />
-        <Text style={[typography.label, { color: colors.secondaryText }]}>
+        <Spinner color={resendForeground} size="sm" />
+        <Typography color="muted" type="body-sm">
           보내는 중…
-        </Text>
+        </Typography>
       </>
     );
   }
@@ -199,10 +160,10 @@ export default function CodeScreen() {
   if (verifyPending) {
     inlineAction = (
       <>
-        <ActivityIndicator color={colors.primary} size="small" />
-        <Text style={[typography.label, { color: colors.secondaryText }]}>
+        <Spinner color={neutral} size="sm" />
+        <Typography color="muted" type="body-sm">
           확인 중…
-        </Text>
+        </Typography>
       </>
     );
   }
@@ -210,27 +171,21 @@ export default function CodeScreen() {
   return (
     <ScrollView
       automaticallyAdjustKeyboardInsets
-      contentContainerStyle={styles.content}
+      className="flex-1 bg-background"
+      contentContainerClassName="gap-6 px-5 pt-6"
       contentInsetAdjustmentBehavior="automatic"
-      // CodeInput을 다시 탭해 키보드를 되부를 수 있어야 한다.
+      // 칸을 다시 탭해 키보드를 되부를 수 있어야 한다.
       keyboardShouldPersistTaps="handled"
-      style={[styles.screen, { backgroundColor: colors.background }]}
     >
-      <View style={styles.guidance}>
-        <Text style={[typography.supporting, { color: colors.text }]}>
-          6자리 코드를 입력해 주세요.
-        </Text>
+      <View className="gap-1">
+        <Typography.Paragraph>6자리 코드를 입력해 주세요.</Typography.Paragraph>
         {email ? (
-          <Text
-            style={[typography.supporting, { color: colors.secondaryText }]}
-          >
-            {email}
-          </Text>
+          <Typography.Paragraph color="muted">{email}</Typography.Paragraph>
         ) : null}
       </View>
 
-      <View style={styles.codeSection}>
-        <CodeInput
+      <View className="gap-3">
+        <OtpInput
           disabled={locked}
           invalid={verifyFailure?.kind === "invalidCode"}
           onChangeText={handleChangeCode}
@@ -238,29 +193,29 @@ export default function CodeScreen() {
           value={code}
         />
 
-        <View style={styles.inlineAction}>{inlineAction}</View>
+        <View className="min-h-6 flex-row items-center justify-center gap-2">
+          {inlineAction}
+        </View>
 
         {email ? null : (
-          <Text style={[typography.caption, { color: colors.danger }]}>
+          <Typography className="text-danger" type="body-sm">
             이메일 주소를 다시 입력해 주세요.
-          </Text>
+          </Typography>
         )}
 
         {/* 입력에 붙은 검증 결과라 얼럿이 아니라 인라인 각주다. */}
         {verifyFailure ? (
-          <Text style={[typography.caption, { color: colors.danger }]}>
+          <Typography className="text-danger" type="body-sm">
             {verifyFailure.message}
-          </Text>
+          </Typography>
         ) : null}
 
         {resendFailure ? (
-          <Text style={[typography.caption, { color: colors.danger }]}>
+          <Typography className="text-danger" type="body-sm">
             {resendFailure.message}
-          </Text>
+          </Typography>
         ) : null}
       </View>
-
-      <View />
     </ScrollView>
   );
 }
