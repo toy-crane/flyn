@@ -133,14 +133,20 @@ Nitro Google Sign-In의 Expo config plugin, 공개 client ID와 iOS URL scheme�
 
    앱은 네이티브 `signInWithIdToken`만 사용하므로 이 주소로 실제 요청이 오지는 않습니다.
    Google이 Web client를 만들 때 요구하는 값이라 채웁니다.
-5. 첫 Android Development Build 뒤 로컬 서명 SHA-1은 다음 명령으로 확인할 수 있습니다.
+5. 로컬 Development Build는 Expo 템플릿의 debug keystore로 서명합니다. 이 값은 프로젝트마다
+   만들지 않고 그대로 복사하므로 머신과 worktree가 달라도 같습니다.
 
-   ```bash
-   cd apps/mobile/android
-   ./gradlew signingReport
+   ```text
+   5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25
    ```
 
-   `apps/mobile/android`는 `bun run --cwd apps/mobile android`를 처음 실행할 때 생성됩니다.
+   직접 확인하려면 Android Development Build를 한 번 만든 뒤 keystore를 읽습니다.
+   `apps/mobile/android`는 `bun run dev android`를 처음 실행할 때 생성됩니다.
+
+   ```bash
+   keytool -list -v -keystore apps/mobile/android/app/debug.keystore -storepass android -alias androiddebugkey
+   ```
+
    Play 서명 값은 Google Play Console의 **Setup > App integrity**에서 확인합니다.
 6. Android OAuth client는 서명 인증서마다 만듭니다. 최소한 실제로 사용하는 항목을 모두
    등록합니다.
@@ -157,9 +163,11 @@ Nitro Google Sign-In의 Expo config plugin, 공개 client ID와 iOS URL scheme�
    Android client ID는 앱 코드에 넣지 않습니다. Google은 package와 SHA-1로 Android 앱을
    확인합니다. Expo config plugin은 iOS client ID에 대응하는
    `com.googleusercontent.apps.<client-prefix>` URL scheme을 사용합니다.
-8. Supabase에서 Google Provider를 활성화합니다. 어느 쪽이든 Client ID 목록은 같습니다.
-   Web, iOS, Android client ID를 쉼표로 연결하고 Web client ID를 첫 번째에 둡니다.
-   Android 서명별 client ID가 여러 개면 모두 추가합니다. nonce 검사는 끄지 않습니다.
+8. Supabase에서 Google Provider를 활성화합니다. Client ID 목록에는 Web과 iOS client ID를
+   쉼표로 연결하고 Web client ID를 첫 번째에 둡니다. nonce 검사는 끄지 않습니다.
+
+   Android client ID는 넣지 않습니다. Android가 돌려주는 ID Token의 `aud`는 Web client ID이고
+   Android client ID는 `azp`에만 들어가므로 Supabase가 검증에 사용하지 않습니다.
 
    **로컬 스택**은 `supabase/config.toml`을 읽습니다. client ID는 공개 값이지만 프로젝트마다
    달라서 `supabase/.env`에 두고 `config.toml`은 이름만 가리킵니다.
