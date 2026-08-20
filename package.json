@@ -1,5 +1,5 @@
 {
-  "name": "turbo-repo-template",
+  "name": "flyn",
   "private": true,
   "workspaces": [
     "apps/*",

@@ -1,23 +1,23 @@
 {
   "expo": {
-    "name": "Turbo Repo Mobile",
-    "slug": "turbo-repo-mobile",
+    "name": "플린",
+    "slug": "flyn",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "platforms": ["ios", "android"],
-    "scheme": "turbo-repo-mobile",
+    "scheme": "flyn",
     "userInterfaceStyle": "automatic",
     "experiments": {
       "typedRoutes": true
     },
     "ios": {
-      "bundleIdentifier": "com.toycrane.turborepotemplate.mobile",
+      "bundleIdentifier": "com.odd.flyn",
       "supportsTablet": true,
       "usesAppleSignIn": true
     },
     "android": {
-      "package": "com.toycrane.turborepotemplate.mobile",
+      "package": "com.odd.flyn",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
