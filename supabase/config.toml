@@ -343,7 +343,7 @@ max_frequency = "5s"
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
 [auth.external.google]
-enabled = false
+enabled = true
 # Web, iOS와 Android client ID를 쉼표로 잇고 Web을 맨 앞에 둡니다. 공개 값이지만
 # 프로젝트마다 다르므로 supabase/.env에 두고 여기서는 이름만 가리킵니다.
 client_id = "env(SUPABASE_AUTH_GOOGLE_CLIENT_IDS)"
