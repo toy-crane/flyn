@@ -1,0 +1,11 @@
+-- Loaded after migrations on every `bun run db:reset`, which starts from an
+-- empty database. Keep it free of environment-specific ids and secrets.
+--
+-- `public.profiles` is intentionally not seeded. A profile belongs to a row in
+-- `auth.users`, and the trigger creates it during signup. Writing rows here
+-- would mean inserting fake users into `auth.users` by hand, which skips the
+-- real signup path this project verifies. Sign in through the app or the local
+-- OTP flow instead: see README.md "로컬 이메일 로그인 확인".
+--
+-- Add inserts here for tables that carry no user data, such as reference or
+-- lookup rows.

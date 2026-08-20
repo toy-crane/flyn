@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "Turbo Repo Mobile",
+    "slug": "turbo-repo-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "platforms": ["ios", "android"],
+    "scheme": "turbo-repo-mobile",
+    "userInterfaceStyle": "automatic",
+    "experiments": {
+      "typedRoutes": true
+    },
+    "ios": {
+      "bundleIdentifier": "com.toycrane.turborepotemplate.mobile",
+      "supportsTablet": true,
+      "usesAppleSignIn": true
+    },
+    "android": {
+      "package": "com.toycrane.turborepotemplate.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F4F4F6",
+          "image": "./assets/splash-icon.png",
+          "dark": {
+            "backgroundColor": "#0B0B0D"
+          }
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "buildReactNativeFromSource": true
+          }
+        }
+      ],
+      "expo-sqlite",
+      "expo-secure-store",
+      "expo-apple-authentication",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "프로필 사진을 고를 때 사진 보관함을 사용해요.",
+          "cameraPermission": "새 프로필 사진을 바로 찍을 때 사용해요.",
+          "microphonePermission": false
+        }
+      ]
+    ]
+  }
+}

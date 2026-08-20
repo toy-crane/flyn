@@ -1,0 +1,41 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "ui": "tui",
+  // Shared config that changes what a task should produce. Without these, a
+  // lint or compiler setting can change while turbo replays cached passes.
+  "globalDependencies": ["biome.jsonc"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**"]
+    },
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
+    "check": {
+      "dependsOn": ["transit"]
+    },
+    "@repo/mobile#check": {
+      "cache": false,
+      "dependsOn": ["transit"]
+    },
+    "fix": {
+      "cache": false
+    },
+    "test": {
+      "dependsOn": ["transit"]
+    },
+    "check-types": {
+      "dependsOn": ["transit"]
+    },
+    "@repo/mobile#check-types": {
+      "cache": false,
+      "dependsOn": ["transit"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
