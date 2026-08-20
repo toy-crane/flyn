@@ -271,6 +271,71 @@ describe("POST /ai/chat", () => {
     expect(model.doStreamCalls).toHaveLength(1);
   });
 
+  test("turns screenplay lines into speaker parts and narration", async () => {
+    const model = createMockModel([
+      "국물 김이 오른다.\n",
+      "만복: 어서 와.\n",
+      "준호: 사장님, 저도요.",
+    ]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createChatRequest({ messages: [createUserMessage("안녕하세요")] })
+    );
+
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+
+    // The line heads become speaker parts; the spoken words flow as plain
+    // deltas without the name prefix the model wrote.
+    expect(body).toContain('"type":"data-speaker"');
+    expect(body).toContain('"name":"만복"');
+    expect(body).toContain('"name":null');
+    expect(body).toContain("어서 와.");
+    expect(body).not.toContain("만복:");
+  });
+
+  test("restores speaker parts as screenplay lines for the model", async () => {
+    const model = createMockModel(["만복: 또 왔네."]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createChatRequest({
+        messages: [
+          createUserMessage("안녕하세요"),
+          {
+            id: "m2",
+            parts: [
+              {
+                data: { name: "준호" },
+                id: "speaker-1",
+                type: "data-speaker",
+              },
+              { text: "어서 와, 처음 보는 얼굴이네.", type: "text" },
+            ],
+            role: "assistant",
+          },
+          {
+            id: "m3",
+            parts: [{ text: "네, 처음이에요", type: "text" }],
+            role: "user",
+          },
+        ],
+      })
+    );
+
+    expect(response.status).toBe(200);
+    await response.text();
+
+    // Without this, the model would see last scene's words with no idea who
+    // said them.
+    const prompt = JSON.stringify(model.doStreamCalls[0]?.prompt);
+
+    expect(prompt).toContain("준호:");
+    expect(prompt).toContain("어서 와, 처음 보는 얼굴이네.");
+  });
+
   test("rejects a malformed body before calling the model", async () => {
     const model = createMockModel(["안녕하세요"]);
     const app = createApp({ authMiddleware: bypassAuth, model });

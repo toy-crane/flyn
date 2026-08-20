@@ -1,16 +1,18 @@
 import { withSupabase } from "@supabase/server/adapters/hono";
 import {
   convertToModelMessages,
+  createUIMessageStream,
   createUIMessageStreamResponse,
   type LanguageModel,
   safeValidateUIMessages,
   streamText,
-  toUIMessageStream,
 } from "ai";
 import { Hono, type MiddlewareHandler } from "hono";
 
 import { logRequestAbort, logRequestFailure } from "../../shared/request-log";
 import { resolveModelId } from "./config";
+import { speakerModelText, streamSceneText } from "./scene-stream";
+import { WORLD_CAST, WORLD_SYSTEM_PROMPT } from "./world";
 
 export interface AiChatDependencies {
   /**
@@ -73,7 +75,15 @@ export function createAiChatRoutes(dependencies: AiChatDependencies = {}) {
       // The request's own signal: when the app stops generation or the
       // connection drops, the model call stops burning tokens with it.
       abortSignal: c.req.raw.signal,
-      messages: await convertToModelMessages(messages.data),
+      // 화자 part는 모델 메시지로 갈 때 기본적으로 버려진다. 지난 장면에서
+      // 누가 무슨 말을 했는지가 다음 장면의 입력이므로 각본의 줄 머리로
+      // 되살린다.
+      messages: await convertToModelMessages(messages.data, {
+        convertDataPart: (part) =>
+          part.type === "data-speaker"
+            ? { text: speakerModelText(part.data), type: "text" }
+            : undefined,
+      }),
       model: dependencies.model ?? resolveModelId(),
       onAbort: () => {
         logRequestAbort(c.req.method, c.req.path);
@@ -86,19 +96,20 @@ export function createAiChatRoutes(dependencies: AiChatDependencies = {}) {
       onError: ({ error }) => {
         logRequestFailure(c.req.method, c.req.path, error);
       },
+      system: WORLD_SYSTEM_PROMPT,
     });
 
-    // The standalone helpers, not `result.toUIMessageStreamResponse()`: the
-    // methods on the result are deprecated in ai 7 and go away in the next
-    // major. Same bytes on the wire, and `toUIMessageStream` still masks
-    // provider error text by default.
+    // 스파이크: 응답은 모델 텍스트를 그대로가 아니라 장면으로 내려보낸다.
+    // `textStream`만 소비하므로 reasoning 모델로 바꿔도 추론이 응답에 섞이지
+    // 않고, 제공자 오류 원문은 `createUIMessageStream`의 기본 onError가
+    // 가린다.
     return createUIMessageStreamResponse({
-      stream: toUIMessageStream({
-        // Explicit rather than the default: the response contract is text
-        // only, and it has to hold even if `AI_GATEWAY_MODEL` is switched to
-        // a reasoning model later.
-        sendReasoning: false,
-        stream: result.stream,
+      stream: createUIMessageStream({
+        execute: async ({ writer }) => {
+          writer.write({ type: "start" });
+          await streamSceneText(result.textStream, WORLD_CAST, writer);
+          writer.write({ type: "finish" });
+        },
       }),
     });
   });

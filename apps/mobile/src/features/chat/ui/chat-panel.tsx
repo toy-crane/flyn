@@ -48,6 +48,8 @@ import { AssistantMessage } from "./assistant-message";
 import { chatLabels } from "./chat-labels";
 import { ComposerSurface } from "./composer-surface";
 import { LatestMessageButton } from "./latest-message-button";
+import { sceneCopyText, sceneOfMessage } from "./scene";
+import { SceneMessage } from "./scene-message";
 import { SideChatCount, type SideChatEntry } from "./side-chat-count";
 import { SideChatSource } from "./side-chat-source";
 import { useEnteringMessage } from "./use-entering-message";
@@ -150,7 +152,12 @@ function PlainTextMessage({
   onEntered: () => void;
   onRegenerate: (messageId: string) => void;
 }) {
-  const text = textOfMessage(message);
+  // 장면 메시지는 화자 순서대로 자르고, 그 밖의 메시지는 지금까지처럼 텍스트
+  // 하나로 읽는다. 복사도 같은 갈림을 따라서, 장면은 화자 이름이 살아 있는
+  // 각본으로 복사된다.
+  const scene =
+    message.role === "assistant" ? sceneOfMessage(message) : undefined;
+  const text = scene ? sceneCopyText(scene) : textOfMessage(message);
   const copy = useCallback(() => copyText(text), [text]);
   const regenerate = useCallback(
     () => onRegenerate(message.id),
@@ -192,6 +199,39 @@ function PlainTextMessage({
     return null;
   }
 
+  let body = (
+    <AssistantMessage
+      areActionsDisabled={areActionsDisabled}
+      hasActions={!isPending}
+      onCopy={copy}
+      onRegenerate={regenerate}
+      selectionMenuItems={selectionMenuItems}
+      text={text}
+    />
+  );
+
+  if (message.role === "user") {
+    body = (
+      <UserMessage
+        canOpenMenu={canOpenMenu}
+        onCopy={copy}
+        onEdit={edit}
+        text={text}
+      />
+    );
+  } else if (scene) {
+    body = (
+      <SceneMessage
+        areActionsDisabled={areActionsDisabled}
+        hasActions={!isPending}
+        onCopy={copy}
+        onRegenerate={regenerate}
+        segments={scene}
+        selectionMenuItems={selectionMenuItems}
+      />
+    );
+  }
+
   return (
     <Animated.View
       className="mb-4"
@@ -199,23 +239,7 @@ function PlainTextMessage({
       style={{ opacity: isDoomed ? DOOMED_OPACITY : 1 }}
       testID="chat-message-row"
     >
-      {message.role === "user" ? (
-        <UserMessage
-          canOpenMenu={canOpenMenu}
-          onCopy={copy}
-          onEdit={edit}
-          text={text}
-        />
-      ) : (
-        <AssistantMessage
-          areActionsDisabled={areActionsDisabled}
-          hasActions={!isPending}
-          onCopy={copy}
-          onRegenerate={regenerate}
-          selectionMenuItems={selectionMenuItems}
-          text={text}
-        />
-      )}
+      {body}
     </Animated.View>
   );
 }

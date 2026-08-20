@@ -411,6 +411,57 @@ describe("ChatPanel", () => {
     ).toBeUndefined();
   });
 
+  test("장면 답변은 화자별 말풍선과 지문으로 그린다", async () => {
+    const message: UIMessage = {
+      id: "assistant-1",
+      parts: [
+        { data: { name: null }, id: "speaker-1", type: "data-speaker" },
+        { text: "국물 김이 오른다.", type: "text" },
+        { data: { name: "만복" }, id: "speaker-2", type: "data-speaker" },
+        { text: "어서 와.", type: "text" },
+      ],
+      role: "assistant",
+    };
+
+    await renderWithHeroUI(
+      <ChatPanel chat={chatSession({ messages: [message] })} />
+    );
+
+    expect(screen.getByTestId("chat-scene-narration")).toHaveTextContent(
+      "국물 김이 오른다."
+    );
+    expect(
+      within(screen.getByTestId("chat-scene-utterance")).getByText("만복")
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByTestId("chat-message-assistant")
+    ).not.toBeOnTheScreen();
+  });
+
+  test("장면 복사는 화자 이름이 살아 있는 각본으로 넣는다", async () => {
+    const message: UIMessage = {
+      id: "assistant-1",
+      parts: [
+        { data: { name: "만복" }, id: "speaker-1", type: "data-speaker" },
+        { text: "어서 와.", type: "text" },
+        { data: { name: null }, id: "speaker-2", type: "data-speaker" },
+        { text: "국물 김이 오른다.", type: "text" },
+      ],
+      role: "assistant",
+    };
+    const user = userEvent.setup();
+
+    await renderWithHeroUI(
+      <ChatPanel chat={chatSession({ messages: [message] })} />
+    );
+
+    await user.press(screen.getByLabelText(chatLabels.copyAnswer));
+
+    expect(mockSetStringAsync).toHaveBeenCalledWith(
+      "만복: 어서 와.\n국물 김이 오른다."
+    );
+  });
+
   test("텍스트가 아닌 응답 part는 표시하지 않는다", async () => {
     const message: UIMessage = {
       id: "assistant-1",
