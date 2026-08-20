@@ -354,8 +354,7 @@ secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
 skip_nonce_check = false
 
 [auth.external.apple]
-# Apple Developer에서 App ID를 만들고 Sign in with Apple을 켠 뒤 true로 바꿉니다.
-enabled = false
+enabled = true
 # iOS bundle identifier입니다. apps/mobile/app.json의 값과 같아야 합니다.
 client_id = "com.odd.flyn"
 # DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
