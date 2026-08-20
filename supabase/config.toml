@@ -342,9 +342,22 @@ max_frequency = "5s"
 # Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
-[auth.external.apple]
+[auth.external.google]
 enabled = false
-client_id = ""
+# Web, iOS와 Android client ID를 쉼표로 잇고 Web을 맨 앞에 둡니다. 공개 값이지만
+# 프로젝트마다 다르므로 supabase/.env에 두고 여기서는 이름만 가리킵니다.
+client_id = "env(SUPABASE_AUTH_GOOGLE_CLIENT_IDS)"
+# DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
+# 앱은 signInWithIdToken만 쓰므로 이 secret은 검증에 쓰이지 않습니다.
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+# 앱이 sign-in마다 nonce를 만들어 보냅니다. 끄지 마세요.
+skip_nonce_check = false
+
+[auth.external.apple]
+# Apple Developer에서 App ID를 만들고 Sign in with Apple을 켠 뒤 true로 바꿉니다.
+enabled = false
+# iOS bundle identifier입니다. apps/mobile/app.json의 값과 같아야 합니다.
+client_id = "com.odd.flyn"
 # DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
 secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
 # Overrides the default auth callback URL derived from auth.external_url.
