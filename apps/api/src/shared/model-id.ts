@@ -1,12 +1,12 @@
 export const MODEL_ENV = "AI_GATEWAY_MODEL";
 
 /**
- * The model this feature calls, read from configuration rather than the
+ * The model every AI route calls, read from configuration rather than the
  * request.
  *
  * Reading it per request rather than at import time is what keeps `/health`
- * answering while the AI configuration is missing or wrong: only the AI route
- * ever asks for this value. `@supabase/server` and the AI SDK own the rest of
+ * answering while the AI configuration is missing or wrong: only the AI routes
+ * ever ask for this value. `@supabase/server` and the AI SDK own the rest of
  * the server's environment — `SUPABASE_URL`, `SUPABASE_JWKS_URL` and
  * `AI_GATEWAY_API_KEY` are read by those packages, so this file does not repeat
  * them.
