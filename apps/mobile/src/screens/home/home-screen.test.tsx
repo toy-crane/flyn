@@ -36,6 +36,7 @@ test("아무것도 끝내지 않았으면 첫 화 하나만 내놓는다", async
 
   await renderWithHeroUI(
     <HomeScreen
+      isLoading={false}
       onRetry={jest.fn()}
       onStartEpisode={startEpisode}
       season={createSeason()}
@@ -59,6 +60,7 @@ test("아무것도 끝내지 않았으면 첫 화 하나만 내놓는다", async
 test("진행 중이면 다음 화 예고와 끝낸 화 목록을 함께 보여 준다", async () => {
   await renderWithHeroUI(
     <HomeScreen
+      isLoading={false}
       onRetry={jest.fn()}
       onStartEpisode={jest.fn()}
       season={createSeason({
@@ -97,6 +99,7 @@ test("진행 중이면 다음 화 예고와 끝낸 화 목록을 함께 보여 �
 test("다 끝냈으면 완주 카드와 다섯 화의 기록만 남는다", async () => {
   await renderWithHeroUI(
     <HomeScreen
+      isLoading={false}
       onRetry={jest.fn()}
       onStartEpisode={jest.fn()}
       season={createSeason({
@@ -118,6 +121,21 @@ test("다 끝냈으면 완주 카드와 다섯 화의 기록만 남는다", asyn
   expect(screen.queryByText(ANY_START_BUTTON)).not.toBeOnTheScreen();
 });
 
+// 잠깐 기다리는 것은 실패가 아니다. 읽는 중에 실패라고 알리면 아무 문제가
+// 없는데도 사용자가 다시 시도를 누른다.
+test("시즌을 읽는 중에는 실패를 알리지 않는다", async () => {
+  await renderWithHeroUI(
+    <HomeScreen
+      isLoading={true}
+      onRetry={jest.fn()}
+      onStartEpisode={jest.fn()}
+      season={undefined}
+    />
+  );
+
+  expect(screen.queryByTestId("home-empty")).not.toBeOnTheScreen();
+});
+
 // 시즌을 읽지 못하면 홈에 아무것도 없다. 앱을 다시 켜는 것 말고 할 수 있는
 // 일을 남긴다.
 test("시즌을 읽지 못했으면 다시 시도할 길을 준다", async () => {
@@ -125,7 +143,12 @@ test("시즌을 읽지 못했으면 다시 시도할 길을 준다", async () =>
   const retry = jest.fn();
 
   await renderWithHeroUI(
-    <HomeScreen onRetry={retry} onStartEpisode={jest.fn()} season={undefined} />
+    <HomeScreen
+      isLoading={false}
+      onRetry={retry}
+      onStartEpisode={jest.fn()}
+      season={undefined}
+    />
   );
 
   await user.press(screen.getByRole("button", { name: "다시 시도하기" }));

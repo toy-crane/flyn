@@ -1,5 +1,5 @@
 import { beforeEach, expect, jest, test } from "@jest/globals";
-import { render, screen, userEvent } from "@testing-library/react-native";
+import { act, render, screen, userEvent } from "@testing-library/react-native";
 import { router } from "expo-router";
 
 import EpisodeRoute from "../../../app/episode";
@@ -155,14 +155,31 @@ test("다음 화로 넘어갈 때 진행을 다시 읽고 같은 경로를 새�
   expect(mockReplace).toHaveBeenCalledWith("/episode");
 });
 
-test("마무리에서 홈으로 가기는 진행을 다시 읽고 왔던 자리로 돌아간다", async () => {
+test("마무리에서 홈으로 가기는 왔던 자리로 돌아간다", async () => {
   const user = userEvent.setup();
   await render(<EpisodeRoute />);
 
   await user.press(screen.getByRole("button", { name: "leave" }));
 
-  expect(mockRefresh).toHaveBeenCalledTimes(1);
   expect(mockBack).toHaveBeenCalledTimes(1);
+});
+
+// 나가는 길마다 따로 챙기면 하나를 빠뜨린다. 화면 가장자리를 미는 몸짓처럼
+// 버튼을 지나지 않는 길도 있다.
+test("어떤 길로 나가든 진행을 다시 읽는다", async () => {
+  await render(<EpisodeRoute />);
+
+  expect(mockRefresh).not.toHaveBeenCalled();
+
+  // 정리 효과는 act 안에서만 흐른다. 감싸지 않으면 언마운트가 지나가도 아무
+  // 일도 일어나지 않은 것처럼 보인다.
+  await act(() => {
+    screen.unmount();
+
+    return Promise.resolve();
+  });
+
+  expect(mockRefresh).toHaveBeenCalledTimes(1);
 });
 
 // 장면을 먼저 그렸다가 상황 줄을 뒤늦게 얹으면, 그 사이에 잡힌 배치 때문에

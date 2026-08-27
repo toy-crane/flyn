@@ -2,7 +2,7 @@
 -- public.finish_episode can write it. The catalog checks fail on a grant that
 -- widens by accident; the behavioural ones fail on a rule that stops holding.
 BEGIN;
-SELECT plan(39);
+SELECT plan(41);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -220,9 +220,26 @@ SELECT is(
   'and the level observed earlier is left standing'
 );
 
+-- 2화부터는 매번 지나가는 길이다. 새 관찰이 오면 지난 줄을 덮어쓰고 계정마다
+-- 한 줄로 남는다.
+SELECT lives_ok(
+  $$select public.finish_episode(
+      1::smallint, 4::smallint, '성공', '솔직한 감상을 전했다.',
+      null, null, null,
+      '중급 중반. 이유를 덧붙인 문장을 쓴다.'
+    )$$,
+  'a later episode may observe the level again'
+);
+
+SELECT results_eq(
+  $$select level, count(*) over () from public.language_levels$$,
+  $$values ('중급 중반. 이유를 덧붙인 문장을 쓴다.'::text, 1::bigint)$$,
+  'the newest observation replaces the old one instead of adding a row'
+);
+
 SELECT is(
   (SELECT count(*) FROM public.episode_endings),
-  3::bigint,
+  4::bigint,
   'the player sees all of their finished episodes'
 );
 
@@ -265,7 +282,7 @@ SELECT is(
 SELECT is(
   (SELECT count(*) FROM public.episode_endings
    WHERE user_id = '11111111-1111-4111-8111-111111111111'),
-  3::bigint,
+  4::bigint,
   'and it still holds all of its own episodes'
 );
 

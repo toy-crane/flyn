@@ -32,6 +32,7 @@ export default function HomeRoute() {
   return (
     <>
       <HomeScreen
+        isLoading={season.isPending || season.isFetching}
         onRetry={retrySeason}
         onStartEpisode={openEpisode}
         season={season.data}

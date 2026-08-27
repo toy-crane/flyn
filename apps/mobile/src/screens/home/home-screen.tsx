@@ -95,10 +95,13 @@ function SeasonProgress({
  * the route it belongs to is what opens the episode.
  */
 export function HomeScreen({
+  isLoading,
   onRetry,
   onStartEpisode,
   season,
 }: {
+  /** 아직 시즌을 읽는 중인지. 읽는 중과 못 읽은 것은 다른 상태다. */
+  isLoading: boolean;
   onRetry: () => void;
   onStartEpisode: () => void;
   season: Season | undefined;
@@ -110,11 +113,14 @@ export function HomeScreen({
       contentInsetAdjustmentBehavior="automatic"
       testID="home-scroll"
     >
+      {/*
+        읽는 중에는 아무 말도 하지 않는다. 잠깐 기다리는 것을 실패라고 알리면
+        아무 문제가 없는데도 사용자가 다시 시도를 누르게 된다.
+      */}
       {season ? (
         <SeasonBody onStartEpisode={onStartEpisode} season={season} />
-      ) : (
-        <SeasonUnavailable onRetry={onRetry} />
-      )}
+      ) : null}
+      {season || isLoading ? null : <SeasonUnavailable onRetry={onRetry} />}
     </ScrollView>
   );
 }
