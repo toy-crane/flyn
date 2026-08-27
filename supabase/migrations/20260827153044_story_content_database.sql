@@ -355,7 +355,7 @@ create function public.finish_episode(
   memory_question text default null,
   language_level text default null
 )
-returns void
+returns boolean
 language plpgsql
 security definer
 set search_path = ''
@@ -430,11 +430,13 @@ begin
     set level = excluded.level,
         observed_at = now();
   end if;
+
+  return recorded = 1;
 end;
 $$;
 
 comment on function public.finish_episode(uuid, text, text, text, text, text, text) is
-  'Records the ending and story memory of the caller''s current episode. Refuses to skip ahead and never overwrites a recorded ending.';
+  'Records the ending and story memory of the caller''s current episode. Returns true only to the request that inserted the permanent ending.';
 
 revoke all on function public.finish_episode(uuid, text, text, text, text, text, text)
   from public, anon;
@@ -523,7 +525,11 @@ security definer
 set search_path = ''
 as $$
 declare
+  ending_count integer;
+  matching_ending_count integer;
   player uuid := (select auth.uid());
+  recorded_kind text;
+  recorded_outcome text;
 begin
   if player is null then
     raise exception 'A signed-in user is required to complete an episode run.'
@@ -540,13 +546,36 @@ begin
       using errcode = '22001';
   end if;
 
-  if not exists (
-    select 1
-    from public.episode_endings ending
-    where ending.user_id = player
-      and ending.episode_id = complete_episode_run.episode_id
-  ) then
+  select ending.kind, ending.outcome
+  into recorded_kind, recorded_outcome
+  from public.episode_endings ending
+  where ending.user_id = player
+    and ending.episode_id = complete_episode_run.episode_id;
+
+  if not found then
     raise exception 'Episode % has no ending.', complete_episode_run.episode_id
+      using errcode = '22023';
+  end if;
+
+  select
+    count(*),
+    count(*) filter (
+      where part #>> '{data,kind}' = recorded_kind
+        and part #>> '{data,outcome}' = recorded_outcome
+    )
+  into ending_count, matching_ending_count
+  from jsonb_array_elements(complete_episode_run.messages) message
+  cross join lateral jsonb_array_elements(
+    case
+      when jsonb_typeof(message -> 'parts') = 'array' then message -> 'parts'
+      else '[]'::jsonb
+    end
+  ) part
+  where part ->> 'type' = 'data-ending';
+
+  if ending_count <> 1 or matching_ending_count <> 1 then
+    raise exception 'Episode % transcript does not match its ending.',
+      complete_episode_run.episode_id
       using errcode = '22023';
   end if;
 
@@ -571,7 +600,7 @@ end;
 $$;
 
 comment on function public.complete_episode_run(uuid, jsonb) is
-  'Marks the caller''s ended episode messages complete. A completed transcript is immutable.';
+  'Marks the caller''s matching ended episode messages complete. A completed transcript is immutable.';
 
 revoke all on function public.complete_episode_run(uuid, jsonb) from public, anon;
 grant execute on function public.complete_episode_run(uuid, jsonb) to authenticated;

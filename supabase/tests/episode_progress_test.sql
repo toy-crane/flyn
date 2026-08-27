@@ -1,6 +1,6 @@
 -- 플레이 기록은 스토리·화 번호가 아니라 안정된 에피소드 id를 참조한다.
 BEGIN;
-SELECT plan(34);
+SELECT plan(36);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -44,18 +44,27 @@ SELECT function_privs_are(
   'a signed-in account can finish an episode by id'
 );
 
+SELECT function_returns(
+  'public',
+  'finish_episode',
+  array['uuid', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
+  'boolean',
+  'finishing reports whether this request recorded the permanent ending'
+);
+
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claims TO
   '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated"}';
 
-SELECT lives_ok(
-  $$
+SELECT is(
+  (
     select public.finish_episode(
       '11000000-0000-4000-8000-000000000001'::uuid,
       '성공',
       '새 아이스 아메리카노를 받아냈다.'
     )
-  $$,
+  ),
+  true,
   'the first episode in a story can finish'
 );
 
@@ -82,15 +91,16 @@ SELECT throws_ok(
   'an episode cannot finish before every earlier episode in its story'
 );
 
-SELECT lives_ok(
-  $$
+SELECT is(
+  (
     select public.finish_episode(
       '11000000-0000-4000-8000-000000000001'::uuid,
       '실패',
       '나중에 도착한 다른 결말.'
     )
-  $$,
-  'the same ending can arrive again without an error'
+  ),
+  false,
+  'a later ending learns that another request already closed the episode'
 );
 
 SELECT is(
@@ -157,6 +167,18 @@ SELECT function_privs_are(
   'authenticated',
   array['EXECUTE'],
   'a signed-in account can save its current scene'
+);
+
+SELECT throws_ok(
+  $$
+    select public.complete_episode_run(
+      '11000000-0000-4000-8000-000000000001'::uuid,
+      '[{"id":"wrong-ending","role":"assistant","parts":[{"type":"data-ending","data":{"kind":"실패","outcome":"다른 기기에서 뒤늦게 닫았다."}}]}]'::jsonb
+    )
+  $$,
+  '22023',
+  null,
+  'a transcript cannot disagree with the permanent ending'
 );
 
 SELECT function_privs_are(
@@ -270,7 +292,7 @@ SELECT lives_ok(
   $$
     select public.complete_episode_run(
       '11000000-0000-4000-8000-000000000001'::uuid,
-      '[{"id":"opening-1","role":"assistant","parts":[{"type":"text","text":"Mia가 새 잔을 내민다."}]},{"id":"ending-1","role":"assistant","parts":[{"type":"data-ending","data":{"kind":"성공","outcome":"새 잔을 받았다."}}]}]'::jsonb
+      '[{"id":"opening-1","role":"assistant","parts":[{"type":"text","text":"Mia가 새 잔을 내민다."}]},{"id":"ending-1","role":"assistant","parts":[{"type":"data-ending","data":{"kind":"성공","outcome":"새 아이스 아메리카노를 받아냈다."}}]}]'::jsonb
     )
   $$,
   'an ended episode becomes a completed conversation'

@@ -141,6 +141,7 @@ interface EpisodeRunRow {
 
 interface SeasonState {
   finished: FinishedRow[];
+  recordAccepted?: boolean;
   recordError?: string;
   recorded: Record<string, unknown>[];
   runError?: string;
@@ -238,6 +239,7 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
         state.recorded.push(args);
 
         return Promise.resolve({
+          data: state.recordAccepted ?? true,
           error: state.recordError ? { message: state.recordError } : null,
         });
       }
@@ -1216,6 +1218,31 @@ describe("POST /ai/episode", () => {
     expect(body).toContain("Here you go.");
     expect(body).not.toContain('"type":"data-ending"');
     expect(body).toContain('"type":"error"');
+  });
+
+  test("does not stream a losing ending from another device", async () => {
+    const state = createSeasonState();
+
+    state.recordAccepted = false;
+
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([
+        "Mia: Here you go.\n",
+        "실패: 다른 기기보다 늦게 끝났다.",
+      ]),
+    });
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Excuse me.")] })
+    );
+    const body = await response.text();
+
+    expect(body).toContain("Here you go.");
+    expect(body).not.toContain('"type":"data-ending"');
+    expect(body).toContain('"type":"error"');
+    expect(
+      state.runRecords.some((record) => record.name === "complete_episode_run")
+    ).toBeFalse();
   });
 });
 

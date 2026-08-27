@@ -82,11 +82,12 @@ RESET ROLE;
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claims TO '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}';
 
-SELECT lives_ok(
-  $$select public.finish_episode(
+SELECT is(
+  (select public.finish_episode(
       '11000000-0000-4000-8000-000000000001'::uuid,
       '성공', '새 아이스 아메리카노를 받아냈다.'
-    )$$,
+    )),
+  true,
   'the first episode of a story can be finished'
 );
 
@@ -105,12 +106,13 @@ SELECT throws_ok(
   'an episode cannot be finished before the one in front of it'
 );
 
-SELECT lives_ok(
-  $$select public.finish_episode(
+SELECT is(
+  (select public.finish_episode(
       '11000000-0000-4000-8000-000000000001'::uuid,
       '실패', '다시 쓴 결말.'
-    )$$,
-  'recording the same episode again raises nothing'
+    )),
+  false,
+  'recording the same episode again reports that it lost the race'
 );
 
 SELECT is(

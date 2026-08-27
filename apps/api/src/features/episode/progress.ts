@@ -118,7 +118,7 @@ export async function recordEpisodeEnding(
   }
 
   const { notes } = outcome;
-  const { error } = await client.rpc("finish_episode", {
+  const { data: recorded, error } = await client.rpc("finish_episode", {
     episode_id: episodeId,
     kind: outcome.ending.kind,
     language_level: usableNote(notes[EPISODE_NOTES.level]),
@@ -131,6 +131,12 @@ export async function recordEpisodeEnding(
   if (error) {
     throw new Error(
       `Recording the ending of episode ${episodeId} failed: ${error.message}`
+    );
+  }
+
+  if (!recorded) {
+    throw new Error(
+      `Episode ${episodeId} already has an ending from another request.`
     );
   }
 }

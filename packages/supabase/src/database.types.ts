@@ -324,7 +324,7 @@ export type Database = {
           memory_relationship?: string
           outcome: string
         }
-        Returns: undefined
+        Returns: boolean
       }
       is_protected_username: {
         Args: { candidate: string; owner: string }
