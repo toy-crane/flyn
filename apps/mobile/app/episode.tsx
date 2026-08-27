@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { Platform } from "react-native";
 
 import { useAppTheme } from "@/core/theme/app-theme-bridge";
@@ -8,6 +8,7 @@ import { useEpisodeSession } from "@/features/episode/query/episode-session";
 import { useStoryRefresh } from "@/features/episode/query/story";
 import { episodeLabels } from "@/features/episode/ui/episode-labels";
 import { EpisodeScreen } from "@/screens/episode/episode-screen";
+import { EpisodeUnavailableScreen } from "@/screens/episode/episode-unavailable-screen";
 import { toolbarIcon } from "@/shared/ui/toolbar-icons";
 
 function leaveEpisode() {
@@ -32,6 +33,10 @@ export default function EpisodeRoute() {
   );
   const refreshStory = useStoryRefresh(session?.user.id);
   const playing = episode.data;
+  const { refetch } = episode;
+  const retryEpisode = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   useEffect(
     () => () => {
@@ -76,6 +81,12 @@ export default function EpisodeRoute() {
           readOnly={playing.readOnly}
           situation={playing.episode.situation}
           situationEmoji={playing.episode.situationEmoji}
+        />
+      ) : null}
+      {!playing && episode.isError ? (
+        <EpisodeUnavailableScreen
+          isRetrying={episode.isFetching}
+          onRetry={retryEpisode}
         />
       ) : null}
       <Stack.Toolbar placement="left">

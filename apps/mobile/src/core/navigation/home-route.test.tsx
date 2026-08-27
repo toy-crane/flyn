@@ -60,12 +60,7 @@ jest.mock("@/features/auth/state/auth-session", () => ({
 // 홈이 스토리를 읽는 경로다. 진짜 QueryClient를 띄우면 타이머가 남으므로 읽기
 // 자체를 세워 두고, 경로가 무엇을 넘기는지만 본다.
 jest.mock("@/features/episode/query/story", () => ({
-  useStory: () => ({
-    data: { tag: "story" },
-    isFetching: false,
-    isPending: false,
-    refetch: mockRefetch,
-  }),
+  useStory: () => mockStoryQuery,
 }));
 
 jest.mock("@/screens/home/home-screen", () => {
@@ -77,13 +72,18 @@ jest.mock("@/screens/home/home-screen", () => {
     HomeScreen: ({
       onOpenEpisode,
       onRetry,
+      isLoading,
+      isRetrying,
       story,
     }: {
+      isLoading: boolean;
+      isRetrying: boolean;
       onOpenEpisode: (episodeId: string) => void;
       onRetry: () => void;
       story: { tag?: string } | undefined;
     }) => {
       homeStory = story;
+      homeStatus = { isLoading, isRetrying };
 
       return React.createElement(
         React.Fragment,
@@ -126,11 +126,25 @@ const mockPush = jest.mocked(router.push);
 const mockRefetch = jest.fn();
 const EPISODE_ID = "11000000-0000-4000-8000-000000000001";
 let homeStory: { tag?: string } | undefined;
+let homeStatus: { isLoading: boolean; isRetrying: boolean } | undefined;
+let mockStoryQuery: {
+  data: { tag: string } | undefined;
+  isFetching: boolean;
+  isPending: boolean;
+  refetch: typeof mockRefetch;
+};
 
 beforeEach(() => {
   mockPush.mockClear();
   mockRefetch.mockClear();
+  mockStoryQuery = {
+    data: { tag: "story" },
+    isFetching: false,
+    isPending: false,
+    refetch: mockRefetch,
+  };
   homeStory = undefined;
+  homeStatus = undefined;
 });
 
 test("새 대화는 왼쪽에서 채팅을 열고 프로필은 오른쪽에 둔다", async () => {
@@ -171,4 +185,17 @@ test("스토리 진행을 읽어 홈 본문에 넘기고 다시 읽는 길을 �
   await user.press(screen.getByRole("button", { name: "Home retry" }));
 
   expect(mockRefetch).toHaveBeenCalledTimes(1);
+});
+
+test("사용자가 다시 읽을 때만 홈 버튼에 진행 상태를 넘긴다", async () => {
+  mockStoryQuery = {
+    ...mockStoryQuery,
+    data: undefined,
+    isFetching: true,
+    isPending: false,
+  };
+
+  await render(<HomeRoute />);
+
+  expect(homeStatus).toEqual({ isLoading: false, isRetrying: true });
 });

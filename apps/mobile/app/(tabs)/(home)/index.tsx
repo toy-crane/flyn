@@ -32,7 +32,8 @@ export default function HomeRoute() {
   return (
     <>
       <HomeScreen
-        isLoading={story.isPending || story.isFetching}
+        isLoading={story.isPending}
+        isRetrying={story.isFetching && !story.isPending}
         onOpenEpisode={openEpisode}
         onRetry={retryStory}
         story={story.data}

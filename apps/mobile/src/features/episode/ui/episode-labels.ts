@@ -8,6 +8,8 @@
 export const episodeLabels = {
   /** Not shown: the episode header's back button. */
   back: "뒤로 가기",
+  /** Shown when one episode's saved conversation could not be read. */
+  conversationUnavailable: "대화를 불러오지 못했어요.",
   /** Shown over the first episode's card on Home, before anything is finished. */
   firstEyebrow: "첫 이야기",
   /** Shown as the button that leaves the finished episode. */
@@ -19,7 +21,8 @@ export const episodeLabels = {
   /** Shown when the story could not be read, as the way to ask again. */
   retry: "다시 시도하기",
   /** Opens the transcript of a finished episode from Home. */
-  review: (episode: number) => `${episode}화 대화 보기`,
+  review: (episode: number, title: string, kind: string) =>
+    `${episode}화 ${title}, ${kind}, 대화 보기`,
   /** Shown on a completed conversation that has no input. */
   reviewOnly: "끝난 대화 기록",
   /** Shown as the button that opens an episode, from Home or from an ending. */

@@ -39,7 +39,11 @@ function FinishedEpisodeItem({
 
   return finished.hasTranscript ? (
     <Pressable
-      accessibilityLabel={episodeLabels.review(finished.number)}
+      accessibilityLabel={episodeLabels.review(
+        finished.number,
+        finished.title,
+        finished.kind
+      )}
       accessibilityRole="button"
       className={className}
       onPress={openEpisode}
@@ -115,11 +119,13 @@ function StoryProgress({
 
 export function HomeScreen({
   isLoading,
+  isRetrying,
   onOpenEpisode,
   onRetry,
   story,
 }: {
   isLoading: boolean;
+  isRetrying: boolean;
   onOpenEpisode: (episodeId: string) => void;
   onRetry: () => void;
   story: Story | undefined;
@@ -132,12 +138,20 @@ export function HomeScreen({
       testID="home-scroll"
     >
       {story ? <StoryBody onOpenEpisode={onOpenEpisode} story={story} /> : null}
-      {story || isLoading ? null : <StoryUnavailable onRetry={onRetry} />}
+      {story || isLoading ? null : (
+        <StoryUnavailable isRetrying={isRetrying} onRetry={onRetry} />
+      )}
     </ScrollView>
   );
 }
 
-function StoryUnavailable({ onRetry }: { onRetry: () => void }) {
+function StoryUnavailable({
+  isRetrying,
+  onRetry,
+}: {
+  isRetrying: boolean;
+  onRetry: () => void;
+}) {
   return (
     <View
       className="gap-3 rounded-2xl bg-surface px-5 py-6"
@@ -146,7 +160,11 @@ function StoryUnavailable({ onRetry }: { onRetry: () => void }) {
       <Text className="text-base text-muted leading-6">
         {episodeLabels.unavailable}
       </Text>
-      <Button accessibilityLabel={episodeLabels.retry} onPress={onRetry}>
+      <Button
+        accessibilityLabel={episodeLabels.retry}
+        isPending={isRetrying}
+        onPress={onRetry}
+      >
         {episodeLabels.retry}
       </Button>
     </View>

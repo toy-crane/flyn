@@ -46,6 +46,7 @@ test("아무것도 끝내지 않았으면 첫 에피소드 하나만 내놓는�
   await renderWithHeroUI(
     <HomeScreen
       isLoading={false}
+      isRetrying={false}
       onOpenEpisode={openEpisode}
       onRetry={jest.fn()}
       story={createStory()}
@@ -70,6 +71,7 @@ test("진행 중이면 다음 에피소드와 끝낸 목록을 함께 보여 준
   await renderWithHeroUI(
     <HomeScreen
       isLoading={false}
+      isRetrying={false}
       onOpenEpisode={jest.fn()}
       onRetry={jest.fn()}
       story={createStory({
@@ -105,7 +107,9 @@ test("진행 중이면 다음 에피소드와 끝낸 목록을 함께 보여 준
   expect(screen.getByText("카페에서 생긴 일")).toBeOnTheScreen();
   expect(screen.getByText("성공")).toBeOnTheScreen();
   expect(
-    screen.queryByRole("button", { name: "1화 대화 보기" })
+    screen.queryByRole("button", {
+      name: "1화 카페에서 생긴 일, 성공, 대화 보기",
+    })
   ).not.toBeOnTheScreen();
 });
 
@@ -113,6 +117,7 @@ test("다 끝냈으면 완주 카드와 다섯 에피소드의 기록만 남는�
   await renderWithHeroUI(
     <HomeScreen
       isLoading={false}
+      isRetrying={false}
       onOpenEpisode={jest.fn()}
       onRetry={jest.fn()}
       story={createStory({
@@ -141,6 +146,7 @@ test("스토리를 읽는 중에는 실패를 알리지 않는다", async () => 
   await renderWithHeroUI(
     <HomeScreen
       isLoading
+      isRetrying={false}
       onOpenEpisode={jest.fn()}
       onRetry={jest.fn()}
       story={undefined}
@@ -157,6 +163,7 @@ test("스토리를 읽지 못했으면 다시 시도할 길을 준다", async ()
   await renderWithHeroUI(
     <HomeScreen
       isLoading={false}
+      isRetrying={false}
       onOpenEpisode={jest.fn()}
       onRetry={retry}
       story={undefined}
@@ -169,6 +176,24 @@ test("스토리를 읽지 못했으면 다시 시도할 길을 준다", async ()
   expect(retry).toHaveBeenCalledTimes(1);
 });
 
+test("스토리를 다시 읽는 동안 오류 카드와 버튼 자리를 지킨다", async () => {
+  await renderWithHeroUI(
+    <HomeScreen
+      isLoading={false}
+      isRetrying
+      onOpenEpisode={jest.fn()}
+      onRetry={jest.fn()}
+      story={undefined}
+    />
+  );
+
+  expect(screen.getByTestId("home-empty")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "다시 시도하기" })).toHaveProp(
+    "accessibilityState",
+    { busy: true, disabled: true }
+  );
+});
+
 test("대화 기록이 있는 끝난 에피소드는 다시 열 수 있다", async () => {
   const user = userEvent.setup();
   const openEpisode = jest.fn();
@@ -176,6 +201,7 @@ test("대화 기록이 있는 끝난 에피소드는 다시 열 수 있다", asy
   await renderWithHeroUI(
     <HomeScreen
       isLoading={false}
+      isRetrying={false}
       onOpenEpisode={openEpisode}
       onRetry={jest.fn()}
       story={createStory({
@@ -193,7 +219,11 @@ test("대화 기록이 있는 끝난 에피소드는 다시 열 수 있다", asy
     />
   );
 
-  await user.press(screen.getByRole("button", { name: "1화 대화 보기" }));
+  await user.press(
+    screen.getByRole("button", {
+      name: "1화 카페에서 생긴 일, 성공, 대화 보기",
+    })
+  );
 
   expect(openEpisode).toHaveBeenCalledWith(EPISODE_ID);
 });
