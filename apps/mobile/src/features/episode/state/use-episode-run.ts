@@ -2,6 +2,7 @@ import { type UseChatHelpers, useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import type { EpisodeStopMode } from "@/features/episode/api/episode-session";
 import { createEpisodeTransport } from "@/features/episode/api/episode-transport";
 import { type EpisodeEnding, endingOfEpisode } from "./episode-ending";
 import { type EpisodeNextUp, nextUpOfEpisode } from "./episode-next-up";
@@ -58,7 +59,28 @@ export function useEpisodeRun(
     throttle: SCENE_UPDATE_INTERVAL_MS,
     transport,
   });
-  const { sendMessage } = chat;
+  const currentStopMode = useRef<EpisodeStopMode>("preserve");
+  const { regenerate: regenerateRaw, sendMessage: sendMessageRaw } = chat;
+  const sendMessage = useCallback(
+    (...args: Parameters<typeof sendMessageRaw>) => {
+      currentStopMode.current = "preserve";
+      return sendMessageRaw(...args);
+    },
+    [sendMessageRaw]
+  );
+  const regenerate = useCallback(
+    (...args: Parameters<typeof regenerateRaw>) => {
+      // AI SDK trims the old assistant answer before a regeneration. If Stop
+      // lands before the new answer starts, that shorter list is intentional.
+      currentStopMode.current = "replace";
+      return regenerateRaw(...args);
+    },
+    [regenerateRaw]
+  );
+  const episodeChat = useMemo(
+    () => ({ ...chat, regenerate, sendMessage }),
+    [chat, regenerate, sendMessage]
+  );
   const open = useCallback(() => {
     if (readOnly) {
       return;
@@ -86,16 +108,24 @@ export function useEpisodeRun(
   const { isSaving, stopAndSave } = useEpisodeStopSave({
     accessToken,
     episodeId,
-    messages: chat.messages,
-    status: chat.status,
-    stop: chat.stop,
+    messages: episodeChat.messages,
+    // Once the regenerated answer has started, its throttled snapshot needs
+    // the same prefix protection as every other stream. Only the deliberate
+    // cut before the first new chunk is a last-write-wins replacement.
+    mode:
+      currentStopMode.current === "replace" &&
+      episodeChat.status === "submitted"
+        ? "replace"
+        : "preserve",
+    status: episodeChat.status,
+    stop: episodeChat.stop,
   });
 
   return {
-    chat,
-    ending: endingOfEpisode(chat.messages),
+    chat: episodeChat,
+    ending: endingOfEpisode(episodeChat.messages),
     isSaving,
-    nextUp: nextUpOfEpisode(chat.messages),
+    nextUp: nextUpOfEpisode(episodeChat.messages),
     open,
     stopAndSave,
   };

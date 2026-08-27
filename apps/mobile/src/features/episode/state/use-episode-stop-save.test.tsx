@@ -27,6 +27,7 @@ const PARTIAL_ANSWER: UIMessage = {
 
 interface StopSaveProps {
   messages: UIMessage[];
+  mode?: "preserve" | "replace";
   status: ChatStatus;
   stop: () => Promise<void>;
 }
@@ -37,6 +38,7 @@ function renderStopSave(initialProps: StopSaveProps) {
       useEpisodeStopSave({
         accessToken: "token-1",
         episodeId: EPISODE_ID,
+        mode: "preserve",
         ...props,
       }),
     { initialProps }
@@ -81,7 +83,7 @@ test("streaming 중지는 terminal 렌더의 최신 장면을 보정 저장한�
       "token-1",
       EPISODE_ID,
       [USER_MESSAGE, PARTIAL_ANSWER],
-      "streaming",
+      "preserve",
       expect.any(AbortSignal)
     );
   });
@@ -89,10 +91,11 @@ test("streaming 중지는 terminal 렌더의 최신 장면을 보정 저장한�
   expect(result.current.isSaving).toBe(false);
 });
 
-test("submitted 중지는 잘라낸 재시도 목록임을 서버에 알린다", async () => {
+test("답변 다시 받기 중지는 잘라낸 목록을 바꾸도록 서버에 알린다", async () => {
   const stop = jest.fn(() => Promise.resolve());
   const { rerender, result } = await renderStopSave({
     messages: [USER_MESSAGE],
+    mode: "replace",
     status: "submitted",
     stop,
   });
@@ -103,14 +106,19 @@ test("submitted 중지는 잘라낸 재시도 목록임을 서버에 알린다",
 
     return Promise.resolve();
   });
-  await rerender({ messages: [USER_MESSAGE], status: "ready", stop });
+  await rerender({
+    messages: [USER_MESSAGE],
+    mode: "preserve",
+    status: "ready",
+    stop,
+  });
   await act(() => settled);
 
   expect(mockSave).toHaveBeenCalledWith(
     "token-1",
     EPISODE_ID,
     [USER_MESSAGE],
-    "submitted",
+    "replace",
     expect.any(AbortSignal)
   );
 });

@@ -361,10 +361,10 @@ function createEpisodeRequest(body: unknown, token?: string): Request {
 function createStoppedEpisodeRequest(
   episode: string,
   messages: unknown[],
-  phase: "streaming" | "submitted" = "streaming"
+  mode: "preserve" | "replace" = "preserve"
 ): Request {
   return new Request(`http://localhost${EPISODE_PATH}/${episode}`, {
-    body: JSON.stringify({ messages, phase }),
+    body: JSON.stringify({ messages, mode }),
     headers: { "content-type": "application/json" },
     method: "PUT",
   });
@@ -1405,13 +1405,13 @@ describe("story content database contract", () => {
     });
   });
 
-  test("keeps a submitted retry's intentional transcript cut", async () => {
+  test("keeps a regenerated answer's intentional transcript cut", async () => {
     const state = createSeasonState();
     const messages = [createUserMessage("Please try again.")];
     const app = createApp({ authMiddleware: signedInWith(state) });
 
     const response = await app.request(
-      createStoppedEpisodeRequest(episodeId(1), messages, "submitted")
+      createStoppedEpisodeRequest(episodeId(1), messages, "replace")
     );
 
     expect(response.status).toBe(204);

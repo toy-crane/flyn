@@ -5,12 +5,21 @@ import { simulateReadableStream } from "ai";
 
 import { createEpisodeTransport } from "@/features/episode/api/episode-transport";
 import { useEpisodeRun } from "./use-episode-run";
+import { useEpisodeStopSave } from "./use-episode-stop-save";
 
 jest.mock("@/features/episode/api/episode-transport", () => ({
   createEpisodeTransport: jest.fn(),
 }));
 
+jest.mock("./use-episode-stop-save", () => ({
+  useEpisodeStopSave: jest.fn(() => ({
+    isSaving: false,
+    stopAndSave: jest.fn(() => Promise.resolve()),
+  })),
+}));
+
 const mockCreateEpisodeTransport = jest.mocked(createEpisodeTransport);
+const mockUseEpisodeStopSave = jest.mocked(useEpisodeStopSave);
 const EPISODE_ID = "11000000-0000-4000-8000-000000000001";
 
 function openingStream(): ReadableStream<UIMessageChunk> {
@@ -103,4 +112,38 @@ test("끝난 대화는 직접 열기를 불러도 서버에 새 요청을 보내
 
   expect(result.current.chat.messages).toEqual(messages);
   expect(transport.sendMessages).not.toHaveBeenCalled();
+});
+
+test("답변 다시 받기는 중지할 때 잘라낸 목록을 바꾸는 요청으로 남긴다", async () => {
+  fakeTransport();
+  const messages: UIMessage[] = [
+    {
+      id: "saved-user",
+      parts: [{ text: "This is wrong.", type: "text" }],
+      role: "user",
+    },
+    {
+      id: "saved-assistant",
+      parts: [{ text: "What did you order?", type: "text" }],
+      role: "assistant",
+    },
+  ];
+  const { result } = await renderHook(() =>
+    useEpisodeRun("token", EPISODE_ID, messages, false)
+  );
+
+  await act(() => result.current.chat.regenerate());
+
+  await waitFor(() => {
+    expect(
+      mockUseEpisodeStopSave.mock.calls.some(
+        ([input]) => input.mode === "replace" && input.status === "submitted"
+      )
+    ).toBe(true);
+    expect(
+      mockUseEpisodeStopSave.mock.calls.some(
+        ([input]) => input.mode === "preserve" && input.status === "streaming"
+      )
+    ).toBe(true);
+  });
 });

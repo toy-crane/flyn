@@ -2,7 +2,7 @@ import type { ChatStatus, UIMessage } from "ai";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
-  type EpisodeStopPhase,
+  type EpisodeStopMode,
   saveStoppedEpisodeSession,
 } from "@/features/episode/api/episode-session";
 
@@ -13,7 +13,7 @@ interface PendingStopSave {
   accessToken: string | undefined;
   controller: AbortController;
   episodeId: string;
-  phase: EpisodeStopPhase;
+  mode: EpisodeStopMode;
   promise: Promise<void>;
   resolve: () => void;
   saveStarted: boolean;
@@ -24,6 +24,7 @@ interface EpisodeStopSaveInput {
   accessToken: string | undefined;
   episodeId: string;
   messages: UIMessage[];
+  mode: EpisodeStopMode;
   status: ChatStatus;
   stop: () => Promise<void>;
 }
@@ -40,6 +41,7 @@ export function useEpisodeStopSave({
   accessToken,
   episodeId,
   messages,
+  mode,
   status,
   stop,
 }: EpisodeStopSaveInput) {
@@ -47,6 +49,7 @@ export function useEpisodeStopSave({
     accessToken,
     episodeId,
     messages,
+    mode,
     status,
     stop,
   });
@@ -54,7 +57,14 @@ export function useEpisodeStopSave({
   const [isSaving, setIsSaving] = useState(false);
   const [hasStopReturned, setHasStopReturned] = useState(false);
 
-  latestInput.current = { accessToken, episodeId, messages, status, stop };
+  latestInput.current = {
+    accessToken,
+    episodeId,
+    messages,
+    mode,
+    status,
+    stop,
+  };
 
   const finish = useCallback(
     (pending: PendingStopSave, shouldAbort = false) => {
@@ -93,7 +103,7 @@ export function useEpisodeStopSave({
       accessToken: input.accessToken,
       controller: new AbortController(),
       episodeId: input.episodeId,
-      phase: input.status,
+      mode: input.mode,
       promise,
       resolve,
       saveStarted: false,
@@ -143,7 +153,7 @@ export function useEpisodeStopSave({
       pending.accessToken,
       pending.episodeId,
       latestInput.current.messages,
-      pending.phase,
+      pending.mode,
       pending.controller.signal
     )
       .catch(() => undefined)
