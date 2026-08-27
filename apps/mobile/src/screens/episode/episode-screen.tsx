@@ -59,7 +59,7 @@ export function EpisodeScreen({
         )
       }
       hasMessageActions={false}
-      placeholder={episodeLabels.input}
+      placeholder={episodeLabels.placeholder}
       topInset={Platform.OS === "ios" ? headerHeight : 0}
     />
   );

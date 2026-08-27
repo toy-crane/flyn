@@ -5,12 +5,12 @@
 export const episodeLabels = {
   /** Not shown: the episode header's back button. */
   back: "뒤로 가기",
-  /** Shown where the words go while the scene is open. A label, so no period. */
-  input: "영어로 말해 보세요",
   /** Shown as the button that leaves the finished episode. */
   leave: "홈으로 가기",
   /** Shown as the episode's name on Home and in the episode header. */
   name: "카페에서 생긴 일",
+  /** Shown in the empty input while the scene is open. A label, so no period. */
+  placeholder: "영어로 말해 보세요",
   /** Shown as the button that opens the same episode from the start again. */
   restart: "다시 시작하기",
   /** Shown as the button that opens the episode from Home. */
