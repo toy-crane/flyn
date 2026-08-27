@@ -1,5 +1,18 @@
+import type { Database } from "@repo/supabase";
+import type { SupabaseContext } from "@supabase/server";
 import { withSupabase } from "@supabase/server/adapters/hono";
 import type { MiddlewareHandler } from "hono";
+
+/**
+ * 로그인을 확인한 경로가 쥐고 있는 것.
+ *
+ * `supabase`는 그 사람의 권한으로 데이터베이스에 닿는 클라이언트다. 스키마
+ * 타입을 붙여 두면 경로가 없는 열을 읽거나 함수 인자를 빠뜨릴 때 배포가
+ * 아니라 타입 검사에서 걸린다.
+ */
+export interface AuthedEnv {
+  Variables: { supabaseContext: SupabaseContext<Database> };
+}
 
 /**
  * 비용이 드는 AI 경로가 요구하는 로그인 확인.
@@ -20,15 +33,15 @@ export function createUserGuard(
    * 닿으려고 바꿔 끼운다. 그 밖에는 바꾸지 않는다.
    */
   authMiddleware?: MiddlewareHandler
-): [MiddlewareHandler, MiddlewareHandler] {
+): [MiddlewareHandler<AuthedEnv>, MiddlewareHandler<AuthedEnv>] {
   const requireUser =
     authMiddleware ??
-    withSupabase({
+    withSupabase<Database>({
       auth: "user",
       env: { secretKeys: { default: "unused-ai-route-never-calls-admin" } },
     });
 
-  const requireCurrentUser: MiddlewareHandler = async (c, next) => {
+  const requireCurrentUser: MiddlewareHandler<AuthedEnv> = async (c, next) => {
     const { data, error } = await c.var.supabaseContext.supabase.auth.getUser();
 
     if (error || !data.user) {

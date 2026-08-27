@@ -24,22 +24,84 @@ function createUserAuthMiddleware(): MiddlewareHandler {
   });
 }
 
-/** Stands in for a request whose token and current user both still exist. */
-const bypassAuth: MiddlewareHandler = (c, next) => {
-  c.set("supabaseContext", {
-    supabase: {
-      auth: {
-        getUser: () =>
-          Promise.resolve({
-            data: { user: { id: "user-1" } },
-            error: null,
-          }),
-      },
-    },
-  } as never);
+/** A finished episode as the database hands it back. */
+interface FinishedRow {
+  episode: number;
+  kind: string;
+  outcome: string;
+}
 
-  return next();
-};
+/**
+ * The season progress a signed-in request finds, and what it wrote.
+ *
+ * `recorded` is the whole point: the episode route is supposed to leave the
+ * ending in the account before the app is told the scene is over, and a test
+ * that only read the response could not tell the difference.
+ */
+interface SeasonState {
+  finished: FinishedRow[];
+  recordError?: string;
+  recorded: {
+    episode: number;
+    kind: string;
+    outcome: string;
+    season: number;
+  }[];
+}
+
+function createSeasonState(finished: FinishedRow[] = []): SeasonState {
+  return { finished, recorded: [] };
+}
+
+/** Every episode of the season, ended. */
+function finishedSeason(): FinishedRow[] {
+  return [1, 2, 3, 4, 5].map((episode) => ({
+    episode,
+    kind: "성공",
+    outcome: `${episode}화를 끝냈다.`,
+  }));
+}
+
+/**
+ * Stands in for a request whose token and current user both still exist,
+ * reaching a database that holds `state`.
+ */
+function signedInWith(state: SeasonState): MiddlewareHandler {
+  const client = {
+    auth: {
+      getUser: () =>
+        Promise.resolve({
+          data: { user: { id: "user-1" } },
+          error: null,
+        }),
+    },
+    from: () => {
+      const builder = {
+        eq: () => builder,
+        order: () => Promise.resolve({ data: state.finished, error: null }),
+        select: () => builder,
+      };
+
+      return builder;
+    },
+    rpc: (_name: string, args: FinishedRow & { season: number }) => {
+      state.recorded.push(args);
+
+      return Promise.resolve({
+        error: state.recordError ? { message: state.recordError } : null,
+      });
+    },
+  };
+
+  return (c, next) => {
+    c.set("supabaseContext", { supabase: client } as never);
+
+    return next();
+  };
+}
+
+/** A signed-in request whose account has not finished anything yet. */
+const bypassAuth: MiddlewareHandler = signedInWith(createSeasonState());
 
 /** A validly signed token left on a device after its account was deleted. */
 const deletedUserAuth: MiddlewareHandler = (c, next) => {
@@ -113,6 +175,12 @@ function createEpisodeRequest(body: unknown, token?: string): Request {
       ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
     method: "POST",
+  });
+}
+
+function createSeasonRequest(token?: string): Request {
+  return new Request(`http://localhost${EPISODE_PATH}/season`, {
+    headers: token ? { authorization: `Bearer ${token}` } : {},
   });
 }
 
@@ -655,5 +723,220 @@ describe("POST /ai/episode", () => {
 
     expect(response.status).toBe(400);
     expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  // 어떤 화가 열리는지는 계정의 진행이 정한다. 1화를 끝낸 사람이 에피소드를
+  // 열면 2화의 각본이 나온다.
+  test("opens the episode the account's progress points at", async () => {
+    const state = createSeasonState([
+      { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+    ]);
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel(["Mia: Sorry."]),
+    });
+
+    const response = await app.request(createEpisodeRequest({ messages: [] }));
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain("it says declined");
+    expect(body).not.toContain("Next in line");
+  });
+
+  // 끝난 화를 다시 열려는 요청이거나 화면이 뒤처진 요청이다. 어느 쪽이든
+  // 조용히 다른 화를 열어 주지 않는다.
+  test("refuses an episode that is not the one to play now", async () => {
+    const state = createSeasonState([
+      { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+    ]);
+    const model = createMockModel(["Mia: Sorry."]);
+    const app = createApp({ authMiddleware: signedInWith(state), model });
+
+    const response = await app.request(
+      createEpisodeRequest({ episode: 1, messages: [] })
+    );
+
+    expect(response.status).toBe(409);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  test("refuses to open anything once the season is finished", async () => {
+    const model = createMockModel(["Mia: Sorry."]);
+    const app = createApp({
+      authMiddleware: signedInWith(createSeasonState(finishedSeason())),
+      model,
+    });
+
+    const response = await app.request(createEpisodeRequest({ messages: [] }));
+
+    expect(response.status).toBe(409);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  // 마무리 화면을 보지 않고 앱을 꺼도 그 화는 끝난 것으로 남아야 한다. 그래서
+  // 앱이 아니라 서버가 남긴다.
+  test("records the ending in the account before closing the scene", async () => {
+    const state = createSeasonState();
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([
+        "Mia: Here is your iced americano.\n",
+        "성공: 원하던 커피를 새로 받아냈다.",
+      ]),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I ordered an iced americano.")],
+      })
+    );
+
+    await response.text();
+
+    expect(state.recorded).toEqual([
+      {
+        episode: 1,
+        kind: "성공",
+        outcome: "원하던 커피를 새로 받아냈다.",
+        season: 1,
+      },
+    ]);
+  });
+
+  // 예고는 각본에 미리 쓴 글이라 결말과 같은 응답에 실려 온다.
+  test("sends the next episode's preview with the ending", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(createSeasonState()),
+      model: createMockModel(["성공: 원하던 커피를 새로 받아냈다."]),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Excuse me.")] })
+    );
+    const body = await response.text();
+
+    expect(body).toContain('"type":"data-next-up"');
+    expect(body).toContain("계산이 꼬인 아침");
+    expect(body).toContain('"episode":2');
+  });
+
+  test("sends the season's completion instead of a preview after the last episode", async () => {
+    const state = createSeasonState(finishedSeason().slice(0, 4));
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel(["성공: 제대로 인사를 건넸다."]),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Take care.")] })
+    );
+    const body = await response.text();
+
+    expect(body).toContain("시즌 1을 끝냈어요");
+    expect(body).toContain('"episode":null');
+  });
+
+  // 결말을 남기지 못했는데 화면이 끝난 척하면, 사용자는 다음 화를 눌렀다가
+  // 같은 화를 다시 만난다. 그럴 바에는 오류를 보고 다시 시도하는 편이 낫다.
+  test("leaves the episode open when the ending cannot be recorded", async () => {
+    const state = createSeasonState();
+
+    state.recordError = "connection refused";
+
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([
+        "Mia: Here you go.\n",
+        "성공: 원하던 커피를 새로 받아냈다.",
+      ]),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Excuse me.")] })
+    );
+    const body = await response.text();
+
+    expect(body).toContain("Here you go.");
+    expect(body).not.toContain('"type":"data-ending"');
+    expect(body).toContain('"type":"error"');
+  });
+});
+
+describe("GET /ai/episode/season", () => {
+  test("rejects a request with no access token", async () => {
+    const app = createApp({ authMiddleware: createUserAuthMiddleware() });
+
+    const response = await app.request(createSeasonRequest());
+
+    expect(response.status).toBe(401);
+  });
+
+  // 아직 아무것도 끝내지 않은 사람의 홈. 1화 하나만 있다.
+  test("points at the first episode before anything is finished", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(createSeasonState()),
+    });
+
+    const response = await app.request(createSeasonRequest());
+    const view = (await response.json()) as {
+      finished: unknown[];
+      next: { episode: number; title: string } | null;
+      total: number;
+    };
+
+    expect(response.status).toBe(200);
+    expect(view.finished).toEqual([]);
+    expect(view.next).toMatchObject({ episode: 1, title: "카페에서 생긴 일" });
+    expect(view.total).toBe(5);
+  });
+
+  // 진행 중인 홈. 끝낸 화는 결말과 제목을 달고 목록으로 남는다.
+  test("carries the finished episodes and the next one while a season runs", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(
+        createSeasonState([
+          { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+        ])
+      ),
+    });
+
+    const response = await app.request(createSeasonRequest());
+    const view = (await response.json()) as {
+      finished: {
+        episode: number;
+        kind: string;
+        outcome: string;
+        title: string;
+      }[];
+      next: { episode: number; title: string } | null;
+    };
+
+    expect(view.finished).toEqual([
+      {
+        episode: 1,
+        kind: "성공",
+        outcome: "새 잔을 받아냈다.",
+        title: "카페에서 생긴 일",
+      },
+    ]);
+    expect(view.next).toMatchObject({ episode: 2, title: "계산이 꼬인 아침" });
+  });
+
+  test("has no next episode once the season is finished", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(createSeasonState(finishedSeason())),
+    });
+
+    const response = await app.request(createSeasonRequest());
+    const view = (await response.json()) as {
+      completion: { title: string };
+      finished: unknown[];
+      next: unknown;
+    };
+
+    expect(view.next).toBeNull();
+    expect(view.finished).toHaveLength(5);
+    expect(view.completion.title).toBe("시즌 1을 끝냈어요");
   });
 });
