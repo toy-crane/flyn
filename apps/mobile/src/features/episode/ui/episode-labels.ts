@@ -13,6 +13,10 @@ export const episodeLabels = {
   placeholder: "영어로 말해 보세요",
   /** Shown as the button that opens the same episode from the start again. */
   restart: "다시 시작하기",
+  /** Shown as the persistent situation banner under the episode header. */
+  situation: "잘못 나온 커피를 원하는 커피로 바꿔 보세요",
+  /** Shown inside the situation banner, before the situation text. */
+  situationEmoji: "☕",
   /** Shown as the button that opens the episode from Home. */
   start: "에피소드 시작하기",
   /** Shown under the episode's name on Home. */
