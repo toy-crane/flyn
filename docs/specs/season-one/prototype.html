@@ -1,0 +1,503 @@
+<!--
+  prototype shell: the review chrome every prototype starts from.
+
+  Keep this comment in the prototype you grow from here: it is the contract,
+  and later turns work from that file rather than from this one.
+
+  Contract (extend product screens; keep the review shell):
+  - Product:  .sh-stage contains only end-user product UI. Keep review notes,
+               rationale, instructions, and approval controls in conversation.
+  - Screens:  <section data-screen="slug" data-title="Label"> inside .sh-stage.
+               The selector, arrow keys, and #hash routing build themselves.
+               Use one option per product destination or distinct surface,
+               named by its product role. Keep baselines, variants, comparison
+               labels, steps, indexes, and progress out of names and states.
+               Links may use href="#slug".
+  - States:   "Default" is automatic. A screen declares only representative
+               presets in data-states="Empty,Error". Use natural, screen-specific
+               names. Reserve presets for important multi-step results, forced
+               data or errors, or materially different structure; keep one-click
+               and transient states as interactions. Use data-when="Empty" on
+               preset-only elements. Call prototypeShell.setState("Name") on
+               entry and setState("Default") on exit, including when repeated
+               actions cross a preset condition.
+  - Viewport: "vp (m)" cycles full / 390 / 768. The 390 preset is a
+               fixed-height, internally scrolling phone frame. Start a
+               mobile-first prototype by adding class="sh-vp-390" to <body>
+               (or a bootstrap classList.add before the chrome script runs).
+  - Pinning:  keep in-frame bars (tab bars, CTAs) inside the phone with
+               position: sticky; position: fixed pins to the browser window.
+  - Tokens:   replace the project-tokens block with project tokens copied
+               verbatim. Map differing names to --background, --foreground, and
+               --font afterwards; replace network fonts with a system stack and
+               note that substitution. Without a design system, keep this
+               palette as the finished style.
+  - Placeholders: .wf-pic stands in for pictures the prototype has no real
+               files for. Use real text everywhere text belongs.
+
+  - Chrome:   Keep exactly the screen selector, selected-screen state selector,
+               and viewport cycle. Chrome that needs explaining has failed.
+
+  Self-contained by design: no build, no framework, no network.
+-->
+<meta charset="utf-8">
+<title>플린 시즌 프로토타입</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /* ── project tokens: apps/mobile/global.css light theme, verbatim ── */
+  :root {
+    --background: #f4f4f6;
+    --foreground: #111114;
+    --surface: #ffffff;
+    --surface-foreground: var(--foreground);
+    /* HeroUI Native defaults approximated (no override in repo): */
+    --muted: #71717a;
+    --accent: #006fee;
+    --accent-foreground: #ffffff;
+    --line: #e4e4e7;
+    --radius: 16px;
+    --font: system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+  }
+
+  /* ── review chrome (sh-*): keep; extend product styles elsewhere ── */
+  * { box-sizing: border-box }
+  body {
+    margin: 0; padding: 0 0 40px;
+    background: var(--background, #f6f6f6); color: var(--foreground, #3a3a3a);
+    font-family: var(--font, system-ui, sans-serif);
+  }
+  .sh-bar {
+    position: sticky; top: 0; z-index: 999;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    padding: 8px 12px; background: #191a1c; color: #d7d7d7;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .sh-bar b, .sh-control-label { color: #8a8f98; font-weight: 500 }
+  .sh-control { display: inline-flex; gap: 5px; align-items: center }
+  .sh-bar button {
+    border: 1px solid #3a3d42; background: none; color: inherit;
+    font: inherit; padding: 2px 9px; border-radius: 99px; cursor: pointer;
+  }
+  .sh-bar select {
+    width: 170px; border: 1px solid #3a3d42; background: #232428; color: inherit;
+    font: inherit; padding: 3px 28px 3px 9px; border-radius: 7px; cursor: pointer;
+    color-scheme: dark;
+  }
+  #sh-screen { width: 190px }
+  .sh-bar button.on { background: #d7d7d7; color: #191a1c; border-color: #d7d7d7 }
+  .sh-spacer { flex: 1 }
+  .sh-stage { max-width: 960px; margin: 0 auto; padding: 12px 16px 0 }
+  [hidden] { display: none !important }
+
+  /* viewport presets */
+  .sh-vp-390 .sh-stage {
+    max-width: 390px; background: var(--background, #f6f6f6);
+    border: 10px solid #191a1c; border-radius: 28px;
+    padding: 16px 12px; height: min(844px, calc(100dvh - 52px));
+    overflow-y: auto; margin-top: 12px;
+  }
+  .sh-vp-768 .sh-stage {
+    max-width: 768px; border: 1px solid #c4c4c4; border-radius: 12px;
+    padding: 16px; margin-top: 12px;
+  }
+
+  /* placeholders */
+  .wf-pic  { border-radius: 4px; background:
+             repeating-linear-gradient(45deg, #e9e9e9, #e9e9e9 6px, #f2f2f2 6px, #f2f2f2 12px) }
+
+  /* ── product styles ── */
+  section[data-screen] { display: flex; flex-direction: column; min-height: 100% }
+
+  .app-large-title {
+    margin: 8px 4px 4px; font-size: 32px; font-weight: 800; letter-spacing: -0.4px;
+  }
+  .app-stack { display: flex; flex-direction: column; gap: 20px; padding-bottom: 12px }
+
+  .app-card {
+    background: var(--surface); color: var(--surface-foreground);
+    border-radius: var(--radius); padding: 24px 20px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .app-eyebrow { font-size: 13px; font-weight: 600; color: var(--accent) }
+  .app-card h3 { margin: 0; font-size: 20px; font-weight: 700; line-height: 1.35 }
+  .app-card p { margin: 0; font-size: 16px; line-height: 1.5; color: var(--muted) }
+
+  .app-button {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 48px; padding: 12px 32px; border: 0; border-radius: 999px;
+    background: var(--accent); color: var(--accent-foreground);
+    font: 600 16px/1.3 var(--font); cursor: pointer;
+  }
+  .app-button.is-tertiary { background: #e9e9ec; color: var(--foreground) }
+  .app-button-row { display: flex; gap: 8px; margin-top: 4px }
+  .app-button-row .app-button { flex: 1; padding: 12px 16px }
+
+  .app-section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin: 0 4px -8px;
+  }
+  .app-section-head h4 { margin: 0; font-size: 16px; font-weight: 700 }
+  .app-section-head span { font-size: 13px; color: var(--muted) }
+
+  .app-progress { display: flex; gap: 6px; margin: 0 4px }
+  .app-progress i {
+    width: 8px; height: 8px; border-radius: 999px; background: var(--line);
+  }
+  .app-progress i.done { background: var(--accent) }
+
+  .app-episode-list { padding: 8px 20px; gap: 0 }
+  .app-episode-row {
+    display: flex; align-items: center; gap: 12px; padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .app-episode-row:last-child { border-bottom: 0 }
+  .app-episode-row .no { font-size: 13px; font-weight: 700; color: var(--muted); width: 26px }
+  .app-episode-row .t { flex: 1; font-size: 15px; line-height: 1.4 }
+  .app-chip {
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px;
+  }
+
+  .app-tabbar {
+    position: sticky; bottom: -16px; margin: auto -12px -16px;
+    display: flex; border-top: 1px solid var(--line);
+    background: color-mix(in srgb, var(--background) 92%, transparent);
+    backdrop-filter: blur(12px); padding: 8px 0 18px;
+  }
+  .app-tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font-size: 11px; color: var(--muted); text-decoration: none;
+  }
+  .app-tab.on { color: var(--accent) }
+  .app-tab svg { width: 24px; height: 24px }
+
+  /* episode screen */
+  .app-nav {
+    position: sticky; top: -16px; z-index: 5; margin: -16px -12px 0;
+    display: grid; grid-template-columns: 52px 1fr 52px; align-items: center;
+    padding: 10px 4px; background: color-mix(in srgb, var(--background) 90%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  .app-nav .title { text-align: center; font-size: 17px; font-weight: 600 }
+  .app-back {
+    border: 0; background: none; color: var(--accent); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; padding: 6px;
+  }
+  .app-back svg { width: 22px; height: 22px }
+
+  .app-scene { display: flex; flex-direction: column; gap: 8px; padding: 12px 0 16px }
+  .app-narration { padding: 0 4px; font-size: 14px; line-height: 1.45; color: var(--muted) }
+  .app-utter { max-width: 85%; align-self: flex-start }
+  .app-utter .name { margin: 0 0 4px; padding: 0 4px; font-size: 12px; color: var(--muted) }
+  .app-utter .bubble {
+    background: var(--surface); border-radius: 16px; padding: 12px 16px;
+    font-size: 16px; line-height: 1.5;
+  }
+  .app-user { max-width: 85%; align-self: flex-end }
+  .app-user .bubble {
+    background: var(--accent); color: var(--accent-foreground);
+    border-radius: 16px; padding: 12px 16px; font-size: 16px; line-height: 1.5;
+  }
+
+  .app-composer {
+    position: sticky; bottom: -16px; margin: auto -12px -16px;
+    display: flex; gap: 8px; align-items: center;
+    padding: 10px 12px 22px;
+    background: color-mix(in srgb, var(--background) 92%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  .app-composer input {
+    flex: 1; min-height: 44px; border: 1px solid var(--line); border-radius: 999px;
+    background: var(--surface); padding: 10px 18px; font: 16px/1.4 var(--font);
+    color: var(--foreground);
+  }
+  .app-composer input::placeholder { color: var(--muted) }
+  .app-send {
+    width: 44px; height: 44px; flex: none; border: 0; border-radius: 999px;
+    background: var(--accent); color: var(--accent-foreground); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .app-send svg { width: 20px; height: 20px }
+
+  .app-closing {
+    position: sticky; bottom: -16px; margin: auto -12px -16px; padding: 10px 12px 22px;
+    background: color-mix(in srgb, var(--background) 92%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  .app-closing-card {
+    background: var(--surface); border-radius: 16px; padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .app-closing-card .kind { margin: 0; font-size: 20px; font-weight: 700 }
+  .app-closing-card .outcome { margin: 0; font-size: 16px; line-height: 1.5; color: var(--muted) }
+  .app-closing-card hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0 }
+  .app-closing-card .next-title { margin: 0; font-size: 16px; font-weight: 700 }
+  .app-closing-card .next-copy { margin: 0; font-size: 15px; line-height: 1.5; color: var(--muted) }
+</style>
+
+<header class="sh-bar">
+  <b>proto</b>
+  <label class="sh-control"><span class="sh-control-label">screen</span><select id="sh-screen"></select></label>
+  <span class="sh-spacer"></span>
+  <label class="sh-control"><span class="sh-control-label">state</span><select id="sh-state"></select></label>
+  <button id="sh-vp">vp: full (m)</button>
+</header>
+
+<main class="sh-stage">
+
+  <!-- ─────────────────────────── 홈 ─────────────────────────── -->
+  <section data-screen="home" data-title="홈" data-states="시작 전,시즌 완주">
+    <h1 class="app-large-title">Home</h1>
+
+    <div class="app-stack">
+
+      <!-- 시작 전: 지금 홈과 같은 1화 카드 -->
+      <div class="app-card" data-when="시작 전" data-component="new:NextEpisodeCard">
+        <span class="app-eyebrow">시즌 1의 첫 이야기</span>
+        <h3>1화 · 카페에서 생긴 일</h3>
+        <p>주문과 다른 커피가 나왔는데, 직원은 벌써 다음 손님을 부르고 있어요.</p>
+        <button class="app-button" data-component="Button" onclick="prototypeShell.showScreen('episode')">1화 시작하기</button>
+      </div>
+
+      <!-- 진행 중: 다음 화 예고 카드 = 홈의 이어 하기 -->
+      <div class="app-card" data-when="Default" data-component="new:NextEpisodeCard">
+        <span class="app-eyebrow">다음 이야기</span>
+        <h3>2화 · 계산이 꼬인 아침</h3>
+        <p>다음 날 아침, 같은 카페예요. 이번엔 주문이 아니라 계산이 말썽이에요.</p>
+        <button class="app-button" data-component="Button" onclick="prototypeShell.showScreen('episode')">2화 시작하기</button>
+      </div>
+
+      <!-- 시즌 완주 -->
+      <div class="app-card" data-when="시즌 완주" data-component="new:SeasonDoneCard">
+        <span class="app-eyebrow">시즌 1</span>
+        <h3>시즌 1을 끝냈어요</h3>
+        <p>다섯 번의 사건을 영어로 지나왔어요. 다음 시즌을 준비하고 있어요.</p>
+      </div>
+
+      <!-- 시즌 진행: 진행 중 -->
+      <div class="app-section-head" data-when="Default">
+        <h4>시즌 1</h4><span>5화 중 1화 완료</span>
+      </div>
+      <div class="app-progress" data-when="Default" data-component="new:SeasonProgress">
+        <i class="done"></i><i></i><i></i><i></i><i></i>
+      </div>
+      <div class="app-card app-episode-list" data-when="Default" data-component="new:SeasonRecap">
+        <div class="app-episode-row">
+          <span class="no">1화</span><span class="t">카페에서 생긴 일</span><span class="app-chip">성공</span>
+        </div>
+      </div>
+
+      <!-- 시즌 진행: 완주 -->
+      <div class="app-section-head" data-when="시즌 완주">
+        <h4>시즌 1</h4><span>5화 모두 완료</span>
+      </div>
+      <div class="app-card app-episode-list" data-when="시즌 완주" data-component="new:SeasonRecap">
+        <div class="app-episode-row">
+          <span class="no">1화</span><span class="t">카페에서 생긴 일</span><span class="app-chip">성공</span>
+        </div>
+        <div class="app-episode-row">
+          <span class="no">2화</span><span class="t">계산이 꼬인 아침</span><span class="app-chip">성공</span>
+        </div>
+        <div class="app-episode-row">
+          <span class="no">3화</span><span class="t">자리를 맡아 둔 사이에</span><span class="app-chip">타협</span>
+        </div>
+        <div class="app-episode-row">
+          <span class="no">4화</span><span class="t">주문이 밀린 저녁</span><span class="app-chip">실패</span>
+        </div>
+        <div class="app-episode-row">
+          <span class="no">5화</span><span class="t">마지막 잔</span><span class="app-chip">성공</span>
+        </div>
+      </div>
+
+    </div>
+
+    <nav class="app-tabbar" data-component="new:TabBar">
+      <a class="app-tab on" href="#home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/></svg>
+        Home
+      </a>
+      <a class="app-tab" href="#home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-8M21 20H3"/></svg>
+        Activity
+      </a>
+      <a class="app-tab" href="#home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6.5 3.5h11V21L12 16.5 6.5 21z"/></svg>
+        Saved
+      </a>
+    </nav>
+  </section>
+
+  <!-- ─────────────────────── 에피소드 ─────────────────────── -->
+  <section data-screen="episode" data-title="에피소드" data-states="마무리,시즌 끝 마무리">
+
+    <div class="app-nav" data-component="new:EpisodeHeader">
+      <button class="app-back" aria-label="뒤로 가기" onclick="prototypeShell.showScreen('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg>
+      </button>
+      <span class="title" data-when="Default,마무리">계산이 꼬인 아침</span>
+      <span class="title" data-when="시즌 끝 마무리">마지막 잔</span>
+      <span></span>
+    </div>
+
+    <!-- 2화 장면 -->
+    <div class="app-scene" data-when="Default,마무리" data-component="SceneMessage" id="scene-2">
+      <p class="app-narration">다음 날 아침, 같은 카페다. 계산대 앞에서 카드를 대는데 단말기가 몇 번이고 오류음을 낸다. 뒤로 줄이 생기기 시작한다.</p>
+      <div class="app-utter"><p class="name">Mia</p><div class="bubble">Oh no, not this machine again.</div></div>
+      <div class="app-utter"><p class="name">Mia</p><div class="bubble">Wait—you're the iced americano guy from yesterday, right? I made yours first today.</div></div>
+      <div class="app-user" data-component="UserMessage"><div class="bubble">Yes! Thank you. But my card is not working, I think.</div></div>
+      <div class="app-utter"><p class="name">Mia</p><div class="bubble">Hmm, it says error on my side too. Do you have another card? Or you can pay with your phone.</div></div>
+      <div class="app-utter" data-when="마무리"><p class="name">Mia</p><div class="bubble">It went through! Sorry about that. Here's your americano—iced, I promise.</div></div>
+      <p class="app-narration" data-when="마무리">영수증이 소리를 내며 나온다. 뒤에 섰던 손님이 슬쩍 웃는다.</p>
+    </div>
+
+    <!-- 5화 장면 -->
+    <div class="app-scene" data-when="시즌 끝 마무리" data-component="SceneMessage">
+      <p class="app-narration">저녁 여덟 시, 문 닫기 직전의 카페다. Mia가 마지막 잔을 내리며 카운터 너머로 웃는다. 내일부터는 새 지점으로 옮긴다고 했다.</p>
+      <div class="app-utter"><p class="name">Mia</p><div class="bubble">So, this is my last shift here. You became my favorite regular, you know.</div></div>
+      <div class="app-user" data-component="UserMessage"><div class="bubble">I will miss you. Thank you for everything, Mia.</div></div>
+      <div class="app-utter"><p class="name">Mia</p><div class="bubble">Come to the new place sometime. First coffee is on me.</div></div>
+      <p class="app-narration">Mia가 컵에 이름 대신 짧은 인사를 적어 건넨다.</p>
+    </div>
+
+    <!-- 진행 중: 입력창 -->
+    <div class="app-composer" data-when="Default" data-component="ComposerSurface">
+      <input id="composer-input" placeholder="영어로 말해 보세요" aria-label="영어로 말해 보세요">
+      <button class="app-send" aria-label="보내기" onclick="sendDraft()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg>
+      </button>
+    </div>
+
+    <!-- 마무리: 입력창 자리를 결말 + 예고가 대신한다 -->
+    <div class="app-closing" data-when="마무리" data-component="EpisodeClosing">
+      <div class="app-closing-card">
+        <p class="kind">성공</p>
+        <p class="outcome">말썽인 단말기 대신 다른 방법을 찾아 계산을 끝냈다.</p>
+        <hr>
+        <span class="app-eyebrow">다음 이야기</span>
+        <p class="next-title">3화 · 자리를 맡아 둔 사이에</p>
+        <p class="next-copy">부탁까지 해 두고 잠깐 자리를 비웠을 뿐인데, 돌아와 보니 노트북이 사라졌어요.</p>
+        <div class="app-button-row">
+          <button class="app-button is-tertiary" data-component="Button" onclick="prototypeShell.showScreen('home')">홈으로 가기</button>
+          <button class="app-button" data-component="Button" onclick="prototypeShell.setState('Default')">3화 시작하기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 시즌 마지막 화의 마무리: 예고 대신 시즌의 끝 -->
+    <div class="app-closing" data-when="시즌 끝 마무리" data-component="EpisodeClosing">
+      <div class="app-closing-card">
+        <p class="kind">성공</p>
+        <p class="outcome">Mia의 마지막 날을 단골답게 배웅했다.</p>
+        <hr>
+        <p class="next-title">시즌 1을 끝냈어요</p>
+        <p class="next-copy">다섯 번의 사건을 영어로 지나왔어요. 다음 시즌을 준비하고 있어요.</p>
+        <div class="app-button-row">
+          <button class="app-button" data-component="Button" onclick="prototypeShell.showScreen('home')">홈으로 가기</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<script>document.body.classList.add("sh-vp-390")</script>
+<script>
+  const stage = document.querySelector('.sh-stage');
+  const screens = [...stage.querySelectorAll('[data-screen]')];
+  const screenSelect = document.getElementById('sh-screen');
+  const stateSelect = document.getElementById('sh-state');
+  const vpBtn = document.getElementById('sh-vp');
+  let current = null;
+  let currentStates = [];
+
+  screens.forEach(s => {
+    const option = document.createElement('option');
+    option.textContent = s.dataset.title || s.dataset.screen;
+    option.value = s.dataset.screen;
+    screenSelect.append(option);
+  });
+  screenSelect.onchange = () => show(screenSelect.value);
+
+  function show(slug) {
+    current = screens.find(s => s.dataset.screen === slug) || screens[0];
+    screens.forEach(s => s.hidden = s !== current);
+    screenSelect.value = current.dataset.screen;
+    history.replaceState(null, '', '#' + current.dataset.screen);
+    buildStates();
+  }
+
+  function buildStates() {
+    const declared = (current.dataset.states || '').split(',').map(x => x.trim()).filter(Boolean);
+    currentStates = ['Default', ...declared.filter(name => name !== 'Default')];
+    stateSelect.innerHTML = '';
+    currentStates.forEach(name => {
+      const option = document.createElement('option');
+      option.textContent = name;
+      option.value = name;
+      stateSelect.append(option);
+    });
+    applyState('Default');
+  }
+
+  function applyState(name) {
+    const active = currentStates.includes(name) ? name : 'Default';
+    current.querySelectorAll('[data-when]').forEach(el => {
+      el.hidden = !el.dataset.when.split(',').map(x => x.trim()).includes(active);
+    });
+    stateSelect.value = active;
+  }
+  stateSelect.onchange = () => applyState(stateSelect.value);
+
+  window.prototypeShell = {
+    showScreen: show,
+    setState: applyState,
+    getScreen: () => current?.dataset.screen,
+    getState: () => stateSelect.value
+  };
+
+  const VPS = ['full', '390', '768'];
+  let vp = VPS.find(v => document.body.classList.contains('sh-vp-' + v)) || 'full';
+  function applyVp() {
+    VPS.forEach(v => document.body.classList.toggle('sh-vp-' + v, v === vp && v !== 'full'));
+    vpBtn.textContent = 'vp: ' + vp + ' (m)';
+    vpBtn.classList.toggle('on', vp !== 'full');
+  }
+  vpBtn.onclick = () => { vp = VPS[(VPS.indexOf(vp) + 1) % VPS.length]; applyVp(); };
+  applyVp();
+
+  addEventListener('keydown', e => {
+    if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    const i = screens.indexOf(current);
+    if (e.key === 'ArrowRight') show(screens[(i + 1) % screens.length].dataset.screen);
+    if (e.key === 'ArrowLeft') show(screens[(i - 1 + screens.length) % screens.length].dataset.screen);
+    if (e.key === 'm') vpBtn.click();
+  });
+
+  addEventListener('hashchange', () => show(location.hash.slice(1)));
+  show(location.hash.slice(1));
+
+  /* 진행 중 입력: 보낸 말이 말풍선으로 붙고, Mia가 한 번 되받는다. */
+  function sendDraft() {
+    const input = document.getElementById('composer-input');
+    const text = input.value.trim();
+    if (!text) return;
+    const scene = document.getElementById('scene-2');
+    const mine = document.createElement('div');
+    mine.className = 'app-user';
+    mine.innerHTML = '<div class="bubble"></div>';
+    mine.querySelector('.bubble').textContent = text;
+    const reply = document.createElement('div');
+    reply.className = 'app-utter';
+    reply.innerHTML = '<p class="name">Mia</p><div class="bubble">Okay, let me try the machine one more time.</div>';
+    /* 마무리 전용 대사는 늘 장면의 끝이어야 하므로 그 앞에 끼워 넣는다. */
+    const closingLine = scene.querySelector('[data-when]');
+    scene.insertBefore(mine, closingLine);
+    scene.insertBefore(reply, closingLine);
+    input.value = '';
+    scene.parentElement.scrollTo?.(0, 999999);
+    stage.scrollTop = stage.scrollHeight;
+  }
+  document.getElementById('composer-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendDraft();
+  });
+</script>
