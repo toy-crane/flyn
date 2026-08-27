@@ -4,7 +4,11 @@ import type { UIMessageChunk, UIMessageStreamWriter } from "ai";
 
 import { speakerModelText, streamSceneText } from "./scene-stream";
 
-const CAST = ["만복", "준호", "세라"] as const;
+const CAST = { cast: ["만복", "준호", "세라"] } as const;
+const ENDING_SCENE = {
+  cast: ["Mia"],
+  endings: ["성공", "타협", "실패"],
+} as const;
 
 // biome-ignore-start lint/suspicious/useAwait: 파서가 받는 것과 같은 비동기 스트림 형태가 필요하다
 async function* deltas(parts: string[]): AsyncIterable<string> {
@@ -58,6 +62,15 @@ function segmentsOf(chunks: UIMessageChunk[]) {
   }
 
   return segments;
+}
+
+/** Reads the one part that carries the scene's ending, if it arrived. */
+function endingOf(chunks: UIMessageChunk[]) {
+  for (const chunk of chunks) {
+    if (chunk.type === "data-ending") {
+      return chunk.data as { kind: string; outcome: string };
+    }
+  }
 }
 
 describe("streamSceneText", () => {
@@ -117,6 +130,88 @@ describe("streamSceneText", () => {
 
     expect(starts).toHaveLength(2);
     expect(ends).toHaveLength(2);
+  });
+
+  test("turns an ending line into the scene's ending instead of an utterance", async () => {
+    const { chunks, writer } = collectingWriter();
+
+    await streamSceneText(
+      deltas([
+        "Mia: Here, let me remake that.\n",
+        "직원이 새 잔을 집는다.\n",
+        "성공: 원하던 커피를 새로 받아냈다.\n",
+      ]),
+      ENDING_SCENE,
+      writer
+    );
+
+    expect(segmentsOf(chunks)).toEqual([
+      { name: "Mia", text: "Here, let me remake that." },
+      { name: null, text: "직원이 새 잔을 집는다." },
+    ]);
+    expect(endingOf(chunks)).toEqual({
+      kind: "성공",
+      outcome: "원하던 커피를 새로 받아냈다.",
+    });
+  });
+
+  test("leaves a scene that is still running without an ending", async () => {
+    const { chunks, writer } = collectingWriter();
+
+    await streamSceneText(
+      deltas(["Mia: What can I get you?"]),
+      ENDING_SCENE,
+      writer
+    );
+
+    expect(endingOf(chunks)).toBeUndefined();
+  });
+
+  // 결말 줄이 조각조각 도착해도 말풍선으로 새지 않아야 한다. 판정이 끝나기
+  // 전에 흘려보내면 화면에 결말이 대사처럼 남는다.
+  test("collects an ending that arrives in pieces", async () => {
+    const { chunks, writer } = collectingWriter();
+
+    await streamSceneText(
+      deltas(["타", "협: 뜨거운 라떼를 ", "그냥 받았다."]),
+      ENDING_SCENE,
+      writer
+    );
+
+    expect(segmentsOf(chunks)).toEqual([]);
+    expect(endingOf(chunks)).toEqual({
+      kind: "타협",
+      outcome: "뜨거운 라떼를 그냥 받았다.",
+    });
+  });
+
+  // 결말은 사건이 끝났다는 한 번의 판정이다. 모델이 두 번 쓰면 처음 것만 남기고
+  // 나머지는 화면에 흘리지 않는다.
+  test("keeps the first ending and never shows a later one", async () => {
+    const { chunks, writer } = collectingWriter();
+
+    await streamSceneText(
+      deltas(["실패: 아무것도 얻지 못했다.\n실패: 다시 실패했다.\n"]),
+      ENDING_SCENE,
+      writer
+    );
+
+    expect(segmentsOf(chunks)).toEqual([]);
+    expect(endingOf(chunks)).toEqual({
+      kind: "실패",
+      outcome: "아무것도 얻지 못했다.",
+    });
+  });
+
+  test("keeps an ending tag out of a scene that has none", async () => {
+    const { chunks, writer } = collectingWriter();
+
+    await streamSceneText(deltas(["성공: 국수를 다 먹었다.\n"]), CAST, writer);
+
+    expect(segmentsOf(chunks)).toEqual([
+      { name: null, text: "성공: 국수를 다 먹었다." },
+    ]);
+    expect(endingOf(chunks)).toBeUndefined();
   });
 });
 
