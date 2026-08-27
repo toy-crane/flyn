@@ -1,0 +1,342 @@
+-- 플레이 기록은 스토리·화 번호가 아니라 안정된 에피소드 id를 참조한다.
+BEGIN;
+SELECT plan(34);
+
+INSERT INTO auth.users (id, email)
+VALUES
+  ('33333333-3333-4333-8333-333333333333', 'story-progress@example.test'),
+  ('55555555-5555-4555-8555-555555555555', 'other-progress@example.test');
+
+SELECT has_column(
+  'public',
+  'episode_endings',
+  'episode_id',
+  'an ending references an episode id'
+);
+
+SELECT col_is_pk(
+  'public',
+  'episode_endings',
+  array['user_id', 'episode_id'],
+  'an account holds at most one ending per episode'
+);
+
+SELECT hasnt_column(
+  'public',
+  'episode_endings',
+  'season',
+  'season numbers are not progress keys'
+);
+
+SELECT hasnt_column(
+  'public',
+  'episode_endings',
+  'episode',
+  'episode numbers are not progress keys'
+);
+
+SELECT function_privs_are(
+  'public',
+  'finish_episode',
+  array['uuid', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
+  'authenticated',
+  array['EXECUTE'],
+  'a signed-in account can finish an episode by id'
+);
+
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claims TO
+  '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated"}';
+
+SELECT lives_ok(
+  $$
+    select public.finish_episode(
+      '11000000-0000-4000-8000-000000000001'::uuid,
+      '성공',
+      '새 아이스 아메리카노를 받아냈다.'
+    )
+  $$,
+  'the first episode in a story can finish'
+);
+
+SELECT is(
+  (
+    select kind
+    from public.episode_endings
+    where episode_id = '11000000-0000-4000-8000-000000000001'
+  ),
+  '성공',
+  'the ending is stored against the episode id'
+);
+
+SELECT throws_ok(
+  $$
+    select public.finish_episode(
+      '11000000-0000-4000-8000-000000000003'::uuid,
+      '성공',
+      '앞 화를 건너뛰었다.'
+    )
+  $$,
+  '22023',
+  null,
+  'an episode cannot finish before every earlier episode in its story'
+);
+
+SELECT lives_ok(
+  $$
+    select public.finish_episode(
+      '11000000-0000-4000-8000-000000000001'::uuid,
+      '실패',
+      '나중에 도착한 다른 결말.'
+    )
+  $$,
+  'the same ending can arrive again without an error'
+);
+
+SELECT is(
+  (
+    select kind
+    from public.episode_endings
+    where episode_id = '11000000-0000-4000-8000-000000000001'
+  ),
+  '성공',
+  'a repeated ending never overwrites the first one'
+);
+
+RESET ROLE;
+
+SELECT has_table(
+  'public',
+  'episode_runs',
+  'public.episode_runs stores active and completed conversations'
+);
+
+SELECT col_is_pk(
+  'public',
+  'episode_runs',
+  array['user_id', 'episode_id'],
+  'an account keeps one conversation per episode'
+);
+
+SELECT ok(
+  (
+    select relrowsecurity
+    from pg_class
+    where oid = to_regclass('public.episode_runs')
+  ),
+  'row level security is enabled on episode_runs'
+);
+
+SELECT policies_are(
+  'public',
+  'episode_runs',
+  array['episode_runs_select_own'],
+  'episode_runs carries only the owner read policy'
+);
+
+SELECT table_privs_are(
+  'public',
+  'episode_runs',
+  'authenticated',
+  array['SELECT'],
+  'authenticated can read only their own episode runs'
+);
+
+SELECT table_privs_are(
+  'public',
+  'episode_runs',
+  'anon',
+  array[]::text[],
+  'anon holds no privilege on episode runs'
+);
+
+SELECT function_privs_are(
+  'public',
+  'save_episode_run',
+  array['uuid', 'jsonb']::name[],
+  'authenticated',
+  array['EXECUTE'],
+  'a signed-in account can save its current scene'
+);
+
+SELECT function_privs_are(
+  'public',
+  'save_episode_run',
+  array['uuid', 'jsonb']::name[],
+  'anon',
+  array[]::text[],
+  'anon cannot save an episode scene'
+);
+
+SELECT function_privs_are(
+  'public',
+  'complete_episode_run',
+  array['uuid', 'jsonb']::name[],
+  'anon',
+  array[]::text[],
+  'anon cannot complete an episode scene'
+);
+
+SET LOCAL ROLE anon;
+
+SELECT throws_ok(
+  $$select * from public.episode_runs$$,
+  '42501',
+  null,
+  'anon cannot read episode runs'
+);
+
+RESET ROLE;
+
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claims TO
+  '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated"}';
+
+SELECT lives_ok(
+  $$
+    select public.save_episode_run(
+      '11000000-0000-4000-8000-000000000002'::uuid,
+      '[{"id":"opening-2","role":"assistant","parts":[{"type":"text","text":"Mia가 카드를 다시 본다."}]}]'::jsonb
+    )
+  $$,
+  'the current episode scene is saved'
+);
+
+SELECT is(
+  (
+    select messages #>> '{0,id}'
+    from public.episode_runs
+    where episode_id = '11000000-0000-4000-8000-000000000002'
+  ),
+  'opening-2',
+  'the saved scene keeps its message ids'
+);
+
+SELECT throws_ok(
+  $$insert into public.episode_runs (user_id, episode_id, messages)
+    values (
+      '33333333-3333-4333-8333-333333333333',
+      '11000000-0000-4000-8000-000000000002',
+      '[]'::jsonb
+    )$$,
+  '42501',
+  null,
+  'a signed-in account cannot insert a run directly'
+);
+
+SELECT throws_ok(
+  $$delete from public.episode_runs
+    where episode_id = '11000000-0000-4000-8000-000000000002'$$,
+  '42501',
+  null,
+  'a signed-in account cannot delete a run directly'
+);
+
+SELECT throws_ok(
+  $$truncate public.episode_runs$$,
+  '42501',
+  null,
+  'a signed-in account cannot truncate episode runs'
+);
+
+SELECT throws_ok(
+  $$
+    select public.save_episode_run(
+      '11000000-0000-4000-8000-000000000003'::uuid,
+      '[]'::jsonb
+    )
+  $$,
+  '22023',
+  null,
+  'a future episode cannot acquire a saved scene'
+);
+
+RESET ROLE;
+
+SELECT function_privs_are(
+  'public',
+  'complete_episode_run',
+  array['uuid', 'jsonb']::name[],
+  'authenticated',
+  array['EXECUTE'],
+  'a signed-in account can complete a saved scene after its ending exists'
+);
+
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claims TO
+  '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated"}';
+
+SELECT lives_ok(
+  $$
+    select public.complete_episode_run(
+      '11000000-0000-4000-8000-000000000001'::uuid,
+      '[{"id":"opening-1","role":"assistant","parts":[{"type":"text","text":"Mia가 새 잔을 내민다."}]},{"id":"ending-1","role":"assistant","parts":[{"type":"data-ending","data":{"kind":"성공","outcome":"새 잔을 받았다."}}]}]'::jsonb
+    )
+  $$,
+  'an ended episode becomes a completed conversation'
+);
+
+SELECT ok(
+  (
+    select completed_at is not null
+    from public.episode_runs
+    where episode_id = '11000000-0000-4000-8000-000000000001'
+  ),
+  'a completed conversation is marked complete'
+);
+
+SELECT is(
+  (
+    select messages #>> '{1,id}'
+    from public.episode_runs
+    where episode_id = '11000000-0000-4000-8000-000000000001'
+  ),
+  'ending-1',
+  'the completed conversation keeps the ending message'
+);
+
+SELECT lives_ok(
+  $$
+    select public.save_episode_run(
+      '11000000-0000-4000-8000-000000000001'::uuid,
+      '[]'::jsonb
+    )
+  $$,
+  'a stale active save after completion raises no error'
+);
+
+SELECT is(
+  (
+    select messages #>> '{1,id}'
+    from public.episode_runs
+    where episode_id = '11000000-0000-4000-8000-000000000001'
+  ),
+  'ending-1',
+  'a stale active save cannot overwrite a completed conversation'
+);
+
+SELECT throws_ok(
+  $$
+    select public.complete_episode_run(
+      '11000000-0000-4000-8000-000000000002'::uuid,
+      '[]'::jsonb
+    )
+  $$,
+  '22023',
+  null,
+  'a conversation cannot complete before its ending exists'
+);
+
+SET LOCAL request.jwt.claims TO
+  '{"sub":"55555555-5555-4555-8555-555555555555","role":"authenticated"}';
+
+SELECT is(
+  (select count(*) from public.episode_runs),
+  0::bigint,
+  'another account sees none of the saved or completed scenes'
+);
+
+RESET ROLE;
+
+SELECT * FROM finish();
+ROLLBACK;

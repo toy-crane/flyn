@@ -1,3 +1,27 @@
+-- 공식 스토리와 각본. 로그인한 사람은 읽을 수 있지만, 저장소에서 배포한
+-- 콘텐츠를 앱이 바꾸지는 못한다.
+alter table public.stories enable row level security;
+
+create policy stories_select_authenticated on public.stories
+  for select
+  to authenticated
+  using (true);
+
+revoke all on table public.stories from anon, authenticated, service_role;
+grant select on table public.stories to authenticated;
+grant all on table public.stories to service_role;
+
+alter table public.episodes enable row level security;
+
+create policy episodes_select_authenticated on public.episodes
+  for select
+  to authenticated
+  using (true);
+
+revoke all on table public.episodes from anon, authenticated, service_role;
+grant select on table public.episodes to authenticated;
+grant all on table public.episodes to service_role;
+
 -- Access control for public.profiles.
 --
 -- `config.toml` does not auto-expose new tables, so a table is unreachable
@@ -79,6 +103,19 @@ revoke all on table public.episode_endings from anon, authenticated, service_rol
 grant select on table public.episode_endings to authenticated;
 
 grant all on table public.episode_endings to service_role;
+
+-- 진행 중 장면과 끝난 대화 기록. 사용자는 자기 기록만 읽고, 쓰기는 순서와
+-- 완료 불변성을 검사하는 함수만 맡는다.
+alter table public.episode_runs enable row level security;
+
+create policy episode_runs_select_own on public.episode_runs
+  for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+revoke all on table public.episode_runs from anon, authenticated, service_role;
+grant select on table public.episode_runs to authenticated;
+grant all on table public.episode_runs to service_role;
 
 -- Access control for public.language_levels.
 --

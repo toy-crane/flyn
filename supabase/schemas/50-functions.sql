@@ -292,17 +292,16 @@ create trigger profiles_guard_username_change
   when (new.username is distinct from old.username)
   execute function public.guard_username_change();
 
--- 끝난 화를 기록하는 유일한 길.
+-- 끝난 에피소드를 기록하는 유일한 길.
 --
 -- `authenticated`는 `episode_endings`에 직접 쓰지 못한다. 직접 쓸 수 있으면
 -- 앱이 아무 화나 끝난 것으로 만들어 앞의 화를 건너뛸 수 있다. 이 함수는
 -- 지금 끝낼 수 있는 화가 하나뿐이라는 규칙을 지키고, 그래서 `security definer`다.
 --
--- 같은 화의 결말이 다시 도착하면 조용히 지나간다. 한 번 난 결말은 그 시즌의
+-- 같은 화의 결말이 다시 도착하면 조용히 지나간다. 한 번 난 결말은 그 스토리의
 -- 사실로 남으므로 나중에 온 판정이 앞의 사실을 바꾸지 않는다.
 create function public.finish_episode(
-  season smallint,
-  episode smallint,
+  episode_id uuid,
   kind text,
   outcome text,
   memory_choice text default null,
@@ -317,37 +316,48 @@ set search_path = ''
 as $$
 declare
   player uuid := (select auth.uid());
-  last_finished integer;
+  recorded integer;
+  target_story uuid;
+  target_number smallint;
 begin
   if player is null then
     raise exception 'A signed-in user is required to finish an episode.'
       using errcode = '28000';
   end if;
 
-  -- 마지막으로 끝낸 화를 기준으로 삼는다. 개수로 세면 중간의 한 행이 사라졌을
-  -- 때 다음 화가 이미 있는 번호를 가리켜 그 시즌이 영영 막힌다.
-  select coalesce(max(e.episode), 0) into last_finished
-  from public.episode_endings e
-  where e.user_id = player
-    and e.season = finish_episode.season;
+  select authored.story_id, authored.number
+  into target_story, target_number
+  from public.episodes authored
+  where authored.id = finish_episode.episode_id;
 
-  -- 화는 순서대로만 끝난다. 다음에 끝낼 수 있는 화는 언제나 하나뿐이고, 이미
-  -- 끝낸 화를 다시 보내는 것은 규칙 위반이 아니라 같은 사실의 재도착이다.
-  if
-    finish_episode.episode <> last_finished + 1
-    and finish_episode.episode > last_finished
-  then
-    raise exception 'Episode % is not the next episode of season %.',
-      finish_episode.episode, finish_episode.season
+  if target_story is null then
+    raise exception 'Episode % does not exist.', finish_episode.episode_id
       using errcode = '22023';
   end if;
 
-  -- 같은 화의 결말이 동시에 두 번 도착해도 뒤의 것이 오류가 되지 않는다. 먼저
-  -- 도착한 판정이 그 시즌의 사실로 남고 나중 것은 조용히 지나간다.
+  if not exists (
+    select 1
+    from public.episode_endings ending
+    where ending.user_id = player
+      and ending.episode_id = finish_episode.episode_id
+  ) and exists (
+    select 1
+    from public.episodes earlier
+    left join public.episode_endings ending
+      on ending.user_id = player
+      and ending.episode_id = earlier.id
+    where earlier.story_id = target_story
+      and earlier.number < target_number
+      and ending.episode_id is null
+  ) then
+    raise exception 'Episode % is not the next episode in its story.',
+      finish_episode.episode_id
+      using errcode = '22023';
+  end if;
+
   insert into public.episode_endings (
     user_id,
-    season,
-    episode,
+    episode_id,
     kind,
     outcome,
     memory_choice,
@@ -356,22 +366,18 @@ begin
   )
   values (
     player,
-    finish_episode.season,
-    finish_episode.episode,
+    finish_episode.episode_id,
     finish_episode.kind,
     finish_episode.outcome,
     finish_episode.memory_choice,
     finish_episode.memory_relationship,
     finish_episode.memory_question
   )
-  -- 충돌 대상을 열 이름으로 적으면 같은 이름의 인자와 헷갈린다. 기본키를
-  -- 이름으로 가리키면 그 모호함이 없다.
   on conflict on constraint episode_endings_pkey do nothing;
 
-  -- 언어 수준은 시즌이 아니라 이 사람에게 붙는다. 화가 끝날 때마다 그 시점의
-  -- 관찰로 덮어쓴다. 이번 장면이 아무 말도 남기지 않았으면 지난 관찰을 지우지
-  -- 않고 그대로 둔다.
-  if finish_episode.language_level is not null then
+  get diagnostics recorded = row_count;
+
+  if recorded = 1 and finish_episode.language_level is not null then
     insert into public.language_levels (user_id, level)
     values (player, finish_episode.language_level)
     on conflict on constraint language_levels_pkey do update
@@ -381,8 +387,148 @@ begin
 end;
 $$;
 
-comment on function public.finish_episode(smallint, smallint, text, text, text, text, text, text) is
+comment on function public.finish_episode(uuid, text, text, text, text, text, text) is
   'Records the ending and story memory of the caller''s current episode. Refuses to skip ahead and never overwrites a recorded ending.';
 
-revoke all on function public.finish_episode(smallint, smallint, text, text, text, text, text, text) from public, anon;
-grant execute on function public.finish_episode(smallint, smallint, text, text, text, text, text, text) to authenticated;
+revoke all on function public.finish_episode(uuid, text, text, text, text, text, text) from public, anon;
+grant execute on function public.finish_episode(uuid, text, text, text, text, text, text) to authenticated;
+
+-- 진행 중인 장면을 계정에 남긴다. 앱은 매 요청에 대화 전체를 보내고 서버는
+-- 받은 목록을 통째로 바꿔 쓴다. 같은 에피소드를 두 기기에서 진행하면 마지막
+-- 저장이 남는다.
+create function public.save_episode_run(episode_id uuid, messages jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  player uuid := (select auth.uid());
+  target_story uuid;
+  target_number smallint;
+begin
+  if player is null then
+    raise exception 'A signed-in user is required to save an episode.'
+      using errcode = '28000';
+  end if;
+
+  if jsonb_typeof(save_episode_run.messages) is distinct from 'array' then
+    raise exception 'Episode messages must be a JSON array.'
+      using errcode = '22023';
+  end if;
+
+  if octet_length(save_episode_run.messages::text) > 1048576 then
+    raise exception 'Episode messages exceed the one MiB limit.'
+      using errcode = '22001';
+  end if;
+
+  select authored.story_id, authored.number
+  into target_story, target_number
+  from public.episodes authored
+  where authored.id = save_episode_run.episode_id;
+
+  if target_story is null then
+    raise exception 'Episode % does not exist.', save_episode_run.episode_id
+      using errcode = '22023';
+  end if;
+
+  if exists (
+    select 1
+    from public.episode_endings ending
+    where ending.user_id = player
+      and ending.episode_id = save_episode_run.episode_id
+  ) then
+    return;
+  end if;
+
+  if exists (
+    select 1
+    from public.episodes earlier
+    left join public.episode_endings ending
+      on ending.user_id = player
+      and ending.episode_id = earlier.id
+    where earlier.story_id = target_story
+      and earlier.number < target_number
+      and ending.episode_id is null
+  ) then
+    raise exception 'Episode % is not the current episode in its story.',
+      save_episode_run.episode_id
+      using errcode = '22023';
+  end if;
+
+  insert into public.episode_runs (user_id, episode_id, messages)
+  values (player, save_episode_run.episode_id, save_episode_run.messages)
+  on conflict on constraint episode_runs_pkey do update
+  set messages = excluded.messages,
+      updated_at = now()
+  where public.episode_runs.completed_at is null;
+end;
+$$;
+
+comment on function public.save_episode_run(uuid, jsonb) is
+  'Upserts the caller''s current episode messages. Completed runs remain immutable.';
+
+revoke all on function public.save_episode_run(uuid, jsonb) from public, anon;
+grant execute on function public.save_episode_run(uuid, jsonb) to authenticated;
+
+-- 결말이 먼저 남은 에피소드의 같은 장면을 읽기 전용 대화 기록으로 확정한다.
+-- 이 함수가 실패해도 결말은 이미 별도 호출로 남아 있어 화가 다시 열리지 않는다.
+create function public.complete_episode_run(episode_id uuid, messages jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  player uuid := (select auth.uid());
+begin
+  if player is null then
+    raise exception 'A signed-in user is required to complete an episode run.'
+      using errcode = '28000';
+  end if;
+
+  if jsonb_typeof(complete_episode_run.messages) is distinct from 'array' then
+    raise exception 'Episode messages must be a JSON array.'
+      using errcode = '22023';
+  end if;
+
+  if octet_length(complete_episode_run.messages::text) > 1048576 then
+    raise exception 'Episode messages exceed the one MiB limit.'
+      using errcode = '22001';
+  end if;
+
+  if not exists (
+    select 1
+    from public.episode_endings ending
+    where ending.user_id = player
+      and ending.episode_id = complete_episode_run.episode_id
+  ) then
+    raise exception 'Episode % has no ending.', complete_episode_run.episode_id
+      using errcode = '22023';
+  end if;
+
+  insert into public.episode_runs (
+    user_id,
+    episode_id,
+    messages,
+    completed_at
+  )
+  values (
+    player,
+    complete_episode_run.episode_id,
+    complete_episode_run.messages,
+    now()
+  )
+  on conflict on constraint episode_runs_pkey do update
+  set messages = excluded.messages,
+      completed_at = excluded.completed_at,
+      updated_at = now()
+  where public.episode_runs.completed_at is null;
+end;
+$$;
+
+comment on function public.complete_episode_run(uuid, jsonb) is
+  'Marks the caller''s ended episode messages complete. A completed transcript is immutable.';
+
+revoke all on function public.complete_episode_run(uuid, jsonb) from public, anon;
+grant execute on function public.complete_episode_run(uuid, jsonb) to authenticated;
