@@ -918,6 +918,52 @@ describe("POST /ai/episode", () => {
     expect(openings[0]).toBe(openings[1]);
   });
 
+  // 줄 머리만 쓰고 내용을 다음 줄로 넘긴 기록은 데이터베이스가 거절한다. 그
+  // 실패가 결말 기록 전체를 무너뜨리면 사건이 끝났는데도 화면이 닫히지 않는다.
+  test("drops a note line that came in empty instead of failing the ending", async () => {
+    const state = createSeasonState();
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([
+        "성공: 받아냈다.\n",
+        "선택: 분명하게 요구했다.\n",
+        "수준:\n",
+      ]),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Excuse me.")] })
+    );
+    const body = await response.text();
+
+    expect(body).toContain('"type":"data-ending"');
+    expect(state.recorded[0]).toMatchObject({
+      language_level: undefined,
+      memory_choice: "분명하게 요구했다.",
+    });
+  });
+
+  // 관찰을 길게 쓰면 열의 길이 제약에 걸린다. 기억이 조금 잘리는 편이 사건이
+  // 끝나지 않는 것보다 낫다.
+  test("shortens a note line that is too long for the column", async () => {
+    const state = createSeasonState();
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([
+        "성공: 받아냈다.\n",
+        `선택: ${"가".repeat(400)}`,
+      ]),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Excuse me.")] })
+    );
+
+    await response.text();
+
+    expect(state.recorded[0]?.memory_choice).toHaveLength(300);
+  });
+
   // 기록 줄이 오지 않아도 그 화는 끝난다. 기억만 비고 다음 화는 열린다.
   test("finishes an episode whose closing scene left no memory", async () => {
     const state = createSeasonState();

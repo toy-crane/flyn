@@ -60,7 +60,12 @@ jest.mock("@/features/auth/state/auth-session", () => ({
 // 홈이 시즌을 읽는 경로다. 진짜 QueryClient를 띄우면 타이머가 남으므로 읽기
 // 자체를 세워 두고, 경로가 무엇을 넘기는지만 본다.
 jest.mock("@/features/episode/query/season", () => ({
-  useSeason: () => ({ data: { tag: "season" }, refetch: mockRefetch }),
+  useSeason: () => ({
+    data: { tag: "season" },
+    isFetching: false,
+    isPending: false,
+    refetch: mockRefetch,
+  }),
 }));
 
 jest.mock("@/screens/home/home-screen", () => {

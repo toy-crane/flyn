@@ -42,6 +42,19 @@ export default function EpisodeRoute() {
   const refreshSeason = useSeasonRefresh(session?.user.id);
   const playing = usePlayingEpisode();
 
+  /*
+   * 이 화면을 떠날 때 진행을 다시 읽는다. 마무리의 홈으로 가기, 헤더의 뒤로
+   * 가기, 화면 가장자리를 미는 몸짓이 모두 같은 자리를 지난다. 나가는 길마다
+   * 따로 챙기면 하나를 빠뜨리는 순간 홈이 지난 상태로 남고, 그 홈에서 연 화는
+   * 서버가 거절한다.
+   */
+  useEffect(
+    () => () => {
+      refreshSeason();
+    },
+    [refreshSeason]
+  );
+
   /**
    * 다음 화로 넘어가는 것은 이 화면을 새로 여는 일이다. 자리에서 상태만
    * 되돌리면 지난 화의 목록 위치가 남아 첫 장면이 화면 밖에 그려진다. 경로를
@@ -53,13 +66,6 @@ export default function EpisodeRoute() {
   async function startNextEpisode() {
     await refreshSeason();
     router.replace("/episode");
-  }
-
-  // 끝낸 화는 홈이 곧 보여 줄 기록이다. 나가는 길에 진행을 다시 읽어 두면
-  // 홈이 지난 상태로 잠깐 서 있지 않는다.
-  function leaveWithFreshSeason() {
-    refreshSeason();
-    leaveEpisode();
   }
 
   return (
@@ -91,7 +97,7 @@ export default function EpisodeRoute() {
       {playing ? (
         <EpisodeScreen
           episode={playing.episode}
-          onLeave={leaveWithFreshSeason}
+          onLeave={leaveEpisode}
           onStartNext={startNextEpisode}
           situation={playing.situation}
           situationEmoji={playing.situationEmoji}

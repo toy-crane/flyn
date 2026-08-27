@@ -16,6 +16,27 @@ export type EpisodeClient = SupabaseContext<Database>["supabase"];
  */
 export const CURRENT_SEASON = 1;
 
+/** 기록 한 줄이 데이터베이스에서 허용되는 길이. */
+const MEMORY_LINE_LIMIT = 300;
+
+/**
+ * 모델이 쓴 기록 줄 하나를 남길 수 있는 모양으로 다듬는다.
+ *
+ * 줄 머리만 쓰고 내용을 다음 줄로 넘기면 빈 문자열이 오고, 관찰을 길게 쓰면
+ * 300자를 넘는다. 둘 다 열의 제약에 걸리는데, 그 실패는 기억 한 줄이 아니라
+ * 결말 기록 전체를 무너뜨려 에피소드가 닫히지 않게 만든다. 기억이 조금 잘리는
+ * 편이 사건이 끝나지 않는 것보다 낫다.
+ */
+function usableNote(text: string | undefined): string | undefined {
+  const trimmed = text?.trim();
+
+  if (!trimmed) {
+    return;
+  }
+
+  return trimmed.slice(0, MEMORY_LINE_LIMIT);
+}
+
 /** 끝난 화가 남긴 것 전부. 홈이 읽는 부분과 다음 화가 읽는 부분이 함께 있다. */
 export interface FinishedEpisodeRow {
   episode: number;
@@ -111,10 +132,10 @@ export async function recordEpisodeEnding(
     kind: outcome.ending.kind,
     // 장면이 기록 줄을 쓰지 않았으면 그 자리는 비운다. 기억 없이 끝난 화도
     // 끝난 화이고, 지난 관찰을 지우지도 않는다.
-    language_level: notes[EPISODE_NOTES.level],
-    memory_choice: notes[EPISODE_NOTES.choice],
-    memory_question: notes[EPISODE_NOTES.question],
-    memory_relationship: notes[EPISODE_NOTES.relationship],
+    language_level: usableNote(notes[EPISODE_NOTES.level]),
+    memory_choice: usableNote(notes[EPISODE_NOTES.choice]),
+    memory_question: usableNote(notes[EPISODE_NOTES.question]),
+    memory_relationship: usableNote(notes[EPISODE_NOTES.relationship]),
     outcome: outcome.ending.outcome,
     season,
   });
