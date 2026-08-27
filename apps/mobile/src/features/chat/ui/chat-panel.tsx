@@ -487,6 +487,7 @@ export function ChatPanel({
   const userMomentum = useRef<true | undefined>(undefined);
   const userScrollStart = useRef<number | undefined>(undefined);
   const canSend = chat.draft.trim().length > 0 && !chat.isBusy;
+  const isClosed = closing !== undefined;
   const composerBottomPadding = Math.max(insets.bottom, 12);
   const hasSideChats = sideChats !== undefined && sideChats.length > 0;
   const lastMessage = chat.messages.at(-1);
@@ -523,6 +524,30 @@ export function ChatPanel({
     announcedError.current = chat.error;
     AccessibilityInfo.announceForAccessibility(chatLabels.errorAnnouncement);
   }, [chat.error]);
+
+  // 마무리는 입력창보다 크다. 그 자리가 커지는 만큼 목록의 끝도 아래로
+  // 내려가야 하는데, 자리의 높이가 바뀌었다고 목록이 스스로 따라가지는
+  // 않는다. 그대로 두면 마지막 장면이 마무리 뒤에 가려진 채로 대화가 끝난다.
+  // 잰 높이가 바뀔 때마다 끝으로 당기므로, 마무리가 자리를 잡은 뒤에 한 번 더
+  // 맞춘다.
+  useEffect(() => {
+    // 아직 재지 않은 자리로는 끝을 계산할 수 없다.
+    if (!isClosed || composerHeight === 0) {
+      return;
+    }
+
+    setIsFollowingLatest(true);
+
+    const frame = requestAnimationFrame(() => {
+      scrollMessageToEnd({ animated: true, closeKeyboard: false }).catch(
+        () => undefined
+      );
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, [composerHeight, isClosed, scrollMessageToEnd]);
 
   const beginUserScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {

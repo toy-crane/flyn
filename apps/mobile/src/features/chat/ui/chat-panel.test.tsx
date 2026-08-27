@@ -4,6 +4,7 @@ import {
   fireEvent,
   screen,
   userEvent,
+  waitFor,
   within,
 } from "@testing-library/react-native";
 import type { UIMessage } from "ai";
@@ -1668,6 +1669,49 @@ describe("끝난 대화", () => {
 
     expect(screen.getByTestId("chat-input")).toBeOnTheScreen();
     expect(screen.queryByTestId("panel-closing")).not.toBeOnTheScreen();
+  });
+
+  // 마무리는 입력창보다 크다. 목록이 그대로면 마지막 장면이 그 뒤에 가린 채로
+  // 대화가 끝난다.
+  test("마무리가 자리를 잡으면 목록을 끝까지 당긴다", async () => {
+    const { Text } = require("react-native") as typeof import("react-native");
+
+    await renderWithHeroUI(
+      <ChatPanel
+        chat={chatSession({ messages: answered })}
+        closing={<Text testID="panel-closing">끝났어요</Text>}
+      />
+    );
+    await scrollAwayFromLatest();
+    mockScrollToEnd.mockClear();
+
+    await act(() => {
+      screen.getByTestId("chat-composer").props.onLayout({
+        nativeEvent: { layout: { height: 180 } },
+      });
+    });
+
+    await waitFor(() => {
+      expect(mockScrollToEnd).toHaveBeenCalled();
+    });
+    expect(screen.queryByLabelText(chatLabels.latest)).not.toBeOnTheScreen();
+  });
+
+  test("아직 열려 있는 대화는 자리 크기가 바뀌어도 당기지 않는다", async () => {
+    await renderWithHeroUI(
+      <ChatPanel chat={chatSession({ messages: answered })} />
+    );
+    await scrollAwayFromLatest();
+    mockScrollToEnd.mockClear();
+
+    await act(() => {
+      screen.getByTestId("chat-composer").props.onLayout({
+        nativeEvent: { layout: { height: 180 } },
+      });
+    });
+
+    expect(mockScrollToEnd).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(chatLabels.latest)).toBeOnTheScreen();
   });
 
   test("빈 자리에 설 문구를 화면이 정한다", async () => {
