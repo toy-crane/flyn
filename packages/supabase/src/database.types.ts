@@ -85,6 +85,7 @@ export type Database = {
       episode_runs: {
         Row: {
           completed_at: string | null
+          completed_by_fallback: boolean
           episode_id: string
           messages: Json
           updated_at: string
@@ -92,6 +93,7 @@ export type Database = {
         }
         Insert: {
           completed_at?: string | null
+          completed_by_fallback?: boolean
           episode_id: string
           messages: Json
           updated_at?: string
@@ -99,6 +101,7 @@ export type Database = {
         }
         Update: {
           completed_at?: string | null
+          completed_by_fallback?: boolean
           episode_id?: string
           messages?: Json
           updated_at?: string

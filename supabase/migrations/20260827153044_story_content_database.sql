@@ -305,6 +305,7 @@ create table public.episode_runs (
   episode_id uuid not null references public.episodes (id) on delete restrict,
   messages jsonb not null,
   completed_at timestamptz,
+  completed_by_fallback boolean not null default false,
   updated_at timestamptz not null default now(),
   primary key (user_id, episode_id),
   constraint episode_runs_messages_array check (jsonb_typeof(messages) = 'array'),
@@ -333,7 +334,10 @@ comment on column public.episode_runs.messages is
   'AI SDK UI messages with stable message ids. Limited to one MiB per episode.';
 
 comment on column public.episode_runs.completed_at is
-  'Set after an ending exists. Completed messages are immutable and read-only.';
+  'Set after an ending exists. A fallback completion can be upgraded once by a compatible normal completion.';
+
+comment on column public.episode_runs.completed_by_fallback is
+  'True while a stopped client snapshot is the completed transcript. A compatible normal completion replaces it and clears this flag.';
 
 drop function public.finish_episode(
   smallint,
@@ -768,24 +772,34 @@ begin
     user_id,
     episode_id,
     messages,
-    completed_at
+    completed_at,
+    completed_by_fallback
   )
   values (
     player,
     complete_episode_run.episode_id,
     complete_episode_run.messages,
-    now()
+    now(),
+    false
   )
   on conflict on constraint episode_runs_pkey do update
   set messages = excluded.messages,
       completed_at = excluded.completed_at,
+      completed_by_fallback = false,
       updated_at = now()
-  where public.episode_runs.completed_at is null;
+  where public.episode_runs.completed_at is null
+    or (
+      public.episode_runs.completed_by_fallback
+      and public.episode_run_extends_snapshot(
+        excluded.messages,
+        public.episode_runs.messages
+      )
+    );
 end;
 $$;
 
 comment on function public.complete_episode_run(uuid, jsonb) is
-  'Marks the caller''s matching ended episode messages complete. A completed transcript is immutable.';
+  'Marks matching ended messages complete. A compatible normal completion can upgrade a fallback once; normal completions are immutable.';
 
 revoke all on function public.complete_episode_run(uuid, jsonb) from public, anon;
 grant execute on function public.complete_episode_run(uuid, jsonb) to authenticated;
@@ -888,13 +902,15 @@ begin
     user_id,
     episode_id,
     messages,
-    completed_at
+    completed_at,
+    completed_by_fallback
   )
   values (
     player,
     complete_episode_run_fallback.episode_id,
     complete_episode_run_fallback.messages,
-    now()
+    now(),
+    true
   )
   on conflict on constraint episode_runs_pkey do update
   set messages = case
@@ -911,6 +927,7 @@ begin
         else excluded.messages
       end,
       completed_at = excluded.completed_at,
+      completed_by_fallback = true,
       updated_at = now()
   where public.episode_runs.completed_at is null;
 end;

@@ -1,6 +1,6 @@
 -- 플레이 기록은 스토리·화 번호가 아니라 안정된 에피소드 id를 참조한다.
 BEGIN;
-SELECT plan(52);
+SELECT plan(57);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -119,6 +119,13 @@ SELECT has_table(
   'public',
   'episode_runs',
   'public.episode_runs stores active and completed conversations'
+);
+
+SELECT has_column(
+  'public',
+  'episode_runs',
+  'completed_by_fallback',
+  'a completed run remembers whether the client fallback finished first'
 );
 
 SELECT col_is_pk(
@@ -459,10 +466,10 @@ SELECT lives_ok(
   $$
     select public.save_episode_run(
       '11000000-0000-4000-8000-000000000002'::uuid,
-      '[{"id":"opening-2","role":"assistant","parts":[{"type":"text","text":"Noah가 다른 쪽을 본다."}]},{"id":"ending-2","role":"assistant","parts":[{"type":"text","text":"He brings another terminal."},{"type":"data-ending","data":{"kind":"타협","outcome":"다른 단말기로 계산했다."}},{"type":"data-next-up","data":{"episodeId":"11000000-0000-4000-8000-000000000003"}}]}]'::jsonb
+      '[{"id":"opening-2","role":"assistant","parts":[{"type":"text","text":"Noah가 다른 쪽을 본다."}]},{"id":"user-2","role":"user","parts":[{"type":"text","text":"Can you help?"}]}]'::jsonb
     )
   $$,
-  'the server can hold a longer ending scene before the stop fallback'
+  'the request messages are saved before the model writes its ending'
 );
 
 SELECT is(
@@ -481,29 +488,68 @@ SELECT lives_ok(
   $$
     select public.complete_episode_run_fallback(
       '11000000-0000-4000-8000-000000000002'::uuid,
-      '[{"id":"opening-2","role":"assistant","parts":[{"type":"text","text":"Noah가 다른 쪽을 본다."}]},{"id":"ending-2","role":"assistant","parts":[{"type":"text","text":"He brings another terminal."},{"type":"data-ending","data":{"kind":"타협","outcome":"다른 단말기로 계산했다."}}]}]'::jsonb
+      '[{"id":"opening-2","role":"assistant","parts":[{"type":"text","text":"Noah가 다른 쪽을 본다."}]},{"id":"user-2","role":"user","parts":[{"type":"text","text":"Can you help?"}]},{"id":"ending-2","role":"assistant","parts":[{"type":"text","text":"He brings another terminal."},{"type":"data-ending","data":{"kind":"타협","outcome":"다른 단말기로 계산했다."}}]}]'::jsonb
     )
   $$,
-  'a shorter stopped ending can complete against the longer server scene'
+  'a stopped ending can complete after only its request messages were saved'
 );
 
 SELECT ok(
   (
-    select completed_at is not null
+    select completed_by_fallback
     from public.episode_runs
     where episode_id = '11000000-0000-4000-8000-000000000002'
   ),
-  'the stopped ending marks the conversation complete'
+  'the stopped ending is marked as a fallback completion'
+);
+
+SELECT lives_ok(
+  $$
+    select public.complete_episode_run(
+      '11000000-0000-4000-8000-000000000002'::uuid,
+      '[{"id":"opening-2","role":"assistant","parts":[{"type":"text","text":"Noah가 다른 쪽을 본다."}]},{"id":"user-2","role":"user","parts":[{"type":"text","text":"Can you help?"}]},{"id":"ending-2","role":"assistant","parts":[{"type":"text","text":"A different terminal."},{"type":"data-ending","data":{"kind":"타협","outcome":"다른 단말기로 계산했다."}}]}]'::jsonb
+    )
+  $$,
+  'a divergent normal completion cannot replace the stopped branch'
 );
 
 SELECT is(
   (
-    select messages #>> '{1,parts,2,type}'
+    select messages #>> '{2,parts,0,text}'
+    from public.episode_runs
+    where episode_id = '11000000-0000-4000-8000-000000000002'
+  ),
+  'He brings another terminal.',
+  'the fallback transcript survives an incompatible normal completion'
+);
+
+SELECT lives_ok(
+  $$
+    select public.complete_episode_run(
+      '11000000-0000-4000-8000-000000000002'::uuid,
+      '[{"id":"opening-2","role":"assistant","parts":[{"type":"text","text":"Noah가 다른 쪽을 본다."}]},{"id":"user-2","role":"user","parts":[{"type":"text","text":"Can you help?"}]},{"id":"ending-2","role":"assistant","parts":[{"type":"text","text":"He brings another terminal."},{"type":"data-ending","data":{"kind":"타협","outcome":"다른 단말기로 계산했다."}},{"type":"data-next-up","data":{"episodeId":"11000000-0000-4000-8000-000000000003"}}]}]'::jsonb
+    )
+  $$,
+  'the longer compatible server transcript can upgrade the fallback completion'
+);
+
+SELECT is(
+  (
+    select messages #>> '{2,parts,2,type}'
     from public.episode_runs
     where episode_id = '11000000-0000-4000-8000-000000000002'
   ),
   'data-next-up',
-  'completion keeps the longer compatible server transcript'
+  'normal completion restores the longer compatible server transcript'
+);
+
+SELECT ok(
+  (
+    select not completed_by_fallback
+    from public.episode_runs
+    where episode_id = '11000000-0000-4000-8000-000000000002'
+  ),
+  'the upgraded transcript becomes the immutable normal completion'
 );
 
 SET LOCAL request.jwt.claims TO

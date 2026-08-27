@@ -267,6 +267,7 @@ create table public.episode_runs (
   episode_id uuid not null references public.episodes (id) on delete restrict,
   messages jsonb not null,
   completed_at timestamptz,
+  completed_by_fallback boolean not null default false,
   updated_at timestamptz not null default now(),
   primary key (user_id, episode_id),
   constraint episode_runs_messages_array check (jsonb_typeof(messages) = 'array'),
@@ -286,7 +287,10 @@ comment on column public.episode_runs.messages is
   'AI SDK UI messages with stable message ids. Limited to one MiB per episode.';
 
 comment on column public.episode_runs.completed_at is
-  'Set after an ending exists. Completed messages are immutable and read-only.';
+  'Set after an ending exists. A fallback completion can be upgraded once by a compatible normal completion.';
+
+comment on column public.episode_runs.completed_by_fallback is
+  'True while a stopped client snapshot is the completed transcript. A compatible normal completion replaces it and clears this flag.';
 
 -- 사용자가 쓰는 영어의 수준. 시즌이 아니라 계정에 붙는다.
 --

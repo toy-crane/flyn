@@ -725,24 +725,34 @@ begin
     user_id,
     episode_id,
     messages,
-    completed_at
+    completed_at,
+    completed_by_fallback
   )
   values (
     player,
     complete_episode_run.episode_id,
     complete_episode_run.messages,
-    now()
+    now(),
+    false
   )
   on conflict on constraint episode_runs_pkey do update
   set messages = excluded.messages,
       completed_at = excluded.completed_at,
+      completed_by_fallback = false,
       updated_at = now()
-  where public.episode_runs.completed_at is null;
+  where public.episode_runs.completed_at is null
+    or (
+      public.episode_runs.completed_by_fallback
+      and public.episode_run_extends_snapshot(
+        excluded.messages,
+        public.episode_runs.messages
+      )
+    );
 end;
 $$;
 
 comment on function public.complete_episode_run(uuid, jsonb) is
-  'Marks the caller''s matching ended episode messages complete. A completed transcript is immutable.';
+  'Marks matching ended messages complete. A compatible normal completion can upgrade a fallback once; normal completions are immutable.';
 
 revoke all on function public.complete_episode_run(uuid, jsonb) from public, anon;
 grant execute on function public.complete_episode_run(uuid, jsonb) to authenticated;
@@ -845,13 +855,15 @@ begin
     user_id,
     episode_id,
     messages,
-    completed_at
+    completed_at,
+    completed_by_fallback
   )
   values (
     player,
     complete_episode_run_fallback.episode_id,
     complete_episode_run_fallback.messages,
-    now()
+    now(),
+    true
   )
   on conflict on constraint episode_runs_pkey do update
   set messages = case
@@ -868,6 +880,7 @@ begin
         else excluded.messages
       end,
       completed_at = excluded.completed_at,
+      completed_by_fallback = true,
       updated_at = now()
   where public.episode_runs.completed_at is null;
 end;
