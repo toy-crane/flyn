@@ -79,3 +79,21 @@ revoke all on table public.episode_endings from anon, authenticated, service_rol
 grant select on table public.episode_endings to authenticated;
 
 grant all on table public.episode_endings to service_role;
+
+-- Access control for public.language_levels.
+--
+-- Same shape as episode_endings: the owner may read, and only
+-- `public.finish_episode` writes. A person's reading of their own English is
+-- theirs to see, not theirs to declare.
+alter table public.language_levels enable row level security;
+
+create policy language_levels_select_own on public.language_levels
+  for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+revoke all on table public.language_levels from anon, authenticated, service_role;
+
+grant select on table public.language_levels to authenticated;
+
+grant all on table public.language_levels to service_role;

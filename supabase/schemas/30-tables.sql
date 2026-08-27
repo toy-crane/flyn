@@ -137,8 +137,15 @@ create table public.episode_endings (
   episode smallint not null,
   -- 결말의 종류. 화면에도 이 낱말이 그대로 보인다.
   kind text not null,
-  -- 사건의 결과 한 줄. 홈의 끝낸 화 목록과 마무리 화면이 함께 읽는다.
+  -- 사건의 결과 한 줄. 홈의 끝낸 화 목록과 마무리 화면이 함께 읽는다. 이야기
+  -- 기억의 네 가지 중 "사건의 결과"이기도 하다.
   outcome text not null,
+  -- 이야기 기억의 나머지 세 가지. 다음 화의 프롬프트에 들어가 대사와 관계와
+  -- 지문으로 돌아온다. 장면을 닫은 모델이 결말과 같은 출력에 함께 쓰므로, 그
+  -- 줄을 쓰지 않았거나 형식을 어긴 화는 기억 없이 남는다.
+  memory_choice text,
+  memory_relationship text,
+  memory_question text,
   finished_at timestamptz not null default now(),
   primary key (user_id, season, episode),
   -- 위쪽 한계는 이 시즌의 길이가 아니라 상식선이다. 어떤 시즌이 몇 화인지는
@@ -149,6 +156,16 @@ create table public.episode_endings (
   constraint episode_endings_kind_known check (kind in ('성공', '타협', '실패')),
   constraint episode_endings_outcome_usable check (
     length(btrim(outcome)) between 1 and 300
+  ),
+  constraint episode_endings_memory_choice_usable check (
+    memory_choice is null or length(btrim(memory_choice)) between 1 and 300
+  ),
+  constraint episode_endings_memory_relationship_usable check (
+    memory_relationship is null
+    or length(btrim(memory_relationship)) between 1 and 300
+  ),
+  constraint episode_endings_memory_question_usable check (
+    memory_question is null or length(btrim(memory_question)) between 1 and 300
   )
 );
 
@@ -166,3 +183,33 @@ comment on column public.episode_endings.kind is
 
 comment on column public.episode_endings.outcome is
   'One Korean line naming what happened, written by the model that closed the scene.';
+
+comment on column public.episode_endings.memory_choice is
+  'What the person did in this incident. Null when the closing scene left no memory lines.';
+
+comment on column public.episode_endings.memory_relationship is
+  'How the relationship changed. Null when the closing scene left no memory lines.';
+
+comment on column public.episode_endings.memory_question is
+  'The question this incident opened. Null when the closing scene left no memory lines.';
+
+-- 사용자가 쓰는 영어의 수준. 시즌이 아니라 계정에 붙는다.
+--
+-- 이야기 기억은 시즌이 끝나면 함께 끝나지만 이 사람의 영어는 이어진다. 그래서
+-- 같은 행에 두지 않고 계정마다 한 줄로 둔다. 화가 끝날 때마다 그 시점의 관찰로
+-- 덮어쓴다. 지난 수준의 역사는 남기지 않는다.
+create table public.language_levels (
+  user_id uuid primary key references public.profiles (id) on delete cascade,
+  -- 모델이 쓴 한국어 한 줄. 점수나 등급이 아니라 관찰이다.
+  level text not null,
+  observed_at timestamptz not null default now(),
+  constraint language_levels_level_usable check (
+    length(btrim(level)) between 1 and 300
+  )
+);
+
+comment on table public.language_levels is
+  'The latest reading of how this person writes English. One row per account, overwritten as episodes end.';
+
+comment on column public.language_levels.level is
+  'One Korean line describing the level, written by the model that closed the scene.';

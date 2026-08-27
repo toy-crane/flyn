@@ -9,6 +9,11 @@ const ENDING_SCENE = {
   cast: ["Mia"],
   endings: ["성공", "타협", "실패"],
 } as const;
+const RECORDING_SCENE = {
+  cast: ["Mia"],
+  endings: ["성공", "타협", "실패"],
+  notes: ["선택", "관계", "질문", "수준"],
+} as const;
 
 // biome-ignore-start lint/suspicious/useAwait: 파서가 받는 것과 같은 비동기 스트림 형태가 필요하다
 async function* deltas(parts: string[]): AsyncIterable<string> {
@@ -218,6 +223,83 @@ describe("streamSceneText", () => {
       kind: "실패",
       outcome: "아무것도 얻지 못했다.",
     });
+  });
+
+  // 기록 줄은 화면에 흐르지 않고 반환값으로만 온다. 결말 뒤에 오므로 결말을
+  // 넘겨받는 쪽은 이미 다 모인 기록을 함께 본다.
+  test("keeps note lines off the screen and returns them instead", async () => {
+    const { chunks, writer } = collectingWriter();
+
+    const outcome = await streamSceneText(
+      deltas([
+        "Mia: Here you go.\n",
+        "성공: 원하던 커피를 새로 받아냈다.\n",
+        "선택: 영수증을 보여 주며 침착하게 요구했다.\n",
+        "관계: Mia가 실수를 인정했다.\n",
+        "질문: 내일도 이 카페에 들를지.\n",
+        "수준: 중급 초반. 짧고 분명한 문장을 쓴다.",
+      ]),
+      RECORDING_SCENE,
+      writer
+    );
+
+    expect(segmentsOf(chunks)).toEqual([{ name: "Mia", text: "Here you go." }]);
+    expect(outcome.notes).toEqual({
+      관계: "Mia가 실수를 인정했다.",
+      선택: "영수증을 보여 주며 침착하게 요구했다.",
+      수준: "중급 초반. 짧고 분명한 문장을 쓴다.",
+      질문: "내일도 이 카페에 들를지.",
+    });
+  });
+
+  test("collects a note that arrives in pieces", async () => {
+    const { chunks, writer } = collectingWriter();
+
+    const outcome = await streamSceneText(
+      deltas(["성공: 받아냈다.\n선", "택: 침착하게 ", "요구했다."]),
+      RECORDING_SCENE,
+      writer
+    );
+
+    expect(segmentsOf(chunks)).toEqual([]);
+    expect(outcome.notes.선택).toBe("침착하게 요구했다.");
+  });
+
+  test("keeps the first note when the same one arrives twice", async () => {
+    const { writer } = collectingWriter();
+
+    const outcome = await streamSceneText(
+      deltas(["선택: 먼저 쓴 줄.\n선택: 나중에 쓴 줄.\n"]),
+      RECORDING_SCENE,
+      writer
+    );
+
+    expect(outcome.notes.선택).toBe("먼저 쓴 줄.");
+  });
+
+  // 기록을 쓰지 않은 장면도 끝난 장면이다. 결말만 남고 기억이 비는 것이지
+  // 장면이 깨지지는 않는다.
+  test("closes a scene that wrote no notes at all", async () => {
+    const { writer } = collectingWriter();
+
+    const outcome = await streamSceneText(
+      deltas(["성공: 받아냈다."]),
+      RECORDING_SCENE,
+      writer
+    );
+
+    expect(outcome.ending?.kind).toBe("성공");
+    expect(outcome.notes).toEqual({});
+  });
+
+  test("keeps a note tag out of a scene that has none", async () => {
+    const { chunks, writer } = collectingWriter();
+
+    await streamSceneText(deltas(["선택: 국수를 골랐다.\n"]), CAST, writer);
+
+    expect(segmentsOf(chunks)).toEqual([
+      { name: null, text: "선택: 국수를 골랐다." },
+    ]);
   });
 
   test("keeps an ending tag out of a scene that has none", async () => {

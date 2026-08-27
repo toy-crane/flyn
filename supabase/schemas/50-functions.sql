@@ -304,7 +304,11 @@ create function public.finish_episode(
   season smallint,
   episode smallint,
   kind text,
-  outcome text
+  outcome text,
+  memory_choice text default null,
+  memory_relationship text default null,
+  memory_question text default null,
+  language_level text default null
 )
 returns void
 language plpgsql
@@ -340,22 +344,45 @@ begin
 
   -- 같은 화의 결말이 동시에 두 번 도착해도 뒤의 것이 오류가 되지 않는다. 먼저
   -- 도착한 판정이 그 시즌의 사실로 남고 나중 것은 조용히 지나간다.
-  insert into public.episode_endings (user_id, season, episode, kind, outcome)
+  insert into public.episode_endings (
+    user_id,
+    season,
+    episode,
+    kind,
+    outcome,
+    memory_choice,
+    memory_relationship,
+    memory_question
+  )
   values (
     player,
     finish_episode.season,
     finish_episode.episode,
     finish_episode.kind,
-    finish_episode.outcome
+    finish_episode.outcome,
+    finish_episode.memory_choice,
+    finish_episode.memory_relationship,
+    finish_episode.memory_question
   )
   -- 충돌 대상을 열 이름으로 적으면 같은 이름의 인자와 헷갈린다. 기본키를
   -- 이름으로 가리키면 그 모호함이 없다.
   on conflict on constraint episode_endings_pkey do nothing;
+
+  -- 언어 수준은 시즌이 아니라 이 사람에게 붙는다. 화가 끝날 때마다 그 시점의
+  -- 관찰로 덮어쓴다. 이번 장면이 아무 말도 남기지 않았으면 지난 관찰을 지우지
+  -- 않고 그대로 둔다.
+  if finish_episode.language_level is not null then
+    insert into public.language_levels (user_id, level)
+    values (player, finish_episode.language_level)
+    on conflict on constraint language_levels_pkey do update
+    set level = excluded.level,
+        observed_at = now();
+  end if;
 end;
 $$;
 
-comment on function public.finish_episode(smallint, smallint, text, text) is
-  'Records the ending of the caller''s current episode. Refuses to skip ahead and never overwrites a recorded ending.';
+comment on function public.finish_episode(smallint, smallint, text, text, text, text, text, text) is
+  'Records the ending and story memory of the caller''s current episode. Refuses to skip ahead and never overwrites a recorded ending.';
 
-revoke all on function public.finish_episode(smallint, smallint, text, text) from public, anon;
-grant execute on function public.finish_episode(smallint, smallint, text, text) to authenticated;
+revoke all on function public.finish_episode(smallint, smallint, text, text, text, text, text, text) from public, anon;
+grant execute on function public.finish_episode(smallint, smallint, text, text, text, text, text, text) to authenticated;

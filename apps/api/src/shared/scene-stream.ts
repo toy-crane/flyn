@@ -20,16 +20,28 @@ export interface SceneEndingData {
 /**
  * 한 장면에서 줄 머리가 될 수 있는 이름들.
  *
- * `cast`는 말풍선이 되고, `endings`는 사건이 끝났다는 판정이 된다. 목록에 없는
- * 줄 머리는 전부 지문으로 흐른다.
+ * `cast`는 말풍선이 되고, `endings`는 사건이 끝났다는 판정이 된다. `notes`는
+ * 화면에 흐르지 않고 스트림 끝에서 기록으로만 남는 줄이다. 목록에 없는 줄
+ * 머리는 전부 지문으로 흐른다.
  */
 export interface SceneTags {
   cast: readonly string[];
   endings?: readonly string[];
+  notes?: readonly string[];
 }
 
+/** 장면 하나가 남긴 것. 흐르는 글 말고 뒤에 남는 것들이다. */
+export interface SceneOutcome {
+  /** 사건이 끝났다면 그 판정. 아직 진행 중이면 없다. */
+  ending: SceneEndingData | undefined;
+  /** `notes`에 적어 둔 줄 머리로 온 기록. 쓰지 않은 줄은 없다. */
+  notes: Record<string, string>;
+}
+
+type LineKind = "cast" | "ending" | "note";
+
 interface LineTag {
-  isEnding: boolean;
+  kind: LineKind;
   name: string;
   prefix: string;
 }
@@ -66,24 +78,34 @@ export function speakerModelText(data: unknown): string {
  * `endings`를 넘기면 그 줄 머리는 말풍선이 아니라 장면을 닫는 판정이 된다.
  * 결말 줄은 화면에 흐르지 않고 스트림 끝에서 `data-ending` part 하나로 나간다.
  *
- * `onEnding`은 그 part를 쓰기 전에 기다린다. 결말을 어딘가에 남겨야 하는
+ * `notes`를 넘기면 그 줄 머리도 화면에 흐르지 않는다. 다만 판정이 아니라 뒤에
+ * 남기는 기록이라, 스트림에는 아무 part도 나가지 않고 반환값으로만 온다. 같은
+ * 이름이 두 번 오면 처음 것만 남는다.
+ *
+ * `onEnding`은 결말 part를 쓰기 전에 기다린다. 결말을 어딘가에 남겨야 하는
  * 기능은 여기에 그 일을 걸어 두면, 남기지 못했을 때 화면이 끝난 척하는 대신
- * 오류로 돌아간다. 던지면 결말 part는 나가지 않는다.
+ * 오류로 돌아간다. 던지면 결말 part는 나가지 않는다. 기록은 결말 줄 뒤에 오므로
+ * 이 시점에는 이미 다 모여 있다.
  */
 export async function streamSceneText(
   textStream: AsyncIterable<string>,
   tags: SceneTags,
   writer: UIMessageStreamWriter,
-  onEnding?: (ending: SceneEndingData) => Promise<void>
-): Promise<SceneEndingData | undefined> {
+  onEnding?: (outcome: SceneOutcome) => Promise<void>
+): Promise<SceneOutcome> {
   const prefixes: LineTag[] = [
     ...tags.cast.map((name) => ({
-      isEnding: false,
+      kind: "cast" as const,
       name,
       prefix: `${name}:`,
     })),
     ...(tags.endings ?? []).map((name) => ({
-      isEnding: true,
+      kind: "ending" as const,
+      name,
+      prefix: `${name}:`,
+    })),
+    ...(tags.notes ?? []).map((name) => ({
+      kind: "note" as const,
       name,
       prefix: `${name}:`,
     })),
@@ -98,20 +120,30 @@ export async function streamSceneText(
   let pendingNewlines = 0;
   // 사건이 끝났다는 판정. 모델이 두 번 쓰면 처음 것만 남는다.
   let ending: SceneEndingData | undefined;
-  // 지금 흐르는 줄이 결말 줄인지. 결말 줄의 글자는 말풍선으로 가지 않는다.
-  let isEndingLine = false;
-  // 그 결말 줄이 판정으로 남는 첫 줄인지. 두 번째 결말 줄의 남은 글자가 첫
-  // 판정에 덧붙지 않게 막는다.
-  let isKeepingEnding = false;
+  const notes: Record<string, string> = {};
+  // 지금 흐르는 줄이 화면이 아니라 기록으로 가는 중이면 그 자리. 결말도 기록의
+  // 한 종류라 같은 길을 지난다.
+  let capture: { kind: "ending" | "note"; name: string } | undefined;
+  // 그 줄이 기록으로 남는 첫 줄인지. 같은 이름이 두 번 오면 뒤의 글자가 앞의
+  // 기록에 덧붙지 않게 막는다.
+  let isCaptureKept = false;
 
   function append(text: string) {
     if (text.length === 0) {
       return;
     }
 
-    if (isEndingLine) {
-      if (isKeepingEnding && ending !== undefined) {
-        ending.outcome += text;
+    if (capture !== undefined) {
+      if (!isCaptureKept) {
+        return;
+      }
+
+      if (capture.kind === "ending") {
+        if (ending !== undefined) {
+          ending.outcome += text;
+        }
+      } else {
+        notes[capture.name] += text;
       }
 
       return;
@@ -131,22 +163,34 @@ export async function streamSceneText(
     }
   }
 
-  // 결말 줄은 장면을 닫는 판정이라 말풍선을 열지 않는다. 두 번째 결말은 이
-  // 판정을 뒤집지 않고 화면에도 흐르지 않는다.
-  function beginEnding(kind: string, text: string) {
+  // 결말과 기록은 말풍선을 열지 않는다. 두 번째로 온 같은 줄은 앞의 것을
+  // 뒤집지 않고 화면에도 흐르지 않는다.
+  function beginCapture(tag: LineTag, text: string) {
     closeSegment();
     isLineDecided = true;
-    isEndingLine = true;
-    isKeepingEnding = ending === undefined;
     pendingNewlines = 0;
-    ending ??= { kind, outcome: text };
+
+    if (tag.kind === "ending") {
+      capture = { kind: "ending", name: tag.name };
+      isCaptureKept = ending === undefined;
+      ending ??= { kind: tag.name, outcome: text };
+
+      return;
+    }
+
+    capture = { kind: "note", name: tag.name };
+    isCaptureKept = notes[tag.name] === undefined;
+
+    if (isCaptureKept) {
+      notes[tag.name] = text;
+    }
   }
 
   // 판정이 끝난 줄의 내용을 흘려보낼 자리를 마련한다. 직전 조각과 같은
   // 화자면 그 조각에 줄바꿈으로 잇고, 아니면 조각을 새로 연다.
   function beginLine(name: string | null, text: string) {
     isLineDecided = true;
-    isEndingLine = false;
+    capture = undefined;
 
     if (segment !== undefined && segment.name === name) {
       append("\n".repeat(Math.min(pendingNewlines, 2)));
@@ -183,10 +227,10 @@ export async function streamSceneText(
           .slice(tag.prefix.length)
           .replace(SPACE_AFTER_COLON, "");
 
-        if (tag.isEnding) {
-          beginEnding(tag.name, text);
-        } else {
+        if (tag.kind === "cast") {
           beginLine(tag.name, text);
+        } else {
+          beginCapture(tag, text);
         }
 
         return;
@@ -207,8 +251,8 @@ export async function streamSceneText(
   function endLine() {
     lineBuffer = "";
     isLineDecided = false;
-    isEndingLine = false;
-    isKeepingEnding = false;
+    capture = undefined;
+    isCaptureKept = false;
     pendingNewlines += 1;
   }
 
@@ -241,10 +285,12 @@ export async function streamSceneText(
 
   closeSegment();
 
+  const outcome: SceneOutcome = { ending, notes };
+
   if (ending !== undefined) {
-    await onEnding?.(ending);
+    await onEnding?.(outcome);
     writer.write({ data: ending, id: "ending", type: "data-ending" });
   }
 
-  return ending;
+  return outcome;
 }
