@@ -119,3 +119,47 @@ comment on table public.retired_usernames is
 -- account hold", so the index follows the question rather than the owner.
 create index retired_usernames_protected_until_idx
   on public.retired_usernames (protected_until);
+
+-- 끝난 화가 남기는 사실. 한 계정이 한 시즌의 한 화를 끝낼 때 한 행이 생긴다.
+--
+-- 진행 중인 에피소드는 여기에 오지 않는다. 장면은 앱이 들고 있다가 나가면
+-- 사라지고, 서버에는 끝난 화의 결말만 남는다. 그래서 "사건은 한 세션 안에
+-- 마무리한다"는 제품 정의를 지키면서도 다음 화를 열 수 있다.
+--
+-- 한 화의 결말은 한 번만 난다. 기본키가 그 규칙이다. 같은 화의 결말이 다시
+-- 도착해도 앞의 사실을 덮어쓰지 않는다.
+create table public.episode_endings (
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  -- 시즌 번호. 이야기 기억이 이어지는 단위이고 지금은 1뿐이다. 화 번호만으로는
+  -- 다음 시즌의 1화와 이번 시즌의 1화를 구분할 수 없다.
+  season smallint not null,
+  -- 시즌 안의 화 번호. 각본은 서버 코드가 소유하므로 여기에는 번호만 남는다.
+  episode smallint not null,
+  -- 결말의 종류. 화면에도 이 낱말이 그대로 보인다.
+  kind text not null,
+  -- 사건의 결과 한 줄. 홈의 끝낸 화 목록과 마무리 화면이 함께 읽는다.
+  outcome text not null,
+  finished_at timestamptz not null default now(),
+  primary key (user_id, season, episode),
+  constraint episode_endings_season_usable check (season >= 1),
+  constraint episode_endings_episode_usable check (episode >= 1),
+  constraint episode_endings_kind_known check (kind in ('성공', '타협', '실패')),
+  constraint episode_endings_outcome_usable check (
+    length(btrim(outcome)) between 1 and 300
+  )
+);
+
+comment on table public.episode_endings is
+  'One row per finished episode. Progress is derived from these rows; running episodes are never stored.';
+
+comment on column public.episode_endings.season is
+  'Season the episode belongs to. Story memory continues within one season.';
+
+comment on column public.episode_endings.episode is
+  'Episode number inside the season. The script itself lives in the API server.';
+
+comment on column public.episode_endings.kind is
+  'How the incident ended: 성공, 타협 or 실패.';
+
+comment on column public.episode_endings.outcome is
+  'One Korean line naming what happened, written by the model that closed the scene.';

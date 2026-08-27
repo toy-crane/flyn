@@ -291,3 +291,70 @@ create trigger profiles_guard_username_change
   for each row
   when (new.username is distinct from old.username)
   execute function public.guard_username_change();
+
+-- 끝난 화를 기록하는 유일한 길.
+--
+-- `authenticated`는 `episode_endings`에 직접 쓰지 못한다. 직접 쓸 수 있으면
+-- 앱이 아무 화나 끝난 것으로 만들어 앞의 화를 건너뛸 수 있다. 이 함수는
+-- 지금 끝낼 수 있는 화가 하나뿐이라는 규칙을 지키고, 그래서 `security definer`다.
+--
+-- 같은 화의 결말이 다시 도착하면 조용히 지나간다. 한 번 난 결말은 그 시즌의
+-- 사실로 남으므로 나중에 온 판정이 앞의 사실을 바꾸지 않는다.
+create function public.finish_episode(
+  season smallint,
+  episode smallint,
+  kind text,
+  outcome text
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  player uuid := (select auth.uid());
+  finished integer;
+begin
+  if player is null then
+    raise exception 'A signed-in user is required to finish an episode.'
+      using errcode = '28000';
+  end if;
+
+  if exists (
+    select 1
+    from public.episode_endings e
+    where e.user_id = player
+      and e.season = finish_episode.season
+      and e.episode = finish_episode.episode
+  ) then
+    return;
+  end if;
+
+  select count(*) into finished
+  from public.episode_endings e
+  where e.user_id = player
+    and e.season = finish_episode.season;
+
+  -- 화는 순서대로만 끝난다. 다음에 끝낼 수 있는 화는 언제나 하나뿐이다.
+  if finish_episode.episode <> finished + 1 then
+    raise exception 'Episode % is not the next episode of season %.',
+      finish_episode.episode, finish_episode.season
+      using errcode = '22023';
+  end if;
+
+  insert into public.episode_endings (user_id, season, episode, kind, outcome)
+  values (
+    player,
+    finish_episode.season,
+    finish_episode.episode,
+    finish_episode.kind,
+    finish_episode.outcome
+  );
+end;
+$$;
+
+comment on function public.finish_episode(smallint, smallint, text, text) is
+  'Records the ending of the caller''s current episode. Refuses to skip ahead and never overwrites a recorded ending.';
+
+revoke all on function public.finish_episode(smallint, smallint, text, text) from public, anon;
+grant execute on function public.finish_episode(smallint, smallint, text, text) to authenticated;
