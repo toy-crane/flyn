@@ -4,11 +4,13 @@ set check_function_bodies = false;
 
 create table public.stories (
   id uuid primary key,
+  position smallint not null unique,
   slug text not null unique,
   title text not null,
   target_language text not null,
   completion_title text not null,
   completion_copy text not null,
+  constraint stories_position_usable check (position between 1 and 10000),
   constraint stories_slug_usable check (
     slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'
   ),
@@ -98,6 +100,7 @@ grant all on table public.episodes to service_role;
 
 insert into public.stories (
   id,
+  position,
   slug,
   title,
   target_language,
@@ -106,6 +109,7 @@ insert into public.stories (
 )
 values (
   '10000000-0000-4000-8000-000000000001',
+  1,
   'mia-cafe',
   'Mia의 카페',
   'en',

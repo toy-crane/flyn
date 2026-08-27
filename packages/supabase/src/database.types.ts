@@ -279,6 +279,7 @@ export type Database = {
           completion_copy: string
           completion_title: string
           id: string
+          position: number
           slug: string
           target_language: string
           title: string
@@ -287,6 +288,7 @@ export type Database = {
           completion_copy: string
           completion_title: string
           id: string
+          position: number
           slug: string
           target_language: string
           title: string
@@ -295,6 +297,7 @@ export type Database = {
           completion_copy?: string
           completion_title?: string
           id?: string
+          position?: number
           slug?: string
           target_language?: string
           title?: string

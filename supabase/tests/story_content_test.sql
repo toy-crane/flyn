@@ -1,6 +1,13 @@
 -- 공식 콘텐츠가 코드 없이도 같은 순서로 다시 만들어지는지 확인한다.
 BEGIN;
-SELECT plan(9);
+SELECT plan(12);
+
+SELECT has_column(
+  'public',
+  'stories',
+  'position',
+  'a story carries its order among official content'
+);
 
 SELECT results_eq(
   $$
@@ -17,6 +24,30 @@ SELECT results_eq(
     )
   $$,
   'the first story carries its own title, language and completion copy'
+);
+
+SELECT throws_ok(
+  $$insert into public.stories (
+      id, position, slug, title, target_language, completion_title, completion_copy
+    ) values (
+      '10000000-0000-4000-8000-000000000002', 1, 'another-story',
+      '다른 이야기', 'en', '끝', '끝냈어요.'
+    )$$,
+  '23505',
+  null,
+  'two official stories cannot occupy the same position'
+);
+
+SELECT throws_ok(
+  $$insert into public.stories (
+      id, position, slug, title, target_language, completion_title, completion_copy
+    ) values (
+      '10000000-0000-4000-8000-000000000003', 0, 'invalid-story',
+      '순서가 없는 이야기', 'en', '끝', '끝냈어요.'
+    )$$,
+  '23514',
+  null,
+  'an official story position starts at one'
 );
 
 SELECT results_eq(

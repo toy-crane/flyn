@@ -31,6 +31,7 @@ export interface StoryContent {
   completion: { copy: string; title: string };
   episodes: EpisodeScript[];
   id: string;
+  position: number;
   slug: string;
   targetLanguage: string;
   title: string;
@@ -49,7 +50,7 @@ export async function readStoryContent(
   const { data: story, error: storyError } = await client
     .from("stories")
     .select(
-      "id, slug, title, target_language, completion_title, completion_copy"
+      "id, position, slug, title, target_language, completion_title, completion_copy"
     )
     .eq("slug", slug)
     .single();
@@ -95,6 +96,7 @@ export async function readStoryContent(
       title: episode.title,
     })),
     id: story.id,
+    position: story.position,
     slug: story.slug,
     targetLanguage: story.target_language,
     title: story.title,

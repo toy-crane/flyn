@@ -12,6 +12,7 @@
 
 insert into public.stories (
   id,
+  position,
   slug,
   title,
   target_language,
@@ -20,6 +21,7 @@ insert into public.stories (
 )
 values (
   '10000000-0000-4000-8000-000000000001',
+  1,
   'mia-cafe',
   'Mia의 카페',
   'en',
@@ -27,7 +29,8 @@ values (
   '다섯 번의 사건을 영어로 지나왔어요.'
 )
 on conflict (id) do update
-set slug = excluded.slug,
+set position = excluded.position,
+    slug = excluded.slug,
     title = excluded.title,
     target_language = excluded.target_language,
     completion_title = excluded.completion_title,

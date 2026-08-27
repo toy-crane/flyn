@@ -43,6 +43,7 @@ const STORY_ROW = {
   completion_copy: "다섯 번의 사건을 영어로 지나왔어요.",
   completion_title: "첫 이야기를 끝냈어요",
   id: STORY_ID,
+  position: 1,
   slug: "mia-cafe",
   target_language: "en",
   title: "Mia의 카페",

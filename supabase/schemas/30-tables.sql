@@ -120,16 +120,19 @@ comment on table public.retired_usernames is
 create index retired_usernames_protected_until_idx
   on public.retired_usernames (protected_until);
 
--- 스토리는 세계와 등장인물, 순서가 있는 에피소드와 끝을 한데 묶는다.
+-- 스토리는 공식 콘텐츠 사이의 순서와 세계, 등장인물, 순서가 있는 에피소드와
+-- 끝을 한데 묶는다.
 -- 화면에서 이 단위의 이름은 아직 쓰지 않지만, 데이터에서는 공유 가능한
 -- 자기 완결 단위가 된다.
 create table public.stories (
   id uuid primary key,
+  position smallint not null unique,
   slug text not null unique,
   title text not null,
   target_language text not null,
   completion_title text not null,
   completion_copy text not null,
+  constraint stories_position_usable check (position between 1 and 10000),
   constraint stories_slug_usable check (
     slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'
   ),
