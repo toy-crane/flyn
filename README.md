@@ -347,10 +347,13 @@ bun run auth:otp -- --email agent-20260809-01@example.test
 9. 앱을 다시 시작해 온보딩 없이 홈이 열리는지 확인합니다.
 10. Home 헤더의 **새 대화**를 눌러 대화 화면을 열고, 제목과 목록이 있는 답변을
     요청해 Markdown으로 나오는지 확인합니다. 뒤로 가기를 누르면 Home으로 돌아옵니다.
-11. 설정에서 로그아웃합니다.
-12. 로그인 화면으로 돌아왔는지 확인합니다.
+11. Home 본문의 **에피소드 시작하기**를 눌러, 입력하기 전에 카페 장면이 먼저
+    열리는지 확인합니다. 영어로 몇 번 주고받아 사건을 마무리하면 결말과 함께
+    입력이 닫히는지, **다시 시작하기**가 같은 장면을 처음부터 여는지 확인합니다.
+12. 설정에서 로그아웃합니다.
+13. 로그인 화면으로 돌아왔는지 확인합니다.
 
-10번을 실행하려면 [AI 채팅 API](#ai-채팅-api)가 떠 있어야 합니다.
+10번과 11번을 실행하려면 [AI 채팅 API](#ai-채팅-api)가 떠 있어야 합니다.
 
 Android에서는 헤더의 `Open settings`를 누르면 Expo dev-client 메뉴가 열립니다.
 설정 화면은 앱의 딥 링크로 엽니다.
@@ -403,7 +406,11 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 | `Side chat 2개 고르기` | Side chat이 여럿일 때 입력창 위의 수 표시. 숫자는 실제 개수입니다 |
 | `<구절> Side chat 열기` | 다시 열기 목록의 항목. 앞은 그 Side chat이 시작한 구절입니다 |
 | `새 대화` | Home 헤더의 새 대화 버튼 |
-| `뒤로 가기` | 대화 화면 헤더의 뒤로 가기 버튼 |
+| `뒤로 가기` | 대화 화면과 에피소드 화면 헤더의 뒤로 가기 버튼 |
+| `에피소드 시작하기` | Home 본문의 에피소드 시작 버튼 |
+| `영어로 말해 보세요` | 에피소드 화면 입력의 빈 자리 문구 |
+| `홈으로 가기` | 끝난 에피소드의 마무리 버튼 |
+| `다시 시작하기` | 끝난 에피소드의 마무리 버튼 |
 
 온보딩 화면의 요소에는 `testID`도 있습니다.
 `onboarding-nickname`, `onboarding-username`, `onboarding-username-checking`,
@@ -440,6 +447,18 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 `chat-side-count`는 Side chat이 하나라도 있을 때만 나타납니다.
 `chat-latest-overlay` 안에서 최신 메시지 버튼과 같은 자리에 쌓입니다.
 `side-chat-source`는 Side chat 시트 목록 맨 위의 읽기 전용 구절입니다.
+
+에피소드 화면의 요소에는 `testID`도 있습니다.
+
+- Home의 에피소드 자리: `home-episode`
+- 끝난 에피소드의 마무리: `episode-closing`, `episode-closing-kind`, `episode-closing-outcome`
+
+에피소드 화면은 대화 화면과 같은 패널을 씁니다.
+그래서 `chat-list`, `chat-input`, `chat-send`, `chat-message-row`와
+`chat-scene-narration`, `chat-scene-utterance`가 그대로 있습니다.
+사건이 끝나면 입력 자리를 `episode-closing`이 대신하므로 `chat-input`과
+`chat-send`는 사라집니다.
+Side chat 진입과 메시지 하나에 거는 동작은 에피소드 화면에 두지 않습니다.
 
 `chat-composer-surface`는 입력창과 보내기 버튼을 함께 담은 영역입니다.
 iOS 26 이상에서는 Liquid Glass이고 나머지 플랫폼에서는 같은 모양의 일반 surface입니다.
