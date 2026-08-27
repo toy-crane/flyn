@@ -162,6 +162,23 @@ export async function saveEpisodeRun(
   }
 }
 
+export async function saveEpisodeRunFallback(
+  client: EpisodeClient,
+  episodeId: string,
+  messages: readonly UIMessage[]
+): Promise<void> {
+  const { error } = await client.rpc("save_episode_run_fallback", {
+    episode_id: episodeId,
+    messages: asEpisodeMessages(messages),
+  });
+
+  if (error) {
+    throw new Error(
+      `Saving stopped episode ${episodeId} progress failed: ${error.message}`
+    );
+  }
+}
+
 export async function completeEpisodeRun(
   client: EpisodeClient,
   episodeId: string,
@@ -175,6 +192,23 @@ export async function completeEpisodeRun(
   if (error) {
     throw new Error(
       `Completing episode ${episodeId} transcript failed: ${error.message}`
+    );
+  }
+}
+
+export async function completeEpisodeRunFallback(
+  client: EpisodeClient,
+  episodeId: string,
+  messages: readonly UIMessage[]
+): Promise<void> {
+  const { error } = await client.rpc("complete_episode_run_fallback", {
+    episode_id: episodeId,
+    messages: asEpisodeMessages(messages),
+  });
+
+  if (error) {
+    throw new Error(
+      `Completing stopped episode ${episodeId} transcript failed: ${error.message}`
     );
   }
 }

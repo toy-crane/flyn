@@ -314,6 +314,18 @@ export type Database = {
         Args: { episode_id: string; messages: Json }
         Returns: undefined
       }
+      complete_episode_run_fallback: {
+        Args: { episode_id: string; messages: Json }
+        Returns: undefined
+      }
+      episode_run_extends_snapshot: {
+        Args: { snapshot_messages: Json; stored_messages: Json }
+        Returns: boolean
+      }
+      episode_run_matches_ending: {
+        Args: { kind: string; messages: Json; outcome: string }
+        Returns: boolean
+      }
       finish_episode: {
         Args: {
           episode_id: string
@@ -332,6 +344,10 @@ export type Database = {
       }
       is_reserved_username: { Args: { candidate: string }; Returns: boolean }
       save_episode_run: {
+        Args: { episode_id: string; messages: Json }
+        Returns: undefined
+      }
+      save_episode_run_fallback: {
         Args: { episode_id: string; messages: Json }
         Returns: undefined
       }

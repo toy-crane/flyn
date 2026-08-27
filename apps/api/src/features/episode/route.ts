@@ -17,6 +17,7 @@ import { type AuthedEnv, createUserGuard } from "../../shared/user-guard";
 import { episodeSystemPrompt, episodeTags } from "./episode";
 import {
   completeEpisodeRun,
+  completeEpisodeRunFallback,
   currentEpisode,
   nextUpAfter,
   readEpisodeSession,
@@ -24,6 +25,7 @@ import {
   readStoryView,
   recordEpisodeEnding,
   saveEpisodeRun,
+  saveEpisodeRunFallback,
   storyMemoriesOf,
 } from "./progress";
 import {
@@ -66,6 +68,12 @@ function sceneResponse({
       originalMessages,
     }),
   });
+}
+
+function hasEnding(messages: readonly UIMessage[]): boolean {
+  return messages.some((message) =>
+    message.parts.some((part) => part.type === "data-ending")
+  );
 }
 
 async function persistRunBestEffort(
@@ -157,6 +165,38 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
       }
 
       return c.json(session);
+    })
+    .put("/:episodeId", requireUser, requireCurrentUser, async (c) => {
+      const body: unknown = await c.req.json().catch(() => null);
+      const sent = (body as { messages?: unknown } | null)?.messages;
+      const validatedMessages = await safeValidateUIMessages({
+        messages: sent,
+      });
+
+      if (!validatedMessages.success) {
+        return c.json({ error: "Invalid request body." }, 400);
+      }
+
+      const client = c.var.supabaseContext.supabase;
+      const episodeId = c.req.param("episodeId");
+
+      if (hasEnding(validatedMessages.data)) {
+        await completeEpisodeRunFallback(
+          client,
+          episodeId,
+          validatedMessages.data
+        );
+      } else {
+        const resolved = await resolvePlayableEpisode(client, episodeId);
+
+        if ("error" in resolved) {
+          return c.json({ error: resolved.error }, CONFLICT_STATUS);
+        }
+
+        await saveEpisodeRunFallback(client, episodeId, validatedMessages.data);
+      }
+
+      return c.body(null, 204);
     })
     .post("/", requireUser, requireCurrentUser, async (c) => {
       const body: unknown = await c.req.json().catch(() => null);

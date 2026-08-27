@@ -1,6 +1,6 @@
 -- 플레이 기록은 스토리·화 번호가 아니라 안정된 에피소드 id를 참조한다.
 BEGIN;
-SELECT plan(36);
+SELECT plan(52);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -169,6 +169,15 @@ SELECT function_privs_are(
   'a signed-in account can save its current scene'
 );
 
+SELECT function_privs_are(
+  'public',
+  'save_episode_run_fallback',
+  array['uuid', 'jsonb']::name[],
+  'authenticated',
+  array['EXECUTE'],
+  'a signed-in account can save the scene visible when stopping'
+);
+
 SELECT throws_ok(
   $$
     select public.complete_episode_run(
@@ -192,11 +201,29 @@ SELECT function_privs_are(
 
 SELECT function_privs_are(
   'public',
+  'save_episode_run_fallback',
+  array['uuid', 'jsonb']::name[],
+  'anon',
+  array[]::text[],
+  'anon cannot save a stopped episode scene'
+);
+
+SELECT function_privs_are(
+  'public',
   'complete_episode_run',
   array['uuid', 'jsonb']::name[],
   'anon',
   array[]::text[],
   'anon cannot complete an episode scene'
+);
+
+SELECT function_privs_are(
+  'public',
+  'complete_episode_run_fallback',
+  array['uuid', 'jsonb']::name[],
+  'anon',
+  array[]::text[],
+  'anon cannot complete a stopped episode scene'
 );
 
 SET LOCAL ROLE anon;
@@ -232,6 +259,76 @@ SELECT is(
   ),
   'opening-2',
   'the saved scene keeps its message ids'
+);
+
+SELECT lives_ok(
+  $$
+    select public.save_episode_run(
+      '11000000-0000-4000-8000-000000000002'::uuid,
+      '[{"id":"opening-2","role":"assistant","parts":[{"type":"text","state":"done","text":"Mia가 카드를 다시 본다. Please wait."}]}]'::jsonb
+    )
+  $$,
+  'the server can finish a longer version before the stop fallback arrives'
+);
+
+SELECT lives_ok(
+  $$
+    select public.save_episode_run_fallback(
+      '11000000-0000-4000-8000-000000000002'::uuid,
+      '[{"id":"opening-2","role":"assistant","parts":[{"type":"text","state":"streaming","text":"Mia가 카드를 다시 본다."}]}]'::jsonb
+    )
+  $$,
+  'a throttled stop snapshot can arrive after the longer server save'
+);
+
+SELECT is(
+  (
+    select messages #>> '{0,parts,0,text}'
+    from public.episode_runs
+    where episode_id = '11000000-0000-4000-8000-000000000002'
+  ),
+  'Mia가 카드를 다시 본다. Please wait.',
+  'the shorter snapshot never rolls the same message back'
+);
+
+SELECT lives_ok(
+  $$
+    select public.save_episode_run_fallback(
+      '11000000-0000-4000-8000-000000000002'::uuid,
+      '[{"id":"opening-2","role":"assistant","parts":[{"type":"text","text":"Noah가 다른 쪽을 본다."}]}]'::jsonb
+    )
+  $$,
+  'a stopped branch with different text can replace the old branch'
+);
+
+SELECT is(
+  (
+    select messages #>> '{0,parts,0,text}'
+    from public.episode_runs
+    where episode_id = '11000000-0000-4000-8000-000000000002'
+  ),
+  'Noah가 다른 쪽을 본다.',
+  'the fallback distinguishes a branch even when its message id is reused'
+);
+
+SELECT lives_ok(
+  $$
+    select public.save_episode_run_fallback(
+      '11000000-0000-4000-8000-000000000002'::uuid,
+      '[{"id":"opening-2","role":"assistant","parts":[{"type":"text","text":"Noah가 다른 쪽을 본다."}]},{"id":"user-2","role":"user","parts":[{"type":"text","text":"Can you help?"}]}]'::jsonb
+    )
+  $$,
+  'a stopped scene with a new message can move the run forward'
+);
+
+SELECT is(
+  (
+    select messages #>> '{1,id}'
+    from public.episode_runs
+    where episode_id = '11000000-0000-4000-8000-000000000002'
+  ),
+  'user-2',
+  'the fallback keeps a newly visible message id'
 );
 
 SELECT throws_ok(
@@ -282,6 +379,15 @@ SELECT function_privs_are(
   'authenticated',
   array['EXECUTE'],
   'a signed-in account can complete a saved scene after its ending exists'
+);
+
+SELECT function_privs_are(
+  'public',
+  'complete_episode_run_fallback',
+  array['uuid', 'jsonb']::name[],
+  'authenticated',
+  array['EXECUTE'],
+  'a signed-in account can complete the scene visible when stopping'
 );
 
 SET LOCAL ROLE authenticated;
@@ -347,6 +453,57 @@ SELECT throws_ok(
   '22023',
   null,
   'a conversation cannot complete before its ending exists'
+);
+
+SELECT lives_ok(
+  $$
+    select public.save_episode_run(
+      '11000000-0000-4000-8000-000000000002'::uuid,
+      '[{"id":"opening-2","role":"assistant","parts":[{"type":"text","text":"Noah가 다른 쪽을 본다."}]},{"id":"ending-2","role":"assistant","parts":[{"type":"text","text":"He brings another terminal."},{"type":"data-ending","data":{"kind":"타협","outcome":"다른 단말기로 계산했다."}},{"type":"data-next-up","data":{"episodeId":"11000000-0000-4000-8000-000000000003"}}]}]'::jsonb
+    )
+  $$,
+  'the server can hold a longer ending scene before the stop fallback'
+);
+
+SELECT is(
+  (
+    select public.finish_episode(
+      '11000000-0000-4000-8000-000000000002'::uuid,
+      '타협',
+      '다른 단말기로 계산했다.'
+    )
+  ),
+  true,
+  'the second episode ending is recorded before its transcript completes'
+);
+
+SELECT lives_ok(
+  $$
+    select public.complete_episode_run_fallback(
+      '11000000-0000-4000-8000-000000000002'::uuid,
+      '[{"id":"opening-2","role":"assistant","parts":[{"type":"text","text":"Noah가 다른 쪽을 본다."}]},{"id":"ending-2","role":"assistant","parts":[{"type":"text","text":"He brings another terminal."},{"type":"data-ending","data":{"kind":"타협","outcome":"다른 단말기로 계산했다."}}]}]'::jsonb
+    )
+  $$,
+  'a shorter stopped ending can complete against the longer server scene'
+);
+
+SELECT ok(
+  (
+    select completed_at is not null
+    from public.episode_runs
+    where episode_id = '11000000-0000-4000-8000-000000000002'
+  ),
+  'the stopped ending marks the conversation complete'
+);
+
+SELECT is(
+  (
+    select messages #>> '{1,parts,2,type}'
+    from public.episode_runs
+    where episode_id = '11000000-0000-4000-8000-000000000002'
+  ),
+  'data-next-up',
+  'completion keeps the longer compatible server transcript'
 );
 
 SET LOCAL request.jwt.claims TO

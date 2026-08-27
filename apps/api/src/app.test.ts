@@ -252,7 +252,10 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
         );
         const savedRun = {
           completed_at:
-            name === "complete_episode_run" ? new Date().toISOString() : null,
+            name === "complete_episode_run" ||
+            name === "complete_episode_run_fallback"
+              ? new Date().toISOString()
+              : null,
           episode_id: String(args.episode_id),
           messages: args.messages as unknown[],
         };
@@ -352,6 +355,17 @@ function createEpisodeRequest(body: unknown, token?: string): Request {
       ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
     method: "POST",
+  });
+}
+
+function createStoppedEpisodeRequest(
+  episode: string,
+  messages: unknown[]
+): Request {
+  return new Request(`http://localhost${EPISODE_PATH}/${episode}`, {
+    body: JSON.stringify({ messages }),
+    headers: { "content-type": "application/json" },
+    method: "PUT",
   });
 }
 
@@ -1372,6 +1386,48 @@ describe("story content database contract", () => {
       "save_episode_run",
     ]);
     expect(state.runs[0]?.messages).toHaveLength(2);
+  });
+
+  test("saves a stopped active scene through the guarded fallback", async () => {
+    const state = createSeasonState();
+    const messages = [createUserMessage("This is wrong.")];
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    const response = await app.request(
+      createStoppedEpisodeRequest(episodeId(1), messages)
+    );
+
+    expect(response.status).toBe(204);
+    expect(state.runRecords.at(-1)).toMatchObject({
+      args: { episode_id: episodeId(1), messages },
+      name: "save_episode_run_fallback",
+    });
+  });
+
+  test("completes a stopped ending through the guarded fallback", async () => {
+    const outcome = "새 잔을 받아냈다.";
+    const state = createSeasonState([{ episode: 1, kind: "성공", outcome }]);
+    const messages = [
+      {
+        id: "ending-1",
+        parts: [
+          { text: "Here you go.", type: "text" },
+          { data: { kind: "성공", outcome }, type: "data-ending" },
+        ],
+        role: "assistant",
+      },
+    ];
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    const response = await app.request(
+      createStoppedEpisodeRequest(episodeId(1), messages)
+    );
+
+    expect(response.status).toBe(204);
+    expect(state.runRecords.at(-1)).toMatchObject({
+      args: { episode_id: episodeId(1), messages },
+      name: "complete_episode_run_fallback",
+    });
   });
 
   test("returns the account's saved active scene for another app launch", async () => {
