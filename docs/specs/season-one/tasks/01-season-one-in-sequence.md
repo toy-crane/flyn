@@ -69,7 +69,7 @@ verification pass. Use `superseded` only after an approved replacement of a
 task with recorded completion history. Preserve its Execution evidence and name
 the replacement and reason under Revision; it is then terminal for that approved
 breakdown and outside the current delivery map. -->
-in-progress
+completed
 
 ## Execution
 
@@ -93,8 +93,14 @@ task dependency. In a superseded task, preserved entries are historical. -->
   배치가 어긋난다.
   `supabase-reviewer`가 지적한 결말 재도착 시 오류, 개수 기준 순서 판정, 번호
   상한, pgTAP의 교차 계정 쓰기 누락을 고쳤다.
-- Blocker: 루트 `bun run check`는 `expo install --check`의 기존 실패로 멈춘다.
-  원인과 다음 단계는 `docs/follow-ups/mobile-expo-dependencies-outdated.md`에
-  이미 있다. 마무리 화면을 보지 않고 앱을 끄는 경로는 서버가 스트림 도중
+  루트 `bun run check`는 `expo install --check`의 기존 실패로 여전히 멈춘다. 이
+  단위와 무관한 의존성 표류이고 원인과 다음 단계는
+  `docs/follow-ups/mobile-expo-dependencies-outdated.md`에 이미 있다. 각 작업
+  공간의 `ultracite check`와 `tsc`는 모두 통과한다.
+  리뷰 체크포인트를 마쳤다. 로그인한 사람이 앱을 거치지 않고 `finish_episode`를
+  직접 불러 자기 진행을 꾸밀 수 있다는 것을 확인했고, 받아들일지 막을지는
+  `docs/follow-ups/signed-in-user-can-record-episode-endings-without-playing.md`로
+  넘겼다.
+- Blocker: 마무리 화면을 보지 않고 앱을 끄는 경로는 서버가 스트림 도중
   기록한다는 서버 테스트로만 확인했고 기기에서 재현하지는 않았다.
 - Revision: —
