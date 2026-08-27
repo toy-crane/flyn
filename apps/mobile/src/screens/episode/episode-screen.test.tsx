@@ -111,7 +111,9 @@ beforeEach(() => {
 });
 
 test("화면에 들어오면 그 자리에서 에피소드를 연다", async () => {
-  await renderWithHeroUI(<EpisodeScreen onLeave={jest.fn()} />);
+  await renderWithHeroUI(
+    <EpisodeScreen onLeave={jest.fn()} onRestart={jest.fn()} />
+  );
 
   expect(mockOpenedRuns).toHaveBeenCalledWith("token-1");
   expect(panel?.chat).toMatchObject({ tag: "conversation" });
@@ -122,7 +124,9 @@ test("화면에 들어오면 그 자리에서 에피소드를 연다", async () 
 // 잠깐 물어보기는 다음 단위다. 템플릿의 Side chat이 그 자리를 미리 차지하지
 // 않도록 진입을 아예 넘기지 않는다.
 test("Side chat으로 들어가는 길과 메시지 동작을 두지 않는다", async () => {
-  await renderWithHeroUI(<EpisodeScreen onLeave={jest.fn()} />);
+  await renderWithHeroUI(
+    <EpisodeScreen onLeave={jest.fn()} onRestart={jest.fn()} />
+  );
 
   expect(panel?.onAskInSideChat).toBeUndefined();
   expect(panel?.onOpenSideChat).toBeUndefined();
@@ -131,7 +135,9 @@ test("Side chat으로 들어가는 길과 메시지 동작을 두지 않는다",
 });
 
 test("사건이 진행 중이면 마무리를 두지 않는다", async () => {
-  await renderWithHeroUI(<EpisodeScreen onLeave={jest.fn()} />);
+  await renderWithHeroUI(
+    <EpisodeScreen onLeave={jest.fn()} onRestart={jest.fn()} />
+  );
 
   expect(panel?.closing).toBeUndefined();
 });
@@ -141,7 +147,9 @@ test("결말이 오면 마무리가 입력 자리를 대신한다", async () => 
   const user = userEvent.setup();
 
   mockEnding = { kind: "성공", outcome: "원하던 커피를 새로 받아냈다." };
-  await renderWithHeroUI(<EpisodeScreen onLeave={leave} />);
+  await renderWithHeroUI(
+    <EpisodeScreen onLeave={leave} onRestart={jest.fn()} />
+  );
 
   expect(panel?.closing).toBeDefined();
   expect(screen.getByTestId("episode-closing-kind")).toHaveTextContent("성공");
@@ -151,16 +159,18 @@ test("결말이 오면 마무리가 입력 자리를 대신한다", async () => 
   expect(leave).toHaveBeenCalledTimes(1);
 });
 
-// 다시 시작은 지난 에피소드를 이어 가는 것이 아니라 처음부터 새로 여는 것이다.
-test("다시 시작하면 에피소드를 처음부터 새로 연다", async () => {
+// 다시 시작은 지난 에피소드를 이어 가는 것이 아니라 화면을 새로 여는 것이라,
+// 이 화면은 알리기만 하고 경로가 연다.
+test("다시 시작하기는 경로에 알린다", async () => {
+  const restart = jest.fn();
   const user = userEvent.setup();
 
   mockEnding = { kind: "실패", outcome: "그냥 들고 나왔다." };
-  await renderWithHeroUI(<EpisodeScreen onLeave={jest.fn()} />);
-
-  expect(mockOpenedRuns).toHaveBeenCalledTimes(1);
+  await renderWithHeroUI(
+    <EpisodeScreen onLeave={jest.fn()} onRestart={restart} />
+  );
 
   await user.press(screen.getByRole("button", { name: "다시 시작하기" }));
 
-  expect(mockOpenedRuns).toHaveBeenCalledTimes(2);
+  expect(restart).toHaveBeenCalledTimes(1);
 });
