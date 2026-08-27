@@ -69,13 +69,19 @@ verification pass. Use `superseded` only after an approved replacement of a
 task with recorded completion history. Preserve its Execution evidence and name
 the replacement and reason under Revision; it is then terminal for that approved
 breakdown and outside the current delivery map. -->
-pending
+in-progress
 
 ## Execution
 
 <!-- Append concise evidence and preserve earlier entries when status changes.
 Execution Blocker is the current impediment for an active task, not a declared
 task dependency. In a superseded task, preserved entries are historical. -->
-- Verification: —
-- Blocker: —
+- Verification: 스키마·서버·앱을 만들고 `bun run check-types`(5/5), `apps/api`
+  `bun test`(43/43), `bun run db:test`(pgTAP 139/139), `apps/mobile`
+  `bun run test`(435/435), `apps/mobile` `ultracite check`를 통과했다. 실제 기기
+  플레이는 각본 승인 뒤에 한다.
+- Blocker: 2–5화의 무대와 예고문 초안을 사용자에게 보여 주고 승인을 기다린다.
+  루트 `bun run check`는 `expo install --check`의 기존 실패로 여전히 멈춘다.
+  원인과 다음 단계는 `docs/follow-ups/mobile-expo-dependencies-outdated.md`에
+  이미 있다.
 - Revision: —
