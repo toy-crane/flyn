@@ -169,6 +169,12 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
     .put("/:episodeId", requireUser, requireCurrentUser, async (c) => {
       const body: unknown = await c.req.json().catch(() => null);
       const sent = (body as { messages?: unknown } | null)?.messages;
+      const phase = (body as { phase?: unknown } | null)?.phase;
+
+      if (phase !== "submitted" && phase !== "streaming") {
+        return c.json({ error: "Invalid request body." }, 400);
+      }
+
       const validatedMessages = await safeValidateUIMessages({
         messages: sent,
       });
@@ -193,7 +199,15 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           return c.json({ error: resolved.error }, CONFLICT_STATUS);
         }
 
-        await saveEpisodeRunFallback(client, episodeId, validatedMessages.data);
+        if (phase === "submitted") {
+          await saveEpisodeRun(client, episodeId, validatedMessages.data);
+        } else {
+          await saveEpisodeRunFallback(
+            client,
+            episodeId,
+            validatedMessages.data
+          );
+        }
       }
 
       return c.body(null, 204);

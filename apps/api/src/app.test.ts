@@ -360,10 +360,11 @@ function createEpisodeRequest(body: unknown, token?: string): Request {
 
 function createStoppedEpisodeRequest(
   episode: string,
-  messages: unknown[]
+  messages: unknown[],
+  phase: "streaming" | "submitted" = "streaming"
 ): Request {
   return new Request(`http://localhost${EPISODE_PATH}/${episode}`, {
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, phase }),
     headers: { "content-type": "application/json" },
     method: "PUT",
   });
@@ -1401,6 +1402,22 @@ describe("story content database contract", () => {
     expect(state.runRecords.at(-1)).toMatchObject({
       args: { episode_id: episodeId(1), messages },
       name: "save_episode_run_fallback",
+    });
+  });
+
+  test("keeps a submitted retry's intentional transcript cut", async () => {
+    const state = createSeasonState();
+    const messages = [createUserMessage("Please try again.")];
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    const response = await app.request(
+      createStoppedEpisodeRequest(episodeId(1), messages, "submitted")
+    );
+
+    expect(response.status).toBe(204);
+    expect(state.runRecords.at(-1)).toMatchObject({
+      args: { episode_id: episodeId(1), messages },
+      name: "save_episode_run",
     });
   });
 
