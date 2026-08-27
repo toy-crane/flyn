@@ -95,6 +95,9 @@ export async function streamSceneText(
   let ending: SceneEndingData | undefined;
   // 지금 흐르는 줄이 결말 줄인지. 결말 줄의 글자는 말풍선으로 가지 않는다.
   let isEndingLine = false;
+  // 그 결말 줄이 판정으로 남는 첫 줄인지. 두 번째 결말 줄의 남은 글자가 첫
+  // 판정에 덧붙지 않게 막는다.
+  let isKeepingEnding = false;
 
   function append(text: string) {
     if (text.length === 0) {
@@ -102,7 +105,7 @@ export async function streamSceneText(
     }
 
     if (isEndingLine) {
-      if (ending !== undefined) {
+      if (isKeepingEnding && ending !== undefined) {
         ending.outcome += text;
       }
 
@@ -129,6 +132,7 @@ export async function streamSceneText(
     closeSegment();
     isLineDecided = true;
     isEndingLine = true;
+    isKeepingEnding = ending === undefined;
     pendingNewlines = 0;
     ending ??= { kind, outcome: text };
   }
@@ -199,6 +203,7 @@ export async function streamSceneText(
     lineBuffer = "";
     isLineDecided = false;
     isEndingLine = false;
+    isKeepingEnding = false;
     pendingNewlines += 1;
   }
 

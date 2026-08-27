@@ -185,6 +185,23 @@ describe("streamSceneText", () => {
     });
   });
 
+  // 두 번째 결말 줄이 조각조각 도착해도 처음 판정에 덧붙지 않아야 한다.
+  test("never lets a later ending leak into the first", async () => {
+    const { chunks, writer } = collectingWriter();
+
+    await streamSceneText(
+      deltas(["실패: 아무것도 얻지 못했다.\n실패: 다시", " 실패했다.\n"]),
+      ENDING_SCENE,
+      writer
+    );
+
+    expect(segmentsOf(chunks)).toEqual([]);
+    expect(endingOf(chunks)).toEqual({
+      kind: "실패",
+      outcome: "아무것도 얻지 못했다.",
+    });
+  });
+
   // 결말은 사건이 끝났다는 한 번의 판정이다. 모델이 두 번 쓰면 처음 것만 남기고
   // 나머지는 화면에 흘리지 않는다.
   test("keeps the first ending and never shows a later one", async () => {
