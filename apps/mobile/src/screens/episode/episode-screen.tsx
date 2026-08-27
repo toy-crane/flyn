@@ -90,6 +90,9 @@ export function EpisodeScreen({
       </View>
     );
   }
+  // 첫 장면은 사용자의 보내기 동작 없이 서버에서 먼저 온다. 빈 상태로
+  // 배치된 LegendList를 한 번 다시 만들어야 첫 행의 높이와 위치를 잰다.
+  const panelKey = conversationRun.messages.length === 0 ? "empty" : "started";
 
   return (
     <ChatPanel
@@ -99,6 +102,7 @@ export function EpisodeScreen({
       chat={conversationRun}
       closing={closing}
       hasMessageActions={false}
+      key={panelKey}
       placeholder={episodeLabels.placeholder}
       topInset={Platform.OS === "ios" ? headerHeight : 0}
     />

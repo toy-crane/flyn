@@ -51,10 +51,19 @@ afterEach(() => {
 test("저장된 장면이 없으면 첫 장면을 한 번 요청한다", async () => {
   const transport = fakeTransport();
 
-  await renderHook(() => useEpisodeRun("token", EPISODE_ID, [], false));
+  const { result } = await renderHook(() =>
+    useEpisodeRun("token", EPISODE_ID, [], false)
+  );
 
   await waitFor(() => {
     expect(transport.sendMessages).toHaveBeenCalledTimes(1);
+    expect(result.current.chat.messages).toEqual([
+      {
+        id: expect.any(String),
+        parts: [{ state: "done", text: "Next in line, please!", type: "text" }],
+        role: "assistant",
+      },
+    ]);
   });
 });
 
