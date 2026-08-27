@@ -65,12 +65,17 @@ export function speakerModelText(data: unknown): string {
  *
  * `endings`를 넘기면 그 줄 머리는 말풍선이 아니라 장면을 닫는 판정이 된다.
  * 결말 줄은 화면에 흐르지 않고 스트림 끝에서 `data-ending` part 하나로 나간다.
+ *
+ * `onEnding`은 그 part를 쓰기 전에 기다린다. 결말을 어딘가에 남겨야 하는
+ * 기능은 여기에 그 일을 걸어 두면, 남기지 못했을 때 화면이 끝난 척하는 대신
+ * 오류로 돌아간다. 던지면 결말 part는 나가지 않는다.
  */
 export async function streamSceneText(
   textStream: AsyncIterable<string>,
   tags: SceneTags,
-  writer: UIMessageStreamWriter
-): Promise<void> {
+  writer: UIMessageStreamWriter,
+  onEnding?: (ending: SceneEndingData) => Promise<void>
+): Promise<SceneEndingData | undefined> {
   const prefixes: LineTag[] = [
     ...tags.cast.map((name) => ({
       isEnding: false,
@@ -237,6 +242,9 @@ export async function streamSceneText(
   closeSegment();
 
   if (ending !== undefined) {
+    await onEnding?.(ending);
     writer.write({ data: ending, id: "ending", type: "data-ending" });
   }
+
+  return ending;
 }
