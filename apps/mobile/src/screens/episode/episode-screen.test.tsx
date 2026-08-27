@@ -8,7 +8,7 @@ import { useAuthSession } from "@/features/auth/state/auth-session";
 import type { ChatSession } from "@/features/chat/state/use-chat-session";
 import { useConversation } from "@/features/chat/state/use-chat-session";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
-import { episodeLabels } from "@/features/episode/ui/episode-labels";
+import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { EpisodeScreen } from "./episode-screen";
 
@@ -36,26 +36,36 @@ jest.mock("@/features/chat/state/use-chat-session", () => ({
  * what the real hook does on mount, so the stand-in reports the same moment:
  * a fresh run means the scene starts over.
  */
-const mockOpenedRuns = jest.fn<(token: string | undefined) => void>();
+const mockOpenedRuns =
+  jest.fn<(token: string | undefined, episode: number | undefined) => void>();
 let mockEnding: EpisodeEnding | undefined;
+let mockNextUp: EpisodeNextUp | undefined;
 
 jest.mock("@/features/episode/state/use-episode-run", () => {
   const React = require("react") as typeof import("react");
 
   return {
-    useEpisodeRun: (accessToken: string | undefined) => {
+    useEpisodeRun: (accessToken: string | undefined, episode?: number) => {
       React.useEffect(() => {
-        mockOpenedRuns(accessToken);
-      }, [accessToken]);
+        mockOpenedRuns(accessToken, episode);
+      }, [accessToken, episode]);
 
       return {
         chat: { tag: "episode-chat" },
         ending: mockEnding,
+        nextUp: mockNextUp,
         open: jest.fn(),
       };
     },
   };
 });
+
+/** The episode the route says this screen is playing. */
+const PLAYING = {
+  episode: 2,
+  situation: "다른 방법을 찾아 계산을 끝내 보세요",
+  situationEmoji: "💳",
+};
 
 interface PanelProps {
   banner?: ReactNode;
@@ -104,6 +114,7 @@ const conversation = {
 beforeEach(() => {
   panel = undefined;
   mockEnding = undefined;
+  mockNextUp = { copy: "예고", episode: 3, title: "자리를 맡아 둔 사이에" };
   mockOpenedRuns.mockClear();
   mockUseHeaderHeight.mockReturnValue(96);
   mockUseAuthSession.mockReturnValue({
@@ -115,10 +126,10 @@ beforeEach(() => {
 
 test("화면에 들어오면 그 자리에서 에피소드를 연다", async () => {
   await renderWithHeroUI(
-    <EpisodeScreen onLeave={jest.fn()} onRestart={jest.fn()} />
+    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
   );
 
-  expect(mockOpenedRuns).toHaveBeenCalledWith("token-1");
+  expect(mockOpenedRuns).toHaveBeenCalledWith("token-1", 2);
   expect(panel?.chat).toMatchObject({ tag: "conversation" });
   expect(panel?.topInset).toBe(96);
   expect(panel?.placeholder).toBe("영어로 말해 보세요");
@@ -128,7 +139,7 @@ test("화면에 들어오면 그 자리에서 에피소드를 연다", async () 
 // 않도록 진입을 아예 넘기지 않는다.
 test("Side chat으로 들어가는 길과 메시지 동작을 두지 않는다", async () => {
   await renderWithHeroUI(
-    <EpisodeScreen onLeave={jest.fn()} onRestart={jest.fn()} />
+    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
   );
 
   expect(panel?.onAskInSideChat).toBeUndefined();
@@ -139,7 +150,7 @@ test("Side chat으로 들어가는 길과 메시지 동작을 두지 않는다",
 
 test("사건이 진행 중이면 마무리를 두지 않는다", async () => {
   await renderWithHeroUI(
-    <EpisodeScreen onLeave={jest.fn()} onRestart={jest.fn()} />
+    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
   );
 
   expect(panel?.closing).toBeUndefined();
@@ -149,12 +160,12 @@ test("사건이 진행 중이면 마무리를 두지 않는다", async () => {
 test("결말과 무관하게 상황 줄 배너를 채팅 패널에 넘긴다", async () => {
   mockEnding = { kind: "성공", outcome: "원하던 커피를 새로 받아냈다." };
   await renderWithHeroUI(
-    <EpisodeScreen onLeave={jest.fn()} onRestart={jest.fn()} />
+    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
   );
 
   expect(panel?.banner).toBeDefined();
   expect(screen.getByTestId("episode-situation-banner")).toBeOnTheScreen();
-  expect(screen.getByText(episodeLabels.situation)).toBeOnTheScreen();
+  expect(screen.getByText(PLAYING.situation)).toBeOnTheScreen();
 });
 
 test("결말이 오면 마무리가 입력 자리를 대신한다", async () => {
@@ -163,7 +174,7 @@ test("결말이 오면 마무리가 입력 자리를 대신한다", async () => 
 
   mockEnding = { kind: "성공", outcome: "원하던 커피를 새로 받아냈다." };
   await renderWithHeroUI(
-    <EpisodeScreen onLeave={leave} onRestart={jest.fn()} />
+    <EpisodeScreen {...PLAYING} onLeave={leave} onStartNext={jest.fn()} />
   );
 
   expect(panel?.closing).toBeDefined();
@@ -174,18 +185,18 @@ test("결말이 오면 마무리가 입력 자리를 대신한다", async () => 
   expect(leave).toHaveBeenCalledTimes(1);
 });
 
-// 다시 시작은 지난 에피소드를 이어 가는 것이 아니라 화면을 새로 여는 것이라,
-// 이 화면은 알리기만 하고 경로가 연다.
-test("다시 시작하기는 경로에 알린다", async () => {
-  const restart = jest.fn();
+// 다음 화로 넘어가는 것은 지난 에피소드를 이어 가는 것이 아니라 화면을 새로
+// 여는 것이라, 이 화면은 알리기만 하고 경로가 연다.
+test("다음 화 시작하기는 경로에 알린다", async () => {
+  const startNext = jest.fn();
   const user = userEvent.setup();
 
   mockEnding = { kind: "실패", outcome: "그냥 들고 나왔다." };
   await renderWithHeroUI(
-    <EpisodeScreen onLeave={jest.fn()} onRestart={restart} />
+    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={startNext} />
   );
 
-  await user.press(screen.getByRole("button", { name: "다시 시작하기" }));
+  await user.press(screen.getByRole("button", { name: "3화 시작하기" }));
 
-  expect(restart).toHaveBeenCalledTimes(1);
+  expect(startNext).toHaveBeenCalledTimes(1);
 });

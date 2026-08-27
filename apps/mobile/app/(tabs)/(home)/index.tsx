@@ -1,7 +1,10 @@
 import { router, Stack } from "expo-router";
+import { useCallback } from "react";
 import { Platform } from "react-native";
 
+import { useAuthSession } from "@/features/auth/state/auth-session";
 import { chatLabels } from "@/features/chat/ui/chat-labels";
+import { useSeason } from "@/features/episode/query/season";
 import { HomeScreen } from "@/screens/home/home-screen";
 import { ProfileAvatarButton } from "@/screens/home/profile-avatar-button";
 import { toolbarIcon } from "@/shared/ui/toolbar-icons";
@@ -19,9 +22,20 @@ function openSettings() {
 }
 
 export default function HomeRoute() {
+  const { session } = useAuthSession();
+  const season = useSeason(session?.user.id, session?.access_token);
+  const { refetch } = season;
+  const retrySeason = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
   return (
     <>
-      <HomeScreen onStartEpisode={openEpisode} />
+      <HomeScreen
+        onRetry={retrySeason}
+        onStartEpisode={openEpisode}
+        season={season.data}
+      />
       {/*
         The new-conversation action sits apart from the profile so it remains
         the leading action on both platforms. Every item is written out here

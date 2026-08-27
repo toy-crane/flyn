@@ -17,29 +17,38 @@ import { EpisodeSituationBanner } from "@/features/episode/ui/episode-situation-
  * 에피소드 하나를 사건 시작부터 결말까지 진행하는 화면.
  *
  * 대화를 굴리는 부분은 채팅 기능의 것을 그대로 쓰고, 에피소드 기능은 어떤
- * 경로로 무엇을 열고 언제 끝났는지를 소유한다. 둘을 잇는 자리가 이 화면이다.
- * 에피소드는 이 화면이 살아 있는 동안만 있으므로, 나가는 것도 다시 시작하는
- * 것도 화면을 여닫는 일이다. 그래서 둘 다 경로가 소유한다.
+ * 화를 어디까지 진행했는지를 소유한다. 둘을 잇는 자리가 이 화면이다. 진행하던
+ * 장면은 이 화면이 살아 있는 동안만 있으므로 나가는 것도 경로가 소유하고,
+ * 다음 화로 넘어가는 것도 이 화면을 새로 여는 일이라 경로가 소유한다.
+ *
+ * 어느 화인지는 화면이 정하지 않는다. 계정의 진행이 정한 화를 경로가 넘겨
+ * 주고, 그 화가 정해지기 전에는 아무것도 열지 않는다.
  *
  * Side chat으로 들어가는 길은 넘기지 않는다. 잠깐 물어보기는 다음 단위이고,
  * 템플릿의 Side chat이 그 자리를 미리 차지하지 않는다.
  */
 export function EpisodeScreen({
+  episode,
   onLeave,
-  onRestart,
+  onStartNext,
+  situation,
+  situationEmoji,
 }: {
+  episode: number | undefined;
   onLeave: () => void;
-  onRestart: () => void;
+  onStartNext: () => void;
+  situation: string | undefined;
+  situationEmoji: string | undefined;
 }) {
   const { session } = useAuthSession();
   const accessToken = session?.access_token;
-  const { chat, ending, open } = useEpisodeRun(accessToken);
+  const { chat, ending, nextUp, open } = useEpisodeRun(accessToken, episode);
   const drafts = useLocalChatDrafts();
   const conversation = useConversation(chat, drafts, accessToken);
   const headerHeight = useHeaderHeight();
   // 첫 장면을 받지 못했다면 다시 받을 것은 답변이 아니라 에피소드의 시작이다.
   // 되받을 답변이 없어 그냥 돌아서는 다시 시도는 눌러도 아무 일이 없다.
-  const episode = useMemo(
+  const conversationRun = useMemo(
     () => ({
       ...conversation,
       retry: conversation.messages.length === 0 ? open : conversation.retry,
@@ -50,18 +59,21 @@ export function EpisodeScreen({
   return (
     <ChatPanel
       banner={
-        <EpisodeSituationBanner
-          emoji={episodeLabels.situationEmoji}
-          text={episodeLabels.situation}
-        />
+        situation === undefined ? null : (
+          <EpisodeSituationBanner
+            emoji={situationEmoji ?? ""}
+            text={situation}
+          />
+        )
       }
-      chat={episode}
+      chat={conversationRun}
       closing={
         ending === undefined ? undefined : (
           <EpisodeClosing
             ending={ending}
+            nextUp={nextUp}
             onLeave={onLeave}
-            onRestart={onRestart}
+            onStartNext={onStartNext}
           />
         )
       }

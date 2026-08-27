@@ -5,24 +5,74 @@ import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { EpisodeClosing } from "./episode-closing";
 
 const ENDING = { kind: "타협", outcome: "새 커피 대신 쿠폰을 받았다." };
+const NEXT_EPISODE = {
+  copy: "다음 날 아침이에요. 계산대 앞에서 카드가 자꾸 튕겨요.",
+  episode: 2,
+  title: "계산이 꼬인 아침",
+};
+const SEASON_DONE = {
+  copy: "다섯 번의 사건을 영어로 지나왔어요.",
+  episode: null,
+  title: "시즌 1을 끝냈어요",
+};
 
-test("결말 종류와 사건 결과를 보여 주고 갈 곳 두 군데를 준다", async () => {
+test("결말과 다음 이야기 예고를 함께 보여 주고 갈 곳 두 군데를 준다", async () => {
   const user = userEvent.setup();
   const leave = jest.fn();
-  const restart = jest.fn();
+  const startNext = jest.fn();
 
   await renderWithHeroUI(
-    <EpisodeClosing ending={ENDING} onLeave={leave} onRestart={restart} />
+    <EpisodeClosing
+      ending={ENDING}
+      nextUp={NEXT_EPISODE}
+      onLeave={leave}
+      onStartNext={startNext}
+    />
   );
 
   expect(screen.getByTestId("episode-closing-kind")).toHaveTextContent("타협");
   expect(screen.getByTestId("episode-closing-outcome")).toHaveTextContent(
     "새 커피 대신 쿠폰을 받았다."
   );
+  expect(screen.getByText("2화 · 계산이 꼬인 아침")).toBeOnTheScreen();
+  expect(screen.getByText(NEXT_EPISODE.copy)).toBeOnTheScreen();
 
-  await user.press(screen.getByRole("button", { name: "다시 시작하기" }));
+  await user.press(screen.getByRole("button", { name: "2화 시작하기" }));
   await user.press(screen.getByRole("button", { name: "홈으로 가기" }));
 
-  expect(restart).toHaveBeenCalledTimes(1);
+  expect(startNext).toHaveBeenCalledTimes(1);
   expect(leave).toHaveBeenCalledTimes(1);
+});
+
+// 마지막 화 뒤에는 열 화가 없다. 예고 자리에 완주 안내가 들어서고 갈 곳도
+// 홈 하나뿐이다.
+test("시즌의 마지막 화에서는 완주 안내를 보여 주고 홈으로만 보낸다", async () => {
+  await renderWithHeroUI(
+    <EpisodeClosing
+      ending={{ kind: "성공", outcome: "제대로 인사를 건넸다." }}
+      nextUp={SEASON_DONE}
+      onLeave={jest.fn()}
+      onStartNext={jest.fn()}
+    />
+  );
+
+  expect(screen.getByText("시즌 1을 끝냈어요")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "홈으로 가기" })).toBeOnTheScreen();
+  expect(screen.queryByText("다음 이야기")).not.toBeOnTheScreen();
+});
+
+// 한 번 난 결말은 그 시즌의 사실로 남는다. 같은 화를 다시 여는 길을 두지 않는다.
+test("다시 시작하는 길을 두지 않는다", async () => {
+  await renderWithHeroUI(
+    <EpisodeClosing
+      ending={ENDING}
+      nextUp={NEXT_EPISODE}
+      onLeave={jest.fn()}
+      onStartNext={jest.fn()}
+    />
+  );
+
+  expect(
+    screen.queryByRole("button", { name: "다시 시작하기" })
+  ).not.toBeOnTheScreen();
 });
