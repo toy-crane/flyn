@@ -81,6 +81,7 @@ jest.mock("@/features/episode/state/use-episode-run", () => {
 const PLAYING = {
   episodeId: "11000000-0000-4000-8000-000000000002",
   initialMessages: [],
+  onSettlingChange: jest.fn(),
   readOnly: false,
   situation: "다른 방법을 찾아 계산을 끝내 보세요",
   situationEmoji: "💳",
@@ -88,6 +89,7 @@ const PLAYING = {
 
 interface PanelProps {
   banner?: ReactNode;
+  canStop?: boolean;
   chat: { tag?: string };
   closing?: ReactNode;
   hasMessageActions?: boolean;
@@ -125,6 +127,7 @@ const mockUseConversation = jest.mocked(useConversation);
 const mockUseHeaderHeight = jest.mocked(useHeaderHeight);
 
 const conversation = {
+  isBusy: false,
   messages: [],
   retry: jest.fn(),
   tag: "conversation",
@@ -140,6 +143,8 @@ beforeEach(() => {
     title: "자리를 맡아 둔 사이에",
   };
   mockOpenedRuns.mockClear();
+  PLAYING.onSettlingChange.mockClear();
+  conversation.isBusy = false;
   mockUseHeaderHeight.mockReturnValue(96);
   mockUseAuthSession.mockReturnValue({
     session: { access_token: "token-1" } as Session,
@@ -160,6 +165,7 @@ test("화면에 들어오면 그 자리에서 에피소드를 연다", async () 
     false
   );
   expect(panel?.chat).toMatchObject({ tag: "conversation" });
+  expect(panel?.canStop).toBe(false);
   expect(panel?.topInset).toBe(96);
   expect(panel?.placeholder).toBe("영어로 말해 보세요");
 });
@@ -212,6 +218,34 @@ test("결말이 오면 마무리가 입력 자리를 대신한다", async () => 
   await user.press(screen.getByRole("button", { name: "홈으로 가기" }));
 
   expect(leave).toHaveBeenCalledTimes(1);
+});
+
+test("장면 응답과 결말 기록이 끝날 때까지 화면을 떠나지 못한다", async () => {
+  const leave = jest.fn();
+  const startNext = jest.fn();
+  const user = userEvent.setup();
+
+  conversation.isBusy = true;
+  mockEnding = { kind: "성공", outcome: "원하던 커피를 새로 받아냈다." };
+  await renderWithHeroUI(
+    <EpisodeScreen {...PLAYING} onLeave={leave} onStartNext={startNext} />
+  );
+
+  expect(PLAYING.onSettlingChange).toHaveBeenLastCalledWith(true);
+  expect(screen.getByRole("button", { name: "홈으로 가기" })).toHaveProp(
+    "accessibilityState",
+    { busy: false, disabled: true }
+  );
+  expect(screen.getByRole("button", { name: "3화 시작하기" })).toHaveProp(
+    "accessibilityState",
+    { busy: false, disabled: true }
+  );
+
+  await user.press(screen.getByRole("button", { name: "홈으로 가기" }));
+  await user.press(screen.getByRole("button", { name: "3화 시작하기" }));
+
+  expect(leave).not.toHaveBeenCalled();
+  expect(startNext).not.toHaveBeenCalled();
 });
 
 // 다음 화로 넘어가는 것은 지난 에피소드를 이어 가는 것이 아니라 화면을 새로

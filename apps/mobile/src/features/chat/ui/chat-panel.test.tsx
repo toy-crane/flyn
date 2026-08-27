@@ -1131,6 +1131,20 @@ describe("ChatPanel", () => {
     expect(stop).toHaveBeenCalledTimes(1);
   });
 
+  test("중지를 허용하지 않는 대화는 답변을 받는 동안 중지를 내놓지 않는다", async () => {
+    const stop = jest.fn(() => Promise.resolve());
+    await renderWithHeroUI(
+      <ChatPanel
+        canStop={false}
+        chat={chatSession({ draft: "질문", isBusy: true, stop })}
+      />
+    );
+
+    expect(screen.queryByLabelText(chatLabels.stop)).not.toBeOnTheScreen();
+    expect(screen.getByLabelText(chatLabels.send)).toBeDisabled();
+    expect(stop).not.toHaveBeenCalled();
+  });
+
   // The two share a place in the tree, so React keeps one instance and only
   // changes its props. On Android a `disabled` that stops being passed is
   // never cleared, and the stop button inherits the send button's disabled

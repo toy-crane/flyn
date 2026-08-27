@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect } from "react";
-import { Platform } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { BackHandler, Platform } from "react-native";
 
 import { useAppTheme } from "@/core/theme/app-theme-bridge";
 import { useAuthSession } from "@/features/auth/state/auth-session";
@@ -10,10 +10,6 @@ import { episodeLabels } from "@/features/episode/ui/episode-labels";
 import { EpisodeScreen } from "@/screens/episode/episode-screen";
 import { EpisodeUnavailableScreen } from "@/screens/episode/episode-unavailable-screen";
 import { toolbarIcon } from "@/shared/ui/toolbar-icons";
-
-function leaveEpisode() {
-  router.back();
-}
 
 function firstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -33,10 +29,31 @@ export default function EpisodeRoute() {
   );
   const refreshStory = useStoryRefresh(session?.user.id);
   const playing = episode.data;
+  const [isSettling, setIsSettling] = useState(false);
   const { refetch } = episode;
   const retryEpisode = useCallback(() => {
     refetch();
   }, [refetch]);
+  const leaveEpisode = useCallback(() => {
+    if (!isSettling) {
+      router.back();
+    }
+  }, [isSettling]);
+
+  useEffect(() => {
+    if (!isSettling || Platform.OS !== "android") {
+      return;
+    }
+
+    const hardwareBack = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => true
+    );
+
+    return () => {
+      hardwareBack.remove();
+    };
+  }, [isSettling]);
 
   useEffect(
     () => () => {
@@ -46,6 +63,10 @@ export default function EpisodeRoute() {
   );
 
   async function startNextEpisode(nextEpisodeId: string) {
+    if (isSettling) {
+      return;
+    }
+
     await refreshStory();
     router.replace({
       params: { episodeId: nextEpisodeId },
@@ -57,6 +78,7 @@ export default function EpisodeRoute() {
     <>
       <Stack.Screen
         options={{
+          gestureEnabled: !isSettling,
           headerLargeTitleEnabled: false,
           headerShown: true,
           title: playing?.episode.title ?? "",
@@ -77,6 +99,7 @@ export default function EpisodeRoute() {
           initialMessages={playing.messages}
           key={playing.episode.episodeId}
           onLeave={leaveEpisode}
+          onSettlingChange={setIsSettling}
           onStartNext={startNextEpisode}
           readOnly={playing.readOnly}
           situation={playing.episode.situation}
@@ -92,6 +115,7 @@ export default function EpisodeRoute() {
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button
           accessibilityLabel={episodeLabels.back}
+          disabled={isSettling}
           icon={toolbarIcon("back")}
           onPress={leaveEpisode}
         />

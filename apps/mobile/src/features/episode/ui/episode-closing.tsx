@@ -19,12 +19,14 @@ import { episodeLabels } from "./episode-labels";
  */
 export function EpisodeClosing({
   ending,
+  isSettling = false,
   nextUp,
   onLeave,
   onStartNext,
   readOnly = false,
 }: {
   ending: EpisodeEnding;
+  isSettling?: boolean;
   nextUp: EpisodeNextUp | undefined;
   onLeave: () => void;
   onStartNext: (episodeId: string) => void;
@@ -87,6 +89,7 @@ export function EpisodeClosing({
         <Button
           accessibilityLabel={episodeLabels.leave}
           className="flex-1"
+          isDisabled={isSettling}
           onPress={onLeave}
           variant={
             readOnly || nextEpisodeId === undefined ? "primary" : "tertiary"
@@ -100,6 +103,7 @@ export function EpisodeClosing({
           <Button
             accessibilityLabel={episodeLabels.start(nextEpisodeNumber)}
             className="flex-1"
+            isDisabled={isSettling}
             onPress={startNext}
           >
             {episodeLabels.start(nextEpisodeNumber)}

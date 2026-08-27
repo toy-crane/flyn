@@ -1,6 +1,6 @@
 import type { UIMessage } from "ai";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useEffect, useMemo } from "react";
 import { Platform, Text, View } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
@@ -33,6 +33,7 @@ export function EpisodeScreen({
   episodeId,
   initialMessages,
   onLeave,
+  onSettlingChange,
   onStartNext,
   readOnly,
   situation,
@@ -41,6 +42,7 @@ export function EpisodeScreen({
   episodeId: string;
   initialMessages: UIMessage[];
   onLeave: () => void;
+  onSettlingChange: (isSettling: boolean) => void;
   onStartNext: (episodeId: string) => void;
   readOnly: boolean;
   situation: string;
@@ -66,12 +68,22 @@ export function EpisodeScreen({
     }),
     [conversation, open]
   );
+  // useChat은 화면이 사라져도 진행 중인 요청을 멈추지 않는다. 응답이 끝나기
+  // 전에 나가거나 중지하면 홈이 결말과 대화 기록보다 먼저 지난 진행을 다시
+  // 읽을 수 있다. 그래서 이 화면은 요청 중 이탈을 막고 아래 패널의 중지도 끈다.
+  const isSettling = conversationRun.isBusy;
+
+  useEffect(() => {
+    onSettlingChange(isSettling);
+  }, [isSettling, onSettlingChange]);
+
   let closing: ReactNode;
 
   if (ending !== undefined) {
     closing = (
       <EpisodeClosing
         ending={ending}
+        isSettling={isSettling}
         nextUp={nextUp}
         onLeave={onLeave}
         onStartNext={onStartNext}
@@ -99,6 +111,7 @@ export function EpisodeScreen({
       banner={
         <EpisodeSituationBanner emoji={situationEmoji} text={situation} />
       }
+      canStop={false}
       chat={conversationRun}
       closing={closing}
       hasMessageActions={false}

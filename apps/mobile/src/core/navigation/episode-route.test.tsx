@@ -27,14 +27,17 @@ jest.mock("expo-router", () => {
     {
       Button: ({
         accessibilityLabel,
+        disabled,
         onPress,
       }: {
         accessibilityLabel?: string;
+        disabled?: boolean;
         onPress?: () => void;
       }) =>
         React.createElement(Pressable, {
           accessibilityLabel,
           accessibilityRole: "button",
+          disabled,
           onPress,
         }),
     }
@@ -85,17 +88,20 @@ jest.mock("@/screens/episode/episode-screen", () => {
     EpisodeScreen: ({
       episodeId,
       onLeave,
+      onSettlingChange,
       onStartNext,
       readOnly,
       situation,
     }: {
       episodeId: string;
       onLeave: () => void;
+      onSettlingChange: (isSettling: boolean) => void;
       onStartNext: (episodeId: string) => void;
       readOnly: boolean;
       situation: string;
     }) => {
       playing = { episodeId, readOnly, situation };
+      setSettling = onSettlingChange;
 
       return React.createElement(
         React.Fragment,
@@ -144,6 +150,7 @@ let mockEpisodeQuery: {
 let playing:
   | { episodeId: string; readOnly: boolean; situation: string }
   | undefined;
+let setSettling: ((isSettling: boolean) => void) | undefined;
 
 beforeEach(() => {
   mockBack.mockClear();
@@ -159,6 +166,7 @@ beforeEach(() => {
     refetch: mockEpisodeRefetch,
   };
   playing = undefined;
+  setSettling = undefined;
 });
 
 test("ID로 읽은 에피소드 이름을 헤더에 걸고 뒤로 가기로 나간다", async () => {
@@ -196,6 +204,31 @@ test("마무리에서 홈으로 가기는 왔던 자리로 돌아간다", async 
 
   await user.press(screen.getByRole("button", { name: "leave" }));
 
+  expect(mockBack).toHaveBeenCalledTimes(1);
+});
+
+test("결말 기록을 저장하는 동안 헤더로도 나가지 못한다", async () => {
+  const user = userEvent.setup();
+  await renderWithHeroUI(<EpisodeRoute />);
+
+  await act(() => {
+    setSettling?.(true);
+
+    return Promise.resolve();
+  });
+
+  const back = screen.getByRole("button", { name: "뒤로 가기" });
+
+  expect(back).toBeDisabled();
+  await user.press(back);
+  expect(mockBack).not.toHaveBeenCalled();
+
+  await act(() => {
+    setSettling?.(false);
+
+    return Promise.resolve();
+  });
+  await user.press(screen.getByRole("button", { name: "뒤로 가기" }));
   expect(mockBack).toHaveBeenCalledTimes(1);
 });
 

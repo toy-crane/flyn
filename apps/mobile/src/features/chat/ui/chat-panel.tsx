@@ -307,6 +307,7 @@ function ReturnControls({
  */
 function Composer({
   canSend,
+  canStop,
   chat,
   inputHeight,
   inputRef,
@@ -316,6 +317,7 @@ function Composer({
   placeholder,
 }: {
   canSend: boolean;
+  canStop: boolean;
   chat: ChatSession;
   inputHeight: number;
   inputRef?: Ref<TextInput>;
@@ -388,8 +390,10 @@ function Composer({
           value={chat.draft}
         />
         {/*
-          One place, two jobs. While an answer is arriving that place ends it;
-          the rest of the time it sends what has been typed.
+          One place, two jobs. While an answer is arriving that place ends it
+          when this conversation allows stopping; the rest of the time it
+          sends what has been typed. A conversation that must finish a server
+          write keeps the disabled send button in that place instead.
 
           Both say whether they are disabled rather than leaving it out. The
           two sit at the same place in the tree, so React keeps one instance
@@ -398,7 +402,7 @@ function Composer({
           inherits the send button's disabled state — it draws normally and
           refuses every touch.
         */}
-        {chat.isBusy ? (
+        {chat.isBusy && canStop ? (
           <Pressable
             accessibilityLabel={chatLabels.stop}
             accessibilityRole="button"
@@ -434,6 +438,7 @@ function Composer({
 
 export function ChatPanel({
   banner,
+  canStop = true,
   chat,
   closing,
   hasMessageActions = true,
@@ -451,6 +456,8 @@ export function ChatPanel({
    * reserved for it and the messages start right under the header.
    */
   banner?: ReactNode;
+  /** Whether an answer still arriving can be ended from this panel. */
+  canStop?: boolean;
   chat: ChatSession;
   /**
    * What stands where the composer was once there is nothing left to write.
@@ -843,6 +850,7 @@ export function ChatPanel({
           {closing === undefined ? (
             <Composer
               canSend={canSend}
+              canStop={canStop}
               chat={chat}
               inputHeight={inputHeight}
               inputRef={inputRef}
