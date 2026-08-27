@@ -44,6 +44,7 @@ import { EpisodeSituationBanner } from "@/features/episode/ui/episode-situation-
 export function EpisodeScreen({
   episodeId,
   initialMessages,
+  isStartingNext,
   onLeave,
   onSettlingChange,
   onStartNext,
@@ -53,6 +54,7 @@ export function EpisodeScreen({
 }: {
   episodeId: string;
   initialMessages: UIMessage[];
+  isStartingNext: boolean;
   onLeave: () => void;
   onSettlingChange: (isSettling: boolean) => void;
   onStartNext: (episodeId: string) => void;
@@ -143,6 +145,7 @@ export function EpisodeScreen({
       <EpisodeClosing
         ending={ending}
         isSettling={isSaving}
+        isStartingNext={isStartingNext}
         nextUp={nextUp}
         onLeave={onLeave}
         onStartNext={onStartNext}

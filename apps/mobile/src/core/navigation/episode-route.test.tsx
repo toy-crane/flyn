@@ -1,4 +1,4 @@
-import { beforeEach, expect, jest, test } from "@jest/globals";
+import { afterEach, beforeEach, expect, jest, test } from "@jest/globals";
 import { act, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { router } from "expo-router";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
@@ -97,6 +97,7 @@ jest.mock("@/screens/episode/episode-screen", () => {
   return {
     EpisodeScreen: ({
       episodeId,
+      isStartingNext,
       onLeave,
       onSettlingChange,
       onStartNext,
@@ -104,14 +105,16 @@ jest.mock("@/screens/episode/episode-screen", () => {
       situation,
     }: {
       episodeId: string;
+      isStartingNext: boolean;
       onLeave: () => void;
       onSettlingChange: (isSettling: boolean) => void;
       onStartNext: (episodeId: string) => void;
       readOnly: boolean;
       situation: string;
     }) => {
-      playing = { episodeId, readOnly, situation };
+      playing = { episodeId, isStartingNext, readOnly, situation };
       setSettling = onSettlingChange;
+      startNextFromScreen = () => onStartNext(NEXT_EPISODE_ID);
 
       return React.createElement(
         React.Fragment,
@@ -124,6 +127,11 @@ jest.mock("@/screens/episode/episode-screen", () => {
         React.createElement(Pressable, {
           accessibilityLabel: "start next",
           accessibilityRole: "button",
+          accessibilityState: {
+            busy: isStartingNext,
+            disabled: isStartingNext,
+          },
+          disabled: isStartingNext,
           onPress: () => onStartNext(NEXT_EPISODE_ID),
         })
       );
@@ -158,9 +166,15 @@ let mockEpisodeQuery: {
   refetch: typeof mockEpisodeRefetch;
 };
 let playing:
-  | { episodeId: string; readOnly: boolean; situation: string }
+  | {
+      episodeId: string;
+      isStartingNext: boolean;
+      readOnly: boolean;
+      situation: string;
+    }
   | undefined;
 let setSettling: ((isSettling: boolean) => void) | undefined;
+let startNextFromScreen: (() => void) | undefined;
 
 beforeEach(() => {
   mockBack.mockClear();
@@ -177,7 +191,12 @@ beforeEach(() => {
   };
   playing = undefined;
   setSettling = undefined;
+  startNextFromScreen = undefined;
   headerOptions = undefined;
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 test("ID로 읽은 에피소드 이름을 헤더에 걸고 뒤로 가기로 나간다", async () => {
@@ -188,6 +207,7 @@ test("ID로 읽은 에피소드 이름을 헤더에 걸고 뒤로 가기로 나�
   expect(headerOptions?.headerBackButtonMenuEnabled).toBe(false);
   expect(playing).toEqual({
     episodeId: EPISODE_ID,
+    isStartingNext: false,
     readOnly: false,
     situation: NEXT_EPISODE.situation,
   });
@@ -208,6 +228,71 @@ test("다음 에피소드로 갈 때 진행을 다시 읽고 새 ID로 바꾼다
     params: { episodeId: NEXT_EPISODE_ID },
     pathname: "/episode",
   });
+});
+
+test("다음 에피소드를 읽는 동안 같은 실행을 겹치지 않고 버튼에 알린다", async () => {
+  let finishRefresh: (() => void) | undefined;
+  mockRefresh.mockImplementationOnce(
+    () =>
+      new Promise<void>((resolve) => {
+        finishRefresh = resolve;
+      })
+  );
+  await renderWithHeroUI(<EpisodeRoute />);
+
+  await act(() => {
+    startNextFromScreen?.();
+    startNextFromScreen?.();
+
+    return Promise.resolve();
+  });
+
+  expect(mockRefresh).toHaveBeenCalledTimes(1);
+  expect(playing?.isStartingNext).toBe(true);
+  expect(screen.getByRole("button", { name: "start next" })).toHaveProp(
+    "accessibilityState",
+    { busy: true, disabled: true }
+  );
+  expect(screen.getByRole("button", { name: "뒤로 가기" })).toBeDisabled();
+
+  await act(() => {
+    finishRefresh?.();
+
+    return Promise.resolve();
+  });
+
+  await waitFor(() => {
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+  });
+});
+
+test("다음 에피소드를 읽는 중 화면을 떠나면 늦은 화면 전환을 취소한다", async () => {
+  let finishRefresh: (() => void) | undefined;
+  mockRefresh.mockImplementationOnce(
+    () =>
+      new Promise<void>((resolve) => {
+        finishRefresh = resolve;
+      })
+  );
+  await renderWithHeroUI(<EpisodeRoute />);
+
+  await act(() => {
+    startNextFromScreen?.();
+
+    return Promise.resolve();
+  });
+  await act(() => {
+    screen.unmount();
+
+    return Promise.resolve();
+  });
+  await act(() => {
+    finishRefresh?.();
+
+    return Promise.resolve();
+  });
+
+  expect(mockReplace).not.toHaveBeenCalled();
 });
 
 test("마무리에서 홈으로 가기는 왔던 자리로 돌아간다", async () => {
@@ -265,6 +350,23 @@ test("서버 장면을 읽기 전에는 에피소드 화면을 그리지 않는�
 
   expect(playing).toBeUndefined();
   expect(screen.queryByRole("button", { name: "leave" })).not.toBeOnTheScreen();
+});
+
+test("서버 장면을 1초 넘게 읽으면 본문에서 진행 상태를 알린다", async () => {
+  jest.useFakeTimers();
+  mockSession = undefined;
+  mockEpisodeQuery = { ...mockEpisodeQuery, data: undefined, isPending: true };
+  await renderWithHeroUI(<EpisodeRoute />);
+
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+
+  await act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(
+    screen.getByRole("progressbar", { name: "대화를 불러오고 있어요" })
+  ).toBeOnTheScreen();
 });
 
 test("서버 장면을 읽지 못하면 같은 화면에서 다시 시도한다", async () => {

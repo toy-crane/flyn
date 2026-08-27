@@ -1169,6 +1169,30 @@ describe("ChatPanel", () => {
     expect(stop).not.toHaveBeenCalled();
   });
 
+  test("중지 저장 상태를 보여 줄 때 답변 대기 문구는 숨긴다", async () => {
+    jest.useFakeTimers();
+    await renderWithHeroUI(
+      <ChatPanel
+        busyLabel="진행을 저장하고 있어요"
+        canStop={false}
+        chat={chatSession({
+          isBusy: true,
+          messages: [textMessage("user-1", "user", "질문")],
+        })}
+      />
+    );
+
+    await act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(screen.queryAllByText(chatLabels.waiting)).toHaveLength(0);
+    expect(screen.getByLabelText(chatLabels.stop)).toHaveProp(
+      "accessibilityValue",
+      { text: "진행을 저장하고 있어요" }
+    );
+  });
+
   // The two share a place in the tree, so React keeps one instance and only
   // changes its props. On Android a `disabled` that stops being passed is
   // never cleared, and the stop button inherits the send button's disabled

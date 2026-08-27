@@ -63,6 +63,7 @@ function EpisodeSavingProgress() {
 export function EpisodeClosing({
   ending,
   isSettling = false,
+  isStartingNext = false,
   nextUp,
   onLeave,
   onStartNext,
@@ -70,6 +71,7 @@ export function EpisodeClosing({
 }: {
   ending: EpisodeEnding;
   isSettling?: boolean;
+  isStartingNext?: boolean;
   nextUp: EpisodeNextUp | undefined;
   onLeave: () => void;
   onStartNext: (episodeId: string) => void;
@@ -78,10 +80,11 @@ export function EpisodeClosing({
   const nextEpisodeId = nextUp?.episodeId ?? undefined;
   const nextEpisodeNumber = nextUp?.number ?? undefined;
   const startNext = useCallback(() => {
-    if (nextEpisodeId !== undefined) {
+    if (!(isSettling || isStartingNext) && nextEpisodeId !== undefined) {
       onStartNext(nextEpisodeId);
     }
-  }, [nextEpisodeId, onStartNext]);
+  }, [isSettling, isStartingNext, nextEpisodeId, onStartNext]);
+  const isActionPending = isSettling || isStartingNext;
 
   return (
     <View
@@ -134,7 +137,7 @@ export function EpisodeClosing({
         <Button
           accessibilityLabel={episodeLabels.leave}
           className="flex-1"
-          isDisabled={isSettling}
+          isDisabled={isActionPending}
           onPress={onLeave}
           variant={
             readOnly || nextEpisodeId === undefined ? "primary" : "tertiary"
@@ -149,6 +152,7 @@ export function EpisodeClosing({
             accessibilityLabel={episodeLabels.start(nextEpisodeNumber)}
             className="flex-1"
             isDisabled={isSettling}
+            isPending={isStartingNext}
             onPress={startNext}
           >
             {episodeLabels.start(nextEpisodeNumber)}

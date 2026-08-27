@@ -558,6 +558,7 @@ export function ChatPanel({
   // answer exists with nothing in it yet. Only a wait long enough to notice
   // puts a line in the answer's place; a quick one shows nothing at all.
   const isWaitingForAnswer =
+    busyLabel === undefined &&
     chat.isBusy &&
     (lastMessage?.role !== "assistant" || textOfMessage(lastMessage) === "");
   const isAnswerLate = useLateAnswer(isWaitingForAnswer);

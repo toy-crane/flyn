@@ -127,3 +127,21 @@ test("결말 뒤 저장이 1초를 넘기면 마무리 안에서 진행 상태�
   expect(screen.getByRole("button", { name: "홈으로 가기" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "2화 시작하기" })).toBeDisabled();
 });
+
+test("다음 화를 여는 동안 그 버튼에만 진행 상태를 두고 다른 길도 잠근다", async () => {
+  await renderWithHeroUI(
+    <EpisodeClosing
+      ending={ENDING}
+      isStartingNext
+      nextUp={NEXT_EPISODE}
+      onLeave={jest.fn()}
+      onStartNext={jest.fn()}
+    />
+  );
+
+  expect(screen.getByRole("button", { name: "2화 시작하기" })).toHaveProp(
+    "accessibilityState",
+    { busy: true, disabled: true }
+  );
+  expect(screen.getByRole("button", { name: "홈으로 가기" })).toBeDisabled();
+});

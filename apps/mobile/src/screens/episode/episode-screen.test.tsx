@@ -95,6 +95,7 @@ jest.mock("@/features/episode/state/use-episode-run", () => {
 const PLAYING = {
   episodeId: "11000000-0000-4000-8000-000000000002",
   initialMessages: [],
+  isStartingNext: false,
   onSettlingChange: jest.fn(),
   readOnly: false,
   situation: "다른 방법을 찾아 계산을 끝내 보세요",
@@ -397,6 +398,25 @@ test("다음 화 시작하기는 경로에 알린다", async () => {
   expect(startNext).toHaveBeenCalledWith(
     "11000000-0000-4000-8000-000000000003"
   );
+});
+
+test("다음 화를 여는 동안 마무리의 두 길을 잠근다", async () => {
+  mockEnding = { kind: "성공", outcome: "원하던 커피를 새로 받아냈다." };
+
+  await renderWithHeroUI(
+    <EpisodeScreen
+      {...PLAYING}
+      isStartingNext
+      onLeave={jest.fn()}
+      onStartNext={jest.fn()}
+    />
+  );
+
+  expect(screen.getByRole("button", { name: "3화 시작하기" })).toHaveProp(
+    "accessibilityState",
+    { busy: true, disabled: true }
+  );
+  expect(screen.getByRole("button", { name: "홈으로 가기" })).toBeDisabled();
 });
 
 test("끝난 대화는 입력 없이 읽기 전용으로 연다", async () => {
