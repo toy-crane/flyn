@@ -9,32 +9,34 @@ export const episodeLabels = {
   /** Not shown: the episode header's back button. */
   back: "뒤로 가기",
   /** Shown over the first episode's card on Home, before anything is finished. */
-  firstEyebrow: (season: number) => `시즌 ${season}의 첫 이야기`,
+  firstEyebrow: "첫 이야기",
   /** Shown as the button that leaves the finished episode. */
   leave: "홈으로 가기",
   /** Shown over the episode that comes next, on Home and at an episode's end. */
   nextEyebrow: "다음 이야기",
   /** Shown in the empty input while the scene is open. A label, so no period. */
   placeholder: "영어로 말해 보세요",
-  /** Shown when the season could not be read, as the way to ask again. */
+  /** Shown when the story could not be read, as the way to ask again. */
   retry: "다시 시도하기",
+  /** Opens the transcript of a finished episode from Home. */
+  review: (episode: number) => `${episode}화 대화 보기`,
+  /** Shown on a completed conversation that has no input. */
+  reviewOnly: "끝난 대화 기록",
   /** Shown as the button that opens an episode, from Home or from an ending. */
   start: (episode: number) => `${episode}화 시작하기`,
   /** Shown wherever an episode is named next to its number. */
   title: (episode: number, title: string) => `${episode}화 · ${title}`,
-  /** Shown when the season could not be read. */
-  unavailable: "시즌을 불러오지 못했어요.",
+  /** Shown when the story could not be read. */
+  unavailable: "이야기를 불러오지 못했어요.",
 } as const;
 
-/** What Home says about the season itself. */
-export const seasonLabels = {
-  /** Shown as the number of one finished episode in the season's record. */
+/** 홈이 에피소드 묶음과 진행을 설명할 때 쓰는 말. */
+export const storyLabels = {
+  /** Shown as the number of one finished episode in the story's record. */
   episodeNumber: (episode: number) => `${episode}화`,
-  /** Shown over the season's record, and over the card that ends it. */
-  name: (season: number) => `시즌 ${season}`,
-  /** Shown beside the season's name while episodes are left. */
+  /** Shown beside the story title while episodes are left. */
   progress: (finished: number, total: number) =>
     `${total}화 중 ${finished}화 완료`,
-  /** Shown beside the season's name once every episode is finished. */
-  wholeSeason: (total: number) => `${total}화 모두 완료`,
+  /** Shown beside the story title once every episode is finished. */
+  wholeStory: (total: number) => `${total}화 모두 완료`,
 } as const;

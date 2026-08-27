@@ -1,6 +1,7 @@
+import type { UIMessage } from "ai";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { useMemo } from "react";
-import { Platform } from "react-native";
+import { type ReactNode, useMemo } from "react";
+import { Platform, Text, View } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
 import {
@@ -18,8 +19,8 @@ import { EpisodeSituationBanner } from "@/features/episode/ui/episode-situation-
  *
  * 대화를 굴리는 부분은 채팅 기능의 것을 그대로 쓰고, 에피소드 기능은 어떤
  * 화를 어디까지 진행했는지를 소유한다. 둘을 잇는 자리가 이 화면이다. 진행하던
- * 장면은 이 화면이 살아 있는 동안만 있으므로 나가는 것도 경로가 소유하고,
- * 다음 화로 넘어가는 것도 이 화면을 새로 여는 일이라 경로가 소유한다.
+ * 서버에서 받은 장면으로 시작한다. 진행 중이면 입력을 열고, 끝난 기록이면 같은
+ * 메시지를 읽기 전용으로 보여 준다. 나가기와 다음 화 열기는 경로가 소유한다.
  *
  * 어느 화인지는 화면이 정하지 않는다. 계정의 진행이 정한 화를 경로가 넘겨
  * 주고, 경로는 그 화를 알기 전에 이 화면을 그리지 않는다. 상황 줄이 뒤늦게
@@ -29,21 +30,30 @@ import { EpisodeSituationBanner } from "@/features/episode/ui/episode-situation-
  * 템플릿의 Side chat이 그 자리를 미리 차지하지 않는다.
  */
 export function EpisodeScreen({
-  episode,
+  episodeId,
+  initialMessages,
   onLeave,
   onStartNext,
+  readOnly,
   situation,
   situationEmoji,
 }: {
-  episode: number;
+  episodeId: string;
+  initialMessages: UIMessage[];
   onLeave: () => void;
-  onStartNext: () => void;
+  onStartNext: (episodeId: string) => void;
+  readOnly: boolean;
   situation: string;
   situationEmoji: string;
 }) {
   const { session } = useAuthSession();
   const accessToken = session?.access_token;
-  const { chat, ending, nextUp, open } = useEpisodeRun(accessToken, episode);
+  const { chat, ending, nextUp, open } = useEpisodeRun(
+    accessToken,
+    episodeId,
+    initialMessages,
+    readOnly
+  );
   const drafts = useLocalChatDrafts();
   const conversation = useConversation(chat, drafts, accessToken);
   const headerHeight = useHeaderHeight();
@@ -56,6 +66,30 @@ export function EpisodeScreen({
     }),
     [conversation, open]
   );
+  let closing: ReactNode;
+
+  if (ending !== undefined) {
+    closing = (
+      <EpisodeClosing
+        ending={ending}
+        nextUp={nextUp}
+        onLeave={onLeave}
+        onStartNext={onStartNext}
+        readOnly={readOnly}
+      />
+    );
+  } else if (readOnly) {
+    closing = (
+      <View
+        className="rounded-2xl bg-surface px-5 py-4"
+        testID="episode-read-only"
+      >
+        <Text className="font-semibold text-accent text-sm">
+          {episodeLabels.reviewOnly}
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ChatPanel
@@ -63,16 +97,7 @@ export function EpisodeScreen({
         <EpisodeSituationBanner emoji={situationEmoji} text={situation} />
       }
       chat={conversationRun}
-      closing={
-        ending === undefined ? undefined : (
-          <EpisodeClosing
-            ending={ending}
-            nextUp={nextUp}
-            onLeave={onLeave}
-            onStartNext={onStartNext}
-          />
-        )
-      }
+      closing={closing}
       hasMessageActions={false}
       placeholder={episodeLabels.placeholder}
       topInset={Platform.OS === "ios" ? headerHeight : 0}

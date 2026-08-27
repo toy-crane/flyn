@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { Text, View } from "react-native";
 
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
@@ -12,8 +13,8 @@ import { episodeLabels } from "./episode-labels";
  * 자리를 대신하는 것이 입력이 닫혔다는 가장 분명한 표시다. 장면은 위에 그대로
  * 남아 있어 결말이 어디서 나왔는지 다시 읽을 수 있다.
  *
- * 다시 하기는 없다. 한 번 난 결말은 그 시즌의 사실로 남고, 실패도 다음 화의
- * 이야기가 된다. 마지막 화 뒤에는 예고 대신 시즌 완주 안내가 같은 자리에 오고
+ * 다시 하기는 없다. 한 번 난 결말은 그 스토리의 사실로 남고, 실패도 다음 화의
+ * 이야기가 된다. 마지막 화 뒤에는 예고 대신 완주 안내가 같은 자리에 오고
  * 갈 곳도 홈 하나뿐이다.
  */
 export function EpisodeClosing({
@@ -21,13 +22,21 @@ export function EpisodeClosing({
   nextUp,
   onLeave,
   onStartNext,
+  readOnly = false,
 }: {
   ending: EpisodeEnding;
   nextUp: EpisodeNextUp | undefined;
   onLeave: () => void;
-  onStartNext: () => void;
+  onStartNext: (episodeId: string) => void;
+  readOnly?: boolean;
 }) {
-  const nextEpisode = nextUp?.episode ?? undefined;
+  const nextEpisodeId = nextUp?.episodeId ?? undefined;
+  const nextEpisodeNumber = nextUp?.number ?? undefined;
+  const startNext = useCallback(() => {
+    if (nextEpisodeId !== undefined) {
+      onStartNext(nextEpisodeId);
+    }
+  }, [nextEpisodeId, onStartNext]);
 
   return (
     <View
@@ -49,17 +58,26 @@ export function EpisodeClosing({
         {ending.outcome}
       </Text>
 
-      {nextUp ? (
+      {readOnly ? (
+        <Text
+          className="font-semibold text-accent text-sm"
+          testID="episode-closing-read-only"
+        >
+          {episodeLabels.reviewOnly}
+        </Text>
+      ) : null}
+
+      {nextUp && !readOnly ? (
         <View className="gap-1 pt-1" testID="episode-closing-next">
-          {nextEpisode === undefined ? null : (
+          {nextEpisodeNumber === undefined ? null : (
             <Text className="font-semibold text-accent text-sm">
               {episodeLabels.nextEyebrow}
             </Text>
           )}
           <Text className="font-bold text-base text-foreground leading-6">
-            {nextEpisode === undefined
+            {nextEpisodeNumber === undefined
               ? nextUp.title
-              : episodeLabels.title(nextEpisode, nextUp.title)}
+              : episodeLabels.title(nextEpisodeNumber, nextUp.title)}
           </Text>
           <Text className="text-base text-muted leading-6">{nextUp.copy}</Text>
         </View>
@@ -70,17 +88,21 @@ export function EpisodeClosing({
           accessibilityLabel={episodeLabels.leave}
           className="flex-1"
           onPress={onLeave}
-          variant={nextEpisode === undefined ? "primary" : "tertiary"}
+          variant={
+            readOnly || nextEpisodeId === undefined ? "primary" : "tertiary"
+          }
         >
           {episodeLabels.leave}
         </Button>
-        {nextEpisode === undefined ? null : (
+        {readOnly ||
+        nextEpisodeId === undefined ||
+        nextEpisodeNumber === undefined ? null : (
           <Button
-            accessibilityLabel={episodeLabels.start(nextEpisode)}
+            accessibilityLabel={episodeLabels.start(nextEpisodeNumber)}
             className="flex-1"
-            onPress={onStartNext}
+            onPress={startNext}
           >
-            {episodeLabels.start(nextEpisode)}
+            {episodeLabels.start(nextEpisodeNumber)}
           </Button>
         )}
       </View>

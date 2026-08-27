@@ -37,7 +37,14 @@ jest.mock("@/features/chat/state/use-chat-session", () => ({
  * a fresh run means the scene starts over.
  */
 const mockOpenedRuns =
-  jest.fn<(token: string | undefined, episode: number | undefined) => void>();
+  jest.fn<
+    (
+      token: string | undefined,
+      episodeId: string,
+      initialMessageCount: number,
+      readOnly: boolean
+    ) => void
+  >();
 let mockEnding: EpisodeEnding | undefined;
 let mockNextUp: EpisodeNextUp | undefined;
 
@@ -45,10 +52,20 @@ jest.mock("@/features/episode/state/use-episode-run", () => {
   const React = require("react") as typeof import("react");
 
   return {
-    useEpisodeRun: (accessToken: string | undefined, episode?: number) => {
+    useEpisodeRun: (
+      accessToken: string | undefined,
+      episodeId: string,
+      initialMessages: unknown[],
+      readOnly: boolean
+    ) => {
       React.useEffect(() => {
-        mockOpenedRuns(accessToken, episode);
-      }, [accessToken, episode]);
+        mockOpenedRuns(
+          accessToken,
+          episodeId,
+          initialMessages.length,
+          readOnly
+        );
+      }, [accessToken, episodeId, initialMessages.length, readOnly]);
 
       return {
         chat: { tag: "episode-chat" },
@@ -62,7 +79,9 @@ jest.mock("@/features/episode/state/use-episode-run", () => {
 
 /** The episode the route says this screen is playing. */
 const PLAYING = {
-  episode: 2,
+  episodeId: "11000000-0000-4000-8000-000000000002",
+  initialMessages: [],
+  readOnly: false,
   situation: "다른 방법을 찾아 계산을 끝내 보세요",
   situationEmoji: "💳",
 };
@@ -114,7 +133,12 @@ const conversation = {
 beforeEach(() => {
   panel = undefined;
   mockEnding = undefined;
-  mockNextUp = { copy: "예고", episode: 3, title: "자리를 맡아 둔 사이에" };
+  mockNextUp = {
+    copy: "예고",
+    episodeId: "11000000-0000-4000-8000-000000000003",
+    number: 3,
+    title: "자리를 맡아 둔 사이에",
+  };
   mockOpenedRuns.mockClear();
   mockUseHeaderHeight.mockReturnValue(96);
   mockUseAuthSession.mockReturnValue({
@@ -129,7 +153,12 @@ test("화면에 들어오면 그 자리에서 에피소드를 연다", async () 
     <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
   );
 
-  expect(mockOpenedRuns).toHaveBeenCalledWith("token-1", 2);
+  expect(mockOpenedRuns).toHaveBeenCalledWith(
+    "token-1",
+    PLAYING.episodeId,
+    0,
+    false
+  );
   expect(panel?.chat).toMatchObject({ tag: "conversation" });
   expect(panel?.topInset).toBe(96);
   expect(panel?.placeholder).toBe("영어로 말해 보세요");
@@ -199,4 +228,39 @@ test("다음 화 시작하기는 경로에 알린다", async () => {
   await user.press(screen.getByRole("button", { name: "3화 시작하기" }));
 
   expect(startNext).toHaveBeenCalledTimes(1);
+  expect(startNext).toHaveBeenCalledWith(
+    "11000000-0000-4000-8000-000000000003"
+  );
+});
+
+test("끝난 대화는 입력 없이 읽기 전용으로 연다", async () => {
+  mockEnding = { kind: "성공", outcome: "원하던 커피를 새로 받아냈다." };
+
+  await renderWithHeroUI(
+    <EpisodeScreen
+      {...PLAYING}
+      initialMessages={[
+        {
+          id: "saved-1",
+          parts: [{ text: "Done", type: "text" }],
+          role: "user",
+        },
+      ]}
+      onLeave={jest.fn()}
+      onStartNext={jest.fn()}
+      readOnly
+    />
+  );
+
+  expect(mockOpenedRuns).toHaveBeenCalledWith(
+    "token-1",
+    PLAYING.episodeId,
+    1,
+    true
+  );
+  expect(panel?.closing).toBeDefined();
+  expect(screen.getByText("끝난 대화 기록")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "3화 시작하기" })
+  ).not.toBeOnTheScreen();
 });

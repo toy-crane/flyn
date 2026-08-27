@@ -14,49 +14,58 @@ export interface EpisodeRun {
   chat: UseChatHelpers<UIMessage>;
   /** Set once the incident is over. Until then the episode is still running. */
   ending: EpisodeEnding | undefined;
-  /** What follows the ending: the next episode's preview, or the season's end. */
+  /** What follows the ending: the next episode's preview, or the story's end. */
   nextUp: EpisodeNextUp | undefined;
   /** Asks for the first scene again after it failed to arrive. */
   open: () => void;
 }
 
 /**
- * One episode. It lives while this screen does and is saved nowhere.
+ * 서버에서 읽은 자리부터 시작하는 에피소드 하나.
  *
  * 화면에 들어오면 아무 말도 싣지 않은 요청을 한 번 보낸다. 서버에게 그 요청은
- * "이 화를 연다"는 뜻이라, 사용자가 입력하기 전에 상대가 먼저 말한다. 나갔다
- * 들어오면 이 훅이 다시 만들어지므로 진행하던 장면은 남지 않고, 같은 화가
- * 처음부터 다시 열린다. 끝난 화의 진행은 서버가 들고 있어 그대로 남는다.
+ * "이 화를 연다"는 뜻이라, 사용자가 입력하기 전에 상대가 먼저 말한다. 서버에
+ * 메시지가 있으면 그 목록으로 시작하고 새 첫 장면을 요청하지 않는다. 읽기 전용
+ * 기록도 같은 모양을 쓰지만 새 요청은 보내지 않는다.
  */
 export function useEpisodeRun(
   accessToken: string | undefined,
-  episode: number
+  episodeId: string,
+  initialMessages: UIMessage[],
+  readOnly: boolean
 ): EpisodeRun {
   const currentToken = useRef(accessToken);
-  const currentEpisode = useRef(episode);
+  const currentEpisodeId = useRef(episodeId);
 
   currentToken.current = accessToken;
-  currentEpisode.current = episode;
+  currentEpisodeId.current = episodeId;
 
   const transport = useMemo(
     () =>
       createEpisodeTransport(
         () => currentToken.current,
-        () => currentEpisode.current
+        () => currentEpisodeId.current
       ),
     []
   );
   const chat = useChat({
+    messages: initialMessages,
     throttle: SCENE_UPDATE_INTERVAL_MS,
     transport,
   });
   const { sendMessage } = chat;
   const open = useCallback(() => {
+    if (readOnly) {
+      return;
+    }
+
     sendMessage().catch(() => {
       // 실패는 `chat.error`로 남고, 화면이 그 자리에 다시 시도를 내놓는다.
     });
-  }, [sendMessage]);
-  const [hasOpened, setHasOpened] = useState<boolean>(false);
+  }, [readOnly, sendMessage]);
+  const [hasOpened, setHasOpened] = useState<boolean>(
+    readOnly || initialMessages.length > 0
+  );
 
   // 로그인 없이 보낸 요청은 첫 장면 대신 오류만 받는다. 토큰이 준비된 뒤에
   // 한 번만 연다. 다시 여는 것은 실패한 뒤 사용자가 고르는 일이다.

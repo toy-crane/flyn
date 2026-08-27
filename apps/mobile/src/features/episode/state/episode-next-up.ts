@@ -3,8 +3,9 @@ import type { UIMessage } from "ai";
 /** What comes after the episode that just ended. */
 export interface EpisodeNextUp {
   copy: string;
-  /** The next episode's number, or null once the season is finished. */
-  episode: number | null;
+  /** The next episode's id, or null once the story is finished. */
+  episodeId: string | null;
+  number: number | null;
   title: string;
 }
 
@@ -13,7 +14,7 @@ export interface EpisodeNextUp {
  *
  * 예고는 각본에 미리 쓴 글이라 결말과 같은 응답에 실려 온다. 마무리 화면이
  * 진행을 다시 읽어 올 때까지 예고 자리가 비어 있지 않고, 마지막 화 뒤에는
- * 예고 대신 시즌 완주 안내가 같은 자리로 온다.
+ * 예고 대신 스토리 완주 안내가 같은 자리로 온다.
  */
 export function nextUpOfEpisode(
   messages: UIMessage[]
@@ -25,17 +26,24 @@ export function nextUpOfEpisode(
       }
 
       const data = part.data as
-        | { copy?: unknown; episode?: unknown; title?: unknown }
+        | {
+            copy?: unknown;
+            episodeId?: unknown;
+            number?: unknown;
+            title?: unknown;
+          }
         | null
         | undefined;
-      const episode = data?.episode;
+      const episodeId = data?.episodeId;
+      const number = data?.number;
 
       if (
         typeof data?.copy === "string" &&
         typeof data.title === "string" &&
-        (episode === null || typeof episode === "number")
+        (episodeId === null || typeof episodeId === "string") &&
+        (number === null || typeof number === "number")
       ) {
-        return { copy: data.copy, episode, title: data.title };
+        return { copy: data.copy, episodeId, number, title: data.title };
       }
     }
   }
