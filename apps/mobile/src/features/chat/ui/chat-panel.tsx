@@ -433,6 +433,7 @@ function Composer({
 }
 
 export function ChatPanel({
+  banner,
   chat,
   closing,
   hasMessageActions = true,
@@ -444,6 +445,12 @@ export function ChatPanel({
   source,
   topInset = 0,
 }: {
+  /**
+   * What sits fixed just below the header, in view no matter how far the
+   * conversation is scrolled or whether it has closed. Left out, no space is
+   * reserved for it and the messages start right under the header.
+   */
+  banner?: ReactNode;
   chat: ChatSession;
   /**
    * What stands where the composer was once there is nothing left to write.
@@ -482,6 +489,7 @@ export function ChatPanel({
   const [isFollowingLatest, setIsFollowingLatest] = useState(true);
   const [isPositioningQuestion, setIsPositioningQuestion] = useState(false);
   const [composerHeight, setComposerHeight] = useState(0);
+  const [bannerHeight, setBannerHeight] = useState(0);
   const [inputHeight, setInputHeight] = useState(INPUT_MIN_HEIGHT);
   const pendingAnchorIndex = useRef<number | undefined>(undefined);
   const userMomentum = useRef<true | undefined>(undefined);
@@ -489,6 +497,9 @@ export function ChatPanel({
   const canSend = chat.draft.trim().length > 0 && !chat.isBusy;
   const isClosed = closing !== undefined;
   const composerBottomPadding = Math.max(insets.bottom, 12);
+  // 배너가 없는 화면은 자리도 요구하지 않는다. 있으면 잰 높이만큼 헤더 아래
+  // 목록의 시작점을 더 내린다.
+  const contentTopInset = topInset + (banner === undefined ? 0 : bannerHeight);
   const hasSideChats = sideChats !== undefined && sideChats.length > 0;
   const lastMessage = chat.messages.at(-1);
   const doomedFromIndex = chat.editingMessageId
@@ -623,6 +634,9 @@ export function ChatPanel({
     },
     [onComposerLayout]
   );
+  const updateBannerLayout = useCallback((event: LayoutChangeEvent) => {
+    setBannerHeight(event.nativeEvent.layout.height);
+  }, []);
   const positionQuestion = useCallback<
     NonNullable<AnchoredEndSpaceConfig["onReady"]>
   >(
@@ -730,14 +744,14 @@ export function ChatPanel({
             ? undefined
             : {
                 anchorIndex,
-                anchorOffset: topInset + MESSAGE_TOP_SPACING,
+                anchorOffset: contentTopInset + MESSAGE_TOP_SPACING,
                 onReady: anchorIndex === 0 ? undefined : positionQuestion,
               }
         }
         applyWorkaroundForContentInsetHitTestBug
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingTop: topInset + MESSAGE_TOP_SPACING,
+          paddingTop: contentTopInset + MESSAGE_TOP_SPACING,
         }}
         contentInsetAdjustmentBehavior="never"
         contentInsetEndAdjustment={contentInsetEndAdjustment}
@@ -776,6 +790,22 @@ export function ChatPanel({
         style={{ flex: 1 }}
         testID="chat-list"
       />
+
+      {/*
+        Fixed at the same spot the header ends, on iOS or Android alike, so it
+        never scrolls away and never sits under the header. Nothing in it is
+        pressable, so touches fall through to the list underneath.
+      */}
+      {banner === undefined ? null : (
+        <View
+          onLayout={updateBannerLayout}
+          pointerEvents="none"
+          style={{ left: 0, position: "absolute", right: 0, top: topInset }}
+          testID="chat-banner"
+        >
+          {banner}
+        </View>
+      )}
 
       {/*
         The composer floats over the list rather than taking a row of its own

@@ -11,6 +11,7 @@ import { ChatPanel } from "@/features/chat/ui/chat-panel";
 import { useEpisodeRun } from "@/features/episode/state/use-episode-run";
 import { EpisodeClosing } from "@/features/episode/ui/episode-closing";
 import { episodeLabels } from "@/features/episode/ui/episode-labels";
+import { EpisodeSituationBanner } from "@/features/episode/ui/episode-situation-banner";
 
 /**
  * 에피소드 하나를 사건 시작부터 결말까지 진행하는 화면.
@@ -48,6 +49,12 @@ export function EpisodeScreen({
 
   return (
     <ChatPanel
+      banner={
+        <EpisodeSituationBanner
+          emoji={episodeLabels.situationEmoji}
+          text={episodeLabels.situation}
+        />
+      }
       chat={episode}
       closing={
         ending === undefined ? undefined : (

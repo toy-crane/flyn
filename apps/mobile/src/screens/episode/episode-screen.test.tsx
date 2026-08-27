@@ -8,6 +8,7 @@ import { useAuthSession } from "@/features/auth/state/auth-session";
 import type { ChatSession } from "@/features/chat/state/use-chat-session";
 import { useConversation } from "@/features/chat/state/use-chat-session";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
+import { episodeLabels } from "@/features/episode/ui/episode-labels";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { EpisodeScreen } from "./episode-screen";
 
@@ -57,6 +58,7 @@ jest.mock("@/features/episode/state/use-episode-run", () => {
 });
 
 interface PanelProps {
+  banner?: ReactNode;
   chat: { tag?: string };
   closing?: ReactNode;
   hasMessageActions?: boolean;
@@ -69,8 +71,8 @@ interface PanelProps {
 
 let panel: PanelProps | undefined;
 
-// The screen hands the panel a conversation and a closing, so the panel is
-// stood in for and the test watches what it receives.
+// The screen hands the panel a conversation, a banner and a closing, so the
+// panel is stood in for and the test watches what it receives.
 jest.mock("@/features/chat/ui/chat-panel", () => {
   const React = require("react") as typeof import("react");
   const { View } = require("react-native") as typeof import("react-native");
@@ -82,6 +84,7 @@ jest.mock("@/features/chat/ui/chat-panel", () => {
       return React.createElement(
         View,
         { accessibilityLabel: "episode panel" },
+        props.banner,
         props.closing
       );
     },
@@ -140,6 +143,18 @@ test("사건이 진행 중이면 마무리를 두지 않는다", async () => {
   );
 
   expect(panel?.closing).toBeUndefined();
+});
+
+// 상황 줄은 사건이 끝났는지와 무관하게 늘 같은 자리에 있어야 한다.
+test("결말과 무관하게 상황 줄 배너를 채팅 패널에 넘긴다", async () => {
+  mockEnding = { kind: "성공", outcome: "원하던 커피를 새로 받아냈다." };
+  await renderWithHeroUI(
+    <EpisodeScreen onLeave={jest.fn()} onRestart={jest.fn()} />
+  );
+
+  expect(panel?.banner).toBeDefined();
+  expect(screen.getByTestId("episode-situation-banner")).toBeOnTheScreen();
+  expect(screen.getByText(episodeLabels.situation)).toBeOnTheScreen();
 });
 
 test("결말이 오면 마무리가 입력 자리를 대신한다", async () => {

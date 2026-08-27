@@ -1633,6 +1633,75 @@ describe("ChatPanel", () => {
   });
 });
 
+describe("상황 줄 배너", () => {
+  test("배너를 주지 않으면 그 자리를 두지 않는다", async () => {
+    await renderWithHeroUI(<ChatPanel chat={chatSession()} />);
+
+    expect(screen.queryByTestId("chat-banner")).not.toBeOnTheScreen();
+  });
+
+  test("배너는 헤더 아래 고정 자리에 있는다", async () => {
+    const { Text } = require("react-native") as typeof import("react-native");
+
+    await renderWithHeroUI(
+      <ChatPanel
+        banner={<Text testID="panel-banner">상황</Text>}
+        chat={chatSession()}
+        topInset={116}
+      />
+    );
+
+    const wrapper = screen.getByTestId("chat-banner");
+
+    expect(screen.getByTestId("panel-banner")).toBeOnTheScreen();
+    expect(StyleSheet.flatten(wrapper.props.style)).toMatchObject({
+      position: "absolute",
+      top: 116,
+    });
+  });
+
+  // 목록의 시작점은 배너가 잰 높이만큼 헤더보다 더 내려가야, 첫 장면이 배너
+  // 뒤에 가려지지 않는다.
+  test("배너 높이만큼 목록의 시작점을 더 내린다", async () => {
+    const { Text } = require("react-native") as typeof import("react-native");
+
+    await renderWithHeroUI(
+      <ChatPanel
+        banner={<Text testID="panel-banner">상황</Text>}
+        chat={chatSession()}
+        topInset={116}
+      />
+    );
+
+    await act(() => {
+      screen.getByTestId("chat-banner").props.onLayout({
+        nativeEvent: { layout: { height: 40 } },
+      });
+    });
+
+    const list = screen.getByTestId("chat-list");
+
+    expect(StyleSheet.flatten(list.props.contentContainerStyle)).toMatchObject({
+      paddingTop: 168,
+    });
+  });
+
+  test("사건이 끝나도 배너는 그대로 있는다", async () => {
+    const { Text } = require("react-native") as typeof import("react-native");
+
+    await renderWithHeroUI(
+      <ChatPanel
+        banner={<Text testID="panel-banner">상황</Text>}
+        chat={chatSession()}
+        closing={<Text testID="panel-closing">끝났어요</Text>}
+      />
+    );
+
+    expect(screen.getByTestId("panel-banner")).toBeOnTheScreen();
+    expect(screen.getByTestId("panel-closing")).toBeOnTheScreen();
+  });
+});
+
 describe("끝난 대화", () => {
   const answered = [
     textMessage("user-1", "user", "질문"),
