@@ -9,6 +9,7 @@ import { useStoryRefresh } from "@/features/episode/query/story";
 import { episodeLabels } from "@/features/episode/ui/episode-labels";
 import { EpisodeScreen } from "@/screens/episode/episode-screen";
 import { EpisodeUnavailableScreen } from "@/screens/episode/episode-unavailable-screen";
+import { useVisibleRetry } from "@/shared/query/use-visible-retry";
 import { toolbarIcon } from "@/shared/ui/toolbar-icons";
 
 function firstParam(value: string | string[] | undefined): string | undefined {
@@ -30,10 +31,7 @@ export default function EpisodeRoute() {
   const refreshStory = useStoryRefresh(session?.user.id);
   const playing = episode.data;
   const [isSettling, setIsSettling] = useState(false);
-  const { refetch } = episode;
-  const retryEpisode = useCallback(() => {
-    refetch();
-  }, [refetch]);
+  const { isRetrying, retry: retryEpisode } = useVisibleRetry(episode.refetch);
   const leaveEpisode = useCallback(() => {
     if (!isSettling) {
       router.back();
@@ -106,9 +104,9 @@ export default function EpisodeRoute() {
           situationEmoji={playing.episode.situationEmoji}
         />
       ) : null}
-      {!playing && episode.isError ? (
+      {!playing && (episode.isError || isRetrying) ? (
         <EpisodeUnavailableScreen
-          isRetrying={episode.isFetching}
+          isRetrying={isRetrying}
           onRetry={retryEpisode}
         />
       ) : null}

@@ -1,5 +1,4 @@
 import { router, Stack } from "expo-router";
-import { useCallback } from "react";
 import { Platform } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
@@ -7,6 +6,7 @@ import { chatLabels } from "@/features/chat/ui/chat-labels";
 import { useStory } from "@/features/episode/query/story";
 import { HomeScreen } from "@/screens/home/home-screen";
 import { ProfileAvatarButton } from "@/screens/home/profile-avatar-button";
+import { useVisibleRetry } from "@/shared/query/use-visible-retry";
 import { toolbarIcon } from "@/shared/ui/toolbar-icons";
 
 function openChat() {
@@ -24,16 +24,13 @@ function openSettings() {
 export default function HomeRoute() {
   const { session } = useAuthSession();
   const story = useStory(session?.user.id, session?.access_token);
-  const { refetch } = story;
-  const retryStory = useCallback(() => {
-    refetch();
-  }, [refetch]);
+  const { isRetrying, retry: retryStory } = useVisibleRetry(story.refetch);
 
   return (
     <>
       <HomeScreen
-        isLoading={story.isPending}
-        isRetrying={story.isFetching && !story.isPending}
+        isLoading={story.isPending && !isRetrying}
+        isRetrying={isRetrying}
         onOpenEpisode={openEpisode}
         onRetry={retryStory}
         story={story.data}

@@ -1,8 +1,10 @@
 import { beforeEach, expect, jest, test } from "@jest/globals";
 import {
+  act,
   render,
   screen,
   userEvent,
+  waitFor,
   within,
 } from "@testing-library/react-native";
 import { router } from "expo-router";
@@ -123,7 +125,7 @@ jest.mock("@/shared/ui/toolbar-icons", () => ({
 }));
 
 const mockPush = jest.mocked(router.push);
-const mockRefetch = jest.fn();
+const mockRefetch = jest.fn(() => Promise.resolve());
 const EPISODE_ID = "11000000-0000-4000-8000-000000000001";
 let homeStory: { tag?: string } | undefined;
 let homeStatus: { isLoading: boolean; isRetrying: boolean } | undefined;
@@ -187,15 +189,46 @@ test("스토리 진행을 읽어 홈 본문에 넘기고 다시 읽는 길을 �
   expect(mockRefetch).toHaveBeenCalledTimes(1);
 });
 
-test("사용자가 다시 읽을 때만 홈 버튼에 진행 상태를 넘긴다", async () => {
+test("실제 재조회가 pending으로 돌아가도 오류 카드의 진행 상태를 지킨다", async () => {
+  let finishRetry: (() => void) | undefined;
   mockStoryQuery = {
     ...mockStoryQuery,
     data: undefined,
-    isFetching: true,
     isPending: false,
   };
+  mockRefetch.mockImplementationOnce(() => {
+    mockStoryQuery = {
+      ...mockStoryQuery,
+      isFetching: true,
+      isPending: true,
+    };
 
+    return new Promise<void>((resolve) => {
+      finishRetry = resolve;
+    });
+  });
+
+  const user = userEvent.setup();
   await render(<HomeRoute />);
+  await user.press(screen.getByRole("button", { name: "Home retry" }));
 
-  expect(homeStatus).toEqual({ isLoading: false, isRetrying: true });
+  await waitFor(() => {
+    expect(homeStatus).toEqual({ isLoading: false, isRetrying: true });
+  });
+
+  await act(() => {
+    mockStoryQuery = {
+      ...mockStoryQuery,
+      data: { tag: "retried story" },
+      isFetching: false,
+      isPending: false,
+    };
+    finishRetry?.();
+
+    return Promise.resolve();
+  });
+
+  await waitFor(() => {
+    expect(homeStatus).toEqual({ isLoading: false, isRetrying: false });
+  });
 });

@@ -1,5 +1,5 @@
 import { beforeEach, expect, jest, test } from "@jest/globals";
-import { act, screen, userEvent } from "@testing-library/react-native";
+import { act, screen, userEvent, waitFor } from "@testing-library/react-native";
 import { router } from "expo-router";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import EpisodeRoute from "../../../app/episode";
@@ -271,19 +271,54 @@ test("서버 장면을 읽지 못하면 같은 화면에서 다시 시도한다"
   expect(mockEpisodeRefetch).toHaveBeenCalledTimes(1);
 });
 
-test("서버 장면을 다시 읽는 동안 오류 카드와 버튼 자리를 지킨다", async () => {
+test("실제 재조회가 pending으로 돌아가도 오류 카드와 버튼 자리를 지킨다", async () => {
+  let finishRetry: (() => void) | undefined;
   mockSession = undefined;
   mockEpisodeQuery = {
     ...mockEpisodeQuery,
     data: undefined,
     isError: true,
-    isFetching: true,
   };
-  await renderWithHeroUI(<EpisodeRoute />);
+  mockEpisodeRefetch.mockImplementationOnce(() => {
+    mockEpisodeQuery = {
+      ...mockEpisodeQuery,
+      isError: false,
+      isFetching: true,
+      isPending: true,
+    };
 
-  expect(screen.getByText("대화를 불러오지 못했어요.")).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "다시 시도하기" })).toHaveProp(
-    "accessibilityState",
-    { busy: true, disabled: true }
-  );
+    return new Promise<void>((resolve) => {
+      finishRetry = resolve;
+    });
+  });
+  const user = userEvent.setup();
+  await renderWithHeroUI(<EpisodeRoute />);
+  await user.press(screen.getByRole("button", { name: "다시 시도하기" }));
+
+  await waitFor(() => {
+    expect(screen.getByText("대화를 불러오지 못했어요.")).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "다시 시도하기" })).toHaveProp(
+      "accessibilityState",
+      { busy: true, disabled: true }
+    );
+  });
+
+  await act(() => {
+    mockSession = { episode: NEXT_EPISODE, messages: [], readOnly: false };
+    mockEpisodeQuery = {
+      ...mockEpisodeQuery,
+      data: mockSession,
+      isFetching: false,
+      isPending: false,
+    };
+    finishRetry?.();
+
+    return Promise.resolve();
+  });
+
+  await waitFor(() => {
+    expect(
+      screen.queryByText("대화를 불러오지 못했어요.")
+    ).not.toBeOnTheScreen();
+  });
 });
