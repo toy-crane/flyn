@@ -7,6 +7,33 @@ export interface SceneSpeakerData {
   name: string | null;
 }
 
+/**
+ * 장면을 닫는 part의 데이터. 사건이 끝났을 때 한 번만 흐른다.
+ */
+export interface SceneEndingData {
+  /** 결말의 종류. `endings`에 적어 둔 줄 머리 그대로다. */
+  kind: string;
+  /** 사건의 결과 한 줄. */
+  outcome: string;
+}
+
+/**
+ * 한 장면에서 줄 머리가 될 수 있는 이름들.
+ *
+ * `cast`는 말풍선이 되고, `endings`는 사건이 끝났다는 판정이 된다. 목록에 없는
+ * 줄 머리는 전부 지문으로 흐른다.
+ */
+export interface SceneTags {
+  cast: readonly string[];
+  endings?: readonly string[];
+}
+
+interface LineTag {
+  isEnding: boolean;
+  name: string;
+  prefix: string;
+}
+
 /** 줄 머리 판정 전에 걷어내는 들여쓰기. 마크다운 코드 블록 오인도 막는다. */
 const LEADING_INDENT = /^[ \t]+/;
 /** `이름:` 바로 뒤에 오는 공백 하나. */
@@ -35,13 +62,27 @@ export function speakerModelText(data: unknown): string {
  * 줄 머리가 어느 이름과도 이어질 수 없다고 판정되는 즉시 그 줄은 흐르기
  * 시작한다. 판정을 위해 붙잡아 두는 글자는 가장 긴 이름 언저리를 넘지
  * 않아서, 스트리밍의 체감을 거의 해치지 않는다.
+ *
+ * `endings`를 넘기면 그 줄 머리는 말풍선이 아니라 장면을 닫는 판정이 된다.
+ * 결말 줄은 화면에 흐르지 않고 스트림 끝에서 `data-ending` part 하나로 나간다.
  */
 export async function streamSceneText(
   textStream: AsyncIterable<string>,
-  cast: readonly string[],
+  tags: SceneTags,
   writer: UIMessageStreamWriter
 ): Promise<void> {
-  const prefixes = cast.map((name) => ({ name, prefix: `${name}:` }));
+  const prefixes: LineTag[] = [
+    ...tags.cast.map((name) => ({
+      isEnding: false,
+      name,
+      prefix: `${name}:`,
+    })),
+    ...(tags.endings ?? []).map((name) => ({
+      isEnding: true,
+      name,
+      prefix: `${name}:`,
+    })),
+  ];
   let segment: { name: string | null; textId: string } | undefined;
   let segmentCount = 0;
   // 아직 화자인지 지문인지 정해지지 않은 줄 머리.
@@ -50,9 +91,25 @@ export async function streamSceneText(
   // 줄 사이에서 본 줄바꿈 수. 같은 화자가 이어지면 문단으로 살리고, 화자가
   // 바뀌면 새 조각이 대신하므로 버린다.
   let pendingNewlines = 0;
+  // 사건이 끝났다는 판정. 모델이 두 번 쓰면 처음 것만 남는다.
+  let ending: SceneEndingData | undefined;
+  // 지금 흐르는 줄이 결말 줄인지. 결말 줄의 글자는 말풍선으로 가지 않는다.
+  let isEndingLine = false;
 
   function append(text: string) {
-    if (text.length === 0 || segment === undefined) {
+    if (text.length === 0) {
+      return;
+    }
+
+    if (isEndingLine) {
+      if (ending !== undefined) {
+        ending.outcome += text;
+      }
+
+      return;
+    }
+
+    if (segment === undefined) {
       return;
     }
 
@@ -66,9 +123,22 @@ export async function streamSceneText(
     }
   }
 
+  // 결말 줄은 장면을 닫는 판정이라 말풍선을 열지 않는다. 두 번째 결말은 이
+  // 판정을 뒤집지 않고 화면에도 흐르지 않는다.
+  function beginEnding(kind: string, text: string) {
+    closeSegment();
+    isLineDecided = true;
+    isEndingLine = true;
+    pendingNewlines = 0;
+    ending ??= { kind, outcome: text };
+  }
+
   // 판정이 끝난 줄의 내용을 흘려보낼 자리를 마련한다. 직전 조각과 같은
   // 화자면 그 조각에 줄바꿈으로 잇고, 아니면 조각을 새로 연다.
   function beginLine(name: string | null, text: string) {
+    isLineDecided = true;
+    isEndingLine = false;
+
     if (segment !== undefined && segment.name === name) {
       append("\n".repeat(Math.min(pendingNewlines, 2)));
     } else {
@@ -86,7 +156,6 @@ export async function streamSceneText(
     }
 
     pendingNewlines = 0;
-    isLineDecided = true;
     append(text);
   }
 
@@ -99,12 +168,17 @@ export async function streamSceneText(
       return;
     }
 
-    for (const { name, prefix } of prefixes) {
-      if (head.startsWith(prefix)) {
-        beginLine(
-          name,
-          head.slice(prefix.length).replace(SPACE_AFTER_COLON, "")
-        );
+    for (const tag of prefixes) {
+      if (head.startsWith(tag.prefix)) {
+        const text = head
+          .slice(tag.prefix.length)
+          .replace(SPACE_AFTER_COLON, "");
+
+        if (tag.isEnding) {
+          beginEnding(tag.name, text);
+        } else {
+          beginLine(tag.name, text);
+        }
 
         return;
       }
@@ -124,6 +198,7 @@ export async function streamSceneText(
   function endLine() {
     lineBuffer = "";
     isLineDecided = false;
+    isEndingLine = false;
     pendingNewlines += 1;
   }
 
@@ -155,4 +230,8 @@ export async function streamSceneText(
   }
 
   closeSegment();
+
+  if (ending !== undefined) {
+    writer.write({ data: ending, id: "ending", type: "data-ending" });
+  }
 }

@@ -1,4 +1,3 @@
-import { withSupabase } from "@supabase/server/adapters/hono";
 import {
   convertToModelMessages,
   createUIMessageStream,
@@ -10,8 +9,9 @@ import {
 import { Hono, type MiddlewareHandler } from "hono";
 
 import { logRequestAbort, logRequestFailure } from "../../shared/request-log";
+import { speakerModelText, streamSceneText } from "../../shared/scene-stream";
+import { createUserGuard } from "../../shared/user-guard";
 import { resolveModelId } from "./config";
-import { speakerModelText, streamSceneText } from "./scene-stream";
 import { WORLD_CAST, WORLD_SYSTEM_PROMPT } from "./world";
 
 export interface AiChatDependencies {
@@ -29,35 +29,10 @@ export interface AiChatDependencies {
 
 export function createAiChatRoutes(dependencies: AiChatDependencies = {}) {
   // Built once per app rather than per request, and applied to the AI route
-  // only. An `app.use('*')` middleware would run before route middleware and
-  // would take `/health` with it.
-  //
-  // The secret key override is a workaround, not a configuration choice.
-  // `@supabase/server@1.4.1` builds `supabaseAdmin` eagerly for every auth
-  // mode, so `auth: "user"` refuses to run without a secret key even though
-  // its own docs say one is needed only for `auth: "secret"` or for actually
-  // using `supabaseAdmin`. This route does neither, and giving the server a
-  // real secret key would hand a route that never needs admin rights the power
-  // to bypass every RLS policy. The placeholder keeps that power out of the
-  // deployment; if a later route does call `supabaseAdmin`, it fails loudly
-  // with this string instead of quietly succeeding. Remove it once the package
-  // creates the admin client lazily.
-  const requireUser =
-    dependencies.authMiddleware ??
-    withSupabase({
-      auth: "user",
-      env: { secretKeys: { default: "unused-ai-chat-never-calls-admin" } },
-    });
-
-  const requireCurrentUser: MiddlewareHandler = async (c, next) => {
-    const { data, error } = await c.var.supabaseContext.supabase.auth.getUser();
-
-    if (error || !data.user) {
-      return c.json({ error: "Unauthorized." }, 401);
-    }
-
-    await next();
-  };
+  // only.
+  const [requireUser, requireCurrentUser] = createUserGuard(
+    dependencies.authMiddleware
+  );
 
   return new Hono().post("/", requireUser, requireCurrentUser, async (c) => {
     const body: unknown = await c.req.json().catch(() => null);
@@ -107,7 +82,11 @@ export function createAiChatRoutes(dependencies: AiChatDependencies = {}) {
       stream: createUIMessageStream({
         execute: async ({ writer }) => {
           writer.write({ type: "start" });
-          await streamSceneText(result.textStream, WORLD_CAST, writer);
+          await streamSceneText(
+            result.textStream,
+            { cast: WORLD_CAST },
+            writer
+          );
           writer.write({ type: "finish" });
         },
       }),
