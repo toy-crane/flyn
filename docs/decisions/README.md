@@ -25,6 +25,7 @@
 - [Hono 코드 구조](hono-code-architecture.md) — Hono 기능 경계, 라우트 조립, 폴더 구조 또는 import 경계를 변경할 때 읽는다.
 - [AI 채팅 프로토콜](ai-chat-protocol.md) — AI 요청 경로, 스트리밍 응답 형식, 모바일 채팅 상태 또는 AI SDK UI message 사용 방식을 변경할 때 읽는다.
 - [AI 에피소드 프로토콜](ai-episode-protocol.md) — 에피소드 API 경로, 첫 장면의 소유자, 장면과 결말의 스트리밍 형식 또는 에피소드 상태의 보관 위치를 변경할 때 읽는다.
+- [스토리 구조](story-structure.md) — 이야기 계층, 스토리·에피소드 단위, 공유 단위 또는 그 이름을 변경할 때 읽는다.
 - [에피소드 콘텐츠 제작](episode-authoring.md) — 새 화를 만들거나, 화 사이의 연결 방식, 각본과 모델의 역할 분담을 변경할 때 읽는다.
 - [AI 모델 라우팅](ai-model-routing.md) — AI Gateway, 모델 제공자, 모델 식별자 또는 provider fallback 방식을 변경할 때 읽는다.
 - [계정 삭제 서버 경계](account-deletion-server-boundary.md) — 계정 삭제의 사용자 인증, 관리자 권한, 서버 런타임 또는 secret key 범위를 변경할 때 읽는다.
