@@ -25,6 +25,8 @@ export const episodeLabels = {
     `${episode}화 ${title}, ${kind}, 대화 보기`,
   /** Shown on a completed conversation that has no input. */
   reviewOnly: "끝난 대화 기록",
+  /** Read while the scene left by Stop is being matched with the server. */
+  saving: "진행을 저장하고 있어요",
   /** Shown as the button that opens an episode, from Home or from an ending. */
   start: (episode: number) => `${episode}화 시작하기`,
   /** Shown wherever an episode is named next to its number. */

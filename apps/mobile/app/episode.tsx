@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { BackHandler, Platform } from "react-native";
+import { Platform } from "react-native";
 
 import { useAppTheme } from "@/core/theme/app-theme-bridge";
 import { useAuthSession } from "@/features/auth/state/auth-session";
@@ -38,21 +38,6 @@ export default function EpisodeRoute() {
     }
   }, [isSettling]);
 
-  useEffect(() => {
-    if (!isSettling || Platform.OS !== "android") {
-      return;
-    }
-
-    const hardwareBack = BackHandler.addEventListener(
-      "hardwareBackPress",
-      () => true
-    );
-
-    return () => {
-      hardwareBack.remove();
-    };
-  }, [isSettling]);
-
   useEffect(
     () => () => {
       refreshStory();
@@ -76,7 +61,7 @@ export default function EpisodeRoute() {
     <>
       <Stack.Screen
         options={{
-          gestureEnabled: !isSettling,
+          headerBackButtonMenuEnabled: false,
           headerLargeTitleEnabled: false,
           headerShown: true,
           title: playing?.episode.title ?? "",

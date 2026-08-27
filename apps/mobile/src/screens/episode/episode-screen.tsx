@@ -1,6 +1,18 @@
 import type { UIMessage } from "ai";
-import { useHeaderHeight } from "expo-router/react-navigation";
-import { type ReactNode, useEffect, useMemo } from "react";
+import { useNavigation } from "expo-router";
+import {
+  type NavigationAction,
+  useHeaderHeight,
+  usePreventRemove,
+} from "expo-router/react-navigation";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Platform, Text, View } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
@@ -50,7 +62,7 @@ export function EpisodeScreen({
 }) {
   const { session } = useAuthSession();
   const accessToken = session?.access_token;
-  const { chat, ending, nextUp, open } = useEpisodeRun(
+  const { chat, ending, isSaving, nextUp, open, stopAndSave } = useEpisodeRun(
     accessToken,
     episodeId,
     initialMessages,
@@ -59,23 +71,70 @@ export function EpisodeScreen({
   const drafts = useLocalChatDrafts();
   const conversation = useConversation(chat, drafts, accessToken);
   const headerHeight = useHeaderHeight();
+  const navigation = useNavigation();
+  const pendingRemoval = useRef<NavigationAction | undefined>(undefined);
+  const [canRemove, setCanRemove] = useState(false);
   // 첫 장면을 받지 못했다면 다시 받을 것은 답변이 아니라 에피소드의 시작이다.
   // 되받을 답변이 없어 그냥 돌아서는 다시 시도는 눌러도 아무 일이 없다.
+  // 중지한 장면을 저장하는 동안 오류가 함께 와도 새 요청은 시작하지 않는다.
+  const retry = useCallback(() => {
+    if (isSaving) {
+      return;
+    }
+
+    if (conversation.messages.length === 0) {
+      open();
+      return;
+    }
+
+    conversation.retry();
+  }, [conversation.messages.length, conversation.retry, isSaving, open]);
   const conversationRun = useMemo(
     () => ({
       ...conversation,
-      retry: conversation.messages.length === 0 ? open : conversation.retry,
+      isBusy: conversation.isBusy || isSaving,
+      retry,
+      stop: stopAndSave,
     }),
-    [conversation, open]
+    [conversation, isSaving, retry, stopAndSave]
   );
-  // useChat은 화면이 사라져도 진행 중인 요청을 멈추지 않는다. 응답이 끝나기
-  // 전에 나가거나 중지하면 홈이 결말과 대화 기록보다 먼저 지난 진행을 다시
-  // 읽을 수 있다. 그래서 이 화면은 요청 중 이탈을 막고 아래 패널의 중지도 끈다.
-  const isSettling = conversationRun.isBusy;
+  // useChat의 stop은 요청만 취소하고 마지막 응답 조각이 React에 들어오기를
+  // 기다리지 않는다. 나가기 동작은 한 번만 맡아 두고, 마지막 렌더를 서버와
+  // 맞춘 뒤 원래 POP, GO_BACK 또는 REPLACE를 그대로 이어 간다.
+  const handlePreventedRemoval = useCallback(
+    ({ data }: { data: { action: NavigationAction } }) => {
+      if (pendingRemoval.current !== undefined) {
+        return;
+      }
+
+      pendingRemoval.current = data.action;
+      stopAndSave()
+        .catch(() => undefined)
+        .finally(() => {
+          setCanRemove(true);
+        });
+    },
+    [stopAndSave]
+  );
+
+  usePreventRemove(
+    conversationRun.isBusy && !canRemove,
+    handlePreventedRemoval
+  );
 
   useEffect(() => {
-    onSettlingChange(isSettling);
-  }, [isSettling, onSettlingChange]);
+    const action = pendingRemoval.current;
+    if (!(canRemove && action)) {
+      return;
+    }
+
+    pendingRemoval.current = undefined;
+    navigation.dispatch(action);
+  }, [canRemove, navigation]);
+
+  useEffect(() => {
+    onSettlingChange(isSaving);
+  }, [isSaving, onSettlingChange]);
 
   let closing: ReactNode;
 
@@ -83,7 +142,7 @@ export function EpisodeScreen({
     closing = (
       <EpisodeClosing
         ending={ending}
-        isSettling={isSettling}
+        isSettling={isSaving}
         nextUp={nextUp}
         onLeave={onLeave}
         onStartNext={onStartNext}
@@ -111,7 +170,8 @@ export function EpisodeScreen({
       banner={
         <EpisodeSituationBanner emoji={situationEmoji} text={situation} />
       }
-      canStop={false}
+      busyLabel={isSaving ? episodeLabels.saving : undefined}
+      canStop={!isSaving}
       chat={conversationRun}
       closing={closing}
       hasMessageActions={false}

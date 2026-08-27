@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createEpisodeTransport } from "@/features/episode/api/episode-transport";
 import { type EpisodeEnding, endingOfEpisode } from "./episode-ending";
 import { type EpisodeNextUp, nextUpOfEpisode } from "./episode-next-up";
+import { useEpisodeStopSave } from "./use-episode-stop-save";
 
 /** How often a scene is let through to React, in milliseconds. */
 export const SCENE_UPDATE_INTERVAL_MS = 50;
@@ -14,10 +15,14 @@ export interface EpisodeRun {
   chat: UseChatHelpers<UIMessage>;
   /** Set once the incident is over. Until then the episode is still running. */
   ending: EpisodeEnding | undefined;
+  /** Whether a stopped scene is being matched with the server record. */
+  isSaving: boolean;
   /** What follows the ending: the next episode's preview, or the story's end. */
   nextUp: EpisodeNextUp | undefined;
   /** Asks for the first scene again after it failed to arrive. */
   open: () => void;
+  /** Stops the current response and saves the final scene left on screen. */
+  stopAndSave: () => Promise<void>;
 }
 
 /**
@@ -78,10 +83,20 @@ export function useEpisodeRun(
     open();
   }, [accessToken, hasOpened, open]);
 
+  const { isSaving, stopAndSave } = useEpisodeStopSave({
+    accessToken,
+    episodeId,
+    messages: chat.messages,
+    status: chat.status,
+    stop: chat.stop,
+  });
+
   return {
     chat,
     ending: endingOfEpisode(chat.messages),
+    isSaving,
     nextUp: nextUpOfEpisode(chat.messages),
     open,
+    stopAndSave,
   };
 }

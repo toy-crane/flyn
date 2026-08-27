@@ -1,10 +1,53 @@
-import { useCallback } from "react";
+import { Spinner } from "heroui-native/spinner";
+import { useCallback, useEffect, useState } from "react";
 import { Text, View } from "react-native";
 
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
 import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { Button } from "@/shared/ui/button";
 import { episodeLabels } from "./episode-labels";
+
+const SAVE_PROGRESS_DELAY_MS = 1000;
+
+/** 짧은 보정 저장에는 깜빡이지 않고, 오래 걸릴 때만 마무리 안에서 알린다. */
+function EpisodeSavingProgress() {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, SAVE_PROGRESS_DELAY_MS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, []);
+
+  if (!isVisible) {
+    return null;
+  }
+
+  return (
+    <View
+      accessibilityLabel={episodeLabels.saving}
+      accessibilityRole="progressbar"
+      accessibilityState={{ busy: true }}
+      accessible
+      className="flex-row items-center gap-2"
+      testID="episode-closing-saving"
+    >
+      <Spinner
+        accessibilityElementsHidden
+        accessibilityRole={undefined}
+        accessibilityState={undefined}
+        accessible={false}
+        importantForAccessibility="no-hide-descendants"
+        size="sm"
+      />
+      <Text className="text-muted text-sm">{episodeLabels.saving}</Text>
+    </View>
+  );
+}
 
 /**
  * 끝난 에피소드가 남기는 것: 결말, 다음 이야기, 그리고 갈 수 있는 곳.
@@ -84,6 +127,8 @@ export function EpisodeClosing({
           <Text className="text-base text-muted leading-6">{nextUp.copy}</Text>
         </View>
       ) : null}
+
+      {isSettling ? <EpisodeSavingProgress /> : null}
 
       <View className="flex-row gap-2">
         <Button

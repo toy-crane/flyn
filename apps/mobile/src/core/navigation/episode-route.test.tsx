@@ -6,6 +6,9 @@ import EpisodeRoute from "../../../app/episode";
 
 const EPISODE_ID = "11000000-0000-4000-8000-000000000002";
 const NEXT_EPISODE_ID = "11000000-0000-4000-8000-000000000003";
+let headerOptions:
+  | { headerBackButtonMenuEnabled?: boolean; title?: string }
+  | undefined;
 
 jest.mock("expo-router", () => {
   const React = require("react") as typeof import("react");
@@ -46,10 +49,17 @@ jest.mock("expo-router", () => {
   return {
     router: { back: jest.fn(), replace: jest.fn() },
     Stack: {
-      Screen: ({ options }: { options?: { title?: string } }) =>
-        React.createElement(View, {
+      Screen: ({
+        options,
+      }: {
+        options?: { headerBackButtonMenuEnabled?: boolean; title?: string };
+      }) => {
+        headerOptions = options;
+
+        return React.createElement(View, {
           accessibilityLabel: `header ${options?.title ?? ""}`,
-        }),
+        });
+      },
       Toolbar,
     },
     useLocalSearchParams: () => ({ episodeId: EPISODE_ID }),
@@ -167,6 +177,7 @@ beforeEach(() => {
   };
   playing = undefined;
   setSettling = undefined;
+  headerOptions = undefined;
 });
 
 test("ID로 읽은 에피소드 이름을 헤더에 걸고 뒤로 가기로 나간다", async () => {
@@ -174,6 +185,7 @@ test("ID로 읽은 에피소드 이름을 헤더에 걸고 뒤로 가기로 나�
   await renderWithHeroUI(<EpisodeRoute />);
 
   expect(screen.getByLabelText("header 계산이 꼬인 아침")).toBeOnTheScreen();
+  expect(headerOptions?.headerBackButtonMenuEnabled).toBe(false);
   expect(playing).toEqual({
     episodeId: EPISODE_ID,
     readOnly: false,

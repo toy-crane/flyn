@@ -1,5 +1,5 @@
-import { expect, jest, test } from "@jest/globals";
-import { screen, userEvent } from "@testing-library/react-native";
+import { afterEach, expect, jest, test } from "@jest/globals";
+import { act, screen, userEvent } from "@testing-library/react-native";
 
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { EpisodeClosing } from "./episode-closing";
@@ -17,6 +17,10 @@ const STORY_DONE = {
   number: null,
   title: "첫 이야기를 끝냈어요",
 };
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 test("결말과 다음 이야기 예고를 함께 보여 주고 갈 곳 두 군데를 준다", async () => {
   const user = userEvent.setup();
@@ -96,4 +100,30 @@ test("다시 보는 대화에는 읽기 전용 안내와 홈으로 가기만 둔
   expect(
     screen.queryByRole("button", { name: "2화 시작하기" })
   ).not.toBeOnTheScreen();
+});
+
+test("결말 뒤 저장이 1초를 넘기면 마무리 안에서 진행 상태를 보여 준다", async () => {
+  jest.useFakeTimers();
+
+  await renderWithHeroUI(
+    <EpisodeClosing
+      ending={ENDING}
+      isSettling
+      nextUp={NEXT_EPISODE}
+      onLeave={jest.fn()}
+      onStartNext={jest.fn()}
+    />
+  );
+
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+
+  await act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(
+    screen.getByRole("progressbar", { name: "진행을 저장하고 있어요" })
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "홈으로 가기" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "2화 시작하기" })).toBeDisabled();
 });
