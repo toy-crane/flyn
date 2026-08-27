@@ -498,8 +498,10 @@ export function ChatPanel({
   const isClosed = closing !== undefined;
   const composerBottomPadding = Math.max(insets.bottom, 12);
   // 배너가 없는 화면은 자리도 요구하지 않는다. 있으면 잰 높이만큼 헤더 아래
-  // 목록의 시작점을 더 내린다.
-  const contentTopInset = topInset + (banner === undefined ? 0 : bannerHeight);
+  // 목록의 시작점을 더 내린다. 조건부로 배너를 넘기는 화면이 `null`을 주는
+  // 것도 없는 것으로 친다.
+  const hasBanner = banner !== undefined && banner !== null;
+  const contentTopInset = topInset + (hasBanner ? bannerHeight : 0);
   const hasSideChats = sideChats !== undefined && sideChats.length > 0;
   const lastMessage = chat.messages.at(-1);
   const doomedFromIndex = chat.editingMessageId
@@ -796,7 +798,7 @@ export function ChatPanel({
         never scrolls away and never sits under the header. Nothing in it is
         pressable, so touches fall through to the list underneath.
       */}
-      {banner === undefined ? null : (
+      {hasBanner ? (
         <View
           onLayout={updateBannerLayout}
           pointerEvents="none"
@@ -805,7 +807,7 @@ export function ChatPanel({
         >
           {banner}
         </View>
-      )}
+      ) : null}
 
       {/*
         The composer floats over the list rather than taking a row of its own

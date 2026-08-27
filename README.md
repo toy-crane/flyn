@@ -409,7 +409,7 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 | `뒤로 가기` | 대화 화면과 에피소드 화면 헤더의 뒤로 가기 버튼 |
 | `에피소드 시작하기` | Home 본문의 에피소드 시작 버튼 |
 | `영어로 말해 보세요` | 에피소드 화면 입력의 빈 자리 문구 |
-| `잘못 나온 커피를 원하는 커피로 바꿔 보세요` | 에피소드 헤더 아래 상황 줄 배너 |
+| `잘못 나온 커피를 원하는 커피로 바꿔 보세요` | 에피소드 화면의 상황 줄 |
 | `홈으로 가기` | 끝난 에피소드의 마무리 버튼 |
 | `다시 시작하기` | 끝난 에피소드의 마무리 버튼 |
 
@@ -452,7 +452,7 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 에피소드 화면의 요소에는 `testID`도 있습니다.
 
 - Home의 에피소드 자리: `home-episode`
-- 헤더 아래 상황 줄: `episode-situation-banner`
+- 상황 줄: `episode-situation-banner`
 - 끝난 에피소드의 마무리: `episode-closing`, `episode-closing-kind`, `episode-closing-outcome`
 
 에피소드 화면은 대화 화면과 같은 패널을 씁니다.

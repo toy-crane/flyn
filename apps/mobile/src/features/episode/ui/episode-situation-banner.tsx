@@ -24,8 +24,21 @@ export function EpisodeSituationBanner({
       testID="episode-situation-banner"
     >
       <View className="flex-row items-center gap-1.5 bg-accent-soft px-5 py-2">
-        <Text className="text-sm">{emoji}</Text>
-        <Text className="flex-1 text-foreground text-sm" numberOfLines={1}>
+        {/*
+          장면을 가리키는 장식이라 낭독에서는 뺀다. 남겨 두면 문장 앞에서
+          이모지 이름이 따로 한 번 읽힌다.
+        */}
+        <Text
+          accessibilityElementsHidden
+          className="text-sm leading-5"
+          importantForAccessibility="no-hide-descendants"
+        >
+          {emoji}
+        </Text>
+        <Text
+          className="flex-1 text-foreground text-sm leading-5"
+          numberOfLines={1}
+        >
           {text}
         </Text>
       </View>
