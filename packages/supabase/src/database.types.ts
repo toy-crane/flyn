@@ -34,6 +34,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      episode_endings: {
+        Row: {
+          episode: number
+          finished_at: string
+          kind: string
+          outcome: string
+          season: number
+          user_id: string
+        }
+        Insert: {
+          episode: number
+          finished_at?: string
+          kind: string
+          outcome: string
+          season: number
+          user_id: string
+        }
+        Update: {
+          episode?: number
+          finished_at?: string
+          kind?: string
+          outcome?: string
+          season?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "episode_endings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           account_deletion_started_at: string | null
@@ -111,6 +146,10 @@ export type Database = {
     }
     Functions: {
       available_usernames: { Args: { candidates: string[] }; Returns: string[] }
+      finish_episode: {
+        Args: { episode: number; kind: string; outcome: string; season: number }
+        Returns: undefined
+      }
       is_protected_username: {
         Args: { candidate: string; owner: string }
         Returns: boolean

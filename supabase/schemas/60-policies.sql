@@ -60,3 +60,22 @@ alter table public.retired_usernames enable row level security;
 revoke all on table public.retired_usernames from anon, authenticated, service_role;
 
 grant all on table public.retired_usernames to service_role;
+
+-- Access control for public.episode_endings.
+--
+-- Read-only for the person who played. Writing goes through
+-- `public.finish_episode`, which is the only place the "one episode at a time"
+-- rule exists — an insert grant here would let the app hand itself a finished
+-- season.
+alter table public.episode_endings enable row level security;
+
+create policy episode_endings_select_own on public.episode_endings
+  for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+revoke all on table public.episode_endings from anon, authenticated, service_role;
+
+grant select on table public.episode_endings to authenticated;
+
+grant all on table public.episode_endings to service_role;
