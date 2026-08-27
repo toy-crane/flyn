@@ -102,9 +102,16 @@ export async function recordEpisodeEnding(
   }
 }
 
-/** 지금 열 수 있는 화의 번호. 다 끝냈으면 시즌의 길이보다 하나 크다. */
-export function currentEpisodeNumber(finishedCount: number): number {
-  return finishedCount + 1;
+/**
+ * 지금 열 수 있는 화의 번호. 다 끝냈으면 시즌의 길이보다 하나 크다.
+ *
+ * 개수가 아니라 마지막으로 끝낸 화를 기준으로 센다. 데이터베이스가 쓰는 기준과
+ * 같아야 서버가 여는 화와 기록이 어긋나지 않는다.
+ */
+export function currentEpisodeNumber(
+  finished: readonly { episode: number }[]
+): number {
+  return finished.reduce((last, row) => Math.max(last, row.episode), 0) + 1;
 }
 
 /**
@@ -132,7 +139,7 @@ export async function readSeasonView(
   client: EpisodeClient
 ): Promise<SeasonView> {
   const finished = await readFinishedEpisodes(client, CURRENT_SEASON);
-  const next = episodeScript(currentEpisodeNumber(finished.length));
+  const next = episodeScript(currentEpisodeNumber(finished));
 
   return {
     completion: { ...SEASON_COMPLETION },

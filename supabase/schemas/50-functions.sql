@@ -313,35 +313,33 @@ set search_path = ''
 as $$
 declare
   player uuid := (select auth.uid());
-  finished integer;
+  last_finished integer;
 begin
   if player is null then
     raise exception 'A signed-in user is required to finish an episode.'
       using errcode = '28000';
   end if;
 
-  if exists (
-    select 1
-    from public.episode_endings e
-    where e.user_id = player
-      and e.season = finish_episode.season
-      and e.episode = finish_episode.episode
-  ) then
-    return;
-  end if;
-
-  select count(*) into finished
+  -- 마지막으로 끝낸 화를 기준으로 삼는다. 개수로 세면 중간의 한 행이 사라졌을
+  -- 때 다음 화가 이미 있는 번호를 가리켜 그 시즌이 영영 막힌다.
+  select coalesce(max(e.episode), 0) into last_finished
   from public.episode_endings e
   where e.user_id = player
     and e.season = finish_episode.season;
 
-  -- 화는 순서대로만 끝난다. 다음에 끝낼 수 있는 화는 언제나 하나뿐이다.
-  if finish_episode.episode <> finished + 1 then
+  -- 화는 순서대로만 끝난다. 다음에 끝낼 수 있는 화는 언제나 하나뿐이고, 이미
+  -- 끝낸 화를 다시 보내는 것은 규칙 위반이 아니라 같은 사실의 재도착이다.
+  if
+    finish_episode.episode <> last_finished + 1
+    and finish_episode.episode > last_finished
+  then
     raise exception 'Episode % is not the next episode of season %.',
       finish_episode.episode, finish_episode.season
       using errcode = '22023';
   end if;
 
+  -- 같은 화의 결말이 동시에 두 번 도착해도 뒤의 것이 오류가 되지 않는다. 먼저
+  -- 도착한 판정이 그 시즌의 사실로 남고 나중 것은 조용히 지나간다.
   insert into public.episode_endings (user_id, season, episode, kind, outcome)
   values (
     player,
@@ -349,7 +347,10 @@ begin
     finish_episode.episode,
     finish_episode.kind,
     finish_episode.outcome
-  );
+  )
+  -- 충돌 대상을 열 이름으로 적으면 같은 이름의 인자와 헷갈린다. 기본키를
+  -- 이름으로 가리키면 그 모호함이 없다.
+  on conflict on constraint episode_endings_pkey do nothing;
 end;
 $$;
 

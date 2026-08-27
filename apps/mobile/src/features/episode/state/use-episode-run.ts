@@ -30,7 +30,7 @@ export interface EpisodeRun {
  */
 export function useEpisodeRun(
   accessToken: string | undefined,
-  episode: number | undefined
+  episode: number
 ): EpisodeRun {
   const currentToken = useRef(accessToken);
   const currentEpisode = useRef(episode);
@@ -58,17 +58,16 @@ export function useEpisodeRun(
   }, [sendMessage]);
   const [hasOpened, setHasOpened] = useState<boolean>(false);
 
-  // 로그인 없이 보낸 요청은 첫 장면 대신 오류만 받고, 어떤 화인지 모르는 채로
-  // 보낸 요청은 화면과 다른 화를 열 수 있다. 둘 다 준비된 뒤에 한 번만 연다.
-  // 다시 여는 것은 실패한 뒤 사용자가 고르는 일이다.
+  // 로그인 없이 보낸 요청은 첫 장면 대신 오류만 받는다. 토큰이 준비된 뒤에
+  // 한 번만 연다. 다시 여는 것은 실패한 뒤 사용자가 고르는 일이다.
   useEffect(() => {
-    if (hasOpened || !accessToken || episode === undefined) {
+    if (hasOpened || !accessToken) {
       return;
     }
 
     setHasOpened(true);
     open();
-  }, [accessToken, episode, hasOpened, open]);
+  }, [accessToken, hasOpened, open]);
 
   return {
     chat,

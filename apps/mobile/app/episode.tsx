@@ -83,13 +83,20 @@ export default function EpisodeRoute() {
               }),
         }}
       />
-      <EpisodeScreen
-        episode={playing?.episode}
-        onLeave={leaveWithFreshSeason}
-        onStartNext={startNextEpisode}
-        situation={playing?.situation}
-        situationEmoji={playing?.situationEmoji}
-      />
+      {/*
+        진행을 아직 읽지 못했으면 열 화도 없다. 빈 화면 대신 장면을 먼저 그렸다가
+        상황 줄을 뒤늦게 얹으면, 그 사이에 잡힌 배치 때문에 첫 장면이 화면 밖에
+        남는다.
+      */}
+      {playing ? (
+        <EpisodeScreen
+          episode={playing.episode}
+          onLeave={leaveWithFreshSeason}
+          onStartNext={startNextEpisode}
+          situation={playing.situation}
+          situationEmoji={playing.situationEmoji}
+        />
+      ) : null}
       {/*
         The toolbar replaces the stack's own back button, so this one carries
         the name a screen reader reads.

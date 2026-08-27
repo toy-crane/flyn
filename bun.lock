@@ -17,6 +17,7 @@
       "name": "@repo/api",
       "version": "0.0.0",
       "dependencies": {
+        "@repo/supabase": "workspace:*",
         "@supabase/server": "1.4.1",
         "@supabase/supabase-js": "2.112.2",
         "ai": "7.0.58",
