@@ -9,6 +9,7 @@ import type { MiddlewareHandler } from "hono";
 import { createApp } from "./app";
 
 const CHAT_PATH = "/ai/chat";
+const EPISODE_PATH = "/ai/episode";
 
 /**
  * A real Supabase project is not reachable from a unit test, so the URL is the
@@ -95,6 +96,17 @@ function createMockModel(text: string[]): MockLanguageModelV4 {
 
 function createChatRequest(body: unknown, token?: string): Request {
   return new Request(`http://localhost${CHAT_PATH}`, {
+    body: JSON.stringify(body),
+    headers: {
+      "content-type": "application/json",
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    method: "POST",
+  });
+}
+
+function createEpisodeRequest(body: unknown, token?: string): Request {
+  return new Request(`http://localhost${EPISODE_PATH}`, {
     body: JSON.stringify(body),
     headers: {
       "content-type": "application/json",
@@ -497,5 +509,151 @@ describe("POST /ai/chat", () => {
     expect(body).toContain('"type":"text-delta"');
     expect(body).toContain("안녕");
     expect(body).toContain("하세요");
+  });
+});
+
+describe("POST /ai/episode", () => {
+  test("rejects a request with no access token before calling the model", async () => {
+    const model = createMockModel(["Mia: Sorry about that."]);
+    const app = createApp({
+      authMiddleware: createUserAuthMiddleware(),
+      model,
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("This is wrong")] })
+    );
+
+    expect(response.status).toBe(401);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  // 입력하기 전에 상대가 먼저 말한다. 정해 둔 장면이라 기다림도 없고, 다시
+  // 들어와도 같은 카페가 열린다.
+  test("opens the first scene itself, without calling the model", async () => {
+    const model = createMockModel(["Mia: Sorry about that."]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(createEpisodeRequest({ messages: [] }));
+
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+
+    expect(model.doStreamCalls).toHaveLength(0);
+    // 대사는 화자가 붙은 영어 한 줄, 상황은 이름 없는 한국어 지문으로 흐른다.
+    expect(body).toContain('"name":"Mia"');
+    expect(body).toContain('"name":null');
+    expect(body).toContain("Next in line, please!");
+    expect(body).toContain("카페 카운터");
+    expect(body).not.toContain("Mia:");
+  });
+
+  test("turns the model's scene into speaker parts and narration", async () => {
+    const model = createMockModel([
+      "Mia: Oh, I am sorry.\n",
+      "직원이 잔을 내려놓는다.",
+    ]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("This is not what I ordered.")],
+      })
+    );
+
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+
+    expect(body).toContain('"type":"data-speaker"');
+    expect(body).toContain('"name":"Mia"');
+    expect(body).toContain("Oh, I am sorry.");
+    expect(body).toContain("직원이 잔을 내려놓는다.");
+    expect(body).not.toContain("Mia:");
+  });
+
+  // 결말은 사용자의 말이 만든다. 모델이 사건을 닫았다고 쓰면 그 줄은 말풍선이
+  // 아니라 에피소드를 닫는 판정으로 내려간다.
+  test("closes the episode when the model writes an ending", async () => {
+    const model = createMockModel([
+      "Mia: Here is your iced americano.\n",
+      "성공: 원하던 커피를 새로 받아냈다.",
+    ]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I ordered an iced americano.")],
+      })
+    );
+
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+
+    expect(body).toContain('"type":"data-ending"');
+    expect(body).toContain('"kind":"성공"');
+    expect(body).toContain("원하던 커피를 새로 받아냈다.");
+    expect(body).not.toContain("성공:");
+  });
+
+  test("leaves a scene that is still running without an ending", async () => {
+    const model = createMockModel(["Mia: What did you order?"]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("This is wrong.")],
+      })
+    );
+
+    const body = await response.text();
+
+    expect(body).not.toContain('"type":"data-ending"');
+  });
+
+  // 첫 장면을 서버가 썼더라도 다음 호출의 입력은 앱이 되돌려 보낸 그 장면이다.
+  test("restores the scene so far as screenplay lines for the model", async () => {
+    const model = createMockModel(["Mia: Let me check."]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [
+          {
+            id: "m1",
+            parts: [
+              { data: { name: null }, id: "speaker-1", type: "data-speaker" },
+              { text: "카페 카운터 앞이다.", type: "text" },
+              { data: { name: "Mia" }, id: "speaker-2", type: "data-speaker" },
+              { text: "Next in line, please!", type: "text" },
+            ],
+            role: "assistant",
+          },
+          createUserMessage("Excuse me, this is not my order."),
+        ],
+      })
+    );
+
+    expect(response.status).toBe(200);
+    await response.text();
+
+    const prompt = JSON.stringify(model.doStreamCalls[0]?.prompt);
+
+    expect(prompt).toContain("Mia:");
+    expect(prompt).toContain("Next in line, please!");
+  });
+
+  test("rejects a body that is not an AI SDK message list", async () => {
+    const model = createMockModel(["Mia: Sorry."]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createEpisodeRequest({ prompt: "start" })
+    );
+
+    expect(response.status).toBe(400);
+    expect(model.doStreamCalls).toHaveLength(0);
   });
 });

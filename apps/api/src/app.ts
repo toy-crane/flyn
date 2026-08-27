@@ -6,17 +6,22 @@ import {
   type AiChatDependencies,
   createAiChatRoutes,
 } from "./features/ai-chat/route";
+import {
+  createEpisodeRoutes,
+  type EpisodeDependencies,
+} from "./features/episode/route";
 import { healthRoutes } from "./features/health/route";
 import { logRequestFailure } from "./shared/request-log";
 
-export type AppDependencies = AiChatDependencies;
+export type AppDependencies = AiChatDependencies & EpisodeDependencies;
 
 const UNAUTHORIZED_STATUS = 401;
 
 export function createApp(dependencies: AppDependencies = {}) {
   const app = new Hono()
     .route("/health", healthRoutes)
-    .route("/ai/chat", createAiChatRoutes(dependencies));
+    .route("/ai/chat", createAiChatRoutes(dependencies))
+    .route("/ai/episode", createEpisodeRoutes(dependencies));
 
   app.onError((error, c) => {
     const cause = error instanceof HTTPException ? error.cause : undefined;
