@@ -52,11 +52,16 @@ jest.mock("expo-router", () => {
 
 jest.mock("@/screens/home/home-screen", () => {
   const React = require("react") as typeof import("react");
-  const { View } = require("react-native") as typeof import("react-native");
+  const { Pressable } =
+    require("react-native") as typeof import("react-native");
 
   return {
-    HomeScreen: () =>
-      React.createElement(View, { accessibilityLabel: "Home content" }),
+    HomeScreen: ({ onStartEpisode }: { onStartEpisode: () => void }) =>
+      React.createElement(Pressable, {
+        accessibilityLabel: "Home content",
+        accessibilityRole: "button",
+        onPress: onStartEpisode,
+      }),
   };
 });
 
@@ -98,4 +103,13 @@ test("새 대화는 왼쪽에서 채팅을 열고 프로필은 오른쪽에 둔�
   expect(
     rightToolbar.getByRole("button", { name: "Open settings" })
   ).toBeOnTheScreen();
+});
+
+test("홈 본문의 시작하기는 에피소드를 연다", async () => {
+  const user = userEvent.setup();
+  await render(<HomeRoute />);
+
+  await user.press(screen.getByRole("button", { name: "Home content" }));
+
+  expect(mockPush).toHaveBeenCalledWith("/episode");
 });

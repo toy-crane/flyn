@@ -11,6 +11,7 @@ import type {
 import type { UIMessage } from "ai";
 import { setStringAsync } from "expo-clipboard";
 import {
+  type ReactNode,
   type Ref,
   useCallback,
   useEffect,
@@ -123,8 +124,9 @@ function copyText(text: string) {
 /**
  * One message, and what can be done with it.
  *
- * `isPending` marks the answer still on its way: it carries no icon row, and
- * while it is arriving no message opens its menu either. `isDoomed` marks the
+ * `hasActions` is off for the answer still on its way, which carries no icon
+ * row, and for a panel that offers no per-message actions at all; while an
+ * answer is arriving no message opens its menu either. `isDoomed` marks the
  * messages an edit in progress would drop. `isEntering` marks the one question
  * that comes in from below, and the row reports back once it has, so the list
  * rebuilding the row later leaves it where it is.
@@ -132,9 +134,9 @@ function copyText(text: string) {
 function PlainTextMessage({
   areActionsDisabled,
   canOpenMenu,
+  hasActions,
   isDoomed,
   isEntering,
-  isPending,
   message,
   onAskInSideChat,
   onBeginEdit,
@@ -143,9 +145,9 @@ function PlainTextMessage({
 }: {
   areActionsDisabled: boolean;
   canOpenMenu: boolean;
+  hasActions: boolean;
   isDoomed: boolean;
   isEntering: boolean;
-  isPending: boolean;
   message: UIMessage;
   onAskInSideChat: ((input: AskInSideChat) => void) | undefined;
   onBeginEdit: (messageId: string) => void;
@@ -202,7 +204,7 @@ function PlainTextMessage({
   let body = (
     <AssistantMessage
       areActionsDisabled={areActionsDisabled}
-      hasActions={!isPending}
+      hasActions={hasActions}
       onCopy={copy}
       onRegenerate={regenerate}
       selectionMenuItems={selectionMenuItems}
@@ -223,7 +225,7 @@ function PlainTextMessage({
     body = (
       <SceneMessage
         areActionsDisabled={areActionsDisabled}
-        hasActions={!isPending}
+        hasActions={hasActions}
         onCopy={copy}
         onRegenerate={regenerate}
         segments={scene}
@@ -295,16 +297,165 @@ function ReturnControls({
   );
 }
 
+/**
+ * What a conversation offers to write with, and what it has to say about the
+ * last attempt.
+ *
+ * The error and the edit notice belong to the same block as the input: all
+ * three are about the message being written, and a conversation that is over
+ * replaces the three of them together.
+ */
+function Composer({
+  canSend,
+  chat,
+  inputHeight,
+  inputRef,
+  onResize,
+  onSend,
+  onStop,
+  placeholder,
+}: {
+  canSend: boolean;
+  chat: ChatSession;
+  inputHeight: number;
+  inputRef?: Ref<TextInput>;
+  onResize: (
+    event: NativeSyntheticEvent<{
+      contentSize: { height: number; width: number };
+    }>
+  ) => void;
+  onSend: () => void;
+  onStop: () => void;
+  placeholder: string;
+}) {
+  return (
+    <>
+      {chat.error ? (
+        <View className="flex-row items-center gap-2">
+          <Text
+            accessibilityLiveRegion="assertive"
+            accessibilityRole="alert"
+            className="flex-1 text-danger text-sm"
+            testID="chat-error"
+          >
+            {chatLabels.errorAnnouncement}
+          </Text>
+          <Pressable
+            accessibilityLabel={chatLabels.retry}
+            accessibilityRole="button"
+            className="flex-row items-center gap-1 rounded-full border border-border px-3 py-1.5"
+            onPress={chat.retry}
+            testID="chat-retry"
+          >
+            <Icon name="regenerate" size="sm" />
+            <Text className="text-foreground text-sm">{chatLabels.retry}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {chat.editingMessageId ? (
+        <View className="flex-row items-center gap-2" testID="chat-edit-notice">
+          <Icon name="edit" size="sm" tone="muted" />
+          <Text className="flex-1 text-muted text-xs leading-5">
+            {chatLabels.editNotice}
+          </Text>
+          <Pressable
+            accessibilityLabel={chatLabels.endEdit}
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={chat.cancelEdit}
+            testID="chat-edit-cancel"
+          >
+            <Icon name="close" size="sm" tone="muted" />
+          </Pressable>
+        </View>
+      ) : null}
+
+      <ComposerSurface>
+        <TextInput
+          accessibilityLabel={chatLabels.input}
+          className="flex-1 px-3 py-2.5 text-base text-foreground"
+          multiline
+          onChangeText={chat.setDraft}
+          onContentSizeChange={onResize}
+          onSubmitEditing={onSend}
+          placeholder={placeholder}
+          ref={inputRef}
+          returnKeyType="send"
+          style={{ height: inputHeight, maxHeight: INPUT_MAX_HEIGHT }}
+          submitBehavior="submit"
+          testID="chat-input"
+          value={chat.draft}
+        />
+        {/*
+          One place, two jobs. While an answer is arriving that place ends it;
+          the rest of the time it sends what has been typed.
+
+          Both say whether they are disabled rather than leaving it out. The
+          two sit at the same place in the tree, so React keeps one instance
+          and only changes its props; on Android a `disabled` that stops being
+          passed is never cleared on the native view, and the stop button
+          inherits the send button's disabled state — it draws normally and
+          refuses every touch.
+        */}
+        {chat.isBusy ? (
+          <Pressable
+            accessibilityLabel={chatLabels.stop}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: false }}
+            className="h-11 w-11 items-center justify-center rounded-full bg-accent"
+            disabled={false}
+            onPress={onStop}
+            testID="chat-send"
+          >
+            <Icon filled name="stop" size="sm" tone="accentForeground" />
+          </Pressable>
+        ) : (
+          <Pressable
+            accessibilityLabel={chatLabels.send}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !canSend }}
+            className={
+              canSend
+                ? "h-11 w-11 items-center justify-center rounded-full bg-accent"
+                : "h-11 w-11 items-center justify-center rounded-full bg-accent opacity-40"
+            }
+            disabled={!canSend}
+            onPress={onSend}
+            testID="chat-send"
+          >
+            <Icon name="send" tone="accentForeground" />
+          </Pressable>
+        )}
+      </ComposerSurface>
+    </>
+  );
+}
+
 export function ChatPanel({
   chat,
+  closing,
+  hasMessageActions = true,
   inputRef,
   onAskInSideChat,
   onOpenSideChat,
+  placeholder = "메시지를 입력하세요",
   sideChats,
   source,
   topInset = 0,
 }: {
   chat: ChatSession;
+  /**
+   * What stands where the composer was once there is nothing left to write.
+   * Given, it replaces the input, the error and the edit notice together: the
+   * conversation is over, so nothing there can be acted on any more.
+   */
+  closing?: ReactNode;
+  /**
+   * Whether one message carries actions of its own: copy, edit and asking for
+   * the answer again. Off leaves the messages to be read.
+   */
+  hasMessageActions?: boolean;
   /**
    * Handed down by the screen, which decides when the input should take the
    * caret. The panel only says which control that is.
@@ -316,6 +467,8 @@ export function ChatPanel({
    */
   onAskInSideChat?: (input: AskInSideChat) => void;
   onOpenSideChat?: (id: string) => void;
+  /** What stands in the empty input. */
+  placeholder?: string;
   /** The side chats to get back into, newest first. */
   sideChats?: SideChatEntry[];
   /** The read-only phrase a side chat started from. */
@@ -517,10 +670,12 @@ export function ChatPanel({
     ({ index, item }: LegendListRenderItemProps<UIMessage>) => (
       <PlainTextMessage
         areActionsDisabled={isEditing}
-        canOpenMenu={!(isBusy || isEditing)}
+        canOpenMenu={hasMessageActions && !(isBusy || isEditing)}
+        hasActions={
+          hasMessageActions && !(isBusy && index === messageCount - 1)
+        }
         isDoomed={doomedFromIndex >= 0 && index >= doomedFromIndex}
         isEntering={item.id === enteringMessageId}
-        isPending={isBusy && index === messageCount - 1}
         message={item}
         onAskInSideChat={onAskInSideChat}
         onBeginEdit={beginEdit}
@@ -532,6 +687,7 @@ export function ChatPanel({
       beginEdit,
       doomedFromIndex,
       enteringMessageId,
+      hasMessageActions,
       isBusy,
       isEditing,
       markEntered,
@@ -623,109 +779,24 @@ export function ChatPanel({
           style={{ paddingBottom: composerBottomPadding }}
           testID="chat-composer"
         >
-          {chat.error ? (
-            <View className="flex-row items-center gap-2">
-              <Text
-                accessibilityLiveRegion="assertive"
-                accessibilityRole="alert"
-                className="flex-1 text-danger text-sm"
-                testID="chat-error"
-              >
-                {chatLabels.errorAnnouncement}
-              </Text>
-              <Pressable
-                accessibilityLabel={chatLabels.retry}
-                accessibilityRole="button"
-                className="flex-row items-center gap-1 rounded-full border border-border px-3 py-1.5"
-                onPress={chat.retry}
-                testID="chat-retry"
-              >
-                <Icon name="regenerate" size="sm" />
-                <Text className="text-foreground text-sm">
-                  {chatLabels.retry}
-                </Text>
-              </Pressable>
-            </View>
-          ) : null}
-
-          {chat.editingMessageId ? (
-            <View
-              className="flex-row items-center gap-2"
-              testID="chat-edit-notice"
-            >
-              <Icon name="edit" size="sm" tone="muted" />
-              <Text className="flex-1 text-muted text-xs leading-5">
-                {chatLabels.editNotice}
-              </Text>
-              <Pressable
-                accessibilityLabel={chatLabels.endEdit}
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={chat.cancelEdit}
-                testID="chat-edit-cancel"
-              >
-                <Icon name="close" size="sm" tone="muted" />
-              </Pressable>
-            </View>
-          ) : null}
-
-          <ComposerSurface>
-            <TextInput
-              accessibilityLabel={chatLabels.input}
-              className="flex-1 px-3 py-2.5 text-base text-foreground"
-              multiline
-              onChangeText={chat.setDraft}
-              onContentSizeChange={resizeInput}
-              onSubmitEditing={send}
-              placeholder="메시지를 입력하세요"
-              ref={inputRef}
-              returnKeyType="send"
-              style={{ height: inputHeight, maxHeight: INPUT_MAX_HEIGHT }}
-              submitBehavior="submit"
-              testID="chat-input"
-              value={chat.draft}
+          {/*
+            사건이 끝난 대화는 쓸 자리를 남기지 않는다. 입력만 지우면 오류와
+            수정 안내가 위에 뜬 채로 남으므로, 이 자리를 통째로 내준다.
+          */}
+          {closing === undefined ? (
+            <Composer
+              canSend={canSend}
+              chat={chat}
+              inputHeight={inputHeight}
+              inputRef={inputRef}
+              onResize={resizeInput}
+              onSend={send}
+              onStop={stopAnswer}
+              placeholder={placeholder}
             />
-            {/*
-              One place, two jobs. While an answer is arriving that place ends
-              it; the rest of the time it sends what has been typed.
-
-              Both say whether they are disabled rather than leaving it out.
-              The two sit at the same place in the tree, so React keeps one
-              instance and only changes its props; on Android a `disabled` that
-              stops being passed is never cleared on the native view, and the
-              stop button inherits the send button's disabled state — it draws
-              normally and refuses every touch.
-            */}
-            {chat.isBusy ? (
-              <Pressable
-                accessibilityLabel={chatLabels.stop}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: false }}
-                className="h-11 w-11 items-center justify-center rounded-full bg-accent"
-                disabled={false}
-                onPress={stopAnswer}
-                testID="chat-send"
-              >
-                <Icon filled name="stop" size="sm" tone="accentForeground" />
-              </Pressable>
-            ) : (
-              <Pressable
-                accessibilityLabel={chatLabels.send}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !canSend }}
-                className={
-                  canSend
-                    ? "h-11 w-11 items-center justify-center rounded-full bg-accent"
-                    : "h-11 w-11 items-center justify-center rounded-full bg-accent opacity-40"
-                }
-                disabled={!canSend}
-                onPress={send}
-                testID="chat-send"
-              >
-                <Icon name="send" tone="accentForeground" />
-              </Pressable>
-            )}
-          </ComposerSurface>
+          ) : (
+            closing
+          )}
         </View>
       </KeyboardStickyView>
 

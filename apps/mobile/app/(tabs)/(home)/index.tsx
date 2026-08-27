@@ -10,6 +10,10 @@ function openChat() {
   router.push("/chat");
 }
 
+function openEpisode() {
+  router.push("/episode");
+}
+
 function openSettings() {
   router.push("/settings");
 }
@@ -17,7 +21,7 @@ function openSettings() {
 export default function HomeRoute() {
   return (
     <>
-      <HomeScreen />
+      <HomeScreen onStartEpisode={openEpisode} />
       {/*
         The new-conversation action sits apart from the profile so it remains
         the leading action on both platforms. Every item is written out here

@@ -1631,3 +1631,84 @@ describe("ChatPanel", () => {
     });
   });
 });
+
+describe("끝난 대화", () => {
+  const answered = [
+    textMessage("user-1", "user", "질문"),
+    textMessage("assistant-1", "assistant", "답변"),
+  ];
+
+  // 사건이 끝나면 쓸 자리가 없다. 자리를 대신하는 것이 입력이 닫혔다는 가장
+  // 분명한 표시다.
+  test("마무리가 들어오면 입력과 오류와 수정 안내가 그 자리를 내준다", async () => {
+    const { Text } = require("react-native") as typeof import("react-native");
+
+    await renderWithHeroUI(
+      <ChatPanel
+        chat={chatSession({
+          editingMessageId: "user-1",
+          error: new Error("실패"),
+          messages: answered,
+        })}
+        closing={<Text testID="panel-closing">끝났어요</Text>}
+      />
+    );
+
+    expect(screen.getByTestId("panel-closing")).toBeOnTheScreen();
+    expect(screen.queryByTestId("chat-input")).not.toBeOnTheScreen();
+    expect(screen.queryByTestId("chat-send")).not.toBeOnTheScreen();
+    expect(screen.queryByTestId("chat-error")).not.toBeOnTheScreen();
+    expect(screen.queryByTestId("chat-edit-notice")).not.toBeOnTheScreen();
+  });
+
+  test("마무리가 없으면 입력이 그대로 있다", async () => {
+    await renderWithHeroUI(
+      <ChatPanel chat={chatSession({ messages: answered })} />
+    );
+
+    expect(screen.getByTestId("chat-input")).toBeOnTheScreen();
+    expect(screen.queryByTestId("panel-closing")).not.toBeOnTheScreen();
+  });
+
+  test("빈 자리에 설 문구를 화면이 정한다", async () => {
+    await renderWithHeroUI(
+      <ChatPanel chat={chatSession()} placeholder="영어로 말해 보세요" />
+    );
+
+    expect(screen.getByTestId("chat-input")).toHaveProp(
+      "placeholder",
+      "영어로 말해 보세요"
+    );
+  });
+});
+
+describe("메시지 하나에 거는 동작", () => {
+  const answered = [
+    textMessage("user-1", "user", "질문"),
+    textMessage("assistant-1", "assistant", "답변"),
+  ];
+
+  test("동작을 두지 않는 화면에서는 아이콘 줄도 메뉴도 열리지 않는다", async () => {
+    const user = userEvent.setup();
+    await renderWithHeroUI(
+      <ChatPanel
+        chat={chatSession({ messages: answered })}
+        hasMessageActions={false}
+      />
+    );
+
+    expect(screen.queryByTestId("chat-message-actions")).not.toBeOnTheScreen();
+
+    await user.longPress(screen.getByTestId("chat-message-user"));
+
+    expect(screen.queryByTestId("chat-message-menu")).not.toBeOnTheScreen();
+  });
+
+  test("따로 끄지 않으면 아이콘 줄이 답변 아래에 있다", async () => {
+    await renderWithHeroUI(
+      <ChatPanel chat={chatSession({ messages: answered })} />
+    );
+
+    expect(screen.getByTestId("chat-message-actions")).toBeOnTheScreen();
+  });
+});

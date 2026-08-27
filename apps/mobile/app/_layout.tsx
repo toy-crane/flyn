@@ -58,6 +58,13 @@ function ThemedRootLayout() {
         <Stack.Protected guard={area === "app"}>
           <Stack.Screen name="(tabs)" />
           {/*
+            An episode is pushed here for the same reason a conversation is:
+            the native push covers the tab bar, and the scene needs the whole
+            screen. The route turns this stack's header back on for itself,
+            because the way out of an episode belongs beside its name.
+          */}
+          <Stack.Screen name="episode" />
+          {/*
             A conversation is pushed here rather than inside the tabs so the
             native push covers the tab bar. Hiding the bar from inside the tab
             navigator leaves its strip on screen on Android, where it swallows

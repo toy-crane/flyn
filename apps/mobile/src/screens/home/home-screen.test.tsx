@@ -1,21 +1,25 @@
-import { expect, test } from "@jest/globals";
-import { screen } from "@testing-library/react-native";
+import { expect, jest, test } from "@jest/globals";
+import { screen, userEvent } from "@testing-library/react-native";
 
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { HomeScreen } from "./home-screen";
 
-const firstParagraph = /Lorem ipsum dolor sit amet/;
-const lastParagraph = /Integer posuere erat a ante/;
+const summary = /주문과 다른 커피가 나왔는데/;
 
-test("Large Title 동작을 확인할 수 있는 긴 임시 본문을 스크롤한다", async () => {
-  await renderWithHeroUI(<HomeScreen />);
+test("에피소드 하나를 이름과 상황과 함께 내놓고 고를 것을 두지 않는다", async () => {
+  const user = userEvent.setup();
+  const startEpisode = jest.fn();
+
+  await renderWithHeroUI(<HomeScreen onStartEpisode={startEpisode} />);
 
   expect(screen.getByTestId("home-scroll")).toHaveProp(
     "contentInsetAdjustmentBehavior",
     "automatic"
   );
-  expect(screen.getAllByTestId("home-placeholder-paragraph")).toHaveLength(8);
-  expect(screen.getByText(firstParagraph)).toBeOnTheScreen();
-  expect(screen.getByText(lastParagraph)).toBeOnTheScreen();
-  expect(screen.queryByText("무엇을 도와드릴까요?")).not.toBeOnTheScreen();
+  expect(screen.getByText("카페에서 생긴 일")).toBeOnTheScreen();
+  expect(screen.getByText(summary)).toBeOnTheScreen();
+
+  await user.press(screen.getByRole("button", { name: "에피소드 시작하기" }));
+
+  expect(startEpisode).toHaveBeenCalledTimes(1);
 });
