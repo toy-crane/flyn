@@ -10,6 +10,15 @@ function leaveEpisode() {
   router.back();
 }
 
+/**
+ * 다시 시작은 이 화면을 새로 여는 일이다. 자리에서 상태만 되돌리면 지난
+ * 에피소드의 목록 위치가 남아 첫 장면이 화면 밖에 그려진다. 경로를 갈아 끼우면
+ * 홈에서 처음 열 때와 똑같은 길을 지난다.
+ */
+function restartEpisode() {
+  router.replace("/episode");
+}
+
 export default function EpisodeRoute() {
   const { background } = useAppTheme();
 
@@ -34,7 +43,7 @@ export default function EpisodeRoute() {
               }),
         }}
       />
-      <EpisodeScreen onLeave={leaveEpisode} />
+      <EpisodeScreen onLeave={leaveEpisode} onRestart={restartEpisode} />
       {/*
         The toolbar replaces the stack's own back button, so this one carries
         the name a screen reader reads.
