@@ -1640,6 +1640,14 @@ describe("상황 줄 배너", () => {
     expect(screen.queryByTestId("chat-banner")).not.toBeOnTheScreen();
   });
 
+  // 조건부로 배너를 넘기는 화면은 조건이 어긋날 때 `null`을 준다. 빈 자리를
+  // 남기면 목록의 시작점 계산에도 없는 배너가 끼어든다.
+  test("배너 자리에 null을 주는 것도 없는 것으로 친다", async () => {
+    await renderWithHeroUI(<ChatPanel banner={null} chat={chatSession()} />);
+
+    expect(screen.queryByTestId("chat-banner")).not.toBeOnTheScreen();
+  });
+
   test("배너는 헤더 아래 고정 자리에 있는다", async () => {
     const { Text } = require("react-native") as typeof import("react-native");
 
