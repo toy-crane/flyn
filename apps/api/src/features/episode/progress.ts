@@ -1,7 +1,8 @@
 import type { Database } from "@repo/supabase";
 import type { SupabaseContext } from "@supabase/server";
 
-import type { SceneEndingData } from "../../shared/scene-stream";
+import type { SceneOutcome } from "../../shared/scene-stream";
+import { EPISODE_NOTES, type StoryMemory } from "./episode";
 import { episodeScript, SEASON_COMPLETION, SEASON_LENGTH } from "./season";
 
 /** 로그인한 사람의 권한으로 데이터베이스에 닿는 클라이언트. */
@@ -14,6 +15,16 @@ export type EpisodeClient = SupabaseContext<Database>["supabase"];
  * 시즌이라, 다음 시즌이 생기면 같은 화 번호가 두 번 나온다.
  */
 export const CURRENT_SEASON = 1;
+
+/** 끝난 화가 남긴 것 전부. 홈이 읽는 부분과 다음 화가 읽는 부분이 함께 있다. */
+export interface FinishedEpisodeRow {
+  episode: number;
+  kind: string;
+  memory_choice: string | null;
+  memory_question: string | null;
+  memory_relationship: string | null;
+  outcome: string;
+}
 
 /** 홈의 끝낸 화 목록에 한 줄로 들어가는 화. */
 export interface FinishedEpisodeView {
@@ -59,10 +70,12 @@ export interface SeasonView {
 export async function readFinishedEpisodes(
   client: EpisodeClient,
   season: number
-): Promise<{ episode: number; kind: string; outcome: string }[]> {
+): Promise<FinishedEpisodeRow[]> {
   const { data, error } = await client
     .from("episode_endings")
-    .select("episode, kind, outcome")
+    .select(
+      "episode, kind, outcome, memory_choice, memory_relationship, memory_question"
+    )
     .eq("season", season)
     .order("episode");
 
@@ -86,12 +99,23 @@ export async function recordEpisodeEnding(
   client: EpisodeClient,
   season: number,
   episode: number,
-  ending: SceneEndingData
+  outcome: SceneOutcome
 ): Promise<void> {
+  if (!outcome.ending) {
+    return;
+  }
+
+  const { notes } = outcome;
   const { error } = await client.rpc("finish_episode", {
     episode,
-    kind: ending.kind,
-    outcome: ending.outcome,
+    kind: outcome.ending.kind,
+    // 장면이 기록 줄을 쓰지 않았으면 그 자리는 비운다. 기억 없이 끝난 화도
+    // 끝난 화이고, 지난 관찰을 지우지도 않는다.
+    language_level: notes[EPISODE_NOTES.level],
+    memory_choice: notes[EPISODE_NOTES.choice],
+    memory_question: notes[EPISODE_NOTES.question],
+    memory_relationship: notes[EPISODE_NOTES.relationship],
+    outcome: outcome.ending.outcome,
     season,
   });
 
@@ -100,6 +124,36 @@ export async function recordEpisodeEnding(
       `Recording the ending of episode ${episode} failed: ${error.message}`
     );
   }
+}
+
+/**
+ * 다음 화의 프롬프트에 들어갈 지난 이야기.
+ *
+ * 각본이 사라진 화는 빼고 넘긴다. 제목 없이 번호만 남은 줄은 모델에게 아무
+ * 이야기도 되지 못한다.
+ */
+export function storyMemoriesOf(
+  finished: readonly FinishedEpisodeRow[]
+): StoryMemory[] {
+  return finished.flatMap((row) => {
+    const played = episodeScript(row.episode);
+
+    if (!played) {
+      return [];
+    }
+
+    return [
+      {
+        choice: row.memory_choice,
+        episode: row.episode,
+        kind: row.kind,
+        outcome: row.outcome,
+        question: row.memory_question,
+        relationship: row.memory_relationship,
+        title: played.title,
+      },
+    ];
+  });
 }
 
 /**

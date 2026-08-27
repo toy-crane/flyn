@@ -39,6 +39,9 @@ export type Database = {
           episode: number
           finished_at: string
           kind: string
+          memory_choice: string | null
+          memory_question: string | null
+          memory_relationship: string | null
           outcome: string
           season: number
           user_id: string
@@ -47,6 +50,9 @@ export type Database = {
           episode: number
           finished_at?: string
           kind: string
+          memory_choice?: string | null
+          memory_question?: string | null
+          memory_relationship?: string | null
           outcome: string
           season: number
           user_id: string
@@ -55,6 +61,9 @@ export type Database = {
           episode?: number
           finished_at?: string
           kind?: string
+          memory_choice?: string | null
+          memory_question?: string | null
+          memory_relationship?: string | null
           outcome?: string
           season?: number
           user_id?: string
@@ -64,6 +73,32 @@ export type Database = {
             foreignKeyName: "episode_endings_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      language_levels: {
+        Row: {
+          level: string
+          observed_at: string
+          user_id: string
+        }
+        Insert: {
+          level: string
+          observed_at?: string
+          user_id: string
+        }
+        Update: {
+          level?: string
+          observed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "language_levels_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -147,7 +182,16 @@ export type Database = {
     Functions: {
       available_usernames: { Args: { candidates: string[] }; Returns: string[] }
       finish_episode: {
-        Args: { episode: number; kind: string; outcome: string; season: number }
+        Args: {
+          episode: number
+          kind: string
+          language_level?: string
+          memory_choice?: string
+          memory_question?: string
+          memory_relationship?: string
+          outcome: string
+          season: number
+        }
         Returns: undefined
       }
       is_protected_username: {

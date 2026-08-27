@@ -28,6 +28,9 @@ function createUserAuthMiddleware(): MiddlewareHandler {
 interface FinishedRow {
   episode: number;
   kind: string;
+  memory_choice?: string | null;
+  memory_question?: string | null;
+  memory_relationship?: string | null;
   outcome: string;
 }
 
@@ -41,12 +44,7 @@ interface FinishedRow {
 interface SeasonState {
   finished: FinishedRow[];
   recordError?: string;
-  recorded: {
-    episode: number;
-    kind: string;
-    outcome: string;
-    season: number;
-  }[];
+  recorded: Record<string, unknown>[];
 }
 
 function createSeasonState(finished: FinishedRow[] = []): SeasonState {
@@ -84,7 +82,7 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
 
       return builder;
     },
-    rpc: (_name: string, args: FinishedRow & { season: number }) => {
+    rpc: (_name: string, args: Record<string, unknown>) => {
       state.recorded.push(args);
 
       return Promise.resolve({
@@ -798,10 +796,146 @@ describe("POST /ai/episode", () => {
       {
         episode: 1,
         kind: "성공",
+        language_level: undefined,
+        memory_choice: undefined,
+        memory_question: undefined,
+        memory_relationship: undefined,
         outcome: "원하던 커피를 새로 받아냈다.",
         season: 1,
       },
     ]);
+  });
+
+  // 기억은 결말과 같은 한 번의 출력에서 나온다. 그래서 장면과 기억이 서로
+  // 어긋날 수 없고, 화면에는 결말만 보인다.
+  test("stores the story memory the closing scene wrote, without showing it", async () => {
+    const state = createSeasonState();
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([
+        "Mia: Here is your iced americano.\n",
+        "성공: 원하던 커피를 새로 받아냈다.\n",
+        "선택: 영수증을 보여 주며 침착하게 요구했다.\n",
+        "관계: Mia가 실수를 인정했다.\n",
+        "질문: 내일도 이 카페에 들를지.\n",
+        "수준: 중급 초반. 짧고 분명한 문장을 쓴다.",
+      ]),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Excuse me.")] })
+    );
+    const body = await response.text();
+
+    expect(state.recorded).toEqual([
+      {
+        episode: 1,
+        kind: "성공",
+        language_level: "중급 초반. 짧고 분명한 문장을 쓴다.",
+        memory_choice: "영수증을 보여 주며 침착하게 요구했다.",
+        memory_question: "내일도 이 카페에 들를지.",
+        memory_relationship: "Mia가 실수를 인정했다.",
+        outcome: "원하던 커피를 새로 받아냈다.",
+        season: 1,
+      },
+    ]);
+    expect(body).toContain("Here is your iced americano.");
+    expect(body).not.toContain("영수증을 보여 주며");
+    expect(body).not.toContain("중급 초반");
+  });
+
+  // 지난 선택이 다음 화에 돌아오는 길은 프롬프트 하나다. 사건은 그대로 두고
+  // 대사와 관계와 지문만 달라진다.
+  test("carries the memory of finished episodes into the next episode's prompt", async () => {
+    const model = createMockModel(["Mia: Morning."]);
+    const app = createApp({
+      authMiddleware: signedInWith(
+        createSeasonState([
+          {
+            episode: 1,
+            kind: "성공",
+            memory_choice: "영수증을 보여 주며 침착하게 요구했다.",
+            memory_question: "내일도 이 카페에 들를지.",
+            memory_relationship: "Mia가 실수를 인정했다.",
+            outcome: "원하던 커피를 새로 받아냈다.",
+          },
+        ])
+      ),
+      model,
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("My card failed.")] })
+    );
+
+    await response.text();
+
+    const system = model.doStreamCalls[0]?.prompt.find(
+      (message) => message.role === "system"
+    );
+    const text = JSON.stringify(system);
+
+    expect(text).toContain("지난 이야기");
+    expect(text).toContain("1화 「카페에서 생긴 일」");
+    expect(text).toContain("영수증을 보여 주며 침착하게 요구했다.");
+    expect(text).toContain("Mia가 실수를 인정했다.");
+  });
+
+  // 무대는 어느 결말에서 왔든 같다. 기억이 바꾸는 것은 전개뿐이다.
+  test("opens the same authored scene no matter how the last episode ended", async () => {
+    const openings = await Promise.all(
+      ["성공", "실패"].map(async (kind) => {
+        const app = createApp({
+          authMiddleware: signedInWith(
+            createSeasonState([
+              {
+                episode: 1,
+                kind,
+                memory_choice: `${kind}으로 끝냈다.`,
+                memory_question: "다음은.",
+                memory_relationship: "달라졌다.",
+                outcome: `${kind}의 결과.`,
+              },
+            ])
+          ),
+          model: createMockModel(["Mia: Morning."]),
+        });
+        const response = await app.request(
+          createEpisodeRequest({ messages: [] })
+        );
+
+        const body = await response.text();
+
+        // 응답마다 새로 붙는 메시지 아이디는 장면이 아니다.
+        return body
+          .split("\n")
+          .filter((line) => !line.includes('"type":"start"'))
+          .join("\n");
+      })
+    );
+
+    expect(openings[0]).toContain("it says declined");
+    expect(openings[0]).toBe(openings[1]);
+  });
+
+  // 기록 줄이 오지 않아도 그 화는 끝난다. 기억만 비고 다음 화는 열린다.
+  test("finishes an episode whose closing scene left no memory", async () => {
+    const state = createSeasonState();
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel(["성공: 원하던 커피를 새로 받아냈다."]),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Excuse me.")] })
+    );
+    const body = await response.text();
+
+    expect(body).toContain('"type":"data-ending"');
+    expect(state.recorded[0]).toMatchObject({
+      episode: 1,
+      memory_choice: undefined,
+    });
   });
 
   // 예고는 각본에 미리 쓴 글이라 결말과 같은 응답에 실려 온다.

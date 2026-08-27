@@ -22,6 +22,7 @@ import {
   readFinishedEpisodes,
   readSeasonView,
   recordEpisodeEnding,
+  storyMemoriesOf,
 } from "./progress";
 import { episodeScript } from "./season";
 
@@ -83,7 +84,7 @@ async function resolveEpisode(client: EpisodeClient, requested: unknown) {
     } as const;
   }
 
-  return { script } as const;
+  return { memories: storyMemoriesOf(finished), script } as const;
 }
 
 /**
@@ -123,7 +124,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           return c.json({ error: resolved.error }, CONFLICT_STATUS);
         }
 
-        const { script } = resolved;
+        const { memories, script } = resolved;
         const tags = episodeTags(script);
 
         // 아직 아무 말도 오가지 않은 요청이 "이 화를 연다"는 뜻이다. 첫 장면은
@@ -168,7 +169,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           onError: ({ error }) => {
             logRequestFailure(c.req.method, c.req.path, error);
           },
-          system: episodeSystemPrompt(script),
+          system: episodeSystemPrompt(script, memories),
         });
 
         // `textStream`만 소비하므로 reasoning 모델로 바꿔도 추론이 장면에 섞이지
@@ -176,7 +177,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
         return sceneResponse(async (writer) => {
           // 결말을 계정에 남긴 뒤에야 결말 part가 나간다. 남기지 못하면 화면이
           // 끝난 척하지 않고, 사용자는 같은 화를 이어서 다시 시도할 수 있다.
-          const ending = await streamSceneText(
+          const { ending } = await streamSceneText(
             result.textStream,
             tags,
             writer,

@@ -2,7 +2,7 @@
 -- public.finish_episode can write it. The catalog checks fail on a grant that
 -- widens by accident; the behavioural ones fail on a rule that stops holding.
 BEGIN;
-SELECT plan(28);
+SELECT plan(39);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -45,16 +45,41 @@ SELECT table_privs_are(
 
 SELECT function_privs_are(
   'public', 'finish_episode',
-  ARRAY['smallint', 'smallint', 'text', 'text']::name[],
+  ARRAY['smallint', 'smallint', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
   'anon', ARRAY[]::text[],
   'anon cannot record an ending'
 );
 
 SELECT function_privs_are(
   'public', 'finish_episode',
-  ARRAY['smallint', 'smallint', 'text', 'text']::name[],
+  ARRAY['smallint', 'smallint', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
   'authenticated', ARRAY['EXECUTE'],
   'a signed-in user can record an ending'
+);
+
+SELECT has_table(
+  'public', 'language_levels', 'public.language_levels exists'
+);
+
+SELECT ok(
+  (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.language_levels'::regclass),
+  'row level security is enabled on language_levels'
+);
+
+SELECT policies_are(
+  'public', 'language_levels',
+  ARRAY['language_levels_select_own'],
+  'language_levels carries only the select policy'
+);
+
+SELECT table_privs_are(
+  'public', 'language_levels', 'anon', ARRAY[]::text[],
+  'anon holds no privilege on language_levels'
+);
+
+SELECT table_privs_are(
+  'public', 'language_levels', 'authenticated', ARRAY['SELECT'],
+  'a person may read their own level but not declare it'
 );
 
 SET LOCAL ROLE anon;
@@ -151,15 +176,54 @@ SELECT throws_ok(
   'a season number below the first season is refused'
 );
 
+-- 이야기 기억과 언어 수준은 결말과 같은 호출에 실려 온다. 장면을 닫은 모델이
+-- 한 번의 출력에 함께 썼으므로 서로 어긋날 여지가 없다.
 SELECT lives_ok(
-  $$select public.finish_episode(1::smallint, 2::smallint, '타협', '더 싼 음료로 바꿔 계산을 끝냈다.')$$,
+  $$select public.finish_episode(
+      1::smallint, 2::smallint, '타협', '더 싼 음료로 바꿔 계산을 끝냈다.',
+      '카드가 막히자 더 싼 음료로 바꿨다.',
+      'Mia가 방법을 같이 찾아 줬다.',
+      '다음에는 폰 결제를 준비해 둘지.',
+      '중급 초반. 짧은 문장을 쓰고 시제를 가끔 놓친다.'
+    )$$,
   'the next episode can be finished once the one before it is done'
 );
 
 SELECT is(
+  (SELECT memory_choice FROM public.episode_endings WHERE episode = 2),
+  '카드가 막히자 더 싼 음료로 바꿨다.',
+  'the story memory is stored with the ending'
+);
+
+SELECT is(
+  (SELECT level FROM public.language_levels),
+  '중급 초반. 짧은 문장을 쓰고 시제를 가끔 놓친다.',
+  'the language level is stored for the account'
+);
+
+-- 장면이 기억 줄을 쓰지 않았어도 그 화는 끝난다. 기억만 빈 채로 남는다.
+SELECT is(
+  (SELECT memory_choice FROM public.episode_endings WHERE episode = 1),
+  NULL,
+  'an episode closed without memory lines is still finished, with no memory'
+);
+
+-- 지난 관찰을 지우지 않는다. 이번 장면이 수준을 말하지 않았을 뿐이다.
+SELECT lives_ok(
+  $$select public.finish_episode(1::smallint, 3::smallint, '실패', '자리를 잃고 나왔다.')$$,
+  'an episode that says nothing about the level still finishes'
+);
+
+SELECT is(
+  (SELECT level FROM public.language_levels),
+  '중급 초반. 짧은 문장을 쓰고 시제를 가끔 놓친다.',
+  'and the level observed earlier is left standing'
+);
+
+SELECT is(
   (SELECT count(*) FROM public.episode_endings),
-  2::bigint,
-  'the player sees both of their finished episodes'
+  3::bigint,
+  'the player sees all of their finished episodes'
 );
 
 SET LOCAL request.jwt.claims TO '{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}';
@@ -168,6 +232,12 @@ SELECT is(
   (SELECT count(*) FROM public.episode_endings),
   0::bigint,
   'another account sees none of them'
+);
+
+SELECT is(
+  (SELECT count(*) FROM public.language_levels),
+  0::bigint,
+  'and none of the first account''s language level'
 );
 
 -- The function writes for whoever is calling, never for whoever is named. A
@@ -195,8 +265,8 @@ SELECT is(
 SELECT is(
   (SELECT count(*) FROM public.episode_endings
    WHERE user_id = '11111111-1111-4111-8111-111111111111'),
-  2::bigint,
-  'and it still holds both of its own episodes'
+  3::bigint,
+  'and it still holds all of its own episodes'
 );
 
 -- Signing out mid-request is not a way to write a row with no owner.
