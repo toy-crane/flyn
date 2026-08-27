@@ -70,7 +70,7 @@ function sceneResponse(
  */
 async function resolveEpisode(client: EpisodeClient, requested: unknown) {
   const finished = await readFinishedEpisodes(client, CURRENT_SEASON);
-  const number = currentEpisodeNumber(finished.length);
+  const number = currentEpisodeNumber(finished);
   const script = episodeScript(number);
 
   if (!script) {

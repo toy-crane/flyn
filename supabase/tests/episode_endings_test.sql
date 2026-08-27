@@ -2,7 +2,7 @@
 -- public.finish_episode can write it. The catalog checks fail on a grant that
 -- widens by accident; the behavioural ones fail on a rule that stops holding.
 BEGIN;
-SELECT plan(19);
+SELECT plan(28);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -118,6 +118,39 @@ SELECT throws_ok(
   'a signed-in user cannot empty everyone''s progress'
 );
 
+-- The function takes what the caller sends straight to the table, so these
+-- constraints are the whole of the input checking.
+SELECT throws_ok(
+  $$select public.finish_episode(1::smallint, 2::smallint, '보류', '없는 결말.')$$,
+  '23514',
+  NULL,
+  'an ending outside the three words is refused'
+);
+
+SELECT throws_ok(
+  $$select public.finish_episode(1::smallint, 2::smallint, '성공', '   ')$$,
+  '23514',
+  NULL,
+  'an ending with no outcome line is refused'
+);
+
+-- The order rule is the first gate, so a wild episode number never reaches the
+-- ceiling on the column. The ceiling is what stops a caller that climbed there
+-- one episode at a time.
+SELECT throws_ok(
+  $$select public.finish_episode(1::smallint, 101::smallint, '성공', '있지도 않은 화.')$$,
+  '22023',
+  NULL,
+  'an episode number far past the season is refused as out of order'
+);
+
+SELECT throws_ok(
+  $$select public.finish_episode(0::smallint, 1::smallint, '성공', '없는 시즌.')$$,
+  '23514',
+  NULL,
+  'a season number below the first season is refused'
+);
+
 SELECT lives_ok(
   $$select public.finish_episode(1::smallint, 2::smallint, '타협', '더 싼 음료로 바꿔 계산을 끝냈다.')$$,
   'the next episode can be finished once the one before it is done'
@@ -136,6 +169,48 @@ SELECT is(
   0::bigint,
   'another account sees none of them'
 );
+
+-- The function writes for whoever is calling, never for whoever is named. A
+-- second account starts its own season at the first episode.
+SELECT lives_ok(
+  $$select public.finish_episode(1::smallint, 1::smallint, '실패', '다른 계정의 1화.')$$,
+  'another account starts the season at its own first episode'
+);
+
+SELECT is(
+  (SELECT count(*) FROM public.episode_endings),
+  1::bigint,
+  'and sees only the row it just wrote'
+);
+
+RESET ROLE;
+
+SELECT is(
+  (SELECT kind FROM public.episode_endings
+   WHERE user_id = '11111111-1111-4111-8111-111111111111' AND episode = 1),
+  '성공',
+  'the first account''s ending is untouched by the second'
+);
+
+SELECT is(
+  (SELECT count(*) FROM public.episode_endings
+   WHERE user_id = '11111111-1111-4111-8111-111111111111'),
+  2::bigint,
+  'and it still holds both of its own episodes'
+);
+
+-- Signing out mid-request is not a way to write a row with no owner.
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claims TO '{"role":"authenticated"}';
+
+SELECT throws_ok(
+  $$select public.finish_episode(1::smallint, 1::smallint, '성공', '주인 없는 결말.')$$,
+  '28000',
+  NULL,
+  'a request with no signed-in user cannot record anything'
+);
+
+RESET ROLE;
 
 SELECT * FROM finish();
 ROLLBACK;

@@ -22,7 +22,8 @@ import { EpisodeSituationBanner } from "@/features/episode/ui/episode-situation-
  * 다음 화로 넘어가는 것도 이 화면을 새로 여는 일이라 경로가 소유한다.
  *
  * 어느 화인지는 화면이 정하지 않는다. 계정의 진행이 정한 화를 경로가 넘겨
- * 주고, 그 화가 정해지기 전에는 아무것도 열지 않는다.
+ * 주고, 경로는 그 화를 알기 전에 이 화면을 그리지 않는다. 상황 줄이 뒤늦게
+ * 생기면 장면 목록이 이미 잡아 둔 배치와 어긋나 첫 장면이 화면 밖에 남는다.
  *
  * Side chat으로 들어가는 길은 넘기지 않는다. 잠깐 물어보기는 다음 단위이고,
  * 템플릿의 Side chat이 그 자리를 미리 차지하지 않는다.
@@ -34,11 +35,11 @@ export function EpisodeScreen({
   situation,
   situationEmoji,
 }: {
-  episode: number | undefined;
+  episode: number;
   onLeave: () => void;
   onStartNext: () => void;
-  situation: string | undefined;
-  situationEmoji: string | undefined;
+  situation: string;
+  situationEmoji: string;
 }) {
   const { session } = useAuthSession();
   const accessToken = session?.access_token;
@@ -59,12 +60,7 @@ export function EpisodeScreen({
   return (
     <ChatPanel
       banner={
-        situation === undefined ? null : (
-          <EpisodeSituationBanner
-            emoji={situationEmoji ?? ""}
-            text={situation}
-          />
-        )
+        <EpisodeSituationBanner emoji={situationEmoji} text={situation} />
       }
       chat={conversationRun}
       closing={

@@ -141,8 +141,11 @@ create table public.episode_endings (
   outcome text not null,
   finished_at timestamptz not null default now(),
   primary key (user_id, season, episode),
-  constraint episode_endings_season_usable check (season >= 1),
-  constraint episode_endings_episode_usable check (episode >= 1),
+  -- 위쪽 한계는 이 시즌의 길이가 아니라 상식선이다. 어떤 시즌이 몇 화인지는
+  -- 각본을 가진 서버가 알고, 여기서는 직접 RPC를 부르는 클라이언트가 있지도
+  -- 않은 화를 끝없이 쌓지 못하게만 막는다.
+  constraint episode_endings_season_usable check (season between 1 and 100),
+  constraint episode_endings_episode_usable check (episode between 1 and 100),
   constraint episode_endings_kind_known check (kind in ('성공', '타협', '실패')),
   constraint episode_endings_outcome_usable check (
     length(btrim(outcome)) between 1 and 300

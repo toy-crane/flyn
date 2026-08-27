@@ -165,10 +165,12 @@ test("마무리에서 홈으로 가기는 진행을 다시 읽고 왔던 자리�
   expect(mockBack).toHaveBeenCalledTimes(1);
 });
 
-// 시즌을 아직 읽지 못했으면 열 화가 없다. 아무 화나 열지 않고 기다린다.
-test("열 화가 정해지기 전에는 아무 화도 넘기지 않는다", async () => {
+// 장면을 먼저 그렸다가 상황 줄을 뒤늦게 얹으면, 그 사이에 잡힌 배치 때문에
+// 첫 장면이 화면 밖에 남는다. 열 화를 알기 전에는 화면을 그리지 않는다.
+test("열 화가 정해지기 전에는 에피소드 화면을 그리지 않는다", async () => {
   mockNext = null;
   await render(<EpisodeRoute />);
 
-  expect(playing).toEqual({ episode: undefined, situation: undefined });
+  expect(playing).toBeUndefined();
+  expect(screen.queryByRole("button", { name: "leave" })).not.toBeOnTheScreen();
 });
