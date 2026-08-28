@@ -23,8 +23,7 @@
   열 단위 update, 허용한 RPC의 execute, service_role의 권한이 여기에 속한다.
   이 GRANT는 지금도 diff에 정상적으로 들어간다.
 - 기존 마이그레이션 이력을 REVOKE 상용구 없는 선언형 스키마 기준의 새 이력으로
-  교체한다. 스토리 콘텐츠 같은 DML과 저장소 버킷·정책 같은 diff 미지원 객체는
-  새 이력에 옮겨 보존한다.
+  교체한다. diff가 못 잡는 객체는 아래 보존 목록과 대조해 새 이력에 옮긴다.
 - 새 테이블을 추가할 때 REVOKE를 손으로 보정하라는 문서(`supabase/schemas/README.md`의
   해당 절)를 새 절차에 맞게 바꾼다.
 - [Supabase 스키마 작업 방식](../../decisions/supabase-schema-workflow.md) 계약에는
@@ -44,7 +43,8 @@
   재현된다.
 - 새 기준 이력으로 `supabase db reset`을 하면 지금 상태가 그대로 재현된다.
   공식 스토리 콘텐츠, 아바타 저장소 버킷과 그 정책(계정 삭제 쓰기 울타리 포함),
-  확장 설정이 살아나고 pgTAP가 통과한다. 수동 보완은 DML과 선언형 diff가
+  회원 가입 시 프로필을 만드는 auth.users 트리거, profiles의 열 단위 update
+  권한, 확장 설정이 살아나고 pgTAP가 통과한다. 수동 보완은 DML과 선언형 diff가
   표현하지 못하는 객체에만 남는다.
 - 앱 동작은 바뀌지 않는다. 화면, API 경로, 로그인 사용자의 데이터 접근 결과가
   지금과 같다.
@@ -76,6 +76,28 @@
   트리거), RLS 정책, API가 secret key를 갖지 않는 서버 경계는 이 단위에서 바꾸지
   않는다. 이들은 마이그레이션 보정을 만든 원인이 아니고, diff에 정상적으로
   표현되며, 에피소드 순서, 결말 불변, 아이디 잠금 같은 제품 규칙이 사는 자리다.
+
+## diff가 못 잡는 것과 보존 목록
+
+Supabase 공식 문서(선언형 데이터베이스 스키마의 Known caveats, 2026-08-28 확인)는
+schema diff가 놓칠 수 있는 항목을 나열하고, 엔진과 무관하게 생성된 마이그레이션을
+검토하라고 안내한다. 문서의 목록: DML, 뷰 소유권과 grant·security invoker·구체화
+뷰, alter policy, 열 단위 권한, 스키마별 분리 diff, 주석, 파티션, publication에
+테이블 추가, domain, 기본 권한에서 복제되는 grant. 일부는 옛 migra 엔진 기준이라
+지금 쓰는 pg-delta는 잡을 수도 있다. 그래서 이것은 무조건 손으로 쓸 목록이
+아니라 생성물과 대조할 목록이다.
+
+이 저장소에서 실제로 해당하는 것은 다섯 가지다. 새 기준 이력을 생성한 뒤 이
+목록과 대조해서 빠진 것만 수동 보완한다.
+
+1. 스토리·에피소드 콘텐츠와 storage 버킷 생성 DML
+2. storage.objects의 아바타 정책(계정 삭제 쓰기 울타리 포함)
+3. auth.users 위의 회원 가입 트리거(public 밖 스키마)
+4. profiles의 열 단위 update grant(문서가 명시한 caveat)
+5. 테이블·열·함수의 comment on 주석
+
+뷰, 구체화 뷰, 파티션, domain, publication, alter policy는 저장소에 없음을
+확인했다.
 
 ## 가정
 
