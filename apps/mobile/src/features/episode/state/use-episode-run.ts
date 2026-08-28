@@ -1,5 +1,6 @@
 import { type UseChatHelpers, useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
+import { randomUUID } from "expo-crypto";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { correctionOfData } from "@/features/episode/api/episode-correction";
@@ -71,6 +72,9 @@ export function useEpisodeRun(
     []
   );
   const chat = useChat({
+    // 사용자가 쓴 말도 한 행으로 남고, 그 열은 uuid다. SDK 기본 생성기가 만드는
+    // 짧은 문자열은 들어가지 못하므로 앱도 서버와 같은 모양으로 만든다.
+    generateId: () => randomUUID(),
     messages: initialMessages,
     // 교정은 장면 메시지에 들어가지 않는 transient part로 온다. 받는 자리가
     // 여기뿐이라, 저장되는 대화 기록은 교정이 붙기 전과 똑같이 남는다.

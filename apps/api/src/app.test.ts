@@ -2342,6 +2342,112 @@ describe("story content database contract", () => {
     expect(model.doStreamCalls).toHaveLength(1);
   });
 
+  // 다시 받기와 수정은 둘 다 "여기까지 남긴다"는 메시지 하나로 온다. 앱은 SDK가
+  // 잘라 낸 목록의 마지막 id를 싣고, 서버는 그 뒤를 지운다.
+  test("drops the answers a retry replaces", async () => {
+    const state = createSeasonState();
+    const play = `play-${episodeId(1)}`;
+
+    state.messages.push(
+      {
+        id: "opening",
+        parts: [{ text: "Next in line, please!", type: "text" }],
+        play_id: play,
+        position: 0,
+        role: "assistant",
+      },
+      {
+        id: "asked",
+        parts: [{ text: "This is wrong.", type: "text" }],
+        play_id: play,
+        position: 1,
+        role: "user",
+      },
+      {
+        id: "answered",
+        parts: [{ text: "What did you order?", type: "text" }],
+        play_id: play,
+        position: 2,
+        role: "assistant",
+      }
+    );
+
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel(["Mia: Let me look again."]),
+    });
+    const response = await app.request(
+      createEpisodeRequest({ keepThrough: "asked" })
+    );
+
+    await response.text();
+
+    // 버린 답변은 사라지고 새 답변이 그 자리에 온다.
+    expect(state.messages.map((row) => row.id)).toEqual([
+      "opening",
+      "asked",
+      expect.any(String),
+    ]);
+    expect(state.messages.at(-1)?.position).toBe(2);
+    expect(state.messages.at(-1)?.parts).not.toEqual([
+      { text: "What did you order?", type: "text" },
+    ]);
+  });
+
+  test("starts the conversation over when nothing is kept", async () => {
+    const state = createSeasonState();
+    const play = `play-${episodeId(1)}`;
+
+    state.messages.push({
+      id: "opening",
+      parts: [{ text: "Next in line, please!", type: "text" }],
+      play_id: play,
+      position: 0,
+      role: "assistant",
+    });
+
+    const app = createApp({ authMiddleware: signedInWith(state) });
+    const response = await app.request(
+      createEpisodeRequest({ keepThrough: null })
+    );
+
+    await response.text();
+
+    // 남길 것이 없다고 하면 첫 장면부터 다시 연다.
+    expect(state.messages).toHaveLength(1);
+    expect(state.messages[0]?.id).not.toBe("opening");
+  });
+
+  test("keeps the record as it is when the app names a message it does not have", async () => {
+    const state = createSeasonState();
+    const play = `play-${episodeId(1)}`;
+
+    state.messages.push({
+      id: "opening",
+      parts: [{ text: "Next in line, please!", type: "text" }],
+      play_id: play,
+      position: 0,
+      role: "assistant",
+    });
+
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel(["Mia: Sure."]),
+    });
+    const response = await app.request(
+      createEpisodeRequest({
+        keepThrough: "a-message-the-server-never-saw",
+        messages: [createUserMessage("Hello?")],
+      })
+    );
+
+    await response.text();
+
+    // 앱이 뒤처진 것이지 기록이 틀린 것이 아니다. 지우지 않고 이어 간다.
+    expect(state.messages[0]?.id).toBe("opening");
+    expect(state.messages).toHaveLength(3);
+  });
+
   test("keeps the ending when saving the closing scene fails", async () => {
     const state = createSeasonState();
 

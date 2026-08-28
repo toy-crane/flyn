@@ -13,16 +13,16 @@
 
 ## Acceptance criteria
 
-- [ ] 대화 중간에 앱을 껐다 켜면 마지막 장면까지 그대로 이어진다.
-- [ ] 답변을 받는 중에 화면을 나갔다 돌아오면 서버가 만든 데까지 남아 있다.
-- [ ] 다시 받기를 하면 그 답변과 뒤가 사라지고 새 답변이 그 자리에 온다. 같은 화를
+- [x] 대화 중간에 앱을 껐다 켜면 마지막 장면까지 그대로 이어진다.
+- [x] 답변을 받는 중에 화면을 나갔다 돌아오면 서버가 만든 데까지 남아 있다.
+- [x] 다시 받기를 하면 그 답변과 뒤가 사라지고 새 답변이 그 자리에 온다. 같은 화를
       다시 열어도 사라진 답변은 보이지 않는다.
-- [ ] 사용자 메시지를 수정해 다시 보내면 그 메시지부터 대화가 다시 시작한다.
-- [ ] 결말이 난 화를 다시 열면 읽기 전용으로 보이고 더 이상 바뀌지 않는다.
-- [ ] 요청 크기가 대화 길이에 비례해 커지지 않는다.
-- [ ] 앱이 지난 장면을 고쳐 보내도 서버의 기록이 바뀌지 않는다.
-- [ ] 한 계정이 특정 화에서 쓴 문장 전체를 한 번의 조회로 꺼낼 수 있다.
-- [ ] 명세의 "근거를 잃어 없어지는 것" 목록이 저장소에 남아 있지 않다.
+- [x] 사용자 메시지를 수정해 다시 보내면 그 메시지부터 대화가 다시 시작한다.
+- [x] 결말이 난 화를 다시 열면 읽기 전용으로 보이고 더 이상 바뀌지 않는다.
+- [x] 요청 크기가 대화 길이에 비례해 커지지 않는다.
+- [x] 앱이 지난 장면을 고쳐 보내도 서버의 기록이 바뀌지 않는다.
+- [x] 한 계정이 특정 화에서 쓴 문장 전체를 한 번의 조회로 꺼낼 수 있다.
+- [x] 명세의 "근거를 잃어 없어지는 것" 목록이 저장소에 남아 있지 않다.
 
 ## Constraints
 
@@ -63,14 +63,28 @@ verification pass. Use `superseded` only after an approved replacement of a
 task with recorded completion history. Preserve its Execution evidence and name
 the replacement and reason under Revision; it is then terminal for that approved
 breakdown and outside the current delivery map. -->
-pending
+completed
 
 ## Execution
 
 <!-- Append concise evidence and preserve earlier entries when status changes.
 Execution Blocker is the current impediment for an active task, not a declared
 task dependency. In a superseded task, preserved entries are historical. -->
-- Verification: —
+- Verification: `bun run check-types` 통과. `bun run test`가 `apps/api` 70개,
+  `apps/mobile` 464개, `scripts` 158개를 통과한다. 서버 테스트가 새 말 하나만
+  받는 경로, 앱이 고쳐 보낸 지난 장면을 거절하는 것, `keepThrough`가 뒤를 지우는
+  것, 저장이 실패해도 플레이가 이어지는 것, 닫는 장면이 결말보다 먼저 저장되는
+  것을 각각 고정한다. `bun run db:test` pgTAP 239개 통과.
+
+  `agent-device` 한 세션에서 slot 3 기기로 확인했다. 새 계정으로 로그인해 1화를
+  첫 장면부터 결말까지 진행했고, 다음을 각각 데이터베이스로 대조했다. 첫 장면과
+  사용자 메시지와 상대 장면이 `position` 0, 1, 2에 한 행씩 남았다. 앱을 껐다
+  켜면 그 자리에서 이어졌다. 답변이 흐르는 중에 앱을 강제로 내렸을 때 서버가
+  스트림을 끝까지 소비해 완성된 장면을 남겼다(명세의 첫 번째 남은 위험 해소).
+  결말이 나자 닫는 장면이 저장된 뒤 결말이 기록됐고, 그 장면에 `data-ending`
+  part가 없다. 끝난 화를 다시 열면 입력창 없이 "끝난 대화 기록"으로 보이고,
+  서버가 세션에 실어 보낸 결말과 예고로 마무리가 그려진다. 마지막에 로그아웃까지
+  같은 세션에서 확인했다.
 - Blocker: —
 - Revision: 01의 검토가 순서 함정 하나를 드러내 제약에 적었다. `finish_episode`가
   `finished_at`을 채우면 그 플레이의 메시지 insert가 정책에 막히는데, PostgREST는

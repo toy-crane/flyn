@@ -293,6 +293,10 @@ function keptThrough(
  *
  * `system` 역할은 데이터베이스가 받지 않는다. 에피소드 대화에는 그런 메시지가
  * 오지 않지만, 타입이 그 가능성을 열어 두므로 여기서 걸러 낸다.
+ *
+ * 빈 메시지도 남기지 않는다. 사용자가 첫 글자가 오기 전에 화면을 나가면 모델
+ * 호출이 함께 끊겨 아무 part도 만들어지지 않는데, 그것을 저장하면 다시 열었을 때
+ * 빈 말풍선이 남는다. 아무것도 만들지 못한 턴은 없던 턴이다.
  */
 export async function appendEpisodeMessages(
   client: EpisodeClient,
@@ -300,7 +304,9 @@ export async function appendEpisodeMessages(
   messages: readonly UIMessage[]
 ): Promise<void> {
   const rows = messages
-    .filter((message) => STORED_ROLES.has(message.role))
+    .filter(
+      (message) => STORED_ROLES.has(message.role) && message.parts.length > 0
+    )
     .map((message, index) => ({
       id: message.id,
       parts: message.parts,
