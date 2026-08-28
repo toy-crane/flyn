@@ -41,9 +41,21 @@ GRANT가 없어도 결과 상태는 같다. 지금 동작에는 차이가 없고
 `MAINTAIN`을 빠뜨렸던 결정 계약, 명세, 스키마 주석과 테스트 주석을 네 권한으로
 바로잡았다.
 
-**Proposed next step**: 사용자가 둘 중 하나를 정한다. 첫째, 그대로 둔다. 지금 상태와
-같고 원격도 없으므로 비용이 없다. 대신 계약의 "기본값을 신뢰한다"는 문장이 이력에
-대해서는 정확하지 않다는 것을 계약에 적어 둔다. 둘째, 이 GRANT를 기준 이력에서 한
-번 지운다. 결과 상태는 같지만 손 보정 금지 규칙의 예외를 하나 만들게 되므로, 그
-예외의 범위를 계약에 적어야 한다. 어느 쪽이든 재현은
+**한 번 더 확인한 것**: 이 GRANT는 기준 이력에만 생기는 것이 아니다. 선언형 스키마에
+테이블 하나를 임시로 더해 `db diff`를 돌렸더니 새 테이블에도 같은 세 줄이 생겼다.
+
+```
+GRANT MAINTAIN, REFERENCES, TRIGGER, TRUNCATE ON public.zz_probe_table TO anon;
+GRANT MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE ON public.zz_probe_table TO authenticated;
+GRANT MAINTAIN, REFERENCES, TRIGGER, TRUNCATE ON public.zz_probe_table TO service_role;
+```
+
+즉 지우기로 하면 한 번이 아니라 새 테이블을 만들 때마다 지워야 한다. 그것은 이번
+결정이 없앤 "생성물을 권한 때문에 손으로 고치는 절차"를 그대로 되살린다.
+
+**Proposed next step**: 그대로 두기를 권한다. 결과 상태가 지금과 같고, 지우는 쪽은
+매번 반복되는 손 보정을 되살리기 때문이다. 대신 [Supabase 스키마 작업 방식](../decisions/supabase-schema-workflow.md)에
+"생성된 이력은 이 네 권한을 명시적으로 준다"는 사실을 적어, 나중에 마이그레이션을
+읽는 사람이 `GRANT TRUNCATE ... TO anon`을 보고 놀라지 않게 한다. 플랫폼이 기본값을
+더 좁히면 그때는 선언형 스키마에서 다시 생성하는 것으로 정리한다. 재현은
 `grep "GRANT MAINTAIN" supabase/migrations/*.sql`로 충분하다.
