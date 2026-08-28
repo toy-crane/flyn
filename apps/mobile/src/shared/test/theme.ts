@@ -33,6 +33,7 @@ export const testThemeVariables = {
   "--color-muted": "#6b7280",
   "--color-success": "#16a34a",
   "--color-success-foreground": "#ffffff",
+  "--color-success-soft-foreground": "#15803d",
   "--color-surface": "#ffffff",
   "--color-surface-foreground": "#111114",
   "--color-warning": "#ca8a04",

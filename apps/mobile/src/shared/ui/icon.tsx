@@ -2,6 +2,7 @@ import { type ThemeColor, useThemeColor } from "heroui-native/hooks";
 import ArrowDown from "lucide-react-native/icons/arrow-down";
 import ArrowUp from "lucide-react-native/icons/arrow-up";
 import Bookmark from "lucide-react-native/icons/bookmark";
+import Check from "lucide-react-native/icons/check";
 import ChevronRight from "lucide-react-native/icons/chevron-right";
 import Copy from "lucide-react-native/icons/copy";
 import MessagesSquare from "lucide-react-native/icons/messages-square";
@@ -13,6 +14,7 @@ import { View } from "react-native";
 
 const icons = {
   bookmark: Bookmark,
+  check: Check,
   close: X,
   copy: Copy,
   edit: Pencil,
@@ -41,6 +43,11 @@ const iconTones = {
   accentForeground: "accent-foreground",
   default: "foreground",
   muted: "muted",
+  // Not `success`. That one is a light, vivid green, and as a stroke it sits at
+  // 2.19:1 against a white field — under the 3:1 a shape has to meet to be seen
+  // at all. The soft foreground is the same hue carried toward `foreground`, so
+  // it still reads as green while separating from the surface in both schemes.
+  success: "success-soft-foreground",
 } as const satisfies Record<string, ThemeColor>;
 
 export type IconName = keyof typeof icons;
