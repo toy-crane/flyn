@@ -51,7 +51,7 @@ export type Database = {
           message_id: string
           original: string
           reason: string
-          user_id: string
+          user_id?: string
         }
         Update: {
           corrected?: string
@@ -89,7 +89,7 @@ export type Database = {
           play_id: string
           position: number
           role: string
-          user_id: string
+          user_id?: string
         }
         Update: {
           created_at?: string
@@ -133,7 +133,7 @@ export type Database = {
           memory_question?: string | null
           memory_relationship?: string | null
           started_at?: string
-          user_id: string
+          user_id?: string
         }
         Update: {
           ending_kind?: string | null
@@ -157,48 +157,6 @@ export type Database = {
           },
           {
             foreignKeyName: "episode_plays_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      episode_runs: {
-        Row: {
-          completed_at: string | null
-          completed_by_fallback: boolean
-          episode_id: string
-          messages: Json
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          completed_at?: string | null
-          completed_by_fallback?: boolean
-          episode_id: string
-          messages: Json
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          completed_at?: string | null
-          completed_by_fallback?: boolean
-          episode_id?: string
-          messages?: Json
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "episode_runs_episode_id_fkey"
-            columns: ["episode_id"]
-            isOneToOne: false
-            referencedRelation: "episodes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "episode_runs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -407,23 +365,7 @@ export type Database = {
     }
     Functions: {
       available_usernames: { Args: { candidates: string[] }; Returns: string[] }
-      complete_episode_run: {
-        Args: { episode_id: string; messages: Json }
-        Returns: undefined
-      }
-      complete_episode_run_fallback: {
-        Args: { episode_id: string; messages: Json }
-        Returns: undefined
-      }
       episode_is_current: { Args: { target_episode: string }; Returns: boolean }
-      episode_run_extends_snapshot: {
-        Args: { snapshot_messages: Json; stored_messages: Json }
-        Returns: boolean
-      }
-      episode_run_matches_ending: {
-        Args: { kind: string; messages: Json; outcome: string }
-        Returns: boolean
-      }
       finish_episode: {
         Args: {
           episode_id: string
@@ -441,14 +383,6 @@ export type Database = {
         Returns: boolean
       }
       is_reserved_username: { Args: { candidate: string }; Returns: boolean }
-      save_episode_run: {
-        Args: { episode_id: string; messages: Json }
-        Returns: undefined
-      }
-      save_episode_run_fallback: {
-        Args: { episode_id: string; messages: Json }
-        Returns: undefined
-      }
       username_change_interval: { Args: never; Returns: string }
       username_status: { Args: { candidate: string }; Returns: string }
     }

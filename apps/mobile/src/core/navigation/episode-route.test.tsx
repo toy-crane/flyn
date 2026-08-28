@@ -99,7 +99,6 @@ jest.mock("@/screens/episode/episode-screen", () => {
       episodeId,
       isStartingNext,
       onLeave,
-      onSettlingChange,
       onStartNext,
       readOnly,
       situation,
@@ -107,13 +106,11 @@ jest.mock("@/screens/episode/episode-screen", () => {
       episodeId: string;
       isStartingNext: boolean;
       onLeave: () => void;
-      onSettlingChange: (isSettling: boolean) => void;
       onStartNext: (episodeId: string) => void;
       readOnly: boolean;
       situation: string;
     }) => {
       playing = { episodeId, isStartingNext, readOnly, situation };
-      setSettling = onSettlingChange;
       startNextFromScreen = () => onStartNext(NEXT_EPISODE_ID);
 
       return React.createElement(
@@ -173,7 +170,6 @@ let playing:
       situation: string;
     }
   | undefined;
-let setSettling: ((isSettling: boolean) => void) | undefined;
 let startNextFromScreen: (() => void) | undefined;
 
 beforeEach(() => {
@@ -190,7 +186,6 @@ beforeEach(() => {
     refetch: mockEpisodeRefetch,
   };
   playing = undefined;
-  setSettling = undefined;
   startNextFromScreen = undefined;
   headerOptions = undefined;
 });
@@ -301,31 +296,6 @@ test("마무리에서 홈으로 가기는 왔던 자리로 돌아간다", async 
 
   await user.press(screen.getByRole("button", { name: "leave" }));
 
-  expect(mockBack).toHaveBeenCalledTimes(1);
-});
-
-test("결말 기록을 저장하는 동안 헤더로도 나가지 못한다", async () => {
-  const user = userEvent.setup();
-  await renderWithHeroUI(<EpisodeRoute />);
-
-  await act(() => {
-    setSettling?.(true);
-
-    return Promise.resolve();
-  });
-
-  const back = screen.getByRole("button", { name: "뒤로 가기" });
-
-  expect(back).toBeDisabled();
-  await user.press(back);
-  expect(mockBack).not.toHaveBeenCalled();
-
-  await act(() => {
-    setSettling?.(false);
-
-    return Promise.resolve();
-  });
-  await user.press(screen.getByRole("button", { name: "뒤로 가기" }));
   expect(mockBack).toHaveBeenCalledTimes(1);
 });
 

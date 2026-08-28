@@ -1,4 +1,3 @@
-import type { Database } from "@repo/supabase";
 import type { UIMessage } from "ai";
 
 import type { SceneOutcome } from "../../shared/scene-stream";
@@ -8,8 +7,8 @@ import type { EpisodeClient, EpisodeScript, StoryContent } from "./story";
 /** 기록 한 줄이 데이터베이스에서 허용되는 길이. */
 const MEMORY_LINE_LIMIT = 300;
 
-type EpisodeMessages =
-  Database["public"]["Tables"]["episode_runs"]["Row"]["messages"];
+/** 대화에 남을 수 있는 두 역할. 데이터베이스도 이 둘만 받는다. */
+const STORED_ROLES = new Set(["assistant", "user"]);
 
 function usableNote(text: string | undefined): string | undefined {
   const trimmed = text?.trim();
@@ -50,8 +49,18 @@ export interface NextUpData {
 }
 
 export interface EpisodeSessionView {
+  /**
+   * 이 화가 어떻게 끝났는지. 진행 중이면 없다.
+   *
+   * 저장된 대화에는 결말 part가 들어 있지 않다. 결말은 플레이 기록이 소유하는
+   * 사실이고, 그 사실이 확정되는 순간 그 플레이의 대화는 더 이상 바뀌지 않기
+   * 때문이다. 다시 연 화면은 흐르던 part 대신 이 값을 읽어 마무리를 그린다.
+   */
+  ending: { kind: string; outcome: string } | undefined;
   episode: NextEpisodeView;
   messages: UIMessage[];
+  /** 결말 다음에 보여 줄 예고. 같은 이유로 대화가 아니라 여기 실려 온다. */
+  nextUp: NextUpData | undefined;
   readOnly: boolean;
 }
 
@@ -139,75 +148,175 @@ export async function recordEpisodeEnding(
   }
 }
 
-function asEpisodeMessages(messages: readonly UIMessage[]): EpisodeMessages {
-  return messages as unknown as EpisodeMessages;
+/** 대화 한 자락과 그 마지막 자리. 새 메시지는 그 다음 자리에 붙는다. */
+export interface EpisodePlay {
+  /** 지금까지 남은 대화, 자리 순서대로. */
+  messages: UIMessage[];
+  /** 다음 메시지가 앉을 자리. */
+  nextPosition: number;
+  /** 메시지와 교정이 매달리는 플레이의 id. */
+  playId: string;
 }
 
-export async function saveEpisodeRun(
+/**
+ * 이 계정의 이 화 플레이를 연다. 이미 열려 있으면 그 플레이를 그대로 쓴다.
+ *
+ * 먼저 찾아보고 없을 때만 만든다. 두 요청이 겹쳐 둘 다 만들려 하면 유니크 제약이
+ * 뒤에 온 쪽을 거절하므로, 그때는 앞선 요청이 만든 행을 다시 읽는다.
+ */
+async function openPlay(
   client: EpisodeClient,
-  episodeId: string,
-  messages: readonly UIMessage[]
-): Promise<void> {
-  const { error } = await client.rpc("save_episode_run", {
-    episode_id: episodeId,
-    messages: asEpisodeMessages(messages),
-  });
+  episodeId: string
+): Promise<string> {
+  const found = await client
+    .from("episode_plays")
+    .select("id")
+    .eq("episode_id", episodeId)
+    .maybeSingle();
 
-  if (error) {
+  if (found.error) {
     throw new Error(
-      `Saving episode ${episodeId} progress failed: ${error.message}`
+      `Reading the play of episode ${episodeId} failed: ${found.error.message}`
     );
   }
-}
 
-export async function saveEpisodeRunFallback(
-  client: EpisodeClient,
-  episodeId: string,
-  messages: readonly UIMessage[]
-): Promise<void> {
-  const { error } = await client.rpc("save_episode_run_fallback", {
-    episode_id: episodeId,
-    messages: asEpisodeMessages(messages),
-  });
-
-  if (error) {
-    throw new Error(
-      `Saving stopped episode ${episodeId} progress failed: ${error.message}`
-    );
+  if (found.data) {
+    return found.data.id;
   }
-}
 
-export async function completeEpisodeRun(
-  client: EpisodeClient,
-  episodeId: string,
-  messages: readonly UIMessage[]
-): Promise<void> {
-  const { error } = await client.rpc("complete_episode_run", {
-    episode_id: episodeId,
-    messages: asEpisodeMessages(messages),
-  });
+  const opened = await client
+    .from("episode_plays")
+    .insert({ episode_id: episodeId })
+    .select("id")
+    .maybeSingle();
 
-  if (error) {
-    throw new Error(
-      `Completing episode ${episodeId} transcript failed: ${error.message}`
-    );
+  if (opened.data) {
+    return opened.data.id;
   }
+
+  const raced = await client
+    .from("episode_plays")
+    .select("id")
+    .eq("episode_id", episodeId)
+    .maybeSingle();
+
+  if (raced.data) {
+    return raced.data.id;
+  }
+
+  throw new Error(
+    `Opening episode ${episodeId} failed: ${opened.error?.message ?? "no row"}`
+  );
 }
 
-export async function completeEpisodeRunFallback(
+/** 한 플레이의 대화를 자리 순서대로 읽는다. */
+async function readPlayMessages(
   client: EpisodeClient,
-  episodeId: string,
-  messages: readonly UIMessage[]
-): Promise<void> {
-  const { error } = await client.rpc("complete_episode_run_fallback", {
-    episode_id: episodeId,
-    messages: asEpisodeMessages(messages),
-  });
+  playId: string
+): Promise<UIMessage[]> {
+  const { data, error } = await client
+    .from("episode_messages")
+    .select("id, role, parts")
+    .eq("play_id", playId)
+    .order("position");
 
   if (error) {
-    throw new Error(
-      `Completing stopped episode ${episodeId} transcript failed: ${error.message}`
-    );
+    throw new Error(`Reading episode messages failed: ${error.message}`);
+  }
+
+  return data.map((row) => ({
+    id: row.id,
+    parts: row.parts,
+    role: row.role,
+  })) as UIMessage[];
+}
+
+/**
+ * 플레이를 열고 남아 있는 대화를 읽는다.
+ *
+ * `keepThrough`는 앱이 "여기까지는 그대로다"라고 말하는 메시지다. 그 뒤에 남아
+ * 있는 행은 사용자가 다시 받기나 수정으로 버린 것이므로 지운다. `null`이면 이
+ * 화를 처음부터 다시 여는 것이고, `undefined`면 자를 것이 없다는 뜻이다.
+ *
+ * 앱이 보낸 지난 장면은 읽지 않는다. 기록은 서버가 가진 것이 전부이므로, 앱이
+ * 고쳐 보낸 옛 장면이 기록으로 들어올 자리가 없다.
+ *
+ * 앱이 모르는 메시지를 기준으로 대면 자를 곳을 찾지 못한다. 그때는 아무것도
+ * 지우지 않고 서버가 가진 그대로 이어 간다. 앱이 뒤처진 것이지 기록이 틀린 것이
+ * 아니다.
+ */
+export async function openEpisodePlay(
+  client: EpisodeClient,
+  episodeId: string,
+  keepThrough?: string | null
+): Promise<EpisodePlay> {
+  const playId = await openPlay(client, episodeId);
+  const stored = await readPlayMessages(client, playId);
+  const kept = keptThrough(stored, keepThrough);
+
+  if (kept.length < stored.length) {
+    const { error } = await client
+      .from("episode_messages")
+      .delete()
+      .eq("play_id", playId)
+      .gte("position", kept.length);
+
+    if (error) {
+      throw new Error(
+        `Dropping replaced messages of episode ${episodeId} failed: ${error.message}`
+      );
+    }
+  }
+
+  return { messages: kept, nextPosition: kept.length, playId };
+}
+
+function keptThrough(
+  stored: readonly UIMessage[],
+  keepThrough: string | null | undefined
+): UIMessage[] {
+  if (keepThrough === undefined) {
+    return [...stored];
+  }
+
+  if (keepThrough === null) {
+    return [];
+  }
+
+  const at = stored.findIndex((message) => message.id === keepThrough);
+
+  return at === -1 ? [...stored] : stored.slice(0, at + 1);
+}
+
+/**
+ * 대화 끝에 메시지를 붙인다.
+ *
+ * `system` 역할은 데이터베이스가 받지 않는다. 에피소드 대화에는 그런 메시지가
+ * 오지 않지만, 타입이 그 가능성을 열어 두므로 여기서 걸러 낸다.
+ */
+export async function appendEpisodeMessages(
+  client: EpisodeClient,
+  play: EpisodePlay,
+  messages: readonly UIMessage[]
+): Promise<void> {
+  const rows = messages
+    .filter((message) => STORED_ROLES.has(message.role))
+    .map((message, index) => ({
+      id: message.id,
+      parts: message.parts,
+      play_id: play.playId,
+      position: play.nextPosition + index,
+      role: message.role,
+    }));
+
+  if (rows.length === 0) {
+    return;
+  }
+
+  const { error } = await client.from("episode_messages").insert(rows);
+
+  if (error) {
+    throw new Error(`Saving episode messages failed: ${error.message}`);
   }
 }
 
@@ -305,27 +414,33 @@ export async function readEpisodeSession(
     return;
   }
 
-  const { data: run, error } = await client
-    .from("episode_runs")
-    .select("messages, completed_at")
+  const play = await client
+    .from("episode_plays")
+    .select("id")
     .eq("episode_id", episodeId)
     .maybeSingle();
 
-  if (error) {
-    throw new Error(`Reading episode ${episodeId} failed: ${error.message}`);
+  if (play.error) {
+    throw new Error(
+      `Reading episode ${episodeId} failed: ${play.error.message}`
+    );
   }
 
-  if (ending && run?.completed_at === null) {
-    return;
-  }
+  const messages = play.data
+    ? await readPlayMessages(client, play.data.id)
+    : [];
 
-  if (ending && !run) {
+  // 결말은 났는데 남은 장면이 없으면 다시 열 것이 없다. 장면을 저장하기 전에
+  // 결말이 먼저 확정된 화가 여기 해당한다.
+  if (ending && messages.length === 0) {
     return;
   }
 
   return {
+    ending: ending ? { kind: ending.kind, outcome: ending.outcome } : undefined,
     episode: nextEpisodeView(episode),
-    messages: (run?.messages ?? []) as unknown as UIMessage[],
+    messages,
+    nextUp: ending ? nextUpAfter(story, episodeId) : undefined,
     readOnly: Boolean(ending),
   };
 }

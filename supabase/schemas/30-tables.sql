@@ -236,7 +236,11 @@ create table public.episode_plays (
   -- 자식 테이블마다 두 열을 나르게 되고, 교정은 그 위에 message_id까지 얹어
   -- 세 열이 된다.
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles (id) on delete cascade,
+  -- 부르는 사람이 채운다. 값을 실어 보낼 필요가 없으니 insert grant에서 이 열을
+  -- 빼 두었고, 그래서 남의 이름으로 플레이를 여는 문장은 정책에 닿기도 전에
+  -- 권한에서 막힌다. 정책은 그대로 두어 기본값이 바뀌어도 규칙이 남는다.
+  user_id uuid not null default auth.uid()
+    references public.profiles (id) on delete cascade,
   episode_id uuid not null references public.episodes (id) on delete restrict,
   started_at timestamptz not null default now(),
   -- 결말의 종류. 화면에도 이 낱말이 그대로 보인다.
@@ -341,8 +345,9 @@ create table public.episode_messages (
   id uuid primary key,
   play_id uuid not null,
   -- 플레이의 주인을 여기 한 번 더 적는다. 복합 외래키가 둘을 묶으므로 어긋날 수
-  -- 없고, 대신 정책이 다른 테이블을 보지 않고 이 열만으로 답한다.
-  user_id uuid not null,
+  -- 없고, 대신 정책이 다른 테이블을 보지 않고 이 열만으로 답한다. 값은
+  -- `episode_plays`와 같은 이유로 부르는 사람이 채운다.
+  user_id uuid not null default auth.uid(),
   -- 대화 안의 자리. 서버가 정하고, 앱이 보낸 시각을 근거로 삼지 않는다.
   position integer not null,
   role text not null,
@@ -397,7 +402,7 @@ comment on column public.episode_messages.parts is
 create table public.episode_corrections (
   id uuid primary key default gen_random_uuid(),
   message_id uuid not null,
-  user_id uuid not null,
+  user_id uuid not null default auth.uid(),
   -- 원문에서 어긋난 부분.
   original text not null,
   -- 모든 교정을 반영한 고친 문장.
@@ -439,38 +444,6 @@ comment on column public.episode_corrections.corrected is
 
 comment on column public.episode_corrections.reason is
   'One Korean line saying why.';
-
--- 진행 중과 끝난 에피소드가 같은 대화 기록 모양을 쓴다. `completed_at`이 비어
--- 있으면 이어서 할 장면이고, 값이 있으면 다시 열어 읽기만 하는 기록이다.
-create table public.episode_runs (
-  user_id uuid not null references public.profiles (id) on delete cascade,
-  episode_id uuid not null references public.episodes (id) on delete restrict,
-  messages jsonb not null,
-  completed_at timestamptz,
-  completed_by_fallback boolean not null default false,
-  updated_at timestamptz not null default now(),
-  primary key (user_id, episode_id),
-  constraint episode_runs_messages_array check (jsonb_typeof(messages) = 'array'),
-  -- 한 에피소드가 모델 문맥보다 훨씬 커지기 전에 저장 경계를 분명히 한다.
-  -- 이 한도를 넘긴 기록은 결말을 막지 않고, 대화 기록 저장만 실패한다.
-  constraint episode_runs_messages_size check (
-    octet_length(messages::text) <= 1048576
-  )
-);
-
-create index episode_runs_episode_id_idx on public.episode_runs (episode_id);
-
-comment on table public.episode_runs is
-  'One server-saved UI message list per account and episode, active or completed.';
-
-comment on column public.episode_runs.messages is
-  'AI SDK UI messages with stable message ids. Limited to one MiB per episode.';
-
-comment on column public.episode_runs.completed_at is
-  'Set after an ending exists. A fallback completion can be upgraded once by a compatible normal completion.';
-
-comment on column public.episode_runs.completed_by_fallback is
-  'True while a stopped client snapshot is the completed transcript. A compatible normal completion replaces it and clears this flag.';
 
 -- 사용자가 쓰는 영어의 수준. 시즌이 아니라 계정에 붙는다.
 --

@@ -58,27 +58,27 @@ SELECT ok(
   'authenticated may read episode_plays and neither rewrite nor remove a row'
 );
 
--- The insert grant names two columns, so a client can open a play and cannot
--- write an ending into the same statement. `has_table_privilege` answers about
--- the table, which is why the whole-table INSERT reads false here.
+-- The insert grant names one column, so a client can open a play and cannot
+-- write an ending or another account's id into the same statement.
+-- `has_table_privilege` answers about the table, which is why the whole-table
+-- INSERT reads false here.
 SELECT ok(
   NOT (SELECT has_table_privilege('authenticated', 'public.episode_plays', 'INSERT'))
   AND (
-    SELECT bool_and(
-      has_column_privilege('authenticated', 'public.episode_plays', c, 'INSERT')
+    SELECT has_column_privilege(
+      'authenticated', 'public.episode_plays', 'episode_id', 'INSERT'
     )
-    FROM unnest(ARRAY['user_id', 'episode_id']) AS c
   )
   AND NOT (
     SELECT bool_or(
       has_column_privilege('authenticated', 'public.episode_plays', c, 'INSERT')
     )
     FROM unnest(ARRAY[
-      'ending_kind', 'ending_outcome', 'finished_at',
+      'user_id', 'ending_kind', 'ending_outcome', 'finished_at',
       'memory_choice', 'memory_relationship', 'memory_question'
     ]) AS c
   ),
-  'a client may open a play and may not write an ending into it'
+  'a client may open a play and may not write an ending or another owner into it'
 );
 
 SELECT function_privs_are(
@@ -165,11 +165,8 @@ SET LOCAL request.jwt.claims TO '{"sub":"11111111-1111-4111-8111-111111111111","
 
 -- 플레이를 여는 길. 결말은 아직 없다.
 SELECT lives_ok(
-  $$insert into public.episode_plays (user_id, episode_id)
-    values (
-      '11111111-1111-4111-8111-111111111111',
-      '11000000-0000-4000-8000-000000000001'
-    )$$,
+  $$insert into public.episode_plays (episode_id)
+    values ('11000000-0000-4000-8000-000000000001')$$,
   'a person opens the first episode of a story'
 );
 
@@ -180,15 +177,13 @@ SELECT is(
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_plays (user_id, episode_id)
-    values (
-      '11111111-1111-4111-8111-111111111111',
-      '11000000-0000-4000-8000-000000000003'
-    )$$,
+  $$insert into public.episode_plays (episode_id)
+    values ('11000000-0000-4000-8000-000000000003')$$,
   '42501', NULL,
   'an episode cannot be opened before the one in front of it is finished'
 );
 
+-- 열 단위 grant가 막으므로 정책까지 가지도 않는다.
 SELECT throws_ok(
   $$insert into public.episode_plays (user_id, episode_id)
     values (
@@ -360,20 +355,14 @@ SELECT is(
 
 -- 앞의 네 화가 끝났으므로 5화는 이제 열 수 있다.
 SELECT lives_ok(
-  $$insert into public.episode_plays (user_id, episode_id)
-    values (
-      '11111111-1111-4111-8111-111111111111',
-      '11000000-0000-4000-8000-000000000005'
-    )$$,
+  $$insert into public.episode_plays (episode_id)
+    values ('11000000-0000-4000-8000-000000000005')$$,
   'the next episode opens once every earlier one is finished'
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_plays (user_id, episode_id)
-    values (
-      '11111111-1111-4111-8111-111111111111',
-      '11000000-0000-4000-8000-000000000005'
-    )$$,
+  $$insert into public.episode_plays (episode_id)
+    values ('11000000-0000-4000-8000-000000000005')$$,
   '23505', NULL, 'the same episode cannot be opened twice'
 );
 

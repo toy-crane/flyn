@@ -130,34 +130,38 @@ interface FinishedRow {
   memory_relationship?: string | null;
 }
 
+/** One stored message, the way `episode_messages` holds it. */
+interface MessageRow {
+  id: string;
+  parts: unknown[];
+  play_id: string;
+  position: number;
+  role: string;
+}
+
 /**
- * The season progress a signed-in request finds, and what it wrote.
+ * The story progress a signed-in request finds, and what it wrote.
  *
  * `recorded` is the whole point: the episode route is supposed to leave the
  * ending in the account before the app is told the scene is over, and a test
- * that only read the response could not tell the difference.
+ * that only read the response could not tell the difference. `messages` is the
+ * other half — the server now saves message rows itself, so what lands there is
+ * what a reopened episode shows.
  */
-interface EpisodeRunRow {
-  completed_at: string | null;
-  episode_id: string;
-  messages: unknown[];
-}
-
 interface SeasonState {
   finished: FinishedRow[];
+  messages: MessageRow[];
   recordAccepted?: boolean;
   recordError?: string;
   recorded: Record<string, unknown>[];
-  runError?: string;
-  runRecords: { args: Record<string, unknown>; name: string }[];
-  runs: EpisodeRunRow[];
+  saveError?: string;
 }
 
 function createSeasonState(finished: FinishedRow[] = []): SeasonState {
-  return { finished, recorded: [], runRecords: [], runs: [] };
+  return { finished, messages: [], recorded: [] };
 }
 
-/** Every episode of the season, ended. */
+/** Every episode of the story, ended. */
 function finishedSeason(): FinishedRow[] {
   return [1, 2, 3, 4, 5].map((episode) => ({
     ending_kind: "성공",
@@ -166,17 +170,57 @@ function finishedSeason(): FinishedRow[] {
   }));
 }
 
+/** The play id an episode's rows hang from. One play per episode here. */
+function playIdOf(episodeIdentifier: string): string {
+  return `play-${episodeIdentifier}`;
+}
+
+type Row = Record<string, unknown>;
+
 /**
  * Stands in for a request whose token and current user both still exist,
  * reaching a database that holds `state`.
+ *
+ * The builder covers exactly the calls the episode feature makes: reading the
+ * catalog, reading a play, opening one, reading and appending messages, and
+ * dropping the tail a retry replaces. Anything else is left out on purpose, so
+ * a new query has to be taught here rather than passing silently.
  */
 function signedInWith(state: SeasonState): MiddlewareHandler {
-  function finishedRows() {
-    return state.finished.map(({ episode, ...row }) => ({
-      episode_id: row.episode_id ?? episodeId(episode),
-      finished_at: `2026-08-29T00:0${episode}:00.000Z`,
-      ...row,
-    }));
+  const openedPlays = new Set<string>();
+
+  function finishedRows(): Row[] {
+    return state.finished.map(({ episode, ...row }) => {
+      const identifier = row.episode_id ?? episodeId(episode);
+
+      return {
+        ...row,
+        episode_id: identifier,
+        finished_at: `2026-08-29T00:0${episode}:00.000Z`,
+        id: playIdOf(identifier),
+        started_at: `2026-08-29T00:0${episode}:00.000Z`,
+      };
+    });
+  }
+
+  function playRows(): Row[] {
+    const finished = finishedRows();
+    const known = new Set([
+      ...openedPlays,
+      ...state.messages.map((message) => message.play_id),
+    ]);
+    const open = [...known]
+      .filter((id) => !finished.some((play) => play.id === id))
+      .map((id) => ({
+        ending_kind: null,
+        ending_outcome: null,
+        episode_id: id.slice("play-".length),
+        finished_at: null,
+        id,
+        started_at: "2026-08-29T00:10:00.000Z",
+      }));
+
+    return [...finished, ...open];
   }
 
   const client = {
@@ -188,36 +232,44 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
         }),
     },
     from: (table: string) => {
-      const filters = new Map<string, unknown>();
+      const equals = new Map<string, unknown>();
       const sorted: string[] = [];
       let within: { column: string; values: unknown[] } | undefined;
+      let atLeast: { column: string; value: number } | undefined;
       let nested = false;
-      const value = (row: object, column: string) =>
-        (row as Record<string, unknown>)[column];
-      const rows = () => {
-        let source: readonly object[] = [];
+      let wantsCounts = false;
+      const value = (row: Row, column: string) => row[column];
 
+      function source(): Row[] {
         if (table === "stories") {
-          source = [STORY_ROW];
-        } else if (table === "episodes") {
-          source = TEST_EPISODES;
-        } else if (table === "episode_plays") {
-          source = finishedRows();
-        } else if (table === "episode_runs") {
-          source = state.runs.map((run) => ({
-            updated_at: "2026-08-29T00:10:00.000Z",
-            ...run,
-          }));
+          return [STORY_ROW] as unknown as Row[];
         }
 
-        const kept = source
-          .filter((row) =>
-            [...filters].every(([name, wanted]) => value(row, name) === wanted)
-          )
-          .filter(
-            (row) =>
-              !within || within.values.includes(value(row, within.column))
-          );
+        if (table === "episodes") {
+          return TEST_EPISODES as unknown as Row[];
+        }
+
+        if (table === "episode_plays") {
+          return playRows();
+        }
+
+        if (table === "episode_messages") {
+          return state.messages as unknown as Row[];
+        }
+
+        return [];
+      }
+
+      function rows(): Row[] {
+        const kept = source().filter(
+          (row) =>
+            [...equals].every(
+              ([name, wanted]) => value(row, name) === wanted
+            ) &&
+            (!within || within.values.includes(value(row, within.column))) &&
+            (atLeast === undefined ||
+              Number(value(row, atLeast.column)) >= atLeast.value)
+        );
         const [by] = sorted;
         const ordered = by
           ? [...kept].sort(
@@ -226,16 +278,50 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
             )
           : kept;
 
-        // 중첩 select는 스토리 한 줄에 그 스토리의 화 목록을 달아 준다.
-        return nested
-          ? ordered.map((row) => ({
-              ...row,
-              episodes: TEST_EPISODES.filter(
-                (episode) => episode.story_id === value(row, "id")
-              ),
-            }))
-          : ordered;
-      };
+        // 중첩 select는 스토리 한 줄에 그 스토리의 화 목록을, 플레이 한 줄에 그
+        // 플레이에 남은 메시지 수를 달아 준다.
+        if (nested) {
+          return ordered.map((row) => ({
+            ...row,
+            episodes: TEST_EPISODES.filter(
+              (episode) => episode.story_id === value(row, "id")
+            ),
+          }));
+        }
+
+        if (wantsCounts) {
+          return ordered.map((play) => ({
+            ...play,
+            episode_messages: [
+              {
+                count: state.messages.filter(
+                  (message) => message.play_id === play.id
+                ).length,
+              },
+            ],
+          }));
+        }
+
+        return ordered;
+      }
+
+      /**
+       * `await` 한 번으로 끝나는 쓰기와 `.select()`가 붙는 쓰기를 함께 받는다.
+       *
+       * `await`는 thenable이 아닌 값을 그대로 돌려주므로, 앞의 경우도 이 객체가
+       * 그대로 결과가 된다.
+       */
+      function writeResult(data: Row | null) {
+        const failure = state.saveError ? { message: state.saveError } : null;
+
+        return {
+          error: failure,
+          select: () => ({
+            maybeSingle: () => Promise.resolve({ data, error: failure }),
+          }),
+        };
+      }
+
       /*
         빌더 자신이 Promise다.
 
@@ -247,8 +333,29 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
       const builder: object = Object.assign(
         Promise.resolve().then(() => ({ data: rows(), error: null })),
         {
+          delete: () => {
+            const removal = {
+              eq: (column: string, wanted: unknown) => {
+                equals.set(column, wanted);
+
+                return removal;
+              },
+              gte: (column: string, wanted: number) => {
+                atLeast = { column, value: wanted };
+                const doomed = new Set(rows().map((row) => String(row.id)));
+
+                state.messages = state.messages.filter(
+                  (message) => !doomed.has(message.id)
+                );
+
+                return Promise.resolve({ error: null });
+              },
+            };
+
+            return removal;
+          },
           eq: (column: string, wanted: unknown) => {
-            filters.set(column, wanted);
+            equals.set(column, wanted);
 
             return builder;
           },
@@ -256,6 +363,26 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
             within = { column, values };
 
             return builder;
+          },
+          insert: (payload: Row | Row[]) => {
+            const added = Array.isArray(payload) ? payload : [payload];
+
+            if (table === "episode_messages") {
+              if (state.saveError) {
+                return writeResult(null);
+              }
+
+              state.messages.push(...(added as unknown as MessageRow[]));
+
+              return writeResult(null);
+            }
+
+            const identifier = String(added[0]?.episode_id);
+            const id = playIdOf(identifier);
+
+            openedPlays.add(id);
+
+            return writeResult({ episode_id: identifier, id });
           },
           maybeSingle: () =>
             Promise.resolve({ data: rows()[0] ?? null, error: null }),
@@ -269,6 +396,7 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
           },
           select: (projection?: string) => {
             nested = projection?.includes("episodes(") ?? false;
+            wantsCounts = projection?.includes("episode_messages(") ?? false;
 
             return builder;
           },
@@ -280,40 +408,15 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
       return builder;
     },
     rpc: (name: string, args: Record<string, unknown>) => {
-      if (name === "finish_episode") {
-        state.recorded.push(args);
-
-        return Promise.resolve({
-          data: state.recordAccepted ?? true,
-          error: state.recordError ? { message: state.recordError } : null,
-        });
+      if (name !== "finish_episode") {
+        throw new Error(`Unexpected rpc call: ${name}`);
       }
 
-      state.runRecords.push({ args, name });
-
-      if (!state.runError) {
-        const index = state.runs.findIndex(
-          (candidate) => candidate.episode_id === args.episode_id
-        );
-        const savedRun = {
-          completed_at:
-            name === "complete_episode_run" ||
-            name === "complete_episode_run_fallback"
-              ? new Date().toISOString()
-              : null,
-          episode_id: String(args.episode_id),
-          messages: args.messages as unknown[],
-        };
-
-        if (index >= 0) {
-          state.runs[index] = savedRun;
-        } else {
-          state.runs.push(savedRun);
-        }
-      }
+      state.recorded.push(args);
 
       return Promise.resolve({
-        error: state.runError ? { message: state.runError } : null,
+        data: state.recordAccepted ?? true,
+        error: state.recordError ? { message: state.recordError } : null,
       });
     },
   };
@@ -325,8 +428,14 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
   };
 }
 
-/** A signed-in request whose account has not finished anything yet. */
-const bypassAuth: MiddlewareHandler = signedInWith(createSeasonState());
+/**
+ * A signed-in request whose account has not finished anything yet.
+ *
+ * 요청마다 빈 기록을 새로 준다. 서버가 지난 장면을 자기 기록에서 읽으므로, 한
+ * 상태를 나눠 쓰면 앞 테스트가 남긴 대화를 다음 테스트가 이어 받는다.
+ */
+const bypassAuth: MiddlewareHandler = (c, next) =>
+  signedInWith(createSeasonState())(c, next);
 
 /** A validly signed token left on a device after its account was deleted. */
 const deletedUserAuth: MiddlewareHandler = (c, next) => {
@@ -432,26 +541,34 @@ function createChatRequest(body: unknown, token?: string): Request {
   });
 }
 
-function createEpisodeRequest(body: unknown, token?: string): Request {
+/**
+ * 앱이 보내는 요청 하나.
+ *
+ * `messages`로 적어도 실제로 나가는 것은 마지막 하나뿐이다. 앱은 새로 쓴 말만
+ * 싣고 지난 장면은 서버가 자기 기록에서 읽으므로, 여기서도 같은 모양으로 줄여
+ * 보낸다.
+ */
+function createEpisodeRequest(
+  body: {
+    episodeId?: string;
+    keepThrough?: string | null;
+    message?: unknown;
+    messages?: unknown[];
+    seenPatterns?: string[];
+  },
+  token?: string
+): Request {
+  const { messages, ...rest } = body;
+  const payload =
+    messages === undefined ? rest : { ...rest, message: messages.at(-1) };
+
   return new Request(`http://localhost${EPISODE_PATH}`, {
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
     headers: {
       "content-type": "application/json",
       ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
     method: "POST",
-  });
-}
-
-function createStoppedEpisodeRequest(
-  episode: string,
-  messages: unknown[],
-  mode: "preserve" | "replace" = "preserve"
-): Request {
-  return new Request(`http://localhost${EPISODE_PATH}/${episode}`, {
-    body: JSON.stringify({ messages, mode }),
-    headers: { "content-type": "application/json" },
-    method: "PUT",
   });
 }
 
@@ -958,26 +1075,29 @@ describe("POST /ai/episode", () => {
     expect(body).not.toContain('"type":"data-ending"');
   });
 
-  // 첫 장면을 서버가 썼더라도 다음 호출의 입력은 앱이 되돌려 보낸 그 장면이다.
+  // 지난 장면은 앱이 되돌려 보내지 않는다. 서버가 자기 기록에서 읽어 붙인다.
   test("restores the scene so far as screenplay lines for the model", async () => {
     const model = createMockModel(["Mia: Let me check."]);
-    const app = createApp({ authMiddleware: bypassAuth, model });
+    const state = createSeasonState();
 
+    state.messages.push({
+      id: "m1",
+      parts: [
+        { data: { name: null }, id: "speaker-1", type: "data-speaker" },
+        { text: "카페 카운터 앞이다.", type: "text" },
+        { data: { name: "Mia" }, id: "speaker-2", type: "data-speaker" },
+        { text: "Next in line, please!", type: "text" },
+      ],
+      play_id: playIdOf(episodeId(1)),
+      position: 0,
+      role: "assistant",
+    });
+
+    const app = createApp({ authMiddleware: signedInWith(state), model });
     const response = await app.request(
       createEpisodeRequest({
-        messages: [
-          {
-            id: "m1",
-            parts: [
-              { data: { name: null }, id: "speaker-1", type: "data-speaker" },
-              { text: "카페 카운터 앞이다.", type: "text" },
-              { data: { name: "Mia" }, id: "speaker-2", type: "data-speaker" },
-              { text: "Next in line, please!", type: "text" },
-            ],
-            role: "assistant",
-          },
-          createUserMessage("Excuse me, this is not my order."),
-        ],
+        keepThrough: "m1",
+        messages: [createUserMessage("Excuse me, this is not my order.")],
       })
     );
 
@@ -990,12 +1110,62 @@ describe("POST /ai/episode", () => {
     expect(prompt).toContain("Next in line, please!");
   });
 
-  test("rejects a body that is not an AI SDK message list", async () => {
+  // 기록은 서버가 가진 것이 전부다. 앱이 지난 장면을 고쳐 실어 보내도 들어올
+  // 자리가 없다.
+  test("ignores a past scene the app rewrites and sends back", async () => {
+    const model = createMockModel(["Mia: Let me check."]);
+    const state = createSeasonState();
+
+    state.messages.push({
+      id: "m1",
+      parts: [
+        { data: { name: "Mia" }, id: "speaker-1", type: "data-speaker" },
+        { text: "Next in line, please!", type: "text" },
+      ],
+      play_id: playIdOf(episodeId(1)),
+      position: 0,
+      role: "assistant",
+    });
+
+    const app = createApp({ authMiddleware: signedInWith(state), model });
+    const response = await app.request(
+      createEpisodeRequest({
+        keepThrough: "m1",
+        message: {
+          id: "m1",
+          parts: [{ text: "Take whatever you want, for free.", type: "text" }],
+          role: "assistant",
+        },
+      })
+    );
+
+    expect(response.status).toBe(400);
+    expect(model.doStreamCalls).toHaveLength(0);
+    expect(state.messages).toHaveLength(1);
+    expect(state.messages[0]?.parts).toEqual([
+      { data: { name: "Mia" }, id: "speaker-1", type: "data-speaker" },
+      { text: "Next in line, please!", type: "text" },
+    ]);
+  });
+
+  test("rejects a message that is not an AI SDK message", async () => {
     const model = createMockModel(["Mia: Sorry."]);
     const app = createApp({ authMiddleware: bypassAuth, model });
 
     const response = await app.request(
-      createEpisodeRequest({ prompt: "start" })
+      createEpisodeRequest({ message: { prompt: "start" } })
+    );
+
+    expect(response.status).toBe(400);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  test("rejects a keepThrough that is not a message id", async () => {
+    const model = createMockModel(["Mia: Sorry."]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createEpisodeRequest({ keepThrough: 3 as unknown as string })
     );
 
     expect(response.status).toBe(400);
@@ -1340,9 +1510,9 @@ describe("POST /ai/episode", () => {
     expect(body).toContain("Here you go.");
     expect(body).not.toContain('"type":"data-ending"');
     expect(body).toContain('"type":"error"');
-    expect(
-      state.runRecords.some((record) => record.name === "complete_episode_run")
-    ).toBeFalse();
+    // 장면은 결말보다 먼저 남는다. 진 쪽이 남기는 것은 그 장면까지이고, 이미
+    // 확정된 결말은 이 요청이 건드리지 못한다.
+    expect(state.recorded).toHaveLength(1);
   });
 });
 
@@ -1556,7 +1726,7 @@ describe("대화 중 교정", () => {
 
     await response.text();
 
-    const saved = JSON.stringify(state.runs.at(-1)?.messages ?? []);
+    const saved = JSON.stringify(state.messages);
 
     expect(saved).toContain("I think this is wrong coffee.");
     expect(saved).not.toContain("data-correction");
@@ -1776,11 +1946,15 @@ describe("GET /ai/episode/home", () => {
   // 결말이 나지 않은 장면이 남아 있으면 시작이 아니라 이어 하기다.
   test("resumes the episode whose scene is still open", async () => {
     const state = createSeasonState();
-    state.runs.push({
-      completed_at: null,
-      episode_id: episodeId(1),
-      messages: [],
+
+    state.messages.push({
+      id: "m1",
+      parts: [{ text: "Next in line, please!", type: "text" }],
+      play_id: playIdOf(episodeId(1)),
+      position: 0,
+      role: "assistant",
     });
+
     const app = createApp({ authMiddleware: signedInWith(state) });
 
     const response = await app.request(createHomeRequest());
@@ -2000,80 +2174,66 @@ describe("story content database contract", () => {
 
     await response.text();
 
-    expect(state.runRecords.map((record) => record.name)).toEqual([
-      "save_episode_run",
-      "save_episode_run",
+    expect(
+      state.messages.map((row) => ({ position: row.position, role: row.role }))
+    ).toEqual([
+      { position: 0, role: "user" },
+      { position: 1, role: "assistant" },
     ]);
-    expect(state.runs[0]?.messages).toHaveLength(2);
   });
 
-  test("saves a stopped active scene through the guarded fallback", async () => {
+  // 앱이 보낸 기준 메시지 뒤를 지우고 그 자리에서 다시 시작한다. 다시 받기와
+  // 수정이 같은 규칙을 쓴다.
+  test("drops the tail a retry replaces", async () => {
     const state = createSeasonState();
-    const messages = [createUserMessage("This is wrong.")];
-    const app = createApp({ authMiddleware: signedInWith(state) });
 
-    const response = await app.request(
-      createStoppedEpisodeRequest(episodeId(1), messages)
-    );
-
-    expect(response.status).toBe(204);
-    expect(state.runRecords.at(-1)).toMatchObject({
-      args: { episode_id: episodeId(1), messages },
-      name: "save_episode_run_fallback",
-    });
-  });
-
-  test("keeps a regenerated answer's intentional transcript cut", async () => {
-    const state = createSeasonState();
-    const messages = [createUserMessage("Please try again.")];
-    const app = createApp({ authMiddleware: signedInWith(state) });
-
-    const response = await app.request(
-      createStoppedEpisodeRequest(episodeId(1), messages, "replace")
-    );
-
-    expect(response.status).toBe(204);
-    expect(state.runRecords.at(-1)).toMatchObject({
-      args: { episode_id: episodeId(1), messages },
-      name: "save_episode_run",
-    });
-  });
-
-  test("completes a stopped ending through the guarded fallback", async () => {
-    const outcome = "새 잔을 받아냈다.";
-    const state = createSeasonState([
-      { ending_kind: "성공", ending_outcome: outcome, episode: 1 },
-    ]);
-    const messages = [
+    state.messages.push(
       {
-        id: "ending-1",
-        parts: [
-          { text: "Here you go.", type: "text" },
-          { data: { kind: "성공", outcome }, type: "data-ending" },
-        ],
-        role: "assistant",
+        id: "m1",
+        parts: [{ text: "This is wrong.", type: "text" }],
+        play_id: playIdOf(episodeId(1)),
+        position: 0,
+        role: "user",
       },
-    ];
-    const app = createApp({ authMiddleware: signedInWith(state) });
-
-    const response = await app.request(
-      createStoppedEpisodeRequest(episodeId(1), messages)
+      {
+        id: "m2",
+        parts: [{ text: "Mia: Let me check.", type: "text" }],
+        play_id: playIdOf(episodeId(1)),
+        position: 1,
+        role: "assistant",
+      }
     );
 
-    expect(response.status).toBe(204);
-    expect(state.runRecords.at(-1)).toMatchObject({
-      args: { episode_id: episodeId(1), messages },
-      name: "complete_episode_run_fallback",
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel(["Mia: Sorry, here is the right one."]),
     });
+    const response = await app.request(
+      createEpisodeRequest({ episodeId: episodeId(1), keepThrough: "m1" })
+    );
+
+    await response.text();
+
+    // 버린 답변은 사라지고 그 자리에 새 장면이 앉는다.
+    expect(state.messages.map((row) => row.id)).not.toContain("m2");
+    expect(state.messages.map((row) => row.role)).toEqual([
+      "user",
+      "assistant",
+    ]);
+    expect(JSON.stringify(state.messages.at(-1)?.parts)).toContain(
+      "Sorry, here is the right one."
+    );
   });
 
   test("returns the account's saved active scene for another app launch", async () => {
     const state = createSeasonState();
 
-    state.runs.push({
-      completed_at: null,
-      episode_id: episodeId(1),
-      messages: [createUserMessage("This is wrong.")],
+    state.messages.push({
+      id: "m1",
+      parts: [{ text: "This is wrong.", type: "text" }],
+      play_id: playIdOf(episodeId(1)),
+      position: 0,
+      role: "user",
     });
 
     const app = createApp({ authMiddleware: signedInWith(state) });
@@ -2082,14 +2242,15 @@ describe("story content database contract", () => {
       messages: unknown[];
       readOnly: boolean;
     };
-    const [saved] = state.runs;
-
-    if (!saved) {
-      throw new Error("The saved test run is missing.");
-    }
 
     expect(response.status).toBe(200);
-    expect(session.messages).toEqual(saved.messages);
+    expect(session.messages).toEqual([
+      {
+        id: "m1",
+        parts: [{ text: "This is wrong.", type: "text" }],
+        role: "user",
+      },
+    ]);
     expect(session.readOnly).toBeFalse();
   });
 
@@ -2098,25 +2259,35 @@ describe("story content database contract", () => {
       { ending_kind: "성공", ending_outcome: "새 잔을 받아냈다.", episode: 1 },
     ]);
 
-    state.runs.push({
-      completed_at: "2026-08-28T00:00:00.000Z",
-      episode_id: episodeId(1),
-      messages: [createUserMessage("I ordered an iced americano.")],
+    state.messages.push({
+      id: "m1",
+      parts: [{ text: "I ordered an iced americano.", type: "text" }],
+      play_id: playIdOf(episodeId(1)),
+      position: 0,
+      role: "user",
     });
 
     const app = createApp({ authMiddleware: signedInWith(state) });
     const response = await app.request(`${EPISODE_PATH}/${episodeId(1)}`);
     const session = (await response.json()) as {
+      ending: { kind: string; outcome: string };
       messages: unknown[];
+      nextUp: { number: number | null };
       readOnly: boolean;
     };
 
     expect(response.status).toBe(200);
     expect(session.messages).toHaveLength(1);
     expect(session.readOnly).toBeTrue();
+    // 저장된 대화에 결말 part가 없으므로, 마무리를 그릴 값은 세션이 나른다.
+    expect(session.ending).toEqual({
+      kind: "성공",
+      outcome: "새 잔을 받아냈다.",
+    });
+    expect(session.nextUp.number).toBe(2);
   });
 
-  test("does not offer a transcript for an ending migrated without messages", async () => {
+  test("does not offer a transcript for an ending left without messages", async () => {
     const state = createSeasonState([
       { ending_kind: "성공", ending_outcome: "옛 결말", episode: 1 },
     ]);
@@ -2133,10 +2304,12 @@ describe("story content database contract", () => {
       { ending_kind: "타협", ending_outcome: "현금으로 냈다.", episode: 2 },
     ]);
 
-    state.runs.push({
-      completed_at: "2026-08-28T00:00:00.000Z",
-      episode_id: episodeId(1),
-      messages: [createUserMessage("Done")],
+    state.messages.push({
+      id: "m1",
+      parts: [{ text: "Done", type: "text" }],
+      play_id: playIdOf(episodeId(1)),
+      position: 0,
+      role: "user",
     });
 
     const app = createApp({ authMiddleware: signedInWith(state) });
@@ -2152,7 +2325,7 @@ describe("story content database contract", () => {
   test("keeps playing when an active-scene save fails", async () => {
     const state = createSeasonState();
 
-    state.runError = "connection refused";
+    state.saveError = "connection refused";
 
     const model = createMockModel(["Mia: What did you order?"]);
     const app = createApp({ authMiddleware: signedInWith(state), model });
@@ -2169,10 +2342,10 @@ describe("story content database contract", () => {
     expect(model.doStreamCalls).toHaveLength(1);
   });
 
-  test("keeps the ending when completing its transcript fails", async () => {
+  test("keeps the ending when saving the closing scene fails", async () => {
     const state = createSeasonState();
 
-    state.runError = "connection refused";
+    state.saveError = "connection refused";
 
     const app = createApp({
       authMiddleware: signedInWith(state),
@@ -2188,8 +2361,40 @@ describe("story content database contract", () => {
 
     expect(state.recorded).toHaveLength(1);
     expect(body).toContain('"type":"data-ending"');
-    expect(
-      state.runRecords.some((record) => record.name === "complete_episode_run")
-    ).toBeTrue();
+    expect(state.messages).toHaveLength(0);
+  });
+
+  // 결말이 난 플레이에는 더 이상 메시지를 넣을 수 없다. 그래서 닫는 장면은
+  // 결말보다 먼저 저장한다.
+  test("saves the closing scene before it records the ending", async () => {
+    const state = createSeasonState();
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([
+        "Mia: Here you go.\n",
+        "성공: 원하던 커피를 새로 받아냈다.",
+      ]),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        episodeId: episodeId(1),
+        messages: [createUserMessage("This is wrong.")],
+      })
+    );
+
+    await response.text();
+
+    // 사용자 메시지와 닫는 장면이 남고, 결말은 그 뒤에 기록된다. 저장된 장면에는
+    // 결말 part가 없다.
+    expect(state.messages.map((row) => row.role)).toEqual([
+      "user",
+      "assistant",
+    ]);
+    expect(state.recorded).toHaveLength(1);
+    expect(state.messages.at(-1)?.parts).toEqual([
+      { data: { name: "Mia" }, id: "speaker-1", type: "data-speaker" },
+      { state: "done", text: "Here you go.", type: "text" },
+    ]);
   });
 });

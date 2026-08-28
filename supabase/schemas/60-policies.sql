@@ -113,9 +113,11 @@ create policy episode_plays_start_own on public.episode_plays
 
 -- 결말을 쓰는 정책은 없다. `public.finish_episode`가 결말과 이야기 기억과 언어
 -- 수준을 한 트랜잭션에 남기고, 그 함수만이 이미 끝난 플레이를 다시 닫지 못하게
--- 한다. 아래 insert grant가 열을 둘로 좁히는 것이 그 규칙의 나머지 절반이다.
+-- 한다. 아래 insert grant가 열을 하나로 좁히는 것이 그 규칙의 나머지 절반이다.
+-- `user_id`도 여기 없다. 그 열은 기본값이 채우므로, 남의 이름을 실어 보내는
+-- 문장은 정책을 만나기 전에 권한에서 막힌다.
 grant select on table public.episode_plays to authenticated;
-grant insert (user_id, episode_id) on table public.episode_plays to authenticated;
+grant insert (episode_id) on table public.episode_plays to authenticated;
 grant all on table public.episode_plays to service_role;
 
 alter table public.episode_messages enable row level security;
@@ -156,8 +158,11 @@ create policy episode_messages_erase_open_play on public.episode_messages
   );
 
 -- update 정책이 없다. 저장은 장면이 끝난 뒤 한 번 일어나고, 고쳐 쓰는 대신
--- 지우고 새로 넣는다. 쓸 일이 없는 문장은 열지 않는다.
-grant select, insert, delete on table public.episode_messages to authenticated;
+-- 지우고 새로 넣는다. 쓸 일이 없는 문장은 열지 않는다. `user_id`는
+-- `episode_plays`와 같은 이유로 insert grant에서 빠져 있다.
+grant select, delete on table public.episode_messages to authenticated;
+grant insert (id, play_id, position, role, parts)
+  on table public.episode_messages to authenticated;
 grant all on table public.episode_messages to service_role;
 
 alter table public.episode_corrections enable row level security;
@@ -184,21 +189,12 @@ create policy episode_corrections_write_own_message on public.episode_correction
     )
   );
 
--- delete 정책이 없다. 교정은 그것이 붙은 메시지를 따라 사라진다.
-grant select, insert on table public.episode_corrections to authenticated;
+-- delete 정책이 없다. 교정은 그것이 붙은 메시지를 따라 사라진다. `user_id`는
+-- 앞의 두 테이블과 같은 이유로 insert grant에서 빠져 있다.
+grant select on table public.episode_corrections to authenticated;
+grant insert (message_id, original, corrected, reason)
+  on table public.episode_corrections to authenticated;
 grant all on table public.episode_corrections to service_role;
-
--- 진행 중 장면과 끝난 대화 기록. 사용자는 자기 기록만 읽고, 쓰기는 순서와
--- 완료 불변성을 검사하는 함수만 맡는다.
-alter table public.episode_runs enable row level security;
-
-create policy episode_runs_select_own on public.episode_runs
-  for select
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
-grant select on table public.episode_runs to authenticated;
-grant all on table public.episode_runs to service_role;
 
 -- Access control for public.language_levels.
 --

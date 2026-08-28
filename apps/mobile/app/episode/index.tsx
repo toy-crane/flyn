@@ -31,12 +31,11 @@ export default function EpisodeRoute() {
   );
   const refreshStory = useStoryRefresh(session?.user.id);
   const playing = episode.data;
-  const [isSettling, setIsSettling] = useState(false);
   const [startingNextEpisodeId, setStartingNextEpisodeId] = useState<string>();
   const startingNextEpisode = useRef<string | undefined>(undefined);
   const isStartingNext =
     startingNextEpisodeId !== undefined && startingNextEpisodeId !== episodeId;
-  const isRoutePending = isSettling || isStartingNext;
+  const isRoutePending = isStartingNext;
   const { isRetrying, retry: retryEpisode } = useVisibleRetry(episode.refetch);
 
   useEffect(
@@ -66,10 +65,7 @@ export default function EpisodeRoute() {
   const startNextEpisode = useCallback(
     async (nextEpisodeId: string) => {
       const claimedEpisodeId = startingNextEpisode.current;
-      if (
-        isSettling ||
-        (claimedEpisodeId !== undefined && claimedEpisodeId !== episodeId)
-      ) {
+      if (claimedEpisodeId !== undefined && claimedEpisodeId !== episodeId) {
         return;
       }
 
@@ -95,7 +91,7 @@ export default function EpisodeRoute() {
         }
       }
     },
-    [episodeId, isSettling, refreshStory]
+    [episodeId, refreshStory]
   );
 
   return (
@@ -125,9 +121,10 @@ export default function EpisodeRoute() {
           key={playing.episode.episodeId}
           onLeave={leaveEpisode}
           onOpenAsk={openAsk}
-          onSettlingChange={setIsSettling}
           onStartNext={startNextEpisode}
           readOnly={playing.readOnly}
+          recordedEnding={playing.ending}
+          recordedNextUp={playing.nextUp}
           situation={playing.episode.situation}
           situationEmoji={playing.episode.situationEmoji}
         />

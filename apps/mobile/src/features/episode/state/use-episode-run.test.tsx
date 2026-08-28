@@ -5,21 +5,12 @@ import { simulateReadableStream } from "ai";
 
 import { createEpisodeTransport } from "@/features/episode/api/episode-transport";
 import { useEpisodeRun } from "./use-episode-run";
-import { useEpisodeStopSave } from "./use-episode-stop-save";
 
 jest.mock("@/features/episode/api/episode-transport", () => ({
   createEpisodeTransport: jest.fn(),
 }));
 
-jest.mock("./use-episode-stop-save", () => ({
-  useEpisodeStopSave: jest.fn(() => ({
-    isSaving: false,
-    stopAndSave: jest.fn(() => Promise.resolve()),
-  })),
-}));
-
 const mockCreateEpisodeTransport = jest.mocked(createEpisodeTransport);
-const mockUseEpisodeStopSave = jest.mocked(useEpisodeStopSave);
 const EPISODE_ID = "11000000-0000-4000-8000-000000000001";
 
 function openingStream(): ReadableStream<UIMessageChunk> {
@@ -114,36 +105,30 @@ test("끝난 대화는 직접 열기를 불러도 서버에 새 요청을 보내
   expect(transport.sendMessages).not.toHaveBeenCalled();
 });
 
-test("답변 다시 받기는 중지할 때 잘라낸 목록을 바꾸는 요청으로 남긴다", async () => {
+test("끝난 화를 다시 열면 서버가 실어 보낸 결말로 마무리를 그린다", async () => {
   fakeTransport();
   const messages: UIMessage[] = [
     {
-      id: "saved-user",
-      parts: [{ text: "This is wrong.", type: "text" }],
-      role: "user",
-    },
-    {
       id: "saved-assistant",
-      parts: [{ text: "What did you order?", type: "text" }],
+      parts: [{ text: "Here you go.", type: "text" }],
       role: "assistant",
     },
   ];
   const { result } = await renderHook(() =>
-    useEpisodeRun("token", EPISODE_ID, messages, false)
+    useEpisodeRun(
+      "token",
+      EPISODE_ID,
+      messages,
+      true,
+      { kind: "성공", outcome: "새 잔을 받아냈다." },
+      { copy: "다음 이야기", episodeId: "next", number: 2, title: "2화" }
+    )
   );
 
-  await act(() => result.current.chat.regenerate());
-
-  await waitFor(() => {
-    expect(
-      mockUseEpisodeStopSave.mock.calls.some(
-        ([input]) => input.mode === "replace" && input.status === "submitted"
-      )
-    ).toBe(true);
-    expect(
-      mockUseEpisodeStopSave.mock.calls.some(
-        ([input]) => input.mode === "preserve" && input.status === "streaming"
-      )
-    ).toBe(true);
+  // 저장된 대화에는 결말 part가 없다. 결말은 서버의 플레이 기록이 소유한다.
+  expect(result.current.ending).toEqual({
+    kind: "성공",
+    outcome: "새 잔을 받아냈다.",
   });
+  expect(result.current.nextUp?.episodeId).toBe("next");
 });

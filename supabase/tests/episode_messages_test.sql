@@ -121,10 +121,23 @@ SELECT ok(
   'anon cannot reach episode_corrections through the Data API'
 );
 
+-- insert는 열 단위로 주어져 있다. `user_id`가 빠진 자리가 그 이유이므로,
+-- 테이블 수준 INSERT는 여기서도 false로 읽힌다.
 SELECT ok(
   (
     SELECT bool_and(has_table_privilege('authenticated', 'public.episode_messages', p))
-    FROM unnest(ARRAY['SELECT', 'INSERT', 'DELETE']) AS p
+    FROM unnest(ARRAY['SELECT', 'DELETE']) AS p
+  )
+  AND (
+    SELECT bool_and(
+      has_column_privilege('authenticated', 'public.episode_messages', c, 'INSERT')
+    )
+    FROM unnest(ARRAY['id', 'play_id', 'position', 'role', 'parts']) AS c
+  )
+  AND NOT (
+    SELECT has_column_privilege(
+      'authenticated', 'public.episode_messages', 'user_id', 'INSERT'
+    )
   )
   AND NOT (
     SELECT has_table_privilege('authenticated', 'public.episode_messages', 'UPDATE')
@@ -134,8 +147,18 @@ SELECT ok(
 
 SELECT ok(
   (
-    SELECT bool_and(has_table_privilege('authenticated', 'public.episode_corrections', p))
-    FROM unnest(ARRAY['SELECT', 'INSERT']) AS p
+    SELECT has_table_privilege('authenticated', 'public.episode_corrections', 'SELECT')
+  )
+  AND (
+    SELECT bool_and(
+      has_column_privilege('authenticated', 'public.episode_corrections', c, 'INSERT')
+    )
+    FROM unnest(ARRAY['message_id', 'original', 'corrected', 'reason']) AS c
+  )
+  AND NOT (
+    SELECT has_column_privilege(
+      'authenticated', 'public.episode_corrections', 'user_id', 'INSERT'
+    )
   )
   AND NOT (
     SELECT bool_or(has_table_privilege('authenticated', 'public.episode_corrections', p))
@@ -162,93 +185,87 @@ SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claims TO '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}';
 
 SELECT lives_ok(
-  $$insert into public.episode_messages (id, play_id, user_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, position, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000001',
       'aa000000-0000-4000-8000-000000000002',
-      '11111111-1111-4111-8111-111111111111',
       0, 'user', '[{"type":"text","text":"I want to change my order."}]'
     )$$,
   'a person adds a message to a play that is still open'
 );
 
 SELECT lives_ok(
-  $$insert into public.episode_messages (id, play_id, user_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, position, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000002',
       'aa000000-0000-4000-8000-000000000002',
-      '11111111-1111-4111-8111-111111111111',
       1, 'assistant', '[{"type":"text","text":"Mia looks up."}]'
     )$$,
   'and the scene that answers it'
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, user_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, position, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'aa000000-0000-4000-8000-000000000002',
-      '11111111-1111-4111-8111-111111111111',
       1, 'assistant', '[{"type":"text","text":"두 번째 1번 자리."}]'
     )$$,
   '23505', NULL, 'two messages cannot take the same place'
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, user_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, position, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'aa000000-0000-4000-8000-000000000002',
-      '11111111-1111-4111-8111-111111111111',
       -1, 'user', '[{"type":"text","text":"음수 자리."}]'
     )$$,
   '23514', NULL, 'a message cannot sit before the start of the conversation'
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, user_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, position, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'aa000000-0000-4000-8000-000000000002',
-      '11111111-1111-4111-8111-111111111111',
       2, 'system', '[{"type":"text","text":"세 번째 역할."}]'
     )$$,
   '23514', NULL, 'only the two roles a conversation has are accepted'
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, user_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, position, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'aa000000-0000-4000-8000-000000000002',
-      '11111111-1111-4111-8111-111111111111',
       2, 'user', '{"type":"text","text":"배열이 아닌 parts."}'
     )$$,
   '23514', NULL, 'parts is a list of parts, not a single one'
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, user_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, position, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'aa000000-0000-4000-8000-000000000001',
-      '11111111-1111-4111-8111-111111111111',
       1, 'user', '[{"type":"text","text":"끝난 화에 덧붙이기."}]'
     )$$,
   '42501', NULL, 'a finished play accepts no further message'
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, user_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, position, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'bb000000-0000-4000-8000-000000000001',
-      '11111111-1111-4111-8111-111111111111',
       0, 'user', '[{"type":"text","text":"남의 플레이에 쓰기."}]'
     )$$,
   '42501', NULL, 'a person cannot write into somebody else''s play'
 );
 
+-- `user_id`는 기본값이 채우므로 insert grant에 없다. 남의 이름을 실어 보내는
+-- 문장은 정책을 만나기 전에 권한에서 막힌다.
 SELECT throws_ok(
   $$insert into public.episode_messages (id, play_id, user_id, position, role, parts)
     values (
@@ -276,10 +293,9 @@ SELECT is(
 );
 
 SELECT lives_ok(
-  $$insert into public.episode_corrections (message_id, user_id, original, corrected, reason)
+  $$insert into public.episode_corrections (message_id, original, corrected, reason)
     values (
       'cc000000-0000-4000-8000-000000000001',
-      '11111111-1111-4111-8111-111111111111',
       'I want to change my order.',
       'Could I change my order?',
       '부탁할 때는 Could I가 자연스럽습니다.'
@@ -288,10 +304,9 @@ SELECT lives_ok(
 );
 
 SELECT lives_ok(
-  $$insert into public.episode_corrections (message_id, user_id, original, corrected, reason)
+  $$insert into public.episode_corrections (message_id, original, corrected, reason)
     values (
       'cc000000-0000-4000-8000-000000000001',
-      '11111111-1111-4111-8111-111111111111',
       'change',
       'Could I change my order?',
       '같은 문장에 배울 표현이 둘 붙을 수 있습니다.'
@@ -300,10 +315,9 @@ SELECT lives_ok(
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_corrections (message_id, user_id, original, corrected, reason)
+  $$insert into public.episode_corrections (message_id, original, corrected, reason)
     values (
       'cc000000-0000-4000-8000-000000000002',
-      '11111111-1111-4111-8111-111111111111',
       'Mia looks up.',
       'Mia looked up.',
       '상대의 대사를 고치려는 시도.'
@@ -312,10 +326,9 @@ SELECT throws_ok(
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_corrections (message_id, user_id, original, corrected, reason)
+  $$insert into public.episode_corrections (message_id, original, corrected, reason)
     values (
       'cc000000-0000-4000-8000-000000000009',
-      '11111111-1111-4111-8111-111111111111',
       'Can I get another one?',
       'Could I get another one?',
       '끝난 화에 뒤늦게 붙이려는 시도.'
@@ -324,10 +337,9 @@ SELECT throws_ok(
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_corrections (message_id, user_id, original, corrected, reason)
+  $$insert into public.episode_corrections (message_id, original, corrected, reason)
     values (
       'cc000000-0000-4000-8000-000000000001',
-      '11111111-1111-4111-8111-111111111111',
       'change',
       'Could I change my order?',
       '   '
@@ -368,11 +380,10 @@ SELECT is(
 );
 
 SELECT lives_ok(
-  $$insert into public.episode_messages (id, play_id, user_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, position, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000004',
       'aa000000-0000-4000-8000-000000000002',
-      '11111111-1111-4111-8111-111111111111',
       1, 'assistant', '[{"type":"text","text":"Mia smiles."}]'
     )$$,
   'the new answer takes the place the removed one left'

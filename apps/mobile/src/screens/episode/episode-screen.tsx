@@ -1,18 +1,6 @@
 import type { UIMessage } from "ai";
-import { useNavigation } from "expo-router";
-import {
-  type NavigationAction,
-  useHeaderHeight,
-  usePreventRemove,
-} from "expo-router/react-navigation";
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useHeaderHeight } from "expo-router/react-navigation";
+import { type ReactNode, useCallback, useMemo, useRef } from "react";
 import { Platform, type TextInput } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
@@ -24,6 +12,8 @@ import { ChatPanel } from "@/features/chat/ui/chat-panel";
 import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
 import { useEpisodeAsks } from "@/features/episode/state/episode-asks";
 import { EpisodeCorrectionsProvider } from "@/features/episode/state/episode-corrections";
+import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
+import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { useEpisodeRun } from "@/features/episode/state/use-episode-run";
 import { EpisodeCorrectionNote } from "@/features/episode/ui/correction-note";
 import { EpisodeClosing } from "@/features/episode/ui/episode-closing";
@@ -47,6 +37,9 @@ import { EpisodeSituationBanner } from "@/features/episode/ui/episode-situation-
  * 에피소드 기능의 것이라, 둘을 잇는 자리도 여기다. 메시지 하나에 거는 동작과
  * 템플릿의 텍스트 선택 진입은 여전히 넘기지 않는다. 물어보는 자리로 들어가는
  * 길은 교정 카드 하나뿐이다.
+ *
+ * 나가기를 붙잡아 두지 않는다. 대화를 저장하는 주체가 서버 하나라, 중지하거나
+ * 화면을 나가면 요청만 끊고 서버가 자기가 만든 데까지를 스스로 남긴다.
  */
 export function EpisodeScreen({
   episodeId,
@@ -54,9 +47,10 @@ export function EpisodeScreen({
   isStartingNext,
   onLeave,
   onOpenAsk,
-  onSettlingChange,
   onStartNext,
   readOnly,
+  recordedEnding,
+  recordedNextUp,
   situation,
   situationEmoji,
 }: {
@@ -65,39 +59,38 @@ export function EpisodeScreen({
   isStartingNext: boolean;
   onLeave: () => void;
   onOpenAsk: (id: string) => void;
-  onSettlingChange: (isSettling: boolean) => void;
   onStartNext: (episodeId: string) => void;
   readOnly: boolean;
+  recordedEnding?: EpisodeEnding;
+  recordedNextUp?: EpisodeNextUp;
   situation: string;
   situationEmoji: string;
 }) {
   const { session } = useAuthSession();
   const accessToken = session?.access_token;
-  const { chat, corrections, ending, isSaving, nextUp, open, stopAndSave } =
-    useEpisodeRun(accessToken, episodeId, initialMessages, readOnly);
+  const { chat, corrections, ending, nextUp, open } = useEpisodeRun(
+    accessToken,
+    episodeId,
+    initialMessages,
+    readOnly,
+    recordedEnding,
+    recordedNextUp
+  );
   const drafts = useLocalChatDrafts();
   const conversation = useConversation(chat, drafts, accessToken);
   const { openAsk } = useEpisodeAsks();
   const inputRef = useRef<TextInput>(null);
   const headerHeight = useHeaderHeight();
-  const navigation = useNavigation();
-  const pendingRemoval = useRef<NavigationAction | undefined>(undefined);
-  const [canRemove, setCanRemove] = useState(false);
   // 첫 장면을 받지 못했다면 다시 받을 것은 답변이 아니라 에피소드의 시작이다.
   // 되받을 답변이 없어 그냥 돌아서는 다시 시도는 눌러도 아무 일이 없다.
-  // 중지한 장면을 저장하는 동안 오류가 함께 와도 새 요청은 시작하지 않는다.
   const retry = useCallback(() => {
-    if (isSaving) {
-      return;
-    }
-
     if (conversation.messages.length === 0) {
       open();
       return;
     }
 
     conversation.retry();
-  }, [conversation.messages.length, conversation.retry, isSaving, open]);
+  }, [conversation.messages.length, conversation.retry, open]);
   // 고친 문장을 입력창에 담는다. 보내는 것은 사용자의 몫이고, 그 전에 문장을
   // 고칠 수도 있다. 실제로 보내야 한 줄에 보냈다는 표시가 남는다.
   const resendCorrection = useCallback(
@@ -150,52 +143,9 @@ export function EpisodeScreen({
     send();
   }, [confirmResend, send]);
   const conversationRun = useMemo(
-    () => ({
-      ...conversation,
-      isBusy: conversation.isBusy || isSaving,
-      retry,
-      send: sendMessage,
-      stop: stopAndSave,
-    }),
-    [conversation, isSaving, retry, sendMessage, stopAndSave]
+    () => ({ ...conversation, retry, send: sendMessage }),
+    [conversation, retry, sendMessage]
   );
-  // useChat의 stop은 요청만 취소하고 마지막 응답 조각이 React에 들어오기를
-  // 기다리지 않는다. 나가기 동작은 한 번만 맡아 두고, 마지막 렌더를 서버와
-  // 맞춘 뒤 원래 POP, GO_BACK 또는 REPLACE를 그대로 이어 간다.
-  const handlePreventedRemoval = useCallback(
-    ({ data }: { data: { action: NavigationAction } }) => {
-      if (pendingRemoval.current !== undefined) {
-        return;
-      }
-
-      pendingRemoval.current = data.action;
-      stopAndSave()
-        .catch(() => undefined)
-        .finally(() => {
-          setCanRemove(true);
-        });
-    },
-    [stopAndSave]
-  );
-
-  usePreventRemove(
-    conversationRun.isBusy && !canRemove,
-    handlePreventedRemoval
-  );
-
-  useEffect(() => {
-    const action = pendingRemoval.current;
-    if (!(canRemove && action)) {
-      return;
-    }
-
-    pendingRemoval.current = undefined;
-    navigation.dispatch(action);
-  }, [canRemove, navigation]);
-
-  useEffect(() => {
-    onSettlingChange(isSaving);
-  }, [isSaving, onSettlingChange]);
 
   let closing: ReactNode;
 
@@ -203,7 +153,7 @@ export function EpisodeScreen({
     closing = (
       <EpisodeClosing
         ending={ending}
-        isSettling={isSaving}
+        isSettling={false}
         isStartingNext={isStartingNext}
         nextUp={nextUp}
         onLeave={onLeave}
@@ -225,8 +175,6 @@ export function EpisodeScreen({
         banner={
           <EpisodeSituationBanner emoji={situationEmoji} text={situation} />
         }
-        busyLabel={isSaving ? episodeLabels.saving : undefined}
-        canStop={!isSaving}
         chat={conversationRun}
         closing={closing}
         hasMessageActions={false}
