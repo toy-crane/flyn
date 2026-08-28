@@ -11,6 +11,7 @@ import { AuthError, AuthLayout } from "@/features/auth/ui/auth-layout";
 import { onboardingLabels } from "@/features/auth/ui/onboarding-labels";
 import { useFocusOnArrival } from "@/shared/navigation/use-screen-arrival";
 import { Button } from "@/shared/ui/button";
+import { Icon } from "@/shared/ui/icon";
 
 /**
  * The second onboarding screen, and the one that saves.
@@ -90,10 +91,12 @@ export function UsernameScreen() {
 /**
  * Whether the id is being checked, or free.
  *
- * The check is drawn as a character rather than an icon: the app has no icon
- * system yet, and one glyph does not justify adding one. Colour and shape are
- * not the message either — the accessible name is, so a screen reader hears
- * that the id is free rather than that there is a green circle.
+ * The free mark is a bare check, not a filled disc. A disc is the loudest thing
+ * the screen has — the only saturated shape on it — and it is spent on a state
+ * nobody has to act on; a stroke also lands at the weight of the spinner it
+ * replaces, so finishing the check does not jump. Colour and shape are not the
+ * message either: the accessible name is, so a screen reader hears that the id
+ * is free rather than that there is a green mark.
  */
 function UsernameMark({
   isAvailable,
@@ -123,10 +126,9 @@ function UsernameMark({
     <View
       accessibilityLabel={onboardingLabels.available}
       accessible
-      className="h-5 w-5 items-center justify-center rounded-full bg-success"
       testID="onboarding-username-available"
     >
-      <Text className="font-bold text-success-foreground text-xs">✓</Text>
+      <Icon name="check" tone="success" />
     </View>
   );
 }
