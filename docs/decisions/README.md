@@ -58,6 +58,7 @@
 - [모바일 진입 키보드](mobile-keyboard-entry-focus.md) — 화면에 들어오자마자 입력을 시작하게 만들거나 고칠 때 읽는다.
 - [화면 문구 한국어 말투](korean-ui-writing.md) — 앱 화면에 보이는 문구의 종결어미, 버튼과 오류 문구, 마침표를 쓰거나 고칠 때 읽는다.
 - [스토리 진행·결말 화면 표기](story-progress-and-ending-display.md) — 스토리·에피소드의 진행 상태, 완료, 결말을 화면에 표기하거나 그 문구를 바꿀 때 읽는다.
+- [모바일 뒤로 가기 표시](mobile-back-button-display.md) — 뒤로 가기 버튼의 라벨, 쉐브론 표시 또는 접근성 이름을 바꿀 때 읽는다.
 - [모바일 앱 에셋 생성](mobile-app-asset-generation.md) — 앱 아이콘, Android adaptive icon, 스플래시 이미지 또는 이를 만드는 에이전트 작업을 추가하거나 바꿀 때 읽는다.
 - [모바일 UI 일관성 검토](mobile-ui-consistency-review.md) — 모바일 UI 검토 에이전트의 범위, 근거, 읽기 전용 권한 또는 실행 방식을 변경할 때 읽는다.
 
