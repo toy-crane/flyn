@@ -2,6 +2,8 @@
 
 ## 목표
 
+- Supabase가 권장하는 기본 방법을 데이터베이스 작업의 기본값으로 삼는다. 기본에서
+  벗어나는 SQL과 절차는 지금 필요한 이유를 그 자리에서 설명할 수 있을 때만 남긴다.
 - 스키마 변경 절차를 "선언형 스키마 수정, `supabase db diff`, 커밋"으로 끝낸다.
   생성된 마이그레이션을 권한 때문에 손으로 고치는 단계와, 사람이
   `information_schema`를 조회해 권한을 확인하는 단계를 없앤다.
@@ -22,8 +24,8 @@
   이 GRANT는 지금도 diff에 정상적으로 들어간다.
 - 새 테이블을 추가할 때 REVOKE를 손으로 보정하라는 문서(`supabase/schemas/README.md`의
   해당 절)를 새 절차에 맞게 바꾼다.
-- [Supabase 스키마 작업 방식](../../decisions/supabase-schema-workflow.md) 계약에서
-  권한 수동 보완을 요구하는 문장을 이 결정에 맞게 갱신한다.
+- [Supabase 스키마 작업 방식](../../decisions/supabase-schema-workflow.md) 계약에는
+  이 결정을 반영해 두었다. 구현은 선언형 스키마와 문서, 테스트를 그 계약에 맞춘다.
 - 권한 pgTAP 테스트를 "노출되면 안 되는 접근"만 고정하도록 좁힌다. Data API로
   닿을 수 없는 REFERENCES, TRIGGER, TRUNCATE의 부재는 더 이상 고정하지 않는다.
 
@@ -44,6 +46,9 @@
 
 ## 확정 제약과 이유
 
+- Supabase가 권장하는 기본 방법으로 가는 방향은 사용자가 확정했다. 교차 행 규칙을
+  지키는 security definer 함수는 그 기본 방법이 문서로 안내하는 공식 도구이므로,
+  함수 계층 유지는 이 원칙과 충돌하지 않는다.
 - 수동 REVOKE가 실제로 지우던 것은 기본 권한이 남기는 REFERENCES, TRIGGER,
   TRUNCATE 세 가지다. PostgREST는 select, insert, update, delete, rpc만 노출하므로
   이 세 권한에 닿는 경로가 없고, anon과 authenticated는 직접 로그인할 수 없는
