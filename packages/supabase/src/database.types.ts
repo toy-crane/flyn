@@ -34,47 +34,129 @@ export type Database = {
   }
   public: {
     Tables: {
-      episode_endings: {
+      episode_corrections: {
         Row: {
-          episode_id: string
-          finished_at: string
-          kind: string
-          memory_choice: string | null
-          memory_question: string | null
-          memory_relationship: string | null
-          outcome: string
+          corrected: string
+          created_at: string
+          id: string
+          message_id: string
+          original: string
+          reason: string
           user_id: string
         }
         Insert: {
-          episode_id: string
-          finished_at?: string
-          kind: string
-          memory_choice?: string | null
-          memory_question?: string | null
-          memory_relationship?: string | null
-          outcome: string
+          corrected: string
+          created_at?: string
+          id?: string
+          message_id: string
+          original: string
+          reason: string
           user_id: string
         }
         Update: {
-          episode_id?: string
-          finished_at?: string
-          kind?: string
-          memory_choice?: string | null
-          memory_question?: string | null
-          memory_relationship?: string | null
-          outcome?: string
+          corrected?: string
+          created_at?: string
+          id?: string
+          message_id?: string
+          original?: string
+          reason?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "episode_endings_episode_id_fkey"
+            foreignKeyName: "episode_corrections_message_id_user_id_fkey"
+            columns: ["message_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "episode_messages"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      episode_messages: {
+        Row: {
+          created_at: string
+          id: string
+          parts: Json
+          play_id: string
+          position: number
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          parts: Json
+          play_id: string
+          position: number
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          parts?: Json
+          play_id?: string
+          position?: number
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "episode_messages_play_id_user_id_fkey"
+            columns: ["play_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "episode_plays"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      episode_plays: {
+        Row: {
+          ending_kind: string | null
+          ending_outcome: string | null
+          episode_id: string
+          finished_at: string | null
+          id: string
+          memory_choice: string | null
+          memory_question: string | null
+          memory_relationship: string | null
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          ending_kind?: string | null
+          ending_outcome?: string | null
+          episode_id: string
+          finished_at?: string | null
+          id?: string
+          memory_choice?: string | null
+          memory_question?: string | null
+          memory_relationship?: string | null
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          ending_kind?: string | null
+          ending_outcome?: string | null
+          episode_id?: string
+          finished_at?: string | null
+          id?: string
+          memory_choice?: string | null
+          memory_question?: string | null
+          memory_relationship?: string | null
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "episode_plays_episode_id_fkey"
             columns: ["episode_id"]
             isOneToOne: false
             referencedRelation: "episodes"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "episode_endings_user_id_fkey"
+            foreignKeyName: "episode_plays_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -333,6 +415,7 @@ export type Database = {
         Args: { episode_id: string; messages: Json }
         Returns: undefined
       }
+      episode_is_current: { Args: { target_episode: string }; Returns: boolean }
       episode_run_extends_snapshot: {
         Args: { snapshot_messages: Json; stored_messages: Json }
         Returns: boolean

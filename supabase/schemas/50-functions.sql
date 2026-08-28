@@ -306,11 +306,62 @@ create trigger profiles_guard_username_change
   when (new.username is distinct from old.username)
   execute function public.guard_username_change();
 
+-- 지금 이 계정이 플레이할 수 있는 화인지 답한다.
+--
+-- 한 행만 보고는 답할 수 없다. 같은 스토리의 앞선 화를 모두 훑어 결말이 없는
+-- 화가 하나라도 있는지 봐야 하므로, 정책 표현식 하나로는 적을 수 없다.
+--
+-- `security invoker`다. 이 함수가 읽는 두 테이블은 호출자가 이미 읽을 수 있고,
+-- `public.episode_plays`에 걸리는 RLS는 자기 행만 남기므로 아래 `played.user_id`
+-- 조건과 같은 결과를 준다. 소유자 권한이 필요 없으면 주지 않는다. 정책이 이
+-- 함수를 부르는 것으로 재귀가 생기지도 않는다. `episode_plays`의 select 정책이
+-- 자기 테이블을 읽지 않기 때문이다. 2026-08-28 로컬에서 확인했다.
+--
+-- `auth.uid()`를 인자로 받지 않고 안에서 읽는다. 이 함수는 `authenticated`에게
+-- EXECUTE가 열려 있어 앱을 거치지 않고도 호출되므로, 인자로 받으면 남의 진행을
+-- 물어보는 문이 된다.
+--
+-- 없는 화도 false다. 지금 플레이할 화가 아니라는 답이 사실이고, 존재 여부는
+-- 외래키가 따로 막는다.
+create function public.episode_is_current(target_episode uuid)
+returns boolean
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.episodes target
+    where target.id = episode_is_current.target_episode
+      and not exists (
+        select 1
+        from public.episodes earlier
+        left join public.episode_plays played
+          on played.user_id = (select auth.uid())
+          and played.episode_id = earlier.id
+          and played.finished_at is not null
+        where earlier.story_id = target.story_id
+          and earlier.number < target.number
+          and played.id is null
+      )
+  );
+$$;
+
+comment on function public.episode_is_current(uuid) is
+  'Reports whether the caller has finished every earlier episode of the story this one belongs to.';
+
+revoke all on function public.episode_is_current(uuid) from public;
+-- 정책 표현식은 정책을 만든 역할이 아니라 부르는 역할의 권한으로 평가한다.
+-- `public.episode_plays`의 insert 정책이 이 함수를 부르므로 EXECUTE가 필요하다.
+grant execute on function public.episode_is_current(uuid) to authenticated;
+
 -- 끝난 에피소드를 기록하는 유일한 길.
 --
--- `authenticated`는 `episode_endings`에 직접 쓰지 못한다. 직접 쓸 수 있으면
--- 앱이 아무 화나 끝난 것으로 만들어 앞의 화를 건너뛸 수 있다. 이 함수는
--- 지금 끝낼 수 있는 화가 하나뿐이라는 규칙을 지키고, 그래서 `security definer`다.
+-- 결말이 한 번만 난다는 규칙과 이야기 기억, 언어 수준이 한 트랜잭션에 함께
+-- 남는다는 것이 이 함수의 이유다. `authenticated`는 `public.episode_plays`의
+-- 결말 열에 직접 쓰지 못한다. 직접 쓸 수 있으면 앱이 아무 화나 끝난 것으로
+-- 만들어 앞의 화를 건너뛸 수 있다.
 --
 -- 같은 화의 결말이 다시 도착하면 false를 돌려준다. 한 번 난 결말은 그 스토리의
 -- 사실로 남으므로 나중에 온 판정이 앞의 사실을 바꾸거나 화면을 닫지 않는다.
@@ -331,52 +382,29 @@ as $$
 declare
   player uuid := (select auth.uid());
   recorded integer;
-  target_story uuid;
-  target_number smallint;
 begin
   if player is null then
     raise exception 'A signed-in user is required to finish an episode.'
       using errcode = '28000';
   end if;
 
-  select authored.story_id, authored.number
-  into target_story, target_number
-  from public.episodes authored
-  where authored.id = finish_episode.episode_id;
-
-  if target_story is null then
-    raise exception 'Episode % does not exist.', finish_episode.episode_id
-      using errcode = '22023';
-  end if;
-
-  if not exists (
-    select 1
-    from public.episode_endings ending
-    where ending.user_id = player
-      and ending.episode_id = finish_episode.episode_id
-  ) and exists (
-    select 1
-    from public.episodes earlier
-    left join public.episode_endings ending
-      on ending.user_id = player
-      and ending.episode_id = earlier.id
-    where earlier.story_id = target_story
-      and earlier.number < target_number
-      and ending.episode_id is null
-  ) then
-    raise exception 'Episode % is not the next episode in its story.',
+  if not public.episode_is_current(finish_episode.episode_id) then
+    raise exception 'Episode % is not the current episode in its story.',
       finish_episode.episode_id
       using errcode = '22023';
   end if;
 
-  insert into public.episode_endings (
+  -- 아직 플레이를 열지 않은 채 결말이 도착할 수 있다. 그때는 이 한 문장이
+  -- 플레이를 만들면서 닫는다.
+  insert into public.episode_plays (
     user_id,
     episode_id,
-    kind,
-    outcome,
+    ending_kind,
+    ending_outcome,
     memory_choice,
     memory_relationship,
-    memory_question
+    memory_question,
+    finished_at
   )
   values (
     player,
@@ -385,9 +413,17 @@ begin
     finish_episode.outcome,
     finish_episode.memory_choice,
     finish_episode.memory_relationship,
-    finish_episode.memory_question
+    finish_episode.memory_question,
+    now()
   )
-  on conflict on constraint episode_endings_pkey do nothing;
+  on conflict on constraint episode_plays_one_per_episode do update
+  set ending_kind = excluded.ending_kind,
+      ending_outcome = excluded.ending_outcome,
+      memory_choice = excluded.memory_choice,
+      memory_relationship = excluded.memory_relationship,
+      memory_question = excluded.memory_question,
+      finished_at = excluded.finished_at
+  where public.episode_plays.finished_at is null;
 
   get diagnostics recorded = row_count;
 
@@ -404,7 +440,7 @@ end;
 $$;
 
 comment on function public.finish_episode(uuid, text, text, text, text, text, text) is
-  'Records the ending and story memory of the caller''s current episode. Returns true only to the request that inserted the permanent ending.';
+  'Records the ending and story memory of the caller''s current episode. Returns true only to the request that closed the play.';
 
 revoke all on function public.finish_episode(uuid, text, text, text, text, text, text) from public;
 grant execute on function public.finish_episode(uuid, text, text, text, text, text, text) to authenticated;
@@ -420,8 +456,6 @@ set search_path = ''
 as $$
 declare
   player uuid := (select auth.uid());
-  target_story uuid;
-  target_number smallint;
 begin
   if player is null then
     raise exception 'A signed-in user is required to save an episode.'
@@ -438,35 +472,17 @@ begin
       using errcode = '22001';
   end if;
 
-  select authored.story_id, authored.number
-  into target_story, target_number
-  from public.episodes authored
-  where authored.id = save_episode_run.episode_id;
-
-  if target_story is null then
-    raise exception 'Episode % does not exist.', save_episode_run.episode_id
-      using errcode = '22023';
-  end if;
-
   if exists (
     select 1
-    from public.episode_endings ending
-    where ending.user_id = player
-      and ending.episode_id = save_episode_run.episode_id
+    from public.episode_plays played
+    where played.user_id = player
+      and played.episode_id = save_episode_run.episode_id
+      and played.finished_at is not null
   ) then
     return;
   end if;
 
-  if exists (
-    select 1
-    from public.episodes earlier
-    left join public.episode_endings ending
-      on ending.user_id = player
-      and ending.episode_id = earlier.id
-    where earlier.story_id = target_story
-      and earlier.number < target_number
-      and ending.episode_id is null
-  ) then
+  if not public.episode_is_current(save_episode_run.episode_id) then
     raise exception 'Episode % is not the current episode in its story.',
       save_episode_run.episode_id
       using errcode = '22023';
@@ -594,8 +610,6 @@ set search_path = ''
 as $$
 declare
   player uuid := (select auth.uid());
-  target_story uuid;
-  target_number smallint;
 begin
   if player is null then
     raise exception 'A signed-in user is required to save an episode.'
@@ -612,36 +626,17 @@ begin
       using errcode = '22001';
   end if;
 
-  select authored.story_id, authored.number
-  into target_story, target_number
-  from public.episodes authored
-  where authored.id = save_episode_run_fallback.episode_id;
-
-  if target_story is null then
-    raise exception 'Episode % does not exist.',
-      save_episode_run_fallback.episode_id
-      using errcode = '22023';
-  end if;
-
   if exists (
     select 1
-    from public.episode_endings ending
-    where ending.user_id = player
-      and ending.episode_id = save_episode_run_fallback.episode_id
+    from public.episode_plays played
+    where played.user_id = player
+      and played.episode_id = save_episode_run_fallback.episode_id
+      and played.finished_at is not null
   ) then
     return;
   end if;
 
-  if exists (
-    select 1
-    from public.episodes earlier
-    left join public.episode_endings ending
-      on ending.user_id = player
-      and ending.episode_id = earlier.id
-    where earlier.story_id = target_story
-      and earlier.number < target_number
-      and ending.episode_id is null
-  ) then
+  if not public.episode_is_current(save_episode_run_fallback.episode_id) then
     raise exception 'Episode % is not the current episode in its story.',
       save_episode_run_fallback.episode_id
       using errcode = '22023';
@@ -702,11 +697,12 @@ begin
       using errcode = '22001';
   end if;
 
-  select ending.kind, ending.outcome
+  select played.ending_kind, played.ending_outcome
   into recorded_kind, recorded_outcome
-  from public.episode_endings ending
-  where ending.user_id = player
-    and ending.episode_id = complete_episode_run.episode_id;
+  from public.episode_plays played
+  where played.user_id = player
+    and played.episode_id = complete_episode_run.episode_id
+    and played.finished_at is not null;
 
   if not found then
     raise exception 'Episode % has no ending.', complete_episode_run.episode_id
@@ -843,11 +839,12 @@ begin
       using errcode = '22001';
   end if;
 
-  select ending.kind, ending.outcome
+  select played.ending_kind, played.ending_outcome
   into recorded_kind, recorded_outcome
-  from public.episode_endings ending
-  where ending.user_id = player
-    and ending.episode_id = complete_episode_run_fallback.episode_id;
+  from public.episode_plays played
+  where played.user_id = player
+    and played.episode_id = complete_episode_run_fallback.episode_id
+    and played.finished_at is not null;
 
   if not found then
     raise exception 'Episode % has no ending.',

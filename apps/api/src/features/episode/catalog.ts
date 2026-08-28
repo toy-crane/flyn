@@ -104,7 +104,10 @@ export async function readAccountProgress(
   client: EpisodeClient
 ): Promise<AccountProgress> {
   const [endings, runs] = await Promise.all([
-    client.from("episode_endings").select("episode_id, outcome, finished_at"),
+    client
+      .from("episode_plays")
+      .select("episode_id, ending_outcome, finished_at")
+      .not("finished_at", "is", null),
     client.from("episode_runs").select("episode_id, completed_at, updated_at"),
   ]);
 
@@ -119,11 +122,20 @@ export async function readAccountProgress(
   }
 
   return {
+    // 끝난 플레이는 결말 시각과 결과를 함께 갖는다. 테이블 제약이 그것을
+    // 보장하지만 생성 타입은 두 열을 nullable로 내놓으므로, 타입을 바꿔치기하는
+    // 대신 여기서 걸러 낸다.
     endings: new Map(
-      endings.data.map((row) => [
-        row.episode_id,
-        { finishedAt: row.finished_at, outcome: row.outcome },
-      ])
+      endings.data.flatMap((row) =>
+        row.finished_at && row.ending_outcome
+          ? ([
+              [
+                row.episode_id,
+                { finishedAt: row.finished_at, outcome: row.ending_outcome },
+              ],
+            ] as [string, EndingRecord][])
+          : []
+      )
     ),
     runs: new Map(
       runs.data.map((row) => [

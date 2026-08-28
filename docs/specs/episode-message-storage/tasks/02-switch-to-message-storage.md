@@ -31,7 +31,10 @@
   [모바일 채팅 메시지 동작](../../../decisions/mobile-chat-message-actions.md)이
   정한 중지, 다시 받기, 수정의 겉모습을 바꾸지 않는다.
 - [AI 에피소드 프로토콜](../../../decisions/ai-episode-protocol.md)이 소유한 저장
-  규칙과 중지 저장 규칙을 이 작업의 결과에 맞게 갱신한다.
+  규칙과 중지 저장 규칙을 이 작업의 결과에 맞게 갱신한다. 결말이 난 뒤에는 그
+  플레이에 메시지를 더할 수 없으므로, 닫는 장면을 먼저 남기고 결말을 기록하는
+  순서를 그 계약에 못박는다. 01이 세운 구조는 그 순서를 강제하지 않고, 뒤집으면
+  결말을 담은 장면이 저장되지 않는다.
 - 교정을 실제로 만들어 넣는 일은 이 작업이 하지 않는다.
   [대화 중 교정](../../episode-correction/spec.md)이 소유한다.
 
@@ -69,4 +72,7 @@ Execution Blocker is the current impediment for an active task, not a declared
 task dependency. In a superseded task, preserved entries are historical. -->
 - Verification: —
 - Blocker: —
-- Revision: —
+- Revision: 01의 검토가 순서 함정 하나를 드러내 제약에 적었다. `finish_episode`가
+  `finished_at`을 채우면 그 플레이의 메시지 insert가 정책에 막히는데, PostgREST는
+  두 요청을 한 트랜잭션으로 묶지 못한다. 닫는 장면을 먼저 남기고 결말을 기록해야
+  한다. 다른 경계와 수용 기준은 그대로다.

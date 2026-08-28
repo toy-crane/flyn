@@ -9,28 +9,28 @@ VALUES
 
 SELECT has_column(
   'public',
-  'episode_endings',
+  'episode_plays',
   'episode_id',
-  'an ending references an episode id'
+  'a play references an episode id'
 );
 
-SELECT col_is_pk(
+SELECT col_is_unique(
   'public',
-  'episode_endings',
+  'episode_plays',
   array['user_id', 'episode_id'],
-  'an account holds at most one ending per episode'
+  'an account holds at most one play per episode'
 );
 
 SELECT hasnt_column(
   'public',
-  'episode_endings',
+  'episode_plays',
   'season',
   'season numbers are not progress keys'
 );
 
 SELECT hasnt_column(
   'public',
-  'episode_endings',
+  'episode_plays',
   'episode',
   'episode numbers are not progress keys'
 );
@@ -70,8 +70,8 @@ SELECT is(
 
 SELECT is(
   (
-    select kind
-    from public.episode_endings
+    select ending_kind
+    from public.episode_plays
     where episode_id = '11000000-0000-4000-8000-000000000001'
   ),
   '성공',
@@ -105,8 +105,8 @@ SELECT is(
 
 SELECT is(
   (
-    select kind
-    from public.episode_endings
+    select ending_kind
+    from public.episode_plays
     where episode_id = '11000000-0000-4000-8000-000000000001'
   ),
   '성공',

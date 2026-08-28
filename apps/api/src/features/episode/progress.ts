@@ -66,10 +66,11 @@ export async function readFinishedEpisodes(
   }
 
   const { data, error } = await client
-    .from("episode_endings")
+    .from("episode_plays")
     .select(
-      "episode_id, kind, outcome, memory_choice, memory_relationship, memory_question"
+      "episode_id, ending_kind, ending_outcome, memory_choice, memory_relationship, memory_question"
     )
+    .not("finished_at", "is", null)
     .in("episode_id", ids);
 
   if (error) {
@@ -80,11 +81,29 @@ export async function readFinishedEpisodes(
     story.episodes.map((episode, index) => [episode.id, index])
   );
 
-  return [...data].sort(
-    (left, right) =>
-      (order.get(left.episode_id) ?? Number.MAX_SAFE_INTEGER) -
-      (order.get(right.episode_id) ?? Number.MAX_SAFE_INTEGER)
-  );
+  // 끝난 플레이는 결말 종류와 결과를 함께 갖는다. 테이블 제약이 그것을 보장하지만
+  // 생성 타입은 두 열을 nullable로 내놓으므로, 타입을 바꿔치기하는 대신 여기서
+  // 걸러 낸다.
+  return data
+    .flatMap((row) =>
+      row.ending_kind && row.ending_outcome
+        ? [
+            {
+              episode_id: row.episode_id,
+              kind: row.ending_kind,
+              memory_choice: row.memory_choice,
+              memory_question: row.memory_question,
+              memory_relationship: row.memory_relationship,
+              outcome: row.ending_outcome,
+            },
+          ]
+        : []
+    )
+    .sort(
+      (left, right) =>
+        (order.get(left.episode_id) ?? Number.MAX_SAFE_INTEGER) -
+        (order.get(right.episode_id) ?? Number.MAX_SAFE_INTEGER)
+    );
 }
 
 export async function recordEpisodeEnding(

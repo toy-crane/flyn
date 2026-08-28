@@ -32,7 +32,7 @@ curl -X POST "$SUPABASE_URL/rest/v1/rpc/finish_episode" \
 `auth.uid()`로 부른 사람을 확인하고 그 계정에만 쓰며, 요청에 다른 아이디를 실어도
 무시한다. 화를 건너뛰는 것도 막고, 번호에 상한도 두었다. 그래서 피해는 자기 계정
 안에 갇힌다. 남의 진행을 읽거나 고치거나 지우는 경로는 없고, 이 부분은
-`supabase/tests/episode_endings_test.sql`이 고정한다. 자기 계정을 스스로 꾸미는
+`supabase/tests/episode_plays_test.sql`이 고정한다. 자기 계정을 스스로 꾸미는
 경로는 그대로 열려 있다.
 
 **Proposed next step**: 받아들일지 막을지를 먼저 정한다. 받아들인다면 이 신뢰

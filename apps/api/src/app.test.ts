@@ -119,15 +119,15 @@ const TEST_EPISODES = [
   ...episode,
 }));
 
-/** A finished episode as the database hands it back. */
+/** A finished play as the database hands it back. */
 interface FinishedRow {
+  ending_kind: string;
+  ending_outcome: string;
   episode: number;
   episode_id?: string;
-  kind: string;
   memory_choice?: string | null;
   memory_question?: string | null;
   memory_relationship?: string | null;
-  outcome: string;
 }
 
 /**
@@ -160,9 +160,9 @@ function createSeasonState(finished: FinishedRow[] = []): SeasonState {
 /** Every episode of the season, ended. */
 function finishedSeason(): FinishedRow[] {
   return [1, 2, 3, 4, 5].map((episode) => ({
+    ending_kind: "성공",
+    ending_outcome: `${episode}화를 끝냈다.`,
     episode,
-    kind: "성공",
-    outcome: `${episode}화를 끝냈다.`,
   }));
 }
 
@@ -201,7 +201,7 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
           source = [STORY_ROW];
         } else if (table === "episodes") {
           source = TEST_EPISODES;
-        } else if (table === "episode_endings") {
+        } else if (table === "episode_plays") {
           source = finishedRows();
         } else if (table === "episode_runs") {
           source = state.runs.map((run) => ({
@@ -259,6 +259,9 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
           },
           maybeSingle: () =>
             Promise.resolve({ data: rows()[0] ?? null, error: null }),
+          // 끝난 플레이만 고르는 조회가 이것을 쓴다. `finishedRows`가 내놓는
+          // 행은 모두 이미 끝난 것이라 여기서는 바뀌는 것이 없다.
+          not: () => builder,
           order: (column: string) => {
             sorted.push(column);
 
@@ -1003,7 +1006,7 @@ describe("POST /ai/episode", () => {
   // 열면 2화의 각본이 나온다.
   test("opens the episode the account's progress points at", async () => {
     const state = createSeasonState([
-      { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+      { ending_kind: "성공", ending_outcome: "새 잔을 받아냈다.", episode: 1 },
     ]);
     const app = createApp({
       authMiddleware: signedInWith(state),
@@ -1022,7 +1025,7 @@ describe("POST /ai/episode", () => {
   // 조용히 다른 화를 열어 주지 않는다.
   test("refuses an episode that is not the one to play now", async () => {
     const state = createSeasonState([
-      { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+      { ending_kind: "성공", ending_outcome: "새 잔을 받아냈다.", episode: 1 },
     ]);
     const model = createMockModel(["Mia: Sorry."]);
     const app = createApp({ authMiddleware: signedInWith(state), model });
@@ -1126,12 +1129,12 @@ describe("POST /ai/episode", () => {
       authMiddleware: signedInWith(
         createSeasonState([
           {
+            ending_kind: "성공",
+            ending_outcome: "원하던 커피를 새로 받아냈다.",
             episode: 1,
-            kind: "성공",
             memory_choice: "영수증을 보여 주며 침착하게 요구했다.",
             memory_question: "내일도 이 카페에 들를지.",
             memory_relationship: "Mia가 실수를 인정했다.",
-            outcome: "원하던 커피를 새로 받아냈다.",
           },
         ])
       ),
@@ -1163,12 +1166,12 @@ describe("POST /ai/episode", () => {
           authMiddleware: signedInWith(
             createSeasonState([
               {
+                ending_kind: kind,
+                ending_outcome: `${kind}의 결과.`,
                 episode: 1,
-                kind,
                 memory_choice: `${kind}으로 끝냈다.`,
                 memory_question: "다음은.",
                 memory_relationship: "달라졌다.",
-                outcome: `${kind}의 결과.`,
               },
             ])
           ),
@@ -1749,7 +1752,11 @@ describe("GET /ai/episode/home", () => {
     const app = createApp({
       authMiddleware: signedInWith(
         createSeasonState([
-          { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+          {
+            ending_kind: "성공",
+            ending_outcome: "새 잔을 받아냈다.",
+            episode: 1,
+          },
         ])
       ),
     });
@@ -1803,7 +1810,11 @@ describe("GET /ai/episode/home", () => {
     const app = createApp({
       authMiddleware: signedInWith(
         createSeasonState([
-          { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+          {
+            ending_kind: "성공",
+            ending_outcome: "새 잔을 받아냈다.",
+            episode: 1,
+          },
         ])
       ),
     });
@@ -1819,7 +1830,11 @@ describe("GET /ai/episode/stories", () => {
     const app = createApp({
       authMiddleware: signedInWith(
         createSeasonState([
-          { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+          {
+            ending_kind: "성공",
+            ending_outcome: "새 잔을 받아냈다.",
+            episode: 1,
+          },
         ])
       ),
     });
@@ -1870,7 +1885,11 @@ describe("GET /ai/episode/stories/:storyId", () => {
     const app = createApp({
       authMiddleware: signedInWith(
         createSeasonState([
-          { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+          {
+            ending_kind: "성공",
+            ending_outcome: "새 잔을 받아냈다.",
+            episode: 1,
+          },
         ])
       ),
     });
@@ -2022,7 +2041,9 @@ describe("story content database contract", () => {
 
   test("completes a stopped ending through the guarded fallback", async () => {
     const outcome = "새 잔을 받아냈다.";
-    const state = createSeasonState([{ episode: 1, kind: "성공", outcome }]);
+    const state = createSeasonState([
+      { ending_kind: "성공", ending_outcome: outcome, episode: 1 },
+    ]);
     const messages = [
       {
         id: "ending-1",
@@ -2074,7 +2095,7 @@ describe("story content database contract", () => {
 
   test("returns a completed transcript as read-only", async () => {
     const state = createSeasonState([
-      { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+      { ending_kind: "성공", ending_outcome: "새 잔을 받아냈다.", episode: 1 },
     ]);
 
     state.runs.push({
@@ -2097,7 +2118,7 @@ describe("story content database contract", () => {
 
   test("does not offer a transcript for an ending migrated without messages", async () => {
     const state = createSeasonState([
-      { episode: 1, kind: "성공", outcome: "옛 결말" },
+      { ending_kind: "성공", ending_outcome: "옛 결말", episode: 1 },
     ]);
     const app = createApp({ authMiddleware: signedInWith(state) });
 
@@ -2108,8 +2129,8 @@ describe("story content database contract", () => {
 
   test("marks only completed conversations as reviewable on the story detail", async () => {
     const state = createSeasonState([
-      { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
-      { episode: 2, kind: "타협", outcome: "현금으로 냈다." },
+      { ending_kind: "성공", ending_outcome: "새 잔을 받아냈다.", episode: 1 },
+      { ending_kind: "타협", ending_outcome: "현금으로 냈다.", episode: 2 },
     ]);
 
     state.runs.push({
