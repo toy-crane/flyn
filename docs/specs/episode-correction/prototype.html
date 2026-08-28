@@ -338,24 +338,6 @@
     font-size: 12px; line-height: 16px; font-weight: 700; color: var(--muted);
   }
   .closing-next p { margin: 0; font-size: 14px; line-height: 20px }
-  .closing-learned {
-    display: flex; flex-direction: column; gap: 10px;
-    border-top: 0.5px solid var(--line); padding-top: 12px;
-  }
-  .closing-learned h3 { margin: 0; font-size: 13px; line-height: 18px; font-weight: 700 }
-  .learned-item { display: flex; gap: 8px; align-items: flex-start }
-  .learned-check {
-    flex: none; width: 18px; height: 18px; border-radius: 50%; margin-top: 1px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .learned-check.checked { background: var(--learn); color: #ffffff }
-  .learned-check.passed { border: 1.5px solid var(--line) }
-  .learned-text { display: flex; flex-direction: column; gap: 1px }
-  .learned-text .fixed { font-size: 14px; line-height: 20px; font-weight: 600 }
-  .learned-text .why { font-size: 12px; line-height: 16px; color: var(--muted) }
-  .learned-divider {
-    font-size: 12px; line-height: 16px; color: var(--muted); margin: 2px 0 0;
-  }
   .closing-actions { display: flex; gap: 8px }
   .btn {
     flex: 1; min-height: 48px; border: 0; border-radius: 24px;
@@ -656,31 +638,6 @@
             <div class="closing-next">
               <span class="next-label">다음 이야기</span>
               <p>받아낸 커피를 들고 자리를 찾는데, 창가 단골석에 낯선 사람이 앉아 있다.</p>
-            </div>
-            <div class="closing-learned" data-component="new:LearnedExpressionsList">
-              <h3>오늘 배운 표현</h3>
-              <div class="learned-item">
-                <span class="learned-check checked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
-                <span class="learned-text">
-                  <span class="fixed">the wrong coffee</span>
-                  <span class="why">잘못 나온 그 하나는 the로 짚어요</span>
-                </span>
-              </div>
-              <p class="learned-divider">지나간 표현</p>
-              <div class="learned-item">
-                <span class="learned-check passed"></span>
-                <span class="learned-text">
-                  <span class="fixed">want to change</span>
-                  <span class="why">동사 두 개는 사이에 to를 넣어요</span>
-                </span>
-              </div>
-              <div class="learned-item">
-                <span class="learned-check passed"></span>
-                <span class="learned-text">
-                  <span class="fixed">an iced americano</span>
-                  <span class="why">음료 한 잔에는 an을 붙여요</span>
-                </span>
-              </div>
             </div>
             <div class="closing-actions">
               <button class="btn tertiary" type="button" data-component="Button" id="ep-leave">홈으로 가기</button>
