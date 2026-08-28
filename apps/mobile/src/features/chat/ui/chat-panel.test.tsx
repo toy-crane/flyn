@@ -1131,6 +1131,68 @@ describe("ChatPanel", () => {
     expect(stop).toHaveBeenCalledTimes(1);
   });
 
+  test("중지를 허용하지 않는 대화는 답변을 받는 동안 중지를 내놓지 않는다", async () => {
+    const stop = jest.fn(() => Promise.resolve());
+    await renderWithHeroUI(
+      <ChatPanel
+        canStop={false}
+        chat={chatSession({ draft: "질문", isBusy: true, stop })}
+      />
+    );
+
+    expect(screen.queryByLabelText(chatLabels.stop)).not.toBeOnTheScreen();
+    expect(screen.getByLabelText(chatLabels.send)).toBeDisabled();
+    expect(stop).not.toHaveBeenCalled();
+  });
+
+  test("중지한 장면을 저장하는 동안 같은 자리에 진행 상태를 보여 준다", async () => {
+    const stop = jest.fn(() => Promise.resolve());
+    await renderWithHeroUI(
+      <ChatPanel
+        busyLabel="진행을 저장하고 있어요"
+        canStop={false}
+        chat={chatSession({ draft: "질문", isBusy: true, stop })}
+      />
+    );
+
+    const pendingStop = screen.getByLabelText(chatLabels.stop);
+
+    expect(pendingStop).toBeDisabled();
+    expect(pendingStop).toHaveProp("accessibilityState", {
+      busy: true,
+      disabled: true,
+    });
+    expect(pendingStop).toHaveProp("accessibilityValue", {
+      text: "진행을 저장하고 있어요",
+    });
+    expect(screen.queryByLabelText(chatLabels.send)).not.toBeOnTheScreen();
+    expect(stop).not.toHaveBeenCalled();
+  });
+
+  test("중지 저장 상태를 보여 줄 때 답변 대기 문구는 숨긴다", async () => {
+    jest.useFakeTimers();
+    await renderWithHeroUI(
+      <ChatPanel
+        busyLabel="진행을 저장하고 있어요"
+        canStop={false}
+        chat={chatSession({
+          isBusy: true,
+          messages: [textMessage("user-1", "user", "질문")],
+        })}
+      />
+    );
+
+    await act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(screen.queryAllByText(chatLabels.waiting)).toHaveLength(0);
+    expect(screen.getByLabelText(chatLabels.stop)).toHaveProp(
+      "accessibilityValue",
+      { text: "진행을 저장하고 있어요" }
+    );
+  });
+
   // The two share a place in the tree, so React keeps one instance and only
   // changes its props. On Android a `disabled` that stops being passed is
   // never cleared, and the stop button inherits the send button's disabled
@@ -1173,6 +1235,29 @@ describe("ChatPanel", () => {
     await user.press(screen.getByLabelText(chatLabels.retry));
 
     expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  test("중지한 장면을 저장하는 동안 오류의 다시 시도를 막는다", async () => {
+    const retry = jest.fn();
+    const user = userEvent.setup();
+
+    await renderWithHeroUI(
+      <ChatPanel
+        busyLabel="진행을 저장하고 있어요"
+        canStop={false}
+        chat={chatSession({
+          error: new Error("network"),
+          isBusy: true,
+          retry,
+        })}
+      />
+    );
+
+    const retryButton = screen.getByLabelText(chatLabels.retry);
+
+    expect(retryButton).toBeDisabled();
+    await user.press(retryButton);
+    expect(retry).not.toHaveBeenCalled();
   });
 
   test("실패하지 않았으면 다시 시도를 두지 않는다", async () => {

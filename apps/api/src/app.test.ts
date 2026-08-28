@@ -24,9 +24,101 @@ function createUserAuthMiddleware(): MiddlewareHandler {
   });
 }
 
+const STORY_ID = "10000000-0000-4000-8000-000000000001";
+const EPISODE_IDS = [1, 2, 3, 4, 5].map(
+  (number) => `11000000-0000-4000-8000-${number.toString().padStart(12, "0")}`
+);
+
+function episodeId(number: number): string {
+  const id = EPISODE_IDS[number - 1];
+
+  if (!id) {
+    throw new Error(`Episode ${number} is not in the test story.`);
+  }
+
+  return id;
+}
+
+const STORY_ROW = {
+  completion_copy: "다섯 번의 사건을 영어로 지나왔어요.",
+  completion_title: "첫 이야기를 끝냈어요",
+  id: STORY_ID,
+  position: 1,
+  slug: "mia-cafe",
+  target_language: "en",
+  title: "Mia의 카페",
+};
+
+const TEST_EPISODES = [
+  {
+    cast_names: ["Mia"],
+    id: episodeId(1),
+    number: 1,
+    opening:
+      "카페 카운터 앞이다.\nMia: Next in line, please!\n직원은 벌써 뒤에 선 손님을 부른다.",
+    preview: "주문과 다른 커피가 나왔어요.",
+    situation: "잘못 나온 커피를 원하는 커피로 바꿔 보세요",
+    situation_emoji: "☕",
+    stage: "사용자는 잘못 나온 커피를 바꿔야 한다.",
+    title: "카페에서 생긴 일",
+  },
+  {
+    cast_names: ["Mia"],
+    id: episodeId(2),
+    number: 2,
+    opening:
+      "다음 날 아침, 같은 카페다.\nMia: Hmm, it says declined. Do you want to try it again?",
+    preview: "카드가 자꾸 튕겨요.",
+    situation: "다른 방법을 찾아 계산을 끝내 보세요",
+    situation_emoji: "💳",
+    stage: "사용자는 다른 방법으로 결제를 끝내야 한다.",
+    title: "계산이 꼬인 아침",
+  },
+  {
+    cast_names: ["Mia", "Owen"],
+    id: episodeId(3),
+    number: 3,
+    opening: "Owen: Oh, is this yours?",
+    preview: "창가 자리에 다른 사람이 앉아 있어요.",
+    situation: "맡아 둔 자리를 되찾아 보세요",
+    situation_emoji: "🪑",
+    stage: "사용자는 맡아 둔 자리를 정리해야 한다.",
+    title: "자리를 맡아 둔 사이에",
+  },
+  {
+    cast_names: ["Mia"],
+    id: episodeId(4),
+    number: 4,
+    opening: "Mia: Try this one. Be honest, okay?",
+    preview: "Mia가 새 메뉴의 감상을 물어요.",
+    situation: "맛에 대한 생각을 솔직하게 전해 보세요",
+    situation_emoji: "🥤",
+    stage: "사용자는 새 음료의 감상을 전해야 한다.",
+    title: "이름 없는 신메뉴",
+  },
+  {
+    cast_names: ["Mia"],
+    id: episodeId(5),
+    number: 5,
+    opening: "Mia: Today is my last shift here.",
+    preview: "오늘이 Mia의 마지막 근무예요.",
+    situation: "문 닫기 전에 하고 싶은 말을 건네 보세요",
+    situation_emoji: "👋",
+    stage: "사용자는 마지막 인사를 건네야 한다.",
+    title: "마지막 잔",
+  },
+].map((episode) => ({
+  ending_compromise: "일부만 해결했을 때",
+  ending_failure: "해결하지 못했을 때",
+  ending_success: "원하는 결과를 얻었을 때",
+  story_id: STORY_ID,
+  ...episode,
+}));
+
 /** A finished episode as the database hands it back. */
 interface FinishedRow {
   episode: number;
+  episode_id?: string;
   kind: string;
   memory_choice?: string | null;
   memory_question?: string | null;
@@ -41,14 +133,24 @@ interface FinishedRow {
  * ending in the account before the app is told the scene is over, and a test
  * that only read the response could not tell the difference.
  */
+interface EpisodeRunRow {
+  completed_at: string | null;
+  episode_id: string;
+  messages: unknown[];
+}
+
 interface SeasonState {
   finished: FinishedRow[];
+  recordAccepted?: boolean;
   recordError?: string;
   recorded: Record<string, unknown>[];
+  runError?: string;
+  runRecords: { args: Record<string, unknown>; name: string }[];
+  runs: EpisodeRunRow[];
 }
 
 function createSeasonState(finished: FinishedRow[] = []): SeasonState {
-  return { finished, recorded: [] };
+  return { finished, recorded: [], runRecords: [], runs: [] };
 }
 
 /** Every episode of the season, ended. */
@@ -65,6 +167,13 @@ function finishedSeason(): FinishedRow[] {
  * reaching a database that holds `state`.
  */
 function signedInWith(state: SeasonState): MiddlewareHandler {
+  function finishedRows() {
+    return state.finished.map(({ episode, ...row }) => ({
+      episode_id: row.episode_id ?? episodeId(episode),
+      ...row,
+    }));
+  }
+
   const client = {
     auth: {
       getUser: () =>
@@ -73,20 +182,93 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
           error: null,
         }),
     },
-    from: () => {
+    from: (table: string) => {
+      const filters = new Map<string, unknown>();
+      const rows = () => {
+        let source: readonly object[] = [];
+
+        if (table === "stories") {
+          source = [STORY_ROW];
+        } else if (table === "episodes") {
+          source = TEST_EPISODES;
+        } else if (table === "episode_endings") {
+          source = finishedRows();
+        } else if (table === "episode_runs") {
+          source = state.runs;
+        }
+
+        return source.filter((row) =>
+          [...filters].every(
+            ([column, value]) =>
+              (row as Record<string, unknown>)[column] === value
+          )
+        );
+      };
       const builder = {
-        eq: () => builder,
-        order: () => Promise.resolve({ data: state.finished, error: null }),
+        eq: (column: string, value: unknown) => {
+          filters.set(column, value);
+
+          return builder;
+        },
+        in: (column: string, values: unknown[]) =>
+          Promise.resolve({
+            data: rows().filter((row) =>
+              values.includes((row as Record<string, unknown>)[column])
+            ),
+            error: null,
+          }),
+        maybeSingle: () =>
+          Promise.resolve({ data: rows()[0] ?? null, error: null }),
+        order: (column: string) =>
+          Promise.resolve({
+            data: [...rows()].sort(
+              (left, right) =>
+                Number((left as Record<string, unknown>)[column]) -
+                Number((right as Record<string, unknown>)[column])
+            ),
+            error: null,
+          }),
         select: () => builder,
+        single: () => Promise.resolve({ data: rows()[0] ?? null, error: null }),
       };
 
       return builder;
     },
-    rpc: (_name: string, args: Record<string, unknown>) => {
-      state.recorded.push(args);
+    rpc: (name: string, args: Record<string, unknown>) => {
+      if (name === "finish_episode") {
+        state.recorded.push(args);
+
+        return Promise.resolve({
+          data: state.recordAccepted ?? true,
+          error: state.recordError ? { message: state.recordError } : null,
+        });
+      }
+
+      state.runRecords.push({ args, name });
+
+      if (!state.runError) {
+        const index = state.runs.findIndex(
+          (candidate) => candidate.episode_id === args.episode_id
+        );
+        const savedRun = {
+          completed_at:
+            name === "complete_episode_run" ||
+            name === "complete_episode_run_fallback"
+              ? new Date().toISOString()
+              : null,
+          episode_id: String(args.episode_id),
+          messages: args.messages as unknown[],
+        };
+
+        if (index >= 0) {
+          state.runs[index] = savedRun;
+        } else {
+          state.runs.push(savedRun);
+        }
+      }
 
       return Promise.resolve({
-        error: state.recordError ? { message: state.recordError } : null,
+        error: state.runError ? { message: state.runError } : null,
       });
     },
   };
@@ -176,8 +358,20 @@ function createEpisodeRequest(body: unknown, token?: string): Request {
   });
 }
 
-function createSeasonRequest(token?: string): Request {
-  return new Request(`http://localhost${EPISODE_PATH}/season`, {
+function createStoppedEpisodeRequest(
+  episode: string,
+  messages: unknown[],
+  mode: "preserve" | "replace" = "preserve"
+): Request {
+  return new Request(`http://localhost${EPISODE_PATH}/${episode}`, {
+    body: JSON.stringify({ messages, mode }),
+    headers: { "content-type": "application/json" },
+    method: "PUT",
+  });
+}
+
+function createStoryRequest(token?: string): Request {
+  return new Request(`http://localhost${EPISODE_PATH}/story`, {
     headers: token ? { authorization: `Bearer ${token}` } : {},
   });
 }
@@ -752,7 +946,7 @@ describe("POST /ai/episode", () => {
     const app = createApp({ authMiddleware: signedInWith(state), model });
 
     const response = await app.request(
-      createEpisodeRequest({ episode: 1, messages: [] })
+      createEpisodeRequest({ episodeId: episodeId(1), messages: [] })
     );
 
     expect(response.status).toBe(409);
@@ -794,14 +988,13 @@ describe("POST /ai/episode", () => {
 
     expect(state.recorded).toEqual([
       {
-        episode: 1,
+        episode_id: episodeId(1),
         kind: "성공",
         language_level: undefined,
         memory_choice: undefined,
         memory_question: undefined,
         memory_relationship: undefined,
         outcome: "원하던 커피를 새로 받아냈다.",
-        season: 1,
       },
     ]);
   });
@@ -829,14 +1022,13 @@ describe("POST /ai/episode", () => {
 
     expect(state.recorded).toEqual([
       {
-        episode: 1,
+        episode_id: episodeId(1),
         kind: "성공",
         language_level: "중급 초반. 짧고 분명한 문장을 쓴다.",
         memory_choice: "영수증을 보여 주며 침착하게 요구했다.",
         memory_question: "내일도 이 카페에 들를지.",
         memory_relationship: "Mia가 실수를 인정했다.",
         outcome: "원하던 커피를 새로 받아냈다.",
-        season: 1,
       },
     ]);
     expect(body).toContain("Here is your iced americano.");
@@ -979,7 +1171,7 @@ describe("POST /ai/episode", () => {
 
     expect(body).toContain('"type":"data-ending"');
     expect(state.recorded[0]).toMatchObject({
-      episode: 1,
+      episode_id: episodeId(1),
       memory_choice: undefined,
     });
   });
@@ -998,10 +1190,11 @@ describe("POST /ai/episode", () => {
 
     expect(body).toContain('"type":"data-next-up"');
     expect(body).toContain("계산이 꼬인 아침");
-    expect(body).toContain('"episode":2');
+    expect(body).toContain('"number":2');
+    expect(body).toContain(`"episodeId":"${episodeId(2)}"`);
   });
 
-  test("sends the season's completion instead of a preview after the last episode", async () => {
+  test("sends the story completion instead of a preview after the last episode", async () => {
     const state = createSeasonState(finishedSeason().slice(0, 4));
     const app = createApp({
       authMiddleware: signedInWith(state),
@@ -1013,8 +1206,8 @@ describe("POST /ai/episode", () => {
     );
     const body = await response.text();
 
-    expect(body).toContain("시즌 1을 끝냈어요");
-    expect(body).toContain('"episode":null');
+    expect(body).toContain("첫 이야기를 끝냈어요");
+    expect(body).toContain('"episodeId":null');
   });
 
   // 결말을 남기지 못했는데 화면이 끝난 척하면, 사용자는 다음 화를 눌렀다가
@@ -1041,13 +1234,38 @@ describe("POST /ai/episode", () => {
     expect(body).not.toContain('"type":"data-ending"');
     expect(body).toContain('"type":"error"');
   });
+
+  test("does not stream a losing ending from another device", async () => {
+    const state = createSeasonState();
+
+    state.recordAccepted = false;
+
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([
+        "Mia: Here you go.\n",
+        "실패: 다른 기기보다 늦게 끝났다.",
+      ]),
+    });
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Excuse me.")] })
+    );
+    const body = await response.text();
+
+    expect(body).toContain("Here you go.");
+    expect(body).not.toContain('"type":"data-ending"');
+    expect(body).toContain('"type":"error"');
+    expect(
+      state.runRecords.some((record) => record.name === "complete_episode_run")
+    ).toBeFalse();
+  });
 });
 
-describe("GET /ai/episode/season", () => {
+describe("GET /ai/episode/story", () => {
   test("rejects a request with no access token", async () => {
     const app = createApp({ authMiddleware: createUserAuthMiddleware() });
 
-    const response = await app.request(createSeasonRequest());
+    const response = await app.request(createStoryRequest());
 
     expect(response.status).toBe(401);
   });
@@ -1058,16 +1276,16 @@ describe("GET /ai/episode/season", () => {
       authMiddleware: signedInWith(createSeasonState()),
     });
 
-    const response = await app.request(createSeasonRequest());
+    const response = await app.request(createStoryRequest());
     const view = (await response.json()) as {
       finished: unknown[];
-      next: { episode: number; title: string } | null;
+      next: { number: number; title: string } | null;
       total: number;
     };
 
     expect(response.status).toBe(200);
     expect(view.finished).toEqual([]);
-    expect(view.next).toMatchObject({ episode: 1, title: "카페에서 생긴 일" });
+    expect(view.next).toMatchObject({ number: 1, title: "카페에서 생긴 일" });
     expect(view.total).toBe(5);
   });
 
@@ -1081,26 +1299,30 @@ describe("GET /ai/episode/season", () => {
       ),
     });
 
-    const response = await app.request(createSeasonRequest());
+    const response = await app.request(createStoryRequest());
     const view = (await response.json()) as {
       finished: {
-        episode: number;
+        episodeId: string;
+        hasTranscript: boolean;
+        number: number;
         kind: string;
         outcome: string;
         title: string;
       }[];
-      next: { episode: number; title: string } | null;
+      next: { number: number; title: string } | null;
     };
 
     expect(view.finished).toEqual([
       {
-        episode: 1,
+        episodeId: episodeId(1),
+        hasTranscript: false,
         kind: "성공",
+        number: 1,
         outcome: "새 잔을 받아냈다.",
         title: "카페에서 생긴 일",
       },
     ]);
-    expect(view.next).toMatchObject({ episode: 2, title: "계산이 꼬인 아침" });
+    expect(view.next).toMatchObject({ number: 2, title: "계산이 꼬인 아침" });
   });
 
   test("has no next episode once the season is finished", async () => {
@@ -1108,7 +1330,7 @@ describe("GET /ai/episode/season", () => {
       authMiddleware: signedInWith(createSeasonState(finishedSeason())),
     });
 
-    const response = await app.request(createSeasonRequest());
+    const response = await app.request(createStoryRequest());
     const view = (await response.json()) as {
       completion: { title: string };
       finished: unknown[];
@@ -1117,6 +1339,235 @@ describe("GET /ai/episode/season", () => {
 
     expect(view.next).toBeNull();
     expect(view.finished).toHaveLength(5);
-    expect(view.completion.title).toBe("시즌 1을 끝냈어요");
+    expect(view.completion.title).toBe("첫 이야기를 끝냈어요");
+  });
+});
+
+describe("story content database contract", () => {
+  test("serves the home view from the story endpoint", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(createSeasonState()),
+    });
+
+    const response = await app.request(`${EPISODE_PATH}/story`);
+
+    expect(response.status).toBe(200);
+  });
+
+  test("opens a saved episode by its stable id", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(createSeasonState()),
+    });
+
+    const response = await app.request(
+      `${EPISODE_PATH}/11000000-0000-4000-8000-000000000001`
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  test("saves a running scene after a model turn", async () => {
+    const state = createSeasonState();
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel(["Mia: What did you order?"]),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        episodeId: "11000000-0000-4000-8000-000000000001",
+        messages: [createUserMessage("This is wrong.")],
+      })
+    );
+
+    await response.text();
+
+    expect(state.runRecords.map((record) => record.name)).toEqual([
+      "save_episode_run",
+      "save_episode_run",
+    ]);
+    expect(state.runs[0]?.messages).toHaveLength(2);
+  });
+
+  test("saves a stopped active scene through the guarded fallback", async () => {
+    const state = createSeasonState();
+    const messages = [createUserMessage("This is wrong.")];
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    const response = await app.request(
+      createStoppedEpisodeRequest(episodeId(1), messages)
+    );
+
+    expect(response.status).toBe(204);
+    expect(state.runRecords.at(-1)).toMatchObject({
+      args: { episode_id: episodeId(1), messages },
+      name: "save_episode_run_fallback",
+    });
+  });
+
+  test("keeps a regenerated answer's intentional transcript cut", async () => {
+    const state = createSeasonState();
+    const messages = [createUserMessage("Please try again.")];
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    const response = await app.request(
+      createStoppedEpisodeRequest(episodeId(1), messages, "replace")
+    );
+
+    expect(response.status).toBe(204);
+    expect(state.runRecords.at(-1)).toMatchObject({
+      args: { episode_id: episodeId(1), messages },
+      name: "save_episode_run",
+    });
+  });
+
+  test("completes a stopped ending through the guarded fallback", async () => {
+    const outcome = "새 잔을 받아냈다.";
+    const state = createSeasonState([{ episode: 1, kind: "성공", outcome }]);
+    const messages = [
+      {
+        id: "ending-1",
+        parts: [
+          { text: "Here you go.", type: "text" },
+          { data: { kind: "성공", outcome }, type: "data-ending" },
+        ],
+        role: "assistant",
+      },
+    ];
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    const response = await app.request(
+      createStoppedEpisodeRequest(episodeId(1), messages)
+    );
+
+    expect(response.status).toBe(204);
+    expect(state.runRecords.at(-1)).toMatchObject({
+      args: { episode_id: episodeId(1), messages },
+      name: "complete_episode_run_fallback",
+    });
+  });
+
+  test("returns the account's saved active scene for another app launch", async () => {
+    const state = createSeasonState();
+
+    state.runs.push({
+      completed_at: null,
+      episode_id: episodeId(1),
+      messages: [createUserMessage("This is wrong.")],
+    });
+
+    const app = createApp({ authMiddleware: signedInWith(state) });
+    const response = await app.request(`${EPISODE_PATH}/${episodeId(1)}`);
+    const session = (await response.json()) as {
+      messages: unknown[];
+      readOnly: boolean;
+    };
+    const [saved] = state.runs;
+
+    if (!saved) {
+      throw new Error("The saved test run is missing.");
+    }
+
+    expect(response.status).toBe(200);
+    expect(session.messages).toEqual(saved.messages);
+    expect(session.readOnly).toBeFalse();
+  });
+
+  test("returns a completed transcript as read-only", async () => {
+    const state = createSeasonState([
+      { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+    ]);
+
+    state.runs.push({
+      completed_at: "2026-08-28T00:00:00.000Z",
+      episode_id: episodeId(1),
+      messages: [createUserMessage("I ordered an iced americano.")],
+    });
+
+    const app = createApp({ authMiddleware: signedInWith(state) });
+    const response = await app.request(`${EPISODE_PATH}/${episodeId(1)}`);
+    const session = (await response.json()) as {
+      messages: unknown[];
+      readOnly: boolean;
+    };
+
+    expect(response.status).toBe(200);
+    expect(session.messages).toHaveLength(1);
+    expect(session.readOnly).toBeTrue();
+  });
+
+  test("does not offer a transcript for an ending migrated without messages", async () => {
+    const state = createSeasonState([
+      { episode: 1, kind: "성공", outcome: "옛 결말" },
+    ]);
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    const response = await app.request(`${EPISODE_PATH}/${episodeId(1)}`);
+
+    expect(response.status).toBe(404);
+  });
+
+  test("marks only completed conversations as reviewable on the home view", async () => {
+    const state = createSeasonState([
+      { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+    ]);
+
+    state.runs.push({
+      completed_at: "2026-08-28T00:00:00.000Z",
+      episode_id: episodeId(1),
+      messages: [createUserMessage("Done")],
+    });
+
+    const app = createApp({ authMiddleware: signedInWith(state) });
+    const response = await app.request(createStoryRequest());
+    const view = (await response.json()) as {
+      finished: { hasTranscript: boolean }[];
+    };
+
+    expect(view.finished[0]?.hasTranscript).toBeTrue();
+  });
+
+  test("keeps playing when an active-scene save fails", async () => {
+    const state = createSeasonState();
+
+    state.runError = "connection refused";
+
+    const model = createMockModel(["Mia: What did you order?"]);
+    const app = createApp({ authMiddleware: signedInWith(state), model });
+    const response = await app.request(
+      createEpisodeRequest({
+        episodeId: episodeId(1),
+        messages: [createUserMessage("This is wrong.")],
+      })
+    );
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain("What did you order?");
+    expect(model.doStreamCalls).toHaveLength(1);
+  });
+
+  test("keeps the ending when completing its transcript fails", async () => {
+    const state = createSeasonState();
+
+    state.runError = "connection refused";
+
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel(["성공: 원하던 커피를 새로 받아냈다."]),
+    });
+    const response = await app.request(
+      createEpisodeRequest({
+        episodeId: episodeId(1),
+        messages: [createUserMessage("This is wrong.")],
+      })
+    );
+    const body = await response.text();
+
+    expect(state.recorded).toHaveLength(1);
+    expect(body).toContain('"type":"data-ending"');
+    expect(
+      state.runRecords.some((record) => record.name === "complete_episode_run")
+    ).toBeTrue();
   });
 });

@@ -1,5 +1,5 @@
 import type { SceneTags } from "../../shared/scene-stream";
-import type { EpisodeScript } from "./season";
+import type { EpisodeScript } from "./story";
 
 /**
  * 결말 판정에 쓰는 세 낱말. 화가 달라도 같다.
@@ -13,7 +13,7 @@ export const EPISODE_ENDINGS = ["성공", "타협", "실패"] as const;
  * 장면을 닫은 모델이 결말 뒤에 남기는 기록의 줄 머리.
  *
  * 화면에 흐르지 않고 다음 화가 읽는다. 결말과 같은 한 번의 출력에서 나오므로
- * 장면과 기억이 서로 어긋날 여지가 없다. 앞의 셋은 이야기 기억이 되어 시즌에
+ * 장면과 기억이 서로 어긋날 여지가 없다. 앞의 셋은 이야기 기억이 되어 스토리에
  * 붙고, `level`은 계정에 붙는 사용자 속성이다.
  */
 export const EPISODE_NOTES = {

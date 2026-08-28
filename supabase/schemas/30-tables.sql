@@ -120,21 +120,93 @@ comment on table public.retired_usernames is
 create index retired_usernames_protected_until_idx
   on public.retired_usernames (protected_until);
 
--- 끝난 화가 남기는 사실. 한 계정이 한 시즌의 한 화를 끝낼 때 한 행이 생긴다.
---
--- 진행 중인 에피소드는 여기에 오지 않는다. 장면은 앱이 들고 있다가 나가면
--- 사라지고, 서버에는 끝난 화의 결말만 남는다. 그래서 "사건은 한 세션 안에
--- 마무리한다"는 제품 정의를 지키면서도 다음 화를 열 수 있다.
+-- 스토리는 공식 콘텐츠 사이의 순서와 세계, 등장인물, 순서가 있는 에피소드와
+-- 끝을 한데 묶는다.
+-- 화면에서 이 단위의 이름은 아직 쓰지 않지만, 데이터에서는 공유 가능한
+-- 자기 완결 단위가 된다.
+create table public.stories (
+  id uuid primary key,
+  position smallint not null unique,
+  slug text not null unique,
+  title text not null,
+  target_language text not null,
+  completion_title text not null,
+  completion_copy text not null,
+  constraint stories_position_usable check (position between 1 and 10000),
+  constraint stories_slug_usable check (
+    slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+  ),
+  constraint stories_title_usable check (
+    length(btrim(title)) between 1 and 120
+  ),
+  constraint stories_target_language_usable check (
+    target_language ~ '^[a-z]{2}(?:-[A-Z]{2})?$'
+  ),
+  constraint stories_completion_title_usable check (
+    length(btrim(completion_title)) between 1 and 120
+  ),
+  constraint stories_completion_copy_usable check (
+    length(btrim(completion_copy)) between 1 and 500
+  )
+);
+
+-- 사람이 쓴 각본 한 편. 번호는 스토리 안의 순서이고, 참조에는 안정된 id를 쓴다.
+create table public.episodes (
+  id uuid primary key,
+  story_id uuid not null references public.stories (id) on delete restrict,
+  number smallint not null,
+  title text not null,
+  preview text not null,
+  situation text not null,
+  situation_emoji text not null,
+  opening text not null,
+  stage text not null,
+  cast_names text[] not null,
+  ending_success text not null,
+  ending_compromise text not null,
+  ending_failure text not null,
+  unique (story_id, number),
+  constraint episodes_number_usable check (number between 1 and 100),
+  constraint episodes_title_usable check (
+    length(btrim(title)) between 1 and 120
+  ),
+  constraint episodes_preview_usable check (
+    length(btrim(preview)) between 1 and 500
+  ),
+  constraint episodes_situation_usable check (
+    length(btrim(situation)) between 1 and 300
+  ),
+  constraint episodes_situation_emoji_usable check (
+    length(btrim(situation_emoji)) between 1 and 20
+  ),
+  constraint episodes_opening_usable check (
+    length(btrim(opening)) between 1 and 10000
+  ),
+  constraint episodes_stage_usable check (
+    length(btrim(stage)) between 1 and 20000
+  ),
+  constraint episodes_cast_names_usable check (
+    cardinality(cast_names) between 1 and 20
+  ),
+  constraint episodes_ending_success_usable check (
+    length(btrim(ending_success)) between 1 and 500
+  ),
+  constraint episodes_ending_compromise_usable check (
+    length(btrim(ending_compromise)) between 1 and 500
+  ),
+  constraint episodes_ending_failure_usable check (
+    length(btrim(ending_failure)) between 1 and 500
+  )
+);
+
+-- 끝난 에피소드가 남기는 결말과 이야기 기억. 번호가 아니라 안정된 에피소드
+-- id를 참조하므로 스토리가 늘거나 순서를 고쳐도 지난 기록의 대상을 잃지 않는다.
 --
 -- 한 화의 결말은 한 번만 난다. 기본키가 그 규칙이다. 같은 화의 결말이 다시
 -- 도착해도 앞의 사실을 덮어쓰지 않는다.
 create table public.episode_endings (
   user_id uuid not null references public.profiles (id) on delete cascade,
-  -- 시즌 번호. 이야기 기억이 이어지는 단위이고 지금은 1뿐이다. 화 번호만으로는
-  -- 다음 시즌의 1화와 이번 시즌의 1화를 구분할 수 없다.
-  season smallint not null,
-  -- 시즌 안의 화 번호. 각본은 서버 코드가 소유하므로 여기에는 번호만 남는다.
-  episode smallint not null,
+  episode_id uuid not null references public.episodes (id) on delete restrict,
   -- 결말의 종류. 화면에도 이 낱말이 그대로 보인다.
   kind text not null,
   -- 사건의 결과 한 줄. 홈의 끝낸 화 목록과 마무리 화면이 함께 읽는다. 이야기
@@ -147,12 +219,7 @@ create table public.episode_endings (
   memory_relationship text,
   memory_question text,
   finished_at timestamptz not null default now(),
-  primary key (user_id, season, episode),
-  -- 위쪽 한계는 이 시즌의 길이가 아니라 상식선이다. 어떤 시즌이 몇 화인지는
-  -- 각본을 가진 서버가 알고, 여기서는 직접 RPC를 부르는 클라이언트가 있지도
-  -- 않은 화를 끝없이 쌓지 못하게만 막는다.
-  constraint episode_endings_season_usable check (season between 1 and 100),
-  constraint episode_endings_episode_usable check (episode between 1 and 100),
+  primary key (user_id, episode_id),
   constraint episode_endings_kind_known check (kind in ('성공', '타협', '실패')),
   constraint episode_endings_outcome_usable check (
     length(btrim(outcome)) between 1 and 300
@@ -169,14 +236,14 @@ create table public.episode_endings (
   )
 );
 
+create index episode_endings_episode_id_idx
+  on public.episode_endings (episode_id);
+
 comment on table public.episode_endings is
-  'One row per finished episode. Progress is derived from these rows; running episodes are never stored.';
+  'One immutable ending and story memory per account and stable episode id.';
 
-comment on column public.episode_endings.season is
-  'Season the episode belongs to. Story memory continues within one season.';
-
-comment on column public.episode_endings.episode is
-  'Episode number inside the season. The script itself lives in the API server.';
+comment on column public.episode_endings.episode_id is
+  'Stable episode reference. Numbers are only ordering inside a story.';
 
 comment on column public.episode_endings.kind is
   'How the incident ended: 성공, 타협 or 실패.';
@@ -192,6 +259,38 @@ comment on column public.episode_endings.memory_relationship is
 
 comment on column public.episode_endings.memory_question is
   'The question this incident opened. Null when the closing scene left no memory lines.';
+
+-- 진행 중과 끝난 에피소드가 같은 대화 기록 모양을 쓴다. `completed_at`이 비어
+-- 있으면 이어서 할 장면이고, 값이 있으면 다시 열어 읽기만 하는 기록이다.
+create table public.episode_runs (
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  episode_id uuid not null references public.episodes (id) on delete restrict,
+  messages jsonb not null,
+  completed_at timestamptz,
+  completed_by_fallback boolean not null default false,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, episode_id),
+  constraint episode_runs_messages_array check (jsonb_typeof(messages) = 'array'),
+  -- 한 에피소드가 모델 문맥보다 훨씬 커지기 전에 저장 경계를 분명히 한다.
+  -- 이 한도를 넘긴 기록은 결말을 막지 않고, 대화 기록 저장만 실패한다.
+  constraint episode_runs_messages_size check (
+    octet_length(messages::text) <= 1048576
+  )
+);
+
+create index episode_runs_episode_id_idx on public.episode_runs (episode_id);
+
+comment on table public.episode_runs is
+  'One server-saved UI message list per account and episode, active or completed.';
+
+comment on column public.episode_runs.messages is
+  'AI SDK UI messages with stable message ids. Limited to one MiB per episode.';
+
+comment on column public.episode_runs.completed_at is
+  'Set after an ending exists. A fallback completion can be upgraded once by a compatible normal completion.';
+
+comment on column public.episode_runs.completed_by_fallback is
+  'True while a stopped client snapshot is the completed transcript. A compatible normal completion replaces it and clears this flag.';
 
 -- 사용자가 쓰는 영어의 수준. 시즌이 아니라 계정에 붙는다.
 --

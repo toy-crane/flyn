@@ -1,32 +1,16 @@
 import type { Database } from "@repo/supabase";
-import type { SupabaseContext } from "@supabase/server";
+import type { UIMessage } from "ai";
 
 import type { SceneOutcome } from "../../shared/scene-stream";
 import { EPISODE_NOTES, type StoryMemory } from "./episode";
-import { episodeScript, SEASON_COMPLETION, SEASON_LENGTH } from "./season";
-
-/** 로그인한 사람의 권한으로 데이터베이스에 닿는 클라이언트. */
-export type EpisodeClient = SupabaseContext<Database>["supabase"];
-
-/**
- * 지금 방영 중인 시즌.
- *
- * 시즌은 아직 하나뿐이지만 번호를 상수로 둔다. 이야기 기억이 이어지는 단위가
- * 시즌이라, 다음 시즌이 생기면 같은 화 번호가 두 번 나온다.
- */
-export const CURRENT_SEASON = 1;
+import type { EpisodeClient, EpisodeScript, StoryContent } from "./story";
 
 /** 기록 한 줄이 데이터베이스에서 허용되는 길이. */
 const MEMORY_LINE_LIMIT = 300;
 
-/**
- * 모델이 쓴 기록 줄 하나를 남길 수 있는 모양으로 다듬는다.
- *
- * 줄 머리만 쓰고 내용을 다음 줄로 넘기면 빈 문자열이 오고, 관찰을 길게 쓰면
- * 300자를 넘는다. 둘 다 열의 제약에 걸리는데, 그 실패는 기억 한 줄이 아니라
- * 결말 기록 전체를 무너뜨려 에피소드가 닫히지 않게 만든다. 기억이 조금 잘리는
- * 편이 사건이 끝나지 않는 것보다 낫다.
- */
+type EpisodeMessages =
+  Database["public"]["Tables"]["episode_runs"]["Row"]["messages"];
+
 function usableNote(text: string | undefined): string | undefined {
   const trimmed = text?.trim();
 
@@ -37,9 +21,9 @@ function usableNote(text: string | undefined): string | undefined {
   return trimmed.slice(0, MEMORY_LINE_LIMIT);
 }
 
-/** 끝난 화가 남긴 것 전부. 홈이 읽는 부분과 다음 화가 읽는 부분이 함께 있다. */
+/** 끝난 에피소드 한 줄. 제목과 번호는 현재 콘텐츠에서 합친다. */
 export interface FinishedEpisodeRow {
-  episode: number;
+  episode_id: string;
   kind: string;
   memory_choice: string | null;
   memory_question: string | null;
@@ -47,79 +31,86 @@ export interface FinishedEpisodeRow {
   outcome: string;
 }
 
-/** 홈의 끝낸 화 목록에 한 줄로 들어가는 화. */
+/** 홈의 끝낸 에피소드 목록 한 줄. */
 export interface FinishedEpisodeView {
-  episode: number;
+  episodeId: string;
+  hasTranscript: boolean;
   kind: string;
+  number: number;
   outcome: string;
   title: string;
 }
 
-/** 홈의 다음 이야기 카드가 읽는 화. */
+/** 홈과 마무리 화면이 보여 주는 다음 에피소드. */
 export interface NextEpisodeView {
-  episode: number;
+  episodeId: string;
+  number: number;
   preview: string;
   situation: string;
   situationEmoji: string;
   title: string;
 }
 
-/** 마무리 화면이 결말 다음에 보여 주는 것. */
+/** 결말 다음에 같은 스트림으로 보내는 예고 또는 스토리 완주 안내. */
 export interface NextUpData {
   copy: string;
-  /** 다음 화의 번호. 시즌이 끝났으면 없다. */
-  episode: number | null;
+  episodeId: string | null;
+  number: number | null;
   title: string;
 }
 
-/** 홈이 시즌을 그리는 데 필요한 전부. */
-export interface SeasonView {
+/** 홈이 첫 스토리를 그리는 데 필요한 전부. */
+export interface StoryView {
   completion: { copy: string; title: string };
   finished: FinishedEpisodeView[];
-  /** 다음에 열 화. 시즌을 다 끝냈으면 없다. */
+  id: string;
   next: NextEpisodeView | null;
-  season: number;
+  targetLanguage: string;
+  title: string;
   total: number;
 }
 
-/**
- * 이 계정이 이 시즌에서 끝낸 화. 순서대로 온다.
- *
- * RLS가 남의 행을 걸러 내므로 조건에 사용자를 적지 않는다. 조건을 적으면
- * 접근 규칙이 이 파일에도 반쯤 옮겨 와, 규칙이 바뀔 때 두 곳이 어긋난다.
- */
+export interface EpisodeSessionView {
+  episode: NextEpisodeView;
+  messages: UIMessage[];
+  readOnly: boolean;
+}
+
 export async function readFinishedEpisodes(
   client: EpisodeClient,
-  season: number
+  story: StoryContent
 ): Promise<FinishedEpisodeRow[]> {
+  const ids = story.episodes.map((episode) => episode.id);
+
+  if (ids.length === 0) {
+    return [];
+  }
+
   const { data, error } = await client
     .from("episode_endings")
     .select(
-      "episode, kind, outcome, memory_choice, memory_relationship, memory_question"
+      "episode_id, kind, outcome, memory_choice, memory_relationship, memory_question"
     )
-    .eq("season", season)
-    .order("episode");
+    .in("episode_id", ids);
 
   if (error) {
-    throw new Error(
-      `Reading season ${season} progress failed: ${error.message}`
-    );
+    throw new Error(`Reading story progress failed: ${error.message}`);
   }
 
-  return data;
+  const order = new Map(
+    story.episodes.map((episode, index) => [episode.id, index])
+  );
+
+  return [...data].sort(
+    (left, right) =>
+      (order.get(left.episode_id) ?? Number.MAX_SAFE_INTEGER) -
+      (order.get(right.episode_id) ?? Number.MAX_SAFE_INTEGER)
+  );
 }
 
-/**
- * 끝난 화를 계정에 남긴다.
- *
- * 앱이 아니라 서버가 남기므로 마무리 화면을 보지 않고 앱을 꺼도 그 화는 끝난
- * 것으로 남는다. 화를 건너뛰거나 이미 난 결말을 덮어쓰는 판단은 데이터베이스
- * 함수가 소유한다.
- */
 export async function recordEpisodeEnding(
   client: EpisodeClient,
-  season: number,
-  episode: number,
+  episodeId: string,
   outcome: SceneOutcome
 ): Promise<void> {
   if (!outcome.ending) {
@@ -127,37 +118,111 @@ export async function recordEpisodeEnding(
   }
 
   const { notes } = outcome;
-  const { error } = await client.rpc("finish_episode", {
-    episode,
+  const { data: recorded, error } = await client.rpc("finish_episode", {
+    episode_id: episodeId,
     kind: outcome.ending.kind,
-    // 장면이 기록 줄을 쓰지 않았으면 그 자리는 비운다. 기억 없이 끝난 화도
-    // 끝난 화이고, 지난 관찰을 지우지도 않는다.
     language_level: usableNote(notes[EPISODE_NOTES.level]),
     memory_choice: usableNote(notes[EPISODE_NOTES.choice]),
     memory_question: usableNote(notes[EPISODE_NOTES.question]),
     memory_relationship: usableNote(notes[EPISODE_NOTES.relationship]),
     outcome: outcome.ending.outcome,
-    season,
   });
 
   if (error) {
     throw new Error(
-      `Recording the ending of episode ${episode} failed: ${error.message}`
+      `Recording the ending of episode ${episodeId} failed: ${error.message}`
+    );
+  }
+
+  if (!recorded) {
+    throw new Error(
+      `Episode ${episodeId} already has an ending from another request.`
     );
   }
 }
 
-/**
- * 다음 화의 프롬프트에 들어갈 지난 이야기.
- *
- * 각본이 사라진 화는 빼고 넘긴다. 제목 없이 번호만 남은 줄은 모델에게 아무
- * 이야기도 되지 못한다.
- */
+function asEpisodeMessages(messages: readonly UIMessage[]): EpisodeMessages {
+  return messages as unknown as EpisodeMessages;
+}
+
+export async function saveEpisodeRun(
+  client: EpisodeClient,
+  episodeId: string,
+  messages: readonly UIMessage[]
+): Promise<void> {
+  const { error } = await client.rpc("save_episode_run", {
+    episode_id: episodeId,
+    messages: asEpisodeMessages(messages),
+  });
+
+  if (error) {
+    throw new Error(
+      `Saving episode ${episodeId} progress failed: ${error.message}`
+    );
+  }
+}
+
+export async function saveEpisodeRunFallback(
+  client: EpisodeClient,
+  episodeId: string,
+  messages: readonly UIMessage[]
+): Promise<void> {
+  const { error } = await client.rpc("save_episode_run_fallback", {
+    episode_id: episodeId,
+    messages: asEpisodeMessages(messages),
+  });
+
+  if (error) {
+    throw new Error(
+      `Saving stopped episode ${episodeId} progress failed: ${error.message}`
+    );
+  }
+}
+
+export async function completeEpisodeRun(
+  client: EpisodeClient,
+  episodeId: string,
+  messages: readonly UIMessage[]
+): Promise<void> {
+  const { error } = await client.rpc("complete_episode_run", {
+    episode_id: episodeId,
+    messages: asEpisodeMessages(messages),
+  });
+
+  if (error) {
+    throw new Error(
+      `Completing episode ${episodeId} transcript failed: ${error.message}`
+    );
+  }
+}
+
+export async function completeEpisodeRunFallback(
+  client: EpisodeClient,
+  episodeId: string,
+  messages: readonly UIMessage[]
+): Promise<void> {
+  const { error } = await client.rpc("complete_episode_run_fallback", {
+    episode_id: episodeId,
+    messages: asEpisodeMessages(messages),
+  });
+
+  if (error) {
+    throw new Error(
+      `Completing stopped episode ${episodeId} transcript failed: ${error.message}`
+    );
+  }
+}
+
 export function storyMemoriesOf(
-  finished: readonly FinishedEpisodeRow[]
+  finished: readonly FinishedEpisodeRow[],
+  story: StoryContent
 ): StoryMemory[] {
+  const content = new Map(
+    story.episodes.map((episode) => [episode.id, episode])
+  );
+
   return finished.flatMap((row) => {
-    const played = episodeScript(row.episode);
+    const played = content.get(row.episode_id);
 
     if (!played) {
       return [];
@@ -166,7 +231,7 @@ export function storyMemoriesOf(
     return [
       {
         choice: row.memory_choice,
-        episode: row.episode,
+        episode: played.number,
         kind: row.kind,
         outcome: row.outcome,
         question: row.memory_question,
@@ -177,69 +242,155 @@ export function storyMemoriesOf(
   });
 }
 
-/**
- * 지금 열 수 있는 화의 번호. 다 끝냈으면 시즌의 길이보다 하나 크다.
- *
- * 개수가 아니라 마지막으로 끝낸 화를 기준으로 센다. 데이터베이스가 쓰는 기준과
- * 같아야 서버가 여는 화와 기록이 어긋나지 않는다.
- */
-export function currentEpisodeNumber(
-  finished: readonly { episode: number }[]
-): number {
-  return finished.reduce((last, row) => Math.max(last, row.episode), 0) + 1;
+export function currentEpisode(
+  story: StoryContent,
+  finished: readonly FinishedEpisodeRow[]
+): EpisodeScript | undefined {
+  const done = new Set(finished.map((row) => row.episode_id));
+
+  return story.episodes.find((episode) => !done.has(episode.id));
 }
 
-/**
- * 한 화가 끝난 자리에서 다음에 오는 것.
- *
- * 마지막 화면 뒤에는 다음 화 대신 완주 안내가 온다. 예고와 완주 안내가 같은
- * 자리를 쓰므로 화면도 한 벌로 그린다.
- */
-export function nextUpAfter(episode: number): NextUpData {
-  const next = episodeScript(episode + 1);
+export function nextUpAfter(
+  story: StoryContent,
+  episodeId: string
+): NextUpData {
+  const index = story.episodes.findIndex((episode) => episode.id === episodeId);
+  const next = index >= 0 ? story.episodes[index + 1] : undefined;
 
   if (!next) {
     return {
-      copy: SEASON_COMPLETION.copy,
-      episode: null,
-      title: SEASON_COMPLETION.title,
+      copy: story.completion.copy,
+      episodeId: null,
+      number: null,
+      title: story.completion.title,
     };
   }
 
-  return { copy: next.preview, episode: next.number, title: next.title };
+  return {
+    copy: next.preview,
+    episodeId: next.id,
+    number: next.number,
+    title: next.title,
+  };
 }
 
-/** 홈이 읽는 시즌 상태. 각본과 이 계정의 진행을 합친다. */
-export async function readSeasonView(
-  client: EpisodeClient
-): Promise<SeasonView> {
-  const finished = await readFinishedEpisodes(client, CURRENT_SEASON);
-  const next = episodeScript(currentEpisodeNumber(finished));
+function nextEpisodeView(episode: EpisodeScript): NextEpisodeView {
+  return {
+    episodeId: episode.id,
+    number: episode.number,
+    preview: episode.preview,
+    situation: episode.situation,
+    situationEmoji: episode.situationEmoji,
+    title: episode.title,
+  };
+}
+
+async function transcriptEpisodeIds(
+  client: EpisodeClient,
+  story: StoryContent
+): Promise<Set<string>> {
+  const ids = story.episodes.map((episode) => episode.id);
+
+  if (ids.length === 0) {
+    return new Set();
+  }
+
+  const { data, error } = await client
+    .from("episode_runs")
+    .select("episode_id, completed_at")
+    .in("episode_id", ids);
+
+  if (error) {
+    throw new Error(`Reading episode transcripts failed: ${error.message}`);
+  }
+
+  return new Set(
+    data.filter((run) => run.completed_at !== null).map((run) => run.episode_id)
+  );
+}
+
+export async function readStoryView(
+  client: EpisodeClient,
+  story: StoryContent
+): Promise<StoryView> {
+  const [finished, transcripts] = await Promise.all([
+    readFinishedEpisodes(client, story),
+    transcriptEpisodeIds(client, story),
+  ]);
+  const content = new Map(
+    story.episodes.map((episode) => [episode.id, episode])
+  );
+  const next = currentEpisode(story, finished);
 
   return {
-    completion: { ...SEASON_COMPLETION },
-    finished: finished.map((row) => {
-      const played = episodeScript(row.episode);
+    completion: { ...story.completion },
+    finished: finished.flatMap((row) => {
+      const episode = content.get(row.episode_id);
 
-      return {
-        episode: row.episode,
-        kind: row.kind,
-        outcome: row.outcome,
-        // 각본이 없어진 화는 제목 없이 번호만 남는다. 지난 기록을 그대로 둔 채
-        // 각본을 손볼 때 홈이 통째로 비지 않게 한다.
-        title: played ? played.title : "",
-      };
+      return episode
+        ? [
+            {
+              episodeId: episode.id,
+              hasTranscript: transcripts.has(episode.id),
+              kind: row.kind,
+              number: episode.number,
+              outcome: row.outcome,
+              title: episode.title,
+            },
+          ]
+        : [];
     }),
-    next: next
-      ? {
-          episode: next.number,
-          preview: next.preview,
-          situation: next.situation,
-          situationEmoji: next.situationEmoji,
-          title: next.title,
-        }
-      : null,
-    season: CURRENT_SEASON,
-    total: SEASON_LENGTH,
+    id: story.id,
+    next: next ? nextEpisodeView(next) : null,
+    targetLanguage: story.targetLanguage,
+    title: story.title,
+    total: story.episodes.length,
+  };
+}
+
+export async function readEpisodeSession(
+  client: EpisodeClient,
+  story: StoryContent,
+  episodeId: string
+): Promise<EpisodeSessionView | undefined> {
+  const episode = story.episodes.find(
+    (candidate) => candidate.id === episodeId
+  );
+
+  if (!episode) {
+    return;
+  }
+
+  const finished = await readFinishedEpisodes(client, story);
+  const ending = finished.find((row) => row.episode_id === episodeId);
+  const current = currentEpisode(story, finished);
+
+  if (!ending && current?.id !== episodeId) {
+    return;
+  }
+
+  const { data: run, error } = await client
+    .from("episode_runs")
+    .select("messages, completed_at")
+    .eq("episode_id", episodeId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Reading episode ${episodeId} failed: ${error.message}`);
+  }
+
+  if (ending && run?.completed_at === null) {
+    return;
+  }
+
+  if (ending && !run) {
+    return;
+  }
+
+  return {
+    episode: nextEpisodeView(episode),
+    messages: (run?.messages ?? []) as unknown as UIMessage[],
+    readOnly: Boolean(ending),
   };
 }

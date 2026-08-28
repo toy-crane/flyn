@@ -1,83 +1,107 @@
-import { router, Stack } from "expo-router";
-import { useEffect, useState } from "react";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 
 import { useAppTheme } from "@/core/theme/app-theme-bridge";
 import { useAuthSession } from "@/features/auth/state/auth-session";
-import type { NextEpisode } from "@/features/episode/api/season";
-import { useSeason, useSeasonRefresh } from "@/features/episode/query/season";
+import { useEpisodeSession } from "@/features/episode/query/episode-session";
+import { useStoryRefresh } from "@/features/episode/query/story";
 import { episodeLabels } from "@/features/episode/ui/episode-labels";
+import { EpisodeLoadingScreen } from "@/screens/episode/episode-loading-screen";
 import { EpisodeScreen } from "@/screens/episode/episode-screen";
+import { EpisodeUnavailableScreen } from "@/screens/episode/episode-unavailable-screen";
+import { useVisibleRetry } from "@/shared/query/use-visible-retry";
 import { toolbarIcon } from "@/shared/ui/toolbar-icons";
 
-function leaveEpisode() {
-  router.back();
-}
-
-/**
- * 이 화면이 어떤 화를 여는지는 열리는 순간에 정해지고 그 뒤로 바뀌지 않는다.
- *
- * 시즌 진행은 화가 끝나면 달라진다. 그 값을 그대로 따라가면 마무리 화면을 보고
- * 있는 동안 헤더의 이름이 다음 화로 바뀐다. 처음 받은 화를 붙잡아 두면 지금
- * 보고 있는 화면과 이름이 어긋나지 않는다.
- */
-function usePlayingEpisode(): NextEpisode | undefined {
-  const { session } = useAuthSession();
-  const season = useSeason(session?.user.id, session?.access_token);
-  const [playing, setPlaying] = useState<NextEpisode | undefined>(undefined);
-  const next = season.data?.next;
-
-  useEffect(() => {
-    if (playing === undefined && next) {
-      setPlaying(next);
-    }
-  }, [next, playing]);
-
-  return playing;
+function firstParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
 }
 
 export default function EpisodeRoute() {
   const { background } = useAppTheme();
   const { session } = useAuthSession();
-  const refreshSeason = useSeasonRefresh(session?.user.id);
-  const playing = usePlayingEpisode();
+  const params = useLocalSearchParams<{
+    episodeId?: string | string[];
+  }>();
+  const episodeId = firstParam(params.episodeId);
+  const episode = useEpisodeSession(
+    session?.user.id,
+    session?.access_token,
+    episodeId
+  );
+  const refreshStory = useStoryRefresh(session?.user.id);
+  const playing = episode.data;
+  const [isSettling, setIsSettling] = useState(false);
+  const [startingNextEpisodeId, setStartingNextEpisodeId] = useState<string>();
+  const startingNextEpisode = useRef<string | undefined>(undefined);
+  const isStartingNext =
+    startingNextEpisodeId !== undefined && startingNextEpisodeId !== episodeId;
+  const isRoutePending = isSettling || isStartingNext;
+  const { isRetrying, retry: retryEpisode } = useVisibleRetry(episode.refetch);
 
-  /*
-   * 이 화면을 떠날 때 진행을 다시 읽는다. 마무리의 홈으로 가기, 헤더의 뒤로
-   * 가기, 화면 가장자리를 미는 몸짓이 모두 같은 자리를 지난다. 나가는 길마다
-   * 따로 챙기면 하나를 빠뜨리는 순간 홈이 지난 상태로 남고, 그 홈에서 연 화는
-   * 서버가 거절한다.
-   */
   useEffect(
     () => () => {
-      refreshSeason();
+      startingNextEpisode.current = undefined;
     },
-    [refreshSeason]
+    []
   );
 
-  /**
-   * 다음 화로 넘어가는 것은 이 화면을 새로 여는 일이다. 자리에서 상태만
-   * 되돌리면 지난 화의 목록 위치가 남아 첫 장면이 화면 밖에 그려진다. 경로를
-   * 갈아 끼우면 홈에서 처음 열 때와 똑같은 길을 지난다.
-   *
-   * 진행을 먼저 다시 읽는다. 새 화면은 그때 받은 화를 열므로, 방금 끝낸 화를
-   * 한 번 더 열려다 거절당하는 일이 없다.
-   */
-  async function startNextEpisode() {
-    await refreshSeason();
-    router.replace("/episode");
-  }
+  const leaveEpisode = useCallback(() => {
+    if (!isRoutePending) {
+      router.back();
+    }
+  }, [isRoutePending]);
+
+  useEffect(
+    () => () => {
+      refreshStory();
+    },
+    [refreshStory]
+  );
+
+  const startNextEpisode = useCallback(
+    async (nextEpisodeId: string) => {
+      const claimedEpisodeId = startingNextEpisode.current;
+      if (
+        isSettling ||
+        (claimedEpisodeId !== undefined && claimedEpisodeId !== episodeId)
+      ) {
+        return;
+      }
+
+      // The ref claims the action before React renders the pending state, so
+      // two presses in one frame still start only one refresh.
+      startingNextEpisode.current = nextEpisodeId;
+      setStartingNextEpisodeId(nextEpisodeId);
+
+      try {
+        await refreshStory();
+        if (startingNextEpisode.current !== nextEpisodeId) {
+          return;
+        }
+
+        router.replace({
+          params: { episodeId: nextEpisodeId },
+          pathname: "/episode",
+        });
+      } catch {
+        if (startingNextEpisode.current === nextEpisodeId) {
+          startingNextEpisode.current = undefined;
+          setStartingNextEpisodeId(undefined);
+        }
+      }
+    },
+    [episodeId, isSettling, refreshStory]
+  );
 
   return (
     <>
       <Stack.Screen
-        // 헤더는 이름과 나가는 길이 전부다. 장면은 늘 끝에 있어서 접히는 큰
-        // 제목이 펼쳐질 자리가 없다. iOS는 장면이 헤더 뒤로 지나가게 두고,
-        // Android는 앱 바에 테마 배경을 유지한다.
         options={{
+          headerBackButtonMenuEnabled: false,
           headerLargeTitleEnabled: false,
           headerShown: true,
-          title: playing ? playing.title : "",
+          title: playing?.episode.title ?? "",
           ...(Platform.OS === "ios"
             ? {
                 headerShadowVisible: false,
@@ -89,27 +113,33 @@ export default function EpisodeRoute() {
               }),
         }}
       />
-      {/*
-        진행을 아직 읽지 못했으면 열 화도 없다. 빈 화면 대신 장면을 먼저 그렸다가
-        상황 줄을 뒤늦게 얹으면, 그 사이에 잡힌 배치 때문에 첫 장면이 화면 밖에
-        남는다.
-      */}
       {playing ? (
         <EpisodeScreen
-          episode={playing.episode}
+          episodeId={playing.episode.episodeId}
+          initialMessages={playing.messages}
+          isStartingNext={isStartingNext}
+          key={playing.episode.episodeId}
           onLeave={leaveEpisode}
+          onSettlingChange={setIsSettling}
           onStartNext={startNextEpisode}
-          situation={playing.situation}
-          situationEmoji={playing.situationEmoji}
+          readOnly={playing.readOnly}
+          situation={playing.episode.situation}
+          situationEmoji={playing.episode.situationEmoji}
         />
       ) : null}
-      {/*
-        The toolbar replaces the stack's own back button, so this one carries
-        the name a screen reader reads.
-      */}
+      {!playing && episode.isPending && !(episode.isError || isRetrying) ? (
+        <EpisodeLoadingScreen />
+      ) : null}
+      {!playing && (episode.isError || isRetrying) ? (
+        <EpisodeUnavailableScreen
+          isRetrying={isRetrying}
+          onRetry={retryEpisode}
+        />
+      ) : null}
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button
           accessibilityLabel={episodeLabels.back}
+          disabled={isRoutePending}
           icon={toolbarIcon("back")}
           onPress={leaveEpisode}
         />

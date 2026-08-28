@@ -1,305 +1,355 @@
--- Functions and the triggers that call them.
---
--- Both functions run with an empty `search_path` and name every object in full.
--- A `security definer` function that resolves names through a caller-controlled
--- search_path can be pointed at an attacker's table, so the empty path is what
--- makes the fully qualified names load-bearing rather than a style choice.
+-- 이야기 계층과 각본을 데이터로 옮기고, 번호 기반 결말 기록을 안정된
+-- episode_id 참조로 보존 이관한다.
+set check_function_bodies = false;
 
--- Creates the profile row for a new Supabase user.
---
--- This runs inside the signup transaction: if it raises, the whole signup fails.
--- So it does one insert and nothing else. It does not read provider metadata,
--- call other services, or branch on the sign-in method. `on conflict do nothing`
--- keeps a re-run or a backfilled row from turning into a signup error.
-create function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  insert into public.profiles (id)
-  values (new.id)
-  on conflict (id) do nothing;
+create table public.stories (
+  id uuid primary key,
+  position smallint not null unique,
+  slug text not null unique,
+  title text not null,
+  target_language text not null,
+  completion_title text not null,
+  completion_copy text not null,
+  constraint stories_position_usable check (position between 1 and 10000),
+  constraint stories_slug_usable check (
+    slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+  ),
+  constraint stories_title_usable check (
+    length(btrim(title)) between 1 and 120
+  ),
+  constraint stories_target_language_usable check (
+    target_language ~ '^[a-z]{2}(?:-[A-Z]{2})?$'
+  ),
+  constraint stories_completion_title_usable check (
+    length(btrim(completion_title)) between 1 and 120
+  ),
+  constraint stories_completion_copy_usable check (
+    length(btrim(completion_copy)) between 1 and 500
+  )
+);
 
-  return new;
-end;
-$$;
+alter table public.stories enable row level security;
 
-comment on function public.handle_new_user() is
-  'Creates public.profiles row for a new auth.users row. Identity only, no provider metadata.';
+create policy stories_select_authenticated on public.stories
+  for select
+  to authenticated
+  using (true);
 
--- Only the trigger calls this. The Data API roles must not reach it, and
--- `create function` grants EXECUTE to PUBLIC by default, so revoke it.
-revoke all on function public.handle_new_user() from public, anon, authenticated;
+revoke all on table public.stories from anon, authenticated, service_role;
+grant select on table public.stories to authenticated;
+grant all on table public.stories to service_role;
 
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row
-  execute function public.handle_new_user();
+create table public.episodes (
+  id uuid primary key,
+  story_id uuid not null references public.stories (id) on delete restrict,
+  number smallint not null,
+  title text not null,
+  preview text not null,
+  situation text not null,
+  situation_emoji text not null,
+  opening text not null,
+  stage text not null,
+  cast_names text[] not null,
+  ending_success text not null,
+  ending_compromise text not null,
+  ending_failure text not null,
+  unique (story_id, number),
+  constraint episodes_number_usable check (number between 1 and 100),
+  constraint episodes_title_usable check (
+    length(btrim(title)) between 1 and 120
+  ),
+  constraint episodes_preview_usable check (
+    length(btrim(preview)) between 1 and 500
+  ),
+  constraint episodes_situation_usable check (
+    length(btrim(situation)) between 1 and 300
+  ),
+  constraint episodes_situation_emoji_usable check (
+    length(btrim(situation_emoji)) between 1 and 20
+  ),
+  constraint episodes_opening_usable check (
+    length(btrim(opening)) between 1 and 10000
+  ),
+  constraint episodes_stage_usable check (
+    length(btrim(stage)) between 1 and 20000
+  ),
+  constraint episodes_cast_names_usable check (
+    cardinality(cast_names) between 1 and 20
+  ),
+  constraint episodes_ending_success_usable check (
+    length(btrim(ending_success)) between 1 and 500
+  ),
+  constraint episodes_ending_compromise_usable check (
+    length(btrim(ending_compromise)) between 1 and 500
+  ),
+  constraint episodes_ending_failure_usable check (
+    length(btrim(ending_failure)) between 1 and 500
+  )
+);
 
--- Stamps `updated_at` when a profile actually changes.
---
--- `security invoker` is the right level here: this only rewrites a column of the
--- row the caller is already updating, so it needs no privileges of its own.
-create function public.set_updated_at()
-returns trigger
-language plpgsql
-security invoker
-set search_path = ''
-as $$
-begin
-  new.updated_at := now();
+alter table public.episodes enable row level security;
 
-  return new;
-end;
-$$;
+create policy episodes_select_authenticated on public.episodes
+  for select
+  to authenticated
+  using (true);
 
-comment on function public.set_updated_at() is
-  'Sets updated_at on a row that changed. Paired with a WHEN clause that skips no-op updates.';
+revoke all on table public.episodes from anon, authenticated, service_role;
+grant select on table public.episodes to authenticated;
+grant all on table public.episodes to service_role;
 
-revoke all on function public.set_updated_at() from public, anon, authenticated;
+insert into public.stories (
+  id,
+  position,
+  slug,
+  title,
+  target_language,
+  completion_title,
+  completion_copy
+)
+values (
+  '10000000-0000-4000-8000-000000000001',
+  1,
+  'mia-cafe',
+  'Mia의 카페',
+  'en',
+  '첫 이야기를 끝냈어요',
+  '다섯 번의 사건을 영어로 지나왔어요.'
+);
 
--- The `when` clause is what keeps `updated_at` honest: an update that writes the
--- same values never fires, so the column records real changes rather than write
--- attempts.
-create trigger profiles_set_updated_at
-  before update on public.profiles
-  for each row
-  when (old.* is distinct from new.*)
-  execute function public.set_updated_at();
+insert into public.episodes (
+  id,
+  story_id,
+  number,
+  title,
+  preview,
+  situation,
+  situation_emoji,
+  opening,
+  stage,
+  cast_names,
+  ending_success,
+  ending_compromise,
+  ending_failure
+)
+values
+  (
+    '11000000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000001',
+    1,
+    $content$카페에서 생긴 일$content$,
+    $content$주문과 다른 커피가 나왔는데, 직원은 벌써 다음 손님을 부르고 있어요.$content$,
+    $content$잘못 나온 커피를 원하는 커피로 바꿔 보세요$content$,
+    $content$☕$content$,
+    $content$카페 카운터 앞이다. 아이스 아메리카노를 시켰는데, 손에 쥔 잔은 뜨겁고 위에 우유 거품이 얹혀 있다.
+Mia: Next in line, please!
+직원은 벌써 뒤에 선 손님을 부른다. 뒤로 줄이 길다.$content$,
+    $content$상황:
+- 붐비는 카페의 카운터다. 사용자는 아이스 아메리카노를 주문했는데 뜨거운 라떼를 받았다.
+- 직원 Mia는 이미 다음 손님을 부르고 있었고, 뒤에는 줄이 서 있다.
+- 사용자가 말을 걸어야 이 일이 풀린다.
 
--- How long a changed account id is locked, and how long the old one is held back.
---
--- One function rather than the literal repeated across the trigger and both
--- availability functions: the two periods are the same period in the decision, and
--- a change that moved one of them would otherwise leave an id that is free to take
--- but locked to give up, or the reverse.
---
--- IMMUTABLE so it costs nothing where it is called per row.
-create function public.username_change_interval()
-returns interval
-language sql
-immutable
-set search_path = ''
-as $$
-  select interval '30 days';
-$$;
+등장인물은 Mia 한 명뿐이다. 새 인물을 만들지 않는다. 다른 손님과 주변 상황은 지문으로 전한다.
+- Mia: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 자기가 틀렸다고 확인되면 고쳐 준다.$content$,
+    array[$content$Mia$content$],
+    $content$사용자가 원한 것을 얻어냈을 때$content$,
+    $content$다른 음료를 받거나 일부만 해결하고 자리를 떴을 때$content$,
+    $content$아무것도 얻지 못했거나 사용자가 그만뒀을 때$content$
+  ),
+  (
+    '11000000-0000-4000-8000-000000000002',
+    '10000000-0000-4000-8000-000000000001',
+    2,
+    $content$계산이 꼬인 아침$content$,
+    $content$다음 날 아침이에요. 계산대 앞에서 카드가 자꾸 튕기는데, 뒤로 줄이 길어져요.$content$,
+    $content$다른 방법을 찾아 계산을 끝내 보세요$content$,
+    $content$💳$content$,
+    $content$다음 날 아침, 같은 카페다. 아메리카노를 시키고 카드를 댔는데 단말기가 짧은 오류음을 낸다. 한 번 더 대도 마찬가지다.
+Mia: Hmm, it says declined. Do you want to try it again?
+뒤에 선 사람들이 하나둘 이쪽을 본다.$content$,
+    $content$상황:
+- 아침의 붐비는 카페 계산대다. 사용자는 아메리카노를 주문했고 결제만 남았다.
+- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.
+- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.
+- Mia는 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없고, 뒤에 줄이 길어지고 있다.
+- 사용자가 다른 방법을 말해야 이 일이 풀린다.
 
-comment on function public.username_change_interval() is
-  'How long an account id stays locked after a change, and how long the previous id stays protected.';
+등장인물은 Mia 한 명뿐이다. 새 인물을 만들지 않는다. 뒤에 선 손님과 주변 상황은 지문으로 전한다.
+- Mia: 20대 후반의 바리스타. 어제 사용자의 주문을 처리한 그 직원이다. 바쁘지만 손님이 곤란해하면 방법을 같이 찾는다.$content$,
+    array[$content$Mia$content$],
+    $content$다른 결제 방법을 찾아내 주문한 음료를 받았을 때$content$,
+    $content$더 싼 음료로 바꾸거나 일부만 해결하고 자리를 떴을 때$content$,
+    $content$결제하지 못하고 아무것도 받지 못한 채 물러났을 때$content$
+  ),
+  (
+    '11000000-0000-4000-8000-000000000003',
+    '10000000-0000-4000-8000-000000000001',
+    3,
+    $content$자리를 맡아 둔 사이에$content$,
+    $content$잠깐 자리를 비운 사이, 창가 자리에 다른 사람이 앉아 있어요.$content$,
+    $content$맡아 둔 자리를 되찾아 보세요$content$,
+    $content$🪑$content$,
+    $content$전화를 받느라 오 분쯤 나갔다 온 참이다. 늘 앉던 창가 자리에 낯선 남자가 앉아 노트북을 펴고 있고, 가방은 옆 테이블 위에 올려져 있다.
+Owen: Oh, is this yours? Sorry, the table looked empty when I sat down.
+카운터에 있던 Mia가 이쪽을 보다가 눈이 마주친다.$content$,
+    $content$상황:
+- 오후의 카페다. 사용자는 창가 자리에 가방을 두고 잠깐 나갔다 왔다.
+- 돌아와 보니 Owen이 그 자리에 앉아 있고, 사용자의 가방은 옆 테이블로 옮겨져 있다.
+- Owen은 자리를 뺏을 생각이 없었지만 이미 짐을 펼쳐 놓았다. 곧 화상 회의가 있어서 콘센트가 있는 이 자리가 필요하다.
+- Mia는 사용자를 단골로 알아본다. 부탁을 받으면 도와주지만 손님끼리의 일에 먼저 끼어들지는 않는다.
+- 사용자가 말을 걸어야 자리 문제가 정리된다.
 
--- True while an account id belongs to somebody else's rename and is still held back.
---
--- `owner` is the account asking. Its own retired ids do not block it: someone who
--- renamed away and wants their previous id back is the one person no one can
--- confuse it with.
-create function public.is_protected_username(candidate text, owner uuid)
-returns boolean
-language sql
-security definer
-stable
-set search_path = ''
-as $$
-  select exists (
-    select 1
-    from public.retired_usernames
-    where public.retired_usernames.username = candidate
-      and public.retired_usernames.protected_until > now()
-      and public.retired_usernames.retired_by is distinct from owner
+등장인물은 Mia와 Owen 두 명뿐이다. 새 인물을 만들지 않는다. 다른 손님과 주변 상황은 지문으로 전한다.
+- Mia: 20대 후반의 바리스타. 사용자를 알아보고 반가워한다. 부탁받으면 자리를 찾아봐 주지만 누가 앉을지를 대신 정해 주지는 않는다.
+- Owen: 30대 초반의 손님. 예의는 있지만 그냥 물러서지도 않는다. 사정을 구체적으로 설명하면 조정할 여지가 있다.$content$,
+    array[$content$Mia$content$, $content$Owen$content$],
+    $content$맡아 뒀던 자리를 돌려받았을 때$content$,
+    $content$다른 자리나 나눠 앉는 것으로 정리됐을 때$content$,
+    $content$자리를 잃고 아무것도 정리하지 못한 채 물러났을 때$content$
+  ),
+  (
+    '11000000-0000-4000-8000-000000000004',
+    '10000000-0000-4000-8000-000000000001',
+    4,
+    $content$이름 없는 신메뉴$content$,
+    $content$Mia가 아직 이름도 없는 새 메뉴를 내밀며 솔직한 감상을 물어요.$content$,
+    $content$맛에 대한 생각을 솔직하게 전해 보세요$content$,
+    $content$🥤$content$,
+    $content$카운터에 서자 Mia가 처음 보는 음료를 잔에 담아 내민다. 메뉴판에는 없는 것이다.
+Mia: Try this one. I made it myself. Be honest, okay?
+한 모금 마셔 본다. 향은 좋은데 뒷맛이 꽤 쓰고, 단맛이 겉돈다.$content$,
+    $content$상황:
+- 한산한 오후의 카페 카운터다. Mia가 직접 만든 시제품 음료를 사용자에게 시음시킨다.
+- 이 음료는 향은 좋지만 뒷맛이 쓰고 단맛이 겉돈다. 사용자는 이미 한 모금 마셨다.
+- Mia는 다음 주에 이 음료를 매니저에게 보여 줄 생각이다. 솔직한 말을 듣고 싶어 하면서도 자기가 만든 것이라 조심스럽다.
+- 사용자가 무엇을 어떻게 말하느냐에 따라 Mia가 얻어 가는 것이 달라진다.
+
+등장인물은 Mia 한 명뿐이다. 새 인물을 만들지 않는다. 다른 손님과 주변 상황은 지문으로 전한다.
+- Mia: 20대 후반의 바리스타. 사용자를 단골로 안다. 칭찬만 들으면 실망하고, 근거 없이 깎아내리면 방어적으로 변한다. 구체적인 말에는 고마워한다.$content$,
+    array[$content$Mia$content$],
+    $content$솔직한 감상이 구체적으로 전해져 Mia가 고칠 지점을 얻었을 때$content$,
+    $content$좋은 말만 하거나 두루뭉술하게 넘겨 Mia가 얻은 것이 없을 때$content$,
+    $content$말이 상처가 되거나 대화를 피해 Mia가 마음을 닫았을 때$content$
+  ),
+  (
+    '11000000-0000-4000-8000-000000000005',
+    '10000000-0000-4000-8000-000000000001',
+    5,
+    $content$마지막 잔$content$,
+    $content$오늘이 Mia의 마지막 근무예요. 문 닫기까지 십 분 남았어요.$content$,
+    $content$문 닫기 전에 하고 싶은 말을 건네 보세요$content$,
+    $content$👋$content$,
+    $content$저녁 여덟 시, 문 닫기 직전의 카페다. 카운터 옆에 종이 상자가 하나 놓여 있고 그 위에 앞치마가 개어져 있다.
+Mia: Oh, you came. Today is my last shift here. I'm moving to the new branch.
+Mia가 마지막 잔을 내리며 시계를 한 번 본다. 십 분 뒤면 문을 닫는다.$content$,
+    $content$상황:
+- 문 닫기 십 분 전의 카페다. 오늘이 Mia의 마지막 근무이고, Mia는 다음 주부터 다른 지점으로 옮긴다.
+- 사용자는 방금 그 사실을 알았다. 지금 말하지 않으면 할 기회가 없다.
+- Mia는 마감 정리를 하면서도 대화를 이어 갈 여유가 있다. 다만 십 분이 지나면 인사하고 나가야 한다.
+- 사용자가 무엇을 말하느냐에 따라 이 관계가 어떻게 끝나는지 달라진다.
+
+등장인물은 Mia 한 명뿐이다. 새 인물을 만들지 않는다. 다른 손님과 주변 상황은 지문으로 전한다.
+- Mia: 20대 후반의 바리스타. 그동안 사용자를 단골로 봐 왔다. 담담한 척하지만 인사를 받으면 반가워한다.$content$,
+    array[$content$Mia$content$],
+    $content$하고 싶은 말을 전하고 다시 만날 약속까지 이어졌을 때$content$,
+    $content$짧은 인사만 주고받고 헤어졌을 때$content$,
+    $content$하고 싶은 말을 전하지 못한 채 Mia가 나갔을 때$content$
   );
-$$;
 
-comment on function public.is_protected_username(text, uuid) is
-  'True while another account''s previous id is still protected. Reads retired_usernames as owner.';
+-- 옛 기록은 첫 스토리의 같은 화로 옮긴 뒤에만 번호 열을 지운다. 알 수 없는
+-- 시즌이나 화가 한 행이라도 있으면 마이그레이션을 멈춰 기록 손실을 막는다.
+alter table public.episode_endings add column episode_id uuid;
 
-revoke all on function public.is_protected_username(text, uuid) from public, anon, authenticated;
+update public.episode_endings ending
+set episode_id = authored.id
+from public.episodes authored
+where authored.story_id = '10000000-0000-4000-8000-000000000001'
+  and ending.season = 1
+  and ending.episode = authored.number;
 
--- Answers "can I have this account id?" without widening who may read profiles.
---
--- `security definer` is the whole point: `profiles_select_own` limits a signed-in
--- user to their own row, so a client cannot discover on its own whether an id is
--- free. This runs as the owner to look, and returns one word about the id the
--- caller already typed. No row, no column, and no other person's values leave
--- the function.
---
--- Reserved is decided before taken so a name the product keeps for itself reads
--- as unavailable rather than as somebody else's.
---
--- "Taken" skips the caller's own row. The edit screen asks about the id the person
--- already holds every time they open it, and counting their own row would answer
--- that their own id is somebody else's. Onboarding is unaffected: a caller with no
--- id yet has no row to skip.
---
--- An id another account gave up reads as taken rather than as its own state. The
--- person asking cannot have it and cannot wait usefully for it either, and naming
--- the protection would say that a specific stranger used to hold it.
-create function public.username_status(candidate text)
-returns text
-language sql
-security definer
-stable
-set search_path = ''
-as $$
-  select case
-    when candidate is null or candidate !~ '^[a-z0-9_]{3,20}$' then 'invalid'
-    when public.is_reserved_username(candidate) then 'reserved'
-    when exists (
-      select 1
-      from public.profiles
-      where public.profiles.username = candidate
-        and public.profiles.id is distinct from (select auth.uid())
-    ) then 'taken'
-    when public.is_protected_username(candidate, (select auth.uid())) then 'taken'
-    else 'available'
-  end;
-$$;
-
-comment on function public.username_status(text) is
-  'One of available, taken, reserved, invalid for a candidate account id. Exposes no profile rows.';
-
-revoke all on function public.username_status(text) from public, anon;
-grant execute on function public.username_status(text) to authenticated;
-
--- Keeps only the ids from `candidates` that a person could actually take.
---
--- The app builds the alternatives it wants to offer and this says which of them
--- are free, so the screen never shows a suggestion that fails the moment it is
--- pressed. Order is preserved: the caller's preference decides what appears
--- first.
---
--- The ten is a limit on how much guessing one call can do. Availability checks
--- are inherently a way to probe which ids exist, and a caller that could pass a
--- thousand candidates at once would turn one request into a thousand answers.
---
--- It is taken after unnest rather than by slicing the argument. `text[]` does
--- not fix the number of dimensions, and `candidates[1:10]` cuts only the first
--- one — a 2 by 11 array would walk straight past the limit while looking like
--- it obeyed. unnest flattens whatever shape arrived, so counting there counts
--- what the function actually answers for.
-create function public.available_usernames(candidates text[])
-returns text[]
-language sql
-security definer
-stable
-set search_path = ''
-as $$
-  select coalesce(array_agg(entry.candidate order by entry.position), '{}'::text[])
-  from (
-    select candidate, position
-    from unnest(candidates) with ordinality as flattened(candidate, position)
-    order by position
-    limit 10
-  ) as entry
-  where entry.candidate ~ '^[a-z0-9_]{3,20}$'
-    and not public.is_reserved_username(entry.candidate)
-    and not public.is_protected_username(entry.candidate, (select auth.uid()))
-    and not exists (
-      select 1
-      from public.profiles
-      where public.profiles.username = entry.candidate
-        and public.profiles.id is distinct from (select auth.uid())
-    );
-$$;
-
-comment on function public.available_usernames(text[]) is
-  'Filters a caller''s candidate account ids down to the free ones, in the order given. At most 10 per call.';
-
-revoke all on function public.available_usernames(text[]) from public, anon;
-grant execute on function public.available_usernames(text[]) to authenticated;
-
--- Decides every rename: whether it may happen, and what it costs.
---
--- This is the only place the two periods are enforced, and it has to be here
--- rather than in the client or in a check constraint. `username_status` answers
--- about the moment it was asked, and the id can be renamed into or protected
--- between that answer and this write. A check constraint cannot see another table
--- or the row's previous value, so neither the lock nor the protection can be
--- expressed as one.
---
--- `security definer` for `retired_usernames` alone: `authenticated` holds nothing
--- on that table, so the rename writes it through this function or not at all.
---
--- Two rules, and they cover different writes. A protected id may not be taken by
--- anyone, including an account choosing its first id at onboarding — otherwise the
--- shortest way to somebody's released id is to sign up rather than to rename. The
--- lock and the retirement only apply to a real change, so someone who has just
--- picked their first id can still fix it.
-create function public.guard_username_change()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
+do $$
 begin
-  if old.username is not null
-    and old.username_locked_until is not null
-    and old.username_locked_until > now()
-  then
-    raise exception 'Account id is locked until %', old.username_locked_until
-      using errcode = 'check_violation';
+  if exists (
+    select 1
+    from public.episode_endings
+    where episode_id is null
+  ) then
+    raise exception
+      'Some episode endings could not be mapped to the first story.';
   end if;
-
-  if new.username is not null and public.is_protected_username(new.username, new.id) then
-    -- The same code the unique index raises. To the person asking, an id somebody
-    -- else gave up last week and an id somebody else holds today are one answer:
-    -- not yours, pick another.
-    raise exception 'Account id % is still protected', new.username
-      using errcode = 'unique_violation';
-  end if;
-
-  -- A first id costs nothing and retires nothing: there is no previous id to hold
-  -- back, and locking here would trap someone in the value they just typed.
-  if old.username is null then
-    return new;
-  end if;
-
-  -- Taking back an id this account retired earlier releases it, so the row does
-  -- not sit there blocking the account that now holds the id.
-  delete from public.retired_usernames
-  where public.retired_usernames.username = new.username
-    and public.retired_usernames.retired_by = new.id;
-
-  -- `on conflict` covers the same id being retired twice: a -> b -> a -> b leaves
-  -- one row for `b`, protected from the most recent release rather than the first.
-  insert into public.retired_usernames (username, retired_by, protected_until)
-  values (old.username, new.id, now() + public.username_change_interval())
-  on conflict (username) do update
-  set retired_by = excluded.retired_by,
-      retired_at = now(),
-      protected_until = excluded.protected_until;
-
-  new.username_changed_at := now();
-  new.username_locked_until := now() + public.username_change_interval();
-
-  return new;
 end;
 $$;
 
-comment on function public.guard_username_change() is
-  'Enforces the account id lock, protects the previous id, and stamps the next allowed change.';
+alter table public.episode_endings
+  alter column episode_id set not null,
+  drop constraint episode_endings_pkey,
+  drop constraint episode_endings_season_usable,
+  drop constraint episode_endings_episode_usable,
+  add constraint episode_endings_pkey primary key (user_id, episode_id),
+  add constraint episode_endings_episode_id_fkey
+    foreign key (episode_id) references public.episodes (id) on delete restrict,
+  drop column season,
+  drop column episode;
 
-revoke all on function public.guard_username_change() from public, anon, authenticated;
+create index episode_endings_episode_id_idx
+  on public.episode_endings (episode_id);
 
--- The `when` clause covers every write that moves the id, including the null ->
--- value one at onboarding, because the protection has to hold for a new account
--- too. A profile that saves a new picture and the same id does not fire this at
--- all, which is what lets someone edit the rest of their profile while the id is
--- locked.
-create trigger profiles_guard_username_change
-  before update on public.profiles
-  for each row
-  when (new.username is distinct from old.username)
-  execute function public.guard_username_change();
+comment on table public.episode_endings is
+  'One immutable ending and story memory per account and stable episode id.';
 
--- 끝난 에피소드를 기록하는 유일한 길.
---
--- `authenticated`는 `episode_endings`에 직접 쓰지 못한다. 직접 쓸 수 있으면
--- 앱이 아무 화나 끝난 것으로 만들어 앞의 화를 건너뛸 수 있다. 이 함수는
--- 지금 끝낼 수 있는 화가 하나뿐이라는 규칙을 지키고, 그래서 `security definer`다.
---
--- 같은 화의 결말이 다시 도착하면 false를 돌려준다. 한 번 난 결말은 그 스토리의
--- 사실로 남으므로 나중에 온 판정이 앞의 사실을 바꾸거나 화면을 닫지 않는다.
+comment on column public.episode_endings.episode_id is
+  'Stable episode reference. Numbers are only ordering inside a story.';
+
+create table public.episode_runs (
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  episode_id uuid not null references public.episodes (id) on delete restrict,
+  messages jsonb not null,
+  completed_at timestamptz,
+  completed_by_fallback boolean not null default false,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, episode_id),
+  constraint episode_runs_messages_array check (jsonb_typeof(messages) = 'array'),
+  constraint episode_runs_messages_size check (
+    octet_length(messages::text) <= 1048576
+  )
+);
+
+create index episode_runs_episode_id_idx on public.episode_runs (episode_id);
+
+alter table public.episode_runs enable row level security;
+
+create policy episode_runs_select_own on public.episode_runs
+  for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+revoke all on table public.episode_runs from anon, authenticated, service_role;
+grant select on table public.episode_runs to authenticated;
+grant all on table public.episode_runs to service_role;
+
+comment on table public.episode_runs is
+  'One server-saved UI message list per account and episode, active or completed.';
+
+comment on column public.episode_runs.messages is
+  'AI SDK UI messages with stable message ids. Limited to one MiB per episode.';
+
+comment on column public.episode_runs.completed_at is
+  'Set after an ending exists. A fallback completion can be upgraded once by a compatible normal completion.';
+
+comment on column public.episode_runs.completed_by_fallback is
+  'True while a stopped client snapshot is the completed transcript. A compatible normal completion replaces it and clears this flag.';
+
+drop function public.finish_episode(
+  smallint,
+  smallint,
+  text,
+  text,
+  text,
+  text,
+  text,
+  text
+);
+
 create function public.finish_episode(
   episode_id uuid,
   kind text,
@@ -392,12 +442,11 @@ $$;
 comment on function public.finish_episode(uuid, text, text, text, text, text, text) is
   'Records the ending and story memory of the caller''s current episode. Returns true only to the request that inserted the permanent ending.';
 
-revoke all on function public.finish_episode(uuid, text, text, text, text, text, text) from public, anon;
-grant execute on function public.finish_episode(uuid, text, text, text, text, text, text) to authenticated;
+revoke all on function public.finish_episode(uuid, text, text, text, text, text, text)
+  from public, anon;
+grant execute on function public.finish_episode(uuid, text, text, text, text, text, text)
+  to authenticated;
 
--- 진행 중인 장면을 계정에 남긴다. 앱은 매 요청에 대화 전체를 보내고 서버는
--- 받은 목록을 통째로 바꿔 쓴다. 같은 에피소드를 두 기기에서 진행하면 마지막
--- 저장이 남는다.
 create function public.save_episode_run(episode_id uuid, messages jsonb)
 returns void
 language plpgsql
@@ -658,8 +707,6 @@ revoke all on function public.save_episode_run_fallback(uuid, jsonb)
 grant execute on function public.save_episode_run_fallback(uuid, jsonb)
   to authenticated;
 
--- 결말이 먼저 남은 에피소드의 같은 장면을 읽기 전용 대화 기록으로 확정한다.
--- 이 함수가 실패해도 결말은 이미 별도 호출로 남아 있어 화가 다시 열리지 않는다.
 create function public.complete_episode_run(episode_id uuid, messages jsonb)
 returns void
 language plpgsql

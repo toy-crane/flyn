@@ -1,20 +1,20 @@
 import { router, Stack } from "expo-router";
-import { useCallback } from "react";
 import { Platform } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
 import { chatLabels } from "@/features/chat/ui/chat-labels";
-import { useSeason } from "@/features/episode/query/season";
+import { useStory } from "@/features/episode/query/story";
 import { HomeScreen } from "@/screens/home/home-screen";
 import { ProfileAvatarButton } from "@/screens/home/profile-avatar-button";
+import { useVisibleRetry } from "@/shared/query/use-visible-retry";
 import { toolbarIcon } from "@/shared/ui/toolbar-icons";
 
 function openChat() {
   router.push("/chat");
 }
 
-function openEpisode() {
-  router.push("/episode");
+function openEpisode(episodeId: string) {
+  router.push({ params: { episodeId }, pathname: "/episode" });
 }
 
 function openSettings() {
@@ -23,19 +23,17 @@ function openSettings() {
 
 export default function HomeRoute() {
   const { session } = useAuthSession();
-  const season = useSeason(session?.user.id, session?.access_token);
-  const { refetch } = season;
-  const retrySeason = useCallback(() => {
-    refetch();
-  }, [refetch]);
+  const story = useStory(session?.user.id, session?.access_token);
+  const { isRetrying, retry: retryStory } = useVisibleRetry(story.refetch);
 
   return (
     <>
       <HomeScreen
-        isLoading={season.isPending || season.isFetching}
-        onRetry={retrySeason}
-        onStartEpisode={openEpisode}
-        season={season.data}
+        isLoading={story.isPending && !isRetrying}
+        isRetrying={isRetrying}
+        onOpenEpisode={openEpisode}
+        onRetry={retryStory}
+        story={story.data}
       />
       {/*
         The new-conversation action sits apart from the profile so it remains

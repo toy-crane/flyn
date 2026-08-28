@@ -36,44 +36,146 @@ export type Database = {
     Tables: {
       episode_endings: {
         Row: {
-          episode: number
+          episode_id: string
           finished_at: string
           kind: string
           memory_choice: string | null
           memory_question: string | null
           memory_relationship: string | null
           outcome: string
-          season: number
           user_id: string
         }
         Insert: {
-          episode: number
+          episode_id: string
           finished_at?: string
           kind: string
           memory_choice?: string | null
           memory_question?: string | null
           memory_relationship?: string | null
           outcome: string
-          season: number
           user_id: string
         }
         Update: {
-          episode?: number
+          episode_id?: string
           finished_at?: string
           kind?: string
           memory_choice?: string | null
           memory_question?: string | null
           memory_relationship?: string | null
           outcome?: string
-          season?: number
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "episode_endings_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "episodes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "episode_endings_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      episode_runs: {
+        Row: {
+          completed_at: string | null
+          completed_by_fallback: boolean
+          episode_id: string
+          messages: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by_fallback?: boolean
+          episode_id: string
+          messages: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by_fallback?: boolean
+          episode_id?: string
+          messages?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "episode_runs_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "episodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "episode_runs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      episodes: {
+        Row: {
+          cast_names: string[]
+          ending_compromise: string
+          ending_failure: string
+          ending_success: string
+          id: string
+          number: number
+          opening: string
+          preview: string
+          situation: string
+          situation_emoji: string
+          stage: string
+          story_id: string
+          title: string
+        }
+        Insert: {
+          cast_names: string[]
+          ending_compromise: string
+          ending_failure: string
+          ending_success: string
+          id: string
+          number: number
+          opening: string
+          preview: string
+          situation: string
+          situation_emoji: string
+          stage: string
+          story_id: string
+          title: string
+        }
+        Update: {
+          cast_names?: string[]
+          ending_compromise?: string
+          ending_failure?: string
+          ending_success?: string
+          id?: string
+          number?: number
+          opening?: string
+          preview?: string
+          situation?: string
+          situation_emoji?: string
+          stage?: string
+          story_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "episodes_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
             referencedColumns: ["id"]
           },
         ]
@@ -175,30 +277,83 @@ export type Database = {
           },
         ]
       }
+      stories: {
+        Row: {
+          completion_copy: string
+          completion_title: string
+          id: string
+          position: number
+          slug: string
+          target_language: string
+          title: string
+        }
+        Insert: {
+          completion_copy: string
+          completion_title: string
+          id: string
+          position: number
+          slug: string
+          target_language: string
+          title: string
+        }
+        Update: {
+          completion_copy?: string
+          completion_title?: string
+          id?: string
+          position?: number
+          slug?: string
+          target_language?: string
+          title?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       available_usernames: { Args: { candidates: string[] }; Returns: string[] }
+      complete_episode_run: {
+        Args: { episode_id: string; messages: Json }
+        Returns: undefined
+      }
+      complete_episode_run_fallback: {
+        Args: { episode_id: string; messages: Json }
+        Returns: undefined
+      }
+      episode_run_extends_snapshot: {
+        Args: { snapshot_messages: Json; stored_messages: Json }
+        Returns: boolean
+      }
+      episode_run_matches_ending: {
+        Args: { kind: string; messages: Json; outcome: string }
+        Returns: boolean
+      }
       finish_episode: {
         Args: {
-          episode: number
+          episode_id: string
           kind: string
           language_level?: string
           memory_choice?: string
           memory_question?: string
           memory_relationship?: string
           outcome: string
-          season: number
         }
-        Returns: undefined
+        Returns: boolean
       }
       is_protected_username: {
         Args: { candidate: string; owner: string }
         Returns: boolean
       }
       is_reserved_username: { Args: { candidate: string }; Returns: boolean }
+      save_episode_run: {
+        Args: { episode_id: string; messages: Json }
+        Returns: undefined
+      }
+      save_episode_run_fallback: {
+        Args: { episode_id: string; messages: Json }
+        Returns: undefined
+      }
       username_change_interval: { Args: never; Returns: string }
       username_status: { Args: { candidate: string }; Returns: string }
     }
