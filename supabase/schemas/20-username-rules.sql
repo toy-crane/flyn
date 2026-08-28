@@ -43,5 +43,5 @@ comment on function public.is_reserved_username(text) is
 -- roles need EXECUTE here or every profile update fails on a permission error
 -- rather than on the rule it was meant to enforce. `anon` writes no profiles and
 -- gets nothing.
-revoke all on function public.is_reserved_username(text) from public, anon;
+revoke all on function public.is_reserved_username(text) from public;
 grant execute on function public.is_reserved_username(text) to authenticated, service_role;

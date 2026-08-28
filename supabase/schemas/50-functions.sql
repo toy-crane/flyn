@@ -4,6 +4,14 @@
 -- A `security definer` function that resolves names through a caller-controlled
 -- search_path can be pointed at an attacker's table, so the empty path is what
 -- makes the fully qualified names load-bearing rather than a style choice.
+--
+-- Every function below is revoked from `public` and then granted back to the
+-- roles that should call it. Unlike a table, a function is not covered by this
+-- database's blocked defaults: `create function` still grants EXECUTE to PUBLIC,
+-- and `anon` and `authenticated` inherit it. Without the revoke, a
+-- `security definer` function here is a Data API endpoint anyone holding the
+-- publishable key can call. `from public` is the whole revoke — naming the
+-- inheriting roles as well would change nothing.
 
 -- Creates the profile row for a new Supabase user.
 --
@@ -31,7 +39,7 @@ comment on function public.handle_new_user() is
 
 -- Only the trigger calls this. The Data API roles must not reach it, and
 -- `create function` grants EXECUTE to PUBLIC by default, so revoke it.
-revoke all on function public.handle_new_user() from public, anon, authenticated;
+revoke all on function public.handle_new_user() from public;
 
 create trigger on_auth_user_created
   after insert on auth.users
@@ -58,7 +66,7 @@ $$;
 comment on function public.set_updated_at() is
   'Sets updated_at on a row that changed. Paired with a WHEN clause that skips no-op updates.';
 
-revoke all on function public.set_updated_at() from public, anon, authenticated;
+revoke all on function public.set_updated_at() from public;
 
 -- The `when` clause is what keeps `updated_at` honest: an update that writes the
 -- same values never fires, so the column records real changes rather than write
@@ -89,6 +97,12 @@ $$;
 comment on function public.username_change_interval() is
   'How long an account id stays locked after a change, and how long the previous id stays protected.';
 
+-- Only the trigger and the availability functions call this, all as owner. The
+-- period it returns is not a secret, but leaving the inherited PUBLIC grant in
+-- place would make it an `/rpc/` endpoint nothing calls, and then the granted
+-- surface would no longer be the whole surface.
+revoke all on function public.username_change_interval() from public;
+
 -- True while an account id belongs to somebody else's rename and is still held back.
 --
 -- `owner` is the account asking. Its own retired ids do not block it: someone who
@@ -113,7 +127,7 @@ $$;
 comment on function public.is_protected_username(text, uuid) is
   'True while another account''s previous id is still protected. Reads retired_usernames as owner.';
 
-revoke all on function public.is_protected_username(text, uuid) from public, anon, authenticated;
+revoke all on function public.is_protected_username(text, uuid) from public;
 
 -- Answers "can I have this account id?" without widening who may read profiles.
 --
@@ -158,7 +172,7 @@ $$;
 comment on function public.username_status(text) is
   'One of available, taken, reserved, invalid for a candidate account id. Exposes no profile rows.';
 
-revoke all on function public.username_status(text) from public, anon;
+revoke all on function public.username_status(text) from public;
 grant execute on function public.username_status(text) to authenticated;
 
 -- Keeps only the ids from `candidates` that a person could actually take.
@@ -205,7 +219,7 @@ $$;
 comment on function public.available_usernames(text[]) is
   'Filters a caller''s candidate account ids down to the free ones, in the order given. At most 10 per call.';
 
-revoke all on function public.available_usernames(text[]) from public, anon;
+revoke all on function public.available_usernames(text[]) from public;
 grant execute on function public.available_usernames(text[]) to authenticated;
 
 -- Decides every rename: whether it may happen, and what it costs.
@@ -279,7 +293,7 @@ $$;
 comment on function public.guard_username_change() is
   'Enforces the account id lock, protects the previous id, and stamps the next allowed change.';
 
-revoke all on function public.guard_username_change() from public, anon, authenticated;
+revoke all on function public.guard_username_change() from public;
 
 -- The `when` clause covers every write that moves the id, including the null ->
 -- value one at onboarding, because the protection has to hold for a new account
@@ -392,7 +406,7 @@ $$;
 comment on function public.finish_episode(uuid, text, text, text, text, text, text) is
   'Records the ending and story memory of the caller''s current episode. Returns true only to the request that inserted the permanent ending.';
 
-revoke all on function public.finish_episode(uuid, text, text, text, text, text, text) from public, anon;
+revoke all on function public.finish_episode(uuid, text, text, text, text, text, text) from public;
 grant execute on function public.finish_episode(uuid, text, text, text, text, text, text) to authenticated;
 
 -- 진행 중인 장면을 계정에 남긴다. 앱은 매 요청에 대화 전체를 보내고 서버는
@@ -470,7 +484,7 @@ $$;
 comment on function public.save_episode_run(uuid, jsonb) is
   'Upserts the caller''s current episode messages. Completed runs remain immutable.';
 
-revoke all on function public.save_episode_run(uuid, jsonb) from public, anon;
+revoke all on function public.save_episode_run(uuid, jsonb) from public;
 grant execute on function public.save_episode_run(uuid, jsonb) to authenticated;
 
 
@@ -567,7 +581,7 @@ comment on function public.episode_run_extends_snapshot(jsonb, jsonb) is
   'Reports whether stored episode messages are the same branch at least as complete as a stopped client snapshot.';
 
 revoke all on function public.episode_run_extends_snapshot(jsonb, jsonb)
-  from public, anon, authenticated;
+  from public;
 
 -- Saves the scene visible when an app stops a request. Unlike ordinary
 -- last-write-wins saves, a delayed shorter snapshot cannot roll back the
@@ -654,7 +668,7 @@ comment on function public.save_episode_run_fallback(uuid, jsonb) is
   'Saves a stopped current scene without replacing a longer snapshot of the same branch.';
 
 revoke all on function public.save_episode_run_fallback(uuid, jsonb)
-  from public, anon;
+  from public;
 grant execute on function public.save_episode_run_fallback(uuid, jsonb)
   to authenticated;
 
@@ -754,7 +768,7 @@ $$;
 comment on function public.complete_episode_run(uuid, jsonb) is
   'Marks matching ended messages complete. A compatible normal completion can upgrade a fallback once; normal completions are immutable.';
 
-revoke all on function public.complete_episode_run(uuid, jsonb) from public, anon;
+revoke all on function public.complete_episode_run(uuid, jsonb) from public;
 grant execute on function public.complete_episode_run(uuid, jsonb) to authenticated;
 
 create function public.episode_run_matches_ending(
@@ -793,7 +807,7 @@ comment on function public.episode_run_matches_ending(jsonb, text, text) is
   'Reports whether episode messages carry exactly one matching permanent ending.';
 
 revoke all on function public.episode_run_matches_ending(jsonb, text, text)
-  from public, anon, authenticated;
+  from public;
 
 -- A Stop can arrive after the permanent ending but before the server's longer
 -- transcript finishes saving. Complete once, choosing the longer compatible
@@ -890,6 +904,6 @@ comment on function public.complete_episode_run_fallback(uuid, jsonb) is
   'Completes a stopped ending with the longer compatible active transcript.';
 
 revoke all on function public.complete_episode_run_fallback(uuid, jsonb)
-  from public, anon;
+  from public;
 grant execute on function public.complete_episode_run_fallback(uuid, jsonb)
   to authenticated;

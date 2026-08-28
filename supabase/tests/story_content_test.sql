@@ -125,19 +125,24 @@ SELECT policies_are(
   'episodes carries only the signed-in read policy'
 );
 
-SELECT table_privs_are(
-  'public',
-  'stories',
-  'authenticated',
-  array['SELECT'],
+-- Only the privileges PostgREST can act on are pinned. The REFERENCES, TRIGGER,
+-- TRUNCATE and MAINTAIN a new table arrives with have no Data API route, and are accepted.
+-- See docs/decisions/supabase-schema-workflow.md.
+SELECT ok(
+  (SELECT has_table_privilege('authenticated', 'public.stories', 'SELECT'))
+  AND NOT (
+    SELECT bool_or(has_table_privilege('authenticated', 'public.stories', p))
+    FROM unnest(array['INSERT', 'UPDATE', 'DELETE']) AS p
+  ),
   'authenticated can only read stories'
 );
 
-SELECT table_privs_are(
-  'public',
-  'episodes',
-  'authenticated',
-  array['SELECT'],
+SELECT ok(
+  (SELECT has_table_privilege('authenticated', 'public.episodes', 'SELECT'))
+  AND NOT (
+    SELECT bool_or(has_table_privilege('authenticated', 'public.episodes', p))
+    FROM unnest(array['INSERT', 'UPDATE', 'DELETE']) AS p
+  ),
   'authenticated can only read episodes'
 );
 

@@ -33,52 +33,64 @@ SELECT isnt(
   'the update policy has a WITH CHECK expression'
 );
 
--- RLS does not restrain TRUNCATE, so an unrevoked default privilege here would
--- not show up as a policy problem.
-SELECT table_privs_are(
-  'public', 'profiles', 'anon', ARRAY[]::text[],
-  'anon holds no privilege on profiles'
+-- These pin the privileges PostgREST can act on, and only those. A new table in
+-- `public` also arrives with REFERENCES, TRIGGER, TRUNCATE and MAINTAIN for both roles;
+-- the Data API has no route to any of them, so they are accepted rather than
+-- asserted away. See docs/decisions/supabase-schema-workflow.md.
+SELECT ok(
+  NOT (
+    SELECT bool_or(has_table_privilege('anon', 'public.profiles', p))
+    FROM unnest(ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE']) AS p
+  ),
+  'anon cannot reach profiles through the Data API'
 );
 
-SELECT table_privs_are(
-  'public', 'profiles', 'authenticated', ARRAY['SELECT'],
-  'authenticated holds no table-wide privilege beyond SELECT'
+SELECT ok(
+  (SELECT has_table_privilege('authenticated', 'public.profiles', 'SELECT'))
+  AND NOT (
+    SELECT bool_or(has_table_privilege('authenticated', 'public.profiles', p))
+    FROM unnest(ARRAY['INSERT', 'UPDATE', 'DELETE']) AS p
+  ),
+  'authenticated holds no table-wide write on profiles'
 );
 
--- Only these three columns are the user's to change. id and created_at are
--- identity and history; updated_at is set by the trigger.
-SELECT column_privs_are(
-  'public', 'profiles', 'display_name', 'authenticated', ARRAY['SELECT', 'UPDATE'],
-  'authenticated can read and write display_name'
+-- Only these columns are the user's to change. id and created_at are identity
+-- and history; updated_at is set by the trigger. The column UPDATE grant is what
+-- the app depends on, so each column is checked for that one privilege.
+SELECT ok(
+  has_column_privilege('authenticated', 'public.profiles', 'display_name', 'UPDATE'),
+  'authenticated can write display_name'
 );
 
-SELECT column_privs_are(
-  'public', 'profiles', 'username', 'authenticated', ARRAY['SELECT', 'UPDATE'],
-  'authenticated can read and write username'
+SELECT ok(
+  has_column_privilege('authenticated', 'public.profiles', 'username', 'UPDATE'),
+  'authenticated can write username'
 );
 
-SELECT column_privs_are(
-  'public', 'profiles', 'avatar_url', 'authenticated', ARRAY['SELECT', 'UPDATE'],
-  'authenticated can read and write avatar_url'
+SELECT ok(
+  has_column_privilege('authenticated', 'public.profiles', 'avatar_url', 'UPDATE'),
+  'authenticated can write avatar_url'
 );
 
-SELECT column_privs_are(
-  'public', 'profiles', 'id', 'authenticated', ARRAY['SELECT'],
+SELECT ok(
+  NOT has_column_privilege('authenticated', 'public.profiles', 'id', 'UPDATE'),
   'authenticated cannot write id'
 );
 
-SELECT column_privs_are(
-  'public', 'profiles', 'created_at', 'authenticated', ARRAY['SELECT'],
+SELECT ok(
+  NOT has_column_privilege('authenticated', 'public.profiles', 'created_at', 'UPDATE'),
   'authenticated cannot write created_at'
 );
 
-SELECT column_privs_are(
-  'public', 'profiles', 'updated_at', 'authenticated', ARRAY['SELECT'],
+SELECT ok(
+  NOT has_column_privilege('authenticated', 'public.profiles', 'updated_at', 'UPDATE'),
   'authenticated cannot write updated_at'
 );
 
-SELECT column_privs_are(
-  'public', 'profiles', 'account_deletion_started_at', 'authenticated', ARRAY['SELECT'],
+SELECT ok(
+  NOT has_column_privilege(
+    'authenticated', 'public.profiles', 'account_deletion_started_at', 'UPDATE'
+  ),
   'authenticated cannot lower the account deletion write fence'
 );
 

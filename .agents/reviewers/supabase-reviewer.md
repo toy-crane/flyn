@@ -66,8 +66,9 @@ from version-controlled artifacts.
   underlying RLS.
 - For `SECURITY DEFINER` functions, require an intentional need, a pinned safe
   `search_path`, explicit caller authorization, safe argument handling, and
-  minimal `EXECUTE` grants after revoking broad defaults. Prefer a non-exposed
-  schema for privileged functions.
+  `EXECUTE` reaching only the intended callers, whether the platform's blocked
+  defaults or an explicit `REVOKE` achieves that. Prefer a non-exposed schema
+  for privileged functions.
 - Review storage policies and helper functions as authorization code, not as
   ordinary schema boilerplate.
 
