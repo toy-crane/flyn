@@ -26,28 +26,25 @@
 사전순 위치보다 먼저 실행해야 하는 파일이 생기면 `schema_paths`의 glob 위에 그
 파일 경로를 명시적으로 추가하세요.
 
-## 새 테이블을 추가할 때: 기본 권한
+## 새 테이블을 추가할 때: 권한
 
-이 데이터베이스의 기본 권한은 `public`의 새 테이블마다 `anon`,
-`authenticated`, `service_role`에 `REFERENCES`·`TRIGGER`·`TRUNCATE`를 줍니다.
-RLS는 `TRUNCATE`를 막지 않습니다.
+필요한 `GRANT`만 적고 RLS를 켜세요. `REVOKE`는 쓰지 않습니다.
 
-스키마 파일에 `revoke all ... from anon, authenticated, service_role`을 적어도
-**생성된 마이그레이션에는 그 REVOKE가 들어가지 않습니다.** 기본 권한은
-`CREATE TABLE`이 실행될 때 적용되어 스키마 차이로 나타나지 않기 때문입니다.
+이 데이터베이스는 `public`의 새 테이블을 Data API 역할에 자동으로 열지 않습니다.
+새 테이블은 `anon`과 `authenticated`에 `REFERENCES`·`TRIGGER`·`TRUNCATE`만 주고
+PostgREST가 부를 수 있는 권한은 주지 않습니다. 그래서 적어 둔 `GRANT`가 그 테이블에
+닿을 수 있는 전부입니다. 남는 세 권한은 PostgREST에 경로가 없어 그대로 둡니다.
 
-그러므로 새 테이블마다 생성된 마이그레이션의 `GRANT` 앞에 `REVOKE`를 직접 넣고,
-`db:reset` 뒤에 실제 권한을 확인하세요.
+**함수는 다릅니다.** `create function`은 지금도 `PUBLIC`에 `EXECUTE`를 주고
+`anon`과 `authenticated`가 이를 물려받습니다. 그러니 새 함수마다 이렇게 적으세요.
 
 ```sql
-select grantee, privilege_type
-from information_schema.role_table_grants
-where table_name = '<table>' and grantee in ('anon','authenticated');
+revoke all on function public.<name>(<args>) from public;
+grant execute on function public.<name>(<args>) to authenticated;  -- 부를 역할만
 ```
 
-`supabase/migrations/20260809060236_create_profiles.sql`이 이 보정의 예입니다.
-같은 마이그레이션은 기존 `auth.users` 행의 누락된 프로필을 채우는 DML도 손으로 넣었습니다.
-선언형 diff는 구조만 표현하므로 이런 보충 데이터는 항상 직접 추가해야 합니다.
+근거와 재검토 조건은 [Supabase 스키마 작업 방식](../../docs/decisions/supabase-schema-workflow.md)에
+있습니다.
 
 ## 이 디렉터리에 두지 않는 것
 

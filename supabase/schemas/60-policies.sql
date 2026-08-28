@@ -1,3 +1,21 @@
+-- Access control for every table in `public`.
+--
+-- Two things decide it, and each answers a different question. A GRANT decides
+-- whether a role may attempt a statement at all; RLS decides which rows that
+-- statement reaches. Both are declared here so one file answers "who can touch
+-- this table".
+--
+-- Only the GRANTs are written out. This database does not hand new tables in
+-- `public` to `anon` or `authenticated`: a table created here arrives with
+-- REFERENCES, TRIGGER and TRUNCATE for them and nothing the Data API can call,
+-- so the GRANTs below are the whole of the reachable surface rather than an
+-- addition to a permissive default. The three that remain have no route through
+-- PostgREST, which exposes select, insert, update, delete and rpc only.
+--
+-- Functions are the exception and are revoked one by one in 50-functions.sql:
+-- Postgres still grants EXECUTE to PUBLIC on every new function, which `anon`
+-- and `authenticated` inherit.
+
 -- 공식 스토리와 각본. 로그인한 사람은 읽을 수 있지만, 저장소에서 배포한
 -- 콘텐츠를 앱이 바꾸지는 못한다.
 alter table public.stories enable row level security;
@@ -7,7 +25,6 @@ create policy stories_select_authenticated on public.stories
   to authenticated
   using (true);
 
-revoke all on table public.stories from anon, authenticated, service_role;
 grant select on table public.stories to authenticated;
 grant all on table public.stories to service_role;
 
@@ -18,15 +35,10 @@ create policy episodes_select_authenticated on public.episodes
   to authenticated
   using (true);
 
-revoke all on table public.episodes from anon, authenticated, service_role;
 grant select on table public.episodes to authenticated;
 grant all on table public.episodes to service_role;
 
 -- Access control for public.profiles.
---
--- `config.toml` does not auto-expose new tables, so a table is unreachable
--- through the Data API until it is granted explicitly. Granting without RLS
--- would then expose every row, so the two always travel together.
 alter table public.profiles enable row level security;
 
 -- `anon` gets no policy and no grant. An unauthenticated caller holding the
@@ -52,12 +64,6 @@ create policy profiles_update_own on public.profiles
 -- creation stays with the trigger and deletion follows the user through
 -- `on delete cascade`.
 
--- Default privileges in this database already hand every new table in `public`
--- to anon, authenticated, and service_role — including TRUNCATE, which RLS does
--- not restrain. Revoke first so the grants below are the table's whole access
--- surface rather than an addition to whatever the defaults happened to give.
-revoke all on table public.profiles from anon, authenticated, service_role;
-
 -- Column-scoped update: `id` and `created_at` are identity and history, so a
 -- user may not rewrite them even on their own row. `with check` above already
 -- guards `id`; this also covers `created_at`, which a policy cannot express.
@@ -75,13 +81,11 @@ grant all on table public.profiles to service_role;
 
 -- Access control for public.retired_usernames.
 --
--- RLS with no policy at all for `anon` and `authenticated`: this table answers
+-- RLS with no policy at all, and no grant to a client role: this table answers
 -- "which ids are about to come free", which is a queue to camp on rather than
 -- anything a person needs. The trigger writes it and the availability functions
 -- read it, both as owner, so no client role needs to reach it directly.
 alter table public.retired_usernames enable row level security;
-
-revoke all on table public.retired_usernames from anon, authenticated, service_role;
 
 grant all on table public.retired_usernames to service_role;
 
@@ -98,8 +102,6 @@ create policy episode_endings_select_own on public.episode_endings
   to authenticated
   using ((select auth.uid()) = user_id);
 
-revoke all on table public.episode_endings from anon, authenticated, service_role;
-
 grant select on table public.episode_endings to authenticated;
 
 grant all on table public.episode_endings to service_role;
@@ -113,7 +115,6 @@ create policy episode_runs_select_own on public.episode_runs
   to authenticated
   using ((select auth.uid()) = user_id);
 
-revoke all on table public.episode_runs from anon, authenticated, service_role;
 grant select on table public.episode_runs to authenticated;
 grant all on table public.episode_runs to service_role;
 
@@ -128,8 +129,6 @@ create policy language_levels_select_own on public.language_levels
   for select
   to authenticated
   using ((select auth.uid()) = user_id);
-
-revoke all on table public.language_levels from anon, authenticated, service_role;
 
 grant select on table public.language_levels to authenticated;
 

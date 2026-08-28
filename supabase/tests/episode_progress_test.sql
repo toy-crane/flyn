@@ -1,6 +1,6 @@
 -- 플레이 기록은 스토리·화 번호가 아니라 안정된 에피소드 id를 참조한다.
 BEGIN;
-SELECT plan(57);
+SELECT plan(56);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -151,20 +151,24 @@ SELECT policies_are(
   'episode_runs carries only the owner read policy'
 );
 
-SELECT table_privs_are(
-  'public',
-  'episode_runs',
-  'authenticated',
-  array['SELECT'],
+-- Only the privileges PostgREST can act on are pinned. The REFERENCES, TRIGGER
+-- and TRUNCATE a new table arrives with have no Data API route and are accepted.
+-- See docs/decisions/supabase-schema-workflow.md.
+SELECT ok(
+  (SELECT has_table_privilege('authenticated', 'public.episode_runs', 'SELECT'))
+  AND NOT (
+    SELECT bool_or(has_table_privilege('authenticated', 'public.episode_runs', p))
+    FROM unnest(array['INSERT', 'UPDATE', 'DELETE']) AS p
+  ),
   'authenticated can read only their own episode runs'
 );
 
-SELECT table_privs_are(
-  'public',
-  'episode_runs',
-  'anon',
-  array[]::text[],
-  'anon holds no privilege on episode runs'
+SELECT ok(
+  NOT (
+    SELECT bool_or(has_table_privilege('anon', 'public.episode_runs', p))
+    FROM unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE']) AS p
+  ),
+  'anon cannot reach episode runs through the Data API'
 );
 
 SELECT function_privs_are(
@@ -356,13 +360,6 @@ SELECT throws_ok(
   '42501',
   null,
   'a signed-in account cannot delete a run directly'
-);
-
-SELECT throws_ok(
-  $$truncate public.episode_runs$$,
-  '42501',
-  null,
-  'a signed-in account cannot truncate episode runs'
 );
 
 SELECT throws_ok(
