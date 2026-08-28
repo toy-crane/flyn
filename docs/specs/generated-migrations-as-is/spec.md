@@ -99,11 +99,23 @@ schema diff가 놓칠 수 있는 항목을 나열하고, 엔진과 무관하게 
 뷰, 구체화 뷰, 파티션, domain, publication, alter policy는 저장소에 없음을
 확인했다.
 
+## 확인한 사실
+
+- 자동 노출 차단은 테이블에만 적용된다. 로컬 스택에서 확인한 결과, `public`의 새
+  테이블은 `anon`과 `authenticated`에 REFERENCES, TRIGGER, TRUNCATE만 주고
+  select, insert, update, delete는 주지 않는다. 그래서 테이블 REVOKE를 없앨 수
+  있었다.
+- 함수는 막지 못한다. `create function`은 여전히 PUBLIC에 EXECUTE를 주고
+  `anon`과 `authenticated`가 이를 물려받는다. 그러므로 함수별 REVOKE는 수용
+  기준을 지키는 데 필요한 SQL로 남는다. `from public` 한 줄이 물려받는 역할까지
+  모두 지우므로, 역할 이름을 덧붙이던 부분만 없앴다.
+- pg-delta는 문서의 옛 caveat 목록보다 많이 잡는다. 생성된 기준 이력에 auth
+  스키마의 트리거, profiles의 열 단위 grant, 주석 38개, RLS와 정책 7쌍이 모두
+  들어 있었다. 손으로 보완한 것은 storage 버킷과 정책뿐이고, 스토리 콘텐츠는
+  `supabase/seed.sql`이 소유한다.
+
 ## 가정
 
-- Supabase의 자동 노출 차단이 함수의 기본 EXECUTE(PUBLIC 부여)까지 막는지는
-  구현에서 로컬 스택으로 확인한다. 막지 못하는 경우 그 함수의 REVOKE는 수용
-  기준을 지키는 데 필요한 SQL로 남는다.
 - 마이그레이션의 supabase-reviewer 검토는 유지한다. 이 결정은 사람이 손으로
   고치는 단계를 없애는 것이지 검토를 없애는 것이 아니다.
 
