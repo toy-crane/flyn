@@ -348,18 +348,24 @@ create table public.episode_messages (
   -- 없고, 대신 정책이 다른 테이블을 보지 않고 이 열만으로 답한다. 값은
   -- `episode_plays`와 같은 이유로 부르는 사람이 채운다.
   user_id uuid not null default auth.uid(),
-  -- 대화 안의 자리. 서버가 정하고, 앱이 보낸 시각을 근거로 삼지 않는다.
-  position integer not null,
   role text not null,
   parts jsonb not null,
-  created_at timestamptz not null default now(),
-  constraint episode_messages_ordered_in_play unique (play_id, position),
+  -- 대화 안의 자리를 이 시각이 정한다. 번호를 따로 매기지 않는 이유는 그 번호를
+  -- 누군가 세야 하기 때문이다. 애플리케이션이 세면 저장이 한 번 실패했을 때
+  -- 어긋나고, 데이터베이스가 세게 하려면 트리거가 매번 같은 플레이를 훑는다.
+  -- 대화는 뒤에 붙거나 뒤를 잘라 낼 뿐 중간에 끼워 넣지 않으므로 시각으로 충분하다.
+  -- Vercel도 자기 제품에서 같은 선택을 했다.
+  --
+  -- `now()`가 아니라 `clock_timestamp()`인 것은 한 트랜잭션이 두 행을 넣어도
+  -- 앞뒤가 갈리게 하기 위해서다. `now()`는 트랜잭션이 시작한 순간에 멈춰 있다.
+  --
+  -- insert grant에 이 열이 없다. 앱이 보낸 시각은 순서의 근거가 되지 않는다.
+  created_at timestamptz not null default clock_timestamp(),
   -- 교정이 (message_id, user_id) 한 쌍으로 참조하기 위한 대상.
   constraint episode_messages_owned_id unique (id, user_id),
   foreign key (play_id, user_id)
     references public.episode_plays (id, user_id) on delete cascade,
   constraint episode_messages_role_known check (role in ('user', 'assistant')),
-  constraint episode_messages_position_usable check (position >= 0),
   constraint episode_messages_parts_array check (jsonb_typeof(parts) = 'array'),
   -- 한 메시지가 모델 문맥보다 커지기 전에 저장 경계를 분명히 한다. 옛 구조의
   -- 1 MiB는 한 화의 대화 전체에 걸린 한도였고, 그래서 대화가 길어질수록 남은
@@ -369,27 +375,27 @@ create table public.episode_messages (
   )
 );
 
--- `(play_id, position)` 색인을 따로 만들지 않는다. 위의
--- `episode_messages_ordered_in_play`가 같은 열을 같은 순서로 담은 유니크 색인을
--- 이미 만들고, 한 플레이의 대화를 순서대로 읽는 조회와 뒤를 잘라 내는 삭제가
--- 모두 그것을 탄다. 하나 더 두면 메시지를 넣고 지울 때마다 같은 키를 두 번 쓴다.
+-- 한 플레이의 대화를 순서대로 읽는 조회와 뒤를 잘라 내는 삭제가 모두 이 색인을
+-- 탄다. 앞자리가 `play_id`이므로 부모를 지울 때 도는 조회도 함께 받는다.
 --
--- `(play_id, user_id)` 외래키를 정확히 덮는 색인도 두지 않는다. Supabase
--- advisor가 `unindexed_foreign_keys`를 INFO로 보고하지만, 부모를 지울 때 도는
--- 조회는 `play_id`로 시작하므로 위 유니크 색인의 앞자리를 그대로 탄다. 이
--- 데이터베이스는 `retired_usernames_retired_by_fkey`에서 같은 보고를 이미 받아
+-- `(play_id, user_id)` 외래키를 정확히 덮는 색인은 두지 않는다. Supabase
+-- advisor가 `unindexed_foreign_keys`를 INFO로 보고하지만, 앞자리 일치로 충분하고
+-- 이 데이터베이스는 `retired_usernames_retired_by_fkey`에서 같은 보고를 이미 받아
 -- 두고 있다(2026-08-29 `supabase db advisors --local`로 확인).
+create index episode_messages_play_id_created_at_idx
+  on public.episode_messages (play_id, created_at);
+
 create index episode_messages_user_id_idx
   on public.episode_messages (user_id);
 
 comment on table public.episode_messages is
-  'One AI SDK UI message per row, ordered inside a play by position.';
+  'One AI SDK UI message per row, ordered inside a play by created_at.';
 
 comment on column public.episode_messages.id is
   'The id the AI SDK gave this message. Shared by the app, the server and this row.';
 
-comment on column public.episode_messages.position is
-  'Where the message sits in the conversation. The server decides it, not the client clock.';
+comment on column public.episode_messages.created_at is
+  'When the row landed, and the order the conversation is read in. Written by the database, never by a client.';
 
 comment on column public.episode_messages.parts is
   'AI SDK UI message parts, kept as one JSON document. Limited to 256 KiB per message.';

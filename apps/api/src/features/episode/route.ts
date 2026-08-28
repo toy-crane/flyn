@@ -25,7 +25,7 @@ import {
 import { type EpisodeCorrection, judgeCorrection } from "./correction";
 import { episodeSystemPrompt, episodeTags } from "./episode";
 import {
-  appendEpisodeMessages,
+  appendEpisodeMessage,
   currentEpisode,
   type EpisodePlay,
   nextUpAfter,
@@ -110,7 +110,7 @@ async function saveSceneBestEffort(
   path: string
 ): Promise<void> {
   try {
-    await appendEpisodeMessages(client, play, [message]);
+    await appendEpisodeMessage(client, play, message);
   } catch (error) {
     logRequestFailure(method, path, error);
   }
@@ -425,7 +425,6 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           // 낫다.
           await saveScene(sent);
           play.messages.push(sent);
-          play.nextPosition += 1;
         }
 
         if (play.messages.length === 0) {
@@ -472,7 +471,11 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
         return sceneResponse({
           onEnd: (message) =>
             isSceneSaved ? Promise.resolve() : saveScene(message),
-          originalMessages: play.messages,
+          // 지난 대화를 넘기지 않는다. AI SDK는 마지막 원본이 상대의 장면이면 그
+          // 메시지를 이어 쓰는데, 그러면 이번 턴의 장면이 지난 행에 덧붙는 꼴이
+          // 되어 저장이 기본키에 걸린다. 모델이 읽을 대화는 위 `messages`가
+          // 따로 넘기므로, 여기서는 "새 장면 하나를 만든다"만 말한다.
+          originalMessages: [],
           responseMessageId: sceneId,
           write: async (writer) => {
             // 판정이 끝나는 대로 흘려보낸다. 장면 한가운데에 도착해도 되고,

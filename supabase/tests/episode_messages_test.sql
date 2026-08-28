@@ -35,12 +35,12 @@ VALUES
   );
 
 -- 끝난 플레이가 남긴 메시지 한 건. 읽기 전용 대화 기록의 자리다.
-INSERT INTO public.episode_messages (id, play_id, user_id, position, role, parts)
+INSERT INTO public.episode_messages (id, play_id, user_id, role, parts)
 VALUES (
   'cc000000-0000-4000-8000-000000000009',
   'aa000000-0000-4000-8000-000000000001',
   '11111111-1111-4111-8111-111111111111',
-  0, 'user', '[{"type":"text","text":"Can I get another one?"}]'::jsonb
+  'user', '[{"type":"text","text":"Can I get another one?"}]'::jsonb
 );
 
 SELECT has_table('public', 'episode_messages', 'public.episode_messages exists');
@@ -54,9 +54,11 @@ SELECT col_is_pk(
   'a message keeps the id the AI SDK gave it'
 );
 
-SELECT col_is_unique(
-  'public', 'episode_messages', ARRAY['play_id', 'position'],
-  'two messages cannot claim the same place in one conversation'
+-- 자리는 데이터베이스가 채우는 시각이 정한다. 번호를 매기지 않으므로 같은 자리를
+-- 두고 다툴 일도 없다.
+SELECT hasnt_column(
+  'public', 'episode_messages', 'position',
+  'a message carries no seat number; created_at is the order'
 );
 
 -- 자식이 나르는 user_id가 부모의 주인과 어긋날 수 없게 만드는 두 쌍. 그래서
@@ -132,7 +134,7 @@ SELECT ok(
     SELECT bool_and(
       has_column_privilege('authenticated', 'public.episode_messages', c, 'INSERT')
     )
-    FROM unnest(ARRAY['id', 'play_id', 'position', 'role', 'parts']) AS c
+    FROM unnest(ARRAY['id', 'play_id', 'role', 'parts']) AS c
   )
   AND NOT (
     SELECT has_column_privilege(
@@ -185,81 +187,82 @@ SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claims TO '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}';
 
 SELECT lives_ok(
-  $$insert into public.episode_messages (id, play_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000001',
       'aa000000-0000-4000-8000-000000000002',
-      0, 'user', '[{"type":"text","text":"I want to change my order."}]'
+      'user', '[{"type":"text","text":"I want to change my order."}]'
     )$$,
   'a person adds a message to a play that is still open'
 );
 
 SELECT lives_ok(
-  $$insert into public.episode_messages (id, play_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000002',
       'aa000000-0000-4000-8000-000000000002',
-      1, 'assistant', '[{"type":"text","text":"Mia looks up."}]'
+      'assistant', '[{"type":"text","text":"Mia looks up."}]'
     )$$,
   'and the scene that answers it'
 );
 
-SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, position, role, parts)
-    values (
-      'cc000000-0000-4000-8000-000000000003',
-      'aa000000-0000-4000-8000-000000000002',
-      1, 'assistant', '[{"type":"text","text":"두 번째 1번 자리."}]'
-    )$$,
-  '23505', NULL, 'two messages cannot take the same place'
+-- 넣은 차례가 곧 읽는 차례다. 자리를 정하는 값은 데이터베이스가 채운다.
+SELECT results_eq(
+  $$select id from public.episode_messages
+    where play_id = 'aa000000-0000-4000-8000-000000000002'
+    order by created_at$$,
+  $$values
+    ('cc000000-0000-4000-8000-000000000001'::uuid),
+    ('cc000000-0000-4000-8000-000000000002'::uuid)$$,
+  'the conversation reads back in the order it was written'
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, created_at, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'aa000000-0000-4000-8000-000000000002',
-      -1, 'user', '[{"type":"text","text":"음수 자리."}]'
+      '1999-01-01', 'user', '[{"type":"text","text":"앞자리를 사서 끼어들기."}]'
     )$$,
-  '23514', NULL, 'a message cannot sit before the start of the conversation'
+  '42501', NULL, 'a client cannot choose where its message lands'
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'aa000000-0000-4000-8000-000000000002',
-      2, 'system', '[{"type":"text","text":"세 번째 역할."}]'
+      'system', '[{"type":"text","text":"세 번째 역할."}]'
     )$$,
   '23514', NULL, 'only the two roles a conversation has are accepted'
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'aa000000-0000-4000-8000-000000000002',
-      2, 'user', '{"type":"text","text":"배열이 아닌 parts."}'
+      'user', '{"type":"text","text":"배열이 아닌 parts."}'
     )$$,
   '23514', NULL, 'parts is a list of parts, not a single one'
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'aa000000-0000-4000-8000-000000000001',
-      1, 'user', '[{"type":"text","text":"끝난 화에 덧붙이기."}]'
+      'user', '[{"type":"text","text":"끝난 화에 덧붙이기."}]'
     )$$,
   '42501', NULL, 'a finished play accepts no further message'
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'bb000000-0000-4000-8000-000000000001',
-      0, 'user', '[{"type":"text","text":"남의 플레이에 쓰기."}]'
+      'user', '[{"type":"text","text":"남의 플레이에 쓰기."}]'
     )$$,
   '42501', NULL, 'a person cannot write into somebody else''s play'
 );
@@ -267,12 +270,12 @@ SELECT throws_ok(
 -- `user_id`는 기본값이 채우므로 insert grant에 없다. 남의 이름을 실어 보내는
 -- 문장은 정책을 만나기 전에 권한에서 막힌다.
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, user_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, user_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'aa000000-0000-4000-8000-000000000002',
       '22222222-2222-4222-8222-222222222222',
-      2, 'user', '[{"type":"text","text":"남의 이름으로 쓰기."}]'
+      'user', '[{"type":"text","text":"남의 이름으로 쓰기."}]'
     )$$,
   '42501', NULL, 'a person cannot sign a message with another account'
 );
@@ -368,7 +371,10 @@ SELECT is(
 SELECT lives_ok(
   $$delete from public.episode_messages
     where play_id = 'aa000000-0000-4000-8000-000000000002'
-      and position >= 1$$,
+      and created_at > (
+        select created_at from public.episode_messages
+        where id = 'cc000000-0000-4000-8000-000000000001'
+      )$$,
   'a retry removes the answer it replaces'
 );
 
@@ -380,11 +386,11 @@ SELECT is(
 );
 
 SELECT lives_ok(
-  $$insert into public.episode_messages (id, play_id, position, role, parts)
+  $$insert into public.episode_messages (id, play_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000004',
       'aa000000-0000-4000-8000-000000000002',
-      1, 'assistant', '[{"type":"text","text":"Mia smiles."}]'
+      'assistant', '[{"type":"text","text":"Mia smiles."}]'
     )$$,
   'the new answer takes the place the removed one left'
 );

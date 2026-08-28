@@ -148,14 +148,23 @@ export async function recordEpisodeEnding(
   }
 }
 
-/** 대화 한 자락과 그 마지막 자리. 새 메시지는 그 다음 자리에 붙는다. */
+/**
+ * 대화 한 자락.
+ *
+ * 자리 번호는 여기 없다. 새 메시지를 어디 앉힐지는 데이터베이스 트리거가
+ * 정하므로, 서버가 세다가 어긋날 자리가 없다.
+ */
 export interface EpisodePlay {
   /** 지금까지 남은 대화, 자리 순서대로. */
   messages: UIMessage[];
-  /** 다음 메시지가 앉을 자리. */
-  nextPosition: number;
   /** 메시지와 교정이 매달리는 플레이의 id. */
   playId: string;
+}
+
+/** 저장된 메시지 한 행. 자리는 이 시각이 정한다. */
+interface StoredMessage {
+  createdAt: string;
+  message: UIMessage;
 }
 
 /**
@@ -209,26 +218,35 @@ async function openPlay(
   );
 }
 
-/** 한 플레이의 대화를 자리 순서대로 읽는다. */
-async function readPlayMessages(
+/** 한 플레이의 대화를 자리 순서대로, 자리를 정하는 시각과 함께 읽는다. */
+async function readStoredMessages(
   client: EpisodeClient,
   playId: string
-): Promise<UIMessage[]> {
+): Promise<StoredMessage[]> {
   const { data, error } = await client
     .from("episode_messages")
-    .select("id, role, parts")
+    .select("id, role, parts, created_at")
     .eq("play_id", playId)
-    .order("position");
+    .order("created_at");
 
   if (error) {
     throw new Error(`Reading episode messages failed: ${error.message}`);
   }
 
   return data.map((row) => ({
-    id: row.id,
-    parts: row.parts,
-    role: row.role,
-  })) as UIMessage[];
+    createdAt: row.created_at,
+    message: { id: row.id, parts: row.parts, role: row.role } as UIMessage,
+  }));
+}
+
+/** 한 플레이의 대화. 자리 번호가 필요 없는 읽기 경로가 쓴다. */
+async function readPlayMessages(
+  client: EpisodeClient,
+  playId: string
+): Promise<UIMessage[]> {
+  const stored = await readStoredMessages(client, playId);
+
+  return stored.map((row) => row.message);
 }
 
 /**
@@ -251,15 +269,18 @@ export async function openEpisodePlay(
   keepThrough?: string | null
 ): Promise<EpisodePlay> {
   const playId = await openPlay(client, episodeId);
-  const stored = await readPlayMessages(client, playId);
+  const stored = await readStoredMessages(client, playId);
   const kept = keptThrough(stored, keepThrough);
 
   if (kept.length < stored.length) {
+    // 남길 마지막 행보다 뒤에 앉은 것을 지운다. 남길 것이 없으면 그 자리가
+    // 시각의 시작점이 되어 이 플레이의 메시지가 전부 지워진다.
+    const lastKept = kept.at(-1)?.createdAt ?? new Date(0).toISOString();
     const { error } = await client
       .from("episode_messages")
       .delete()
       .eq("play_id", playId)
-      .gte("position", kept.length);
+      .gt("created_at", lastKept);
 
     if (error) {
       throw new Error(
@@ -268,13 +289,13 @@ export async function openEpisodePlay(
     }
   }
 
-  return { messages: kept, nextPosition: kept.length, playId };
+  return { messages: kept.map((row) => row.message), playId };
 }
 
 function keptThrough(
-  stored: readonly UIMessage[],
+  stored: readonly StoredMessage[],
   keepThrough: string | null | undefined
-): UIMessage[] {
+): StoredMessage[] {
   if (keepThrough === undefined) {
     return [...stored];
   }
@@ -283,13 +304,16 @@ function keptThrough(
     return [];
   }
 
-  const at = stored.findIndex((message) => message.id === keepThrough);
+  const at = stored.findIndex((row) => row.message.id === keepThrough);
 
   return at === -1 ? [...stored] : stored.slice(0, at + 1);
 }
 
 /**
- * 대화 끝에 메시지를 붙인다.
+ * 대화 끝에 메시지 하나를 붙인다.
+ *
+ * 어느 자리에 앉는지는 넣지 않는다. 데이터베이스가 그 순간의 시각을 채우고, 읽는
+ * 쪽이 그 시각으로 정렬한다.
  *
  * `system` 역할은 데이터베이스가 받지 않는다. 에피소드 대화에는 그런 메시지가
  * 오지 않지만, 타입이 그 가능성을 열어 두므로 여기서 걸러 낸다.
@@ -298,28 +322,21 @@ function keptThrough(
  * 호출이 함께 끊겨 아무 part도 만들어지지 않는데, 그것을 저장하면 다시 열었을 때
  * 빈 말풍선이 남는다. 아무것도 만들지 못한 턴은 없던 턴이다.
  */
-export async function appendEpisodeMessages(
+export async function appendEpisodeMessage(
   client: EpisodeClient,
   play: EpisodePlay,
-  messages: readonly UIMessage[]
+  message: UIMessage
 ): Promise<void> {
-  const rows = messages
-    .filter(
-      (message) => STORED_ROLES.has(message.role) && message.parts.length > 0
-    )
-    .map((message, index) => ({
-      id: message.id,
-      parts: message.parts,
-      play_id: play.playId,
-      position: play.nextPosition + index,
-      role: message.role,
-    }));
-
-  if (rows.length === 0) {
+  if (!(STORED_ROLES.has(message.role) && message.parts.length > 0)) {
     return;
   }
 
-  const { error } = await client.from("episode_messages").insert(rows);
+  const { error } = await client.from("episode_messages").insert({
+    id: message.id,
+    parts: message.parts,
+    play_id: play.playId,
+    role: message.role,
+  });
 
   if (error) {
     throw new Error(`Saving episode messages failed: ${error.message}`);

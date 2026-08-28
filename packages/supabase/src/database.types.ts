@@ -78,7 +78,6 @@ export type Database = {
           id: string
           parts: Json
           play_id: string
-          position: number
           role: string
           user_id: string
         }
@@ -87,7 +86,6 @@ export type Database = {
           id: string
           parts: Json
           play_id: string
-          position: number
           role: string
           user_id?: string
         }
@@ -96,7 +94,6 @@ export type Database = {
           id?: string
           parts?: Json
           play_id?: string
-          position?: number
           role?: string
           user_id?: string
         }

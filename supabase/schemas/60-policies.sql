@@ -159,9 +159,10 @@ create policy episode_messages_erase_open_play on public.episode_messages
 
 -- update 정책이 없다. 저장은 장면이 끝난 뒤 한 번 일어나고, 고쳐 쓰는 대신
 -- 지우고 새로 넣는다. 쓸 일이 없는 문장은 열지 않는다. `user_id`는
--- `episode_plays`와 같은 이유로 insert grant에서 빠져 있다.
+-- `episode_plays`와 같은 이유로 insert grant에서 빠져 있다. `position`도 없다.
+-- 자리는 트리거가 정하므로 실어 보낼 값이 아니다.
 grant select, delete on table public.episode_messages to authenticated;
-grant insert (id, play_id, position, role, parts)
+grant insert (id, play_id, role, parts)
   on table public.episode_messages to authenticated;
 grant all on table public.episode_messages to service_role;
 

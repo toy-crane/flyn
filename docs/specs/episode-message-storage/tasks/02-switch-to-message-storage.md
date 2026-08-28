@@ -97,3 +97,13 @@ task dependency. In a superseded task, preserved entries are historical. -->
   `finished_at`을 채우면 그 플레이의 메시지 insert가 정책에 막히는데, PostgREST는
   두 요청을 한 트랜잭션으로 묶지 못한다. 닫는 장면을 먼저 남기고 결말을 기록해야
   한다. 다른 경계와 수용 기준은 그대로다.
+
+  전체 검토가 자리 번호에서 결함 둘을 찾아 순서 매기는 방식을 바꿨다. 01이 세운
+  `position` 열은 애플리케이션이 "몇 개 저장돼 있나"로 다음 자리를 계산했는데,
+  저장이 한 번 실패하면 번호에 구멍이 생겨 그 뒤로 계속 이미 쓰인 자리를 노리고,
+  뒤를 잘라 내는 삭제도 남길 메시지까지 지웠다. 리서치로 확인한 표준은 빈틈 없는
+  순번을 만들지 않는 것이다. 그것을 보장하려면 그 플레이에 쓰는 모든 트랜잭션을
+  직렬화해야 한다. `position`을 지우고 `created_at`으로 정렬한다. Vercel
+  ai-chatbot의 `Message_v2`와 같은 선택이고, 값은 데이터베이스가
+  `clock_timestamp()`로 채워 앱도 서버도 순서에 손대지 않는다. 관련 규칙을
+  [AI 에피소드 프로토콜](../../../decisions/ai-episode-protocol.md)에 적었다.
