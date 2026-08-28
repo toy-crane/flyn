@@ -18,16 +18,16 @@
 - 앱 화면 문구를 쓰거나 고칠 때는 [화면 문구 한국어 말투](docs/decisions/korean-ui-writing.md)를 따른다.
 - Expo 화면이나 상호작용의 실제 구현 예가 필요하면 [Expo 참조 저장소 색인](docs/references/expo-reference-repos.md)에서 볼 저장소를 고른다.
 
-# Hono 개발
+# 공식 문서 확인
 
-- Hono 관련 작업을 시작할 때 `.agents/context/hono/llms.txt`에서 공식 문서 경로를 확인한다.
-- 최신 문서는 `bunx @hono/cli@0.1.11 docs [path]`로 읽고, 주제 검색은 `bunx @hono/cli@0.1.11 search <query>`를 사용한다.
-- 로컬 `llms.txt`는 Hono가 제공하는 `https://hono.dev/llms.txt`의 사본이다. Hono를 올릴 때 공식 원본으로 갱신한다.
+- 공식 문서의 사본을 저장소에 두지 않는다. 사본은 금방 낡고, 어느 시점의 문서인지도 알 수 없다.
+- 필요한 문서는 작업을 시작할 때 아래 경로로 원본에서 읽고, 설치한 버전과 맞는지 확인한다.
+- Hono 문서는 `bunx @hono/cli@0.1.11 docs [path]`로 읽고, 주제 검색은 `bunx @hono/cli@0.1.11 search <query>`를 사용한다. 문서 목록은 `https://hono.dev/llms.txt`에 있다.
+- Astro 문서는 `astro-docs` MCP의 `search_astro_docs`로 찾는다. Astro는 `llms.txt`를 제공하지 않아서 `.mcp.json`과 `.codex/config.toml`에 공식 문서 MCP 서버를 등록해 두었다.
+- SEED의 화면 문구 판정 기준은 `https://seed-design.io/llms/foundations/writing.txt`와 `https://seed-design.io/llms/foundations/voice-and-tone.txt`에서 읽는다. 다른 섹션의 주소는 `https://seed-design.io/llms.txt`에 있다.
 
 # Astro 개발
 
-- Astro 관련 작업을 시작할 때 `astro-docs` MCP의 `search_astro_docs`로 공식 문서를 확인한다.
-- Astro는 `llms.txt`를 제공하지 않는다. 그래서 `.agents/context/`의 사본 대신 `.mcp.json`과 `.codex/config.toml`에 등록한 공식 문서 MCP 서버를 쓴다.
 - 랜딩과 법적 고지 웹 페이지는 `apps/web`이 소유한다. 모바일 앱은 Expo Web을 개발하지 않는다.
 - 웹 개발 서버는 `apps/web`에서 `bun run dev`로 띄우고 `bun run stop`으로 내린다. `astro dev`는 셸을 벗어나 백그라운드에 남으므로 끝나면 반드시 내린다. 상태는 `bunx astro dev status`로 본다.
 - 루트의 `bun run dev`는 API, Metro와 기기만 관리한다. 웹 개발 서버는 시작하지도 멈추지도 않는다.
