@@ -29,7 +29,8 @@
 - [Supabase 스키마 작업 방식](../../decisions/supabase-schema-workflow.md) 계약에는
   이 결정을 반영해 두었다. 구현은 선언형 스키마와 문서, 테스트를 그 계약에 맞춘다.
 - 권한 pgTAP 테스트를 "노출되면 안 되는 접근"만 고정하도록 좁힌다. Data API로
-  닿을 수 없는 REFERENCES, TRIGGER, TRUNCATE의 부재는 더 이상 고정하지 않는다.
+  닿을 수 없는 REFERENCES, TRIGGER, TRUNCATE, MAINTAIN의 부재는 더 이상 고정하지
+  않는다.
 
 ## 관찰 가능한 수용 기준
 
@@ -55,9 +56,9 @@
   지키는 security definer 함수는 그 기본 방법이 문서로 안내하는 공식 도구이므로,
   함수 계층 유지는 이 원칙과 충돌하지 않는다.
 - 수동 REVOKE가 실제로 지우던 것은 기본 권한이 남기는 REFERENCES, TRIGGER,
-  TRUNCATE 세 가지다. PostgREST는 select, insert, update, delete, rpc만 노출하므로
-  이 세 권한에 닿는 경로가 없고, anon과 authenticated는 직접 로그인할 수 없는
-  역할이다. 이 세 권한은 받아들인다. 매 테이블 수동 보정의 유일한 실익이
+  TRUNCATE, MAINTAIN 네 가지다. PostgREST는 select, insert, update, delete, rpc만
+  노출하므로 이 네 권한에 닿는 경로가 없고, anon과 authenticated는 직접 로그인할
+  수 없는 역할이다. 이 네 권한은 받아들인다. 매 테이블 수동 보정의 유일한 실익이
   이것이었고, 반복 비용이 실익보다 크다는 것이 이 결정이다.
 - 데이터를 실제로 지키는 것은 RLS다. 정책 없는 동작은 거부되므로, GRANT가 남아
   있어도 정책이 허용하지 않는 행은 읽거나 쓸 수 없다. 이 안전망은 그대로다.
@@ -65,7 +66,7 @@
   사용자 데이터도 없다는 사실을 사용자가 확인했다(저장소에도 원격 링크가 없다).
   그래서 "이미 원격에 적용된 마이그레이션은 수정하지 않는다"는 규칙의 전제가
   성립하지 않는다. REVOKE 상용구를 걷어낸 선언형 스키마에서 새 기준 이력을
-  생성하고, 손으로 보정해 온 기존 이력은 제거한다. 잔여 세 권한을 나중에
+  생성하고, 손으로 보정해 온 기존 이력은 제거한다. 잔여 권한을 나중에
   되돌리는 어색한 전환 마이그레이션도 필요 없어진다.
 - 원격을 위한 확인 절차는 두지 않는다. 원격 Supabase 프로젝트는 아직 없고,
   나중에 만들 원격은 새로 생성하는 프로젝트라 자동 노출을 차단하는 새 기본값을
@@ -102,9 +103,9 @@ schema diff가 놓칠 수 있는 항목을 나열하고, 엔진과 무관하게 
 ## 확인한 사실
 
 - 자동 노출 차단은 테이블에만 적용된다. 로컬 스택에서 확인한 결과, `public`의 새
-  테이블은 `anon`과 `authenticated`에 REFERENCES, TRIGGER, TRUNCATE만 주고
-  select, insert, update, delete는 주지 않는다. 그래서 테이블 REVOKE를 없앨 수
-  있었다.
+  테이블은 `anon`과 `authenticated`에 REFERENCES, TRIGGER, TRUNCATE, MAINTAIN만
+  주고 select, insert, update, delete는 주지 않는다. 그래서 테이블 REVOKE를 없앨
+  수 있었다.
 - 함수는 막지 못한다. `create function`은 여전히 PUBLIC에 EXECUTE를 주고
   `anon`과 `authenticated`가 이를 물려받는다. 그러므로 함수별 REVOKE는 수용
   기준을 지키는 데 필요한 SQL로 남는다. `from public` 한 줄이 물려받는 역할까지
@@ -132,6 +133,6 @@ schema diff가 놓칠 수 있는 항목을 나열하고, 엔진과 무관하게 
 - Supabase는 2026-10-30에 `auto_expose_new_tables` 필드를 제거하고 항상 차단
   동작을 영구화할 예정이다. 그 시점의 실제 동작이 지금 로컬 관찰과 다르면 이
   명세의 수용 기준으로 다시 검증한다.
-- 잔여 세 권한은 anon이나 authenticated로 임의 SQL을 실행할 수 있는 경로가
+- 잔여 네 권한은 anon이나 authenticated로 임의 SQL을 실행할 수 있는 경로가
   생기는 순간 다시 의미를 갖는다. 그런 경로를 추가하는 결정이 이 명세의 재검토
   조건이다.

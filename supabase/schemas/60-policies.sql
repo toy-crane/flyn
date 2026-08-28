@@ -7,9 +7,9 @@
 --
 -- Only the GRANTs are written out. This database does not hand new tables in
 -- `public` to `anon` or `authenticated`: a table created here arrives with
--- REFERENCES, TRIGGER and TRUNCATE for them and nothing the Data API can call,
--- so the GRANTs below are the whole of the reachable surface rather than an
--- addition to a permissive default. The three that remain have no route through
+-- REFERENCES, TRIGGER, TRUNCATE and MAINTAIN for them and nothing the Data API
+-- can call, so the GRANTs below are the whole of the reachable surface rather
+-- than an addition to a permissive default. Those four have no route through
 -- PostgREST, which exposes select, insert, update, delete and rpc only.
 --
 -- Functions are the exception and are revoked one by one in 50-functions.sql:

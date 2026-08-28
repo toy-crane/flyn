@@ -31,9 +31,10 @@
 필요한 `GRANT`만 적고 RLS를 켜세요. `REVOKE`는 쓰지 않습니다.
 
 이 데이터베이스는 `public`의 새 테이블을 Data API 역할에 자동으로 열지 않습니다.
-새 테이블은 `anon`과 `authenticated`에 `REFERENCES`·`TRIGGER`·`TRUNCATE`만 주고
-PostgREST가 부를 수 있는 권한은 주지 않습니다. 그래서 적어 둔 `GRANT`가 그 테이블에
-닿을 수 있는 전부입니다. 남는 세 권한은 PostgREST에 경로가 없어 그대로 둡니다.
+새 테이블은 `anon`과 `authenticated`에 `REFERENCES`·`TRIGGER`·`TRUNCATE`·`MAINTAIN`만
+주고 PostgREST가 부를 수 있는 권한은 주지 않습니다. 그래서 적어 둔 `GRANT`가 그
+테이블에 닿을 수 있는 전부입니다. 남는 네 권한은 PostgREST에 경로가 없어 그대로
+둡니다.
 
 **함수는 다릅니다.** `create function`은 지금도 `PUBLIC`에 `EXECUTE`를 주고
 `anon`과 `authenticated`가 이를 물려받습니다. 그러니 새 함수마다 이렇게 적으세요.

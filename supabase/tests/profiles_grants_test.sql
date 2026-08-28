@@ -34,7 +34,7 @@ SELECT isnt(
 );
 
 -- These pin the privileges PostgREST can act on, and only those. A new table in
--- `public` also arrives with REFERENCES, TRIGGER and TRUNCATE for both roles;
+-- `public` also arrives with REFERENCES, TRIGGER, TRUNCATE and MAINTAIN for both roles;
 -- the Data API has no route to any of them, so they are accepted rather than
 -- asserted away. See docs/decisions/supabase-schema-workflow.md.
 SELECT ok(

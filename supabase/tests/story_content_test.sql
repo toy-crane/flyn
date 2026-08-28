@@ -125,8 +125,8 @@ SELECT policies_are(
   'episodes carries only the signed-in read policy'
 );
 
--- Only the privileges PostgREST can act on are pinned. The REFERENCES, TRIGGER
--- and TRUNCATE a new table arrives with have no Data API route and are accepted.
+-- Only the privileges PostgREST can act on are pinned. The REFERENCES, TRIGGER,
+-- TRUNCATE and MAINTAIN a new table arrives with have no Data API route, and are accepted.
 -- See docs/decisions/supabase-schema-workflow.md.
 SELECT ok(
   (SELECT has_table_privilege('authenticated', 'public.stories', 'SELECT'))
