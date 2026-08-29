@@ -125,7 +125,10 @@ export default function EpisodeRoute() {
           readOnly={playing.readOnly}
           recordedEnding={playing.ending}
           recordedNextUp={playing.nextUp}
-          savedCorrections={playing.corrections}
+          // 끝난 화의 읽기 전용 복습에는 배울 표현을 붙이지 않는다. 행은 이미
+          // 쌓이고, 복습에서 그것을 어떻게 보여 줄지는 보관함을 만드는 단위가
+          // 정한다.
+          savedCorrections={playing.readOnly ? undefined : playing.corrections}
           situation={playing.episode.situation}
           situationEmoji={playing.episode.situationEmoji}
         />

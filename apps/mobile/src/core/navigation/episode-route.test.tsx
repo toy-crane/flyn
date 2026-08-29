@@ -101,6 +101,7 @@ jest.mock("@/screens/episode/episode-screen", () => {
       onLeave,
       onStartNext,
       readOnly,
+      savedCorrections,
       situation,
     }: {
       episodeId: string;
@@ -108,9 +109,16 @@ jest.mock("@/screens/episode/episode-screen", () => {
       onLeave: () => void;
       onStartNext: (episodeId: string) => void;
       readOnly: boolean;
+      savedCorrections?: readonly unknown[];
       situation: string;
     }) => {
-      playing = { episodeId, isStartingNext, readOnly, situation };
+      playing = {
+        episodeId,
+        isStartingNext,
+        readOnly,
+        savedCorrections,
+        situation,
+      };
       startNextFromScreen = () => onStartNext(NEXT_EPISODE_ID);
 
       return React.createElement(
@@ -150,6 +158,7 @@ const mockRefresh = jest.fn(() => Promise.resolve());
 const mockEpisodeRefetch = jest.fn(() => Promise.resolve());
 let mockSession:
   | {
+      corrections?: readonly unknown[];
       episode: typeof NEXT_EPISODE;
       messages: never[];
       readOnly: boolean;
@@ -167,6 +176,7 @@ let playing:
       episodeId: string;
       isStartingNext: boolean;
       readOnly: boolean;
+      savedCorrections?: readonly unknown[];
       situation: string;
     }
   | undefined;
@@ -204,12 +214,57 @@ test("ID로 읽은 에피소드 이름을 헤더에 걸고 뒤로 가기로 나�
     episodeId: EPISODE_ID,
     isStartingNext: false,
     readOnly: false,
+    savedCorrections: undefined,
     situation: NEXT_EPISODE.situation,
   });
 
   await user.press(screen.getByRole("button", { name: "뒤로 가기" }));
 
   expect(mockBack).toHaveBeenCalledTimes(1);
+});
+
+// 행은 이미 쌓이지만 복습에서 그것을 어떻게 보여 줄지는 보관함을 만드는 단위가
+// 정한다. 끝난 화에는 붙이지 않는다.
+test("끝난 화를 다시 열 때는 저장된 배울 표현을 넘기지 않는다", async () => {
+  const saved = [
+    {
+      entries: [
+        {
+          fixed: "the wrong coffee",
+          original: "wrong coffee",
+          pattern: "article-the-specific",
+          why: "그 하나를 짚을 때는 the를 붙여요.",
+        },
+      ],
+      fixed: "I think you gave me the wrong coffee.",
+      messageId: "m1",
+      original: "I think this is wrong coffee.",
+    },
+  ];
+
+  mockSession = {
+    corrections: saved,
+    episode: NEXT_EPISODE,
+    messages: [],
+    readOnly: true,
+  };
+  mockEpisodeQuery.data = mockSession;
+  await renderWithHeroUI(<EpisodeRoute />);
+
+  expect(playing?.readOnly).toBe(true);
+  expect(playing?.savedCorrections).toBeUndefined();
+
+  mockSession = {
+    corrections: saved,
+    episode: NEXT_EPISODE,
+    messages: [],
+    readOnly: false,
+  };
+  mockEpisodeQuery.data = mockSession;
+  await renderWithHeroUI(<EpisodeRoute />);
+
+  // 진행 중인 화에는 그대로 돌아온다.
+  expect(playing?.savedCorrections).toEqual(saved);
 });
 
 test("다음 에피소드로 갈 때 진행을 다시 읽고 새 ID로 바꾼다", async () => {
