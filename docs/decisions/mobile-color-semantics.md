@@ -14,7 +14,12 @@
 | `background` | `#F4F4F6` | `#0B0B0D` |
 | `foreground` | `#111114` | `#FFFFFF` |
 | `surface` | `#FFFFFF` | `#1A1A1E` |
+| `learn` | `oklch(0.55 0.19 300)` | `oklch(0.78 0.15 300)` |
+| `learn-foreground` | `oklch(0.9911 0 0)` | `oklch(0.21 0.03 300)` |
+| `learn-surface` | `oklch(0.945 0.022 300)` | `oklch(0.27 0.045 300)` |
 
+- HeroUI의 시맨틱 집합으로 뜻을 표현할 수 없는 제품 역할은 전역 CSS에 직접 등재한다. 지금 여기에 해당하는 것은 교정 채널의 `learn`, `learn-foreground`, `learn-surface` 셋뿐이다. 값은 다른 역할과 같은 자리에서 Light와 Dark를 함께 정의하고, `@theme inline`으로 `bg-learn`, `text-learn` 같은 클래스를 만든다.
+- 등재한 이름이 HeroUI의 `useThemeColor`가 아는 목록에 없으므로, 클래스를 쓸 수 없는 자리는 Uniwind의 CSS 변수 읽기로 같은 값을 얻는다. 이름은 `--color-` 접두사 없이 등재한 이름 그대로다.
 - 클래스를 사용할 수 없는 Expo Router, 네이티브 Stack 옵션과 루트 창에는 얇은 테마 브리지가 Uniwind 변숫값을 전달한다. 이 브리지는 색상을 정의하지 않는다.
 - Expo Router 내비게이션 테마의 `background`와 `card`는 HeroUI의 `background`에 연결하고, `text`는 `foreground`에 연결한다. 기본 내비게이션 테마의 시스템 폰트는 덮어쓰지 않는다.
 - 네이티브 루트 창의 배경도 HeroUI의 `background`와 동기화한다. 상태 표시줄 스타일은 화면 모드를 자동으로 따른다.
@@ -23,7 +28,7 @@
 
 - HeroUI의 `background`, `foreground`와 `surface`는 React Native UI의 공식 역할명이다. 같은 역할을 `background.canvas`, `text.primary` 같은 별도 이름으로 다시 정의하지 않는다.
 - `background`는 앱과 라우트 컨테이너의 가장 바깥 배경을 뜻한다. `surface`는 카드와 패널 같은 콘텐츠 표면을 뜻한다. `surface-foreground`, `accent-foreground`처럼 특정 배경 위의 대비색은 독립된 역할로 관리한다.
-- 특정 컴포넌트나 제품 도메인 전용 토큰은 HeroUI의 공통 역할과 상태로 의미를 표현할 수 없다는 것이 실제 화면에서 확인된 경우에만 추가한다.
+- 특정 컴포넌트나 제품 도메인 전용 토큰은 HeroUI의 공통 역할과 상태로 의미를 표현할 수 없다는 것이 실제 화면에서 확인된 경우에만 추가한다. 교정 채널이 그런 경우다. 파랑 `accent`와 나란히 두어도 다른 채널이라는 것이 보여야 하는데 HeroUI에는 그 뜻을 가진 역할이 없고, 비교 렌더로 보라를 확인한 뒤 등재했다.
 - React Navigation의 `card`는 라이브러리가 정한 필드명이며 앱 콘텐츠의 `surface`를 뜻하지 않는다. 최초 셸에서는 네이티브 내비게이션 표면이 화면 바탕과 이어지도록 `background`에 연결한다.
 - 플랫폼 UI가 소유하는 컨트롤 내부 색상과 상태는 해당 플랫폼의 기본 시맨틱 표현을 유지한다. 앱 팔레트를 모든 네이티브 요소에 강제로 주입하지 않는다.
 - Uniwind CSS 변수는 `@expo/ui`의 `Host` 안에 자동 전파되지 않는다. 브랜드 연결이 실제로 필요할 때만 `accent`를 `seedColor` 같은 지원 API로 명시적으로 전달한다.

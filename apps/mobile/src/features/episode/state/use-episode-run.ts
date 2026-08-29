@@ -2,8 +2,13 @@ import { type UseChatHelpers, useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { correctionOfData } from "@/features/episode/api/episode-correction";
 import type { EpisodeStopMode } from "@/features/episode/api/episode-session";
 import { createEpisodeTransport } from "@/features/episode/api/episode-transport";
+import {
+  type EpisodeCorrectionStore,
+  useEpisodeCorrections,
+} from "./episode-corrections";
 import { type EpisodeEnding, endingOfEpisode } from "./episode-ending";
 import { type EpisodeNextUp, nextUpOfEpisode } from "./episode-next-up";
 import { useEpisodeStopSave } from "./use-episode-stop-save";
@@ -14,6 +19,8 @@ export const SCENE_UPDATE_INTERVAL_MS = 50;
 export interface EpisodeRun {
   /** The scene so far, and the ways of adding to it. */
   chat: UseChatHelpers<UIMessage>;
+  /** 이 에피소드에서 지금까지 붙은 배울 표현. */
+  corrections: EpisodeCorrectionStore;
   /** Set once the incident is over. Until then the episode is still running. */
   ending: EpisodeEnding | undefined;
   /** Whether a stopped scene is being matched with the server record. */
@@ -42,20 +49,39 @@ export function useEpisodeRun(
 ): EpisodeRun {
   const currentToken = useRef(accessToken);
   const currentEpisodeId = useRef(episodeId);
+  const corrections = useEpisodeCorrections();
+  // 대화는 한 번만 만들어지므로 그때의 함수가 그대로 붙잡힌다. 지금 상태를
+  // 읽는 자리는 ref 하나로 남겨 둔다.
+  const currentCorrections = useRef(corrections);
 
   currentToken.current = accessToken;
   currentEpisodeId.current = episodeId;
+  currentCorrections.current = corrections;
 
   const transport = useMemo(
     () =>
       createEpisodeTransport(
         () => currentToken.current,
-        () => currentEpisodeId.current
+        () => currentEpisodeId.current,
+        () => currentCorrections.current.seenPatterns()
       ),
     []
   );
   const chat = useChat({
     messages: initialMessages,
+    // 교정은 장면 메시지에 들어가지 않는 transient part로 온다. 받는 자리가
+    // 여기뿐이라, 저장되는 대화 기록은 교정이 붙기 전과 똑같이 남는다.
+    onData: (part) => {
+      if (part.type !== "data-correction") {
+        return;
+      }
+
+      const correction = correctionOfData(part.data);
+
+      if (correction) {
+        currentCorrections.current.receive(correction);
+      }
+    },
     throttle: SCENE_UPDATE_INTERVAL_MS,
     transport,
   });
@@ -123,6 +149,7 @@ export function useEpisodeRun(
 
   return {
     chat: episodeChat,
+    corrections,
     ending: endingOfEpisode(episodeChat.messages),
     isSaving,
     nextUp: nextUpOfEpisode(episodeChat.messages),

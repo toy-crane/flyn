@@ -42,7 +42,11 @@ function episodeId(number: number): string {
 const STORY_ROW = {
   completion_copy: "다섯 번의 사건을 영어로 지나왔어요.",
   completion_title: "첫 이야기를 끝냈어요",
+  cover_emoji: "☕",
+  cover_image_path: null,
+  hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
   id: STORY_ID,
+  intro: "매일 들르는 동네 카페에서 벌어지는 다섯 번의 사건.",
   position: 1,
   slug: "mia-cafe",
   target_language: "en",
@@ -170,6 +174,7 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
   function finishedRows() {
     return state.finished.map(({ episode, ...row }) => ({
       episode_id: row.episode_id ?? episodeId(episode),
+      finished_at: `2026-08-29T00:0${episode}:00.000Z`,
       ...row,
     }));
   }
@@ -184,6 +189,11 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
     },
     from: (table: string) => {
       const filters = new Map<string, unknown>();
+      const sorted: string[] = [];
+      let within: { column: string; values: unknown[] } | undefined;
+      let nested = false;
+      const value = (row: object, column: string) =>
+        (row as Record<string, unknown>)[column];
       const rows = () => {
         let source: readonly object[] = [];
 
@@ -194,43 +204,75 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
         } else if (table === "episode_endings") {
           source = finishedRows();
         } else if (table === "episode_runs") {
-          source = state.runs;
+          source = state.runs.map((run) => ({
+            updated_at: "2026-08-29T00:10:00.000Z",
+            ...run,
+          }));
         }
 
-        return source.filter((row) =>
-          [...filters].every(
-            ([column, value]) =>
-              (row as Record<string, unknown>)[column] === value
+        const kept = source
+          .filter((row) =>
+            [...filters].every(([name, wanted]) => value(row, name) === wanted)
           )
-        );
-      };
-      const builder = {
-        eq: (column: string, value: unknown) => {
-          filters.set(column, value);
-
-          return builder;
-        },
-        in: (column: string, values: unknown[]) =>
-          Promise.resolve({
-            data: rows().filter((row) =>
-              values.includes((row as Record<string, unknown>)[column])
-            ),
-            error: null,
-          }),
-        maybeSingle: () =>
-          Promise.resolve({ data: rows()[0] ?? null, error: null }),
-        order: (column: string) =>
-          Promise.resolve({
-            data: [...rows()].sort(
+          .filter(
+            (row) =>
+              !within || within.values.includes(value(row, within.column))
+          );
+        const [by] = sorted;
+        const ordered = by
+          ? [...kept].sort(
               (left, right) =>
-                Number((left as Record<string, unknown>)[column]) -
-                Number((right as Record<string, unknown>)[column])
-            ),
-            error: null,
-          }),
-        select: () => builder,
-        single: () => Promise.resolve({ data: rows()[0] ?? null, error: null }),
+                Number(value(left, by)) - Number(value(right, by))
+            )
+          : kept;
+
+        // 중첩 select는 스토리 한 줄에 그 스토리의 화 목록을 달아 준다.
+        return nested
+          ? ordered.map((row) => ({
+              ...row,
+              episodes: TEST_EPISODES.filter(
+                (episode) => episode.story_id === value(row, "id")
+              ),
+            }))
+          : ordered;
       };
+      /*
+        빌더 자신이 Promise다.
+
+        PostgREST 빌더는 필터를 더 걸 수도 있고 그대로 await할 수도 있어서,
+        가짜도 두 쓰임을 다 받아야 한다. then 속성을 손으로 다는 대신 진짜
+        Promise에 메서드를 붙이면, 결과를 읽는 시점이 마이크로태스크로 밀려
+        그 앞의 필터 호출이 모두 반영된 뒤에 행을 고른다.
+      */
+      const builder: object = Object.assign(
+        Promise.resolve().then(() => ({ data: rows(), error: null })),
+        {
+          eq: (column: string, wanted: unknown) => {
+            filters.set(column, wanted);
+
+            return builder;
+          },
+          in: (column: string, values: unknown[]) => {
+            within = { column, values };
+
+            return builder;
+          },
+          maybeSingle: () =>
+            Promise.resolve({ data: rows()[0] ?? null, error: null }),
+          order: (column: string) => {
+            sorted.push(column);
+
+            return builder;
+          },
+          select: (projection?: string) => {
+            nested = projection?.includes("episodes(") ?? false;
+
+            return builder;
+          },
+          single: () =>
+            Promise.resolve({ data: rows()[0] ?? null, error: null }),
+        }
+      );
 
       return builder;
     },
@@ -300,7 +342,29 @@ const deletedUserAuth: MiddlewareHandler = (c, next) => {
   return next();
 };
 
-function createMockModel(text: string[]): MockLanguageModelV4 {
+/**
+ * 교정 판정이 돌려줄 답.
+ *
+ * 장면과 같은 모델을 쓰되 부르는 방법이 달라서, 이 답은 `doStream`이 아니라
+ * `doGenerate` 자리에 놓인다. 기본값이 "고칠 것 없음"이라 교정을 시험하지 않는
+ * 테스트는 예전과 똑같이 돈다.
+ */
+interface CorrectionAnswer {
+  entries: {
+    fixed: string;
+    original: string;
+    pattern: string;
+    why: string;
+  }[];
+  fixed: string;
+}
+
+const NO_CORRECTION: CorrectionAnswer = { entries: [], fixed: "" };
+
+function createMockModel(
+  text: string[],
+  correction: CorrectionAnswer = NO_CORRECTION
+): MockLanguageModelV4 {
   const chunks: LanguageModelV4StreamPart[] = [
     { type: "stream-start", warnings: [] },
     { id: "0", type: "text-start" },
@@ -326,6 +390,24 @@ function createMockModel(text: string[]): MockLanguageModelV4 {
   ];
 
   return new MockLanguageModelV4({
+    doGenerate: {
+      content: [{ text: JSON.stringify(correction), type: "text" }],
+      finishReason: { raw: undefined, unified: "stop" },
+      usage: {
+        inputTokens: {
+          cacheRead: undefined,
+          cacheWrite: undefined,
+          noCache: undefined,
+          total: undefined,
+        },
+        outputTokens: {
+          reasoning: undefined,
+          text: undefined,
+          total: undefined,
+        },
+      },
+      warnings: [],
+    },
     doStream: {
       stream: simulateReadableStream({
         chunkDelayInMs: null,
@@ -370,8 +452,8 @@ function createStoppedEpisodeRequest(
   });
 }
 
-function createStoryRequest(token?: string): Request {
-  return new Request(`http://localhost${EPISODE_PATH}/story`, {
+function createHomeRequest(token?: string): Request {
+  return new Request(`http://localhost${EPISODE_PATH}/home`, {
     headers: token ? { authorization: `Bearer ${token}` } : {},
   });
 }
@@ -1261,36 +1343,409 @@ describe("POST /ai/episode", () => {
   });
 });
 
-describe("GET /ai/episode/story", () => {
+/** 카페 1화에서 실제로 나올 법한 교정 하나. */
+const WRONG_COFFEE: CorrectionAnswer = {
+  entries: [
+    {
+      fixed: "the wrong coffee",
+      original: "wrong coffee",
+      pattern: "article-the-specific",
+      why: "잘못 나온 그 하나를 짚어 말할 때는 the를 붙여요.",
+    },
+  ],
+  fixed: "I think you gave me the wrong coffee.",
+};
+
+describe("대화 중 교정", () => {
+  test("몰랐던 표현이 있으면 고친 문장을 장면과 함께 내려보낸다", async () => {
+    const app = createApp({
+      authMiddleware: bypassAuth,
+      model: createMockModel(["Mia: Oh, sorry about that."], WRONG_COFFEE),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I think this is wrong coffee.")],
+      })
+    );
+
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+
+    expect(body).toContain('"type":"data-correction"');
+    expect(body).toContain("I think you gave me the wrong coffee.");
+    expect(body).toContain("article-the-specific");
+    // 장면은 교정을 기다리지 않는다. 둘 다 같은 응답에 실려 온다.
+    expect(body).toContain("Oh, sorry about that.");
+  });
+
+  test("교정이 없는 메시지에는 아무것도 붙이지 않는다", async () => {
+    const app = createApp({
+      authMiddleware: bypassAuth,
+      model: createMockModel(["Mia: Sure."]),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I ordered an iced americano.")],
+      })
+    );
+    const body = await response.text();
+
+    expect(body).not.toContain('"type":"data-correction"');
+  });
+
+  // 고친 문장이 원문과 다르지 않으면 배울 것도 없다.
+  test("원문과 같은 문장을 돌려주면 교정으로 치지 않는다", async () => {
+    const app = createApp({
+      authMiddleware: bypassAuth,
+      model: createMockModel(["Mia: Sure."], {
+        entries: [
+          {
+            fixed: "Thank you",
+            original: "Thank you",
+            pattern: "politeness",
+            why: "고마움을 전할 때 쓰는 말이에요.",
+          },
+        ],
+        fixed: "Thank you.",
+      }),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Thank you.")] })
+    );
+    const body = await response.text();
+
+    expect(body).not.toContain('"type":"data-correction"');
+  });
+
+  // 같은 패턴이 한 에피소드에서 두 번 배울 표현이 되지 않는다. 앱이 이미 받은
+  // 키를 보내면 서버는 그 항목을 버린다.
+  test("앱이 이미 받은 패턴은 다시 만들지 않는다", async () => {
+    const app = createApp({
+      authMiddleware: bypassAuth,
+      model: createMockModel(["Mia: Sure."], WRONG_COFFEE),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I think this is wrong coffee.")],
+        seenPatterns: ["article-the-specific"],
+      })
+    );
+    const body = await response.text();
+
+    expect(body).not.toContain('"type":"data-correction"');
+  });
+
+  // 항목마다 다른 키가 있어야 카드가 표현 수만큼 나뉜다. 판정이 같은 패턴을
+  // 두 번 쓰면 뒤의 것은 앞의 것과 한 항목으로 겹쳐 사라진다.
+  test("한 판정이 같은 패턴을 두 번 써도 항목은 하나만 남는다", async () => {
+    const app = createApp({
+      authMiddleware: bypassAuth,
+      model: createMockModel(["Mia: Sure."], {
+        entries: [
+          {
+            fixed: "the wrong coffee",
+            original: "wrong coffee",
+            pattern: "article-the-specific",
+            why: "잘못 나온 그 하나를 짚을 때는 the를 붙여요.",
+          },
+          {
+            fixed: "the wrong cup",
+            original: "wrong cup",
+            pattern: "article-the-specific",
+            why: "잘못 나온 그 하나를 짚을 때는 the를 붙여요.",
+          },
+        ],
+        fixed: "I think this is the wrong coffee in the wrong cup.",
+      }),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [
+          createUserMessage("I think this is wrong coffee in wrong cup."),
+        ],
+      })
+    );
+    const body = await response.text();
+
+    expect(body).toContain('"type":"data-correction"');
+    // 고친 문장은 두 자리를 모두 반영하되, 항목은 앞의 하나만 남는다.
+    expect(body).toContain(
+      "I think this is the wrong coffee in the wrong cup."
+    );
+    expect(body).toContain('"original":"wrong coffee"');
+    expect(body).not.toContain('"original":"wrong cup"');
+  });
+
+  // 빈 문장은 화면에서 빈 띠 하나로 남는다.
+  test("고친 문장이 비어 있으면 붙이지 않는다", async () => {
+    const app = createApp({
+      authMiddleware: bypassAuth,
+      model: createMockModel(["Mia: Sure."], {
+        entries: [
+          {
+            fixed: "",
+            original: "wrong coffee",
+            pattern: "article-the-specific",
+            why: "the를 붙여요.",
+          },
+        ],
+        fixed: "",
+      }),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I think this is wrong coffee.")],
+      })
+    );
+    const body = await response.text();
+
+    expect(body).not.toContain('"type":"data-correction"');
+  });
+
+  // 원문에 없는 조각을 짚는 항목은 화면에서 강조할 자리를 찾지 못한다.
+  test("원문에 없는 조각을 짚는 항목은 버린다", async () => {
+    const app = createApp({
+      authMiddleware: bypassAuth,
+      model: createMockModel(["Mia: Sure."], {
+        entries: [
+          {
+            fixed: "the wrong coffee",
+            original: "a wrong tea",
+            pattern: "article-the-specific",
+            why: "the를 붙여요.",
+          },
+        ],
+        fixed: "I think you gave me the wrong coffee.",
+      }),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I think this is wrong coffee.")],
+      })
+    );
+    const body = await response.text();
+
+    expect(body).not.toContain('"type":"data-correction"');
+  });
+
+  // 교정을 대화 기록에 남길지는 아직 정하지 않은 결정이다. 그때까지 저장되는
+  // 장면은 교정이 붙기 전과 똑같아야 한다.
+  test("교정은 저장되는 대화 기록에 들어가지 않는다", async () => {
+    const state = createSeasonState();
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel(["Mia: Oh, sorry about that."], WRONG_COFFEE),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I think this is wrong coffee.")],
+      })
+    );
+
+    await response.text();
+
+    const saved = JSON.stringify(state.runs.at(-1)?.messages ?? []);
+
+    expect(saved).toContain("I think this is wrong coffee.");
+    expect(saved).not.toContain("data-correction");
+    expect(saved).not.toContain("article-the-specific");
+  });
+
+  // 교정 판정이 실패해도 이야기는 계속된다.
+  test("교정 판정이 실패해도 장면은 그대로 흐른다", async () => {
+    const model = createMockModel(["Mia: Oh, sorry about that."]);
+
+    model.doGenerate = () => Promise.reject(new Error("gateway down"));
+
+    const app = createApp({ authMiddleware: bypassAuth, model });
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I think this is wrong coffee.")],
+      })
+    );
+
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+
+    expect(body).toContain("Oh, sorry about that.");
+    expect(body).not.toContain('"type":"data-correction"');
+  });
+
+  // 첫 장면 요청에는 사용자가 쓴 말이 없다.
+  test("첫 장면을 여는 요청에는 판정을 부르지 않는다", async () => {
+    const model = createMockModel(["Mia: Next in line, please!"]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(createEpisodeRequest({ messages: [] }));
+
+    await response.text();
+
+    expect(model.doGenerateCalls).toHaveLength(0);
+  });
+});
+
+describe("POST /ai/episode/ask", () => {
+  function createAskRequest(body: unknown, token?: string): Request {
+    return new Request(`http://localhost${EPISODE_PATH}/ask`, {
+      body: JSON.stringify(body),
+      headers: {
+        "content-type": "application/json",
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      method: "POST",
+    });
+  }
+
+  const ASKED = {
+    entries: WRONG_COFFEE.entries,
+    fixed: WRONG_COFFEE.fixed,
+    original: "I think this is wrong coffee.",
+  };
+
+  test("로그인하지 않은 요청은 받지 않는다", async () => {
+    const model = createMockModel(["the를 붙여요."]);
+    const app = createApp({
+      authMiddleware: createUserAuthMiddleware(),
+      model,
+    });
+
+    const response = await app.request(
+      createAskRequest({
+        correction: ASKED,
+        messages: [createUserMessage("the를 왜 붙여요?")],
+      })
+    );
+
+    expect(response.status).toBe(401);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  test("교정 없이 온 요청은 받지 않는다", async () => {
+    const model = createMockModel(["the를 붙여요."]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createAskRequest({ messages: [createUserMessage("the를 왜 붙여요?")] })
+    );
+
+    expect(response.status).toBe(400);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  test("물을 말이 없는 요청은 받지 않는다", async () => {
+    const model = createMockModel(["the를 붙여요."]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createAskRequest({ correction: ASKED, messages: [] })
+    );
+
+    expect(response.status).toBe(400);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  // 시트의 답은 이 교정과 이 대화 안에서 나온다. 둘 다 모델에게 간다.
+  test("교정과 에피소드 스냅샷을 문맥으로 답한다", async () => {
+    const model = createMockModel([
+      "잘못 나온 그 커피 하나를 짚어 말하기 때문이에요.",
+    ]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createAskRequest({
+        correction: ASKED,
+        messages: [
+          {
+            id: "s1",
+            parts: [
+              { data: { name: "Mia" }, id: "speaker-1", type: "data-speaker" },
+              { text: "Next in line, please!", type: "text" },
+            ],
+            role: "assistant",
+          },
+          createUserMessage("the를 왜 붙여요?"),
+        ],
+      })
+    );
+
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+    const [call] = model.doStreamCalls;
+    const system = call?.prompt.find((message) => message.role === "system");
+    const prompt = JSON.stringify(call?.prompt);
+
+    expect(JSON.stringify(system)).toContain("I think this is wrong coffee.");
+    expect(JSON.stringify(system)).toContain(
+      "I think you gave me the wrong coffee."
+    );
+    expect(prompt).toContain("Next in line, please!");
+    expect(body).toContain("잘못 나온 그 커피 하나를 짚어 말하기 때문이에요.");
+    // 시트는 장면 파서를 지나지 않는다. 답은 말풍선이 아니라 평범한 답변이다.
+    expect(body).not.toContain('"type":"data-speaker"');
+  });
+});
+
+interface HomeViewBody {
+  continueCard: {
+    episodeId: string;
+    episodeNumber: number;
+    episodeTitle: string;
+    finished: number;
+    hook: string;
+    preview: string;
+    resuming: boolean;
+    storyId: string;
+    title: string;
+    total: number;
+  } | null;
+  firstTime: boolean;
+  others: { storyId: string }[];
+}
+
+describe("GET /ai/episode/home", () => {
   test("rejects a request with no access token", async () => {
     const app = createApp({ authMiddleware: createUserAuthMiddleware() });
 
-    const response = await app.request(createStoryRequest());
+    const response = await app.request(createHomeRequest());
 
     expect(response.status).toBe(401);
   });
 
-  // 아직 아무것도 끝내지 않은 사람의 홈. 1화 하나만 있다.
-  test("points at the first episode before anything is finished", async () => {
+  // 처음 온 사람의 홈. 제품이 정한 첫 스토리의 1화가 카드로 선다.
+  test("points at the first episode before anything is started", async () => {
     const app = createApp({
       authMiddleware: signedInWith(createSeasonState()),
     });
 
-    const response = await app.request(createStoryRequest());
-    const view = (await response.json()) as {
-      finished: unknown[];
-      next: { number: number; title: string } | null;
-      total: number;
-    };
+    const response = await app.request(createHomeRequest());
+    const view = (await response.json()) as HomeViewBody;
 
     expect(response.status).toBe(200);
-    expect(view.finished).toEqual([]);
-    expect(view.next).toMatchObject({ number: 1, title: "카페에서 생긴 일" });
-    expect(view.total).toBe(5);
+    expect(view.firstTime).toBe(true);
+    expect(view.others).toEqual([]);
+    expect(view.continueCard).toMatchObject({
+      episodeNumber: 1,
+      episodeTitle: "카페에서 생긴 일",
+      finished: 0,
+      resuming: false,
+      storyId: STORY_ID,
+      total: 5,
+    });
   });
 
-  // 진행 중인 홈. 끝낸 화는 결말과 제목을 달고 목록으로 남는다.
-  test("carries the finished episodes and the next one while a season runs", async () => {
+  // 화 사이의 홈. 끝낸 만큼 진행이 차고 다음 화를 가리킨다.
+  test("counts what is finished and points at the next episode", async () => {
     const app = createApp({
       authMiddleware: signedInWith(
         createSeasonState([
@@ -1299,57 +1754,189 @@ describe("GET /ai/episode/story", () => {
       ),
     });
 
-    const response = await app.request(createStoryRequest());
-    const view = (await response.json()) as {
-      finished: {
-        episodeId: string;
-        hasTranscript: boolean;
-        number: number;
-        kind: string;
-        outcome: string;
-        title: string;
-      }[];
-      next: { number: number; title: string } | null;
-    };
+    const response = await app.request(createHomeRequest());
+    const view = (await response.json()) as HomeViewBody;
 
-    expect(view.finished).toEqual([
-      {
-        episodeId: episodeId(1),
-        hasTranscript: false,
-        kind: "성공",
-        number: 1,
-        outcome: "새 잔을 받아냈다.",
-        title: "카페에서 생긴 일",
-      },
-    ]);
-    expect(view.next).toMatchObject({ number: 2, title: "계산이 꼬인 아침" });
+    expect(view.firstTime).toBe(false);
+    expect(view.continueCard).toMatchObject({
+      episodeNumber: 2,
+      episodeTitle: "계산이 꼬인 아침",
+      finished: 1,
+      resuming: false,
+    });
   });
 
-  test("has no next episode once the season is finished", async () => {
+  // 결말이 나지 않은 장면이 남아 있으면 시작이 아니라 이어 하기다.
+  test("resumes the episode whose scene is still open", async () => {
+    const state = createSeasonState();
+    state.runs.push({
+      completed_at: null,
+      episode_id: episodeId(1),
+      messages: [],
+    });
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    const response = await app.request(createHomeRequest());
+    const view = (await response.json()) as HomeViewBody;
+
+    expect(view.firstTime).toBe(false);
+    expect(view.continueCard).toMatchObject({
+      episodeNumber: 1,
+      resuming: true,
+    });
+  });
+
+  test("has no card left once every story is finished", async () => {
     const app = createApp({
       authMiddleware: signedInWith(createSeasonState(finishedSeason())),
     });
 
-    const response = await app.request(createStoryRequest());
-    const view = (await response.json()) as {
-      completion: { title: string };
-      finished: unknown[];
-      next: unknown;
-    };
+    const response = await app.request(createHomeRequest());
+    const view = (await response.json()) as HomeViewBody;
 
-    expect(view.next).toBeNull();
-    expect(view.finished).toHaveLength(5);
-    expect(view.completion.title).toBe("첫 이야기를 끝냈어요");
+    expect(view.continueCard).toBeNull();
+    expect(view.others).toEqual([]);
+  });
+
+  // 결말 낱말은 서버 안에서만 쓴다. 홈으로 나가는 값에 실리지 않는다.
+  test("never sends the ending word to the screen", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(
+        createSeasonState([
+          { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+        ])
+      ),
+    });
+
+    const response = await app.request(createHomeRequest());
+
+    expect(await response.text()).not.toContain("성공");
   });
 });
 
-describe("story content database contract", () => {
-  test("serves the home view from the story endpoint", async () => {
+describe("GET /ai/episode/stories", () => {
+  test("lists every official story with its hook, cover and progress", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(
+        createSeasonState([
+          { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+        ])
+      ),
+    });
+
+    const response = await app.request(`${EPISODE_PATH}/stories`);
+    const view = (await response.json()) as {
+      stories: {
+        coverEmoji: string;
+        coverImagePath: string | null;
+        finished: number;
+        hook: string;
+        storyId: string;
+        title: string;
+        total: number;
+      }[];
+    };
+
+    expect(response.status).toBe(200);
+    expect(view.stories).toEqual([
+      {
+        coverEmoji: "☕",
+        coverImagePath: null,
+        finished: 1,
+        hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
+        storyId: STORY_ID,
+        title: "Mia의 카페",
+        total: 5,
+      },
+    ]);
+  });
+});
+
+describe("GET /ai/episode/stories/:storyId", () => {
+  test("answers 404 for a story that does not exist", async () => {
     const app = createApp({
       authMiddleware: signedInWith(createSeasonState()),
     });
 
-    const response = await app.request(`${EPISODE_PATH}/story`);
+    const response = await app.request(
+      `${EPISODE_PATH}/stories/10000000-0000-4000-8000-000000000009`
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  // 끝낸 화는 결과 한 줄을, 다음 화는 예고를, 그 뒤는 제목만 남긴다.
+  test("opens the finished result, the next preview and nothing more", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(
+        createSeasonState([
+          { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+        ])
+      ),
+    });
+
+    const response = await app.request(`${EPISODE_PATH}/stories/${STORY_ID}`);
+    const view = (await response.json()) as {
+      episodes: {
+        hasTranscript: boolean;
+        number: number;
+        outcome: string | null;
+        preview: string | null;
+        state: string;
+        title: string;
+      }[];
+      intro: string;
+      next: { episodeId: string; number: number; resuming: boolean } | null;
+    };
+
+    expect(response.status).toBe(200);
+    expect(view.next).toEqual({
+      episodeId: episodeId(2),
+      number: 2,
+      resuming: false,
+    });
+    expect(view.episodes[0]).toMatchObject({
+      hasTranscript: false,
+      outcome: "새 잔을 받아냈다.",
+      preview: null,
+      state: "finished",
+    });
+    expect(view.episodes[1]).toMatchObject({
+      outcome: null,
+      preview: "카드가 자꾸 튕겨요.",
+      state: "next",
+    });
+    expect(view.episodes[2]).toMatchObject({
+      outcome: null,
+      preview: null,
+      state: "locked",
+      title: "자리를 맡아 둔 사이에",
+    });
+  });
+
+  test("has no next episode left once the story is finished", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(createSeasonState(finishedSeason())),
+    });
+
+    const response = await app.request(`${EPISODE_PATH}/stories/${STORY_ID}`);
+    const view = (await response.json()) as {
+      finished: number;
+      next: unknown;
+    };
+
+    expect(view.next).toBeNull();
+    expect(view.finished).toBe(5);
+  });
+});
+
+describe("story content database contract", () => {
+  test("serves the home view from the database", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(createSeasonState()),
+    });
+
+    const response = await app.request(`${EPISODE_PATH}/home`);
 
     expect(response.status).toBe(200);
   });
@@ -1364,6 +1951,18 @@ describe("story content database contract", () => {
     );
 
     expect(response.status).toBe(200);
+  });
+
+  // 경로에서 오는 값이라 모양조차 보장되지 않는다. uuid가 아닌 화 id는 없는
+  // 화이지 서버 오류가 아니다.
+  test("answers 404 for an episode id that is not a uuid", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(createSeasonState()),
+    });
+
+    const response = await app.request(`${EPISODE_PATH}/not-a-uuid`);
+
+    expect(response.status).toBe(404);
   });
 
   test("saves a running scene after a model turn", async () => {
@@ -1507,9 +2106,10 @@ describe("story content database contract", () => {
     expect(response.status).toBe(404);
   });
 
-  test("marks only completed conversations as reviewable on the home view", async () => {
+  test("marks only completed conversations as reviewable on the story detail", async () => {
     const state = createSeasonState([
       { episode: 1, kind: "성공", outcome: "새 잔을 받아냈다." },
+      { episode: 2, kind: "타협", outcome: "현금으로 냈다." },
     ]);
 
     state.runs.push({
@@ -1519,12 +2119,13 @@ describe("story content database contract", () => {
     });
 
     const app = createApp({ authMiddleware: signedInWith(state) });
-    const response = await app.request(createStoryRequest());
+    const response = await app.request(`${EPISODE_PATH}/stories/${STORY_ID}`);
     const view = (await response.json()) as {
-      finished: { hasTranscript: boolean }[];
+      episodes: { hasTranscript: boolean }[];
     };
 
-    expect(view.finished[0]?.hasTranscript).toBeTrue();
+    expect(view.episodes[0]?.hasTranscript).toBeTrue();
+    expect(view.episodes[1]?.hasTranscript).toBeFalse();
   });
 
   test("keeps playing when an active-scene save fails", async () => {

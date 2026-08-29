@@ -60,8 +60,9 @@ function ThemedRootLayout() {
           {/*
             An episode is pushed here for the same reason a conversation is:
             the native push covers the tab bar, and the scene needs the whole
-            screen. The route turns this stack's header back on for itself,
-            because the way out of an episode belongs beside its name.
+            screen. It brings its own stack, which draws the episode's header
+            and presents asking about a correction as a sheet over it. Left on,
+            this screen would show a second header above that one.
           */}
           <Stack.Screen name="episode" />
           {/*

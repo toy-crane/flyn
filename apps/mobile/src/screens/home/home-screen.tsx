@@ -1,93 +1,103 @@
 import { useCallback } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 
-import type { FinishedEpisode, Story } from "@/features/episode/api/story";
-import {
-  episodeLabels,
-  storyLabels,
-} from "@/features/episode/ui/episode-labels";
+import { episodeLabels } from "@/features/episode/ui/episode-labels";
+import type { ContinueCard, Home } from "@/features/story/api/story";
+import { StoryCard } from "@/features/story/ui/story-card";
+import { storyLabels } from "@/features/story/ui/story-labels";
 import { Button } from "@/shared/ui/button";
 
-function FinishedEpisodeItem({
-  finished,
-  hasBorder,
-  onOpenEpisode,
-}: {
-  finished: FinishedEpisode;
-  hasBorder: boolean;
-  onOpenEpisode: (episodeId: string) => void;
-}) {
-  const openEpisode = useCallback(() => {
-    onOpenEpisode(finished.episodeId);
-  }, [finished.episodeId, onOpenEpisode]);
-  const className = `flex-row items-center gap-3 py-3.5 ${
-    hasBorder ? "border-border border-b" : ""
-  }`;
-  const content = (
-    <>
-      <Text className="w-8 font-bold text-muted text-sm">
-        {storyLabels.episodeNumber(finished.number)}
-      </Text>
-      <Text className="flex-1 text-base text-foreground leading-6">
-        {finished.title}
-      </Text>
-      <Text className="rounded-full border border-border px-2.5 py-0.5 font-semibold text-muted text-xs">
-        {finished.kind}
-      </Text>
-    </>
-  );
-
-  return finished.hasTranscript ? (
-    <Pressable
-      accessibilityLabel={episodeLabels.review(
-        finished.number,
-        finished.title,
-        finished.kind
-      )}
-      accessibilityRole="button"
-      className={className}
-      onPress={openEpisode}
+function SectionHeading({ children }: { children: string }) {
+  return (
+    <Text
+      accessibilityRole="header"
+      className="px-1 font-bold text-foreground text-sm"
     >
-      {content}
-    </Pressable>
-  ) : (
-    <View className={className}>{content}</View>
+      {children}
+    </Text>
   );
 }
 
-/** 끝낸 에피소드와 각 결말. 대화가 남은 줄만 다시 열 수 있다. */
-function StoryRecord({
-  episodes,
-  heading,
+/** 이어 하기 카드. 화면에서 가장 강한 자리라 버튼이 카드 안에 들어온다. */
+function ContinueStoryCard({
+  card,
   onOpenEpisode,
-  progress,
-  total,
 }: {
-  episodes: FinishedEpisode[];
-  heading: string;
+  card: ContinueCard;
   onOpenEpisode: (episodeId: string) => void;
-  progress: string;
-  /** 에피소드가 남아 있을 때만 진행 점을 보여 준다. */
-  total: number | undefined;
+}) {
+  const open = useCallback(() => {
+    onOpenEpisode(card.episodeId);
+  }, [card.episodeId, onOpenEpisode]);
+  const action = card.resuming
+    ? storyLabels.resume
+    : episodeLabels.start(card.episodeNumber);
+
+  return (
+    <StoryCard
+      action={
+        <Button accessibilityLabel={action} onPress={open}>
+          {action}
+        </Button>
+      }
+      episodeLine={episodeLabels.title(card.episodeNumber, card.episodeTitle)}
+      layout="card"
+      onPress={open}
+      story={card}
+      sub={card.resuming ? storyLabels.resumeCopy : card.preview}
+      testID="home-continue-card"
+    />
+  );
+}
+
+function OtherStoryRow({
+  hasBorder,
+  onOpenEpisode,
+  story,
+}: {
+  hasBorder: boolean;
+  onOpenEpisode: (episodeId: string) => void;
+  story: ContinueCard;
+}) {
+  const open = useCallback(() => {
+    onOpenEpisode(story.episodeId);
+  }, [onOpenEpisode, story.episodeId]);
+
+  return (
+    <View
+      className={`py-3.5 ${hasBorder ? "border-border border-b" : ""}`.trim()}
+    >
+      <StoryCard
+        episodeLine={episodeLabels.title(
+          story.episodeNumber,
+          story.episodeTitle
+        )}
+        layout="row"
+        onPress={open}
+        story={story}
+      />
+    </View>
+  );
+}
+
+/** 이어 하기 카드 말고 더 진행 중인 스토리. 최근 것부터 한 줄씩. */
+function OtherStories({
+  onOpenEpisode,
+  stories,
+}: {
+  onOpenEpisode: (episodeId: string) => void;
+  stories: ContinueCard[];
 }) {
   return (
-    <View className="gap-3" testID="home-story-record">
-      <View className="flex-row items-baseline justify-between px-1">
-        <Text accessibilityRole="header" className="font-bold text-foreground">
-          {heading}
-        </Text>
-        <Text className="text-muted text-sm">{progress}</Text>
-      </View>
-      {total === undefined ? null : (
-        <StoryProgress finished={episodes.length} total={total} />
-      )}
-      <View className="rounded-2xl bg-surface px-5">
-        {episodes.map((finished, index) => (
-          <FinishedEpisodeItem
-            finished={finished}
-            hasBorder={index !== episodes.length - 1}
-            key={finished.episodeId}
+    <View className="gap-3" testID="home-other-stories">
+      <SectionHeading>{storyLabels.inProgressHeading}</SectionHeading>
+      <View className="rounded-2xl bg-surface px-4">
+        {stories.map((story, index) => (
+          <OtherStoryRow
+            hasBorder={index !== stories.length - 1}
+            key={story.storyId}
             onOpenEpisode={onOpenEpisode}
+            story={story}
           />
         ))}
       </View>
@@ -95,57 +105,30 @@ function StoryRecord({
   );
 }
 
-/** 전체 에피소드 중 끝낸 만큼이 채워지는 진행 표시. */
-function StoryProgress({
-  finished,
-  total,
-}: {
-  finished: number;
-  total: number;
-}) {
+/** 남은 스토리가 없는 홈. 잇는 자리 대신 되돌아보는 자리로 안내한다. */
+function EveryStoryDone({ onOpenStories }: { onOpenStories: () => void }) {
   return (
-    <View className="flex-row gap-1.5 px-1" testID="home-story-progress">
-      {Array.from({ length: total }, (_, index) => index + 1).map((episode) => (
-        <View
-          className={`size-2 rounded-full ${
-            episode <= finished ? "bg-accent" : "bg-border"
-          }`}
-          key={episode}
-        />
-      ))}
+    <View className="gap-3 rounded-2xl bg-surface px-5 py-6" testID="home-done">
+      <Text
+        accessibilityRole="header"
+        className="font-bold text-foreground text-xl leading-7"
+      >
+        {storyLabels.allDoneTitle}
+      </Text>
+      <Text className="text-base text-muted leading-6">
+        {storyLabels.allDoneCopy}
+      </Text>
+      <Button
+        accessibilityLabel={storyLabels.allDoneAction}
+        onPress={onOpenStories}
+      >
+        {storyLabels.allDoneAction}
+      </Button>
     </View>
   );
 }
 
-export function HomeScreen({
-  isLoading,
-  isRetrying,
-  onOpenEpisode,
-  onRetry,
-  story,
-}: {
-  isLoading: boolean;
-  isRetrying: boolean;
-  onOpenEpisode: (episodeId: string) => void;
-  onRetry: () => void;
-  story: Story | undefined;
-}) {
-  return (
-    <ScrollView
-      className="bg-background"
-      contentContainerClassName="gap-6 px-5 pt-5 pb-12"
-      contentInsetAdjustmentBehavior="automatic"
-      testID="home-scroll"
-    >
-      {story ? <StoryBody onOpenEpisode={onOpenEpisode} story={story} /> : null}
-      {story || isLoading ? null : (
-        <StoryUnavailable isRetrying={isRetrying} onRetry={onRetry} />
-      )}
-    </ScrollView>
-  );
-}
-
-function StoryUnavailable({
+function HomeUnavailable({
   isRetrying,
   onRetry,
 }: {
@@ -158,92 +141,69 @@ function StoryUnavailable({
       testID="home-empty"
     >
       <Text className="text-base text-muted leading-6">
-        {episodeLabels.unavailable}
+        {storyLabels.unavailable}
       </Text>
       <Button
-        accessibilityLabel={episodeLabels.retry}
+        accessibilityLabel={storyLabels.retry}
         isPending={isRetrying}
         onPress={onRetry}
       >
-        {episodeLabels.retry}
+        {storyLabels.retry}
       </Button>
     </View>
   );
 }
 
-function StoryBody({
+/**
+ * 진행을 잇는 자리.
+ *
+ * 카드 하나가 다음에 할 일을 말한다. 고르는 일은 스토리 탭이 맡으므로 여기에
+ * 같은 카드를 두 번 두지 않고, 끝낸 화의 목록도 두지 않는다.
+ */
+export function HomeScreen({
+  home,
+  isLoading,
+  isRetrying,
   onOpenEpisode,
-  story,
+  onOpenStories,
+  onRetry,
 }: {
+  home: Home | undefined;
+  isLoading: boolean;
+  isRetrying: boolean;
   onOpenEpisode: (episodeId: string) => void;
-  story: Story;
+  onOpenStories: () => void;
+  onRetry: () => void;
 }) {
-  const { completion, finished, next, title, total } = story;
-  const hasFinished = finished.length > 0;
-  const nextEpisodeId = next?.episodeId;
-  const openNextEpisode = useCallback(() => {
-    if (nextEpisodeId) {
-      onOpenEpisode(nextEpisodeId);
-    }
-  }, [nextEpisodeId, onOpenEpisode]);
-
   return (
-    <>
-      {next ? (
-        <View
-          className="gap-3 rounded-2xl bg-surface px-5 py-6"
-          testID="home-next-episode"
-        >
-          <Text className="font-semibold text-accent text-sm">
-            {hasFinished
-              ? episodeLabels.nextEyebrow
-              : episodeLabels.firstEyebrow}
-          </Text>
-          <Text
-            accessibilityRole="header"
-            className="font-bold text-foreground text-xl leading-7"
-          >
-            {episodeLabels.title(next.number, next.title)}
-          </Text>
-          <Text className="text-base text-muted leading-6">{next.preview}</Text>
-          <Button
-            accessibilityLabel={episodeLabels.start(next.number)}
-            onPress={openNextEpisode}
-          >
-            {episodeLabels.start(next.number)}
-          </Button>
+    <ScrollView
+      className="bg-background"
+      contentContainerClassName="gap-6 px-5 pt-5 pb-12"
+      contentInsetAdjustmentBehavior="automatic"
+      testID="home-scroll"
+    >
+      {home?.continueCard ? (
+        <View className="gap-3">
+          <SectionHeading>
+            {home.firstTime
+              ? storyLabels.firstHeading
+              : storyLabels.continueHeading}
+          </SectionHeading>
+          <ContinueStoryCard
+            card={home.continueCard}
+            onOpenEpisode={onOpenEpisode}
+          />
         </View>
-      ) : (
-        <View
-          className="gap-3 rounded-2xl bg-surface px-5 py-6"
-          testID="home-story-done"
-        >
-          <Text className="font-semibold text-accent text-sm">{title}</Text>
-          <Text
-            accessibilityRole="header"
-            className="font-bold text-foreground text-xl leading-7"
-          >
-            {completion.title}
-          </Text>
-          <Text className="text-base text-muted leading-6">
-            {completion.copy}
-          </Text>
-        </View>
-      )}
-
-      {hasFinished ? (
-        <StoryRecord
-          episodes={finished}
-          heading={title}
-          onOpenEpisode={onOpenEpisode}
-          progress={
-            next
-              ? storyLabels.progress(finished.length, total)
-              : storyLabels.wholeStory(total)
-          }
-          total={next ? total : undefined}
-        />
       ) : null}
-    </>
+      {home && home.others.length > 0 ? (
+        <OtherStories onOpenEpisode={onOpenEpisode} stories={home.others} />
+      ) : null}
+      {home && !home.continueCard ? (
+        <EveryStoryDone onOpenStories={onOpenStories} />
+      ) : null}
+      {home || isLoading ? null : (
+        <HomeUnavailable isRetrying={isRetrying} onRetry={onRetry} />
+      )}
+    </ScrollView>
   );
 }

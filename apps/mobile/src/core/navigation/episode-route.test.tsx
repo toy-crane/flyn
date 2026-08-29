@@ -81,7 +81,7 @@ jest.mock("@/features/episode/query/episode-session", () => ({
   useEpisodeSession: () => mockEpisodeQuery,
 }));
 
-jest.mock("@/features/episode/query/story", () => ({
+jest.mock("@/features/story/query/story", () => ({
   useStoryRefresh: () => mockRefresh,
 }));
 

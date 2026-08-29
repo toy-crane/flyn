@@ -1,10 +1,19 @@
 import type { UIMessage } from "ai";
 
-import type { NextEpisode } from "@/features/episode/api/story";
 import { aiUrl } from "@/shared/ai/request-options";
 
+/** 화면이 한 화를 여는 데 필요한 각본 조각. */
+export interface PlayingEpisode {
+  episodeId: string;
+  number: number;
+  preview: string;
+  situation: string;
+  situationEmoji: string;
+  title: string;
+}
+
 export interface EpisodeSession {
-  episode: NextEpisode;
+  episode: PlayingEpisode;
   messages: UIMessage[];
   readOnly: boolean;
 }

@@ -403,20 +403,28 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 | `수정 그만두기` | 수정 상태의 그만두기 버튼 |
 | `다시 시도하기` | 요청이 실패했을 때 오류 문구 옆 버튼 |
 | `최신 메시지로 이동` | 이전 메시지를 읽을 때 입력창 위에 나타나는 버튼 |
-| `Ask in side chat` | 완료된 AI 답변의 일부를 선택하면 시스템 선택 메뉴에 붙는 항목 |
-| `Side chat 닫기` | Side chat 시트의 닫기 버튼 |
-| `Side chat 1개 다시 열기` | Side chat이 하나일 때 입력창 위의 수 표시 |
-| `Side chat 2개 고르기` | Side chat이 여럿일 때 입력창 위의 수 표시. 숫자는 실제 개수입니다 |
-| `<구절> Side chat 열기` | 다시 열기 목록의 항목. 앞은 그 Side chat이 시작한 구절입니다 |
+| `AI에게 물어보기` | 완료된 AI 답변의 일부를 선택하면 시스템 선택 메뉴에 붙는 항목이자, 교정 카드의 버튼 |
+| `AI에게 물어보기 닫기` | 물어보기 시트의 닫기 버튼 |
+| `AI에게 물어보기 1개 다시 열기` | 대화 화면에서 물어보기가 하나일 때 입력창 위의 수 표시 |
+| `AI에게 물어보기 2개 고르기` | 물어보기가 여럿일 때 입력창 위의 수 표시. 숫자는 실제 개수입니다 |
+| `<구절> AI에게 물어보기 열기` | 다시 열기 목록의 항목. 앞은 그 물어보기가 시작한 구절입니다 |
+| `궁금한 것을 한국어로 물어보세요` | 에피소드에서 연 물어보기 시트 입력의 빈 자리 문구 |
 | `새 대화` | Home 헤더의 새 대화 버튼 |
 | `뒤로 가기` | 대화 화면과 에피소드 화면 헤더의 뒤로 가기 버튼 |
-| `1화 시작하기` | 에피소드를 여는 버튼. Home 본문과 끝난 에피소드의 마무리에 있고, 숫자는 열리는 화입니다 |
-| `<화 번호>화 <제목>, <결말>, 대화 보기` | 대화 기록이 남은 끝낸 에피소드 줄 |
+| `1화 시작하기` | 에피소드를 여는 버튼. Home 카드, 스토리 상세, 끝난 에피소드의 마무리에 있고, 숫자는 열리는 화입니다 |
+| `이어서 하기` | 진행하다 만 화를 다시 여는 버튼. Home 카드와 스토리 상세에 있습니다 |
+| `스토리 보러 가기` | 모든 스토리를 완주한 Home의 버튼 |
+| `<제목>, <한 줄 소개>` | 스토리 탭의 목록 행. 소개가 없으면 제목만입니다 |
+| `<화 번호>화 <제목>, 시작하기` | 스토리 상세에서 다음 화를 여는 줄 |
+| `<화 번호>화 <제목>, 대화 보기` | 대화 기록이 남은 끝낸 에피소드 줄 |
+| `<화 번호>화 <제목>, 아직 열리지 않았어요` | 스토리 상세의 잠긴 화 |
 | `영어로 말해 보세요` | 에피소드 화면 입력의 빈 자리 문구 |
 | `홈으로 가기` | 끝난 에피소드의 마무리 버튼 |
-| `끝난 대화 기록` | 끝난 에피소드를 다시 연 읽기 전용 화면 |
 | `대화를 불러오고 있어요` | 에피소드 대화를 1초 넘게 읽을 때 본문의 진행 상태 |
 | `다시 시도하기` | 스토리나 에피소드 대화를 읽지 못했을 때 본문의 버튼 |
+| `배울 표현 보기` | 사용자 말풍선 아래에 매달린 고친 문장 한 줄 |
+| `배울 표현 접기` | 펼친 교정 카드의 접기 chevron |
+| `다시 보내기` | 교정 카드의 버튼. 고친 문장을 입력창에 담습니다 |
 
 에피소드의 이름, 상황 줄, 예고는 데이터베이스의 공식 각본에서 옵니다. 서버는
 `apps/api/src/features/episode/story.ts`에서 그 데이터를 읽습니다.
@@ -448,23 +456,29 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 - 답변 아래 아이콘 줄: `chat-message-actions`
 - 답변을 기다리는 동안: `chat-waiting`, `chat-waiting-sweep`
 - 수정 상태: `chat-edit-notice`, `chat-edit-cancel`
-- Side chat: `chat-side-count`, `side-chat-source`, `side-chat-source-phrase`
+- 물어보기: `chat-side-count`, `side-chat-source`, `side-chat-source-phrase`
 
 `chat-send`는 한 자리의 이름입니다.
 답변을 받는 동안에는 같은 `testID`가 중지 버튼을 가리킵니다.
 
-`chat-side-count`는 Side chat이 하나라도 있을 때만 나타납니다.
+`chat-side-count`는 물어보기가 하나라도 있을 때만 나타납니다.
 `chat-latest-overlay` 안에서 최신 메시지 버튼과 같은 자리에 쌓입니다.
-`side-chat-source`는 Side chat 시트 목록 맨 위의 읽기 전용 구절입니다.
+`side-chat-source`는 대화 화면에서 연 물어보기 시트 맨 위의 읽기 전용 구절입니다.
 
 에피소드 화면의 요소에는 `testID`도 있습니다.
 
-- Home의 다음 에피소드: `home-next-episode`
-- Home의 끝낸 에피소드 목록과 진행 표시: `home-story-record`, `home-story-progress`
-- Home의 완주 안내와 불러오기 실패: `home-story-done`, `home-empty`
+- Home의 이어 하기 카드와 진행 중인 스토리: `home-continue-card`, `home-other-stories`
+- Home의 완주 안내와 불러오기 실패: `home-done`, `home-empty`
+- 스토리 탭: `stories-scroll`, `story-row-<스토리 id>`, `stories-empty`
+- 스토리 상세: `story-detail-scroll`, `story-episode-<화 번호>`, `story-detail-empty`
+- 스토리 카드의 표지와 진행 바: `story-cover`, `story-progress`
 - 상황 줄: `episode-situation-banner`
-- 끝난 에피소드의 마무리: `episode-closing`, `episode-closing-kind`, `episode-closing-outcome`
-- 다음 에피소드 예고와 읽기 전용 표시: `episode-closing-next`, `episode-closing-read-only`
+- 끝난 에피소드의 마무리: `episode-closing`, `episode-closing-outcome`
+- 다음 에피소드 예고: `episode-closing-next`
+- 다시 여는 기록의 끝 표시: `episode-ending-mark`, `episode-ending-outcome`
+- 배울 표현 한 줄: `correction-line`, `correction-line-fixed`, `correction-resent`
+- 펼친 교정 카드: `correction-card`, `correction-fold`, `correction-entry`, `correction-resend`, `correction-ask`
+- 물어보기 시트의 출처: `correction-source`, `correction-source-original`, `correction-source-fixed`
 
 에피소드 화면은 대화 화면과 같은 패널을 씁니다.
 그래서 `chat-list`, `chat-input`, `chat-send`, `chat-message-row`와
@@ -472,7 +486,14 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 상황 줄은 패널의 `chat-banner` 자리에 들어가며, 사건이 끝나도 사라지지 않습니다.
 사건이 끝나면 입력 자리를 `episode-closing`이 대신하므로 `chat-input`과
 `chat-send`는 사라집니다.
-Side chat 진입과 메시지 하나에 거는 동작은 에피소드 화면에 두지 않습니다.
+끝난 화를 스토리 상세에서 다시 열면 그 자리에 `episode-ending-mark`만 남습니다.
+텍스트 선택으로 물어보기를 여는 길과 메시지 하나에 거는 동작은 에피소드 화면에
+두지 않습니다. 물어보기로 들어가는 길은 교정 카드의 `correction-ask` 하나입니다.
+
+`correction-line`은 몰랐던 표현이 있는 사용자 메시지에만 붙습니다.
+탭하면 `correction-card`가 그 자리를 대신하고, `correction-fold`로 다시
+`correction-line`이 됩니다.
+`correction-resent`는 고친 문장을 실제로 다시 보낸 뒤에만 나타납니다.
 
 `chat-composer-surface`는 입력창과 보내기 버튼을 함께 담은 영역입니다.
 iOS 26 이상에서는 Liquid Glass이고 나머지 플랫폼에서는 같은 모양의 일반 surface입니다.

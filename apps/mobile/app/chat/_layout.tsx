@@ -1,9 +1,10 @@
 import { Stack } from "expo-router";
 
-import { getSideChatSheetOptions } from "@/core/navigation/side-chat-sheet";
+import { getAskSheetOptions } from "@/core/navigation/ask-sheet";
 import { useAppTheme } from "@/core/theme/app-theme-bridge";
 import { useAuthSession } from "@/features/auth/state/auth-session";
 import { SideChatsProvider } from "@/features/chat/state/side-chats";
+import { chatLabels } from "@/features/chat/ui/chat-labels";
 
 /**
  * A conversation and the side chats opened from it.
@@ -23,7 +24,7 @@ export default function ChatLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen
           name="side"
-          options={getSideChatSheetOptions(background)}
+          options={getAskSheetOptions(background, chatLabels.sideChat)}
         />
       </Stack>
     </SideChatsProvider>

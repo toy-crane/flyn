@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
 import { chatLabels } from "@/features/chat/ui/chat-labels";
-import { useStory } from "@/features/episode/query/story";
+import { useHome } from "@/features/story/query/story";
 import { HomeScreen } from "@/screens/home/home-screen";
 import { ProfileAvatarButton } from "@/screens/home/profile-avatar-button";
 import { useVisibleRetry } from "@/shared/query/use-visible-retry";
@@ -17,23 +17,28 @@ function openEpisode(episodeId: string) {
   router.push({ params: { episodeId }, pathname: "/episode" });
 }
 
+function openStories() {
+  router.push("/stories");
+}
+
 function openSettings() {
   router.push("/settings");
 }
 
 export default function HomeRoute() {
   const { session } = useAuthSession();
-  const story = useStory(session?.user.id, session?.access_token);
-  const { isRetrying, retry: retryStory } = useVisibleRetry(story.refetch);
+  const home = useHome(session?.user.id, session?.access_token);
+  const { isRetrying, retry: retryHome } = useVisibleRetry(home.refetch);
 
   return (
     <>
       <HomeScreen
-        isLoading={story.isPending && !isRetrying}
+        home={home.data}
+        isLoading={home.isPending && !isRetrying}
         isRetrying={isRetrying}
         onOpenEpisode={openEpisode}
-        onRetry={retryStory}
-        story={story.data}
+        onOpenStories={openStories}
+        onRetry={retryHome}
       />
       {/*
         The new-conversation action sits apart from the profile so it remains

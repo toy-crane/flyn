@@ -31,17 +31,7 @@ export interface FinishedEpisodeRow {
   outcome: string;
 }
 
-/** 홈의 끝낸 에피소드 목록 한 줄. */
-export interface FinishedEpisodeView {
-  episodeId: string;
-  hasTranscript: boolean;
-  kind: string;
-  number: number;
-  outcome: string;
-  title: string;
-}
-
-/** 홈과 마무리 화면이 보여 주는 다음 에피소드. */
+/** 에피소드 화면과 마무리가 보여 주는 한 화. */
 export interface NextEpisodeView {
   episodeId: string;
   number: number;
@@ -57,17 +47,6 @@ export interface NextUpData {
   episodeId: string | null;
   number: number | null;
   title: string;
-}
-
-/** 홈이 첫 스토리를 그리는 데 필요한 전부. */
-export interface StoryView {
-  completion: { copy: string; title: string };
-  finished: FinishedEpisodeView[];
-  id: string;
-  next: NextEpisodeView | null;
-  targetLanguage: string;
-  title: string;
-  total: number;
 }
 
 export interface EpisodeSessionView {
@@ -283,69 +262,6 @@ function nextEpisodeView(episode: EpisodeScript): NextEpisodeView {
     situation: episode.situation,
     situationEmoji: episode.situationEmoji,
     title: episode.title,
-  };
-}
-
-async function transcriptEpisodeIds(
-  client: EpisodeClient,
-  story: StoryContent
-): Promise<Set<string>> {
-  const ids = story.episodes.map((episode) => episode.id);
-
-  if (ids.length === 0) {
-    return new Set();
-  }
-
-  const { data, error } = await client
-    .from("episode_runs")
-    .select("episode_id, completed_at")
-    .in("episode_id", ids);
-
-  if (error) {
-    throw new Error(`Reading episode transcripts failed: ${error.message}`);
-  }
-
-  return new Set(
-    data.filter((run) => run.completed_at !== null).map((run) => run.episode_id)
-  );
-}
-
-export async function readStoryView(
-  client: EpisodeClient,
-  story: StoryContent
-): Promise<StoryView> {
-  const [finished, transcripts] = await Promise.all([
-    readFinishedEpisodes(client, story),
-    transcriptEpisodeIds(client, story),
-  ]);
-  const content = new Map(
-    story.episodes.map((episode) => [episode.id, episode])
-  );
-  const next = currentEpisode(story, finished);
-
-  return {
-    completion: { ...story.completion },
-    finished: finished.flatMap((row) => {
-      const episode = content.get(row.episode_id);
-
-      return episode
-        ? [
-            {
-              episodeId: episode.id,
-              hasTranscript: transcripts.has(episode.id),
-              kind: row.kind,
-              number: episode.number,
-              outcome: row.outcome,
-              title: episode.title,
-            },
-          ]
-        : [];
-    }),
-    id: story.id,
-    next: next ? nextEpisodeView(next) : null,
-    targetLanguage: story.targetLanguage,
-    title: story.title,
-    total: story.episodes.length,
   };
 }
 

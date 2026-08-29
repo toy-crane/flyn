@@ -61,8 +61,8 @@ jest.mock("@/features/auth/state/auth-session", () => ({
 
 // 홈이 스토리를 읽는 경로다. 진짜 QueryClient를 띄우면 타이머가 남으므로 읽기
 // 자체를 세워 두고, 경로가 무엇을 넘기는지만 본다.
-jest.mock("@/features/episode/query/story", () => ({
-  useStory: () => mockStoryQuery,
+jest.mock("@/features/story/query/story", () => ({
+  useHome: () => mockStoryQuery,
 }));
 
 jest.mock("@/screens/home/home-screen", () => {
@@ -72,19 +72,21 @@ jest.mock("@/screens/home/home-screen", () => {
 
   return {
     HomeScreen: ({
+      home,
       onOpenEpisode,
+      onOpenStories,
       onRetry,
       isLoading,
       isRetrying,
-      story,
     }: {
+      home: { tag?: string } | undefined;
       isLoading: boolean;
       isRetrying: boolean;
       onOpenEpisode: (episodeId: string) => void;
+      onOpenStories: () => void;
       onRetry: () => void;
-      story: { tag?: string } | undefined;
     }) => {
-      homeStory = story;
+      homeStory = home;
       homeStatus = { isLoading, isRetrying };
 
       return React.createElement(
@@ -94,6 +96,11 @@ jest.mock("@/screens/home/home-screen", () => {
           accessibilityLabel: "Home content",
           accessibilityRole: "button",
           onPress: () => onOpenEpisode(EPISODE_ID),
+        }),
+        React.createElement(Pressable, {
+          accessibilityLabel: "Home stories",
+          accessibilityRole: "button",
+          onPress: onOpenStories,
         }),
         React.createElement(Pressable, {
           accessibilityLabel: "Home retry",
@@ -174,6 +181,15 @@ test("홈 본문의 시작하기는 에피소드를 연다", async () => {
     params: { episodeId: EPISODE_ID },
     pathname: "/episode",
   });
+});
+
+test("모두 완주한 홈은 스토리 탭으로 보낸다", async () => {
+  const user = userEvent.setup();
+  await render(<HomeRoute />);
+
+  await user.press(screen.getByRole("button", { name: "Home stories" }));
+
+  expect(mockPush).toHaveBeenCalledWith("/stories");
 });
 
 // 어떤 화를 보여 줄지는 화면이 아니라 계정의 진행이 정한다. 경로가 그것을

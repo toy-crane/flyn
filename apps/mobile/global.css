@@ -4,6 +4,17 @@
 
 @source "./node_modules/heroui-native/lib";
 
+/*
+  교정 채널의 색. HeroUI의 시맨틱 집합에는 이 뜻을 가진 역할이 없어서 앱이
+  직접 등재한다. 사용자 말풍선과 강조 요소가 쓰는 파랑과 나란히 두어도 다른
+  채널이라는 것이 바로 보여야 하므로 보라 계열을 쓴다.
+*/
+@theme inline {
+  --color-learn: var(--learn);
+  --color-learn-foreground: var(--learn-foreground);
+  --color-learn-surface: var(--learn-surface);
+}
+
 @layer theme {
   :root {
     @variant light {
@@ -11,6 +22,9 @@
       --foreground: #111114;
       --surface: #ffffff;
       --surface-foreground: var(--foreground);
+      --learn: oklch(0.55 0.19 300);
+      --learn-foreground: oklch(0.9911 0 0);
+      --learn-surface: oklch(0.945 0.022 300);
     }
   }
 
@@ -20,6 +34,9 @@
       --foreground: #ffffff;
       --surface: #1a1a1e;
       --surface-foreground: var(--foreground);
+      --learn: oklch(0.78 0.15 300);
+      --learn-foreground: oklch(0.21 0.03 300);
+      --learn-surface: oklch(0.27 0.045 300);
     }
   }
 }

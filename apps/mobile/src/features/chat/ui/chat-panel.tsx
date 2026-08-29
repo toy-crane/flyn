@@ -12,6 +12,8 @@ import type { UIMessage } from "ai";
 import { setStringAsync } from "expo-clipboard";
 import { useThemeColor } from "heroui-native/hooks";
 import {
+  type ComponentType,
+  type ReactElement,
   type ReactNode,
   type Ref,
   useCallback,
@@ -54,7 +56,6 @@ import { LatestMessageButton } from "./latest-message-button";
 import { sceneCopyText, sceneOfMessage } from "./scene";
 import { SceneMessage } from "./scene-message";
 import { SideChatCount, type SideChatEntry } from "./side-chat-count";
-import { SideChatSource } from "./side-chat-source";
 import { useEnteringMessage } from "./use-entering-message";
 import { useLateAnswer } from "./use-late-answer";
 import { UserMessage } from "./user-message";
@@ -140,6 +141,7 @@ function PlainTextMessage({
   isDoomed,
   isEntering,
   message,
+  MessageAddon,
   onAskInSideChat,
   onBeginEdit,
   onEntered,
@@ -151,6 +153,7 @@ function PlainTextMessage({
   isDoomed: boolean;
   isEntering: boolean;
   message: UIMessage;
+  MessageAddon: ComponentType<{ message: UIMessage }> | undefined;
   onAskInSideChat: ((input: AskInSideChat) => void) | undefined;
   onBeginEdit: (messageId: string) => void;
   onEntered: () => void;
@@ -244,6 +247,12 @@ function PlainTextMessage({
       testID="chat-message-row"
     >
       {body}
+      {/*
+        메시지에 매달리는 것이 있으면 말풍선 바로 아래에 선다. 무엇이 매달리는지
+        이 자리는 알지 못한다. 매달린 것은 자기 상태를 스스로 읽으므로, 그것이
+        생기거나 바뀌어도 목록이 이 행을 다시 만들지 않는다.
+      */}
+      {MessageAddon ? <MessageAddon message={message} /> : null}
     </Animated.View>
   );
 }
@@ -480,6 +489,7 @@ export function ChatPanel({
   closing,
   hasMessageActions = true,
   inputRef,
+  messageAddon,
   onAskInSideChat,
   onOpenSideChat,
   placeholder = "메시지를 입력하세요",
@@ -515,6 +525,15 @@ export function ChatPanel({
    */
   inputRef?: Ref<TextInput>;
   /**
+   * What hangs under one message, when a screen has something to hang there.
+   *
+   * A component rather than a rendered node: the panel places one per message
+   * and never looks inside. Given a stable identity, what it draws can change
+   * without the list rebuilding the row it sits in — which is how a correction
+   * arriving mid-scene reaches one bubble instead of the whole conversation.
+   */
+  messageAddon?: ComponentType<{ message: UIMessage }>;
+  /**
    * What selecting part of a finished answer offers. Left out inside a side
    * chat, which is what keeps a side chat from starting another one.
    */
@@ -524,8 +543,8 @@ export function ChatPanel({
   placeholder?: string;
   /** The side chats to get back into, newest first. */
   sideChats?: SideChatEntry[];
-  /** The read-only phrase a side chat started from. */
-  source?: string;
+  /** The read-only source a side conversation started from, above its list. */
+  source?: ReactElement;
   topInset?: number;
 }) {
   const insets = useSafeAreaInsets();
@@ -764,6 +783,7 @@ export function ChatPanel({
         }
         isDoomed={doomedFromIndex >= 0 && index >= doomedFromIndex}
         isEntering={item.id === enteringMessageId}
+        MessageAddon={messageAddon}
         message={item}
         onAskInSideChat={onAskInSideChat}
         onBeginEdit={beginEdit}
@@ -779,6 +799,7 @@ export function ChatPanel({
       isBusy,
       isEditing,
       markEntered,
+      messageAddon,
       messageCount,
       onAskInSideChat,
       regenerateAnswer,
@@ -813,9 +834,7 @@ export function ChatPanel({
         keyboardShouldPersistTaps="handled"
         keyExtractor={messageKey}
         ListFooterComponent={isAnswerLate ? <WaitingAnswer /> : undefined}
-        ListHeaderComponent={
-          source === undefined ? undefined : <SideChatSource phrase={source} />
-        }
+        ListHeaderComponent={source ?? undefined}
         maintainScrollAtEnd={
           isFollowingLatest && !isPositioningQuestion
             ? {
