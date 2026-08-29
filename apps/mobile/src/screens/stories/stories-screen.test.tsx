@@ -12,7 +12,7 @@ const STORY_ID = "10000000-0000-4000-8000-000000000001";
 function createStory(partial: Partial<StoryCard> = {}): StoryCard {
   return {
     coverEmoji: "☕",
-    coverImageUrl: null,
+    coverImagePath: null,
     finished: 2,
     hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
     storyId: STORY_ID,

@@ -133,11 +133,14 @@ create table public.stories (
   hook text not null,
   -- 스토리 상세가 여는 소개 문단. 훅보다 길고, 세계와 인물을 함께 말한다.
   intro text not null,
-  -- 표지 타일이 그리는 이모지. 일러스트가 아직 없는 스토리의 표지가 된다.
+  -- 표지 타일이 그리는 이모지. 일러스트가 아직 없는 스토리의 표지가 되고,
+  -- 그림이 있어도 그 뒤에 남아 이미지를 못 받았을 때 자리를 지킨다.
   cover_emoji text not null,
-  -- 대표 캐릭터 포트레이트. 아직 그리지 않은 스토리는 비어 있고, 그동안은
-  -- 이모지 타일이 그 자리를 대신한다.
-  cover_image_url text,
+  -- `story-covers` 버킷에서 이 스토리의 표지 그림이 있는 자리.
+  -- URL이 아니라 경로다. 같은 행을 시뮬레이터, 기기, 배포본이 함께 읽는데
+  -- 저장소에 닿는 주소가 저마다 달라서, `http://127.0.0.1:54321/...`을 넣으면
+  -- 그 행이 쓴 컴퓨터에 묶인다. `profiles.avatar_path`와 같은 이유다.
+  cover_image_path text,
   target_language text not null,
   completion_title text not null,
   completion_copy text not null,
@@ -158,9 +161,9 @@ create table public.stories (
   constraint stories_cover_emoji_usable check (
     length(btrim(cover_emoji)) between 1 and 20
   ),
-  constraint stories_cover_image_url_usable check (
-    cover_image_url is null
-    or (length(cover_image_url) <= 2048 and cover_image_url like 'https://%')
+  constraint stories_cover_image_path_usable check (
+    cover_image_path is null
+    or length(btrim(cover_image_path)) between 1 and 512
   ),
   constraint stories_target_language_usable check (
     target_language ~ '^[a-z]{2}(?:-[A-Z]{2})?$'

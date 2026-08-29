@@ -17,7 +17,7 @@ function episodeId(number: number) {
 function createCard(partial: Partial<ContinueCard> = {}): ContinueCard {
   return {
     coverEmoji: "☕",
-    coverImageUrl: null,
+    coverImagePath: null,
     episodeId: episodeId(1),
     episodeNumber: 1,
     episodeTitle: "카페에서 생긴 일",

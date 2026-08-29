@@ -46,7 +46,7 @@ export function StoryCard({
       testID={testID}
     >
       <View className="flex-row items-center gap-3.5">
-        <StoryCover emoji={story.coverEmoji} imageUrl={story.coverImageUrl} />
+        <StoryCover emoji={story.coverEmoji} imagePath={story.coverImagePath} />
         <View className="flex-1 gap-1">
           <Text
             className={`font-bold text-foreground ${

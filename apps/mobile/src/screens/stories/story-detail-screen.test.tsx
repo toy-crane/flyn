@@ -45,7 +45,7 @@ function locked(number: number, title: string): StoryEpisode {
 function createDetail(partial: Partial<StoryDetail> = {}): StoryDetail {
   return {
     coverEmoji: "☕",
-    coverImageUrl: null,
+    coverImagePath: null,
     episodes: [
       finished(1, "카페에서 생긴 일", "원하는 커피로 바꿔냈어요."),
       {

@@ -13,7 +13,7 @@ import type {
  */
 export interface StoryCardView {
   coverEmoji: string;
-  coverImageUrl: string | null;
+  coverImagePath: string | null;
   /** 끝낸 화 수. 분절 진행 바가 이만큼 찬다. */
   finished: number;
   hook: string;
@@ -185,7 +185,7 @@ function storyCardOf(
 ): StoryCardView {
   return {
     coverEmoji: entry.coverEmoji,
-    coverImageUrl: entry.coverImageUrl,
+    coverImagePath: entry.coverImagePath,
     finished: progress.finished,
     hook: entry.hook,
     storyId: entry.id,

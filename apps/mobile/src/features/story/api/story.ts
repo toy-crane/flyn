@@ -6,7 +6,7 @@ export const STORIES_API_PATH = "/ai/episode/stories";
 /** 홈과 스토리 탭이 같은 카드로 그리는 스토리 한 장. */
 export interface StoryCard {
   coverEmoji: string;
-  coverImageUrl: string | null;
+  coverImagePath: string | null;
   /** 끝낸 화 수. 분절 진행 바가 이만큼 찬다. */
   finished: number;
   hook: string;

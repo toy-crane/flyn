@@ -282,7 +282,7 @@ export type Database = {
           completion_copy: string
           completion_title: string
           cover_emoji: string
-          cover_image_url: string | null
+          cover_image_path: string | null
           hook: string
           id: string
           intro: string
@@ -295,7 +295,7 @@ export type Database = {
           completion_copy: string
           completion_title: string
           cover_emoji: string
-          cover_image_url?: string | null
+          cover_image_path?: string | null
           hook: string
           id: string
           intro: string
@@ -308,7 +308,7 @@ export type Database = {
           completion_copy?: string
           completion_title?: string
           cover_emoji?: string
-          cover_image_url?: string | null
+          cover_image_path?: string | null
           hook?: string
           id?: string
           intro?: string

@@ -43,7 +43,7 @@ const STORY_ROW = {
   completion_copy: "다섯 번의 사건을 영어로 지나왔어요.",
   completion_title: "첫 이야기를 끝냈어요",
   cover_emoji: "☕",
-  cover_image_url: null,
+  cover_image_path: null,
   hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
   id: STORY_ID,
   intro: "매일 들르는 동네 카페에서 벌어지는 다섯 번의 사건.",
@@ -1828,7 +1828,7 @@ describe("GET /ai/episode/stories", () => {
     const view = (await response.json()) as {
       stories: {
         coverEmoji: string;
-        coverImageUrl: string | null;
+        coverImagePath: string | null;
         finished: number;
         hook: string;
         storyId: string;
@@ -1841,7 +1841,7 @@ describe("GET /ai/episode/stories", () => {
     expect(view.stories).toEqual([
       {
         coverEmoji: "☕",
-        coverImageUrl: null,
+        coverImagePath: null,
         finished: 1,
         hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
         storyId: STORY_ID,
