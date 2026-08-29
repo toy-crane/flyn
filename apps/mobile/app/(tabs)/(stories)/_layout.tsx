@@ -24,7 +24,13 @@ export default function StoriesLayout() {
       />
       <Stack.Screen
         name="story/[storyId]"
-        options={{ headerLargeTitleEnabled: false, title: "" }}
+        options={{
+          // 쉐브론만 남기는 UIKit의 모드. 스토리 제목은 본문에 크게 있어
+          // 이전 화면 이름을 라벨로 붙이면 같은 말이 두 번 보인다.
+          headerBackButtonDisplayMode: "minimal",
+          headerLargeTitleEnabled: false,
+          title: "",
+        }}
       />
     </Stack>
   );
