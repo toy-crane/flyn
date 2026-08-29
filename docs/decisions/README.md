@@ -30,6 +30,10 @@
 - [AI 모델 라우팅](ai-model-routing.md) — AI Gateway, 모델 제공자, 모델 식별자 또는 provider fallback 방식을 변경할 때 읽는다.
 - [계정 삭제 서버 경계](account-deletion-server-boundary.md) — 계정 삭제의 사용자 인증, 관리자 권한, 서버 런타임 또는 secret key 범위를 변경할 때 읽는다.
 
+## 웹
+
+- [웹 표면 소유권](web-surface-ownership.md) — 랜딩, 법적 고지, 공개 웹 경로, Astro 앱 소유권 또는 Expo Web 범위를 변경할 때 읽는다.
+
 ## 데이터베이스
 
 - [Supabase 스키마 작업 방식](supabase-schema-workflow.md) — Supabase 스키마 원본, 로컬 스택, 마이그레이션 또는 타입 생성 방식을 변경할 때 읽는다.
@@ -59,6 +63,7 @@
 - [모바일 진입 키보드](mobile-keyboard-entry-focus.md) — 화면에 들어오자마자 입력을 시작하게 만들거나 고칠 때 읽는다.
 - [화면 문구 한국어 말투](korean-ui-writing.md) — 앱 화면에 보이는 문구의 종결어미, 버튼과 오류 문구, 마침표를 쓰거나 고칠 때 읽는다.
 - [스토리 진행·결말 화면 표기](story-progress-and-ending-display.md) — 스토리·에피소드의 진행 상태, 완료, 결말을 화면에 표기하거나 그 문구를 바꿀 때 읽는다.
+- [모바일 에피소드 상황 줄](mobile-episode-situation-line.md) — 에피소드 화면의 사건·목표 안내 위치, 내용 소유권, 표시 수명 또는 형태를 변경할 때 읽는다.
 - [모바일 뒤로 가기 표시](mobile-back-button-display.md) — 뒤로 가기 버튼의 라벨, 쉐브론 표시 또는 접근성 이름을 바꿀 때 읽는다.
 - [모바일 앱 에셋 생성](mobile-app-asset-generation.md) — 앱 아이콘, Android adaptive icon, 스플래시 이미지 또는 이를 만드는 에이전트 작업을 추가하거나 바꿀 때 읽는다.
 - [모바일 UI 일관성 검토](mobile-ui-consistency-review.md) — 모바일 UI 검토 에이전트의 범위, 근거, 읽기 전용 권한 또는 실행 방식을 변경할 때 읽는다.
@@ -73,5 +78,6 @@
 - [모바일 AI 채팅 표현](mobile-ai-chat-rendering.md) — 모바일 AI 채팅의 Liquid Glass 입력창, 스트리밍 Markdown, 메시지 진입 또는 답변 대기 표시를 만들거나 바꿀 때 읽는다.
 - [모바일 채팅 메시지 동작](mobile-chat-message-actions.md) — 채팅 메시지의 복사, 수정, 다시 받기, 중지 또는 실패 뒤 다시 시도를 만들거나 바꿀 때 읽는다.
 - [모바일 채팅 스크롤](mobile-chat-scrolling.md) — 모바일 채팅의 질문 배치, 스트리밍 자동 추적, 읽던 위치 또는 최신 메시지 이동을 변경할 때 읽는다.
+- [모바일 스토리 탐색](mobile-story-browsing.md) — 홈과 스토리 탭의 역할, 이어 하기 카드, 스토리 목록·상세 또는 잠긴 화 표시를 변경할 때 읽는다.
 - [모바일 AI에게 물어보기](mobile-ask-ai.md) — AI에게 물어보기를 시작하는 자리, 이어받는 문맥, 시트, 수명 또는 다시 열기 방식을 변경할 때 읽는다.
 - [모바일 대화 중 교정](mobile-episode-correction.md) — 에피소드 대화에 붙는 배울 표현의 표시, 카드, 다시 보내기 또는 교정 채널의 색을 변경할 때 읽는다.
