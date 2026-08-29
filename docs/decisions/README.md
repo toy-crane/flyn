@@ -72,4 +72,5 @@
 - [모바일 AI 채팅 표현](mobile-ai-chat-rendering.md) — 모바일 AI 채팅의 Liquid Glass 입력창, 스트리밍 Markdown, 메시지 진입 또는 답변 대기 표시를 만들거나 바꿀 때 읽는다.
 - [모바일 채팅 메시지 동작](mobile-chat-message-actions.md) — 채팅 메시지의 복사, 수정, 다시 받기, 중지 또는 실패 뒤 다시 시도를 만들거나 바꿀 때 읽는다.
 - [모바일 채팅 스크롤](mobile-chat-scrolling.md) — 모바일 채팅의 질문 배치, 스트리밍 자동 추적, 읽던 위치 또는 최신 메시지 이동을 변경할 때 읽는다.
-- [모바일 Side chat](mobile-side-chat.md) — AI 답변에서 Side chat을 시작하거나, 이어받는 문맥, 시트, 수명 또는 다시 열기 방식을 변경할 때 읽는다.
+- [모바일 AI에게 물어보기](mobile-ask-ai.md) — AI에게 물어보기를 시작하는 자리, 이어받는 문맥, 시트, 수명 또는 다시 열기 방식을 변경할 때 읽는다.
+- [모바일 대화 중 교정](mobile-episode-correction.md) — 에피소드 대화에 붙는 배울 표현의 표시, 카드, 다시 보내기 또는 교정 채널의 색을 변경할 때 읽는다.
