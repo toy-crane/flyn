@@ -225,98 +225,251 @@ create table public.episodes (
   )
 );
 
--- 끝난 에피소드가 남기는 결말과 이야기 기억. 번호가 아니라 안정된 에피소드
--- id를 참조하므로 스토리가 늘거나 순서를 고쳐도 지난 기록의 대상을 잃지 않는다.
+-- 한 사람이 한 화를 플레이한 기록. 시작 시각과 결말과 이야기 기억이 여기 붙고,
+-- 그 아래 오간 메시지가 대화 기록이 된다. 번호가 아니라 안정된 에피소드 id를
+-- 참조하므로 스토리가 늘거나 순서를 고쳐도 지난 기록의 대상을 잃지 않는다.
 --
--- 한 화의 결말은 한 번만 난다. 기본키가 그 규칙이다. 같은 화의 결말이 다시
--- 도착해도 앞의 사실을 덮어쓰지 않는다.
-create table public.episode_endings (
-  user_id uuid not null references public.profiles (id) on delete cascade,
+-- 진행 중과 끝남은 `finished_at`이 가른다. 대화 쪽에 완료 표시를 따로 두지
+-- 않는다. 한 화의 결말은 한 번만 나고, `public.finish_episode`가 그 규칙을 지킨다.
+create table public.episode_plays (
+  -- 메시지와 교정이 참조할 안정된 키. (user_id, episode_id)를 그대로 물려주면
+  -- 자식 테이블마다 두 열을 나르게 되고, 교정은 그 위에 message_id까지 얹어
+  -- 세 열이 된다.
+  id uuid primary key default gen_random_uuid(),
+  -- 부르는 사람이 채운다. 값을 실어 보낼 필요가 없으니 insert grant에서 이 열을
+  -- 빼 두었고, 그래서 남의 이름으로 플레이를 여는 문장은 정책에 닿기도 전에
+  -- 권한에서 막힌다. 정책은 그대로 두어 기본값이 바뀌어도 규칙이 남는다.
+  user_id uuid not null default auth.uid()
+    references public.profiles (id) on delete cascade,
   episode_id uuid not null references public.episodes (id) on delete restrict,
+  started_at timestamptz not null default now(),
   -- 결말의 종류. 화면에도 이 낱말이 그대로 보인다.
-  kind text not null,
+  ending_kind text,
   -- 사건의 결과 한 줄. 홈의 끝낸 화 목록과 마무리 화면이 함께 읽는다. 이야기
   -- 기억의 네 가지 중 "사건의 결과"이기도 하다.
-  outcome text not null,
+  ending_outcome text,
   -- 이야기 기억의 나머지 세 가지. 다음 화의 프롬프트에 들어가 대사와 관계와
   -- 지문으로 돌아온다. 장면을 닫은 모델이 결말과 같은 출력에 함께 쓰므로, 그
   -- 줄을 쓰지 않았거나 형식을 어긴 화는 기억 없이 남는다.
   memory_choice text,
   memory_relationship text,
   memory_question text,
-  finished_at timestamptz not null default now(),
-  primary key (user_id, episode_id),
-  constraint episode_endings_kind_known check (kind in ('성공', '타협', '실패')),
-  constraint episode_endings_outcome_usable check (
-    length(btrim(outcome)) between 1 and 300
+  finished_at timestamptz,
+  -- 한 사람은 한 화를 한 번 플레이한다. 옛 결말 테이블의 기본키였던 짝이 여기
+  -- 그대로 남아 같은 규칙을 지킨다. 이름을 붙인 이유는 `public.finish_episode`가
+  -- `on conflict on constraint`로 이 제약을 가리키기 때문이다. 열 이름으로 쓰면
+  -- `episode_id`가 함수 파라미터와 컬럼 사이에서 모호해진다.
+  constraint episode_plays_one_per_episode unique (user_id, episode_id),
+  -- 메시지가 (play_id, user_id) 한 쌍으로 참조하기 위한 대상. 자식이 나르는
+  -- user_id가 플레이의 주인과 어긋날 수 없게 만든다. 그래서 메시지 정책은
+  -- 조인 없이 자기 열만 보고 끝난다.
+  constraint episode_plays_owned_id unique (id, user_id),
+  -- 결말은 셋이 함께 오거나 함께 없다. 종류만 있고 결과가 없는 반쪽 결말은
+  -- 화면이 읽을 수 없다.
+  constraint episode_plays_ending_whole check (
+    (ending_kind is null) = (finished_at is null)
+    and (ending_outcome is null) = (finished_at is null)
   ),
-  constraint episode_endings_memory_choice_usable check (
+  -- 이야기 기억은 장면을 닫은 모델이 결말과 같은 출력에 쓴다. 끝나지 않은
+  -- 플레이에 기억만 있을 수는 없다.
+  constraint episode_plays_memory_needs_ending check (
+    finished_at is not null
+    or (
+      memory_choice is null
+      and memory_relationship is null
+      and memory_question is null
+    )
+  ),
+  constraint episode_plays_ending_kind_known check (
+    ending_kind is null or ending_kind in ('성공', '타협', '실패')
+  ),
+  constraint episode_plays_ending_outcome_usable check (
+    ending_outcome is null or length(btrim(ending_outcome)) between 1 and 300
+  ),
+  constraint episode_plays_memory_choice_usable check (
     memory_choice is null or length(btrim(memory_choice)) between 1 and 300
   ),
-  constraint episode_endings_memory_relationship_usable check (
+  constraint episode_plays_memory_relationship_usable check (
     memory_relationship is null
     or length(btrim(memory_relationship)) between 1 and 300
   ),
-  constraint episode_endings_memory_question_usable check (
+  constraint episode_plays_memory_question_usable check (
     memory_question is null or length(btrim(memory_question)) between 1 and 300
   )
 );
 
-create index episode_endings_episode_id_idx
-  on public.episode_endings (episode_id);
+create index episode_plays_episode_id_idx
+  on public.episode_plays (episode_id);
 
-comment on table public.episode_endings is
-  'One immutable ending and story memory per account and stable episode id.';
+comment on table public.episode_plays is
+  'One account playing one episode: when it started, how it ended, and the story memory it left.';
 
-comment on column public.episode_endings.episode_id is
+comment on column public.episode_plays.id is
+  'Stable key the messages and corrections of this play hang from.';
+
+comment on column public.episode_plays.episode_id is
   'Stable episode reference. Numbers are only ordering inside a story.';
 
-comment on column public.episode_endings.kind is
-  'How the incident ended: 성공, 타협 or 실패.';
+comment on column public.episode_plays.started_at is
+  'When this account opened the episode. Set once and never rewritten.';
 
-comment on column public.episode_endings.outcome is
+comment on column public.episode_plays.ending_kind is
+  'How the incident ended: 성공, 타협 or 실패. Null while the play is still open.';
+
+comment on column public.episode_plays.ending_outcome is
   'One Korean line naming what happened, written by the model that closed the scene.';
 
-comment on column public.episode_endings.memory_choice is
+comment on column public.episode_plays.memory_choice is
   'What the person did in this incident. Null when the closing scene left no memory lines.';
 
-comment on column public.episode_endings.memory_relationship is
+comment on column public.episode_plays.memory_relationship is
   'How the relationship changed. Null when the closing scene left no memory lines.';
 
-comment on column public.episode_endings.memory_question is
+comment on column public.episode_plays.memory_question is
   'The question this incident opened. Null when the closing scene left no memory lines.';
 
--- 진행 중과 끝난 에피소드가 같은 대화 기록 모양을 쓴다. `completed_at`이 비어
--- 있으면 이어서 할 장면이고, 값이 있으면 다시 열어 읽기만 하는 기록이다.
-create table public.episode_runs (
-  user_id uuid not null references public.profiles (id) on delete cascade,
-  episode_id uuid not null references public.episodes (id) on delete restrict,
-  messages jsonb not null,
-  completed_at timestamptz,
-  completed_by_fallback boolean not null default false,
-  updated_at timestamptz not null default now(),
-  primary key (user_id, episode_id),
-  constraint episode_runs_messages_array check (jsonb_typeof(messages) = 'array'),
-  -- 한 에피소드가 모델 문맥보다 훨씬 커지기 전에 저장 경계를 분명히 한다.
-  -- 이 한도를 넘긴 기록은 결말을 막지 않고, 대화 기록 저장만 실패한다.
-  constraint episode_runs_messages_size check (
-    octet_length(messages::text) <= 1048576
+comment on column public.episode_plays.finished_at is
+  'When the permanent ending arrived. Null means the play is still open; a value freezes it.';
+
+-- 대화의 메시지 한 건이 한 행이다. 배열 하나를 통째로 덮어쓰지 않으므로 뒤를
+-- 잘라 내는 다시 받기와 수정이 그 행을 지우는 일이 되고, 사용자가 어느 화에서
+-- 무엇을 썼는지 꺼내는 조회가 대화 전문을 풀지 않아도 된다.
+--
+-- 행은 메시지까지만 나누고 `parts`는 JSON 한 덩이로 둔다. part 구조는 AI SDK가
+-- 판올림마다 바꾸는 계약이라 여기까지 펴면 SDK를 올릴 때마다 데이터 구조를 함께
+-- 고쳐야 한다. Vercel이 자기 제품에서 긋는 선도 같은 자리다.
+create table public.episode_messages (
+  -- AI SDK가 이 메시지에 붙인 식별자를 그대로 쓴다. 앱과 서버와 데이터베이스가
+  -- 같은 이름으로 같은 메시지를 가리켜야, 다시 받기가 "이 메시지부터"를 말할 수
+  -- 있다. uuid로 좁혀 두면 앱이 아무 문자열이나 실어 보낼 수 없다.
+  id uuid primary key,
+  play_id uuid not null,
+  -- 플레이의 주인을 여기 한 번 더 적는다. 복합 외래키가 둘을 묶으므로 어긋날 수
+  -- 없고, 대신 정책이 다른 테이블을 보지 않고 이 열만으로 답한다. 값은
+  -- `episode_plays`와 같은 이유로 부르는 사람이 채운다.
+  user_id uuid not null default auth.uid(),
+  role text not null,
+  parts jsonb not null,
+  -- 대화 안의 자리를 이 시각이 정한다. 번호를 따로 매기지 않는 이유는 그 번호를
+  -- 누군가 세야 하기 때문이다. 애플리케이션이 세면 저장이 한 번 실패했을 때
+  -- 어긋나고, 데이터베이스가 세게 하려면 트리거가 매번 같은 플레이를 훑는다.
+  -- 대화는 뒤에 붙거나 뒤를 잘라 낼 뿐 중간에 끼워 넣지 않으므로 시각으로 충분하다.
+  -- Vercel도 자기 제품에서 같은 선택을 했다.
+  --
+  -- `now()`가 아니라 `clock_timestamp()`인 것은 한 트랜잭션이 두 행을 넣어도
+  -- 앞뒤가 갈리게 하기 위해서다. `now()`는 트랜잭션이 시작한 순간에 멈춰 있다.
+  --
+  -- insert grant에 이 열이 없다. 앱이 보낸 시각은 순서의 근거가 되지 않는다.
+  created_at timestamptz not null default clock_timestamp(),
+  -- 교정이 (message_id, user_id) 한 쌍으로 참조하기 위한 대상.
+  constraint episode_messages_owned_id unique (id, user_id),
+  foreign key (play_id, user_id)
+    references public.episode_plays (id, user_id) on delete cascade,
+  constraint episode_messages_role_known check (role in ('user', 'assistant')),
+  constraint episode_messages_parts_array check (jsonb_typeof(parts) = 'array'),
+  -- 한 메시지가 모델 문맥보다 커지기 전에 저장 경계를 분명히 한다. 옛 구조의
+  -- 1 MiB는 한 화의 대화 전체에 걸린 한도였고, 그래서 대화가 길어질수록 남은
+  -- 자리가 줄었다. 여기서는 메시지 하나마다 같은 한도가 걸린다.
+  constraint episode_messages_parts_size check (
+    octet_length(parts::text) <= 262144
   )
 );
 
-create index episode_runs_episode_id_idx on public.episode_runs (episode_id);
+-- 한 플레이의 대화를 순서대로 읽는 조회와 뒤를 잘라 내는 삭제가 모두 이 색인을
+-- 탄다. 앞자리가 `play_id`이므로 부모를 지울 때 도는 조회도 함께 받는다.
+--
+-- `(play_id, user_id)` 외래키를 정확히 덮는 색인은 두지 않는다. Supabase
+-- advisor가 `unindexed_foreign_keys`를 INFO로 보고하지만, 앞자리 일치로 충분하고
+-- 이 데이터베이스는 `retired_usernames_retired_by_fkey`에서 같은 보고를 이미 받아
+-- 두고 있다(2026-08-29 `supabase db advisors --local`로 확인).
+create index episode_messages_play_id_created_at_idx
+  on public.episode_messages (play_id, created_at);
 
-comment on table public.episode_runs is
-  'One server-saved UI message list per account and episode, active or completed.';
+create index episode_messages_user_id_idx
+  on public.episode_messages (user_id);
 
-comment on column public.episode_runs.messages is
-  'AI SDK UI messages with stable message ids. Limited to one MiB per episode.';
+comment on table public.episode_messages is
+  'One AI SDK UI message per row, ordered inside a play by created_at.';
 
-comment on column public.episode_runs.completed_at is
-  'Set after an ending exists. A fallback completion can be upgraded once by a compatible normal completion.';
+comment on column public.episode_messages.id is
+  'The id the AI SDK gave this message. Shared by the app, the server and this row.';
 
-comment on column public.episode_runs.completed_by_fallback is
-  'True while a stopped client snapshot is the completed transcript. A compatible normal completion replaces it and clears this flag.';
+comment on column public.episode_messages.created_at is
+  'When the row landed, and the order the conversation is read in. Written by the database, never by a client.';
+
+comment on column public.episode_messages.parts is
+  'AI SDK UI message parts, kept as one JSON document. Limited to 256 KiB per message.';
+
+-- 사용자 메시지에 붙는 교정 한 건. 화면에서는 배울 표현으로 부른다.
+--
+-- 한 메시지에 여러 개가 붙고, 각 행이 원문의 어긋난 부분과 고친 문장과 이유를
+-- 함께 담는다. 행으로 남기므로 한 계정이 지금까지 받은 교정 전체를 한 번의
+-- 조회로 꺼낼 수 있다.
+create table public.episode_corrections (
+  id uuid primary key default gen_random_uuid(),
+  message_id uuid not null,
+  user_id uuid not null default auth.uid(),
+  -- 원문에서 어긋난 조각. 화면이 물결 밑줄로 짚는 자리다.
+  original text not null,
+  -- 고친 문장에서 그 조각에 해당하는 부분. 화면이 강조하는 자리다.
+  fixed text not null,
+  -- 이 메시지의 모든 교정을 반영한 문장 하나. 한 메시지에 행이 여럿이어도 같은
+  -- 값이 들어간다. 한 줄로 접힌 배울 표현이 보여 주는 문장이고, 다시 보내기가
+  -- 입력창에 담는 것도 이 문장이다.
+  corrected text not null,
+  -- 이 표현이 어떤 규칙인지 가리키는 영어 kebab-case 키. 화면에 보이지 않는다.
+  -- 같은 규칙을 한 에피소드에서 두 번 알려 주지 않는 근거가 이 열이고, 그래서
+  -- 앱이 이미 받은 목록을 나르지 않아도 된다.
+  pattern text not null,
+  -- 왜 그런지 한국어 한 줄.
+  reason text not null,
+  created_at timestamptz not null default now(),
+  foreign key (message_id, user_id)
+    references public.episode_messages (id, user_id) on delete cascade,
+  constraint episode_corrections_original_usable check (
+    length(btrim(original)) between 1 and 1000
+  ),
+  constraint episode_corrections_fixed_usable check (
+    length(btrim(fixed)) between 1 and 1000
+  ),
+  constraint episode_corrections_corrected_usable check (
+    length(btrim(corrected)) between 1 and 1000
+  ),
+  constraint episode_corrections_pattern_usable check (
+    length(btrim(pattern)) between 1 and 120
+  ),
+  constraint episode_corrections_reason_usable check (
+    length(btrim(reason)) between 1 and 300
+  )
+);
+
+-- 한 메시지에 붙은 교정을 함께 읽고, 그 메시지가 사라질 때 함께 지운다. 외래키가
+-- `(message_id, user_id)`인데 여기는 앞자리만 담는다. 위 `episode_messages`의
+-- 색인 주석과 같은 이유다.
+create index episode_corrections_message_id_idx
+  on public.episode_corrections (message_id);
+
+-- 계정에 쌓인 배울 표현을 한 번에 꺼내는 조회가 이 색인을 탄다.
+create index episode_corrections_user_id_idx
+  on public.episode_corrections (user_id);
+
+comment on table public.episode_corrections is
+  'One correction attached to a user message. Shown in the app as 배울 표현.';
+
+comment on column public.episode_corrections.original is
+  'The part of what the person wrote that was off.';
+
+comment on column public.episode_corrections.fixed is
+  'The matching part of the corrected sentence.';
+
+comment on column public.episode_corrections.corrected is
+  'The corrected sentence, with every correction on this message applied.';
+
+comment on column public.episode_corrections.pattern is
+  'Which rule this is, as an English kebab-case key. Never shown; it keeps the same rule from arriving twice in one episode.';
+
+comment on column public.episode_corrections.reason is
+  'One Korean line saying why.';
 
 -- 사용자가 쓰는 영어의 수준. 시즌이 아니라 계정에 붙는다.
 --

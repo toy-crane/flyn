@@ -11,6 +11,10 @@
     "check-types": "tsc --noEmit",
     "fix": "ultracite fix ."
   },
+  "dependencies": {
+    "ai": "7.0.58",
+    "type-fest": "5.8.0"
+  },
   "devDependencies": {
     "typescript": "5.9.2"
   }

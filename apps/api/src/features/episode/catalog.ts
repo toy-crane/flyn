@@ -81,15 +81,17 @@ interface EndingRecord {
   outcome: string;
 }
 
-interface RunRecord {
-  completed: boolean;
-  updatedAt: string;
+interface PlayRecord {
+  /** 이 화에 남은 대화가 있다. 다시 열어 읽을 수 있는지의 근거다. */
+  hasMessages: boolean;
+  /** 이 화를 마지막으로 손댄 시각. */
+  touchedAt: string;
 }
 
 /** 이 계정이 남긴 진행 전부. 화 id로 찾는다. */
 interface AccountProgress {
   endings: Map<string, EndingRecord>;
-  runs: Map<string, RunRecord>;
+  plays: Map<string, PlayRecord>;
 }
 
 /**
@@ -98,37 +100,48 @@ interface AccountProgress {
  * 스토리마다 따로 묻지 않는다. 행 권한이 이미 이 사람의 것만 돌려주므로 화
  * 목록으로 다시 거를 이유가 없고, 스토리가 늘어도 쿼리 수가 늘지 않는다.
  * 대화 본문은 읽지 않는다: 목록에 필요한 것은 그 화를 열었는지와 언제
- * 손댔는지뿐이다.
+ * 손댔는지뿐이라, 메시지는 세기만 하고 한 건도 읽지 않는다.
+ *
+ * 손댄 시각은 결말이 났으면 그 시각이고, 아니면 그 화를 연 시각이다. 마지막
+ * 메시지가 앉은 시각이 더 정확하지만, 그것을 얻으려면 이 계정의 메시지 행을
+ * 전부 읽어야 한다. 목록의 쓰임은 스토리 사이의 앞뒤를 가리는 것뿐이다.
  */
 export async function readAccountProgress(
   client: EpisodeClient
 ): Promise<AccountProgress> {
-  const [endings, runs] = await Promise.all([
-    client.from("episode_endings").select("episode_id, outcome, finished_at"),
-    client.from("episode_runs").select("episode_id, completed_at, updated_at"),
-  ]);
-
-  if (endings.error) {
-    throw new Error(`Reading story progress failed: ${endings.error.message}`);
-  }
-
-  if (runs.error) {
-    throw new Error(
-      `Reading episode transcripts failed: ${runs.error.message}`
+  const { data, error } = await client
+    .from("episode_plays")
+    .select(
+      "episode_id, started_at, finished_at, ending_outcome, episode_messages(count)"
     );
+
+  if (error) {
+    throw new Error(`Reading story progress failed: ${error.message}`);
   }
 
   return {
+    // 끝난 플레이는 결말 시각과 결과를 함께 갖는다. 테이블 제약이 그것을
+    // 보장하지만 생성 타입은 두 열을 nullable로 내놓으므로, 타입을 바꿔치기하는
+    // 대신 여기서 걸러 낸다.
     endings: new Map(
-      endings.data.map((row) => [
-        row.episode_id,
-        { finishedAt: row.finished_at, outcome: row.outcome },
-      ])
+      data.flatMap((row) =>
+        row.finished_at && row.ending_outcome
+          ? ([
+              [
+                row.episode_id,
+                { finishedAt: row.finished_at, outcome: row.ending_outcome },
+              ],
+            ] as [string, EndingRecord][])
+          : []
+      )
     ),
-    runs: new Map(
-      runs.data.map((row) => [
+    plays: new Map(
+      data.map((row) => [
         row.episode_id,
-        { completed: row.completed_at !== null, updatedAt: row.updated_at },
+        {
+          hasMessages: (row.episode_messages[0]?.count ?? 0) > 0,
+          touchedAt: row.finished_at ?? row.started_at,
+        },
       ])
     ),
   };
@@ -154,7 +167,7 @@ function storyProgressOf(
 
   for (const episode of entry.episodes) {
     const ending = progress.endings.get(episode.id);
-    const run = progress.runs.get(episode.id);
+    const play = progress.plays.get(episode.id);
 
     if (ending) {
       finished += 1;
@@ -162,19 +175,20 @@ function storyProgressOf(
       current ??= episode;
     }
 
-    for (const at of [ending?.finishedAt, run?.updatedAt]) {
-      if (at !== undefined && (touchedAt === undefined || at > touchedAt)) {
-        touchedAt = at;
-      }
+    const at = play?.touchedAt;
+
+    if (at !== undefined && (touchedAt === undefined || at > touchedAt)) {
+      touchedAt = at;
     }
   }
 
-  const run = current ? progress.runs.get(current.id) : undefined;
+  // 다음 화의 플레이에 이미 장면이 남아 있으면 시작이 아니라 이어 하기다.
+  const play = current ? progress.plays.get(current.id) : undefined;
 
   return {
     current,
     finished,
-    resuming: run !== undefined && !run.completed,
+    resuming: play?.hasMessages === true,
     touchedAt,
   };
 }
@@ -245,7 +259,7 @@ export function homeViewOf(
     continueCard: card
       ? continueCardOf(card.entry, card.progress, card.current)
       : null,
-    firstTime: progress.endings.size === 0 && progress.runs.size === 0,
+    firstTime: progress.plays.size === 0,
     others: head
       ? rest.map((story) =>
           continueCardOf(story.entry, story.progress, story.current)
@@ -288,7 +302,7 @@ export function storyDetailViewOf(
       if (ending) {
         return {
           episodeId: episode.id,
-          hasTranscript: progress.runs.get(episode.id)?.completed === true,
+          hasTranscript: progress.plays.get(episode.id)?.hasMessages === true,
           number: episode.number,
           outcome: ending.outcome,
           preview: null,

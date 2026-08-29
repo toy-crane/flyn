@@ -89,38 +89,120 @@ alter table public.retired_usernames enable row level security;
 
 grant all on table public.retired_usernames to service_role;
 
--- Access control for public.episode_endings.
+-- 플레이 기록, 메시지, 교정의 접근 규칙.
 --
--- Read-only for the person who played. Writing goes through
--- `public.finish_episode`, which is the only place the "one episode at a time"
--- rule exists — an insert grant here would let the app hand itself a finished
--- season.
-alter table public.episode_endings enable row level security;
+-- 세 테이블이 같은 모양을 쓴다. 자기 행만 읽고, 자기 행에만 쓰고, 결말이 난
+-- 플레이는 더 이상 바뀌지 않는다. 어느 규칙이 어디 사는지는
+-- docs/decisions/supabase-write-rules.md가 정한다.
+alter table public.episode_plays enable row level security;
 
-create policy episode_endings_select_own on public.episode_endings
+create policy episode_plays_select_own on public.episode_plays
   for select
   to authenticated
   using ((select auth.uid()) = user_id);
 
-grant select on table public.episode_endings to authenticated;
+-- 플레이를 여는 것은 사람이 한다. 지킬 규칙은 "지금 플레이할 화인가" 하나뿐인데,
+-- 그 답은 같은 스토리의 앞선 화를 모두 봐야 나오므로 함수가 답한다.
+create policy episode_plays_start_own on public.episode_plays
+  for insert
+  to authenticated
+  with check (
+    (select auth.uid()) = user_id
+    and public.episode_is_current(episode_id)
+  );
 
-grant all on table public.episode_endings to service_role;
+-- 결말을 쓰는 정책은 없다. `public.finish_episode`가 결말과 이야기 기억과 언어
+-- 수준을 한 트랜잭션에 남기고, 그 함수만이 이미 끝난 플레이를 다시 닫지 못하게
+-- 한다. 아래 insert grant가 열을 하나로 좁히는 것이 그 규칙의 나머지 절반이다.
+-- `user_id`도 여기 없다. 그 열은 기본값이 채우므로, 남의 이름을 실어 보내는
+-- 문장은 정책을 만나기 전에 권한에서 막힌다.
+grant select on table public.episode_plays to authenticated;
+grant insert (episode_id) on table public.episode_plays to authenticated;
+grant all on table public.episode_plays to service_role;
 
--- 진행 중 장면과 끝난 대화 기록. 사용자는 자기 기록만 읽고, 쓰기는 순서와
--- 완료 불변성을 검사하는 함수만 맡는다.
-alter table public.episode_runs enable row level security;
+alter table public.episode_messages enable row level security;
 
-create policy episode_runs_select_own on public.episode_runs
+create policy episode_messages_select_own on public.episode_messages
   for select
   to authenticated
   using ((select auth.uid()) = user_id);
 
-grant select on table public.episode_runs to authenticated;
-grant all on table public.episode_runs to service_role;
+-- `user_id`만 보고 답할 수 있는 것은 복합 외래키가 이 열을 플레이의 주인에
+-- 묶어 두기 때문이다. 남는 조건은 "그 플레이가 아직 열려 있는가" 하나다.
+create policy episode_messages_write_open_play on public.episode_messages
+  for insert
+  to authenticated
+  with check (
+    (select auth.uid()) = user_id
+    and exists (
+      select 1
+      from public.episode_plays played
+      where played.id = play_id
+        and played.finished_at is null
+    )
+  );
+
+-- 다시 받기와 수정은 기준 메시지와 그 뒤를 지운다. 결말이 난 플레이에서는
+-- 지우는 것도 막힌다.
+create policy episode_messages_erase_open_play on public.episode_messages
+  for delete
+  to authenticated
+  using (
+    (select auth.uid()) = user_id
+    and exists (
+      select 1
+      from public.episode_plays played
+      where played.id = play_id
+        and played.finished_at is null
+    )
+  );
+
+-- update 정책이 없다. 저장은 장면이 끝난 뒤 한 번 일어나고, 고쳐 쓰는 대신
+-- 지우고 새로 넣는다. 쓸 일이 없는 문장은 열지 않는다. `user_id`는
+-- `episode_plays`와 같은 이유로 insert grant에서 빠져 있다. `created_at`도 없다.
+-- 자리를 정하는 것은 데이터베이스가 채우는 시각이라 실어 보낼 값이 아니다.
+grant select, delete on table public.episode_messages to authenticated;
+grant insert (id, play_id, role, parts)
+  on table public.episode_messages to authenticated;
+grant all on table public.episode_messages to service_role;
+
+alter table public.episode_corrections enable row level security;
+
+create policy episode_corrections_select_own on public.episode_corrections
+  for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+-- 교정은 사용자가 쓴 메시지에만 붙는다. 상대의 대사에 교정을 다는 요청은 여기서
+-- 막힌다.
+--
+-- 플레이가 끝났는지는 보지 않는다. 결말이 얼리는 것은 대화, 곧 메시지다. 교정
+-- 판정은 장면과 나란히 돌아 결말 확정보다 늦게 끝날 수 있는데, 에피소드를 끝내는
+-- 마지막 메시지야말로 배울 표현이 가장 아까운 자리다. 경주에서 졌다는 이유로
+-- 버리면 "교정은 그 자리에서 확인된다"는 약속이 마지막 턴에서만 깨진다.
+create policy episode_corrections_write_own_message on public.episode_corrections
+  for insert
+  to authenticated
+  with check (
+    (select auth.uid()) = user_id
+    and exists (
+      select 1
+      from public.episode_messages written
+      where written.id = message_id
+        and written.role = 'user'
+    )
+  );
+
+-- delete 정책이 없다. 교정은 그것이 붙은 메시지를 따라 사라진다. `user_id`는
+-- 앞의 두 테이블과 같은 이유로 insert grant에서 빠져 있다.
+grant select on table public.episode_corrections to authenticated;
+grant insert (message_id, original, fixed, corrected, pattern, reason)
+  on table public.episode_corrections to authenticated;
+grant all on table public.episode_corrections to service_role;
 
 -- Access control for public.language_levels.
 --
--- Same shape as episode_endings: the owner may read, and only
+-- Same shape as episode_plays: the owner may read, and only
 -- `public.finish_episode` writes. A person's reading of their own English is
 -- theirs to see, not theirs to declare.
 alter table public.language_levels enable row level security;

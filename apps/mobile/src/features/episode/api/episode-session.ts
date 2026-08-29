@@ -1,5 +1,8 @@
 import type { UIMessage } from "ai";
 
+import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
+import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
+import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { aiUrl } from "@/shared/ai/request-options";
 
 /** 화면이 한 화를 여는 데 필요한 각본 조각. */
@@ -13,13 +16,26 @@ export interface PlayingEpisode {
 }
 
 export interface EpisodeSession {
+  /**
+   * 이 대화에 붙은 배울 표현. 저장된 대화에 교정 part가 없으므로 여기 실려 온다.
+   *
+   * 화면을 나갔다 와도 붙어 있던 배울 표현이 같은 메시지 곁으로 돌아온다.
+   */
+  corrections: EpisodeCorrection[];
+  /**
+   * 이 화가 어떻게 끝났는지. 진행 중이면 없다.
+   *
+   * 저장된 대화에는 결말 part가 들어 있지 않다. 결말은 서버의 플레이 기록이
+   * 소유하는 사실이라, 다시 연 화면은 흐르던 part 대신 이 값으로 마무리를
+   * 그린다.
+   */
+  ending?: EpisodeEnding;
   episode: PlayingEpisode;
   messages: UIMessage[];
+  /** 결말 다음에 보여 줄 예고. 같은 이유로 대화가 아니라 여기 실려 온다. */
+  nextUp?: EpisodeNextUp;
   readOnly: boolean;
 }
-
-/** How a stopped client snapshot should meet the server's saved transcript. */
-export type EpisodeStopMode = "preserve" | "replace";
 
 export async function readEpisodeSession(
   accessToken: string,
@@ -34,35 +50,4 @@ export async function readEpisodeSession(
   }
 
   return (await response.json()) as EpisodeSession;
-}
-
-/**
- * 중지 뒤 화면에 남은 장면을 서버 기록과 한 번 더 맞춘다.
- *
- * 답변이 시작된 뒤에는 서버의 더 긴 기록을 지켜야 하지만, 다시 받기가 아직
- * 답변을 시작하지 않았다면 잘라 낸 목록 자체가 새 기록이다. 서버가 둘을
- * 구분할 수 있도록 현재 요청이 답변 다시 받기인지 함께 보낸다.
- */
-export async function saveStoppedEpisodeSession(
-  accessToken: string,
-  episodeId: string,
-  messages: UIMessage[],
-  mode: EpisodeStopMode,
-  signal: AbortSignal
-): Promise<void> {
-  const response = await fetch(aiUrl(`/ai/episode/${episodeId}`), {
-    body: JSON.stringify({ messages, mode }),
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "content-type": "application/json",
-    },
-    method: "PUT",
-    signal,
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `Saving the stopped episode failed with ${response.status}`
-    );
-  }
 }

@@ -306,11 +306,62 @@ create trigger profiles_guard_username_change
   when (new.username is distinct from old.username)
   execute function public.guard_username_change();
 
+-- 지금 이 계정이 플레이할 수 있는 화인지 답한다.
+--
+-- 한 행만 보고는 답할 수 없다. 같은 스토리의 앞선 화를 모두 훑어 결말이 없는
+-- 화가 하나라도 있는지 봐야 하므로, 정책 표현식 하나로는 적을 수 없다.
+--
+-- `security invoker`다. 이 함수가 읽는 두 테이블은 호출자가 이미 읽을 수 있고,
+-- `public.episode_plays`에 걸리는 RLS는 자기 행만 남기므로 아래 `played.user_id`
+-- 조건과 같은 결과를 준다. 소유자 권한이 필요 없으면 주지 않는다. 정책이 이
+-- 함수를 부르는 것으로 재귀가 생기지도 않는다. `episode_plays`의 select 정책이
+-- 자기 테이블을 읽지 않기 때문이다. 2026-08-28 로컬에서 확인했다.
+--
+-- `auth.uid()`를 인자로 받지 않고 안에서 읽는다. 이 함수는 `authenticated`에게
+-- EXECUTE가 열려 있어 앱을 거치지 않고도 호출되므로, 인자로 받으면 남의 진행을
+-- 물어보는 문이 된다.
+--
+-- 없는 화도 false다. 지금 플레이할 화가 아니라는 답이 사실이고, 존재 여부는
+-- 외래키가 따로 막는다.
+create function public.episode_is_current(target_episode uuid)
+returns boolean
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.episodes target
+    where target.id = episode_is_current.target_episode
+      and not exists (
+        select 1
+        from public.episodes earlier
+        left join public.episode_plays played
+          on played.user_id = (select auth.uid())
+          and played.episode_id = earlier.id
+          and played.finished_at is not null
+        where earlier.story_id = target.story_id
+          and earlier.number < target.number
+          and played.id is null
+      )
+  );
+$$;
+
+comment on function public.episode_is_current(uuid) is
+  'Reports whether the caller has finished every earlier episode of the story this one belongs to.';
+
+revoke all on function public.episode_is_current(uuid) from public;
+-- 정책 표현식은 정책을 만든 역할이 아니라 부르는 역할의 권한으로 평가한다.
+-- `public.episode_plays`의 insert 정책이 이 함수를 부르므로 EXECUTE가 필요하다.
+grant execute on function public.episode_is_current(uuid) to authenticated;
+
 -- 끝난 에피소드를 기록하는 유일한 길.
 --
--- `authenticated`는 `episode_endings`에 직접 쓰지 못한다. 직접 쓸 수 있으면
--- 앱이 아무 화나 끝난 것으로 만들어 앞의 화를 건너뛸 수 있다. 이 함수는
--- 지금 끝낼 수 있는 화가 하나뿐이라는 규칙을 지키고, 그래서 `security definer`다.
+-- 결말이 한 번만 난다는 규칙과 이야기 기억, 언어 수준이 한 트랜잭션에 함께
+-- 남는다는 것이 이 함수의 이유다. `authenticated`는 `public.episode_plays`의
+-- 결말 열에 직접 쓰지 못한다. 직접 쓸 수 있으면 앱이 아무 화나 끝난 것으로
+-- 만들어 앞의 화를 건너뛸 수 있다.
 --
 -- 같은 화의 결말이 다시 도착하면 false를 돌려준다. 한 번 난 결말은 그 스토리의
 -- 사실로 남으므로 나중에 온 판정이 앞의 사실을 바꾸거나 화면을 닫지 않는다.
@@ -331,52 +382,29 @@ as $$
 declare
   player uuid := (select auth.uid());
   recorded integer;
-  target_story uuid;
-  target_number smallint;
 begin
   if player is null then
     raise exception 'A signed-in user is required to finish an episode.'
       using errcode = '28000';
   end if;
 
-  select authored.story_id, authored.number
-  into target_story, target_number
-  from public.episodes authored
-  where authored.id = finish_episode.episode_id;
-
-  if target_story is null then
-    raise exception 'Episode % does not exist.', finish_episode.episode_id
-      using errcode = '22023';
-  end if;
-
-  if not exists (
-    select 1
-    from public.episode_endings ending
-    where ending.user_id = player
-      and ending.episode_id = finish_episode.episode_id
-  ) and exists (
-    select 1
-    from public.episodes earlier
-    left join public.episode_endings ending
-      on ending.user_id = player
-      and ending.episode_id = earlier.id
-    where earlier.story_id = target_story
-      and earlier.number < target_number
-      and ending.episode_id is null
-  ) then
-    raise exception 'Episode % is not the next episode in its story.',
+  if not public.episode_is_current(finish_episode.episode_id) then
+    raise exception 'Episode % is not the current episode in its story.',
       finish_episode.episode_id
       using errcode = '22023';
   end if;
 
-  insert into public.episode_endings (
+  -- 아직 플레이를 열지 않은 채 결말이 도착할 수 있다. 그때는 이 한 문장이
+  -- 플레이를 만들면서 닫는다.
+  insert into public.episode_plays (
     user_id,
     episode_id,
-    kind,
-    outcome,
+    ending_kind,
+    ending_outcome,
     memory_choice,
     memory_relationship,
-    memory_question
+    memory_question,
+    finished_at
   )
   values (
     player,
@@ -385,9 +413,17 @@ begin
     finish_episode.outcome,
     finish_episode.memory_choice,
     finish_episode.memory_relationship,
-    finish_episode.memory_question
+    finish_episode.memory_question,
+    now()
   )
-  on conflict on constraint episode_endings_pkey do nothing;
+  on conflict on constraint episode_plays_one_per_episode do update
+  set ending_kind = excluded.ending_kind,
+      ending_outcome = excluded.ending_outcome,
+      memory_choice = excluded.memory_choice,
+      memory_relationship = excluded.memory_relationship,
+      memory_question = excluded.memory_question,
+      finished_at = excluded.finished_at
+  where public.episode_plays.finished_at is null;
 
   get diagnostics recorded = row_count;
 
@@ -404,506 +440,7 @@ end;
 $$;
 
 comment on function public.finish_episode(uuid, text, text, text, text, text, text) is
-  'Records the ending and story memory of the caller''s current episode. Returns true only to the request that inserted the permanent ending.';
+  'Records the ending and story memory of the caller''s current episode. Returns true only to the request that closed the play.';
 
 revoke all on function public.finish_episode(uuid, text, text, text, text, text, text) from public;
 grant execute on function public.finish_episode(uuid, text, text, text, text, text, text) to authenticated;
-
--- 진행 중인 장면을 계정에 남긴다. 앱은 매 요청에 대화 전체를 보내고 서버는
--- 받은 목록을 통째로 바꿔 쓴다. 같은 에피소드를 두 기기에서 진행하면 마지막
--- 저장이 남는다.
-create function public.save_episode_run(episode_id uuid, messages jsonb)
-returns void
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  player uuid := (select auth.uid());
-  target_story uuid;
-  target_number smallint;
-begin
-  if player is null then
-    raise exception 'A signed-in user is required to save an episode.'
-      using errcode = '28000';
-  end if;
-
-  if jsonb_typeof(save_episode_run.messages) is distinct from 'array' then
-    raise exception 'Episode messages must be a JSON array.'
-      using errcode = '22023';
-  end if;
-
-  if octet_length(save_episode_run.messages::text) > 1048576 then
-    raise exception 'Episode messages exceed the one MiB limit.'
-      using errcode = '22001';
-  end if;
-
-  select authored.story_id, authored.number
-  into target_story, target_number
-  from public.episodes authored
-  where authored.id = save_episode_run.episode_id;
-
-  if target_story is null then
-    raise exception 'Episode % does not exist.', save_episode_run.episode_id
-      using errcode = '22023';
-  end if;
-
-  if exists (
-    select 1
-    from public.episode_endings ending
-    where ending.user_id = player
-      and ending.episode_id = save_episode_run.episode_id
-  ) then
-    return;
-  end if;
-
-  if exists (
-    select 1
-    from public.episodes earlier
-    left join public.episode_endings ending
-      on ending.user_id = player
-      and ending.episode_id = earlier.id
-    where earlier.story_id = target_story
-      and earlier.number < target_number
-      and ending.episode_id is null
-  ) then
-    raise exception 'Episode % is not the current episode in its story.',
-      save_episode_run.episode_id
-      using errcode = '22023';
-  end if;
-
-  insert into public.episode_runs (user_id, episode_id, messages)
-  values (player, save_episode_run.episode_id, save_episode_run.messages)
-  on conflict on constraint episode_runs_pkey do update
-  set messages = excluded.messages,
-      updated_at = now()
-  where public.episode_runs.completed_at is null;
-end;
-$$;
-
-comment on function public.save_episode_run(uuid, jsonb) is
-  'Upserts the caller''s current episode messages. Completed runs remain immutable.';
-
-revoke all on function public.save_episode_run(uuid, jsonb) from public;
-grant execute on function public.save_episode_run(uuid, jsonb) to authenticated;
-
-
--- A stopped app can only send the latest scene React has rendered. The server's
--- request may already have saved a longer form of that same scene, so the
--- fallback must recognize a prefix without treating a different branch as one.
-create function public.episode_run_extends_snapshot(
-  stored_messages jsonb,
-  snapshot_messages jsonb
-)
-returns boolean
-language plpgsql
-immutable
-parallel safe
-set search_path = ''
-as $$
-declare
-  snapshot_message jsonb;
-  snapshot_part jsonb;
-  stored_message jsonb;
-  stored_part jsonb;
-begin
-  if jsonb_typeof(episode_run_extends_snapshot.stored_messages)
-      is distinct from 'array'
-    or jsonb_typeof(episode_run_extends_snapshot.snapshot_messages)
-      is distinct from 'array'
-  then
-    return false;
-  end if;
-
-  if jsonb_array_length(episode_run_extends_snapshot.stored_messages)
-      < jsonb_array_length(episode_run_extends_snapshot.snapshot_messages)
-  then
-    return false;
-  end if;
-
-  if jsonb_array_length(episode_run_extends_snapshot.snapshot_messages) = 0 then
-    return true;
-  end if;
-
-  for message_index in
-    0..jsonb_array_length(episode_run_extends_snapshot.snapshot_messages) - 1
-  loop
-    stored_message :=
-      episode_run_extends_snapshot.stored_messages -> message_index;
-    snapshot_message :=
-      episode_run_extends_snapshot.snapshot_messages -> message_index;
-
-    if stored_message ->> 'id' is distinct from snapshot_message ->> 'id'
-      or stored_message ->> 'role' is distinct from snapshot_message ->> 'role'
-      or jsonb_typeof(stored_message -> 'parts') is distinct from 'array'
-      or jsonb_typeof(snapshot_message -> 'parts') is distinct from 'array'
-      or jsonb_array_length(stored_message -> 'parts')
-        < jsonb_array_length(snapshot_message -> 'parts')
-    then
-      return false;
-    end if;
-
-    if jsonb_array_length(snapshot_message -> 'parts') = 0 then
-      continue;
-    end if;
-
-    for part_index in
-      0..jsonb_array_length(snapshot_message -> 'parts') - 1
-    loop
-      stored_part := stored_message -> 'parts' -> part_index;
-      snapshot_part := snapshot_message -> 'parts' -> part_index;
-
-      if stored_part ->> 'type' is distinct from snapshot_part ->> 'type' then
-        return false;
-      end if;
-
-      if snapshot_part ->> 'type' = 'text' then
-        if stored_part - 'state' - 'text'
-            is distinct from snapshot_part - 'state' - 'text'
-          or left(
-            coalesce(stored_part ->> 'text', ''),
-            length(coalesce(snapshot_part ->> 'text', ''))
-          ) is distinct from coalesce(snapshot_part ->> 'text', '')
-        then
-          return false;
-        end if;
-      elsif stored_part - 'state' is distinct from snapshot_part - 'state' then
-        return false;
-      end if;
-    end loop;
-  end loop;
-
-  return true;
-end;
-$$;
-
-comment on function public.episode_run_extends_snapshot(jsonb, jsonb) is
-  'Reports whether stored episode messages are the same branch at least as complete as a stopped client snapshot.';
-
-revoke all on function public.episode_run_extends_snapshot(jsonb, jsonb)
-  from public;
-
--- Saves the scene visible when an app stops a request. Unlike ordinary
--- last-write-wins saves, a delayed shorter snapshot cannot roll back the
--- server's longer version of the same messages.
-create function public.save_episode_run_fallback(episode_id uuid, messages jsonb)
-returns void
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  player uuid := (select auth.uid());
-  target_story uuid;
-  target_number smallint;
-begin
-  if player is null then
-    raise exception 'A signed-in user is required to save an episode.'
-      using errcode = '28000';
-  end if;
-
-  if jsonb_typeof(save_episode_run_fallback.messages) is distinct from 'array' then
-    raise exception 'Episode messages must be a JSON array.'
-      using errcode = '22023';
-  end if;
-
-  if octet_length(save_episode_run_fallback.messages::text) > 1048576 then
-    raise exception 'Episode messages exceed the one MiB limit.'
-      using errcode = '22001';
-  end if;
-
-  select authored.story_id, authored.number
-  into target_story, target_number
-  from public.episodes authored
-  where authored.id = save_episode_run_fallback.episode_id;
-
-  if target_story is null then
-    raise exception 'Episode % does not exist.',
-      save_episode_run_fallback.episode_id
-      using errcode = '22023';
-  end if;
-
-  if exists (
-    select 1
-    from public.episode_endings ending
-    where ending.user_id = player
-      and ending.episode_id = save_episode_run_fallback.episode_id
-  ) then
-    return;
-  end if;
-
-  if exists (
-    select 1
-    from public.episodes earlier
-    left join public.episode_endings ending
-      on ending.user_id = player
-      and ending.episode_id = earlier.id
-    where earlier.story_id = target_story
-      and earlier.number < target_number
-      and ending.episode_id is null
-  ) then
-    raise exception 'Episode % is not the current episode in its story.',
-      save_episode_run_fallback.episode_id
-      using errcode = '22023';
-  end if;
-
-  insert into public.episode_runs (user_id, episode_id, messages)
-  values (
-    player,
-    save_episode_run_fallback.episode_id,
-    save_episode_run_fallback.messages
-  )
-  on conflict on constraint episode_runs_pkey do update
-  set messages = excluded.messages,
-      updated_at = now()
-  where public.episode_runs.completed_at is null
-    and not public.episode_run_extends_snapshot(
-      public.episode_runs.messages,
-      excluded.messages
-    );
-end;
-$$;
-
-comment on function public.save_episode_run_fallback(uuid, jsonb) is
-  'Saves a stopped current scene without replacing a longer snapshot of the same branch.';
-
-revoke all on function public.save_episode_run_fallback(uuid, jsonb)
-  from public;
-grant execute on function public.save_episode_run_fallback(uuid, jsonb)
-  to authenticated;
-
--- 결말이 먼저 남은 에피소드의 같은 장면을 읽기 전용 대화 기록으로 확정한다.
--- 이 함수가 실패해도 결말은 이미 별도 호출로 남아 있어 화가 다시 열리지 않는다.
-create function public.complete_episode_run(episode_id uuid, messages jsonb)
-returns void
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  ending_count integer;
-  matching_ending_count integer;
-  player uuid := (select auth.uid());
-  recorded_kind text;
-  recorded_outcome text;
-begin
-  if player is null then
-    raise exception 'A signed-in user is required to complete an episode run.'
-      using errcode = '28000';
-  end if;
-
-  if jsonb_typeof(complete_episode_run.messages) is distinct from 'array' then
-    raise exception 'Episode messages must be a JSON array.'
-      using errcode = '22023';
-  end if;
-
-  if octet_length(complete_episode_run.messages::text) > 1048576 then
-    raise exception 'Episode messages exceed the one MiB limit.'
-      using errcode = '22001';
-  end if;
-
-  select ending.kind, ending.outcome
-  into recorded_kind, recorded_outcome
-  from public.episode_endings ending
-  where ending.user_id = player
-    and ending.episode_id = complete_episode_run.episode_id;
-
-  if not found then
-    raise exception 'Episode % has no ending.', complete_episode_run.episode_id
-      using errcode = '22023';
-  end if;
-
-  select
-    count(*),
-    count(*) filter (
-      where part #>> '{data,kind}' = recorded_kind
-        and part #>> '{data,outcome}' = recorded_outcome
-    )
-  into ending_count, matching_ending_count
-  from jsonb_array_elements(complete_episode_run.messages) message
-  cross join lateral jsonb_array_elements(
-    case
-      when jsonb_typeof(message -> 'parts') = 'array' then message -> 'parts'
-      else '[]'::jsonb
-    end
-  ) part
-  where part ->> 'type' = 'data-ending';
-
-  if ending_count <> 1 or matching_ending_count <> 1 then
-    raise exception 'Episode % transcript does not match its ending.',
-      complete_episode_run.episode_id
-      using errcode = '22023';
-  end if;
-
-  insert into public.episode_runs (
-    user_id,
-    episode_id,
-    messages,
-    completed_at,
-    completed_by_fallback
-  )
-  values (
-    player,
-    complete_episode_run.episode_id,
-    complete_episode_run.messages,
-    now(),
-    false
-  )
-  on conflict on constraint episode_runs_pkey do update
-  set messages = excluded.messages,
-      completed_at = excluded.completed_at,
-      completed_by_fallback = false,
-      updated_at = now()
-  where public.episode_runs.completed_at is null
-    or (
-      public.episode_runs.completed_by_fallback
-      and public.episode_run_extends_snapshot(
-        excluded.messages,
-        public.episode_runs.messages
-      )
-    );
-end;
-$$;
-
-comment on function public.complete_episode_run(uuid, jsonb) is
-  'Marks matching ended messages complete. A compatible normal completion can upgrade a fallback once; normal completions are immutable.';
-
-revoke all on function public.complete_episode_run(uuid, jsonb) from public;
-grant execute on function public.complete_episode_run(uuid, jsonb) to authenticated;
-
-create function public.episode_run_matches_ending(
-  messages jsonb,
-  kind text,
-  outcome text
-)
-returns boolean
-language sql
-immutable
-parallel safe
-set search_path = ''
-as $$
-  select count(*) = 1
-    and count(*) filter (
-      where part #>> '{data,kind}' = episode_run_matches_ending.kind
-        and part #>> '{data,outcome}' = episode_run_matches_ending.outcome
-    ) = 1
-  from jsonb_array_elements(
-    case
-      when jsonb_typeof(episode_run_matches_ending.messages) = 'array'
-        then episode_run_matches_ending.messages
-      else '[]'::jsonb
-    end
-  ) message
-  cross join lateral jsonb_array_elements(
-    case
-      when jsonb_typeof(message -> 'parts') = 'array' then message -> 'parts'
-      else '[]'::jsonb
-    end
-  ) part
-  where part ->> 'type' = 'data-ending';
-$$;
-
-comment on function public.episode_run_matches_ending(jsonb, text, text) is
-  'Reports whether episode messages carry exactly one matching permanent ending.';
-
-revoke all on function public.episode_run_matches_ending(jsonb, text, text)
-  from public;
-
--- A Stop can arrive after the permanent ending but before the server's longer
--- transcript finishes saving. Complete once, choosing the longer compatible
--- scene instead of freezing the throttled client snapshot.
-create function public.complete_episode_run_fallback(
-  episode_id uuid,
-  messages jsonb
-)
-returns void
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  player uuid := (select auth.uid());
-  recorded_kind text;
-  recorded_outcome text;
-begin
-  if player is null then
-    raise exception 'A signed-in user is required to complete an episode run.'
-      using errcode = '28000';
-  end if;
-
-  if jsonb_typeof(complete_episode_run_fallback.messages)
-      is distinct from 'array'
-  then
-    raise exception 'Episode messages must be a JSON array.'
-      using errcode = '22023';
-  end if;
-
-  if octet_length(complete_episode_run_fallback.messages::text) > 1048576 then
-    raise exception 'Episode messages exceed the one MiB limit.'
-      using errcode = '22001';
-  end if;
-
-  select ending.kind, ending.outcome
-  into recorded_kind, recorded_outcome
-  from public.episode_endings ending
-  where ending.user_id = player
-    and ending.episode_id = complete_episode_run_fallback.episode_id;
-
-  if not found then
-    raise exception 'Episode % has no ending.',
-      complete_episode_run_fallback.episode_id
-      using errcode = '22023';
-  end if;
-
-  if not public.episode_run_matches_ending(
-    complete_episode_run_fallback.messages,
-    recorded_kind,
-    recorded_outcome
-  ) then
-    raise exception 'Episode % transcript does not match its ending.',
-      complete_episode_run_fallback.episode_id
-      using errcode = '22023';
-  end if;
-
-  insert into public.episode_runs (
-    user_id,
-    episode_id,
-    messages,
-    completed_at,
-    completed_by_fallback
-  )
-  values (
-    player,
-    complete_episode_run_fallback.episode_id,
-    complete_episode_run_fallback.messages,
-    now(),
-    true
-  )
-  on conflict on constraint episode_runs_pkey do update
-  set messages = case
-        when public.episode_run_extends_snapshot(
-          public.episode_runs.messages,
-          excluded.messages
-        )
-          and public.episode_run_matches_ending(
-            public.episode_runs.messages,
-            recorded_kind,
-            recorded_outcome
-          )
-          then public.episode_runs.messages
-        else excluded.messages
-      end,
-      completed_at = excluded.completed_at,
-      completed_by_fallback = true,
-      updated_at = now()
-  where public.episode_runs.completed_at is null;
-end;
-$$;
-
-comment on function public.complete_episode_run_fallback(uuid, jsonb) is
-  'Completes a stopped ending with the longer compatible active transcript.';
-
-revoke all on function public.complete_episode_run_fallback(uuid, jsonb)
-  from public;
-grant execute on function public.complete_episode_run_fallback(uuid, jsonb)
-  to authenticated;

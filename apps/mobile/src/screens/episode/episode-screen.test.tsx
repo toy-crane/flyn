@@ -1,6 +1,6 @@
 import { beforeEach, expect, jest, test } from "@jest/globals";
 import type { Session } from "@supabase/supabase-js";
-import { act, screen, userEvent, waitFor } from "@testing-library/react-native";
+import { screen, userEvent } from "@testing-library/react-native";
 import type { UIMessage } from "ai";
 import {
   useHeaderHeight,
@@ -69,9 +69,7 @@ const mockOpenedRuns =
     ) => void
   >();
 let mockEnding: EpisodeEnding | undefined;
-let mockIsSaving = false;
 let mockNextUp: EpisodeNextUp | undefined;
-const mockStopAndSave = jest.fn<() => Promise<void>>(() => Promise.resolve());
 /** 카페 1화에서 실제로 나올 법한 교정 하나와 그것이 붙는 메시지. */
 const CORRECTED_MESSAGE = {
   id: "m1",
@@ -100,7 +98,6 @@ let mockCorrections: {
   confirmResend: jest.Mock<() => void>;
   receive: jest.Mock<() => void>;
   resent: Record<string, true>;
-  seenPatterns: () => string[];
 };
 
 jest.mock("@/features/episode/state/use-episode-run", () => {
@@ -126,10 +123,8 @@ jest.mock("@/features/episode/state/use-episode-run", () => {
         chat: { tag: "episode-chat" },
         corrections: mockCorrections,
         ending: mockEnding,
-        isSaving: mockIsSaving,
         nextUp: mockNextUp,
         open: jest.fn(),
-        stopAndSave: mockStopAndSave,
       };
     },
   };
@@ -143,7 +138,6 @@ const PLAYING = {
   initialMessages: [],
   isStartingNext: false,
   onOpenAsk: mockOpenAsk,
-  onSettlingChange: jest.fn(),
   readOnly: false,
   situation: "다른 방법을 찾아 계산을 끝내 보세요",
   situationEmoji: "💳",
@@ -222,14 +216,12 @@ const conversation = {
 beforeEach(() => {
   panel = undefined;
   mockEnding = undefined;
-  mockIsSaving = false;
   mockCorrections = {
     beginResend: jest.fn(),
     byMessageId: {},
     confirmResend: jest.fn(),
     receive: jest.fn(),
     resent: {},
-    seenPatterns: () => [],
   };
   mockOpenAsk.mockClear();
   mockOpenAskConversation.mockClear();
@@ -243,9 +235,6 @@ beforeEach(() => {
   };
   mockOpenedRuns.mockClear();
   mockNavigationDispatch.mockClear();
-  mockStopAndSave.mockReset();
-  mockStopAndSave.mockResolvedValue();
-  PLAYING.onSettlingChange.mockClear();
   preventedRemoval = undefined;
   isRemovalPrevented = false;
   conversation.isBusy = false;
@@ -273,7 +262,6 @@ test("화면에 들어오면 그 자리에서 에피소드를 연다", async () 
     false
   );
   expect(panel?.chat).toMatchObject({ tag: "conversation" });
-  expect(panel?.canStop).toBe(true);
   expect(panel?.topInset).toBe(96);
   expect(panel?.placeholder).toBe("영어로 말해 보세요");
 });
@@ -414,8 +402,6 @@ test("장면 응답 중에도 중지와 나가기 동작을 열어 둔다", asyn
     <EpisodeScreen {...PLAYING} onLeave={leave} onStartNext={startNext} />
   );
 
-  expect(PLAYING.onSettlingChange).toHaveBeenLastCalledWith(false);
-  expect(panel?.canStop).toBe(true);
   expect(screen.getByRole("button", { name: "홈으로 가기" })).toHaveProp(
     "accessibilityState",
     { busy: false, disabled: false }
@@ -432,104 +418,19 @@ test("장면 응답 중에도 중지와 나가기 동작을 열어 둔다", asyn
   expect(startNext).toHaveBeenCalledTimes(1);
 });
 
-test("중지한 장면을 저장하는 동안에만 동작을 잠근다", async () => {
-  mockIsSaving = true;
-  mockEnding = { kind: "성공", outcome: "원하던 커피를 새로 받아냈다." };
-
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
-  );
-
-  expect(PLAYING.onSettlingChange).toHaveBeenLastCalledWith(true);
-  expect(panel?.canStop).toBe(false);
-  expect(panel?.busyLabel).toBe("진행을 저장하고 있어요");
-  expect(panel?.chat).toMatchObject({
-    isBusy: true,
-    stop: mockStopAndSave,
-  });
-  expect(screen.getByRole("button", { name: "홈으로 가기" })).toHaveProp(
-    "accessibilityState",
-    { busy: false, disabled: true }
-  );
-});
-
-test("iOS 뒤로 스와이프는 중지 저장 뒤 같은 POP 동작을 한 번만 이어 간다", async () => {
-  let finishSave: (() => void) | undefined;
-  mockStopAndSave.mockImplementationOnce(
-    () =>
-      new Promise<void>((resolve) => {
-        finishSave = resolve;
-      })
-  );
+// 저장하는 주체가 서버 하나가 되면서 화면이 붙잡을 이유가 사라졌다. 답변을
+// 받는 중에 나가도 서버는 자기가 만든 데까지를 스스로 남긴다.
+test("답변을 받는 중에도 나가기를 붙잡지 않는다", async () => {
   conversation.isBusy = true;
 
   await renderWithHeroUI(
     <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
   );
 
-  expect(isRemovalPrevented).toBe(true);
-  const action = { type: "POP" };
-  await act(() => {
-    preventedRemoval?.({ data: { action } });
-    preventedRemoval?.({ data: { action } });
-
-    return Promise.resolve();
-  });
-
-  expect(mockStopAndSave).toHaveBeenCalledTimes(1);
+  expect(isRemovalPrevented).toBe(false);
+  expect(preventedRemoval).toBeUndefined();
   expect(mockNavigationDispatch).not.toHaveBeenCalled();
-
-  await act(() => {
-    finishSave?.();
-
-    return Promise.resolve();
-  });
-
-  await waitFor(() => {
-    expect(isRemovalPrevented).toBe(false);
-    expect(mockNavigationDispatch).toHaveBeenCalledTimes(1);
-    expect(mockNavigationDispatch).toHaveBeenCalledWith(action);
-  });
-});
-
-test("Android 시스템 뒤로 가기는 저장 실패 뒤에도 이어 간다", async () => {
-  mockStopAndSave.mockRejectedValueOnce(new Error("offline"));
-  conversation.isBusy = true;
-
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
-  );
-
-  const action = { type: "GO_BACK" };
-  await act(() => {
-    preventedRemoval?.({ data: { action } });
-
-    return Promise.resolve();
-  });
-
-  await waitFor(() => {
-    expect(mockNavigationDispatch).toHaveBeenCalledWith(action);
-  });
-});
-
-test("다음 화 replace도 저장 뒤 원래 동작을 이어 간다", async () => {
-  conversation.isBusy = true;
-
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
-  );
-
-  const action = { type: "REPLACE" };
-  await act(() => {
-    preventedRemoval?.({ data: { action } });
-
-    return Promise.resolve();
-  });
-
-  await waitFor(() => {
-    expect(mockStopAndSave).toHaveBeenCalledTimes(1);
-    expect(mockNavigationDispatch).toHaveBeenCalledWith(action);
-  });
+  expect(panel?.busyLabel).toBeUndefined();
 });
 
 // 다음 화로 넘어가는 것은 지난 에피소드를 이어 가는 것이 아니라 화면을 새로

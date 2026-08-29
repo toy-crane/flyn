@@ -1,4 +1,4 @@
-import type { UIMessageStreamWriter } from "ai";
+import type { UIMessage, UIMessageStreamWriter } from "ai";
 
 /**
  * 장면 스트림이 화자를 나르는 part의 데이터. 지문은 이름이 없다.
@@ -36,6 +36,14 @@ export interface SceneOutcome {
   ending: SceneEndingData | undefined;
   /** `notes`에 적어 둔 줄 머리로 온 기록. 쓰지 않은 줄은 없다. */
   notes: Record<string, string>;
+  /**
+   * 이 장면이 화면에 만든 part를, 흘려보낸 것과 같은 차례로.
+   *
+   * 결말 part는 들어가지 않는다. 결말은 플레이 기록이 소유하는 사실이고, 이
+   * 목록은 저장할 대화다. `onEnding`이 이것을 받아 결말을 확정하기 전에 장면을
+   * 남긴다.
+   */
+  parts: UIMessage["parts"];
 }
 
 type LineKind = "cast" | "ending" | "note";
@@ -127,6 +135,8 @@ export async function streamSceneText(
   // 그 줄이 기록으로 남는 첫 줄인지. 같은 이름이 두 번 오면 뒤의 글자가 앞의
   // 기록에 덧붙지 않게 막는다.
   let isCaptureKept = false;
+  // 흘려보낸 것과 같은 차례로 쌓는 part. 저장은 이 목록을 쓴다.
+  const parts: UIMessage["parts"] = [];
 
   function append(text: string) {
     if (text.length === 0) {
@@ -153,11 +163,23 @@ export async function streamSceneText(
       return;
     }
 
+    const open = parts.at(-1);
+
+    if (open?.type === "text") {
+      open.text += text;
+    }
+
     writer.write({ delta: text, id: segment.textId, type: "text-delta" });
   }
 
   function closeSegment() {
     if (segment !== undefined) {
+      const open = parts.at(-1);
+
+      if (open?.type === "text") {
+        open.state = "done";
+      }
+
       writer.write({ id: segment.textId, type: "text-end" });
       segment = undefined;
     }
@@ -199,6 +221,12 @@ export async function streamSceneText(
       segmentCount += 1;
       const textId = `scene-${segmentCount}`;
 
+      parts.push({
+        data: { name } satisfies SceneSpeakerData,
+        id: `speaker-${segmentCount}`,
+        type: "data-speaker",
+      });
+      parts.push({ state: "streaming", text: "", type: "text" });
       writer.write({
         data: { name } satisfies SceneSpeakerData,
         id: `speaker-${segmentCount}`,
@@ -285,7 +313,7 @@ export async function streamSceneText(
 
   closeSegment();
 
-  const outcome: SceneOutcome = { ending, notes };
+  const outcome: SceneOutcome = { ending, notes, parts };
 
   if (ending !== undefined) {
     await onEnding?.(outcome);

@@ -105,6 +105,13 @@ jest.mock("expo-crypto", () => {
         (_unused, index) => (index * 7 + 13 * seed) % 256
       );
     },
+    // 에피소드 메시지의 id가 이것으로 만들어진다. 저장하는 열이 uuid이므로
+    // 형식은 진짜여야 하고, 대신 매 호출이 다른 값이 되게만 한다.
+    randomUUID: () => {
+      seed += 1;
+
+      return `00000000-0000-4000-8000-${seed.toString().padStart(12, "0")}`;
+    },
   };
 });
 
