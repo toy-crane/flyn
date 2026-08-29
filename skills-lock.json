@@ -161,7 +161,7 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/expo/expo-smoke-test/SKILL.md",
-      "computedHash": "1f7781a361f4fbd89cb7607a277b751145a8469858c46320afe518cca575067f"
+      "computedHash": "fd32ee3f95d5a33d120177d1c4de55b6da581e7bd7dae980e4de02b88b331430"
     },
     "expo-tailwind-setup": {
       "source": "expo/skills",
@@ -288,6 +288,12 @@
       "sourceType": "github",
       "skillPath": "skills/supabase-server/SKILL.md",
       "computedHash": "b430ad2b08734bba89f2168c201bc7e090729d38a0206eebba338a7a5c1de3d6"
+    },
+    "sync-toycrane-skills": {
+      "source": "toy-crane/skills",
+      "sourceType": "github",
+      "skillPath": "skills/workflow/sync-toycrane-skills/SKILL.md",
+      "computedHash": "dbbd19556fb4b37a3ee61588f257c4196e950a77180ee0fcdf471e43f0074784"
     },
     "tdd": {
       "source": "toy-crane/skills",
