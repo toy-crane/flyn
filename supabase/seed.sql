@@ -15,6 +15,9 @@ insert into public.stories (
   position,
   slug,
   title,
+  hook,
+  intro,
+  cover_emoji,
   target_language,
   completion_title,
   completion_copy
@@ -24,6 +27,9 @@ values (
   1,
   'mia-cafe',
   'Mia의 카페',
+  '늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요',
+  '매일 들르는 동네 카페에서 벌어지는 다섯 번의 사건. 바리스타 Mia와 조금씩 가까워져요.',
+  '☕',
   'en',
   '첫 이야기를 끝냈어요',
   '다섯 번의 사건을 영어로 지나왔어요.'
@@ -32,6 +38,9 @@ on conflict (id) do update
 set position = excluded.position,
     slug = excluded.slug,
     title = excluded.title,
+    hook = excluded.hook,
+    intro = excluded.intro,
+    cover_emoji = excluded.cover_emoji,
     target_language = excluded.target_language,
     completion_title = excluded.completion_title,
     completion_copy = excluded.completion_copy;

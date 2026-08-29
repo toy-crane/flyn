@@ -281,7 +281,11 @@ export type Database = {
         Row: {
           completion_copy: string
           completion_title: string
+          cover_emoji: string
+          cover_image_url: string | null
+          hook: string
           id: string
+          intro: string
           position: number
           slug: string
           target_language: string
@@ -290,7 +294,11 @@ export type Database = {
         Insert: {
           completion_copy: string
           completion_title: string
+          cover_emoji: string
+          cover_image_url?: string | null
+          hook: string
           id: string
+          intro: string
           position: number
           slug: string
           target_language: string
@@ -299,7 +307,11 @@ export type Database = {
         Update: {
           completion_copy?: string
           completion_title?: string
+          cover_emoji?: string
+          cover_image_url?: string | null
+          hook?: string
           id?: string
+          intro?: string
           position?: number
           slug?: string
           target_language?: string
