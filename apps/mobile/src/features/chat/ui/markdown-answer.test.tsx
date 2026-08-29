@@ -26,21 +26,43 @@ test("답변 본문을 그대로 Markdown 렌더러에 넘긴다", async () => {
   expect(answer.props.markdown).toBe("# 제목\n\n- 하나\n- 둘");
 });
 
-test("GitHub Flavored Markdown으로 해석한다", async () => {
+test("CommonMark로 한 선택 범위 안에 표시한다", async () => {
   const answer = await renderAnswer();
 
-  expect(answer.props.flavor).toBe("github");
+  expect(answer.props.flavor).toBe("commonmark");
 });
 
-// Hiding either until it closes would leave a gap where the answer is still
+test("답변 본문을 네이티브 텍스트로 선택할 수 있게 한다", async () => {
+  const answer = await renderAnswer();
+
+  expect(answer.props.selectable).toBe(true);
+});
+
+test("목록과 인용문 구조를 한국어로 읽도록 안내한다", async () => {
+  const answer = await renderAnswer();
+
+  expect(answer.props.accessibilityLabels).toEqual({
+    blockquote: {
+      nestedQuote: "하위 인용문",
+      quote: "인용문",
+    },
+    list: {
+      bulletPoint: "글머리표",
+      nestedBulletPoint: "하위 글머리표",
+      nestedOrderedItem: "하위 목록 항목 {n}",
+      orderedItem: "목록 항목 {n}",
+    },
+  });
+});
+
+// Hiding the block until it closes would leave a gap where the answer is still
 // arriving, which is the opposite of reading it as it comes.
-test("새 글자를 움직여 보여 주고 코드 블록과 표는 도착한 부분부터 그린다", async () => {
+test("새 글자를 움직여 보여 주고 코드 블록은 도착한 부분부터 그린다", async () => {
   const answer = await renderAnswer();
 
   expect(answer.props.streamingAnimation).toBe(true);
   expect(answer.props.streamingConfig).toEqual({
     codeBlockMode: "progressive",
-    tableMode: "progressive",
   });
 });
 
@@ -77,7 +99,4 @@ test("코드는 monospace로, 나머지는 앱의 시맨틱 색으로 그린다"
     testThemeVariables["--color-foreground"]
   );
   expect(markdownStyle.link.color).toBe(testThemeVariables["--color-link"]);
-  expect(markdownStyle.table.borderColor).toBe(
-    testThemeVariables["--color-border"]
-  );
 });

@@ -9,9 +9,9 @@ import { MessageActions } from "./message-actions";
  *
  * The body is Markdown from the first character on, so what arrives half
  * written still reads as an answer rather than as its own source. No menu is
- * attached here: selection and the code block's own copy button belong to the
- * renderer, which is also what leaves a long press to the system. What this
- * app adds to that selection arrives as `selectionMenuItems`.
+ * attached here: selection belongs to the renderer, which is also what leaves
+ * a long press to the system. What this app adds to that selection arrives as
+ * `selectionMenuItems`.
  */
 export function AssistantMessage({
   areActionsDisabled,

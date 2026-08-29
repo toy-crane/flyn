@@ -3,6 +3,7 @@ import { useThemeColor } from "heroui-native/hooks";
 import { useCallback, useMemo } from "react";
 import { Platform } from "react-native";
 import type {
+  AccessibilityLabels,
   LinkPressEvent,
   MarkdownStyle,
   TextContextMenuItem,
@@ -23,8 +24,6 @@ const BODY_FONT_SIZE = 16;
 const BODY_LINE_HEIGHT = 24;
 const CODE_PADDING = 12;
 const CODE_RADIUS = 12;
-const CELL_PADDING_HORIZONTAL = 10;
-const CELL_PADDING_VERTICAL = 6;
 const QUOTE_BORDER_WIDTH = 3;
 const QUOTE_GAP = 12;
 /**
@@ -34,16 +33,29 @@ const QUOTE_GAP = 12;
  */
 const STREAMING_CONFIG = {
   codeBlockMode: "progressive",
-  tableMode: "progressive",
 } as const;
+const ACCESSIBILITY_LABELS: AccessibilityLabels = {
+  blockquote: {
+    nestedQuote: "하위 인용문",
+    quote: "인용문",
+  },
+  list: {
+    bulletPoint: "글머리표",
+    nestedBulletPoint: "하위 글머리표",
+    nestedOrderedItem: "하위 목록 항목 {n}",
+    orderedItem: "목록 항목 {n}",
+  },
+};
 
 /**
  * An answer, drawn as Markdown while it is still arriving.
  *
- * `EnrichedMarkdownText` draws the stream directly. Tables and code blocks stay
- * `progressive`: they grow row by row and line by line rather than appearing
- * whole at the end. Incomplete inline Markdown is left to the renderer instead
- * of being completed by a separate repair step.
+ * `EnrichedMarkdownText` draws the stream directly. Code blocks stay
+ * `progressive`, so they grow line by line rather than appearing whole at the
+ * end. CommonMark keeps the whole answer in one native text range and does not
+ * turn GFM tables or task lists into separate controls. Incomplete inline
+ * Markdown is left to the renderer instead of being completed by a separate
+ * repair step.
  *
  * The renderer ships light-mode colours and has no colour scheme of its own, so
  * every colour it draws comes from the app's semantic tokens here.
@@ -116,14 +128,6 @@ export function MarkdownAnswer({
         fontSize: BODY_FONT_SIZE,
         lineHeight: BODY_LINE_HEIGHT,
       },
-      table: {
-        borderColor,
-        cellPaddingHorizontal: CELL_PADDING_HORIZONTAL,
-        cellPaddingVertical: CELL_PADDING_VERTICAL,
-        color: foregroundColor,
-        headerBackgroundColor: surfaceColor,
-        headerTextColor: surfaceForegroundColor,
-      },
       thematicBreak: { color: borderColor },
     }),
     [
@@ -144,11 +148,13 @@ export function MarkdownAnswer({
 
   return (
     <EnrichedMarkdownText
+      accessibilityLabels={ACCESSIBILITY_LABELS}
       contextMenuItems={contextMenuItems}
-      flavor="github"
+      flavor="commonmark"
       markdown={markdown}
       markdownStyle={markdownStyle}
       onLinkPress={openLink}
+      selectable
       streamingAnimation
       streamingConfig={STREAMING_CONFIG}
       testID={testID}
