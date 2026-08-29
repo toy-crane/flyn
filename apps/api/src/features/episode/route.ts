@@ -15,6 +15,12 @@ import { logRequestAbort, logRequestFailure } from "../../shared/request-log";
 import { speakerModelText, streamSceneText } from "../../shared/scene-stream";
 import { type AuthedEnv, createUserGuard } from "../../shared/user-guard";
 import { askSystemPrompt, readAskedCorrection } from "./ask";
+import {
+  homeViewOf,
+  readAccountProgress,
+  storyDetailViewOf,
+  storyListViewOf,
+} from "./catalog";
 import { type EpisodeCorrection, judgeCorrection } from "./correction";
 import { episodeSystemPrompt, episodeTags } from "./episode";
 import {
@@ -24,7 +30,6 @@ import {
   nextUpAfter,
   readEpisodeSession,
   readFinishedEpisodes,
-  readStoryView,
   recordEpisodeEnding,
   saveEpisodeRun,
   saveEpisodeRunFallback,
@@ -32,7 +37,9 @@ import {
 } from "./progress";
 import {
   type EpisodeClient,
+  readStoryCatalog,
   readStoryContent,
+  readStoryOfEpisode,
   type StoryContent,
 } from "./story";
 
@@ -160,9 +167,16 @@ async function persistRunBestEffort(
   }
 }
 
+/**
+ * 이 요청이 지금 진행할 수 있는 화인지 가린다.
+ *
+ * 어느 스토리인지는 요청이 말하지 않는다. 화 하나만 오므로 그 화가 속한
+ * 스토리부터 찾고, 진행과 기억을 그 스토리 안에서만 읽는다. 여러 스토리를
+ * 번갈아 해도 서로 섞이지 않는 자리가 여기다.
+ */
 async function resolvePlayableEpisode(
   client: EpisodeClient,
-  requested: unknown
+  requested: string | undefined
 ): Promise<
   | { error: string }
   | {
@@ -171,7 +185,15 @@ async function resolvePlayableEpisode(
       story: StoryContent;
     }
 > {
-  const story = await readStoryContent(client);
+  const story =
+    requested === undefined
+      ? await readStoryContent(client)
+      : await readStoryOfEpisode(client, requested);
+
+  if (!story) {
+    return { error: "This episode is not part of any story." };
+  }
+
   const finished = await readFinishedEpisodes(client, story);
   const script = currentEpisode(story, finished);
 
@@ -197,20 +219,50 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
 
   return (
     new Hono<AuthedEnv>()
-      .get("/story", requireUser, requireCurrentUser, async (c) => {
+      .get("/home", requireUser, requireCurrentUser, async (c) => {
         const client = c.var.supabaseContext.supabase;
-        const story = await readStoryContent(client);
+        const [catalog, progress] = await Promise.all([
+          readStoryCatalog(client),
+          readAccountProgress(client),
+        ]);
 
-        return c.json(await readStoryView(client, story));
+        return c.json(homeViewOf(catalog, progress));
+      })
+      .get("/stories", requireUser, requireCurrentUser, async (c) => {
+        const client = c.var.supabaseContext.supabase;
+        const [catalog, progress] = await Promise.all([
+          readStoryCatalog(client),
+          readAccountProgress(client),
+        ]);
+
+        return c.json(storyListViewOf(catalog, progress));
+      })
+      .get("/stories/:storyId", requireUser, requireCurrentUser, async (c) => {
+        const client = c.var.supabaseContext.supabase;
+        const [catalog, progress] = await Promise.all([
+          readStoryCatalog(client),
+          readAccountProgress(client),
+        ]);
+        const entry = catalog.find(
+          (story) => story.id === c.req.param("storyId")
+        );
+
+        if (!entry) {
+          return c.json({ error: "Story is unavailable." }, 404);
+        }
+
+        return c.json(storyDetailViewOf(entry, progress));
       })
       .get("/:episodeId", requireUser, requireCurrentUser, async (c) => {
         const client = c.var.supabaseContext.supabase;
-        const story = await readStoryContent(client);
-        const session = await readEpisodeSession(
-          client,
-          story,
-          c.req.param("episodeId")
-        );
+        const episodeId = c.req.param("episodeId");
+        const story = await readStoryOfEpisode(client, episodeId);
+
+        if (!story) {
+          return c.json({ error: "Episode conversation is unavailable." }, 404);
+        }
+
+        const session = await readEpisodeSession(client, story, episodeId);
 
         if (!session) {
           return c.json({ error: "Episode conversation is unavailable." }, 404);

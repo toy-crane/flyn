@@ -37,6 +37,103 @@ export interface StoryContent {
   title: string;
 }
 
+/** 목록과 상세가 한 스토리에서 읽는 화 한 줄. 각본 본문은 담지 않는다. */
+export interface StoryCatalogEpisode {
+  id: string;
+  number: number;
+  preview: string;
+  title: string;
+}
+
+/**
+ * 고르고 되돌아보는 화면이 읽는 스토리 한 줄.
+ *
+ * 각본, 무대, 결말 기준은 빠져 있다. 목록과 상세는 어느 화가 있는지만 알면
+ * 되고, 장면을 만드는 글은 그 화를 실제로 여는 경로가 따로 읽는다.
+ */
+export interface StoryCatalogEntry {
+  completion: { copy: string; title: string };
+  coverEmoji: string;
+  coverImageUrl: string | null;
+  episodes: StoryCatalogEpisode[];
+  hook: string;
+  id: string;
+  intro: string;
+  position: number;
+  slug: string;
+  title: string;
+}
+
+/**
+ * 모든 공식 스토리를 정해진 순서로 읽는다.
+ *
+ * 한 번의 쿼리로 스토리와 그 안의 화 목록을 함께 받는다. 각본 본문을 빼는
+ * 것이 이 읽기의 요점이다. 스토리가 늘어도 목록 한 장의 값이 화 수만큼
+ * 커지지 않는다.
+ */
+export async function readStoryCatalog(
+  client: EpisodeClient
+): Promise<StoryCatalogEntry[]> {
+  const { data, error } = await client
+    .from("stories")
+    .select(
+      "id, position, slug, title, hook, intro, cover_emoji, cover_image_url, completion_title, completion_copy, episodes(id, number, title, preview)"
+    )
+    .order("position")
+    .order("number", { referencedTable: "episodes" });
+
+  if (error) {
+    throw new Error(`Reading the story catalog failed: ${error.message}`);
+  }
+
+  return data.map((story) => ({
+    completion: {
+      copy: story.completion_copy,
+      title: story.completion_title,
+    },
+    coverEmoji: story.cover_emoji,
+    coverImageUrl: story.cover_image_url,
+    episodes: story.episodes.map((episode) => ({
+      id: episode.id,
+      number: episode.number,
+      preview: episode.preview,
+      title: episode.title,
+    })),
+    hook: story.hook,
+    id: story.id,
+    intro: story.intro,
+    position: story.position,
+    slug: story.slug,
+    title: story.title,
+  }));
+}
+
+/**
+ * 이 화가 속한 스토리의 각본을 읽는다.
+ *
+ * 장면을 여는 경로는 어느 스토리인지 알지 못한 채 화 하나만 받는다. 스토리가
+ * 여럿이므로 그 화가 어디에 속했는지부터 물어야, 진행과 기억을 다른 스토리와
+ * 섞지 않는다. 없는 화를 물으면 빈손으로 돌아온다.
+ */
+export async function readStoryOfEpisode(
+  client: EpisodeClient,
+  episodeId: string
+): Promise<StoryContent | undefined> {
+  const { data, error } = await client
+    .from("episodes")
+    .select("story_id")
+    .eq("id", episodeId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(
+      `Reading the story of episode ${episodeId} failed: ${error.message}`
+    );
+  }
+
+  return data ? await readStoryContentById(client, data.story_id) : undefined;
+}
+
 /**
  * 공식 스토리와 각본을 데이터베이스에서 읽는다.
  *
@@ -47,17 +144,34 @@ export async function readStoryContent(
   client: EpisodeClient,
   slug = DEFAULT_STORY_SLUG
 ): Promise<StoryContent> {
+  return await readStoryBy(client, "slug", slug);
+}
+
+async function readStoryContentById(
+  client: EpisodeClient,
+  storyId: string
+): Promise<StoryContent> {
+  return await readStoryBy(client, "id", storyId);
+}
+
+async function readStoryBy(
+  client: EpisodeClient,
+  column: "id" | "slug",
+  value: string
+): Promise<StoryContent> {
   const { data: story, error: storyError } = await client
     .from("stories")
     .select(
       "id, position, slug, title, target_language, completion_title, completion_copy"
     )
-    .eq("slug", slug)
+    .eq(column, value)
     .single();
 
   if (storyError) {
-    throw new Error(`Reading story ${slug} failed: ${storyError.message}`);
+    throw new Error(`Reading story ${value} failed: ${storyError.message}`);
   }
+
+  const { slug } = story;
 
   const { data: episodes, error: episodeError } = await client
     .from("episodes")
