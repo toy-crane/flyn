@@ -3,10 +3,12 @@
 ## 결정
 
 - AI 답변은 `EnrichedMarkdownText`가 네이티브 Markdown으로 직접 그린다.
-  `flavor="github"`과 `streamingAnimation`을 사용하고 코드 블록과 표는 도착한
-  부분부터 보여 준다. 제목, 강조, 인용, 목록, 링크, 인라인 코드, 코드 블록과 표를
-  표시하며, 답변 복사는 렌더링된 모양이 아니라 서버에서 받은 Markdown 원문을
-  사용한다.
+  `flavor="commonmark"`와 `streamingAnimation`을 사용하고 한 답변을 하나의
+  네이티브 텍스트 선택 범위로 유지한다. 제목, 강조, 인용, 목록, 링크, 인라인
+  코드와 코드 블록을 표시하며, 답변 복사는 렌더링된 모양이 아니라 서버에서 받은
+  Markdown 원문을 사용한다.
+- 목록과 인용문의 화면 읽기 안내는 한국어로 제공한다. 순서 있는 목록은 항목
+  번호를 포함하고, 하위 목록과 하위 인용문은 상위 항목과 구분해 읽는다.
 - `react-native-streamdown`과 `remend`는 사용하지 않는다. 두 패키지를 위해 붙였던
   Worklets Bundle Mode, 전용 Babel plugin, Metro resolver와 생성 파일 patch도
   유지하지 않는다. 불완전한 인라인 Markdown은 별도 보정 계층 없이
@@ -39,17 +41,22 @@
 - 이 결정은 Markdown을 위해 사용하던 Worklets Bundle Mode만 제거한다.
   `react-native-reanimated`와 `react-native-worklets`가 맡는 질문 진입, 대기 표시와
   다른 화면 동작은 그대로 유지한다.
+- GFM 전용 표와 할 일 목록, 독립된 코드 블록 머리글, 가로 스크롤과 블록별 복사
+  버튼은 지원 범위에서 뺀다. CommonMark 코드 블록은 답변과 같은 선택 범위 안에서
+  줄바꿈하며, 답변 전체 복사는 그대로 유지한다.
 - 아래 저장소는 필요할 때 화면 아이디어와 구현 사례를 살펴보는 선택 참고 자료다.
   AI 채팅 작업마다 읽거나 같은 구현을 따라야 하는 규칙이 아니다. 이 프로젝트의
   명세, 결정 계약과 현재 코드가 항상 우선한다.
 
 ## 이유
 
-`EnrichedMarkdownText`는 Markdown을 네이티브로 그리고, 완성되지 않은 표와 코드
-블록도 도착한 부분부터 표시한다. 별도 Markdown 보정 계층을 두지 않으면 닫히지 않은
-인라인 문법은 완성될 때까지 덜 다듬어진 모습으로 보일 수 있지만, Worklets Bundle
-Mode와 전용 Metro 경로 없이 같은 렌더러, 선택 메뉴와 링크 동작을 유지할 수 있다.
-빠른 토큰 스트림은 기존 `throttle: 50`으로 React 렌더 횟수를 제한한다.
+`EnrichedMarkdownText`의 CommonMark 방식은 한 답변 전체를 하나의 네이티브 텍스트로
+그려 문단, 제목, 목록과 인용문 사이를 이어 선택할 수 있다. 플린은 문서 편집기보다
+짧은 대화와 학습 도움을 보여 주므로 GFM의 표와 할 일 목록보다 이 선택 범위가 더
+중요하다. 별도 Markdown 보정 계층을 두지 않으면 닫히지 않은 인라인 문법은 완성될
+때까지 덜 다듬어진 모습으로 보일 수 있지만, Worklets Bundle Mode와 전용 Metro 경로
+없이 같은 렌더러, 선택 메뉴와 링크 동작을 유지할 수 있다. 빠른 토큰 스트림은 기존
+`throttle: 50`으로 React 렌더 횟수를 제한한다.
 
 입력창 전체를 하나의 플로팅 컨트롤로 보면 Liquid Glass의 기능 컨트롤 경계를 지킬
 수 있다. 지원하지 않는 플랫폼에서 재질을 흉내 내지 않고 같은 배치만 유지하면
@@ -61,7 +68,7 @@ Mode와 전용 Metro 경로 없이 같은 렌더러, 선택 메뉴와 링크 동
 
 ## 알려진 제약
 
-- GFM이 따르는 CommonMark 강조 규칙 때문에
+- CommonMark 강조 규칙 때문에
   `**새 아키텍처(New Architecture)**는`처럼 굵은 글씨가 닫는 괄호 `)`로
   끝나고 바로 뒤에 한글 조사가 오면 닫는 `**`를 강조 표시로 해석하지
   않는다. 이 제약은 [CommonMark CJK 강조 이슈](https://github.com/commonmark/commonmark-spec/issues/650)에서도 다룬다.
@@ -74,6 +81,9 @@ Mode와 전용 Metro 경로 없이 같은 렌더러, 선택 메뉴와 링크 동
   앱과 맞지 않을 때
 - CJK 강조 제약을 포함해 닫히지 않은 강조, 링크나 인라인 코드가 답변을
   읽기 어렵게 만드는 일이 실제 스트리밍에서 반복될 때
+- 표, 할 일 목록, 긴 코드의 가로 스크롤이나 블록별 복사가 실제 답변에 필요해질 때
+- 한 답변 전체를 잇는 텍스트 선택보다 독립된 Markdown 블록의 상호작용이 더
+  중요해질 때
 - `EnrichedMarkdownText`나 md4c가 CJK 강조 규칙을 선택해서 켤 수 있게 할 때
 - 실제 배포 빌드에서 `MaskedView`의 반짝임이 특정 플랫폼에서 끊기거나 다르게
   그려지는 문제가 확인될 때
@@ -82,6 +92,9 @@ Mode와 전용 Metro 경로 없이 같은 렌더러, 선택 메뉴와 링크 동
 
 ## 계속 제외하는 대안
 
+- `flavor="github"`: 표, 할 일 목록과 독립된 코드 블록 기능을 제공하지만 답변을
+  여러 네이티브 구간으로 나눠 구간을 넘는 선택을 막는다. 문서형 답변이나 도구
+  결과가 제품 범위에 들어와 독립 블록 상호작용이 실제로 필요해질 때 다시 검토한다.
 - `react-native-streamdown`과 `remend`: 닫히지 않은 인라인 Markdown을 미리
   완성하지만 Worklets Bundle Mode와 별도 Babel·Metro 설정이 필요하다. 이 경로에서
   생성한 `.worklets` 모듈이 worktree와 Metro 캐시 사이에서 섞이는 장애도 겪었다.
@@ -98,6 +111,11 @@ Mode와 전용 Metro 경로 없이 같은 렌더러, 선택 메뉴와 링크 동
 
 ## 보존할 근거
 
+- 설치한 `react-native-enriched-markdown@1.0.1`의 API 문서는 CommonMark가 전체
+  Markdown을 하나의 `TextView`로 그리고, GFM은 텍스트와 표, 코드, 수학 블록을
+  여러 구간으로 나눠 구간 사이를 선택할 수 없다고 밝힌다. 같은 버전은 목록과
+  인용문을 비롯한 화면 읽기 안내의 영어 기본값을 `accessibilityLabels`로 바꿀 수
+  있다.
 - Margelo의 [ai-chat-demo](https://github.com/margelo/ai-chat-demo)는 AI 채팅 화면의
   아이디어가 필요할 때 선택해서 볼 수 있는 공개 예제다. 이번 검토 시점의 고정 사본은
   [6280b1f](https://github.com/margelo/ai-chat-demo/tree/6280b1f0f6d53d557b160481185e7bdfa7385cb6)다.
