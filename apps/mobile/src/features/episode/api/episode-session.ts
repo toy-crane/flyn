@@ -1,5 +1,6 @@
 import type { UIMessage } from "ai";
 
+import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
 import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { aiUrl } from "@/shared/ai/request-options";
@@ -15,6 +16,12 @@ export interface PlayingEpisode {
 }
 
 export interface EpisodeSession {
+  /**
+   * 이 대화에 붙은 배울 표현. 저장된 대화에 교정 part가 없으므로 여기 실려 온다.
+   *
+   * 화면을 나갔다 와도 붙어 있던 배울 표현이 같은 메시지 곁으로 돌아온다.
+   */
+  corrections: EpisodeCorrection[];
   /**
    * 이 화가 어떻게 끝났는지. 진행 중이면 없다.
    *

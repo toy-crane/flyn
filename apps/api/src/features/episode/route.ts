@@ -25,6 +25,7 @@ import {
 import { type EpisodeCorrection, judgeCorrection } from "./correction";
 import { episodeSystemPrompt, episodeTags } from "./episode";
 import {
+  appendEpisodeCorrection,
   appendEpisodeMessage,
   currentEpisode,
   type EpisodePlay,
@@ -32,6 +33,7 @@ import {
   openEpisodePlay,
   readEpisodeSession,
   readFinishedEpisodes,
+  readSeenPatterns,
   recordEpisodeEnding,
   storyMemoriesOf,
 } from "./progress";
@@ -121,21 +123,6 @@ function textOfMessage(message: UIMessage): string {
     .filter((part) => part.type === "text")
     .map((part) => part.text)
     .join("");
-}
-
-/**
- * 앱이 이 에피소드에서 이미 받은 패턴 키.
- *
- * 교정은 아직 대화 기록에 남지 않으므로 서버는 지난 턴에 무엇을 알려 줬는지 알지
- * 못한다. 같은 패턴을 두 번 만들지 않는 일은 그 목록을 가진 앱이 함께 보내야
- * 성립한다. 목록이 아니거나 낱말이 아닌 값은 없는 것으로 친다.
- */
-function seenPatternsOf(body: unknown): string[] {
-  const sent = (body as { seenPatterns?: unknown } | null)?.seenPatterns;
-
-  return Array.isArray(sent)
-    ? sent.filter((pattern): pattern is string => typeof pattern === "string")
-    : [];
 }
 
 /**
@@ -437,12 +424,15 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
         }
 
         const model = dependencies.model ?? resolveModelId();
+        // 이미 알려 준 규칙은 서버가 자기 교정 행에서 읽는다. 앱이 그 목록을
+        // 나르지 않으므로, 앱을 껐다 켜도 같은 규칙이 다시 붙지 않는다.
+        const seenPatterns = await readSeenPatterns(client, play.playId);
         // 장면보다 먼저 시작해 둔다. 두 호출이 나란히 돌아야 교정이 장면을
         // 기다리게 만들지 않는다.
         const correcting = correctionFor(
           play.messages,
           model,
-          seenPatternsOf(body),
+          seenPatterns,
           c.req.raw.signal,
           (error) => logRequestFailure(c.req.method, c.req.path, error)
         );
@@ -479,18 +469,27 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           responseMessageId: sceneId,
           write: async (writer) => {
             // 판정이 끝나는 대로 흘려보낸다. 장면 한가운데에 도착해도 되고,
-            // 실제로 그렇게 도착하는 편이 이 단위가 약속한 모습이다.
-            const correctionWritten = correcting.then((correction) => {
-              if (correction) {
-                writer.write({
-                  data: correction,
-                  id: `correction-${correction.messageId}`,
-                  // 교정을 행으로 남기는 것은 다음 단위가 한다. transient part는
-                  // 메시지 목록에 들어가지 않으므로, 저장되는 장면은 교정이 붙기
-                  // 전과 똑같이 남는다.
-                  transient: true,
-                  type: "data-correction",
-                });
+            // 실제로 그렇게 도착하는 편이 이 단위가 약속한 모습이다. 흘려보낸 뒤
+            // 같은 값을 행으로도 남긴다. 저장이 실패해도 화면에는 이미 붙었고
+            // 이야기도 그대로 이어진다.
+            const correctionWritten = correcting.then(async (correction) => {
+              if (!correction) {
+                return;
+              }
+
+              writer.write({
+                data: correction,
+                id: `correction-${correction.messageId}`,
+                // transient part는 메시지 목록에 들어가지 않는다. 교정은 자기
+                // 행에 남고, 저장되는 장면은 교정이 붙기 전과 똑같다.
+                transient: true,
+                type: "data-correction",
+              });
+
+              try {
+                await appendEpisodeCorrection(client, correction);
+              } catch (error) {
+                logRequestFailure(c.req.method, c.req.path, error);
               }
             });
             const { ending } = await streamSceneText(

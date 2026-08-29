@@ -25,28 +25,21 @@ export const EPISODE_API_PATH = "/ai/episode";
  * wrong scene. It is a function for the same reason the token is: the transport
  * resolves the body on every send.
  *
- * `getSeenPatterns`는 이 에피소드에서 이미 받은 배울 표현의 패턴 키다. 교정은
- * 아직 대화 기록에 남지 않아서 서버가 지난 턴에 무엇을 알려 줬는지 알지 못하므로,
- * 같은 패턴을 두 번 만들지 않는 일은 그 목록을 가진 앱이 함께 보내야 성립한다.
+ * 이미 받은 배울 표현의 패턴은 싣지 않는다. 교정이 행으로 남으므로 서버가 자기
+ * 기록에서 읽고, 그래서 앱을 껐다 켜도 같은 규칙이 다시 붙지 않는다.
  */
 export function createEpisodeTransport(
   getAccessToken: () => string | undefined,
-  getEpisodeId: () => string | undefined,
-  getSeenPatterns: () => string[]
+  getEpisodeId: () => string | undefined
 ): DefaultChatTransport<UIMessage> {
   return new DefaultChatTransport<UIMessage>({
     ...aiRequestOptions(EPISODE_API_PATH, getAccessToken),
     prepareSendMessagesRequest: ({ messages, trigger }) => {
       const episodeId = getEpisodeId();
-      const seenPatterns = getSeenPatterns();
 
       if (trigger === "regenerate-message") {
         return {
-          body: {
-            episodeId,
-            keepThrough: messages.at(-1)?.id ?? null,
-            seenPatterns,
-          },
+          body: { episodeId, keepThrough: messages.at(-1)?.id ?? null },
         };
       }
 
@@ -55,7 +48,6 @@ export function createEpisodeTransport(
           episodeId,
           keepThrough: messages.at(-2)?.id ?? null,
           message: messages.at(-1),
-          seenPatterns,
         },
       };
     },

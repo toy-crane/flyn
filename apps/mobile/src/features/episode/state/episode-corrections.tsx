@@ -22,8 +22,6 @@ export interface EpisodeCorrectionStore {
   receive: (correction: EpisodeCorrection) => void;
   /** 이미 다시 보낸 교정의 메시지 ID. */
   resent: Record<string, true>;
-  /** 이 에피소드에서 이미 받은 패턴 키. 다음 요청에 함께 보낸다. */
-  seenPatterns: () => string[];
 }
 
 /** 말풍선 아래의 한 줄이 읽는 것. 화면이 상태와 두 동작을 여기에 모아 준다. */
@@ -46,8 +44,8 @@ const NO_CORRECTIONS: EpisodeCorrections = {
 /**
  * 이 에피소드가 지금까지 받은 배울 표현.
  *
- * 교정은 대화 기록에 남지 않는다. 에피소드가 열려 있는 동안의 상태이므로
- * 화면을 나가면 그대로 사라진다. 기록에 남길지는 다음 단위가 정한다.
+ * 교정은 계정에 남는다. 화면을 나갔다 와도 서버가 세션에 실어 보낸 것으로 같은
+ * 자리에 다시 붙는다.
  */
 const EpisodeCorrectionsContext =
   createContext<EpisodeCorrections>(NO_CORRECTIONS);
@@ -78,29 +76,26 @@ export function useCorrections(): EpisodeCorrections {
 }
 
 /**
- * 한 에피소드가 진행되는 동안의 교정 상태.
+ * 한 에피소드의 교정 상태. 서버가 세션에 실어 보낸 것으로 시작한다.
  *
- * 대화를 굴리는 훅이 이 상태를 소유한다. 서버가 보낸 교정이 도착하는 자리와
- * 이미 받은 패턴을 다음 요청에 싣는 자리가 같은 대화 안에 있기 때문이다.
+ * 대화를 굴리는 훅이 이 상태를 소유한다. 흐르는 응답에서 교정이 도착하는 자리가
+ * 그 대화 안에 있기 때문이다.
  */
-export function useEpisodeCorrections(): EpisodeCorrectionStore {
+export function useEpisodeCorrections(
+  saved: readonly EpisodeCorrection[] = []
+): EpisodeCorrectionStore {
   const [byMessageId, setByMessageId] = useState<
     Record<string, EpisodeCorrection>
-  >({});
+  >(() =>
+    Object.fromEntries(
+      saved.map((correction) => [correction.messageId, correction])
+    )
+  );
   const [resent, setResent] = useState<Record<string, true>>({});
-  // 요청을 보낼 때 읽히는 값이라 상태가 아니라 ref로 둔다. 전송 코드가 이
-  // 목록이 바뀔 때마다 다시 만들어질 이유가 없다.
-  const patterns = useRef<string[]>([]);
   // 다시 보내기를 누른 배울 표현. 보내기 전까지는 아직 보낸 것이 아니다.
   const pendingResend = useRef<string | undefined>(undefined);
 
   const receive = useCallback((correction: EpisodeCorrection) => {
-    for (const entry of correction.entries) {
-      if (!patterns.current.includes(entry.pattern)) {
-        patterns.current.push(entry.pattern);
-      }
-    }
-
     setByMessageId((current) => ({
       ...current,
       [correction.messageId]: correction,
@@ -122,17 +117,8 @@ export function useEpisodeCorrections(): EpisodeCorrectionStore {
     setResent((current) => ({ ...current, [messageId]: true }));
   }, []);
 
-  const seenPatterns = useCallback(() => [...patterns.current], []);
-
   return useMemo(
-    () => ({
-      beginResend,
-      byMessageId,
-      confirmResend,
-      receive,
-      resent,
-      seenPatterns,
-    }),
-    [beginResend, byMessageId, confirmResend, receive, resent, seenPatterns]
+    () => ({ beginResend, byMessageId, confirmResend, receive, resent }),
+    [beginResend, byMessageId, confirmResend, receive, resent]
   );
 }

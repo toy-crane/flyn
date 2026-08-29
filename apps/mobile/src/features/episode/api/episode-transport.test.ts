@@ -33,8 +33,7 @@ function bodyOf(
 ): Record<string, unknown> {
   const transport = createEpisodeTransport(
     () => "token",
-    () => EPISODE_ID,
-    () => ["article-the-specific"]
+    () => EPISODE_ID
   );
   const prepare = (
     transport as unknown as {
@@ -60,15 +59,12 @@ test("새로 쓴 말 하나만 보내고 지난 장면은 싣지 않는다", () 
   expect(body.episodeId).toBe(EPISODE_ID);
 });
 
-// 교정은 아직 기록에 남지 않아 서버가 지난 턴을 알지 못한다. 이미 받은 패턴은
-// 그 목록을 가진 앱이 함께 보낸다.
-test("이미 받은 배울 표현의 패턴을 함께 보낸다", () => {
-  expect(bodyOf(conversation(), "submit-message").seenPatterns).toEqual([
-    "article-the-specific",
-  ]);
+// 교정이 행으로 남으므로 서버가 자기 기록에서 읽는다. 앱이 나를 것이 없다.
+test("이미 받은 배울 표현의 패턴을 싣지 않는다", () => {
+  expect(bodyOf(conversation(), "submit-message").seenPatterns).toBeUndefined();
   expect(
     bodyOf([conversation()[0] as UIMessage], "regenerate-message").seenPatterns
-  ).toEqual(["article-the-specific"]);
+  ).toBeUndefined();
 });
 
 test("대화가 길어져도 요청은 같은 크기다", () => {

@@ -1,6 +1,7 @@
 import type { UIMessage } from "ai";
 
 import type { SceneOutcome } from "../../shared/scene-stream";
+import type { EpisodeCorrection } from "./correction";
 import { EPISODE_NOTES, type StoryMemory } from "./episode";
 import type { EpisodeClient, EpisodeScript, StoryContent } from "./story";
 
@@ -49,6 +50,12 @@ export interface NextUpData {
 }
 
 export interface EpisodeSessionView {
+  /**
+   * 이 대화에 붙은 배울 표현. 저장된 대화에 교정 part가 없으므로 여기 실려 온다.
+   *
+   * 화면을 나갔다 와도 붙어 있던 배울 표현이 같은 메시지 곁으로 돌아온다.
+   */
+  corrections: EpisodeCorrection[];
   /**
    * 이 화가 어떻게 끝났는지. 진행 중이면 없다.
    *
@@ -151,7 +158,7 @@ export async function recordEpisodeEnding(
 /**
  * 대화 한 자락.
  *
- * 자리 번호는 여기 없다. 새 메시지를 어디 앉힐지는 데이터베이스 트리거가
+ * 자리 번호는 여기 없다. 새 메시지가 어디 앉을지는 데이터베이스가 채우는 시각이
  * 정하므로, 서버가 세다가 어긋날 자리가 없다.
  */
 export interface EpisodePlay {
@@ -343,6 +350,144 @@ export async function appendEpisodeMessage(
   }
 }
 
+/**
+ * 배울 표현을 그것이 붙은 사용자 메시지에 매단다.
+ *
+ * 항목 하나가 행 하나다. 고친 문장은 메시지마다 하나뿐이라 행마다 같은 값이
+ * 들어가는데, 그 문장이 한 줄로 접힌 배울 표현이 보여 주는 것이고 다시 보내기가
+ * 입력창에 담는 것이기도 하다. 항목별로 다시 합칠 필요 없이 행 하나만 읽어도
+ * 화면을 그릴 수 있다.
+ *
+ * 결말이 난 뒤에도 들어간다. 결말이 얼리는 것은 대화이고, 마지막 턴의 배울
+ * 표현을 경주에서 졌다는 이유로 버리지 않는다.
+ */
+export async function appendEpisodeCorrection(
+  client: EpisodeClient,
+  correction: EpisodeCorrection
+): Promise<void> {
+  if (correction.entries.length === 0) {
+    return;
+  }
+
+  const { error } = await client.from("episode_corrections").insert(
+    correction.entries.map((entry) => ({
+      corrected: correction.fixed,
+      fixed: entry.fixed,
+      message_id: correction.messageId,
+      original: entry.original,
+      pattern: entry.pattern,
+      reason: entry.why,
+    }))
+  );
+
+  if (error) {
+    throw new Error(`Saving episode corrections failed: ${error.message}`);
+  }
+}
+
+/** 교정 한 행. 화면이 배울 표현을 그리는 데 필요한 전부다. */
+interface CorrectionRow {
+  corrected: string;
+  fixed: string;
+  message_id: string;
+  original: string;
+  pattern: string;
+  reason: string;
+}
+
+async function readCorrectionRows(
+  client: EpisodeClient,
+  playId: string
+): Promise<CorrectionRow[]> {
+  // 교정은 플레이를 직접 참조하지 않고 메시지에 매달린다. `!inner`가 그 메시지를
+  // 함께 걸어 이 플레이의 것만 남긴다.
+  const { data, error } = await client
+    .from("episode_corrections")
+    .select(
+      "message_id, original, fixed, corrected, pattern, reason, created_at, episode_messages!inner(play_id)"
+    )
+    .eq("episode_messages.play_id", playId)
+    .order("created_at");
+
+  if (error) {
+    throw new Error(`Reading episode corrections failed: ${error.message}`);
+  }
+
+  return data.map((row) => ({
+    corrected: row.corrected,
+    fixed: row.fixed,
+    message_id: row.message_id,
+    original: row.original,
+    pattern: row.pattern,
+    reason: row.reason,
+  }));
+}
+
+/**
+ * 이 플레이에서 이미 알려 준 규칙.
+ *
+ * 판정자는 이 목록에 있는 규칙으로 새 항목을 만들지 않는다. 교정이 행으로 남으니
+ * 서버가 자기 기록에서 읽으면 되고, 앱이 목록을 나르지 않아도 된다. 앱을 껐다 켜도
+ * 같은 규칙이 다시 붙지 않는 것이 그 차이다.
+ */
+export async function readSeenPatterns(
+  client: EpisodeClient,
+  playId: string
+): Promise<string[]> {
+  const rows = await readCorrectionRows(client, playId);
+
+  return [...new Set(rows.map((row) => row.pattern))];
+}
+
+function textOf(message: UIMessage): string {
+  return message.parts
+    .filter((part) => part.type === "text")
+    .map((part) => part.text)
+    .join("");
+}
+
+/**
+ * 저장된 교정을 화면이 받는 모양으로 되돌린다. 메시지 하나에 하나씩.
+ *
+ * 사용자가 쓴 원문은 행에 없다. 그 메시지가 이미 들고 있어 중복이라, 여기서
+ * 대화를 보고 채운다. 물어보기 시트의 출처가 그 문장을 쓴다.
+ */
+export async function readPlayCorrections(
+  client: EpisodeClient,
+  playId: string,
+  messages: readonly UIMessage[]
+): Promise<EpisodeCorrection[]> {
+  const rows = await readCorrectionRows(client, playId);
+  const written = new Map(messages.map((message) => [message.id, message]));
+  const byMessage = new Map<string, EpisodeCorrection>();
+
+  for (const row of rows) {
+    const entry = {
+      fixed: row.fixed,
+      original: row.original,
+      pattern: row.pattern,
+      why: row.reason,
+    };
+    const found = byMessage.get(row.message_id);
+
+    if (found) {
+      found.entries.push(entry);
+      continue;
+    }
+
+    const asked = written.get(row.message_id);
+
+    byMessage.set(row.message_id, {
+      entries: [entry],
+      fixed: row.corrected,
+      messageId: row.message_id,
+      original: asked ? textOf(asked) : "",
+    });
+  }
+
+  return [...byMessage.values()];
+}
+
 export function storyMemoriesOf(
   finished: readonly FinishedEpisodeRow[],
   story: StoryContent
@@ -459,7 +604,12 @@ export async function readEpisodeSession(
     return;
   }
 
+  const corrections = play.data
+    ? await readPlayCorrections(client, play.data.id, messages)
+    : [];
+
   return {
+    corrections,
     ending: ending ? { kind: ending.kind, outcome: ending.outcome } : undefined,
     episode: nextEpisodeView(episode),
     messages,

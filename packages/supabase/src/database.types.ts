@@ -38,27 +38,33 @@ export type Database = {
         Row: {
           corrected: string
           created_at: string
+          fixed: string
           id: string
           message_id: string
           original: string
+          pattern: string
           reason: string
           user_id: string
         }
         Insert: {
           corrected: string
           created_at?: string
+          fixed: string
           id?: string
           message_id: string
           original: string
+          pattern: string
           reason: string
           user_id?: string
         }
         Update: {
           corrected?: string
           created_at?: string
+          fixed?: string
           id?: string
           message_id?: string
           original?: string
+          pattern?: string
           reason?: string
           user_id?: string
         }

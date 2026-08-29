@@ -409,10 +409,18 @@ create table public.episode_corrections (
   id uuid primary key default gen_random_uuid(),
   message_id uuid not null,
   user_id uuid not null default auth.uid(),
-  -- 원문에서 어긋난 부분.
+  -- 원문에서 어긋난 조각. 화면이 물결 밑줄로 짚는 자리다.
   original text not null,
-  -- 모든 교정을 반영한 고친 문장.
+  -- 고친 문장에서 그 조각에 해당하는 부분. 화면이 강조하는 자리다.
+  fixed text not null,
+  -- 이 메시지의 모든 교정을 반영한 문장 하나. 한 메시지에 행이 여럿이어도 같은
+  -- 값이 들어간다. 한 줄로 접힌 배울 표현이 보여 주는 문장이고, 다시 보내기가
+  -- 입력창에 담는 것도 이 문장이다.
   corrected text not null,
+  -- 이 표현이 어떤 규칙인지 가리키는 영어 kebab-case 키. 화면에 보이지 않는다.
+  -- 같은 규칙을 한 에피소드에서 두 번 알려 주지 않는 근거가 이 열이고, 그래서
+  -- 앱이 이미 받은 목록을 나르지 않아도 된다.
+  pattern text not null,
   -- 왜 그런지 한국어 한 줄.
   reason text not null,
   created_at timestamptz not null default now(),
@@ -421,8 +429,14 @@ create table public.episode_corrections (
   constraint episode_corrections_original_usable check (
     length(btrim(original)) between 1 and 1000
   ),
+  constraint episode_corrections_fixed_usable check (
+    length(btrim(fixed)) between 1 and 1000
+  ),
   constraint episode_corrections_corrected_usable check (
     length(btrim(corrected)) between 1 and 1000
+  ),
+  constraint episode_corrections_pattern_usable check (
+    length(btrim(pattern)) between 1 and 120
   ),
   constraint episode_corrections_reason_usable check (
     length(btrim(reason)) between 1 and 300
@@ -445,8 +459,14 @@ comment on table public.episode_corrections is
 comment on column public.episode_corrections.original is
   'The part of what the person wrote that was off.';
 
+comment on column public.episode_corrections.fixed is
+  'The matching part of the corrected sentence.';
+
 comment on column public.episode_corrections.corrected is
   'The corrected sentence, with every correction on this message applied.';
+
+comment on column public.episode_corrections.pattern is
+  'Which rule this is, as an English kebab-case key. Never shown; it keeps the same rule from arriving twice in one episode.';
 
 comment on column public.episode_corrections.reason is
   'One Korean line saying why.';

@@ -162,7 +162,21 @@ function nextCreatedAt(): string {
  * other half — the server now saves message rows itself, so what lands there is
  * what a reopened episode shows.
  */
+/** One stored correction, the way `episode_corrections` holds it. */
+interface CorrectionRow {
+  corrected: string;
+  created_at: string;
+  fixed: string;
+  message_id: string;
+  original: string;
+  pattern: string;
+  reason: string;
+}
+
 interface SeasonState {
+  /** 교정을 남기는 문장만 실패시킨다. 장면 저장은 그대로 성공한다. */
+  correctionSaveError?: string;
+  corrections: CorrectionRow[];
   finished: FinishedRow[];
   messages: MessageRow[];
   recordAccepted?: boolean;
@@ -172,7 +186,7 @@ interface SeasonState {
 }
 
 function createSeasonState(finished: FinishedRow[] = []): SeasonState {
-  return { finished, messages: [], recorded: [] };
+  return { corrections: [], finished, messages: [], recorded: [] };
 }
 
 /** Every episode of the story, ended. */
@@ -271,6 +285,24 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
           return [...state.messages].sort((left, right) =>
             left.created_at.localeCompare(right.created_at)
           ) as unknown as Row[];
+        }
+
+        if (table === "episode_corrections") {
+          // 교정은 플레이를 직접 참조하지 않고 메시지에 매달린다. 조회가 `!inner`로
+          // 그 메시지를 걸어 플레이를 가리므로, 조인 결과를 평평하게 펴서 같은
+          // 이름의 필터가 그대로 걸리게 한다.
+          const play = new Map(
+            state.messages.map((message) => [message.id, message.play_id])
+          );
+
+          return [...state.corrections]
+            .sort((left, right) =>
+              left.created_at.localeCompare(right.created_at)
+            )
+            .map((row) => ({
+              ...row,
+              "episode_messages.play_id": play.get(row.message_id),
+            })) as unknown as Row[];
         }
 
         return [];
@@ -387,6 +419,30 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
           },
           insert: (payload: Row | Row[]) => {
             const added = Array.isArray(payload) ? payload : [payload];
+
+            if (table === "episode_corrections") {
+              if (state.correctionSaveError) {
+                return {
+                  error: { message: state.correctionSaveError },
+                  select: () => ({
+                    maybeSingle: () =>
+                      Promise.resolve({ data: null, error: null }),
+                  }),
+                };
+              }
+
+              state.corrections.push(
+                ...added.map(
+                  (row) =>
+                    ({
+                      created_at: nextCreatedAt(),
+                      ...row,
+                    }) as unknown as CorrectionRow
+                )
+              );
+
+              return writeResult(null);
+            }
 
             if (table === "episode_messages") {
               if (state.saveError) {
@@ -1644,21 +1700,41 @@ describe("대화 중 교정", () => {
 
   // 같은 패턴이 한 에피소드에서 두 번 배울 표현이 되지 않는다. 앱이 이미 받은
   // 키를 보내면 서버는 그 항목을 버린다.
-  test("앱이 이미 받은 패턴은 다시 만들지 않는다", async () => {
-    const app = createApp({
-      authMiddleware: bypassAuth,
-      model: createMockModel(["Mia: Sure."], WRONG_COFFEE),
+  test("이미 알려 준 패턴은 다시 만들지 않는다", async () => {
+    const state = createSeasonState();
+    const play = playIdOf(episodeId(1));
+
+    state.messages.push({
+      created_at: "2026-08-29T00:00:00.000Z",
+      id: "m0",
+      parts: [{ text: "I think this is wrong coffee.", type: "text" }],
+      play_id: play,
+      role: "user",
+    });
+    state.corrections.push({
+      corrected: "I think you gave me the wrong coffee.",
+      created_at: "2026-08-29T00:00:01.000Z",
+      fixed: "the wrong coffee",
+      message_id: "m0",
+      original: "wrong coffee",
+      pattern: "article-the-specific",
+      reason: "the를 붙여요.",
     });
 
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel(["Mia: Sure."], WRONG_COFFEE),
+    });
     const response = await app.request(
       createEpisodeRequest({
-        messages: [createUserMessage("I think this is wrong coffee.")],
-        seenPatterns: ["article-the-specific"],
+        keepThrough: "m0",
+        messages: [createUserMessage("Still the wrong coffee, I think.")],
       })
     );
     const body = await response.text();
 
     expect(body).not.toContain('"type":"data-correction"');
+    expect(state.corrections).toHaveLength(1);
   });
 
   // 항목마다 다른 키가 있어야 카드가 표현 수만큼 나뉜다. 판정이 같은 패턴을
@@ -1757,8 +1833,7 @@ describe("대화 중 교정", () => {
     expect(body).not.toContain('"type":"data-correction"');
   });
 
-  // 교정을 대화 기록에 남길지는 아직 정하지 않은 결정이다. 그때까지 저장되는
-  // 장면은 교정이 붙기 전과 똑같아야 한다.
+  // 교정은 자기 행에 남는다. 저장되는 장면은 교정이 붙기 전과 똑같아야 한다.
   test("교정은 저장되는 대화 기록에 들어가지 않는다", async () => {
     const state = createSeasonState();
     const app = createApp({
@@ -1779,6 +1854,135 @@ describe("대화 중 교정", () => {
     expect(saved).toContain("I think this is wrong coffee.");
     expect(saved).not.toContain("data-correction");
     expect(saved).not.toContain("article-the-specific");
+  });
+
+  // 항목 하나가 행 하나다. 고친 문장은 메시지마다 하나뿐이라 행마다 같은 값이
+  // 들어가고, 그래서 행 하나만 읽어도 한 줄과 카드를 그릴 수 있다.
+  test("판정한 배울 표현을 그 메시지에 매단 행으로 남긴다", async () => {
+    const state = createSeasonState();
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel(["Mia: Oh, sorry about that."], {
+        entries: [
+          ...WRONG_COFFEE.entries,
+          {
+            fixed: "want to get",
+            original: "want get",
+            pattern: "to-infinitive-after-want",
+            why: "want 뒤의 동사는 to부정사로 써요.",
+          },
+        ],
+        fixed: "I think you gave me the wrong coffee. I want to get one.",
+      }),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [
+          createUserMessage("I think this is wrong coffee. I want get one."),
+        ],
+      })
+    );
+
+    await response.text();
+
+    const asked = state.messages.find((row) => row.role === "user")?.id ?? "";
+
+    expect(
+      state.corrections.map((row) => ({
+        corrected: row.corrected,
+        fixed: row.fixed,
+        message_id: row.message_id,
+        original: row.original,
+        pattern: row.pattern,
+        reason: row.reason,
+      }))
+    ).toEqual([
+      {
+        corrected: "I think you gave me the wrong coffee. I want to get one.",
+        fixed: "the wrong coffee",
+        message_id: asked,
+        original: "wrong coffee",
+        pattern: "article-the-specific",
+        reason: "잘못 나온 그 하나를 짚어 말할 때는 the를 붙여요.",
+      },
+      {
+        corrected: "I think you gave me the wrong coffee. I want to get one.",
+        fixed: "want to get",
+        message_id: asked,
+        original: "want get",
+        pattern: "to-infinitive-after-want",
+        reason: "want 뒤의 동사는 to부정사로 써요.",
+      },
+    ]);
+  });
+
+  // 앱은 이미 받은 패턴을 나르지 않는다. 서버가 자기 행에서 읽으므로, 앱을 껐다
+  // 켜도 같은 규칙이 다시 붙지 않는다.
+  test("이미 알려 준 규칙을 서버가 자기 기록에서 읽어 판정자에게 준다", async () => {
+    const state = createSeasonState();
+    const play = playIdOf(episodeId(1));
+
+    state.messages.push({
+      created_at: "2026-08-29T00:00:00.000Z",
+      id: "m0",
+      parts: [{ text: "I think this is wrong coffee.", type: "text" }],
+      play_id: play,
+      role: "user",
+    });
+    state.corrections.push({
+      corrected: "I think you gave me the wrong coffee.",
+      created_at: "2026-08-29T00:00:01.000Z",
+      fixed: "the wrong coffee",
+      message_id: "m0",
+      original: "wrong coffee",
+      pattern: "article-the-specific",
+      reason: "the를 붙여요.",
+    });
+
+    const model = createMockModel(["Mia: Sure."], WRONG_COFFEE);
+    const app = createApp({ authMiddleware: signedInWith(state), model });
+
+    await (
+      await app.request(
+        createEpisodeRequest({
+          keepThrough: "m0",
+          messages: [createUserMessage("Can I get wrong coffee changed?")],
+        })
+      )
+    ).text();
+
+    const judging = JSON.stringify(model.doGenerateCalls[0]?.prompt);
+
+    expect(judging).toContain("article-the-specific");
+    expect(judging).toContain("이미 알려 준 규칙");
+  });
+
+  // 교정 저장이 실패해도 화면에는 이미 붙었고 이야기는 그대로 이어진다.
+  test("교정 저장이 실패해도 장면과 대화 기록은 그대로다", async () => {
+    const state = createSeasonState();
+
+    state.correctionSaveError = "connection refused";
+
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel(["Mia: Oh, sorry about that."], WRONG_COFFEE),
+    });
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I think this is wrong coffee.")],
+      })
+    );
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('"type":"data-correction"');
+    expect(body).toContain("sorry about that");
+    expect(state.corrections).toHaveLength(0);
+    expect(state.messages.map((row) => row.role)).toEqual([
+      "user",
+      "assistant",
+    ]);
   });
 
   // 교정 판정이 실패해도 이야기는 계속된다.
@@ -2331,6 +2535,66 @@ describe("story content database contract", () => {
       outcome: "새 잔을 받아냈다.",
     });
     expect(session.nextUp.number).toBe(2);
+  });
+
+  // 저장된 대화에 교정 part가 없으므로, 다시 연 화면이 배울 표현을 그리려면
+  // 세션이 그것을 실어 와야 한다.
+  test("returns the corrections saved on this play", async () => {
+    const state = createSeasonState();
+    const play = playIdOf(episodeId(1));
+
+    state.messages.push({
+      created_at: "2026-08-29T00:00:00.000Z",
+      id: "m1",
+      parts: [{ text: "I think this is wrong coffee.", type: "text" }],
+      play_id: play,
+      role: "user",
+    });
+    state.corrections.push(
+      {
+        corrected: "I think you gave me the wrong coffee.",
+        created_at: "2026-08-29T00:00:01.000Z",
+        fixed: "the wrong coffee",
+        message_id: "m1",
+        original: "wrong coffee",
+        pattern: "article-the-specific",
+        reason: "the를 붙여요.",
+      },
+      {
+        corrected: "I think you gave me the wrong coffee.",
+        created_at: "2026-08-29T00:00:02.000Z",
+        fixed: "gave me",
+        message_id: "m1",
+        original: "is",
+        pattern: "give-someone-something",
+        reason: "누가 무엇을 줬다고 말할 때 give를 써요.",
+      }
+    );
+
+    const app = createApp({ authMiddleware: signedInWith(state) });
+    const response = await app.request(`${EPISODE_PATH}/${episodeId(1)}`);
+    const session = (await response.json()) as {
+      corrections: {
+        entries: { pattern: string }[];
+        fixed: string;
+        messageId: string;
+        original: string;
+      }[];
+    };
+
+    expect(response.status).toBe(200);
+    // 한 메시지의 항목이 하나로 묶이고, 원문은 그 메시지에서 채워진다.
+    expect(session.corrections).toHaveLength(1);
+    expect(session.corrections[0]).toMatchObject({
+      fixed: "I think you gave me the wrong coffee.",
+      messageId: "m1",
+      original: "I think this is wrong coffee.",
+    });
+    expect(
+      session.corrections.flatMap((correction) =>
+        correction.entries.map((entry) => entry.pattern)
+      )
+    ).toEqual(["article-the-specific", "give-someone-something"]);
   });
 
   test("does not offer a transcript for an ending left without messages", async () => {

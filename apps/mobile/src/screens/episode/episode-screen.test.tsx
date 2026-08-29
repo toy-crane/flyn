@@ -98,7 +98,6 @@ let mockCorrections: {
   confirmResend: jest.Mock<() => void>;
   receive: jest.Mock<() => void>;
   resent: Record<string, true>;
-  seenPatterns: () => string[];
 };
 
 jest.mock("@/features/episode/state/use-episode-run", () => {
@@ -223,7 +222,6 @@ beforeEach(() => {
     confirmResend: jest.fn(),
     receive: jest.fn(),
     resent: {},
-    seenPatterns: () => [],
   };
   mockOpenAsk.mockClear();
   mockOpenAskConversation.mockClear();

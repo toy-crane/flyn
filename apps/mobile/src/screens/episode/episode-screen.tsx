@@ -51,6 +51,7 @@ export function EpisodeScreen({
   readOnly,
   recordedEnding,
   recordedNextUp,
+  savedCorrections,
   situation,
   situationEmoji,
 }: {
@@ -63,6 +64,7 @@ export function EpisodeScreen({
   readOnly: boolean;
   recordedEnding?: EpisodeEnding;
   recordedNextUp?: EpisodeNextUp;
+  savedCorrections?: readonly EpisodeCorrection[];
   situation: string;
   situationEmoji: string;
 }) {
@@ -74,7 +76,8 @@ export function EpisodeScreen({
     initialMessages,
     readOnly,
     recordedEnding,
-    recordedNextUp
+    recordedNextUp,
+    savedCorrections
   );
   const drafts = useLocalChatDrafts();
   const conversation = useConversation(chat, drafts, accessToken);

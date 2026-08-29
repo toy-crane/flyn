@@ -155,7 +155,9 @@ SELECT ok(
     SELECT bool_and(
       has_column_privilege('authenticated', 'public.episode_corrections', c, 'INSERT')
     )
-    FROM unnest(ARRAY['message_id', 'original', 'corrected', 'reason']) AS c
+    FROM unnest(
+      ARRAY['message_id', 'original', 'fixed', 'corrected', 'pattern', 'reason']
+    ) AS c
   )
   AND NOT (
     SELECT has_column_privilege(
@@ -296,55 +298,72 @@ SELECT is(
 );
 
 SELECT lives_ok(
-  $$insert into public.episode_corrections (message_id, original, corrected, reason)
+  $$insert into public.episode_corrections
+      (message_id, original, fixed, corrected, pattern, reason)
     values (
       'cc000000-0000-4000-8000-000000000001',
-      'I want to change my order.',
+      'I want',
+      'Could I',
       'Could I change my order?',
+      'could-i-for-requests',
       '부탁할 때는 Could I가 자연스럽습니다.'
     )$$,
   'a correction hangs from the sentence the person wrote'
 );
 
 SELECT lives_ok(
-  $$insert into public.episode_corrections (message_id, original, corrected, reason)
+  $$insert into public.episode_corrections
+      (message_id, original, fixed, corrected, pattern, reason)
     values (
       'cc000000-0000-4000-8000-000000000001',
       'change',
+      'change',
       'Could I change my order?',
+      'verb-after-modal',
       '같은 문장에 배울 표현이 둘 붙을 수 있습니다.'
     )$$,
   'and one message can carry more than one'
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_corrections (message_id, original, corrected, reason)
+  $$insert into public.episode_corrections
+      (message_id, original, fixed, corrected, pattern, reason)
     values (
       'cc000000-0000-4000-8000-000000000002',
       'Mia looks up.',
       'Mia looked up.',
+      'Mia looked up.',
+      'past-tense-narration',
       '상대의 대사를 고치려는 시도.'
     )$$,
   '42501', NULL, 'a correction never hangs from the other side''s line'
 );
 
-SELECT throws_ok(
-  $$insert into public.episode_corrections (message_id, original, corrected, reason)
+-- 결말이 얼리는 것은 대화, 곧 메시지다. 교정 판정은 장면과 나란히 돌아 결말
+-- 확정보다 늦게 끝날 수 있고, 마지막 턴의 배울 표현이 가장 아까운 자리다.
+SELECT lives_ok(
+  $$insert into public.episode_corrections
+      (message_id, original, fixed, corrected, pattern, reason)
     values (
       'cc000000-0000-4000-8000-000000000009',
-      'Can I get another one?',
+      'Can I',
+      'Could I',
       'Could I get another one?',
-      '끝난 화에 뒤늦게 붙이려는 시도.'
+      'could-i-for-requests',
+      '결말이 난 뒤에 도착한 판정.'
     )$$,
-  '42501', NULL, 'a finished play accepts no further correction'
+  'a correction still lands on a finished play''s own message'
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_corrections (message_id, original, corrected, reason)
+  $$insert into public.episode_corrections
+      (message_id, original, fixed, corrected, pattern, reason)
     values (
       'cc000000-0000-4000-8000-000000000001',
       'change',
+      'change',
       'Could I change my order?',
+      'verb-after-modal',
       '   '
     )$$,
   '23514', NULL, 'a correction without a reason line is refused'
@@ -354,7 +373,7 @@ SELECT throws_ok(
 -- 필요 없다.
 SELECT is(
   (SELECT count(*) FROM public.episode_corrections),
-  2::bigint,
+  3::bigint,
   'every 배울 표현 this account has received comes back in one read'
 );
 
@@ -401,8 +420,10 @@ SELECT lives_ok(
   'removing a message the person wrote raises nothing'
 );
 
+-- 그 메시지에 붙어 있던 것만 사라진다. 다른 화의 배울 표현은 그대로 남는다.
 SELECT is(
-  (SELECT count(*) FROM public.episode_corrections),
+  (SELECT count(*) FROM public.episode_corrections
+   WHERE message_id = 'cc000000-0000-4000-8000-000000000001'),
   0::bigint,
   'and its corrections leave with it'
 );

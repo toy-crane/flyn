@@ -125,6 +125,7 @@ export default function EpisodeRoute() {
           readOnly={playing.readOnly}
           recordedEnding={playing.ending}
           recordedNextUp={playing.nextUp}
+          savedCorrections={playing.corrections}
           situation={playing.episode.situation}
           situationEmoji={playing.episode.situationEmoji}
         />

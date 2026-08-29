@@ -132,3 +132,45 @@ test("끝난 화를 다시 열면 서버가 실어 보낸 결말로 마무리를
   });
   expect(result.current.nextUp?.episodeId).toBe("next");
 });
+
+// 저장된 대화에 교정 part가 없으므로, 다시 연 화면의 배울 표현은 서버가 세션에
+// 실어 보낸 것으로 돌아온다.
+test("다시 연 화면은 서버가 실어 보낸 배울 표현으로 시작한다", async () => {
+  fakeTransport();
+  const messages: UIMessage[] = [
+    {
+      id: "m1",
+      parts: [{ text: "I think this is wrong coffee.", type: "text" }],
+      role: "user",
+    },
+  ];
+  const saved = [
+    {
+      entries: [
+        {
+          fixed: "the wrong coffee",
+          original: "wrong coffee",
+          pattern: "article-the-specific",
+          why: "그 하나를 짚을 때는 the를 붙여요.",
+        },
+      ],
+      fixed: "I think you gave me the wrong coffee.",
+      messageId: "m1",
+      original: "I think this is wrong coffee.",
+    },
+  ];
+
+  const { result } = await renderHook(() =>
+    useEpisodeRun(
+      "token",
+      EPISODE_ID,
+      messages,
+      false,
+      undefined,
+      undefined,
+      saved
+    )
+  );
+
+  expect(result.current.corrections.byMessageId.m1).toEqual(saved[0]);
+});

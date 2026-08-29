@@ -3,6 +3,7 @@ import type { UIMessage } from "ai";
 import { randomUUID } from "expo-crypto";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
 import { correctionOfData } from "@/features/episode/api/episode-correction";
 import { createEpisodeTransport } from "@/features/episode/api/episode-transport";
 import {
@@ -49,11 +50,12 @@ export function useEpisodeRun(
   initialMessages: UIMessage[],
   readOnly: boolean,
   recordedEnding?: EpisodeEnding,
-  recordedNextUp?: EpisodeNextUp
+  recordedNextUp?: EpisodeNextUp,
+  savedCorrections?: readonly EpisodeCorrection[]
 ): EpisodeRun {
   const currentToken = useRef(accessToken);
   const currentEpisodeId = useRef(episodeId);
-  const corrections = useEpisodeCorrections();
+  const corrections = useEpisodeCorrections(savedCorrections);
   // 대화는 한 번만 만들어지므로 그때의 함수가 그대로 붙잡힌다. 지금 상태를
   // 읽는 자리는 ref 하나로 남겨 둔다.
   const currentCorrections = useRef(corrections);
@@ -66,8 +68,7 @@ export function useEpisodeRun(
     () =>
       createEpisodeTransport(
         () => currentToken.current,
-        () => currentEpisodeId.current,
-        () => currentCorrections.current.seenPatterns()
+        () => currentEpisodeId.current
       ),
     []
   );

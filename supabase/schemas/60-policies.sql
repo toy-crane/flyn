@@ -159,8 +159,8 @@ create policy episode_messages_erase_open_play on public.episode_messages
 
 -- update 정책이 없다. 저장은 장면이 끝난 뒤 한 번 일어나고, 고쳐 쓰는 대신
 -- 지우고 새로 넣는다. 쓸 일이 없는 문장은 열지 않는다. `user_id`는
--- `episode_plays`와 같은 이유로 insert grant에서 빠져 있다. `position`도 없다.
--- 자리는 트리거가 정하므로 실어 보낼 값이 아니다.
+-- `episode_plays`와 같은 이유로 insert grant에서 빠져 있다. `created_at`도 없다.
+-- 자리를 정하는 것은 데이터베이스가 채우는 시각이라 실어 보낼 값이 아니다.
 grant select, delete on table public.episode_messages to authenticated;
 grant insert (id, play_id, role, parts)
   on table public.episode_messages to authenticated;
@@ -175,6 +175,11 @@ create policy episode_corrections_select_own on public.episode_corrections
 
 -- 교정은 사용자가 쓴 메시지에만 붙는다. 상대의 대사에 교정을 다는 요청은 여기서
 -- 막힌다.
+--
+-- 플레이가 끝났는지는 보지 않는다. 결말이 얼리는 것은 대화, 곧 메시지다. 교정
+-- 판정은 장면과 나란히 돌아 결말 확정보다 늦게 끝날 수 있는데, 에피소드를 끝내는
+-- 마지막 메시지야말로 배울 표현이 가장 아까운 자리다. 경주에서 졌다는 이유로
+-- 버리면 "교정은 그 자리에서 확인된다"는 약속이 마지막 턴에서만 깨진다.
 create policy episode_corrections_write_own_message on public.episode_corrections
   for insert
   to authenticated
@@ -183,17 +188,15 @@ create policy episode_corrections_write_own_message on public.episode_correction
     and exists (
       select 1
       from public.episode_messages written
-      join public.episode_plays played on played.id = written.play_id
       where written.id = message_id
         and written.role = 'user'
-        and played.finished_at is null
     )
   );
 
 -- delete 정책이 없다. 교정은 그것이 붙은 메시지를 따라 사라진다. `user_id`는
 -- 앞의 두 테이블과 같은 이유로 insert grant에서 빠져 있다.
 grant select on table public.episode_corrections to authenticated;
-grant insert (message_id, original, corrected, reason)
+grant insert (message_id, original, fixed, corrected, pattern, reason)
   on table public.episode_corrections to authenticated;
 grant all on table public.episode_corrections to service_role;
 
