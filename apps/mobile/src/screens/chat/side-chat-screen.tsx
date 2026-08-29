@@ -7,6 +7,7 @@ import { useAuthSession } from "@/features/auth/state/auth-session";
 import { type SideChat, useSideChats } from "@/features/chat/state/side-chats";
 import { useSideChatSession } from "@/features/chat/state/use-side-chat-session";
 import { ChatPanel } from "@/features/chat/ui/chat-panel";
+import { SideChatSource } from "@/features/chat/ui/side-chat-source";
 import { useFocusOnArrival } from "@/shared/navigation/use-screen-arrival";
 
 function SideChatConversation({ sideChat }: { sideChat: SideChat }) {
@@ -21,7 +22,7 @@ function SideChatConversation({ sideChat }: { sideChat: SideChat }) {
       inputRef={inputRef}
       // No `onAskInSideChat`: an answer here can be selected and copied, but a
       // side chat cannot start another one.
-      source={sideChat.phrase}
+      source={<SideChatSource phrase={sideChat.phrase} />}
       // The sheet's header is transparent like the conversation's, so the list
       // reaches under it and this pushes the source back into view.
       topInset={Platform.OS === "ios" ? headerHeight : 0}

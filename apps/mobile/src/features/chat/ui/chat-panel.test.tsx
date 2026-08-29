@@ -16,6 +16,7 @@ import { KeyboardController } from "react-native-keyboard-controller";
 import type { ChatSession } from "@/features/chat/state/use-chat-session";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { ChatPanel, chatLabels } from "./chat-panel";
+import { SideChatSource } from "./side-chat-source";
 
 const mockScrollToEnd = jest.fn<
   (options?: { animated?: boolean }) => Promise<void>
@@ -1609,7 +1610,10 @@ describe("ChatPanel", () => {
 
     test("고른 구절을 목록 맨 위에 읽기 전용 출처로 보여 준다", async () => {
       await renderWithHeroUI(
-        <ChatPanel chat={chatSession()} source="이어받은 구절" />
+        <ChatPanel
+          chat={chatSession()}
+          source={<SideChatSource phrase="이어받은 구절" />}
+        />
       );
 
       const phrase = screen.getByTestId("side-chat-source-phrase");
@@ -1649,9 +1653,9 @@ describe("ChatPanel", () => {
         />
       );
 
-      expect(screen.getByText("Side chat 1개")).toBeOnTheScreen();
+      expect(screen.getByText("AI에게 물어보기 1개")).toBeOnTheScreen();
 
-      await user.press(screen.getByLabelText("Side chat 1개 다시 열기"));
+      await user.press(screen.getByLabelText("AI에게 물어보기 1개 다시 열기"));
 
       expect(onOpenSideChat).toHaveBeenCalledWith("side-chat-1");
     });
@@ -1670,15 +1674,17 @@ describe("ChatPanel", () => {
         />
       );
 
-      expect(screen.getByText("Side chat 2개")).toBeOnTheScreen();
+      expect(screen.getByText("AI에게 물어보기 2개")).toBeOnTheScreen();
 
-      await user.press(screen.getByLabelText("Side chat 2개 고르기"));
+      await user.press(screen.getByLabelText("AI에게 물어보기 2개 고르기"));
 
       expect(screen.getByText("두 번째 대화의 끝")).toBeOnTheScreen();
       expect(screen.getByText("첫 대화의 끝")).toBeOnTheScreen();
       expect(onOpenSideChat).not.toHaveBeenCalled();
 
-      await user.press(screen.getAllByLabelText("같은 구절 Side chat 열기")[1]);
+      await user.press(
+        screen.getAllByLabelText("같은 구절 AI에게 물어보기 열기")[1]
+      );
 
       expect(onOpenSideChat).toHaveBeenCalledWith("side-chat-1");
     });

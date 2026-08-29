@@ -52,6 +52,10 @@ export default function EpisodeRoute() {
     }
   }, [isRoutePending]);
 
+  const openAsk = useCallback((id: string) => {
+    router.push({ params: { id }, pathname: "/episode/ask" });
+  }, []);
+
   useEffect(
     () => () => {
       refreshStory();
@@ -120,6 +124,7 @@ export default function EpisodeRoute() {
           isStartingNext={isStartingNext}
           key={playing.episode.episodeId}
           onLeave={leaveEpisode}
+          onOpenAsk={openAsk}
           onSettlingChange={setIsSettling}
           onStartNext={startNextEpisode}
           readOnly={playing.readOnly}

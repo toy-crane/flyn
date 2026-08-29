@@ -37,6 +37,11 @@ export const testThemeVariables = {
   "--color-surface": "#ffffff",
   "--color-surface-foreground": "#111114",
   "--color-warning": "#ca8a04",
+  // 교정 채널. HeroUI의 시맨틱 집합에 이 뜻을 가진 역할이 없어서 앱이 전역
+  // CSS에 직접 등재했고, 이름도 `--color-` 없이 그 이름 그대로다.
+  "--learn": "#7c3aed",
+  "--learn-foreground": "#ffffff",
+  "--learn-surface": "#f1ebfd",
   "--theme": "default",
 };
 

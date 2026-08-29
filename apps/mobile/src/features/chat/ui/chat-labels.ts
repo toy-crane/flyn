@@ -5,13 +5,13 @@
 export const chatLabels = {
   /**
    * Shown as the item this app adds to the system text selection menu on a
-   * finished parent answer. Deliberately not translated: it is the product's
-   * own name for what it opens; see GLOSSARY.md.
+   * finished parent answer. The product's own name for what it opens; see
+   * GLOSSARY.md.
    */
-  askInSideChat: "Ask in side chat",
+  askInSideChat: "AI에게 물어보기",
   back: "뒤로 가기",
   /** Not shown: the side chat sheet's close button. */
-  closeSideChat: "Side chat 닫기",
+  closeSideChat: "AI에게 물어보기 닫기",
   /** Not shown: the icon row under a finished answer. */
   copyAnswer: "답변 복사",
   /** Shown as the menu item on a message. */
@@ -33,7 +33,7 @@ export const chatLabels = {
   retry: "다시 시도하기",
   send: "보내기",
   /** Shown as the side chat sheet's title. */
-  sideChat: "Side chat",
+  sideChat: "AI에게 물어보기",
   /** Not shown: the send button's place while an answer is arriving. */
   stop: "답변 그만 받기",
   /**
@@ -45,7 +45,7 @@ export const chatLabels = {
 
 /** Shown on the count floating above the parent conversation's composer. */
 export function sideChatCountLabel(count: number): string {
-  return `Side chat ${count}개`;
+  return `AI에게 물어보기 ${count}개`;
 }
 
 /**
@@ -54,11 +54,11 @@ export function sideChatCountLabel(count: number): string {
  */
 export function sideChatCountAction(count: number): string {
   return count === 1
-    ? "Side chat 1개 다시 열기"
-    : `Side chat ${count}개 고르기`;
+    ? "AI에게 물어보기 1개 다시 열기"
+    : `AI에게 물어보기 ${count}개 고르기`;
 }
 
 /** Not shown: one row of the list that reopens a side chat. */
 export function openSideChatAction(phrase: string): string {
-  return `${phrase} Side chat 열기`;
+  return `${phrase} AI에게 물어보기 열기`;
 }

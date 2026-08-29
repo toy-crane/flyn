@@ -37,6 +37,35 @@ export const episodeLabels = {
   unavailable: "이야기를 불러오지 못했어요.",
 } as const;
 
+/**
+ * 에피소드 대화에서 몰랐던 표현에 붙는 교정이 쓰는 말.
+ *
+ * 틀림을 세는 말과 유형 이름은 여기에 없다. 채점받는 느낌을 만들지 않으려고
+ * 라벨을 "배울 표현" 하나로 고정한다.
+ */
+export const correctionLabels = {
+  /** Shown as the button that opens the Korean question sheet. */
+  ask: "AI에게 물어보기",
+  /** Not shown: the sheet's close button. */
+  askClose: "AI에게 물어보기 닫기",
+  /** Shown in the sheet's empty input. A label, so no period. */
+  askPlaceholder: "궁금한 것을 한국어로 물어보세요",
+  /** Shown as the sheet's title. */
+  askTitle: "AI에게 물어보기",
+  /** Not shown: the chevron that folds an open card back into one line. */
+  fold: "배울 표현 접기",
+  /** Shown as the card's heading, and as the sheet's source label. */
+  label: "배울 표현",
+  /** Shown as the card's heading when one message carries several. */
+  labelCount: (count: number) => `배울 표현 ${count}개`,
+  /** Not shown: the one line under a message, which opens the card. */
+  open: "배울 표현 보기",
+  /** Shown as the button that puts the fixed sentence in the composer. */
+  resend: "다시 보내기",
+  /** Shown on the line once its fixed sentence has been sent again. */
+  resent: "고쳐서 다시 보냈어요",
+} as const;
+
 /** 홈이 에피소드 묶음과 진행을 설명할 때 쓰는 말. */
 export const storyLabels = {
   /** Shown as the number of one finished episode in the story's record. */

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, jest, test } from "@jest/globals";
 import { act, screen } from "@testing-library/react-native";
 import { useNavigation } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
+import type { ReactElement } from "react";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
 import { type SideChat, useSideChats } from "@/features/chat/state/side-chats";
@@ -34,7 +35,7 @@ jest.mock("expo-router/react-navigation", () => ({
 interface PanelProps {
   chat: { tag?: string };
   onAskInSideChat?: unknown;
-  source?: string;
+  source?: ReactElement<{ phrase?: string }>;
   topInset?: number;
 }
 
@@ -107,7 +108,9 @@ test("고른 구절을 출처로 두고 그 Side chat의 대화를 보여 준다
   );
 
   expect(screen.getByTestId("side-chat-panel")).toBeOnTheScreen();
-  expect(panel?.source).toBe("이어받은 구절");
+  // 출처를 그리는 일은 화면이 맡는다. 패널은 받은 것을 목록 맨 위에 얹기만
+  // 한다: 에피소드는 구절이 아니라 교정을 출처로 두기 때문이다.
+  expect(panel?.source?.props).toEqual({ phrase: "이어받은 구절" });
   expect(panel?.chat.tag).toBe("side-chat-session");
 });
 

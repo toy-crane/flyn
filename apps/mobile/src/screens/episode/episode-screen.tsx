@@ -13,7 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Platform, Text, View } from "react-native";
+import { Platform, Text, type TextInput, View } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
 import {
@@ -21,7 +21,11 @@ import {
   useLocalChatDrafts,
 } from "@/features/chat/state/use-chat-session";
 import { ChatPanel } from "@/features/chat/ui/chat-panel";
+import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
+import { useEpisodeAsks } from "@/features/episode/state/episode-asks";
+import { EpisodeCorrectionsProvider } from "@/features/episode/state/episode-corrections";
 import { useEpisodeRun } from "@/features/episode/state/use-episode-run";
+import { EpisodeCorrectionNote } from "@/features/episode/ui/correction-note";
 import { EpisodeClosing } from "@/features/episode/ui/episode-closing";
 import { episodeLabels } from "@/features/episode/ui/episode-labels";
 import { EpisodeSituationBanner } from "@/features/episode/ui/episode-situation-banner";
@@ -38,14 +42,17 @@ import { EpisodeSituationBanner } from "@/features/episode/ui/episode-situation-
  * 주고, 경로는 그 화를 알기 전에 이 화면을 그리지 않는다. 상황 줄이 뒤늦게
  * 생기면 장면 목록이 이미 잡아 둔 배치와 어긋나 첫 장면이 화면 밖에 남는다.
  *
- * Side chat으로 들어가는 길은 넘기지 않는다. 잠깐 물어보기는 다음 단위이고,
- * 템플릿의 Side chat이 그 자리를 미리 차지하지 않는다.
+ * 배울 표현은 말풍선 아래에 매달린다. 대화는 채팅 기능의 것이고 교정은
+ * 에피소드 기능의 것이라, 둘을 잇는 자리도 여기다. 메시지 하나에 거는 동작과
+ * 템플릿의 텍스트 선택 진입은 여전히 넘기지 않는다. 물어보는 자리로 들어가는
+ * 길은 교정 카드 하나뿐이다.
  */
 export function EpisodeScreen({
   episodeId,
   initialMessages,
   isStartingNext,
   onLeave,
+  onOpenAsk,
   onSettlingChange,
   onStartNext,
   readOnly,
@@ -56,6 +63,7 @@ export function EpisodeScreen({
   initialMessages: UIMessage[];
   isStartingNext: boolean;
   onLeave: () => void;
+  onOpenAsk: (id: string) => void;
   onSettlingChange: (isSettling: boolean) => void;
   onStartNext: (episodeId: string) => void;
   readOnly: boolean;
@@ -64,14 +72,12 @@ export function EpisodeScreen({
 }) {
   const { session } = useAuthSession();
   const accessToken = session?.access_token;
-  const { chat, ending, isSaving, nextUp, open, stopAndSave } = useEpisodeRun(
-    accessToken,
-    episodeId,
-    initialMessages,
-    readOnly
-  );
+  const { chat, corrections, ending, isSaving, nextUp, open, stopAndSave } =
+    useEpisodeRun(accessToken, episodeId, initialMessages, readOnly);
   const drafts = useLocalChatDrafts();
   const conversation = useConversation(chat, drafts, accessToken);
+  const { openAsk } = useEpisodeAsks();
+  const inputRef = useRef<TextInput>(null);
   const headerHeight = useHeaderHeight();
   const navigation = useNavigation();
   const pendingRemoval = useRef<NavigationAction | undefined>(undefined);
@@ -91,14 +97,66 @@ export function EpisodeScreen({
 
     conversation.retry();
   }, [conversation.messages.length, conversation.retry, isSaving, open]);
+  // 고친 문장을 입력창에 담는다. 보내는 것은 사용자의 몫이고, 그 전에 문장을
+  // 고칠 수도 있다. 실제로 보내야 한 줄에 보냈다는 표시가 남는다.
+  const resendCorrection = useCallback(
+    (correction: EpisodeCorrection) => {
+      corrections.beginResend(correction.messageId);
+      conversation.setDraft(correction.fixed);
+      inputRef.current?.focus();
+    },
+    [conversation.setDraft, corrections.beginResend]
+  );
+  const { messages } = conversation;
+  const askAboutCorrection = useCallback(
+    (correction: EpisodeCorrection) => {
+      const asked = messages.findIndex(
+        (message) => message.id === correction.messageId
+      );
+
+      if (asked < 0) {
+        return;
+      }
+
+      onOpenAsk(
+        openAsk({
+          correction,
+          // 물어본 그 말까지의 대화. 시트가 열릴 때 고정되고 바뀌지 않는다.
+          snapshot: messages.slice(0, asked + 1),
+        })
+      );
+    },
+    [messages, onOpenAsk, openAsk]
+  );
+  const correctionsView = useMemo(
+    () => ({
+      ask: askAboutCorrection,
+      byMessageId: corrections.byMessageId,
+      resend: resendCorrection,
+      resent: corrections.resent,
+    }),
+    [
+      askAboutCorrection,
+      corrections.byMessageId,
+      corrections.resent,
+      resendCorrection,
+    ]
+  );
+  const { confirmResend } = corrections;
+  const { send } = conversation;
+  const sendMessage = useCallback(() => {
+    confirmResend();
+    send();
+  }, [confirmResend, send]);
   const conversationRun = useMemo(
     () => ({
       ...conversation,
       isBusy: conversation.isBusy || isSaving,
       retry,
+      send: sendMessage,
       stop: stopAndSave,
     }),
-    [conversation, isSaving, retry, stopAndSave]
+    [conversation, isSaving, retry, sendMessage, stopAndSave]
   );
   // useChat의 stop은 요청만 취소하고 마지막 응답 조각이 React에 들어오기를
   // 기다리지 않는다. 나가기 동작은 한 번만 맡아 두고, 마지막 렌더를 서버와
@@ -169,18 +227,22 @@ export function EpisodeScreen({
   const panelKey = conversationRun.messages.length === 0 ? "empty" : "started";
 
   return (
-    <ChatPanel
-      banner={
-        <EpisodeSituationBanner emoji={situationEmoji} text={situation} />
-      }
-      busyLabel={isSaving ? episodeLabels.saving : undefined}
-      canStop={!isSaving}
-      chat={conversationRun}
-      closing={closing}
-      hasMessageActions={false}
-      key={panelKey}
-      placeholder={episodeLabels.placeholder}
-      topInset={Platform.OS === "ios" ? headerHeight : 0}
-    />
+    <EpisodeCorrectionsProvider value={correctionsView}>
+      <ChatPanel
+        banner={
+          <EpisodeSituationBanner emoji={situationEmoji} text={situation} />
+        }
+        busyLabel={isSaving ? episodeLabels.saving : undefined}
+        canStop={!isSaving}
+        chat={conversationRun}
+        closing={closing}
+        hasMessageActions={false}
+        inputRef={inputRef}
+        key={panelKey}
+        messageAddon={EpisodeCorrectionNote}
+        placeholder={episodeLabels.placeholder}
+        topInset={Platform.OS === "ios" ? headerHeight : 0}
+      />
+    </EpisodeCorrectionsProvider>
   );
 }

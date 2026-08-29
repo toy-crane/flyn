@@ -3,23 +3,31 @@ import ArrowDown from "lucide-react-native/icons/arrow-down";
 import ArrowUp from "lucide-react-native/icons/arrow-up";
 import Bookmark from "lucide-react-native/icons/bookmark";
 import Check from "lucide-react-native/icons/check";
+import ChevronDown from "lucide-react-native/icons/chevron-down";
 import ChevronRight from "lucide-react-native/icons/chevron-right";
+import ChevronUp from "lucide-react-native/icons/chevron-up";
 import Copy from "lucide-react-native/icons/copy";
 import MessagesSquare from "lucide-react-native/icons/messages-square";
 import Pencil from "lucide-react-native/icons/pencil";
 import RefreshCw from "lucide-react-native/icons/refresh-cw";
+import Sparkles from "lucide-react-native/icons/sparkles";
 import Square from "lucide-react-native/icons/square";
 import X from "lucide-react-native/icons/x";
 import { View } from "react-native";
+import { useCSSVariable } from "uniwind";
 
 const icons = {
   bookmark: Bookmark,
   check: Check,
   close: X,
+  collapse: ChevronUp,
   copy: Copy,
   edit: Pencil,
+  expand: ChevronDown,
   forward: ChevronRight,
   latest: ArrowDown,
+  /** 교정 표식. 배울 표현이 붙은 자리마다 같은 모양으로 선다. */
+  learn: Sparkles,
   regenerate: RefreshCw,
   send: ArrowUp,
   sideChat: MessagesSquare,
@@ -38,6 +46,12 @@ const iconSizeClassNames = {
   sm: "size-4",
 } as const satisfies Record<keyof typeof iconSizes, string>;
 
+/**
+ * 교정 채널의 보라. HeroUI의 시맨틱 집합에 이 뜻을 가진 역할이 없어서 앱이
+ * 전역 CSS에 등재한 변수를 직접 읽는다.
+ */
+const LEARN_VARIABLE = "--learn";
+
 const iconTones = {
   accent: "accent",
   accentForeground: "accent-foreground",
@@ -52,7 +66,7 @@ const iconTones = {
 
 export type IconName = keyof typeof icons;
 export type IconSize = keyof typeof iconSizes;
-export type IconTone = keyof typeof iconTones;
+export type IconTone = keyof typeof iconTones | "learn";
 
 export interface IconProps {
   /** Paints the shape solid instead of drawing its outline. */
@@ -70,7 +84,13 @@ export function Icon({
   testID,
   tone = "default",
 }: IconProps) {
-  const color = useThemeColor(iconTones[tone]);
+  // 두 원본을 다 읽고 하나를 고른다. 훅은 조건부로 부를 수 없고, 보라만
+  // HeroUI 바깥에 있다.
+  const themeColor = useThemeColor(
+    tone === "learn" ? "accent" : iconTones[tone]
+  );
+  const learnColor = useCSSVariable(LEARN_VARIABLE);
+  const color = tone === "learn" ? String(learnColor) : themeColor;
   const IconComponent = icons[name];
   const pixelSize = iconSizes[size];
 
