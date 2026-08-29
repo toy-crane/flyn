@@ -1953,6 +1953,18 @@ describe("story content database contract", () => {
     expect(response.status).toBe(200);
   });
 
+  // 경로에서 오는 값이라 모양조차 보장되지 않는다. uuid가 아닌 화 id는 없는
+  // 화이지 서버 오류가 아니다.
+  test("answers 404 for an episode id that is not a uuid", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(createSeasonState()),
+    });
+
+    const response = await app.request(`${EPISODE_PATH}/not-a-uuid`);
+
+    expect(response.status).toBe(404);
+  });
+
   test("saves a running scene after a model turn", async () => {
     const state = createSeasonState();
     const app = createApp({

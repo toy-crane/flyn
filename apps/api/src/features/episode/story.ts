@@ -108,17 +108,29 @@ export async function readStoryCatalog(
   }));
 }
 
+/** 화 id의 생김새. 데이터베이스에 묻기 전에 여기서 먼저 가린다. */
+const EPISODE_ID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * 이 화가 속한 스토리의 각본을 읽는다.
  *
  * 장면을 여는 경로는 어느 스토리인지 알지 못한 채 화 하나만 받는다. 스토리가
  * 여럿이므로 그 화가 어디에 속했는지부터 물어야, 진행과 기억을 다른 스토리와
  * 섞지 않는다. 없는 화를 물으면 빈손으로 돌아온다.
+ *
+ * 경로에서 오는 값이라 화 id의 모양조차 보장되지 않는다. uuid가 아닌 값을 그대로
+ * 물으면 데이터베이스가 형 변환에서 실패하고, 없는 화를 물은 것이 서버 오류로
+ * 둔갑한다. 모양이 아닌 값은 묻지 않고 없는 화로 돌려준다.
  */
 export async function readStoryOfEpisode(
   client: EpisodeClient,
   episodeId: string
 ): Promise<StoryContent | undefined> {
+  if (!EPISODE_ID.test(episodeId)) {
+    return;
+  }
+
   const { data, error } = await client
     .from("episodes")
     .select("story_id")
