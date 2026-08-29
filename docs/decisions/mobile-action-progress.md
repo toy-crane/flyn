@@ -4,6 +4,8 @@
 
 - 사용자가 React Native UI의 일반 버튼으로 시작한 작업은 같은 버튼에서 진행 중임을 표시한다. 버튼의 원래 문구와 크기를 유지하고, 작업 아이콘이 있던 자리나 문구 앞에 작은 회전 진행 표시를 둔다.
 - React Native UI는 HeroUI Native를 감싼 프로젝트 공통 `Button`을 사용한다. `isPending`은 이 버튼의 상태이며 별도 `PendingButton`이나 `CTAButton`을 만들지 않는다.
+- React Native UI의 회전 진행 표시는 React Native의 `ActivityIndicator`가 그린다. HeroUI Native의 `Spinner`를 쓰지 않는다. 크기는 `small`을 쓴다.
+- 앱 화면 콘텐츠 위의 진행 표시는 색을 명시한다. 네이티브 셸 안의 진행 표시는 셸이 정한 색을 따른다.
 - 프로젝트 공통 `Button`은 너비를 정하지 않는다. 전폭, 내용 너비와 정렬은 버튼을 배치하는 화면이 정한다.
 - `isPending`인 버튼은 같은 작업을 다시 시작할 수 없고 화면 읽기 기능에 `busy`와 `disabled` 상태를 함께 전달한다. 화면 상태나 데이터 변경 계층도 같은 화면 프레임에 들어온 중복 실행을 막는다.
 - 사용자가 버튼을 누르지 않아 자동으로 시작한 작업은 처리하는 대상이 진행 상태를 소유한다. 기존 내용과 관계없는 새 줄에 진행 표시를 추가하지 않는다.
@@ -18,6 +20,7 @@
 - Google, Apple과 이메일 로그인 버튼은 제공자 브랜드 규칙과 동일한 묶음 모양을 소유하는 기존 `SignInButton`을 유지한다. 진행 상태의 의미와 접근성 규칙만 공통 결정에 맞춘다.
 - 프로필 저장은 플랫폼의 헤더 방식을 유지한다. iOS는 `Stack.Toolbar.Button`의 실행 아이콘을, Android는 `Stack.Screen`의 헤더 저장 버튼을 같은 자리의 시스템 진행 표시로 바꾼다.
 - `@expo/ui` 화면의 진행 표시는 각 플랫폼이 제공하는 진행 컴포넌트가 그린다. 이를 위해 React Native UI 버튼을 `Host` 안에 넣지 않는다.
+- Android 앱 테마의 `colorAccent`를 앱 색으로 정하지 않는다. 이 값은 진행 표시만이 아니라 AppCompat 컨트롤 전반의 색이다.
 - 자동 확인, 자동 저장과 뒤에서 갱신하는 작업의 구체적인 위치와 문구는 작업 대상을 소유한 기능이 정한다.
 - 완료량을 알 수 있는 업로드나 다운로드, 오래 걸리는 작업과 백그라운드 작업은 이 결정의 작은 회전 진행 표시만으로 다루지 않는다.
 - 채팅처럼 별도 명세가 진행 상태를 정한 화면은 그 명세를 우선한다.
@@ -25,6 +28,10 @@
 ## 이유
 
 진행 상태를 작업이 시작된 버튼이나 처리되는 대상에 두면 무엇을 기다리는지 바로 연결된다. 원래 문구와 크기를 유지하면 버튼이 움직이거나 작업의 뜻이 사라지지 않는다. 반대로 자동 작업의 진행 표시를 새 줄에 추가하면 어떤 요소와 연결되는지 알기 어렵고 화면 높이도 바뀐다.
+
+진행 표시를 `ActivityIndicator`로 그리면 각 플랫폼의 표현을 그대로 얻는다. Android는 Material 원호가, iOS는 스포크가 나온다. 두 플랫폼에서 같은 SVG를 그리는 컴포넌트는 어느 쪽에서도 그 운영체제의 진행 표시로 보이지 않는다.
+
+색을 명시하는 이유는 넘기지 않으면 앱과 무관한 색이 나오기 때문이다. Android는 벡터의 tint가 테마의 `colorAccent`를 가리키는데 Expo가 만드는 앱 테마는 이 값을 정하지 않아 AppCompat 기본 teal이 나온다. iOS는 React Native가 `#999999`를 넣어 화면 모드와 상관없이 같은 회색이 된다. 테마의 `colorAccent`를 정하면 색 지정 없이도 앱 색을 얻지만, 그 값은 커서와 선택 색까지 함께 바꾼다.
 
 하나의 공통 버튼이 HeroUI Native, 네이티브 셸과 `@expo/ui`를 모두 감싸면 각 렌더러가 제공하는 상태, 배치와 접근성 표현을 잃는다. 공통으로 유지할 것은 진행 상태의 의미이며, 실제 표시는 화면의 주 렌더러가 담당한다.
 
@@ -43,6 +50,8 @@ Android에서 Material 3 Expressive의 `LoadingIndicator`를 쓰지 않는 이�
 - Android가 `announceForAccessibility`를 deprecated에서 실제 동작 중지로 바꾼다.
 - 실제 작업 시간 측정이나 사용자 검증에서 자동 실행 작업의 1초 표시 기준이 너무 짧거나 길다는 결과가 나온다.
 - 진행 중인 작업을 취소하거나 정확한 완료량을 보여 줘야 하는 흐름이 생긴다.
+- Expo가 앱 테마의 `colorAccent`를 앱 설정으로 정하는 공식 방법을 제공한다.
+- React Native가 Android `ActivityIndicator`의 기본색을 앱 테마와 무관한 값으로 채운다.
 
 ## 계속 제외하는 대안
 
@@ -51,6 +60,8 @@ Android에서 Material 3 Expressive의 `LoadingIndicator`를 쓰지 않는 이�
 - 모든 버튼을 전폭으로 고정하기: 너비는 버튼의 상태가 아니라 화면 배치다. 제품의 모든 React Native UI 버튼이 전폭이라는 별도 화면 규칙이 생길 때만 다시 검토한다.
 - 모든 렌더러를 하나의 공통 버튼으로 감싸기: 네이티브 셸, 호스팅된 SwiftUI와 Compose의 상태 표현을 React Native UI가 대신하게 된다. 렌더러 경계가 사라질 때만 다시 검토한다.
 - 자동 작업이 시작되자마자 별도 줄에 진행 표시를 추가하기: 짧은 작업은 깜빡이고 긴 작업은 대상과 떨어진 표시만 남는다. 별도 진행 영역 자체가 제품 정보가 될 때만 다시 검토한다.
+- HeroUI Native `Spinner`를 React Native UI의 진행 표시로 쓰기: 두 플랫폼에서 같은 SVG를 그려 어느 쪽에서도 그 운영체제의 진행 표시로 보이지 않는다. 플랫폼 표현보다 브랜드 표현이 앞서야 하는 자리가 생길 때만 다시 검토한다.
+- Android 테마의 `colorAccent`를 앱 색으로 정해 색 지정을 없애기: 진행 표시 하나를 위해 AppCompat 컨트롤 전반의 색 경로를 바꾼다. 커서와 선택 색까지 함께 정해야 할 이유가 확인될 때만 다시 검토한다.
 - 진행 중에 컨트롤의 문구를 `…중`으로 바꾸기: 접근성 이름을 얻는 가장 쉬운 방법이지만 컨트롤의 이름이 상태마다 달라진다. 표시와 접근성을 함께 전달할 다른 방법이 없어질 때만 다시 검토한다.
 
 ## 보존할 근거
@@ -73,3 +84,10 @@ Android에서 Material 3 Expressive의 `LoadingIndicator`를 쓰지 않는 이�
 - React Native 0.86.2의 `AccessibilityInfo.announceForAccessibility`는 화면 읽기가 꺼져 있으면 아무것도 보내지 않고 바로 돌아온다(`AccessibilityInfoModule.kt`). 켜져 있을 때만 `TYPE_ANNOUNCEMENT` 이벤트를 보낸다.
 - Android Emulator에서 TalkBack을 켜고 계정 삭제를 시작해 음성 알림이 나오는 것까지 확인했다. 프로덕션 이미지에서는 TalkBack 로그 수준을 올릴 수 없어 실제 발화 문장은 확인하지 못했다.
 - 이 앱은 채팅 오류 안내에서 이미 같은 방법을 쓴다(`chat-panel.tsx`).
+- react-native 0.86.3의 `ActivityIndicator.js`는 `color` 기본값을 iOS `#999999`, Android `null`로 둔다. 크기는 `small` 20, `large` 36이고 Android에는 언제나 `styleAttr: "Normal"`을 넘긴다. `ProgressBarContainerView.kt`는 색이 없으면 `clearColorFilter()`를 불러 벡터의 tint를 그대로 둔다.
+- Android가 그리는 것은 AOSP의 `vector_drawable_progress_bar_medium.xml`이다. 48dp에 반지름 18, 선 4, square 캡이고 tint가 `?attr/colorControlActivated`다. 호는 1333ms 주기로 자라고 줄며 전체는 4444ms에 720도 돈다. `small`이면 이 벡터가 20dp 프레임에 맞춰지므로 선도 1.67dp로 얇아진다.
+- AppCompat 1.7.0에서 `colorControlActivated`는 `?attr/colorAccent`이고 Light는 `#008577`, night는 `#80CBC4`다. `progressBarStyle`은 재정의하지 않는다. `expo-template-bare-minimum@57.0.20`의 `styles.xml`은 `Theme.AppCompat.DayNight.NoActionBar`를 쓰고 `colorAccent`를 정하지 않는다.
+- Expo의 `primaryColor` 설정은 `colorPrimary`만 정하고 `colorAccent`에 닿지 않는다(`@expo/config-plugins` 10.1.2의 `PrimaryColor.js`). `colorAccent`를 정하려면 `withAndroidStyles`로 config plugin을 직접 써야 한다.
+- [Expo 참조 저장소 색인](../references/expo-reference-repos.md)의 다섯 저장소 모두 `colorAccent`를 정하지 않는다. `ActivityIndicator`를 쓰는 clarity와 amber는 배경이 있는 컨트롤 안이면 대비색을 주고 화면 한가운데 뜨는 첫 로딩이면 색을 생략한다. clarity는 눈에 띄는 자리에 Lottie를, ai-chat-demo와 우리 앱은 답변 대기에 글자 shimmer를 쓴다.
+- React Native Paper의 `ActivityIndicator`는 React Native의 것을 쓰지 않고 `Animated.View` 두 겹을 직접 돌리며 색을 `theme.colors.primary`에서 얻는다.
+- HeroUI Native 1.0.8의 `Spinner`는 react-native-svg로 mingcute 로딩 아이콘을 그리고 Reanimated로 1000ms 등속 회전한다. 크기는 sm 16, md 24, lg 32이고 기본색은 `accent`다. 링의 지름은 sm에서 14px이라 `ActivityIndicator`의 `small`이 그리는 15dp와 거의 같다.
