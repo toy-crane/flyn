@@ -1398,6 +1398,75 @@ describe("대화 중 교정", () => {
     expect(body).not.toContain('"type":"data-correction"');
   });
 
+  // 항목마다 다른 키가 있어야 카드가 표현 수만큼 나뉜다. 판정이 같은 패턴을
+  // 두 번 쓰면 뒤의 것은 앞의 것과 한 항목으로 겹쳐 사라진다.
+  test("한 판정이 같은 패턴을 두 번 써도 항목은 하나만 남는다", async () => {
+    const app = createApp({
+      authMiddleware: bypassAuth,
+      model: createMockModel(["Mia: Sure."], {
+        entries: [
+          {
+            fixed: "the wrong coffee",
+            original: "wrong coffee",
+            pattern: "article-the-specific",
+            why: "잘못 나온 그 하나를 짚을 때는 the를 붙여요.",
+          },
+          {
+            fixed: "the wrong cup",
+            original: "wrong cup",
+            pattern: "article-the-specific",
+            why: "잘못 나온 그 하나를 짚을 때는 the를 붙여요.",
+          },
+        ],
+        fixed: "I think this is the wrong coffee in the wrong cup.",
+      }),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [
+          createUserMessage("I think this is wrong coffee in wrong cup."),
+        ],
+      })
+    );
+    const body = await response.text();
+
+    expect(body).toContain('"type":"data-correction"');
+    // 고친 문장은 두 자리를 모두 반영하되, 항목은 앞의 하나만 남는다.
+    expect(body).toContain(
+      "I think this is the wrong coffee in the wrong cup."
+    );
+    expect(body).toContain('"original":"wrong coffee"');
+    expect(body).not.toContain('"original":"wrong cup"');
+  });
+
+  // 빈 문장은 화면에서 빈 띠 하나로 남는다.
+  test("고친 문장이 비어 있으면 붙이지 않는다", async () => {
+    const app = createApp({
+      authMiddleware: bypassAuth,
+      model: createMockModel(["Mia: Sure."], {
+        entries: [
+          {
+            fixed: "",
+            original: "wrong coffee",
+            pattern: "article-the-specific",
+            why: "the를 붙여요.",
+          },
+        ],
+        fixed: "",
+      }),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I think this is wrong coffee.")],
+      })
+    );
+    const body = await response.text();
+
+    expect(body).not.toContain('"type":"data-correction"');
+  });
+
   // 원문에 없는 조각을 짚는 항목은 화면에서 강조할 자리를 찾지 못한다.
   test("원문에 없는 조각을 짚는 항목은 버린다", async () => {
     const app = createApp({

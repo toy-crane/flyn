@@ -184,13 +184,27 @@ export async function judgeCorrection({
     system: correctionSystemPrompt(seenPatterns),
   });
   const fixed = object.fixed.trim();
-  const seen = new Set(seenPatterns);
-  const entries = object.entries.filter(
-    (entry) => !seen.has(entry.pattern) && keepsItsWords(entry, trimmed, fixed)
-  );
 
-  // 고친 문장이 원문과 같으면 붙일 것이 없다. 항목이 모두 걸러진 경우도 같다.
-  if (entries.length === 0 || fixed === trimmed) {
+  // 고친 문장이 비었거나 원문과 같으면 보여 줄 것이 없다. 빈 문장은 화면에서
+  // 빈 띠 하나로 남으므로 여기서 걸러야 한다.
+  if (!fixed || fixed === trimmed) {
+    return;
+  }
+
+  // 같은 패턴은 한 번만 남긴다. 지난 턴에 알려 준 것도, 이번 판정이 두 번 쓴
+  // 것도 마찬가지다. 항목마다 다른 키가 있어야 카드가 표현 수만큼 나뉜다.
+  const seen = new Set(seenPatterns);
+  const entries = object.entries.filter((entry) => {
+    if (seen.has(entry.pattern) || !keepsItsWords(entry, trimmed, fixed)) {
+      return false;
+    }
+
+    seen.add(entry.pattern);
+
+    return true;
+  });
+
+  if (entries.length === 0) {
     return;
   }
 
