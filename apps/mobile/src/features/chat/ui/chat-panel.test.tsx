@@ -420,7 +420,7 @@ describe("ChatPanel", () => {
         { data: { name: null }, id: "speaker-1", type: "data-speaker" },
         { text: "국물 김이 오른다.", type: "text" },
         { data: { name: "만복" }, id: "speaker-2", type: "data-speaker" },
-        { text: "어서 와.", type: "text" },
+        { text: "**어서 와.**", type: "text" },
       ],
       role: "assistant",
     };
@@ -435,6 +435,7 @@ describe("ChatPanel", () => {
     expect(
       within(screen.getByTestId("chat-scene-utterance")).getByText("만복")
     ).toBeOnTheScreen();
+    expect(screen.getByText("**어서 와.**").props.flavor).toBe("commonmark");
     expect(
       screen.queryByTestId("chat-message-assistant")
     ).not.toBeOnTheScreen();
@@ -608,17 +609,18 @@ describe("ChatPanel", () => {
 
   test("답변 복사는 그 답변의 본문 전체를 클립보드에 넣는다", async () => {
     const user = userEvent.setup();
+    const markdown = "# 제목\n\n**강조**와 `코드`";
     await renderWithHeroUI(
       <ChatPanel
         chat={chatSession({
-          messages: [textMessage("assistant-1", "assistant", "긴 답변 전체")],
+          messages: [textMessage("assistant-1", "assistant", markdown)],
         })}
       />
     );
 
     await user.press(screen.getByLabelText(chatLabels.copyAnswer));
 
-    expect(mockSetStringAsync).toHaveBeenCalledWith("긴 답변 전체");
+    expect(mockSetStringAsync).toHaveBeenCalledWith(markdown);
   });
 
   test("답변 다시 받기는 그 답변을 기준으로 되돌린다", async () => {
