@@ -300,7 +300,29 @@ const deletedUserAuth: MiddlewareHandler = (c, next) => {
   return next();
 };
 
-function createMockModel(text: string[]): MockLanguageModelV4 {
+/**
+ * 교정 판정이 돌려줄 답.
+ *
+ * 장면과 같은 모델을 쓰되 부르는 방법이 달라서, 이 답은 `doStream`이 아니라
+ * `doGenerate` 자리에 놓인다. 기본값이 "고칠 것 없음"이라 교정을 시험하지 않는
+ * 테스트는 예전과 똑같이 돈다.
+ */
+interface CorrectionAnswer {
+  entries: {
+    fixed: string;
+    original: string;
+    pattern: string;
+    why: string;
+  }[];
+  fixed: string;
+}
+
+const NO_CORRECTION: CorrectionAnswer = { entries: [], fixed: "" };
+
+function createMockModel(
+  text: string[],
+  correction: CorrectionAnswer = NO_CORRECTION
+): MockLanguageModelV4 {
   const chunks: LanguageModelV4StreamPart[] = [
     { type: "stream-start", warnings: [] },
     { id: "0", type: "text-start" },
@@ -326,6 +348,24 @@ function createMockModel(text: string[]): MockLanguageModelV4 {
   ];
 
   return new MockLanguageModelV4({
+    doGenerate: {
+      content: [{ text: JSON.stringify(correction), type: "text" }],
+      finishReason: { raw: undefined, unified: "stop" },
+      usage: {
+        inputTokens: {
+          cacheRead: undefined,
+          cacheWrite: undefined,
+          noCache: undefined,
+          total: undefined,
+        },
+        outputTokens: {
+          reasoning: undefined,
+          text: undefined,
+          total: undefined,
+        },
+      },
+      warnings: [],
+    },
     doStream: {
       stream: simulateReadableStream({
         chunkDelayInMs: null,
@@ -1258,6 +1298,290 @@ describe("POST /ai/episode", () => {
     expect(
       state.runRecords.some((record) => record.name === "complete_episode_run")
     ).toBeFalse();
+  });
+});
+
+/** 카페 1화에서 실제로 나올 법한 교정 하나. */
+const WRONG_COFFEE: CorrectionAnswer = {
+  entries: [
+    {
+      fixed: "the wrong coffee",
+      original: "wrong coffee",
+      pattern: "article-the-specific",
+      why: "잘못 나온 그 하나를 짚어 말할 때는 the를 붙여요.",
+    },
+  ],
+  fixed: "I think you gave me the wrong coffee.",
+};
+
+describe("대화 중 교정", () => {
+  test("몰랐던 표현이 있으면 고친 문장을 장면과 함께 내려보낸다", async () => {
+    const app = createApp({
+      authMiddleware: bypassAuth,
+      model: createMockModel(["Mia: Oh, sorry about that."], WRONG_COFFEE),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I think this is wrong coffee.")],
+      })
+    );
+
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+
+    expect(body).toContain('"type":"data-correction"');
+    expect(body).toContain("I think you gave me the wrong coffee.");
+    expect(body).toContain("article-the-specific");
+    // 장면은 교정을 기다리지 않는다. 둘 다 같은 응답에 실려 온다.
+    expect(body).toContain("Oh, sorry about that.");
+  });
+
+  test("교정이 없는 메시지에는 아무것도 붙이지 않는다", async () => {
+    const app = createApp({
+      authMiddleware: bypassAuth,
+      model: createMockModel(["Mia: Sure."]),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I ordered an iced americano.")],
+      })
+    );
+    const body = await response.text();
+
+    expect(body).not.toContain('"type":"data-correction"');
+  });
+
+  // 고친 문장이 원문과 다르지 않으면 배울 것도 없다.
+  test("원문과 같은 문장을 돌려주면 교정으로 치지 않는다", async () => {
+    const app = createApp({
+      authMiddleware: bypassAuth,
+      model: createMockModel(["Mia: Sure."], {
+        entries: [
+          {
+            fixed: "Thank you",
+            original: "Thank you",
+            pattern: "politeness",
+            why: "고마움을 전할 때 쓰는 말이에요.",
+          },
+        ],
+        fixed: "Thank you.",
+      }),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Thank you.")] })
+    );
+    const body = await response.text();
+
+    expect(body).not.toContain('"type":"data-correction"');
+  });
+
+  // 같은 패턴이 한 에피소드에서 두 번 배울 표현이 되지 않는다. 앱이 이미 받은
+  // 키를 보내면 서버는 그 항목을 버린다.
+  test("앱이 이미 받은 패턴은 다시 만들지 않는다", async () => {
+    const app = createApp({
+      authMiddleware: bypassAuth,
+      model: createMockModel(["Mia: Sure."], WRONG_COFFEE),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I think this is wrong coffee.")],
+        seenPatterns: ["article-the-specific"],
+      })
+    );
+    const body = await response.text();
+
+    expect(body).not.toContain('"type":"data-correction"');
+  });
+
+  // 원문에 없는 조각을 짚는 항목은 화면에서 강조할 자리를 찾지 못한다.
+  test("원문에 없는 조각을 짚는 항목은 버린다", async () => {
+    const app = createApp({
+      authMiddleware: bypassAuth,
+      model: createMockModel(["Mia: Sure."], {
+        entries: [
+          {
+            fixed: "the wrong coffee",
+            original: "a wrong tea",
+            pattern: "article-the-specific",
+            why: "the를 붙여요.",
+          },
+        ],
+        fixed: "I think you gave me the wrong coffee.",
+      }),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I think this is wrong coffee.")],
+      })
+    );
+    const body = await response.text();
+
+    expect(body).not.toContain('"type":"data-correction"');
+  });
+
+  // 교정을 대화 기록에 남길지는 아직 정하지 않은 결정이다. 그때까지 저장되는
+  // 장면은 교정이 붙기 전과 똑같아야 한다.
+  test("교정은 저장되는 대화 기록에 들어가지 않는다", async () => {
+    const state = createSeasonState();
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel(["Mia: Oh, sorry about that."], WRONG_COFFEE),
+    });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I think this is wrong coffee.")],
+      })
+    );
+
+    await response.text();
+
+    const saved = JSON.stringify(state.runs.at(-1)?.messages ?? []);
+
+    expect(saved).toContain("I think this is wrong coffee.");
+    expect(saved).not.toContain("data-correction");
+    expect(saved).not.toContain("article-the-specific");
+  });
+
+  // 교정 판정이 실패해도 이야기는 계속된다.
+  test("교정 판정이 실패해도 장면은 그대로 흐른다", async () => {
+    const model = createMockModel(["Mia: Oh, sorry about that."]);
+
+    model.doGenerate = () => Promise.reject(new Error("gateway down"));
+
+    const app = createApp({ authMiddleware: bypassAuth, model });
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("I think this is wrong coffee.")],
+      })
+    );
+
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+
+    expect(body).toContain("Oh, sorry about that.");
+    expect(body).not.toContain('"type":"data-correction"');
+  });
+
+  // 첫 장면 요청에는 사용자가 쓴 말이 없다.
+  test("첫 장면을 여는 요청에는 판정을 부르지 않는다", async () => {
+    const model = createMockModel(["Mia: Next in line, please!"]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(createEpisodeRequest({ messages: [] }));
+
+    await response.text();
+
+    expect(model.doGenerateCalls).toHaveLength(0);
+  });
+});
+
+describe("POST /ai/episode/ask", () => {
+  function createAskRequest(body: unknown, token?: string): Request {
+    return new Request(`http://localhost${EPISODE_PATH}/ask`, {
+      body: JSON.stringify(body),
+      headers: {
+        "content-type": "application/json",
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      method: "POST",
+    });
+  }
+
+  const ASKED = {
+    entries: WRONG_COFFEE.entries,
+    fixed: WRONG_COFFEE.fixed,
+    original: "I think this is wrong coffee.",
+  };
+
+  test("로그인하지 않은 요청은 받지 않는다", async () => {
+    const model = createMockModel(["the를 붙여요."]);
+    const app = createApp({
+      authMiddleware: createUserAuthMiddleware(),
+      model,
+    });
+
+    const response = await app.request(
+      createAskRequest({
+        correction: ASKED,
+        messages: [createUserMessage("the를 왜 붙여요?")],
+      })
+    );
+
+    expect(response.status).toBe(401);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  test("교정 없이 온 요청은 받지 않는다", async () => {
+    const model = createMockModel(["the를 붙여요."]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createAskRequest({ messages: [createUserMessage("the를 왜 붙여요?")] })
+    );
+
+    expect(response.status).toBe(400);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  test("물을 말이 없는 요청은 받지 않는다", async () => {
+    const model = createMockModel(["the를 붙여요."]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createAskRequest({ correction: ASKED, messages: [] })
+    );
+
+    expect(response.status).toBe(400);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  // 시트의 답은 이 교정과 이 대화 안에서 나온다. 둘 다 모델에게 간다.
+  test("교정과 에피소드 스냅샷을 문맥으로 답한다", async () => {
+    const model = createMockModel([
+      "잘못 나온 그 커피 하나를 짚어 말하기 때문이에요.",
+    ]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createAskRequest({
+        correction: ASKED,
+        messages: [
+          {
+            id: "s1",
+            parts: [
+              { data: { name: "Mia" }, id: "speaker-1", type: "data-speaker" },
+              { text: "Next in line, please!", type: "text" },
+            ],
+            role: "assistant",
+          },
+          createUserMessage("the를 왜 붙여요?"),
+        ],
+      })
+    );
+
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+    const [call] = model.doStreamCalls;
+    const system = call?.prompt.find((message) => message.role === "system");
+    const prompt = JSON.stringify(call?.prompt);
+
+    expect(JSON.stringify(system)).toContain("I think this is wrong coffee.");
+    expect(JSON.stringify(system)).toContain(
+      "I think you gave me the wrong coffee."
+    );
+    expect(prompt).toContain("Next in line, please!");
+    expect(body).toContain("잘못 나온 그 커피 하나를 짚어 말하기 때문이에요.");
+    // 시트는 장면 파서를 지나지 않는다. 답은 말풍선이 아니라 평범한 답변이다.
+    expect(body).not.toContain('"type":"data-speaker"');
   });
 });
 
