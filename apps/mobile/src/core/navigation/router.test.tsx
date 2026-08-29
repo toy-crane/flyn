@@ -37,13 +37,25 @@ beforeEach(() => {
   resetFakeSupabase({ session: createFakeSession() });
 });
 
-jest.mock("@/screens/activity/activity-screen", () => {
+jest.mock("@/screens/stories/stories-screen", () => {
   const React = require("react") as typeof import("react");
   const { View } = require("react-native") as typeof import("react-native");
 
   return {
-    ActivityScreen: () =>
-      React.createElement(View, { accessibilityLabel: "Activity placeholder" }),
+    StoriesScreen: () =>
+      React.createElement(View, { accessibilityLabel: "Stories placeholder" }),
+  };
+});
+
+jest.mock("@/screens/stories/story-detail-screen", () => {
+  const React = require("react") as typeof import("react");
+  const { View } = require("react-native") as typeof import("react-native");
+
+  return {
+    StoryDetailScreen: () =>
+      React.createElement(View, {
+        accessibilityLabel: "Story detail placeholder",
+      }),
   };
 });
 
@@ -54,16 +66,6 @@ jest.mock("@/screens/settings/settings-screen", () => {
   return {
     SettingsScreen: () =>
       React.createElement(View, { accessibilityLabel: "Settings placeholder" }),
-  };
-});
-
-jest.mock("@/screens/saved/saved-screen", () => {
-  const React = require("react") as typeof import("react");
-  const { View } = require("react-native") as typeof import("react-native");
-
-  return {
-    SavedScreen: () =>
-      React.createElement(View, { accessibilityLabel: "Saved placeholder" }),
   };
 });
 
@@ -89,21 +91,26 @@ test("공개 경로 이동이 각 네이티브 탭의 화면을 표시한다", a
   await router;
 
   await act(() => {
-    expoRouter.navigate("/activity");
+    expoRouter.navigate("/stories");
   });
 
   await waitFor(() => {
-    expect(router.getPathname()).toBe("/activity");
-    expect(screen.getByLabelText("Activity placeholder")).toBeOnTheScreen();
+    expect(router.getPathname()).toBe("/stories");
+    expect(screen.getByLabelText("Stories placeholder")).toBeOnTheScreen();
   });
 
   await act(() => {
-    expoRouter.navigate("/saved");
+    expoRouter.navigate({
+      params: { storyId: "10000000-0000-4000-8000-000000000001" },
+      pathname: "/story/[storyId]",
+    });
   });
 
   await waitFor(() => {
-    expect(router.getPathname()).toBe("/saved");
-    expect(screen.getByLabelText("Saved placeholder")).toBeOnTheScreen();
+    expect(router.getPathname()).toBe(
+      "/story/10000000-0000-4000-8000-000000000001"
+    );
+    expect(screen.getByLabelText("Story detail placeholder")).toBeOnTheScreen();
   });
 
   await act(() => {

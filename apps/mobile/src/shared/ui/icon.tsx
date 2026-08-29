@@ -7,6 +7,7 @@ import ChevronDown from "lucide-react-native/icons/chevron-down";
 import ChevronRight from "lucide-react-native/icons/chevron-right";
 import ChevronUp from "lucide-react-native/icons/chevron-up";
 import Copy from "lucide-react-native/icons/copy";
+import Lock from "lucide-react-native/icons/lock";
 import MessagesSquare from "lucide-react-native/icons/messages-square";
 import Pencil from "lucide-react-native/icons/pencil";
 import RefreshCw from "lucide-react-native/icons/refresh-cw";
@@ -28,6 +29,8 @@ const icons = {
   latest: ArrowDown,
   /** 교정 표식. 배울 표현이 붙은 자리마다 같은 모양으로 선다. */
   learn: Sparkles,
+  /** 아직 열리지 않은 화. 제목은 보이고 여는 것만 막힌다. */
+  locked: Lock,
   regenerate: RefreshCw,
   send: ArrowUp,
   sideChat: MessagesSquare,

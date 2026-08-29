@@ -411,11 +411,15 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 | `궁금한 것을 한국어로 물어보세요` | 에피소드에서 연 물어보기 시트 입력의 빈 자리 문구 |
 | `새 대화` | Home 헤더의 새 대화 버튼 |
 | `뒤로 가기` | 대화 화면과 에피소드 화면 헤더의 뒤로 가기 버튼 |
-| `1화 시작하기` | 에피소드를 여는 버튼. Home 본문과 끝난 에피소드의 마무리에 있고, 숫자는 열리는 화입니다 |
-| `<화 번호>화 <제목>, <결말>, 대화 보기` | 대화 기록이 남은 끝낸 에피소드 줄 |
+| `1화 시작하기` | 에피소드를 여는 버튼. Home 카드, 스토리 상세, 끝난 에피소드의 마무리에 있고, 숫자는 열리는 화입니다 |
+| `이어서 하기` | 진행하다 만 화를 다시 여는 버튼. Home 카드와 스토리 상세에 있습니다 |
+| `스토리 보러 가기` | 모든 스토리를 완주한 Home의 버튼 |
+| `<제목>, <한 줄 소개>` | 스토리 탭의 목록 행. 소개가 없으면 제목만입니다 |
+| `<화 번호>화 <제목>, 시작하기` | 스토리 상세에서 다음 화를 여는 줄 |
+| `<화 번호>화 <제목>, 대화 보기` | 대화 기록이 남은 끝낸 에피소드 줄 |
+| `<화 번호>화 <제목>, 아직 열리지 않았어요` | 스토리 상세의 잠긴 화 |
 | `영어로 말해 보세요` | 에피소드 화면 입력의 빈 자리 문구 |
 | `홈으로 가기` | 끝난 에피소드의 마무리 버튼 |
-| `끝난 대화 기록` | 끝난 에피소드를 다시 연 읽기 전용 화면 |
 | `대화를 불러오고 있어요` | 에피소드 대화를 1초 넘게 읽을 때 본문의 진행 상태 |
 | `다시 시도하기` | 스토리나 에피소드 대화를 읽지 못했을 때 본문의 버튼 |
 | `배울 표현 보기` | 사용자 말풍선 아래에 매달린 고친 문장 한 줄 |
@@ -463,12 +467,15 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 
 에피소드 화면의 요소에는 `testID`도 있습니다.
 
-- Home의 다음 에피소드: `home-next-episode`
-- Home의 끝낸 에피소드 목록과 진행 표시: `home-story-record`, `home-story-progress`
-- Home의 완주 안내와 불러오기 실패: `home-story-done`, `home-empty`
+- Home의 이어 하기 카드와 진행 중인 스토리: `home-continue-card`, `home-other-stories`
+- Home의 완주 안내와 불러오기 실패: `home-done`, `home-empty`
+- 스토리 탭: `stories-scroll`, `story-row-<스토리 id>`, `stories-empty`
+- 스토리 상세: `story-detail-scroll`, `story-episode-<화 번호>`, `story-detail-empty`
+- 스토리 카드의 표지와 진행 바: `story-cover`, `story-progress`
 - 상황 줄: `episode-situation-banner`
-- 끝난 에피소드의 마무리: `episode-closing`, `episode-closing-kind`, `episode-closing-outcome`
-- 다음 에피소드 예고와 읽기 전용 표시: `episode-closing-next`, `episode-closing-read-only`
+- 끝난 에피소드의 마무리: `episode-closing`, `episode-closing-outcome`
+- 다음 에피소드 예고: `episode-closing-next`
+- 다시 여는 기록의 끝 표시: `episode-ending-mark`, `episode-ending-outcome`
 - 배울 표현 한 줄: `correction-line`, `correction-line-fixed`, `correction-resent`
 - 펼친 교정 카드: `correction-card`, `correction-fold`, `correction-entry`, `correction-resend`, `correction-ask`
 - 물어보기 시트의 출처: `correction-source`, `correction-source-original`, `correction-source-fixed`
@@ -479,6 +486,7 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 상황 줄은 패널의 `chat-banner` 자리에 들어가며, 사건이 끝나도 사라지지 않습니다.
 사건이 끝나면 입력 자리를 `episode-closing`이 대신하므로 `chat-input`과
 `chat-send`는 사라집니다.
+끝난 화를 스토리 상세에서 다시 열면 그 자리에 `episode-ending-mark`만 남습니다.
 텍스트 선택으로 물어보기를 여는 길과 메시지 하나에 거는 동작은 에피소드 화면에
 두지 않습니다. 물어보기로 들어가는 길은 교정 카드의 `correction-ask` 하나입니다.
 

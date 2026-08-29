@@ -393,7 +393,10 @@ test("결말이 오면 마무리가 입력 자리를 대신한다", async () => 
   );
 
   expect(panel?.closing).toBeDefined();
-  expect(screen.getByTestId("episode-closing-kind")).toHaveTextContent("성공");
+  expect(screen.getByTestId("episode-closing-outcome")).toHaveTextContent(
+    "원하던 커피를 새로 받아냈다."
+  );
+  expect(screen.queryByText("성공")).not.toBeOnTheScreen();
 
   await user.press(screen.getByRole("button", { name: "홈으로 가기" }));
 
@@ -593,7 +596,9 @@ test("끝난 대화는 입력 없이 읽기 전용으로 연다", async () => {
     true
   );
   expect(panel?.closing).toBeDefined();
-  expect(screen.getByText("끝난 대화 기록")).toBeOnTheScreen();
+  expect(screen.getByTestId("episode-ending-mark")).toBeOnTheScreen();
+  expect(screen.getByText("끝")).toBeOnTheScreen();
+  expect(screen.queryByText("끝난 대화 기록")).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "3화 시작하기" })
   ).not.toBeOnTheScreen();

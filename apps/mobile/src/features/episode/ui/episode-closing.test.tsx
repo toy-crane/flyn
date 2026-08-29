@@ -36,10 +36,10 @@ test("결말과 다음 이야기 예고를 함께 보여 주고 갈 곳 두 군�
     />
   );
 
-  expect(screen.getByTestId("episode-closing-kind")).toHaveTextContent("타협");
   expect(screen.getByTestId("episode-closing-outcome")).toHaveTextContent(
     "새 커피 대신 쿠폰을 받았다."
   );
+  expect(screen.queryByText("타협")).not.toBeOnTheScreen();
   expect(screen.getByText("2화 · 계산이 꼬인 아침")).toBeOnTheScreen();
   expect(screen.getByText(NEXT_EPISODE.copy)).toBeOnTheScreen();
 
@@ -84,7 +84,9 @@ test("다시 시작하는 길을 두지 않는다", async () => {
   ).not.toBeOnTheScreen();
 });
 
-test("다시 보는 대화에는 읽기 전용 안내와 홈으로 가기만 둔다", async () => {
+// 다시 여는 기록에는 할 수 있는 일이 없다. 끝 표시와 결과 한 줄로 닫고,
+// 읽기 전용이라는 안내도 두지 않는다. 입력창이 없다는 것으로 충분하다.
+test("다시 보는 대화는 끝 표시와 결과 한 줄로 닫는다", async () => {
   await renderWithHeroUI(
     <EpisodeClosing
       ending={ENDING}
@@ -95,8 +97,15 @@ test("다시 보는 대화에는 읽기 전용 안내와 홈으로 가기만 둔
     />
   );
 
-  expect(screen.getByText("끝난 대화 기록")).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "홈으로 가기" })).toBeOnTheScreen();
+  expect(screen.getByTestId("episode-ending-mark")).toBeOnTheScreen();
+  expect(screen.getByText("끝")).toBeOnTheScreen();
+  expect(screen.getByTestId("episode-ending-outcome")).toHaveTextContent(
+    "새 커피 대신 쿠폰을 받았다."
+  );
+  expect(screen.queryByText("끝난 대화 기록")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "홈으로 가기" })
+  ).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "2화 시작하기" })
   ).not.toBeOnTheScreen();

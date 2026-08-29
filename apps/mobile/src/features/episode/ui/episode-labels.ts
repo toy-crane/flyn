@@ -12,6 +12,8 @@ export const episodeLabels = {
   conversationLoading: "대화를 불러오고 있어요",
   /** Shown when one episode's saved conversation could not be read. */
   conversationUnavailable: "대화를 불러오지 못했어요.",
+  /** Shown on the divider that closes a finished conversation. */
+  endMark: "끝",
   /** Shown over the first episode's card on Home, before anything is finished. */
   firstEyebrow: "첫 이야기",
   /** Shown as the button that leaves the finished episode. */
@@ -22,11 +24,9 @@ export const episodeLabels = {
   placeholder: "영어로 말해 보세요",
   /** Shown when the story could not be read, as the way to ask again. */
   retry: "다시 시도하기",
-  /** Opens the transcript of a finished episode from Home. */
-  review: (episode: number, title: string, kind: string) =>
-    `${episode}화 ${title}, ${kind}, 대화 보기`,
-  /** Shown on a completed conversation that has no input. */
-  reviewOnly: "끝난 대화 기록",
+  /** Opens the transcript of a finished episode from the story detail. */
+  review: (episode: number, title: string) =>
+    `${episode}화 ${title}, 대화 보기`,
   /** Read while the scene left by Stop is being matched with the server. */
   saving: "진행을 저장하고 있어요",
   /** Shown as the button that opens an episode, from Home or from an ending. */
@@ -64,15 +64,4 @@ export const correctionLabels = {
   resend: "다시 보내기",
   /** Shown on the line once its fixed sentence has been sent again. */
   resent: "고쳐서 다시 보냈어요",
-} as const;
-
-/** 홈이 에피소드 묶음과 진행을 설명할 때 쓰는 말. */
-export const storyLabels = {
-  /** Shown as the number of one finished episode in the story's record. */
-  episodeNumber: (episode: number) => `${episode}화`,
-  /** Shown beside the story title while episodes are left. */
-  progress: (finished: number, total: number) =>
-    `${total}화 중 ${finished}화 완료`,
-  /** Shown beside the story title once every episode is finished. */
-  wholeStory: (total: number) => `${total}화 모두 완료`,
 } as const;

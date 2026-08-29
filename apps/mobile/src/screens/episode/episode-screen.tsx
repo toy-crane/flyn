@@ -13,7 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Platform, Text, type TextInput, View } from "react-native";
+import { Platform, type TextInput } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
 import {
@@ -27,6 +27,7 @@ import { EpisodeCorrectionsProvider } from "@/features/episode/state/episode-cor
 import { useEpisodeRun } from "@/features/episode/state/use-episode-run";
 import { EpisodeCorrectionNote } from "@/features/episode/ui/correction-note";
 import { EpisodeClosing } from "@/features/episode/ui/episode-closing";
+import { EpisodeEndingMark } from "@/features/episode/ui/episode-ending-mark";
 import { episodeLabels } from "@/features/episode/ui/episode-labels";
 import { EpisodeSituationBanner } from "@/features/episode/ui/episode-situation-banner";
 
@@ -211,16 +212,8 @@ export function EpisodeScreen({
       />
     );
   } else if (readOnly) {
-    closing = (
-      <View
-        className="rounded-2xl bg-surface px-5 py-4"
-        testID="episode-read-only"
-      >
-        <Text className="font-semibold text-accent text-sm">
-          {episodeLabels.reviewOnly}
-        </Text>
-      </View>
-    );
+    // 결말이 기록에 남지 않은 화. 그래도 끝난 대화이므로 끝 표시로 닫는다.
+    closing = <EpisodeEndingMark />;
   }
   // 첫 장면은 사용자의 보내기 동작 없이 서버에서 먼저 온다. 빈 상태로
   // 배치된 LegendList를 한 번 다시 만들어야 첫 행의 높이와 위치를 잰다.

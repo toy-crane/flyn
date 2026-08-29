@@ -5,6 +5,7 @@ import { Text, View } from "react-native";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
 import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { Button } from "@/shared/ui/button";
+import { EpisodeEndingMark } from "./episode-ending-mark";
 import { episodeLabels } from "./episode-labels";
 
 const SAVE_PROGRESS_DELAY_MS = 1000;
@@ -50,15 +51,21 @@ function EpisodeSavingProgress() {
 }
 
 /**
- * 끝난 에피소드가 남기는 것: 결말, 다음 이야기, 그리고 갈 수 있는 곳.
+ * 끝난 에피소드가 남기는 것: 사건의 결과, 다음 이야기, 그리고 갈 수 있는 곳.
  *
  * 입력창이 있던 자리에 그대로 들어선다. 사건이 끝났으므로 더 쓸 말이 없고,
  * 자리를 대신하는 것이 입력이 닫혔다는 가장 분명한 표시다. 장면은 위에 그대로
  * 남아 있어 결말이 어디서 나왔는지 다시 읽을 수 있다.
  *
+ * 성공·타협·실패는 쓰지 않는다. 남는 결론은 몇 개를 틀렸느냐가 아니라 그
+ * 자리에서 무엇을 얻어냈느냐이고, 결말 낱말은 점수판처럼 읽힌다.
+ *
  * 다시 하기는 없다. 한 번 난 결말은 그 스토리의 사실로 남고, 실패도 다음 화의
  * 이야기가 된다. 마지막 화 뒤에는 예고 대신 완주 안내가 같은 자리에 오고
  * 갈 곳도 홈 하나뿐이다.
+ *
+ * 다시 열어 읽는 기록에는 이 카드 대신 끝 표시만 남는다. 그 자리에서 할 수
+ * 있는 일이 없으므로 버튼도 안내 문구도 두지 않는다.
  */
 export function EpisodeClosing({
   ending,
@@ -86,6 +93,10 @@ export function EpisodeClosing({
   }, [isSettling, isStartingNext, nextEpisodeId, onStartNext]);
   const isActionPending = isSettling || isStartingNext;
 
+  if (readOnly) {
+    return <EpisodeEndingMark outcome={ending.outcome} />;
+  }
+
   return (
     <View
       accessibilityLiveRegion="polite"
@@ -94,28 +105,13 @@ export function EpisodeClosing({
     >
       <Text
         accessibilityRole="header"
-        className="font-bold text-foreground text-xl"
-        testID="episode-closing-kind"
-      >
-        {ending.kind}
-      </Text>
-      <Text
-        className="text-base text-muted leading-6"
+        className="font-bold text-foreground text-lg leading-7"
         testID="episode-closing-outcome"
       >
         {ending.outcome}
       </Text>
 
-      {readOnly ? (
-        <Text
-          className="font-semibold text-accent text-sm"
-          testID="episode-closing-read-only"
-        >
-          {episodeLabels.reviewOnly}
-        </Text>
-      ) : null}
-
-      {nextUp && !readOnly ? (
+      {nextUp ? (
         <View className="gap-1 pt-1" testID="episode-closing-next">
           {nextEpisodeNumber === undefined ? null : (
             <Text className="font-semibold text-accent text-sm">
@@ -139,14 +135,11 @@ export function EpisodeClosing({
           className="flex-1"
           isDisabled={isActionPending}
           onPress={onLeave}
-          variant={
-            readOnly || nextEpisodeId === undefined ? "primary" : "tertiary"
-          }
+          variant={nextEpisodeId === undefined ? "primary" : "tertiary"}
         >
           {episodeLabels.leave}
         </Button>
-        {readOnly ||
-        nextEpisodeId === undefined ||
+        {nextEpisodeId === undefined ||
         nextEpisodeNumber === undefined ? null : (
           <Button
             accessibilityLabel={episodeLabels.start(nextEpisodeNumber)}
