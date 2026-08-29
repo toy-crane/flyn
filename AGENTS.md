@@ -28,7 +28,7 @@
 
 # Astro 개발
 
-- 랜딩과 법적 고지 웹 페이지는 `apps/web`이 소유한다. 모바일 앱은 Expo Web을 개발하지 않는다.
+- 랜딩과 법적 고지 웹 페이지를 바꿀 때는 [웹 표면 소유권](docs/decisions/web-surface-ownership.md)을 따른다.
 - 웹 개발 서버는 `apps/web`에서 `bun run dev`로 띄우고 `bun run stop`으로 내린다. `astro dev`는 셸을 벗어나 백그라운드에 남으므로 끝나면 반드시 내린다. 상태는 `bunx astro dev status`로 본다.
 - 루트의 `bun run dev`는 API, Metro와 기기만 관리한다. 웹 개발 서버는 시작하지도 멈추지도 않는다.
 
