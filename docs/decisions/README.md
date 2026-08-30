@@ -72,7 +72,8 @@
 
 - [모바일 인증](mobile-authentication.md) — 모바일 로그인 제공자, 인증 세션, 계정 연결, 로그아웃 또는 로컬 인증 검증 경로를 변경할 때 읽는다.
 - [모바일 프로필 식별자와 온보딩](mobile-profile-identity-and-onboarding.md) — 닉네임, 아이디, 로그인 뒤 필수 프로필 설정 또는 프로필 완성 조건을 변경할 때 읽는다.
-- [모바일 설정 공개 프로필](mobile-profile-settings.md) — Settings의 프로필 표시, `프로필` 화면 진입, 사진 편집, 프로필 폼 배치 또는 계정 삭제 자리를 변경할 때 읽는다.
+- [모바일 설정 구조](mobile-settings-structure.md) — Settings의 섹션 순서, 여러 값 중 하나를 고르는 흐름 또는 행 오른쪽 표시를 변경할 때 읽는다.
+- [모바일 설정 공개 프로필](mobile-profile-settings.md) — Settings의 프로필 표시, `프로필` 화면 진입, 사진 편집 또는 프로필 폼 배치를 변경할 때 읽는다.
 - [모바일 설정 폼 저장](mobile-settings-form-save.md) — 여러 값을 모아 한 번에 저장하는 설정 화면을 만들거나, 저장 컨트롤의 자리, 모양 또는 저장 가능 조건을 바꿀 때 읽는다.
 - [모바일 계정 삭제](mobile-account-deletion.md) — 모바일 계정 삭제의 진입 위치, 확인, 삭제 범위, 진행 상태 또는 스토어 제출 조건을 변경할 때 읽는다.
 - [모바일 AI 채팅 표현](mobile-ai-chat-rendering.md) — 모바일 AI 채팅의 Liquid Glass 입력창, 스트리밍 Markdown, 메시지 진입 또는 답변 대기 표시를 만들거나 바꿀 때 읽는다.

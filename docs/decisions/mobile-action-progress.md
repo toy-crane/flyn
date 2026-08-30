@@ -12,7 +12,8 @@
 - 자동 실행 작업이 1초 안에 끝나면 시각적인 진행 표시를 띄우지 않는다. 1초를 넘기면 작업 대상이 있던 영역을 유지한 채 진행 표시와 구체적인 상태 문구를 보여 준다.
 - 네이티브 셸과 `@expo/ui` 화면은 프로젝트 공통 `Button`을 사용하지 않는다. 각 렌더러가 제공하는 버튼, 행과 진행 표시로 같은 의미를 표현한다.
 - `@expo/ui` 화면에서 사용자가 시작한 작업은 그 작업을 시작한 컨트롤에서 진행 중임을 표시한다. 컨트롤의 문구는 바꾸지 않고 진행 표시만 더한다. iOS는 SwiftUI `ProgressView`, Android는 Compose `CircularProgressIndicator`가 그 자리를 그린다. 두 플랫폼 모두 문구 옆에 서는 얇은 원형 링이며, Android는 Material 기본값 대신 20dp에 선 2dp를 쓴다.
-- 설정 화면의 파괴적 동작은 `FieldGroup.Section` 안의 `ListItem`으로 만든다. 아이콘과 셰브론은 두지 않는다. 진행 표시는 trailing 슬롯에 둔다.
+- 설정 화면에서 행으로 실행하는 계정 동작은 `FieldGroup.Section` 안의 `ListItem`으로
+  만든다. 아이콘과 쉐브론은 두지 않는다. 진행 표시는 trailing 슬롯에 둔다.
 - 진행 중임을 화면 읽기에 알리는 방법은 플랫폼마다 다르다. iOS는 행의 `accessibilityValue`로 상태를 지니고, Android는 작업이 시작될 때 `AccessibilityInfo.announceForAccessibility`로 한 번 알린다. Android 문구는 행이 앞에 서지 않으므로 `계정 삭제 진행 중`처럼 동작 이름을 함께 담는다.
 
 ## 경계
