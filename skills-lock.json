@@ -113,7 +113,7 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/expo/expo-dev-loop/SKILL.md",
-      "computedHash": "398e3d1d5c4ed8b520d69f53eed21cafe6f12bc8ef92fe4f47a817c8c49dc206"
+      "computedHash": "112b244feb5147d0c9647803cde79a7bb08aa3dd4e87914ed22547c56f9b1366"
     },
     "expo-dom": {
       "source": "expo/skills",
@@ -161,7 +161,7 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/expo/expo-smoke-test/SKILL.md",
-      "computedHash": "fd32ee3f95d5a33d120177d1c4de55b6da581e7bd7dae980e4de02b88b331430"
+      "computedHash": "385da14026d25889014746efb157b2be2fbe0c1ad6a7fe36bbd428e7ca28c80a"
     },
     "expo-tailwind-setup": {
       "source": "expo/skills",

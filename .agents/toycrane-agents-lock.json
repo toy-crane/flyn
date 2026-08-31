@@ -7,11 +7,11 @@
       "targets": {
         "claude": {
           "path": ".claude/agents/expo-smoke-runner.md",
-          "sha256": "6eafe460562ed1c84ccadb306ba4ceacc424fcfd0814225cb14beb038d5c2fff"
+          "sha256": "7a91d9bc9a14c1699162c9d849a28183978ab498dc4e842ecb4d89d36859008d"
         },
         "codex": {
           "path": ".codex/agents/expo-smoke-runner.toml",
-          "sha256": "b9c026f4914e8ee4b3336ab694a2b2fcf58562f2a89eb29b9b271804e5f87f88"
+          "sha256": "910c932a73b2329f244b6ed162dbb6a40d77ee68bc91ae57d7b7dfbbdf04681b"
         }
       }
     }
