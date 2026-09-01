@@ -12,7 +12,6 @@ const FEATURE = "/repo/.worktrees/feature";
 function factsWith(overrides: Partial<StatusFacts> = {}): StatusFacts {
   return {
     androidSerials: new Map(),
-    band: 0,
     bootedIos: new Set(),
     existingDeviceIds: {},
     iosNames: new Map(),
@@ -207,10 +206,7 @@ describe("renderStatusReport", () => {
 
   test("첫 줄에 프로젝트 포트 대역과 Supabase 주소를 보여 준다", () => {
     const [first] = renderStatusReport(
-      buildStatusReport(
-        createEmptyState(),
-        factsWith({ band: 1, supabasePort: 54_331 })
-      )
+      buildStatusReport(createEmptyState(), factsWith({ supabasePort: 54_331 }))
     );
 
     expect(first).toBe(
@@ -228,7 +224,7 @@ describe("renderStatusReport", () => {
 
     const [worktree] = buildStatusReport(
       state,
-      factsWith({ band: 1, supabasePort: 54_331 })
+      factsWith({ supabasePort: 54_331 })
     ).worktrees;
 
     expect(worktree?.api).toEqual({ alive: false, pid: undefined, port: 3901 });

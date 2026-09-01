@@ -28,16 +28,24 @@ export async function createSessionContext(
 ): Promise<SessionContext> {
   const git = await readGitContext(cwd);
   const mobileDirectory = join(git.worktreePath, "apps", "mobile");
-  const supabasePort = readSupabaseApiPort(git.worktreePath);
+  let supabasePort: number | undefined;
+  // Read on first use, not up front: a config.toml that no longer parses must
+  // still let stop and remove release what an earlier start took.
+  const readPort = () =>
+    (supabasePort ??= readSupabaseApiPort(git.worktreePath));
 
   return {
     apiDirectory: join(git.worktreePath, "apps", "api"),
-    band: projectBand(supabasePort),
+    get band() {
+      return projectBand(readPort());
+    },
     git,
     mobileDirectory,
     paths: repositoryPaths(git.commonDirectory),
     project: readMobileProject(mobileDirectory),
-    supabasePort,
+    get supabasePort() {
+      return readPort();
+    },
   };
 }
 

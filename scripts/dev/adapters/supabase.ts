@@ -2,7 +2,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const HEALTH_TIMEOUT_MS = 3000;
-const SECTION_PATTERN = /^\s*\[([^\]]+)\]\s*$/;
+// Any table header ends the current section, `[[array]]` tables and a trailing
+// comment included; only a plain `[section]` can open the one we want.
+const SECTION_PATTERN = /^\s*\[(\[?)([^\]]+)\]\]?\s*(?:#.*)?$/;
 const PORT_PATTERN = /^\s*port\s*=\s*(.*?)\s*(?:#.*)?$/;
 const NUMBER_PATTERN = /^\d+$/;
 
@@ -24,7 +26,7 @@ export function parseSupabasePort(
     const heading = SECTION_PATTERN.exec(line);
 
     if (heading) {
-      inSection = heading[1]?.trim() === section;
+      inSection = heading[1] === "" && heading[2]?.trim() === section;
       continue;
     }
 

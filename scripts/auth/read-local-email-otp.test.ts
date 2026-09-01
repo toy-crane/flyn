@@ -12,6 +12,7 @@ import {
 const unknownOptionMessage = /알 수 없는 옵션/;
 const missingValueMessage = /값이 필요합니다/;
 const missingEmailMessage = /--email 옵션이 필요합니다/;
+const otherStackMessage = /config\.toml의 API 포트 54331/;
 const localOnlyMessage = /로컬 Supabase에서만 동작/;
 const noCodeMessage = /6자리 코드를 찾지 못했습니다/;
 const ambiguousCodeMessage = /여러 개 찾았습니다/;
@@ -79,29 +80,39 @@ describe("assertLocalSupabaseUrl", () => {
     // The Android emulator reaches the host loopback through this alias.
     "http://10.0.2.2:54321",
   ])("로컬 주소 %s를 허용한다", (url) => {
-    expect(assertLocalSupabaseUrl(url).origin).toBe(new URL(url).origin);
+    expect(assertLocalSupabaseUrl(url, 54_321).origin).toBe(
+      new URL(url).origin
+    );
   });
 
   test("원격 Supabase를 가리키면 코드를 읽지 않는다", () => {
     expect(() =>
-      assertLocalSupabaseUrl("https://abcdefgh.supabase.co")
+      assertLocalSupabaseUrl("https://abcdefgh.supabase.co", 54_321)
     ).toThrow(localOnlyMessage);
   });
 
   test("알 수 없는 호스트를 거절한다", () => {
-    expect(() => assertLocalSupabaseUrl("http://192.168.0.42:54321")).toThrow(
-      localOnlyMessage
-    );
+    expect(() =>
+      assertLocalSupabaseUrl("http://192.168.0.42:54321", 54_321)
+    ).toThrow(localOnlyMessage);
   });
 
   test("값이 없으면 어디를 고쳐야 하는지 알려준다", () => {
-    expect(() => assertLocalSupabaseUrl(undefined)).toThrow(
+    expect(() => assertLocalSupabaseUrl(undefined, 54_321)).toThrow(
       mobileEnvFileMessage
     );
   });
 
   test("URL이 아니면 거절한다", () => {
-    expect(() => assertLocalSupabaseUrl("54321")).toThrow(notAUrlMessage);
+    expect(() => assertLocalSupabaseUrl("54321", 54_321)).toThrow(
+      notAUrlMessage
+    );
+  });
+
+  test("다른 로컬 스택의 포트를 가리키면 config.toml의 포트를 알려 준다", () => {
+    expect(() =>
+      assertLocalSupabaseUrl("http://127.0.0.1:54321", 54_331)
+    ).toThrow(otherStackMessage);
   });
 });
 

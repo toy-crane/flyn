@@ -99,7 +99,6 @@ export async function showStatus({
 
   const facts: StatusFacts = {
     androidSerials: android.serials,
-    band: context.band,
     bootedIos: ios.booted,
     existingDeviceIds,
     iosNames: ios.names,

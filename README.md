@@ -584,7 +584,7 @@ JavaScript만 바꾸면 다시 빌드하지 않습니다.
 먼저 `bun run db:start`로 켜 두세요.
 
 같은 컴퓨터의 다른 프로젝트와는 프로젝트 포트 대역 번호로 나눕니다.
-번호의 원본은 `supabase/config.toml`의 `[api] port` 하나이며, `54321`부터 10씩 더한 값에서 번호를 읽습니다. 이 프로젝트는 1번이라 Supabase가 `54331`번대, worktree의 API가 `3901 + slot×10`, Metro가 `8082 + slot×10`입니다.
+번호의 원본은 `supabase/config.toml`의 `[api] port` 하나이며, `54321`부터 10씩 더한 값에서 번호를 읽습니다. 이 프로젝트는 1번이라 Supabase가 `54331`번대, worktree의 API가 `3901 + slot × 10`, Metro가 `8082 + slot × 10`입니다.
 세션이 띄우는 API와 앱은 이 파일의 포트로 Supabase에 붙으므로 `.env.local`의 옛 포트가 남아 있어도 세션은 영향을 받지 않습니다.
 `bun run dev:status`의 첫 줄이 대역 번호와 Supabase 주소를 보여 줍니다.
 
@@ -634,7 +634,7 @@ bun run agent-device:doctor
 2. 서버를 실행합니다. 3901 포트로 뜹니다.
    Next.js가 3000을 잡고 겹칠 때마다 1씩 올려 찾기 때문에 3000번대 앞쪽을 피했고, 끝자리 1은 이 프로젝트의 포트 대역 번호입니다.
    다른 포트를 쓰려면 `BUN_PORT`를 지정합니다.
-   `bun run dev`로 띄우면 세션이 worktree별 포트와 `supabase/config.toml`의 Supabase 주소를 넘기므로 이 파일의 `SUPABASE_URL`은 직접 실행할 때만 쓰입니다.
+   `bun run dev`로 띄우면 세션이 worktree별 포트와 `supabase/config.toml`의 Supabase 주소를 넘기므로 이 파일의 `SUPABASE_URL`은 직접 실행할 때만 읽습니다.
 
    ```bash
    bun run --cwd apps/api dev

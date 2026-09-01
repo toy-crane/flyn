@@ -39,6 +39,19 @@ describe("parseSupabasePort", () => {
     );
   });
 
+  test("헤더 뒤 주석과 [[배열]] 표를 섹션 경계로 다룬다", () => {
+    const withComment = CONFIG.replace("[api]", "[api] # gateway");
+    const withArrayTable = CONFIG.replace(
+      "port = 54331 # the API gateway",
+      "[[api.extra]]\nport = 1"
+    );
+
+    expect(parseSupabasePort(withComment, "api")).toBe(54_331);
+    expect(() => parseSupabasePort(withArrayTable, "api")).toThrow(
+      missingApiPortMessage
+    );
+  });
+
   test("env() 같은 문자열 포트는 추측하지 않고 실패한다", () => {
     const withEnv = CONFIG.replace(
       "port = 54331 # the API gateway",

@@ -1,5 +1,5 @@
 import { PLATFORMS, type Platform } from "./options";
-import { apiPort, metroPort } from "./slots";
+import { apiPort, metroPort, projectBand } from "./slots";
 import type {
   ProcessKind,
   ProcessRecord,
@@ -52,7 +52,6 @@ export interface StatusReport {
 export interface StatusFacts {
   /** Serial per running AVD. Empty when adb is unavailable. */
   androidSerials: ReadonlyMap<string, string>;
-  band: number;
   bootedIos: ReadonlySet<string>;
   /** A platform left out could not be read, so nothing of it is "missing". */
   existingDeviceIds: Partial<Record<Platform, ReadonlySet<string>>>;
@@ -63,6 +62,7 @@ export interface StatusFacts {
     kind: ProcessKind,
     record: ProcessRecord
   ) => boolean;
+  /** From `supabase/config.toml`; the band, and so every port, follows it. */
   supabasePort: number;
   worktreeExists: (path: string) => boolean;
 }
@@ -108,6 +108,7 @@ function statusProcess(
 function worktreeStatus(
   path: string,
   record: WorktreeRecord,
+  band: number,
   facts: StatusFacts
 ): WorktreeStatus {
   const devices: StatusDevice[] = [];
@@ -126,7 +127,7 @@ function worktreeStatus(
       path,
       "api",
       record.processes.api,
-      apiPort(record.slot, facts.band),
+      apiPort(record.slot, band),
       facts
     ),
     devices,
@@ -136,7 +137,7 @@ function worktreeStatus(
       path,
       "metro",
       record.processes.metro,
-      metroPort(record.slot, facts.band),
+      metroPort(record.slot, band),
       facts
     ),
     path,
@@ -152,8 +153,9 @@ export function buildStatusReport(
   state: RepositoryState,
   facts: StatusFacts
 ): StatusReport {
+  const band = projectBand(facts.supabasePort);
   const worktrees = Object.entries(state.worktrees)
-    .map(([path, record]) => worktreeStatus(path, record, facts))
+    .map(([path, record]) => worktreeStatus(path, record, band, facts))
     .sort((left, right) => left.slot - right.slot);
 
   const idle: StatusDevice[] = [];
@@ -168,12 +170,7 @@ export function buildStatusReport(
     }
   }
 
-  return {
-    band: facts.band,
-    idle,
-    supabasePort: facts.supabasePort,
-    worktrees,
-  };
+  return { band, idle, supabasePort: facts.supabasePort, worktrees };
 }
 
 function processLine(kind: string, entry: StatusProcess): string {
@@ -238,10 +235,7 @@ export function renderStatusReport(report: StatusReport): string[] {
   }
 
   if (report.idle.length > 0) {
-    if (lines.length > 0) {
-      lines.push("");
-    }
-
+    lines.push("");
     lines.push("풀에서 대기 중인 기기");
 
     for (const device of report.idle) {
