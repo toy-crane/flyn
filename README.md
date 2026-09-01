@@ -122,7 +122,7 @@ Nitro Google Sign-In의 Expo config plugin, 공개 client ID와 iOS URL scheme�
    충분합니다.
 
    ```text
-   http://127.0.0.1:54321/auth/v1/callback
+   http://127.0.0.1:54331/auth/v1/callback
    ```
 
    원격 프로젝트도 쓴다면 그 callback도 함께 등록합니다.
@@ -296,7 +296,8 @@ Google과 Apple은 각 프로젝트의 자격 정보가 있어야 확인할 수 
 이메일 코드 로그인은 로컬 스택만으로 처음부터 끝까지 확인할 수 있습니다.
 
 로컬 Supabase는 메일을 밖으로 보내지 않고 Mailpit에 모읍니다.
-`bun run db:start`을 실행한 뒤 <http://127.0.0.1:54324>에서 받은 메일을 볼 수 있습니다.
+`bun run db:start`을 실행한 뒤 <http://127.0.0.1:54334>에서 받은 메일을 볼 수 있습니다.
+주소의 포트는 `supabase/config.toml`의 `[local_smtp] port`입니다.
 
 ### 사람이 확인할 때
 
@@ -304,7 +305,7 @@ Google과 Apple은 각 프로젝트의 자격 정보가 있어야 확인할 수 
 2. `bun run --cwd apps/mobile ios` 또는 `android`로 Development Build를 실행합니다.
 3. 로그인 화면에서 이메일을 입력하고 **계속**을 누릅니다.
    실행할 때마다 다른 주소를 사용하세요. 없는 주소면 계정이 새로 만들어집니다.
-4. <http://127.0.0.1:54324>에서 방금 도착한 메일을 열고 6자리 코드를 확인합니다.
+4. <http://127.0.0.1:54334>에서 방금 도착한 메일을 열고 6자리 코드를 확인합니다.
 5. 앱에 코드를 입력합니다. 새 계정이면 닉네임 화면이 열립니다.
 6. 닉네임을 정하고 **다음**, 아이디를 정하고 **시작하기**를 누르면 홈이 열립니다.
    두 값을 이미 정한 계정은 이 두 화면 없이 바로 홈으로 들어갑니다.
@@ -582,6 +583,11 @@ JavaScript만 바꾸면 다시 빌드하지 않습니다.
 로컬 Supabase는 모든 폴더가 함께 쓰므로 개발 세션 명령이 시작하거나 중지하지 않습니다.
 먼저 `bun run db:start`로 켜 두세요.
 
+같은 컴퓨터의 다른 프로젝트와는 프로젝트 포트 대역 번호로 나눕니다.
+번호의 원본은 `supabase/config.toml`의 `[api] port` 하나이며, `54321`부터 10씩 더한 값에서 번호를 읽습니다. 이 프로젝트는 1번이라 Supabase가 `54331`번대, worktree의 API가 `3901 + slot×10`, Metro가 `8082 + slot×10`입니다.
+세션이 띄우는 API와 앱은 이 파일의 포트로 Supabase에 붙으므로 `.env.local`의 옛 포트가 남아 있어도 세션은 영향을 받지 않습니다.
+`bun run dev:status`의 첫 줄이 대역 번호와 Supabase 주소를 보여 줍니다.
+
 아래 앱별 명령은 수동 진단용입니다.
 포트와 기기를 관리하지 않으므로 여러 worktree를 동시에 실행할 때는 쓰지 마세요.
 
@@ -620,14 +626,15 @@ bun run agent-device:doctor
    ```dotenv
    AI_GATEWAY_API_KEY=<Vercel AI Gateway 키>
    AI_GATEWAY_MODEL=openai/gpt-4.1-nano
-   SUPABASE_URL=http://127.0.0.1:54321
-   SUPABASE_JWKS_URL=http://localhost:54321/auth/v1/.well-known/jwks.json
+   SUPABASE_URL=http://127.0.0.1:54331
+   SUPABASE_JWKS_URL=http://127.0.0.1:54331/auth/v1/.well-known/jwks.json
    SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
    ```
 
-2. 서버를 실행합니다. 3900 포트로 뜹니다.
-   Next.js가 3000을 잡고 겹칠 때마다 1씩 올려 찾기 때문에 3000번대 앞쪽을 피했습니다.
+2. 서버를 실행합니다. 3901 포트로 뜹니다.
+   Next.js가 3000을 잡고 겹칠 때마다 1씩 올려 찾기 때문에 3000번대 앞쪽을 피했고, 끝자리 1은 이 프로젝트의 포트 대역 번호입니다.
    다른 포트를 쓰려면 `BUN_PORT`를 지정합니다.
+   `bun run dev`로 띄우면 세션이 worktree별 포트와 `supabase/config.toml`의 Supabase 주소를 넘기므로 이 파일의 `SUPABASE_URL`은 직접 실행할 때만 쓰입니다.
 
    ```bash
    bun run --cwd apps/api dev
@@ -638,8 +645,8 @@ bun run agent-device:doctor
 
    | 실행 대상 | `EXPO_PUBLIC_API_URL` | `EXPO_PUBLIC_SUPABASE_URL` |
    | --- | --- | --- |
-   | iOS Simulator | `http://127.0.0.1:3900` | `http://127.0.0.1:54321` |
-   | Android Emulator | `http://10.0.2.2:3900` | `http://10.0.2.2:54321` |
+   | iOS Simulator | `http://127.0.0.1:3901` | `http://127.0.0.1:54331` |
+   | Android Emulator | `http://10.0.2.2:3901` | `http://10.0.2.2:54331` |
 
    값을 바꾼 뒤에는 Metro를 다시 시작해야 번들에 반영됩니다.
 
@@ -749,7 +756,7 @@ Supabase URL과 publishable key는 사용자가 직접 설정합니다.
 4. [apps/mobile/.env.example](apps/mobile/.env.example)을 참고해 `apps/mobile/.env.local`을 만듭니다.
 
    ```dotenv
-   EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+   EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54331
    EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
    ```
 
@@ -797,6 +804,6 @@ Supabase 세션에는 베어러 토큰이 들어 있습니다.
 ### 문제 해결
 
 - **빌드나 앱이 환경 변수 누락을 보고할 때**: `.env.local`을 채우고 번들러를 다시 시작하세요. 오류 메시지에서 누락된 변수 이름을 확인할 수 있습니다.
-- **앱이 로컬 API에 연결되지 않을 때**: `http://127.0.0.1:54321`은 iOS Simulator에서만 그대로 사용할 수 있습니다. Android Emulator는 `10.0.2.2`로 호스트의 loopback에 연결합니다. 실제 기기에서는 개발 컴퓨터의 LAN IP가 필요합니다. 사용하는 기기에서 접근할 수 있는 주소를 찾아 `EXPO_PUBLIC_SUPABASE_URL`에 넣으세요. 이 템플릿은 터널을 자동으로 만들거나 호스트 주소를 바꾸지 않습니다.
+- **앱이 로컬 API에 연결되지 않을 때**: `http://127.0.0.1:54331`은 iOS Simulator에서만 그대로 사용할 수 있습니다. Android Emulator는 `10.0.2.2`로 호스트의 loopback에 연결합니다. 실제 기기에서는 개발 컴퓨터의 LAN IP가 필요합니다. 사용하는 기기에서 접근할 수 있는 주소를 찾아 `EXPO_PUBLIC_SUPABASE_URL`에 넣으세요. 이 템플릿은 터널을 자동으로 만들거나 호스트 주소를 바꾸지 않습니다.
 - **네이티브 모듈을 추가했을 때**: `expo-sqlite`처럼 네이티브 코드가 있는 의존성은 기존 Development Build에서 실행할 수 없습니다. `ios` 또는 `android` 명령으로 다시 빌드하세요.
 - **Android에서 Google 버튼을 눌렀는데 아무 반응이 없을 때**: 앱이 취소로 처리한 것입니다. Credential Manager는 사용자가 창을 닫았을 때와 SHA-1, package, client ID가 맞지 않을 때를 같은 값으로 알려 주므로, 앱은 둘을 구분할 수 없습니다. 계정을 고른 뒤에 이렇게 되면 서명 지문 문제일 가능성이 큽니다. `adb logcat`에서 `NitroGoogleSignin` 경고를 확인하고, 지금 설치본을 서명한 SHA-1이 Android OAuth client에 등록되어 있는지 보세요. 배포 빌드라면 release 키와 Play App Signing 지문도 등록해야 합니다.

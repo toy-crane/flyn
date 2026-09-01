@@ -40,14 +40,19 @@ export interface WorktreeStatus {
 }
 
 export interface StatusReport {
+  /** The project's port band; every worktree here computes ports from it. */
+  band: number;
   /** Pool devices no worktree holds right now. */
   idle: StatusDevice[];
+  /** The shared local stack's API port from `supabase/config.toml`. */
+  supabasePort: number;
   worktrees: WorktreeStatus[];
 }
 
 export interface StatusFacts {
   /** Serial per running AVD. Empty when adb is unavailable. */
   androidSerials: ReadonlyMap<string, string>;
+  band: number;
   bootedIos: ReadonlySet<string>;
   /** A platform left out could not be read, so nothing of it is "missing". */
   existingDeviceIds: Partial<Record<Platform, ReadonlySet<string>>>;
@@ -58,6 +63,7 @@ export interface StatusFacts {
     kind: ProcessKind,
     record: ProcessRecord
   ) => boolean;
+  supabasePort: number;
   worktreeExists: (path: string) => boolean;
 }
 
@@ -120,7 +126,7 @@ function worktreeStatus(
       path,
       "api",
       record.processes.api,
-      apiPort(record.slot),
+      apiPort(record.slot, facts.band),
       facts
     ),
     devices,
@@ -130,7 +136,7 @@ function worktreeStatus(
       path,
       "metro",
       record.processes.metro,
-      metroPort(record.slot),
+      metroPort(record.slot, facts.band),
       facts
     ),
     path,
@@ -162,7 +168,12 @@ export function buildStatusReport(
     }
   }
 
-  return { idle, worktrees };
+  return {
+    band: facts.band,
+    idle,
+    supabasePort: facts.supabasePort,
+    worktrees,
+  };
 }
 
 function processLine(kind: string, entry: StatusProcess): string {
@@ -190,17 +201,18 @@ function deviceLine(device: StatusDevice): string {
 }
 
 export function renderStatusReport(report: StatusReport): string[] {
+  const lines: string[] = [
+    `프로젝트 포트 대역 ${report.band}  Supabase API http://127.0.0.1:${report.supabasePort}`,
+  ];
+
   if (report.worktrees.length === 0 && report.idle.length === 0) {
-    return ["개발 세션 상태가 없습니다."];
+    lines.push("개발 세션 상태가 없습니다.");
+
+    return lines;
   }
 
-  const lines: string[] = [];
-
   for (const worktree of report.worktrees) {
-    if (lines.length > 0) {
-      lines.push("");
-    }
-
+    lines.push("");
     lines.push(`${worktree.label || worktree.path} (slot ${worktree.slot})`);
     lines.push(`  경로     ${worktree.path}`);
 

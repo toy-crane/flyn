@@ -99,11 +99,13 @@ export async function showStatus({
 
   const facts: StatusFacts = {
     androidSerials: android.serials,
+    band: context.band,
     bootedIos: ios.booted,
     existingDeviceIds,
     iosNames: ios.names,
     isProcessAlive: (worktreePath, kind, record) =>
       livePids.has(processKey(worktreePath, kind, record)),
+    supabasePort: context.supabasePort,
     worktreeExists: (path) => liveWorktrees.has(path),
   };
   const report = buildStatusReport(state, facts);

@@ -6,6 +6,7 @@ import { type MobileProject, readMobileProject } from "../adapters/project";
 import { isSupabaseRunning, readSupabaseApiPort } from "../adapters/supabase";
 import { parseEnvFile } from "../environment";
 import { type RepositoryPaths, repositoryPaths } from "../paths";
+import { projectBand } from "../slots";
 
 export interface SessionIo {
   log: (message: string) => void;
@@ -13,6 +14,8 @@ export interface SessionIo {
 
 export interface SessionContext {
   apiDirectory: string;
+  /** The project's port band, shared by every worktree of this repository. */
+  band: number;
   git: GitContext;
   mobileDirectory: string;
   paths: RepositoryPaths;
@@ -25,14 +28,16 @@ export async function createSessionContext(
 ): Promise<SessionContext> {
   const git = await readGitContext(cwd);
   const mobileDirectory = join(git.worktreePath, "apps", "mobile");
+  const supabasePort = readSupabaseApiPort(git.worktreePath);
 
   return {
     apiDirectory: join(git.worktreePath, "apps", "api"),
+    band: projectBand(supabasePort),
     git,
     mobileDirectory,
     paths: repositoryPaths(git.commonDirectory),
     project: readMobileProject(mobileDirectory),
-    supabasePort: readSupabaseApiPort(git.worktreePath),
+    supabasePort,
   };
 }
 

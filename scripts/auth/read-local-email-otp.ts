@@ -4,6 +4,8 @@ import { argv, env, exit, stderr, stdout } from "node:process";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
+import { readSupabaseMailpitPort } from "../dev/adapters/supabase";
+
 /**
  * Reads the one-time code that local Supabase just mailed to Mailpit, so a
  * person or an agent can type it into the app's sign-in screen.
@@ -14,10 +16,18 @@ import { fileURLToPath } from "node:url";
  * nothing about whether sign-in works.
  */
 
-// Mailpit's default web interface: `[local_smtp] port` in supabase/config.toml.
-// Deliberately not configurable. A code read from some other mail host would
-// not be the code the local stack issued.
-export const MAILPIT_URL = "http://127.0.0.1:54324";
+const REPOSITORY_ROOT = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  ".."
+);
+
+// Mailpit's web interface: `[local_smtp] port` in supabase/config.toml. Not
+// configurable beyond that file on purpose. A code read from some other mail
+// host would not be the code the local stack issued.
+export function mailpitUrl(): string {
+  return `http://127.0.0.1:${readSupabaseMailpitPort(REPOSITORY_ROOT)}`;
+}
 
 const SUPABASE_URL_ENV = "EXPO_PUBLIC_SUPABASE_URL";
 const MOBILE_ENV_FILE = "apps/mobile/.env.local";
@@ -215,13 +225,14 @@ export function extractOtpCode(body: {
 }
 
 async function fetchMailpitJson(path: string): Promise<unknown> {
+  const baseUrl = mailpitUrl();
   let response: Response;
 
   try {
-    response = await fetch(`${MAILPIT_URL}${path}`);
+    response = await fetch(`${baseUrl}${path}`);
   } catch (error) {
     throw new Error(
-      `Mailpit(${MAILPIT_URL})에 연결하지 못했습니다. bun run db:start으로 로컬 스택을 먼저 켜세요.`,
+      `Mailpit(${baseUrl})에 연결하지 못했습니다. bun run db:start으로 로컬 스택을 먼저 켜세요.`,
       { cause: error }
     );
   }
@@ -328,13 +339,8 @@ export async function waitForOtp(options: OtpOptions): Promise<OtpReadResult> {
 
 async function main() {
   const options = parseOtpArgs(argv.slice(2));
-  const repositoryRoot = resolve(
-    dirname(fileURLToPath(import.meta.url)),
-    "..",
-    ".."
-  );
   const envFile = await readOptionalFile(
-    resolve(repositoryRoot, MOBILE_ENV_FILE)
+    resolve(REPOSITORY_ROOT, MOBILE_ENV_FILE)
   );
 
   assertLocalSupabaseUrl(

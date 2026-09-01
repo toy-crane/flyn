@@ -65,6 +65,23 @@ export function buildMobileEnvironment({
   return merged;
 }
 
+/**
+ * The API reads its Supabase address from the environment, and Bun leaves a
+ * variable alone when the shell already set it. Passing these two makes the
+ * config's port win over whatever `apps/api/.env.local` still says, without
+ * the session ever writing that file.
+ */
+export function buildApiEnvironment(
+  supabasePort: number
+): Record<string, string> {
+  const url = `http://127.0.0.1:${supabasePort}`;
+
+  return {
+    SUPABASE_JWKS_URL: `${url}/auth/v1/.well-known/jwks.json`,
+    SUPABASE_URL: url,
+  };
+}
+
 /** A stable, non-reversible identity for the public environment Metro owns. */
 export function mobileEnvironmentFingerprint(
   environment: Record<string, string>

@@ -1,15 +1,38 @@
 const METRO_BASE_PORT = 8081;
 const API_BASE_PORT = 3900;
 const SLOT_STRIDE = 10;
+const SUPABASE_DEFAULT_API_PORT = 54_321;
+const SUPABASE_BAND_STRIDE = 10;
 
 export const MAX_SLOT = 32;
+/** A band is one of the ten numbers inside a slot stride. */
+export const MAX_BAND = SLOT_STRIDE - 1;
 
-export function metroPort(slot: number): number {
-  return METRO_BASE_PORT + slot * SLOT_STRIDE;
+/**
+ * Which of the ten numbers inside a slot stride this repository owns, so two
+ * projects on one machine never meet on Metro or API. It is read from the
+ * Supabase API port because the committed config has to carry that number as
+ * a literal anyway; a second copy would only drift from it.
+ */
+export function projectBand(supabaseApiPort: number): number {
+  const band =
+    (supabaseApiPort - SUPABASE_DEFAULT_API_PORT) / SUPABASE_BAND_STRIDE;
+
+  if (!Number.isInteger(band) || band < 0 || band > MAX_BAND) {
+    throw new Error(
+      `supabase/config.toml의 [api] port ${supabaseApiPort}에서 프로젝트 포트 대역을 읽지 못했습니다. ${SUPABASE_DEFAULT_API_PORT}부터 ${SUPABASE_BAND_STRIDE}씩 더한 값이어야 합니다 (${SUPABASE_DEFAULT_API_PORT}, ${SUPABASE_DEFAULT_API_PORT + SUPABASE_BAND_STRIDE}, …, ${SUPABASE_DEFAULT_API_PORT + MAX_BAND * SUPABASE_BAND_STRIDE}).`
+    );
+  }
+
+  return band;
 }
 
-export function apiPort(slot: number): number {
-  return API_BASE_PORT + slot * SLOT_STRIDE;
+export function metroPort(slot: number, band: number): number {
+  return METRO_BASE_PORT + band + slot * SLOT_STRIDE;
+}
+
+export function apiPort(slot: number, band: number): number {
+  return API_BASE_PORT + band + slot * SLOT_STRIDE;
 }
 
 export interface SlotAllocation {
@@ -18,6 +41,7 @@ export interface SlotAllocation {
 }
 
 export interface AllocateSlotInput {
+  band: number;
   /** The slot this worktree used last time, if it has one. */
   currentSlot: number | undefined;
   isPortFree: (port: number) => boolean;
@@ -32,12 +56,14 @@ export interface AllocateSlotInput {
 
 function isSlotUsable(
   slot: number,
-  { isPortFree, ownPorts, takenSlots }: AllocateSlotInput
+  { band, isPortFree, ownPorts, takenSlots }: AllocateSlotInput
 ): boolean {
   const usable = (port: number) => ownPorts?.has(port) || isPortFree(port);
 
   return (
-    !takenSlots.has(slot) && usable(metroPort(slot)) && usable(apiPort(slot))
+    !takenSlots.has(slot) &&
+    usable(metroPort(slot, band)) &&
+    usable(apiPort(slot, band))
   );
 }
 
@@ -61,6 +87,6 @@ export function allocateSlot(input: AllocateSlotInput): SlotAllocation {
   }
 
   throw new Error(
-    `빈 slot을 찾지 못했습니다. slot 0부터 ${MAX_SLOT}까지의 Metro(${metroPort(0)}부터)와 API(${apiPort(0)}부터) 포트가 모두 사용 중입니다.`
+    `빈 slot을 찾지 못했습니다. slot 0부터 ${MAX_SLOT}까지의 Metro(${metroPort(0, input.band)}부터)와 API(${apiPort(0, input.band)}부터) 포트가 모두 사용 중입니다.`
   );
 }

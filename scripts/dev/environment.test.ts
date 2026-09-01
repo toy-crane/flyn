@@ -1,11 +1,21 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  buildApiEnvironment,
   buildMobileEnvironment,
   developmentClientUrl,
   mobileEnvironmentFingerprint,
   parseEnvFile,
 } from "./environment";
+
+describe("buildApiEnvironment", () => {
+  test("config.toml의 포트로 API의 Supabase 주소를 만든다", () => {
+    expect(buildApiEnvironment(54_331)).toEqual({
+      SUPABASE_JWKS_URL: "http://127.0.0.1:54331/auth/v1/.well-known/jwks.json",
+      SUPABASE_URL: "http://127.0.0.1:54331",
+    });
+  });
+});
 
 const iosClientIdMessage = /EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID/;
 const webClientIdMessage = /EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID/;

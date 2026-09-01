@@ -132,7 +132,7 @@ fingerprint마다 새 캐시 폴더를 만드는 대신 worktree마다 하나의
 
 ## 보존할 근거
 
-- 현재 API 개발 명령은 `3900`을 사용하고 Metro 기본 포트는 `8081`이다.
+- 기준 포트는 API `3900`, Metro `8081`이다. 세션 없이 직접 실행하는 `apps/api`의 `dev` 명령은 1번 대역의 slot 0과 같은 `3901`을 쓴다.
 - 2026-09-02 이 컴퓨터에서 dearly의 Supabase 스택(`supabase_*_dearly`)이 `54321`～`54327`을, dearly 세션이 `3900`과 `8081`을 쓰고 있었다. flyn 기본 checkout은 slot 2(`3920`, `8101`)로 옮겨 가 있었고 Codex worktree 상태는 slot 0을 기록한 채였다. dearly의 세션 스크립트도 같은 기준 포트에서 시작한다.
 - Supabase CLI 2.113.0의 `supabase start`에는 포트 플래그가 없다. 컨테이너 이름은 `supabase_<서비스>_<project_id>`이며 "이미 실행 중"도 이 이름으로 판단한다. gitignore되지 않는 포트 덮어쓰기 파일 요청 [discussion #39585](https://github.com/orgs/supabase/discussions/39585)는 2025-10 이후 답이 없다.
 - 정수 포트의 `env()` 지원 요청 [supabase/cli#1551](https://github.com/supabase/cli/issues/1551)은 2025-12-04 maintainer가 `port = "env(VAR)"`가 동작함을 확인하고 닫았다. CLI의 `LoadEnvHook`은 변수가 비어 있으면 값을 바꾸지 않고, CLI는 `supabase/.env.local`, `.env.development.local`, `.env.development`, `.env` 순으로 읽는다.
