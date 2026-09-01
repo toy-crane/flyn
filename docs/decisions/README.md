@@ -14,7 +14,7 @@
 - [템플릿 프로젝트 정체성](template-project-identity.md) — 템플릿의 초기 설정 명령, 프로젝트 슬러그 또는 도구별 프로젝트 식별자를 변경할 때 읽는다.
 - [앱 초기화 작업 흐름](app-initialization-workflow.md) — 템플릿에서 새 앱을 시작하는 대화, Skill, 스크립트의 책임을 변경할 때 읽는다.
 - [디자인 시스템 생성 작업 흐름](design-system-generation-workflow.md) — 참고 자료에서 테마 후보를 만들거나 미리보기, 승인, 적용 범위를 변경할 때 읽는다.
-- [Worktree 개발 세션](worktree-development-sessions.md) — 여러 Git worktree의 API·Metro 포트, 플랫폼 동시 실행, 기기 풀과 배정, 프로세스 소유권 또는 공용 Development Build 재사용 방식을 변경할 때 읽는다.
+- [Worktree 개발 세션](worktree-development-sessions.md) — 여러 Git worktree의 API·Metro 포트, 같은 컴퓨터의 다른 프로젝트와 나누는 포트 대역, 로컬 Supabase 포트, 플랫폼 동시 실행, 기기 풀과 배정, 프로세스 소유권 또는 공용 Development Build 재사용 방식을 변경할 때 읽는다.
 - [CI 코드 리뷰](ci-code-review.md) — CI에서 PR 자동 코드 리뷰를 켜거나, 리뷰 도구와 권한을 손대려 할 때 읽는다.
 - [검토 에이전트 실행 경계](reviewer-agent-execution-boundaries.md) — Claude Code와 Codex의 전용 검토 agent, 공용 검토 계약, 읽기 전용 권한 또는 실행 맥락을 추가하거나 바꿀 때 읽는다.
 - [Expo 참조 저장소 색인](expo-reference-repo-index.md) — 참조 저장소를 추가하거나 색인의 역할, 항목 형식, 커밋 고정 방식을 바꿀 때 읽는다.
