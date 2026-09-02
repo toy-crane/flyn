@@ -1,5 +1,5 @@
 import { PLATFORMS, type Platform } from "./options";
-import { apiPort, metroPort } from "./slots";
+import { apiPort, metroPort, projectBand } from "./slots";
 import type {
   ProcessKind,
   ProcessRecord,
@@ -40,8 +40,12 @@ export interface WorktreeStatus {
 }
 
 export interface StatusReport {
+  /** The project's port band; every worktree here computes ports from it. */
+  band: number;
   /** Pool devices no worktree holds right now. */
   idle: StatusDevice[];
+  /** The shared local stack's API port from `supabase/config.toml`. */
+  supabasePort: number;
   worktrees: WorktreeStatus[];
 }
 
@@ -58,6 +62,8 @@ export interface StatusFacts {
     kind: ProcessKind,
     record: ProcessRecord
   ) => boolean;
+  /** From `supabase/config.toml`; the band, and so every port, follows it. */
+  supabasePort: number;
   worktreeExists: (path: string) => boolean;
 }
 
@@ -102,6 +108,7 @@ function statusProcess(
 function worktreeStatus(
   path: string,
   record: WorktreeRecord,
+  band: number,
   facts: StatusFacts
 ): WorktreeStatus {
   const devices: StatusDevice[] = [];
@@ -120,7 +127,7 @@ function worktreeStatus(
       path,
       "api",
       record.processes.api,
-      apiPort(record.slot),
+      apiPort(record.slot, band),
       facts
     ),
     devices,
@@ -130,7 +137,7 @@ function worktreeStatus(
       path,
       "metro",
       record.processes.metro,
-      metroPort(record.slot),
+      metroPort(record.slot, band),
       facts
     ),
     path,
@@ -146,8 +153,9 @@ export function buildStatusReport(
   state: RepositoryState,
   facts: StatusFacts
 ): StatusReport {
+  const band = projectBand(facts.supabasePort);
   const worktrees = Object.entries(state.worktrees)
-    .map(([path, record]) => worktreeStatus(path, record, facts))
+    .map(([path, record]) => worktreeStatus(path, record, band, facts))
     .sort((left, right) => left.slot - right.slot);
 
   const idle: StatusDevice[] = [];
@@ -162,7 +170,7 @@ export function buildStatusReport(
     }
   }
 
-  return { idle, worktrees };
+  return { band, idle, supabasePort: facts.supabasePort, worktrees };
 }
 
 function processLine(kind: string, entry: StatusProcess): string {
@@ -190,17 +198,18 @@ function deviceLine(device: StatusDevice): string {
 }
 
 export function renderStatusReport(report: StatusReport): string[] {
+  const lines: string[] = [
+    `프로젝트 포트 대역 ${report.band}  Supabase API http://127.0.0.1:${report.supabasePort}`,
+  ];
+
   if (report.worktrees.length === 0 && report.idle.length === 0) {
-    return ["개발 세션 상태가 없습니다."];
+    lines.push("개발 세션 상태가 없습니다.");
+
+    return lines;
   }
 
-  const lines: string[] = [];
-
   for (const worktree of report.worktrees) {
-    if (lines.length > 0) {
-      lines.push("");
-    }
-
+    lines.push("");
     lines.push(`${worktree.label || worktree.path} (slot ${worktree.slot})`);
     lines.push(`  경로     ${worktree.path}`);
 
@@ -226,10 +235,7 @@ export function renderStatusReport(report: StatusReport): string[] {
   }
 
   if (report.idle.length > 0) {
-    if (lines.length > 0) {
-      lines.push("");
-    }
-
+    lines.push("");
     lines.push("풀에서 대기 중인 기기");
 
     for (const device of report.idle) {

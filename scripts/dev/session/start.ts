@@ -22,6 +22,7 @@ import {
   selectDevice,
 } from "../devices";
 import {
+  buildApiEnvironment,
   buildMobileEnvironment,
   developmentClientUrl,
   mobileEnvironmentFingerprint,
@@ -150,11 +151,11 @@ function sessionLogs(context: SessionContext): SessionLogs {
   };
 }
 
-async function freePorts(): Promise<Set<number>> {
+async function freePorts(band: number): Promise<Set<number>> {
   const ports: number[] = [];
 
   for (let slot = 0; slot <= MAX_SLOT; slot += 1) {
-    ports.push(metroPort(slot), apiPort(slot));
+    ports.push(metroPort(slot, band), apiPort(slot, band));
   }
 
   const results = await Promise.all(
@@ -352,7 +353,7 @@ async function allocate(
       reuseReason,
       forceClear
     );
-    const free = await freePorts();
+    const free = await freePorts(context.band);
     const ownPorts = new Set(
       running
         ? [
@@ -362,6 +363,7 @@ async function allocate(
         : []
     );
     const { changed, slot } = allocateSlot({
+      band: context.band,
       currentSlot: existing?.slot,
       isPortFree: (port) => free.has(port),
       ownPorts,
@@ -1042,7 +1044,10 @@ export async function startSession({
   const mobileEnvironmentForSlot = (slot: number) =>
     buildMobileEnvironment({
       fileValues,
-      ports: { api: apiPort(slot), supabase: context.supabasePort },
+      ports: {
+        api: apiPort(slot, context.band),
+        supabase: context.supabasePort,
+      },
     });
 
   mobileEnvironmentForSlot(0);
@@ -1082,8 +1087,8 @@ export async function startSession({
     );
   }
 
-  const metro = metroPort(allocation.slot);
-  const api = apiPort(allocation.slot);
+  const metro = metroPort(allocation.slot, context.band);
+  const api = apiPort(allocation.slot, context.band);
   const mobileEnvironment = mobileEnvironmentForSlot(allocation.slot);
   const environmentFingerprint =
     mobileEnvironmentFingerprint(mobileEnvironment);
@@ -1177,7 +1182,11 @@ export async function startSession({
         join(context.apiDirectory, "src", "index.ts"),
       ],
       cwd: context.apiDirectory,
-      env: { ...env, BUN_PORT: String(api) },
+      env: {
+        ...env,
+        ...buildApiEnvironment(context.supabasePort),
+        BUN_PORT: String(api),
+      },
       logPath: logs.api,
     });
 

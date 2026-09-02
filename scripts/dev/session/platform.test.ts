@@ -8,6 +8,7 @@ import { driverFor } from "./platform";
 function sessionContext(worktreePath: string): SessionContext {
   return {
     apiDirectory: join(worktreePath, "apps", "api"),
+    band: 0,
     git: {
       commonDirectory: "/repo/.git",
       label: "test",

@@ -4,6 +4,11 @@ import { argv, env, exit, stderr, stdout } from "node:process";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
+import {
+  readSupabaseApiPort,
+  readSupabaseMailpitPort,
+} from "../dev/adapters/supabase";
+
 /**
  * Reads the one-time code that local Supabase just mailed to Mailpit, so a
  * person or an agent can type it into the app's sign-in screen.
@@ -14,10 +19,18 @@ import { fileURLToPath } from "node:url";
  * nothing about whether sign-in works.
  */
 
-// Mailpit's default web interface: `[local_smtp] port` in supabase/config.toml.
-// Deliberately not configurable. A code read from some other mail host would
-// not be the code the local stack issued.
-export const MAILPIT_URL = "http://127.0.0.1:54324";
+const REPOSITORY_ROOT = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  ".."
+);
+
+// Mailpit's web interface: `[local_smtp] port` in supabase/config.toml. Not
+// configurable beyond that file on purpose. A code read from some other mail
+// host would not be the code the local stack issued.
+export function mailpitUrl(): string {
+  return `http://127.0.0.1:${readSupabaseMailpitPort(REPOSITORY_ROOT)}`;
+}
 
 const SUPABASE_URL_ENV = "EXPO_PUBLIC_SUPABASE_URL";
 const MOBILE_ENV_FILE = "apps/mobile/.env.local";
@@ -144,7 +157,15 @@ export function readEnvValue(
   }
 }
 
-export function assertLocalSupabaseUrl(rawUrl: string | undefined): URL {
+/**
+ * The app must point at this repository's stack, not merely at some local
+ * one: another project's stack on the same machine answers on a different port
+ * and mails its codes to its own Mailpit, where this command never looks.
+ */
+export function assertLocalSupabaseUrl(
+  rawUrl: string | undefined,
+  expectedPort: number
+): URL {
   if (!rawUrl) {
     throw new Error(
       `${SUPABASE_URL_ENV}을 찾을 수 없습니다. ${MOBILE_ENV_FILE}에 로컬 Supabase URL을 설정하세요. README.md "Supabase 연결"을 참고하세요.`
@@ -164,6 +185,12 @@ export function assertLocalSupabaseUrl(rawUrl: string | undefined): URL {
   if (!LOCAL_SUPABASE_HOSTS.has(url.hostname.replace(IPV6_BRACKETS, ""))) {
     throw new Error(
       `이 명령은 로컬 Supabase에서만 동작합니다. 지금 앱은 ${url.origin}을 가리키고 있어 로그인 코드가 Mailpit이 아니라 실제 받은 편지함으로 갑니다. 원격 프로젝트의 코드는 그 편지함에서 직접 확인하세요.`
+    );
+  }
+
+  if (url.port !== String(expectedPort)) {
+    throw new Error(
+      `${SUPABASE_URL_ENV}의 포트 ${url.port || "(없음)"}가 supabase/config.toml의 API 포트 ${expectedPort}와 다릅니다. 같은 컴퓨터의 다른 로컬 스택을 가리키고 있어 코드가 이 프로젝트의 Mailpit에 오지 않습니다. ${MOBILE_ENV_FILE}의 포트를 ${expectedPort}로 고치세요.`
     );
   }
 
@@ -214,14 +241,17 @@ export function extractOtpCode(body: {
   return codes[0] as string;
 }
 
-async function fetchMailpitJson(path: string): Promise<unknown> {
+async function fetchMailpitJson(
+  baseUrl: string,
+  path: string
+): Promise<unknown> {
   let response: Response;
 
   try {
-    response = await fetch(`${MAILPIT_URL}${path}`);
+    response = await fetch(`${baseUrl}${path}`);
   } catch (error) {
     throw new Error(
-      `Mailpit(${MAILPIT_URL})에 연결하지 못했습니다. bun run db:start으로 로컬 스택을 먼저 켜세요.`,
+      `Mailpit(${baseUrl})에 연결하지 못했습니다. bun run db:start으로 로컬 스택을 먼저 켜세요.`,
       { cause: error }
     );
   }
@@ -266,11 +296,17 @@ function toSummaries(payload: unknown): MailpitSummary[] {
   });
 }
 
-async function readMessageBody(id: string): Promise<{
+async function readMessageBody(
+  baseUrl: string,
+  id: string
+): Promise<{
   html?: string | undefined;
   text?: string | undefined;
 }> {
-  const payload = (await fetchMailpitJson(`/api/v1/message/${id}`)) as {
+  const payload = (await fetchMailpitJson(
+    baseUrl,
+    `/api/v1/message/${id}`
+  )) as {
     HTML?: unknown;
     Text?: unknown;
   };
@@ -302,18 +338,20 @@ export async function waitForOtp(options: OtpOptions): Promise<OtpReadResult> {
   const startedAt = Date.now();
   const notBefore = new Date(startedAt - ARRIVAL_GRACE_MS);
   const query = encodeURIComponent(`to:${options.email}`);
+  // Resolved once: the stack this run waits on does not change mid-wait.
+  const baseUrl = mailpitUrl();
 
   while (Date.now() - startedAt < options.timeoutMs) {
     // biome-ignore-start lint/performance/noAwaitInLoops: mail arrives some time after the app asks for it, so each pass has to finish before the next one can tell whether it is there yet.
     const summaries = toSummaries(
-      await fetchMailpitJson(`/api/v1/search?query=${query}&limit=20`)
+      await fetchMailpitJson(baseUrl, `/api/v1/search?query=${query}&limit=20`)
     );
     const message = selectFreshMessage(summaries, options.email, notBefore);
 
     if (message) {
       return {
         arrivedAt: message.arrivedAt,
-        code: extractOtpCode(await readMessageBody(message.id)),
+        code: extractOtpCode(await readMessageBody(baseUrl, message.id)),
       };
     }
 
@@ -328,18 +366,14 @@ export async function waitForOtp(options: OtpOptions): Promise<OtpReadResult> {
 
 async function main() {
   const options = parseOtpArgs(argv.slice(2));
-  const repositoryRoot = resolve(
-    dirname(fileURLToPath(import.meta.url)),
-    "..",
-    ".."
-  );
   const envFile = await readOptionalFile(
-    resolve(repositoryRoot, MOBILE_ENV_FILE)
+    resolve(REPOSITORY_ROOT, MOBILE_ENV_FILE)
   );
 
   assertLocalSupabaseUrl(
     env[SUPABASE_URL_ENV] ??
-      (envFile ? readEnvValue(envFile, SUPABASE_URL_ENV) : undefined)
+      (envFile ? readEnvValue(envFile, SUPABASE_URL_ENV) : undefined),
+    readSupabaseApiPort(REPOSITORY_ROOT)
   );
 
   const { arrivedAt, code } = await waitForOtp(options);

@@ -104,6 +104,7 @@ export async function showStatus({
     iosNames: ios.names,
     isProcessAlive: (worktreePath, kind, record) =>
       livePids.has(processKey(worktreePath, kind, record)),
+    supabasePort: context.supabasePort,
     worktreeExists: (path) => liveWorktrees.has(path),
   };
   const report = buildStatusReport(state, facts);

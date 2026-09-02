@@ -16,6 +16,7 @@ function factsWith(overrides: Partial<StatusFacts> = {}): StatusFacts {
     existingDeviceIds: {},
     iosNames: new Map(),
     isProcessAlive: () => false,
+    supabasePort: 54_321,
     worktreeExists: () => true,
     ...overrides,
   };
@@ -201,6 +202,37 @@ describe("renderStatusReport", () => {
     );
 
     expect(lines.join("\n")).toContain("개발 세션 상태가 없습니다");
+  });
+
+  test("첫 줄에 프로젝트 포트 대역과 Supabase 주소를 보여 준다", () => {
+    const [first] = renderStatusReport(
+      buildStatusReport(createEmptyState(), factsWith({ supabasePort: 54_331 }))
+    );
+
+    expect(first).toBe(
+      "프로젝트 포트 대역 1  Supabase API http://127.0.0.1:54331"
+    );
+  });
+
+  test("대역 번호가 있으면 slot 포트도 그 대역으로 계산한다", () => {
+    const state = stateWithSession();
+
+    state.worktrees[MAIN] = {
+      ...(state.worktrees[MAIN] as (typeof state.worktrees)[string]),
+      processes: {},
+    };
+
+    const [worktree] = buildStatusReport(
+      state,
+      factsWith({ supabasePort: 54_331 })
+    ).worktrees;
+
+    expect(worktree?.api).toEqual({ alive: false, pid: undefined, port: 3901 });
+    expect(worktree?.metro).toEqual({
+      alive: false,
+      pid: undefined,
+      port: 8082,
+    });
   });
 
   test("worktree 한 줄 요약과 기기 줄을 만든다", () => {

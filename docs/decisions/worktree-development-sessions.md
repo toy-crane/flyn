@@ -15,9 +15,12 @@
 - Android Development Build를 새로 만들 때는 worktree별 `GRADLE_USER_HOME`을 사용한다. Gradle wrapper, 의존성과 빌드 캐시가 다른 worktree의 절대 경로를 다시 쓰지 않는다. persistent Gradle daemon은 사용하지 않아 빌드가 끝난 뒤 해당 홈을 쓰는 JVM을 남기지 않는다.
 - 앱 데이터와 로그인 상태는 공용 빌드에 포함하지 않는다. 각 worktree에 배정한 Simulator 또는 AVD가 독립적으로 소유한다.
 - 로컬 Supabase 스택은 모든 worktree가 공유한다. 개발 세션 명령은 Supabase를 시작하거나 중지하거나 초기화하지 않는다.
+- 같은 컴퓨터의 다른 프로젝트와는 프로젝트 포트 대역 번호로 나눈다. Supabase는 `54320 + 번호 × 10`부터 열 개, Metro는 `8081 + 번호 + slot × 10`, API는 `3900 + 번호 + slot × 10`이다. flyn은 1번이다.
+- 대역 번호의 원본은 `supabase/config.toml`의 `[api] port` 하나다. Supabase 포트는 그 파일에 숫자로 커밋하고, 번호는 `(API 포트 - 54321) / 10`으로 읽는다. 세션은 이 값이 숫자가 아니면 추측하지 않고 멈춘다.
+- Supabase 주소가 필요한 프로그램은 `config.toml`의 포트에서 주소를 만든다. 개발 세션은 Metro뿐 아니라 API 자식 프로세스에도 `SUPABASE_URL`과 `SUPABASE_JWKS_URL`을 셸 환경으로 넘기고, `auth:otp`는 Mailpit과 로컬 Supabase 주소를 같은 파일에서 읽는다. 개발자의 `.env.local`은 읽기만 한다.
 - Portless를 기본 개발 경로에 넣지 않는다. slot에서 실제 포트를 계산하고 개발 세션이 직접 소유한다.
 - 개발 세션이 정한 모바일 API와 Supabase 포트는 `EXPO_PUBLIC_DEV_SESSION_API_PORT`와 `EXPO_PUBLIC_DEV_SESSION_SUPABASE_PORT`로 Metro에 전달한다. 앱은 이 값이 있으면 일반 모바일 URL보다 우선한다. 세션은 포트만 정하고 호스트는 앱이 정한다.
-- 앱은 `process.env.EXPO_OS`로 자기 번들의 플랫폼을 보고 호스트를 정한다. Android는 `10.0.2.2`, 나머지는 `127.0.0.1`이다. API는 worktree slot의 포트를 사용하고 Supabase는 공유 로컬 포트 `54321`을 사용한다.
+- 앱은 `process.env.EXPO_OS`로 자기 번들의 플랫폼을 보고 호스트를 정한다. Android는 `10.0.2.2`, 나머지는 `127.0.0.1`이다. API는 worktree slot의 포트를 사용하고 Supabase는 `config.toml`의 API 포트를 사용한다.
 - Android Emulator에는 Metro 포트만 `adb reverse`로 넘긴다. 개발 클라이언트 딥링크가 `127.0.0.1`을 담기 때문이다.
 - 실행 중인 세션은 공개 모바일 환경과 Metro 입력의 fingerprint가 모두 같을 때만 API와 Metro를 재사용한다. 하나라도 바뀌면 해당 worktree의 두 프로세스만 다시 시작하고 slot, 기기, 설치된 앱과 앱 데이터는 유지한다. 재사용 판단은 플랫폼과 무관하다.
 - API와 Metro를 다시 시작하면 그 worktree에 붙어 있던 모든 플랫폼의 앱을 다시 연결한다. 명령에 적지 않은 플랫폼도 함께 다시 연다.
@@ -31,6 +34,8 @@
 
 - 이 결정은 로컬 iOS Simulator와 Android Emulator 개발에 적용한다. 실제 기기, Expo Web, 원격 기기와 CI 기기 실행은 포함하지 않는다.
 - worktree 격리는 한 저장소 clone 안에서만 보장한다. 같은 컴퓨터에서 같은 slug를 쓰는 clone을 둘 이상 실행하면 상태 파일은 따로지만 기기 이름은 모두 `<slug>-slot-<번호>` 형식이라 같은 slot끼리 충돌할 수 있다.
+- 프로젝트 사이의 격리는 대역 번호가 다를 때만 보장한다. 번호는 사람이 프로젝트마다 다르게 정하며, 같은 번호를 쓰는 프로젝트끼리는 다시 겹친다. 세션은 다른 프로젝트의 번호를 알지 못한다.
+- 대역 번호는 프로젝트 사이를 나누고, slot은 같은 프로젝트의 worktree 사이를 나눈다. worktree끼리는 Supabase 스택 하나를 계속 공유한다. `project_id`가 같으면 CLI가 같은 컨테이너에 붙으므로 포트만으로는 worktree별 스택을 만들 수 없다.
 - `apps/mobile`과 `apps/api`의 개별 `dev`, `ios`, `android`, `start` 명령은 수동 진단에 사용할 수 있지만 worktree 간 포트와 기기 격리를 보장하지 않는다.
 - `bun run dev:status`는 아무것도 바꾸지 않는다. 죽은 프로세스와 사라진 기기는 표시만 하고, 회수는 다음 시작 명령의 몫이다.
 - `bun run dev:stop`은 실행 프로세스와 이 worktree에 배정된 두 플랫폼의 기기를 함께 중단한다. slot, 기기, 앱 데이터와 공용 빌드는 유지한다.
@@ -67,11 +72,20 @@ Expo SDK 57의 개발 번들은 셸에서 받은 `EXPO_PUBLIC_` 값 뒤에 `.env
 
 Metro의 기본 변환 캐시는 OS 임시 폴더에 있어 여러 프로젝트와 worktree가 함께 쓴다. Expo는 올바른 캐시 키를 만들어 이 결과를 안전하게 공유하는 방향을 택하지만, 플러그인이나 설정이 빠뜨린 입력이 있으면 다른 checkout의 결과가 남을 수 있다. worktree별 임시 폴더는 이 저장소의 병렬 세션을 서로 격리하고, 입력이 바뀔 때만 `--clear`를 쓰면 평소의 빠른 재시작도 유지한다.
 
+같은 컴퓨터의 다른 프로젝트(dearly)와 flyn이 모두 Supabase `54321`, Metro `8081`, API `3900`에서 시작해서, 먼저 켠 쪽이 이겼다. Metro와 API는 빈 포트 탐색으로 자리를 옮겨 살아남지만 옮길 때마다 환경 fingerprint가 바뀌어 다시 띄웠고, Supabase는 `config.toml`이 포트를 고정하므로 `supabase start`가 그대로 실패했다. 프로젝트마다 번호 하나를 정하고 세 포트를 그 번호에서 계산하면 탐색 없이도 겹치지 않는다. Metro와 API의 오프셋을 slot 간격 안의 한 자리로 두면 프로젝트 열 개까지 어떤 slot끼리도 만나지 않고 기존 slot 구조를 그대로 쓴다.
+
+Supabase 포트를 `env()`로 넘기지 않는 이유는 소유권이다. CLI는 정수 포트에도 `port = "env(VAR)"`를 허용하지만, 변수가 비어 있으면 그 글자가 그대로 남아 실패하고, 값을 담을 `supabase/.env*`는 gitignore라 저장소가 기본값을 줄 수 없다. 숫자를 커밋하면 모든 worktree와 세션 스크립트가 같은 값을 읽는다. 그 숫자가 이미 파일에 있으므로 대역 번호를 다른 곳에 한 번 더 적지 않고 거기서 읽는다.
+
+세션이 API에도 Supabase 주소를 넘기는 이유는 `.env.local`이 개발자 파일이기 때문이다. Bun은 셸 환경 값을 `.env.local`보다 우선하므로, 파일을 고치지 않아도 세션이 정한 포트가 이긴다. Metro에 포트만 넘기던 것과 같은 소유권 규칙이다.
+
 fingerprint마다 새 캐시 폴더를 만드는 대신 worktree마다 하나의 폴더를 계속 쓴다. 변경을 발견했을 때 Expo의 공식 초기화 경로를 실행하면 오래된 캐시 세대를 따로 세고 지우는 코드가 필요 없다. 전체 `bun.lock`을 읽으므로 모바일과 관계없는 패키지 변경에도 한 번 더 초기화할 수 있지만, 잘못된 캐시를 재사용하는 것보다 비용이 작고 동작을 설명하기 쉽다.
 
 ## 재검토 조건
 
 - 같은 컴퓨터에서 같은 slug의 저장소 clone을 둘 이상 동시에 실행해야 할 때
+- 같은 컴퓨터에서 대역 번호가 겹치는 프로젝트가 생기거나 프로젝트가 열 개를 넘을 때
+- Supabase CLI가 포트 덮어쓰기 파일이나 시작 플래그를 공식 지원할 때
+- 서로 다른 스키마 변경을 worktree마다 나란히 검증해야 해서 worktree 전용 Supabase 스택이 필요할 때
 - Expo Web이나 브라우저 자동화에 worktree별 고정 hostname이 필요할 때
 - OAuth callback, CORS, 쿠키 또는 localStorage를 worktree별 hostname으로 분리해야 할 때
 - 한 플랫폼에 기기를 여러 대 붙이거나 세 대 이상을 동시에 실행해야 할 때
@@ -96,7 +110,10 @@ fingerprint마다 새 캐시 폴더를 만드는 대신 worktree마다 하나의
 - worktree마다 기기를 만들고 삭제 전에 `dev:remove` 강제: 삭제 명령을 우회하면 기기가 계속 남고 순서대로 만든 worktree 수만큼 늘어날 수 있다.
 - worktree마다 같은 native fingerprint를 다시 빌드: 구현은 단순하지만 현재 iOS 소스 빌드 비용을 worktree마다 반복한다.
 - 준비된 기준 Simulator 복제: iOS와 Android에 같은 방식으로 적용할 수 없고 기준 기기의 빌드 갱신과 오염을 별도로 관리해야 한다.
-- worktree마다 Supabase 실행: DB 포트, Docker 자원, seed와 schema drift 관리가 일상 개발 과정에 추가된다.
+- worktree마다 Supabase 실행: DB 포트, Docker 자원, seed와 schema drift 관리가 일상 개발 과정에 추가된다. 스택 하나가 Docker 메모리 약 2.3GB를 쓰고, `project_id`까지 worktree마다 바꿔야 한다.
+- 빈 포트 탐색만으로 프로젝트 구분: 실패는 막지만 먼저 켠 쪽이 slot 0을 가져가고, 나중에 켠 쪽은 옮길 때마다 Metro와 API를 다시 띄운다. Supabase는 탐색하지 않으므로 그대로 실패한다.
+- Supabase 포트를 `env()`와 `supabase/.env.local`로 넘기기: 변수가 비면 실패하고, gitignore 파일이라 저장소가 기본값을 줄 수 없으며, 세션 스크립트가 숫자를 읽지 못한다.
+- 대역 번호를 별도 상수나 설정 파일에 두기: `config.toml`에 이미 있는 숫자와 어긋날 수 있다.
 - 같은 AVD의 읽기 전용 다중 실행: worktree별 앱 데이터와 로그인 상태를 지속해서 보존하지 못한다.
 - 플랫폼마다 Metro를 따로 띄우기: 주소가 갈린 채로도 동시 실행을 얻지만 Metro 프로세스와 변환 캐시가 두 배가 되고 포트와 상태 관리가 늘어난다.
 - 세션이 완성된 주소를 넘기기: 번들에 박히는 값이 플랫폼마다 갈려 Metro 하나가 두 플랫폼을 서빙하지 못한다.
@@ -115,7 +132,12 @@ fingerprint마다 새 캐시 폴더를 만드는 대신 worktree마다 하나의
 
 ## 보존할 근거
 
-- 현재 API 개발 명령은 `3900`을 사용하고 Metro 기본 포트는 `8081`이다.
+- 기준 포트는 API `3900`, Metro `8081`이다. 세션 없이 직접 실행하는 `apps/api`의 `dev` 명령은 1번 대역의 slot 0과 같은 `3901`을 쓴다.
+- 2026-09-02 이 컴퓨터에서 dearly의 Supabase 스택(`supabase_*_dearly`)이 `54321`～`54327`을, dearly 세션이 `3900`과 `8081`을 쓰고 있었다. flyn 기본 checkout은 slot 2(`3920`, `8101`)로 옮겨 가 있었고 Codex worktree 상태는 slot 0을 기록한 채였다. dearly의 세션 스크립트도 같은 기준 포트에서 시작한다.
+- Supabase CLI 2.113.0의 `supabase start`에는 포트 플래그가 없다. 컨테이너 이름은 `supabase_<서비스>_<project_id>`이며 "이미 실행 중"도 이 이름으로 판단한다. gitignore되지 않는 포트 덮어쓰기 파일 요청 [discussion #39585](https://github.com/orgs/supabase/discussions/39585)는 2025-10 이후 답이 없다.
+- 정수 포트의 `env()` 지원 요청 [supabase/cli#1551](https://github.com/supabase/cli/issues/1551)은 2025-12-04 maintainer가 `port = "env(VAR)"`가 동작함을 확인하고 닫았다. CLI의 `LoadEnvHook`은 변수가 비어 있으면 값을 바꾸지 않고, CLI는 `supabase/.env.local`, `.env.development.local`, `.env.development`, `.env` 순으로 읽는다.
+- 실행 중인 Supabase 스택 하나(dearly)의 컨테이너 메모리 합은 약 2.3GB였다(Docker 메모리 7.6GB). `supabase start`는 `edge_runtime.inspector_port`를 호스트에 열지 않는다.
+- Bun 1.4는 셸 환경에 이미 있는 변수를 `.env.local` 값으로 덮어쓰지 않는다. 같은 이름을 셸과 파일에 모두 두고 실행해 셸 값이 남는 것을 확인했다.
 - Android Emulator에서 호스트의 loopback 서비스는 `10.0.2.2`로 접근하거나, `adb reverse tcp:<포트> tcp:<포트>`로 기기의 `127.0.0.1:<포트>`를 호스트로 넘겨야 한다. iOS Simulator는 `127.0.0.1`을 그대로 사용한다.
 - Expo SDK 57의 `expo/virtual/env` 개발 변환은 `.env` 파일 값을 `process.env` 뒤에 합친다. Expo 이슈 `#41981`과 열린 PR `#41999`도 셸 값이 `.env` 값에 덮이는 같은 동작을 다룬다.
 - Expo SDK 57의 플랫폼별 native fingerprint는 서로 다르므로 공용 빌드는 플랫폼별로 구분해야 한다.

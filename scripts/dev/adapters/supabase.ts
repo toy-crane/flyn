@@ -1,50 +1,88 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const DEFAULT_API_PORT = 54_321;
 const HEALTH_TIMEOUT_MS = 3000;
-const API_SECTION_PATTERN = /^\s*\[api\]\s*$/;
-const SECTION_PATTERN = /^\s*\[/;
-const PORT_PATTERN = /^\s*port\s*=\s*(\d+)/;
+// Any table header ends the current section, `[[array]]` tables and a trailing
+// comment included; only a plain `[section]` can open the one we want.
+const SECTION_PATTERN = /^\s*\[(\[?)([^\]]+)\]\]?\s*(?:#.*)?$/;
+const PORT_PATTERN = /^\s*port\s*=\s*(.*?)\s*(?:#.*)?$/;
+const NUMBER_PATTERN = /^\d+$/;
+
+/** Sections of `supabase/config.toml` whose `port` the repository reads. */
+export type SupabasePortSection = "api" | "local_smtp";
+
+/**
+ * Only a literal number counts. An `env(...)` value would make the stack's
+ * port depend on whichever shell started it, and every worktree and script
+ * here has to agree on one number without starting the stack first.
+ */
+export function parseSupabasePort(
+  contents: string,
+  section: SupabasePortSection
+): number {
+  let inSection = false;
+
+  for (const line of contents.split("\n")) {
+    const heading = SECTION_PATTERN.exec(line);
+
+    if (heading) {
+      inSection = heading[1] === "" && heading[2]?.trim() === section;
+      continue;
+    }
+
+    if (!inSection) {
+      continue;
+    }
+
+    const match = PORT_PATTERN.exec(line);
+
+    if (!match) {
+      continue;
+    }
+
+    const value = match[1] ?? "";
+
+    if (!NUMBER_PATTERN.test(value)) {
+      throw new Error(
+        `supabase/config.toml의 [${section}] port가 숫자가 아닙니다: ${value}. 포트는 숫자로 적어야 합니다.`
+      );
+    }
+
+    return Number.parseInt(value, 10);
+  }
+
+  throw new Error(
+    `supabase/config.toml에서 [${section}] port를 찾지 못했습니다.`
+  );
+}
 
 /**
  * Every worktree shares one local stack, so the port comes from the committed
  * config rather than a constant that would drift the moment it is changed.
  */
-export function readSupabaseApiPort(repositoryRoot: string): number {
-  let contents = "";
+export function readSupabasePort(
+  repositoryRoot: string,
+  section: SupabasePortSection
+): number {
+  const file = join(repositoryRoot, "supabase", "config.toml");
+  let contents: string;
 
   try {
-    contents = readFileSync(
-      join(repositoryRoot, "supabase", "config.toml"),
-      "utf8"
-    );
-  } catch {
-    return DEFAULT_API_PORT;
+    contents = readFileSync(file, "utf8");
+  } catch (error) {
+    throw new Error(`${file}을 읽지 못했습니다.`, { cause: error });
   }
 
-  let inApiSection = false;
+  return parseSupabasePort(contents, section);
+}
 
-  for (const line of contents.split("\n")) {
-    if (API_SECTION_PATTERN.test(line)) {
-      inApiSection = true;
-      continue;
-    }
+export function readSupabaseApiPort(repositoryRoot: string): number {
+  return readSupabasePort(repositoryRoot, "api");
+}
 
-    if (inApiSection) {
-      if (SECTION_PATTERN.test(line)) {
-        return DEFAULT_API_PORT;
-      }
-
-      const match = PORT_PATTERN.exec(line);
-
-      if (match?.[1]) {
-        return Number.parseInt(match[1], 10);
-      }
-    }
-  }
-
-  return DEFAULT_API_PORT;
+/** Mailpit's web interface, where the local stack leaves the mail it sends. */
+export function readSupabaseMailpitPort(repositoryRoot: string): number {
+  return readSupabasePort(repositoryRoot, "local_smtp");
 }
 
 /**
