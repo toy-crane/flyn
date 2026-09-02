@@ -46,7 +46,7 @@
 - [모바일 코드 구조](mobile-code-architecture.md) — 모바일 영역 구분, 기능 내부 책임, 폴더 구조 또는 import 경계를 변경할 때 읽는다.
 - [모바일 개발 런타임](mobile-development-runtime.md) — 모바일 앱의 Expo SDK, 지원 플랫폼, Development Build 런타임 또는 배포 경계를 변경할 때 읽는다.
 - [모바일 환경 설정](mobile-environment-configuration.md) — 모바일 공개 환경 변수의 필수 여부, 검증 위치, 접근 방식 또는 검증 도구를 변경할 때 읽는다.
-- [모바일 Expo 의존성 호환](mobile-expo-dependency-compatibility.md) — 모바일 Expo 또는 네이티브 패키지 버전, 호환 검사와 버전 예외를 변경할 때 읽는다.
+- [모바일 Expo 의존성 호환](mobile-expo-dependency-compatibility.md) — 모바일 Expo 또는 네이티브 패키지 버전을 올리거나, 호환 검사와 버전 예외를 변경할 때 읽는다.
 - [모바일 라우팅 타입 안전성](mobile-routing-type-safety.md) — Expo Router 경로 타입, 내부 경로 표기 또는 경로 타입 생성 검사를 변경할 때 읽는다.
 - [모바일 원격 데이터 상태](mobile-remote-data.md) — 모바일에서 Supabase 원격 데이터의 조회, 캐시, 데이터 변경 또는 비동기 상태 관리를 변경할 때 읽는다.
 - [모바일 테스트와 런타임 검증](mobile-testing-and-verification.md) — 모바일 테스트 계층, `agent-device`, E2E 또는 에이전트 연동 방식을 변경할 때 읽는다.
