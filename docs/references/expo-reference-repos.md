@@ -79,7 +79,7 @@ Expo 화면이나 상호작용을 만들 때 골라 볼 수 있는 공개 구현
 - 들여오지 않는다: Native Tabs 없이 Stack 하나로 앱을 구성하는 정보 구조, 글자
   배율 상한(`dynamicTypeSize`, `MAX_FONT_SIZE_MULTIPLIER`, Android font scale
   config plugin), `@react-native-async-storage/async-storage`, PostHog 이벤트,
-  행 앞 아이콘, 런타임 버전 행, 로딩 인디케이터 기본값 규칙. 우리는
+  런타임 버전 행, 로딩 인디케이터 기본값 규칙. 우리는
   [모바일 UI 렌더러 경계](../decisions/mobile-ui-renderer-boundaries.md),
   [모바일 타이포그래피](../decisions/mobile-typography.md),
   [모바일 색상 시맨틱](../decisions/mobile-color-semantics.md),
