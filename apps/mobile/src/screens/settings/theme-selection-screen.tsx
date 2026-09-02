@@ -31,6 +31,8 @@ export function ThemeSelectionScreen({
   surface: string;
   themePreference: ThemePreference;
 }) {
+  const sectionModifiers = getSettingsSectionModifiers(surface);
+
   return (
     <Host
       /*
@@ -50,7 +52,7 @@ export function ThemeSelectionScreen({
         testID="theme-selection-field-group"
       >
         <FieldGroup.Section
-          modifiers={getSettingsSectionModifiers(surface)}
+          modifiers={sectionModifiers}
           testID="theme-options-section"
         >
           {themeOptions.map((option) => (
