@@ -1,6 +1,6 @@
 import { router, Stack } from "expo-router";
 import { useCallback } from "react";
-import { ActivityIndicator, Platform } from "react-native";
+import { Platform, View } from "react-native";
 import { useAppTheme } from "@/core/theme/app-theme-bridge";
 
 import { profileLabels } from "@/features/auth/ui/profile-labels";
@@ -9,6 +9,7 @@ import {
   useProfileEditFlow,
 } from "@/screens/settings/profile-edit-screen";
 import { ProfileSaveHeaderAction } from "@/screens/settings/profile-save-header-action";
+import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { toolbarIcon } from "@/shared/ui/toolbar-icons";
 
 export default function ProfileEditRoute() {
@@ -61,15 +62,22 @@ export default function ProfileEditRoute() {
           There is no loading state on a toolbar button, so this swaps in a custom
           view — the escape hatch the toolbar documents for anything beyond
           buttons and menus.
+
+          That escape hatch is what makes the colour ours rather than the bar's:
+          the toolbar hands a custom view no tint, so an indicator left to its
+          own default takes React Native's fixed grey and ignores the colour
+          scheme. `LoadingSpinner` is the same one the rest of the app uses.
         */}
         {flow.edit.isSaving ? (
           <Stack.Toolbar.View>
-            <ActivityIndicator
+            <View
               accessibilityLabel={profileLabels.saving}
               accessibilityRole="progressbar"
               accessibilityState={{ busy: true }}
               accessible
-            />
+            >
+              <LoadingSpinner />
+            </View>
           </Stack.Toolbar.View>
         ) : (
           /*

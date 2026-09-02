@@ -6,7 +6,7 @@
 - React Native UI는 HeroUI Native를 감싼 프로젝트 공통 `Button`을 사용한다. `isPending`은 이 버튼의 상태이며 별도 `PendingButton`이나 `CTAButton`을 만들지 않는다.
 - React Native UI의 회전 진행 표시는 React Native의 `ActivityIndicator`가 그린다. HeroUI Native의 `Spinner`를 쓰지 않는다.
 - 이 진행 표시는 공통 `LoadingSpinner` 하나가 소유한다. 화면과 기능은 `ActivityIndicator`를 직접 부르지 않는다. 크기는 `small` 하나로 고정하고 바꿀 수 있게 열지 않는다.
-- 앱 화면 콘텐츠 위의 진행 표시는 색을 명시한다. 네이티브 셸 안의 진행 표시는 셸이 정한 색을 따른다.
+- 진행 표시는 색을 명시한다. 셸이 색을 내려 주는 자리만 그 색을 따른다. Android 헤더의 `tintColor`가 그런 자리다. 네이티브 셸 안이라도 우리가 얹은 React Native 뷰는 셸에서 색을 받지 못하므로 앱이 정한다.
 - 문구 옆이나 입력 필드 안에 홀로 서는 진행 표시의 색은 플랫폼의 관례를 따른다. iOS는 `muted`, Android는 `accent`다. 이 값은 `LoadingSpinner`의 기본값이며 색을 넘기지 않으면 이것이 나온다. 버튼과 컨트롤 안의 진행 표시는 그 컨트롤의 대비색을 넘긴다.
 - `LoadingSpinner`는 스스로 화면 읽기에 드러나지 않는다. 이름과 `progressbar` 역할, `busy` 상태는 감싸는 요소가 지닌다.
 - React Native UI에서 진행 표시와 그 자리를 이어받는 표시가 트리의 같은 자리에 서면, 두 상태 모두 `busy` 값을 적는다.
@@ -23,7 +23,7 @@
 ## 경계
 
 - Google, Apple과 이메일 로그인 버튼은 제공자 브랜드 규칙과 동일한 묶음 모양을 소유하는 기존 `SignInButton`을 유지한다. 진행 상태의 의미와 접근성 규칙만 공통 결정에 맞춘다. 이 버튼의 진행 표시는 테마 토큰이 아니라 제공자 브랜드 색을 쓰므로 `LoadingSpinner`를 쓰지 않는다.
-- 프로필 저장은 플랫폼의 헤더 방식을 유지한다. iOS는 `Stack.Toolbar.Button`의 실행 아이콘을, Android는 `Stack.Screen`의 헤더 저장 버튼을 같은 자리의 시스템 진행 표시로 바꾼다. Android 헤더는 헤더의 `tintColor`를 받고, iOS 툴바는 색을 넘기지 않아 React Native의 기본 회색이 나온다.
+- 프로필 저장은 플랫폼의 헤더 방식을 유지한다. iOS는 `Stack.Toolbar.Button`의 실행 아이콘을, Android는 `Stack.Screen`의 헤더 저장 버튼을 같은 자리의 진행 표시로 바꾼다. Android 헤더는 헤더의 `tintColor`를 받는다. iOS 툴바는 `Stack.Toolbar.View`에 얹은 React Native 뷰라서 tint를 받지 못하므로 다른 자리와 같은 `LoadingSpinner`를 쓴다.
 - `@expo/ui` 화면의 진행 표시는 각 플랫폼이 제공하는 진행 컴포넌트가 그린다. 이를 위해 React Native UI 버튼을 `Host` 안에 넣지 않는다.
 - Android 앱 테마의 `colorAccent`를 앱 색으로 정하지 않는다. 이 값은 진행 표시만이 아니라 AppCompat 컨트롤 전반의 색이다.
 - 자동 확인, 자동 저장과 뒤에서 갱신하는 작업의 구체적인 위치와 문구는 작업 대상을 소유한 기능이 정한다.
@@ -39,6 +39,8 @@
 색을 명시하는 이유는 넘기지 않으면 앱과 무관한 색이 나오기 때문이다. Android는 벡터의 tint가 테마의 `colorAccent`를 가리키는데 Expo가 만드는 앱 테마는 이 값을 정하지 않아 AppCompat 기본 teal이 나온다. iOS는 React Native가 `#999999`를 넣어 화면 모드와 상관없이 같은 회색이 된다. 테마의 `colorAccent`를 정하면 색 지정 없이도 앱 색을 얻지만, 그 값은 커서와 선택 색까지 함께 바꾼다.
 
 문구 옆 진행 표시의 색이 플랫폼마다 다른 이유는 각 운영체제의 진행 표시처럼 보이는 것이 목표이기 때문이다. iOS의 시스템 진행 표시는 회색이고, Material 앱의 진행 표시는 앱의 primary 색으로 돈다. iOS의 회색을 `#999999`에 맡기지 않고 `muted`로 명시하면 다크 모드에서도 화면 모드를 따른다.
+
+iOS 툴바의 저장 진행 표시에도 같은 `muted`를 쓴다. 이 자리가 회색인 것 자체는 iOS다우므로 색조를 바꿀 이유가 없고, 고칠 것은 React Native가 박아 넣는 고정 회색이 화면 모드를 따르지 않는다는 점 하나다. 이 화면에서 회색은 저장할 것이 없는 비활성 상태의 색이기도 하지만, 비활성은 멈춘 체크이고 저장 중은 도는 스포크라 움직임이 둘을 가른다.
 
 이 색 규칙을 컴포넌트 하나가 담는 이유는 값을 빠뜨릴 자리를 없애기 위해서다. 규칙을 화면마다 적으면 플랫폼 분기와 색 조회가 자리마다 반복되고, 다음 자리를 만드는 사람이 색을 넘기지 않아도 화면은 그려진다. 크기를 열지 않는 것도 같은 이유다. `ActivityIndicator`가 주는 크기는 `small`과 `large` 둘뿐인데 이 앱의 진행 표시는 모두 한 줄짜리 자리에 서므로, 고를 수 있게 두면 잘못 고를 수만 있다.
 
