@@ -31,8 +31,10 @@ export async function createSessionContext(
   let supabasePort: number | undefined;
   // Read on first use, not up front: a config.toml that no longer parses must
   // still let stop and remove release what an earlier start took.
-  const readPort = () =>
-    (supabasePort ??= readSupabaseApiPort(git.worktreePath));
+  const readPort = () => {
+    supabasePort ??= readSupabaseApiPort(git.worktreePath);
+    return supabasePort;
+  };
 
   return {
     apiDirectory: join(git.worktreePath, "apps", "api"),
