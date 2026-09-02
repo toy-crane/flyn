@@ -32,7 +32,7 @@ export function SettingsProfileHero({
   username,
 }: SettingsProfileHeroProps) {
   return (
-    <View className="w-full items-center gap-3 pt-2 pb-6">
+    <View className="w-full items-center gap-3 pt-2 pb-5">
       <Pressable
         accessibilityLabel={profileLabels.profile}
         accessibilityRole="button"
