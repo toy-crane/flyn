@@ -17,7 +17,7 @@
 - React Native UI 안에서 `@expo/ui`의 `Icon` 하나를 쓰기 위해 별도 `Host`를 만들지 않는다. 반대로 `@expo/ui`의 `Host` 안에 프로젝트 `Icon`이나 `SymbolView`를 삽입하지 않는다.
 - 네이티브 셸과 `@expo/ui`에서는 플랫폼별 심벌의 세부 모양이 다른 것을 허용한다. React Native UI의 프로젝트 `Icon`은 두 플랫폼에서 같은 모양을 유지한다. 어느 쪽이든 의미와 접근성 라벨은 플랫폼 사이에서 동일하다.
 - 한 화면에서 여러 범용 SVG 아이콘 세트를 섞지 않는다. 프로젝트 `Icon`이 라이브러리 이름, 크기와 색상 매핑을 소유한다.
-- `@expo/material-symbols`는 `Stack.Toolbar` 버튼 전용이다. React Native UI의 아이콘은 프로젝트 `Icon`이 계속 소유한다.
+- `@expo/material-symbols`는 네이티브 셸의 `Stack.Toolbar` 버튼과 `@expo/ui`의 `Host` 안 Android 아이콘이 쓴다. 두 자리 모두 Android가 XML 벡터 드로어블만 받기 때문이다. React Native UI의 아이콘은 프로젝트 `Icon`이 계속 소유한다.
 - 툴바 아이콘의 한쪽 플랫폼을 비워 두지 않는다. Android에서 이미지 소스가 없는 `Stack.Toolbar.Button`은 작게 그려지는 것이 아니라 아무것도 그리지 않는다.
 - Android 툴바에는 폭을 안정적으로 정할 수 없는 React Native 뷰를 넣지 않는다.
 - 아이콘 색상은 적용되는 표면의 시맨틱 색상을 사용한다. 네이티브 탭의 선택·비선택 색상과 애니메이션은 탭 컴포넌트가 소유한다.
@@ -50,7 +50,7 @@
 ## 보존할 근거
 
 - 설치된 Expo Router `NativeTabs`는 `Trigger.Icon`의 `sf`와 `md` 정의를 각 플랫폼의 네이티브 탭 아이콘으로 변환한다.
-- Expo SDK 57의 [`@expo/ui` `Icon`](https://docs.expo.dev/versions/v57.0.0/sdk/ui/universal/icon/)은 `Host` 안에서 iOS SF Symbol과 Android Material Symbol XML을 렌더링한다.
+- Expo SDK 57의 [`@expo/ui` `Icon`](https://docs.expo.dev/versions/v57.0.0/sdk/ui/universal/icon/)은 `Host` 안에서 iOS SF Symbol과 Android Material Symbol XML을 렌더링한다. 설치된 `57.0.14`의 `IconName` 타입은 Android 쪽으로 `ImageSourcePropType`만 받고, 문서가 그 출처로 `@expo/material-symbols`를 지목한다. 설정의 외부 이동 글리프가 이 경로를 쓴다.
 - `react-native-svg`는 HeroUI Native의 직접 peer dependency로 이미 모바일 앱에 설치되어 있고, HeroUI Native의 기본 검색·닫기·체크 아이콘도 SVG로 렌더링한다.
 - Expo SDK 57의 `expo-symbols`는 Android에서 약 939KB인 기본 Material Symbols 폰트를 `expo-font`로 불러오고 완료 전에는 같은 크기의 빈 뷰를 렌더링한다.
 - 설치된 Expo Router의 `Stack.Toolbar.Button`은 아이콘을 iOS 심벌 이름 또는 Android 이미지 자산으로 받는다. Android 구현은 이미지 소스가 없으면 경고를 남기고 `null`을 반환한다. 그래서 아이콘을 빠뜨린 버튼은 화면에도 접근성 트리에도 나타나지 않는다.
