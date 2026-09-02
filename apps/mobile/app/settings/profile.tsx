@@ -19,9 +19,16 @@ export default function ProfileEditRoute() {
     router.back();
   }, []);
   const flow = useProfileEditFlow(returnToSettings);
-  const { danger, foreground } = useAppTheme();
+  const { background, danger, foreground, surface, themePreference } =
+    useAppTheme();
   const content = flow.edit.isReady ? (
-    <ProfileEditScreen danger={danger} flow={flow} />
+    <ProfileEditScreen
+      background={background}
+      danger={danger}
+      flow={flow}
+      surface={surface}
+      themePreference={themePreference}
+    />
   ) : null;
 
   if (Platform.OS === "android") {

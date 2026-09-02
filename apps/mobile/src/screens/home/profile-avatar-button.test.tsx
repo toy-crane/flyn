@@ -81,7 +81,7 @@ test("아바타를 누르면 Settings 진입 동작을 실행한다", async () =
 
   await renderButton(onPress);
 
-  await user.press(screen.getByRole("button", { name: "Open settings" }));
+  await user.press(screen.getByRole("button", { name: "설정 열기" }));
 
   expect(onPress).toHaveBeenCalledTimes(1);
 });

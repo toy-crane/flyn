@@ -24,6 +24,8 @@ process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID =
   "123456789-web.apps.googleusercontent.com";
 process.env.EXPO_PUBLIC_SUPABASE_URL = "http://127.0.0.1:54321";
 process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_test_only";
+process.env.EXPO_PUBLIC_SUPPORT_EMAIL = "support@example.com";
+process.env.EXPO_PUBLIC_WEB_URL = "https://example.com";
 
 Object.defineProperty(globalThis, "__DEV__", {
   configurable: true,
@@ -40,16 +42,28 @@ jest.mock("expo-sqlite/kv-store", () => {
   return {
     __esModule: true,
     default: {
+      clearSync: () => {
+        entries.clear();
+      },
       getItem: (key: string) => Promise.resolve(entries.get(key) ?? null),
+      // The screen mode is read and written synchronously so the first frame
+      // already carries it, so the stand-in offers both shapes over one map.
+      getItemSync: (key: string) => entries.get(key) ?? null,
       removeItem: (key: string) => {
         entries.delete(key);
 
         return Promise.resolve();
       },
+      removeItemSync: (key: string) => {
+        entries.delete(key);
+      },
       setItem: (key: string, value: string) => {
         entries.set(key, value);
 
         return Promise.resolve();
+      },
+      setItemSync: (key: string, value: string) => {
+        entries.set(key, value);
       },
     },
   };

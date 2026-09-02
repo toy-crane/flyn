@@ -11,6 +11,8 @@ const invalidFormattedVariables =
 const sessionApiPortVariable = /EXPO_PUBLIC_DEV_SESSION_API_PORT/;
 const supabasePublishableKeyVariable = /EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY/;
 const supabaseUrlVariable = /EXPO_PUBLIC_SUPABASE_URL/;
+const supportEmailVariable = /EXPO_PUBLIC_SUPPORT_EMAIL/;
+const webUrlVariable = /EXPO_PUBLIC_WEB_URL/;
 
 const validEnv = {
   EXPO_PUBLIC_API_URL: "http://127.0.0.1:3900",
@@ -18,6 +20,8 @@ const validEnv = {
   EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: "123456789-web.apps.googleusercontent.com",
   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test_only",
   EXPO_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+  EXPO_PUBLIC_SUPPORT_EMAIL: "support@example.com",
+  EXPO_PUBLIC_WEB_URL: "https://example.com",
 };
 
 describe("parseMobileEnv", () => {
@@ -54,6 +58,10 @@ describe("parseMobileEnv", () => {
     expect(message).toMatch(googleWebClientIdVariable);
     expect(message).toMatch(supabasePublishableKeyVariable);
     expect(message).toMatch(supabaseUrlVariable);
+    // Settings cannot open the legal pages or a support mail without these, and
+    // the stores ask for the privacy policy to be reachable inside the app.
+    expect(message).toMatch(supportEmailVariable);
+    expect(message).toMatch(webUrlVariable);
   });
 
   test("잘못된 URL과 Google client ID를 함께 거절한다", () => {
