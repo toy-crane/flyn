@@ -1,8 +1,8 @@
-import { Spinner } from "heroui-native/spinner";
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 
 import { episodeLabels } from "@/features/episode/ui/episode-labels";
+import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 
 const LOAD_PROGRESS_DELAY_MS = 1000;
 
@@ -34,14 +34,7 @@ export function EpisodeLoadingScreen() {
         className="flex-row items-center gap-2"
         testID="episode-loading"
       >
-        <Spinner
-          accessibilityElementsHidden
-          accessibilityRole={undefined}
-          accessibilityState={undefined}
-          accessible={false}
-          importantForAccessibility="no-hide-descendants"
-          size="sm"
-        />
+        <LoadingSpinner />
         <Text className="text-muted text-sm">
           {episodeLabels.conversationLoading}
         </Text>

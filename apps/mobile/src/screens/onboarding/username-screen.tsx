@@ -1,6 +1,5 @@
 import { InputGroup } from "heroui-native/input-group";
 import { Label } from "heroui-native/label";
-import { Spinner } from "heroui-native/spinner";
 import { TextField } from "heroui-native/text-field";
 import { useCallback } from "react";
 import type { TextInput } from "react-native";
@@ -12,6 +11,7 @@ import { onboardingLabels } from "@/features/auth/ui/onboarding-labels";
 import { useFocusOnArrival } from "@/shared/navigation/use-screen-arrival";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
+import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 
 /**
  * The second onboarding screen, and the one that saves.
@@ -110,10 +110,11 @@ function UsernameMark({
       <View
         accessibilityLabel={onboardingLabels.checking}
         accessibilityRole="progressbar"
+        accessibilityState={{ busy: true }}
         accessible
         testID="onboarding-username-checking"
       >
-        <Spinner size="sm" />
+        <LoadingSpinner />
       </View>
     );
   }
