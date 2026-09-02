@@ -1,5 +1,4 @@
 import { InputOTP, REGEXP_ONLY_DIGITS } from "heroui-native/input-otp";
-import { Spinner } from "heroui-native/spinner";
 import { type ComponentRef, type ReactNode, useEffect, useState } from "react";
 import { Text, View } from "react-native";
 
@@ -18,6 +17,7 @@ import {
 import { signInLabels } from "@/features/auth/ui/sign-in-labels";
 import { useFocusOnArrival } from "@/shared/navigation/use-screen-arrival";
 import { Button } from "@/shared/ui/button";
+import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 
 const VERIFY_PROGRESS_DELAY_MS = 1000;
 
@@ -93,14 +93,7 @@ function CodeInputTarget({
           className="min-h-14 flex-row items-center justify-center gap-2 px-2"
           testID="sign-in-code-checking"
         >
-          <Spinner
-            accessibilityElementsHidden
-            accessibilityRole={undefined}
-            accessibilityState={undefined}
-            accessible={false}
-            importantForAccessibility="no-hide-descendants"
-            size="sm"
-          />
+          <LoadingSpinner />
           <Text className="flex-shrink text-center font-medium text-muted">
             {signInLabels.verifying}
           </Text>

@@ -4,15 +4,16 @@ import {
   type ButtonVariant,
   Button as HeroButton,
 } from "heroui-native/button";
-import { type ThemeColor, useThemeColor } from "heroui-native/hooks";
+import type { ThemeColor } from "heroui-native/hooks";
 import { cn } from "heroui-native/utils";
 import { type ReactNode, useCallback, useRef } from "react";
 import {
-  ActivityIndicator,
   type LayoutChangeEvent,
   type PressableStateCallbackType,
   View,
 } from "react-native";
+
+import { LoadingSpinner } from "./loading-spinner";
 
 type OmitButtonState<T> = T extends ButtonRootProps
   ? Omit<T, "children" | "isDisabled" | "onLayout">
@@ -89,7 +90,6 @@ export function Button({
   variant = "primary",
   ...props
 }: ButtonProps) {
-  const spinnerColor = useThemeColor(SPINNER_COLOR[variant]);
   const effectiveDisabled = isDisabled || isPending;
   const idleSize = useRef<{ height: number; width: number } | undefined>(
     undefined
@@ -136,7 +136,7 @@ export function Button({
           testID="button-leading-content"
         >
           {isPending ? (
-            <ActivityIndicator color={spinnerColor} size="small" />
+            <LoadingSpinner color={SPINNER_COLOR[variant]} />
           ) : (
             startContent
           )}

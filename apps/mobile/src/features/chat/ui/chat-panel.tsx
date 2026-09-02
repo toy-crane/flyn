@@ -10,7 +10,6 @@ import type {
 } from "@legendapp/list/react-native";
 import type { UIMessage } from "ai";
 import { setStringAsync } from "expo-clipboard";
-import { useThemeColor } from "heroui-native/hooks";
 import {
   type ComponentType,
   type ReactElement,
@@ -24,7 +23,6 @@ import {
 } from "react";
 import {
   AccessibilityInfo,
-  ActivityIndicator,
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -49,6 +47,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { ChatSession } from "@/features/chat/state/use-chat-session";
 import { Icon } from "@/shared/ui/icon";
+import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { AssistantMessage } from "./assistant-message";
 import { chatLabels } from "./chat-labels";
 import { ComposerSurface } from "./composer-surface";
@@ -343,7 +342,6 @@ function Composer({
   onStop: () => void;
   placeholder: string;
 }) {
-  const pendingColor = useThemeColor("accent-foreground");
   let action = (
     <Pressable
       accessibilityLabel={chatLabels.send}
@@ -387,12 +385,7 @@ function Composer({
         disabled
         testID="chat-send"
       >
-        <View
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        >
-          <ActivityIndicator color={pendingColor} size="small" />
-        </View>
+        <LoadingSpinner color="accent-foreground" />
       </Pressable>
     );
   }

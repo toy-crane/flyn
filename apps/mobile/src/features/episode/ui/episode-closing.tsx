@@ -1,10 +1,10 @@
-import { Spinner } from "heroui-native/spinner";
 import { useCallback, useEffect, useState } from "react";
 import { Text, View } from "react-native";
 
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
 import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { Button } from "@/shared/ui/button";
+import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { EpisodeEndingMark } from "./episode-ending-mark";
 import { episodeLabels } from "./episode-labels";
 
@@ -37,14 +37,7 @@ function EpisodeSavingProgress() {
       className="flex-row items-center gap-2"
       testID="episode-closing-saving"
     >
-      <Spinner
-        accessibilityElementsHidden
-        accessibilityRole={undefined}
-        accessibilityState={undefined}
-        accessible={false}
-        importantForAccessibility="no-hide-descendants"
-        size="sm"
-      />
+      <LoadingSpinner />
       <Text className="text-muted text-sm">{episodeLabels.saving}</Text>
     </View>
   );
