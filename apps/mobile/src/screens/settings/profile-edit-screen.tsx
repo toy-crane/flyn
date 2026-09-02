@@ -5,16 +5,14 @@ import {
   ListItem,
   RNHostView,
   Row,
+  Spacer,
   Text,
   TextInput,
   useNativeState,
 } from "@expo/ui";
-import { useHeaderHeight } from "expo-router/react-navigation";
 import { useCallback } from "react";
-import { Alert, Platform } from "react-native";
+import { Alert } from "react-native";
 
-import { useAccountDeletion } from "@/features/account-deletion/state/use-account-deletion";
-import { accountDeletionLabels } from "@/features/account-deletion/ui/account-deletion-labels";
 import {
   NICKNAME_MAX_LENGTH,
   normalizeUsernameInput,
@@ -28,18 +26,17 @@ import {
   USERNAME_CONFIRM_BODY,
   USERNAME_CONFIRM_TITLE,
 } from "@/features/auth/ui/profile-labels";
-import { ActionProgress } from "@/shared/ui/action-progress";
-import {
-  destructiveActionModifiers,
-  useDestructiveActionAnnouncement,
-} from "./destructive-action";
+import type { ThemePreference } from "@/shared/theme/theme-preference";
 import {
   type PhotoSourceActions,
   PhotoSourceSheet,
   usePhotoSourceMenu,
 } from "./photo-source-menu";
 import { ProfileEditHero } from "./profile-edit-hero";
-import { SettingsActionRow } from "./settings-action-row";
+import {
+  getSettingsSectionModifiers,
+  getSettingsSurfaceModifiers,
+} from "./settings-surface-modifiers";
 
 /**
  * Everything 프로필 수정 does, assembled from the draft, the pickers and the
@@ -115,29 +112,26 @@ export type ProfileEditFlow = ReturnType<typeof useProfileEditFlow>;
  * match the surrounding settings.
  */
 export function ProfileEditScreen({
+  background,
   danger,
   flow,
+  surface,
+  themePreference,
 }: {
+  background: string;
   danger: string;
   flow: ProfileEditFlow;
+  surface: string;
+  themePreference: ThemePreference;
 }) {
   const { cameraDeniedMessage, edit, menu, menuActions } = flow;
-  // Android draws the form under its own app bar, so the screen has to leave
-  // room for it. iOS insets a form for the navigation bar already.
-  const headerHeight = useHeaderHeight();
-  // Not part of the draft: deleting the account ends the thing being edited, so
-  // it neither waits for 저장 nor blocks it.
-  const deletion = useAccountDeletion();
-  useDestructiveActionAnnouncement(
-    accountDeletionLabels.deleteAccount,
-    deletion.isDeleting
-  );
   /*
    * Red is what separates a problem from the standing explanation under it.
    * Both sit in the same footer, and left the same grey they read as one block
    * of small print. The check in progress is not a problem, so it stays quiet.
    */
   const problemStyle = { color: danger };
+  const sectionModifiers = getSettingsSectionModifiers(surface);
   // The native fields hold their own text and report changes back. These carry
   // the two writes that do not come from typing: the saved values this screen
   // opens with, and a suggestion the person pressed.
@@ -169,11 +163,19 @@ export function ProfileEditScreen({
   );
 
   return (
-    <Host style={{ flex: 1 }} useViewportSizeMeasurement>
+    <Host
+      /*
+        The chosen mode, named for the same reason as on 설정: Uniwind's
+        variables stop at the native tree, so without it this screen would keep
+        drawing in the operating system's mode.
+      */
+      colorScheme={themePreference === "system" ? undefined : themePreference}
+      style={{ backgroundColor: background, flex: 1 }}
+      useViewportSizeMeasurement
+    >
       <FieldGroup
-        style={
-          Platform.OS === "android" ? { paddingTop: headerHeight } : undefined
-        }
+        modifiers={getSettingsSurfaceModifiers()}
+        style={{ backgroundColor: background }}
         testID="profile-edit-field-group"
       >
         {/*
@@ -182,15 +184,25 @@ export function ProfileEditScreen({
           inset background and separators, and Android wraps it in a Material
           row that draws a card behind the picture.
         */}
-        <FieldGroup.Section>
+        <FieldGroup.Section modifiers={sectionModifiers}>
           <FieldGroup.SectionHeader>
-            <RNHostView matchContents>
-              <ProfileEditHero
-                avatarUrl={edit.avatarUrl}
-                displayName={edit.nickname}
-                onEditPhoto={menu.open}
-              />
-            </RNHostView>
+            {/*
+              Centred by the native row rather than by the hosted content: the
+              host sizes to that content, so a percentage width inside it has no
+              parent width to resolve against and the block would sit at the
+              section's leading edge.
+            */}
+            <Row alignment="center">
+              <Spacer flexible />
+              <RNHostView matchContents>
+                <ProfileEditHero
+                  avatarUrl={edit.avatarUrl}
+                  displayName={edit.nickname}
+                  onEditPhoto={menu.open}
+                />
+              </RNHostView>
+              <Spacer flexible />
+            </Row>
           </FieldGroup.SectionHeader>
         </FieldGroup.Section>
 
@@ -199,7 +211,7 @@ export function ProfileEditScreen({
           plainly their profile, and naming them again only pushed the form
           further down the screen.
         */}
-        <FieldGroup.Section>
+        <FieldGroup.Section modifiers={sectionModifiers}>
           {/*
             No spacer between the label and the field: in a native form row the
             field already takes what the label leaves, and a flexible spacer
@@ -294,7 +306,10 @@ export function ProfileEditScreen({
           taps everywhere else in Settings.
         */}
         {edit.suggestions.length > 0 ? (
-          <FieldGroup.Section title={profileLabels.suggestions}>
+          <FieldGroup.Section
+            modifiers={sectionModifiers}
+            title={profileLabels.suggestions}
+          >
             {edit.suggestions.map((candidate) => (
               <UsernameSuggestion
                 candidate={candidate}
@@ -304,61 +319,6 @@ export function ProfileEditScreen({
             ))}
           </FieldGroup.Section>
         ) : null}
-
-        {/*
-          Last, alone and unnamed, the same shape Settings gives 로그아웃. A title
-          would have to say what this one group is a group of.
-
-          `SettingsActionRow`, which on iOS is a `ListItem` — a SwiftUI `Button`
-          that takes the press anywhere across the row — and on Android a plain
-          `Row`, because the section there already wraps each child in a Material
-          row. The universal `Button` only answers on the
-          text it draws, and neither `contentShape` on the button nor on its
-          content extends that, so the right of the row would look pressable and
-          do nothing. No icon and no chevron: it does not go anywhere. It raises
-          the platform's confirmation where it stands, which is also why the
-          footer has to say what disappears — it is read before the press, not
-          after it.
-
-          The name stays 계정 삭제 the whole time; the indicator appears in the
-          trailing slot and `accessibilityValue` is what says it is running.
-          Nothing is disabled: SwiftUI dims a disabled row, which would drain the
-          red out of the one word that marks this as destructive. Pressing again
-          while it runs opens nothing anyway — `useAccountDeletion` drops the
-          request before the dialog.
-        */}
-        <FieldGroup.Section testID="account-deletion-section">
-          <SettingsActionRow
-            modifiers={destructiveActionModifiers(deletion.isDeleting)}
-            onPress={deletion.confirmDeletion}
-            testID="delete-account-row"
-            trailing={
-              deletion.isDeleting ? (
-                <ActionProgress testID="delete-account-progress" />
-              ) : undefined
-            }
-          >
-            <Text textStyle={problemStyle}>
-              {accountDeletionLabels.deleteAccount}
-            </Text>
-          </SettingsActionRow>
-          <FieldGroup.SectionFooter>
-            {/*
-              The failure takes the notice's place rather than stacking under it.
-              Both say what happens to the account, and side by side the one that
-              needs acting on reads as more small print.
-            */}
-            {deletion.failure ? (
-              <Text testID="account-deletion-error" textStyle={problemStyle}>
-                {deletion.failure}
-              </Text>
-            ) : (
-              <Text testID="account-deletion-notice">
-                {accountDeletionLabels.deletionNotice}
-              </Text>
-            )}
-          </FieldGroup.SectionFooter>
-        </FieldGroup.Section>
       </FieldGroup>
 
       {/*

@@ -7,7 +7,10 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
 import { useProtectedArea } from "@/core/navigation/protected-area";
-import { getSettingsSheetOptions } from "@/core/navigation/settings-sheet";
+import {
+  getSettingsScreenOptions,
+  settingsScreens,
+} from "@/core/navigation/settings-screens";
 import { QueryProvider } from "@/core/providers/query-provider";
 import { AppThemeBridge, useAppTheme } from "@/core/theme/app-theme-bridge";
 import { AuthSessionProvider } from "@/features/auth/state/auth-session";
@@ -20,8 +23,9 @@ const heroUIConfig = {
 } as const;
 
 function ThemedRootLayout() {
-  const { background } = useAppTheme();
+  const { background, scheme } = useAppTheme();
   const { area, isRetryingProfile, problem, retryProfile } = useProtectedArea();
+  const settingsScreenOptions = getSettingsScreenOptions(background);
 
   if (area === "checking") {
     return <SessionCheckingScreen />;
@@ -76,7 +80,23 @@ function ThemedRootLayout() {
             show a second header above that one.
           */}
           <Stack.Screen name="chat" />
-          <Stack.Screen name="settings" options={getSettingsSheetOptions()} />
+          {/*
+            The settings hierarchy is pushed here, screen by screen, for the
+            same reason: the native push covers the tab bar. Unlike 대화 and
+            에피소드 these bring no stack of their own — a nested stack would
+            make 설정 a first screen, and a first screen has no native back
+            button to go back to the tab with.
+          */}
+          {settingsScreens.map((settingsScreen) => (
+            <Stack.Screen
+              key={settingsScreen.name}
+              name={settingsScreen.name}
+              options={{
+                ...settingsScreenOptions,
+                title: settingsScreen.title,
+              }}
+            />
+          ))}
         </Stack.Protected>
         <Stack.Protected guard={area === "onboarding"}>
           <Stack.Screen name="(onboarding)" />
@@ -85,7 +105,12 @@ function ThemedRootLayout() {
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
       </Stack>
-      <StatusBar style="auto" />
+      {/*
+        The chosen screen mode, not the operating system's. `auto` reads the OS,
+        so a person who picks 다크 while the phone is light gets dark text on
+        the dark header they just chose.
+      */}
+      <StatusBar style={scheme === "dark" ? "light" : "dark"} />
     </>
   );
 }

@@ -1,7 +1,7 @@
 import { formatUsernameUnlockDate } from "@/features/auth/state/username-lock";
 
 /**
- * Every product string the settings sheet and the profile editor show.
+ * Every product string the settings screens and the profile editor show.
  *
  * Gathered here for the same reason as the onboarding names: React Native
  * Testing Library and `agent-device` both select by them, so each one is part of
@@ -17,17 +17,26 @@ export const profileLabels = {
   cancel: "취소",
   changePhoto: "사진 편집",
   confirmChange: "변경",
+  /** Which account this is, since three sign-in methods lead to the same app. */
+  contactEmail: "이메일",
+  /** Reached only when a session somehow carries no address. */
+  contactEmailUnknown: "이메일 정보 없음",
+  contactSupport: "문의하기",
   deletePhoto: "현재 사진 삭제",
   /** The pill under the picture. Its accessible name stays the fuller 사진 편집. */
   edit: "편집",
-  haptics: "햅틱 반응",
+  /** Said when the device has no mail app to hand the address to. */
+  mailAppUnavailable: "메일 앱을 열지 못했습니다.",
   nickname: "닉네임",
-  notifications: "알림",
+  /** The name Home's settings control carries for a screen reader. */
+  openSettings: "설정 열기",
   pickFromLibrary: "사진 보관함에서 선택",
   preferences: "환경 설정",
+  privacyPolicy: "개인정보 처리방침",
   /*
-    The destination, not the errand. This screen holds 계정 삭제 as well as the
-    fields, so naming the row 프로필 수정 would promise less than it opens.
+    The destination, not the errand. The screen gathers the picture, the
+    nickname and the id in one place, and naming the row 프로필 수정 would make
+    it sound like a single edit rather than the whole public profile.
   */
   profile: "프로필",
   save: "저장",
@@ -35,13 +44,17 @@ export const profileLabels = {
   settings: "설정",
   signOut: "로그아웃",
   suggestions: "사용할 수 있는 아이디",
+  support: "지원",
   takePhoto: "사진 찍기",
+  terms: "이용약관",
+  /*
+    One name for the row and for the screen it opens. A row that opens a screen
+    with a different title reads as two settings.
+  */
+  themeMode: "화면 모드",
   username: "아이디",
   version: "버전",
 } as const;
-
-/** What the settings sheet's close control is called. */
-export const CLOSE_SETTINGS_LABEL = "설정 닫기";
 
 /**
  * The standing rule, shown under the profile fields whenever the id is free to

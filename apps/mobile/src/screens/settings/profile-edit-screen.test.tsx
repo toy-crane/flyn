@@ -14,11 +14,9 @@ import {
 } from "expo-image-picker";
 import type { PropsWithChildren, ReactNode } from "react";
 import {
-  AccessibilityInfo,
   ActionSheetIOS,
   ActivityIndicator,
   Alert,
-  Platform,
   Pressable,
 } from "react-native";
 
@@ -200,7 +198,9 @@ const mockPicker = {
 const OWN_FOLDER = /^user-1\//;
 
 /** The colour the route hands the screen for anything that reads as a problem. */
+const BACKGROUND = "#f4f4f6";
 const DANGER = "#dc2626";
+const SURFACE = "#ffffff";
 
 const SAVED = {
   display_name: "김민서",
@@ -240,7 +240,13 @@ function ProfileEditHarness({ onSaved }: { onSaved?: () => void }) {
 
   return (
     <>
-      <ProfileEditScreen danger={DANGER} flow={flow} />
+      <ProfileEditScreen
+        background={BACKGROUND}
+        danger={DANGER}
+        flow={flow}
+        surface={SURFACE}
+        themePreference="system"
+      />
       {/* The route swaps the toolbar control for a progress view while saving. */}
       {flow.edit.isSaving ? (
         <ActivityIndicator
@@ -718,241 +724,3 @@ async function saveProfile(fake: FakeSupabase) {
     expect(fake.updates.length).toBeGreaterThan(before);
   });
 }
-
-/**
- * Stands in for the platform dialog 계정 삭제 raises.
- *
- * Deletion only ever starts from inside it, so a test that cannot answer the
- * dialog cannot reach the request either.
- */
-function captureDeletionDialog() {
-  let buttons: import("react-native").AlertButton[] = [];
-  const alert = jest
-    .spyOn(Alert, "alert")
-    .mockImplementation((_title, _message, given) => {
-      buttons = given ?? [];
-    });
-
-  return {
-    alert,
-    press(text: string) {
-      const button = buttons.find((candidate) => candidate.text === text);
-
-      if (!button) {
-        throw new Error(`${text} 확인창 버튼이 없습니다.`);
-      }
-
-      return button.onPress?.();
-    },
-  };
-}
-
-async function openDeletionDialog() {
-  await act(() => {
-    fireEvent.press(screen.getByTestId("delete-account-row"));
-  });
-}
-
-test("계정 삭제는 화면을 옮기지 않고 그 자리에서 확인창을 연다", async () => {
-  const fake = resetFakeSupabase({
-    profile: createProfileRow(SAVED),
-    session: createFakeSession(),
-  });
-  const dialog = captureDeletionDialog();
-
-  await renderEditor();
-
-  // Read before the press, not after it: with no screen in between, this is the
-  // only place that names what disappears.
-  expect(screen.getByTestId("account-deletion-notice")).toHaveTextContent(
-    "로그인 계정, 프로필과 올린 사진이 모두 삭제됩니다. 되돌릴 수 없습니다."
-  );
-
-  await openDeletionDialog();
-
-  expect(dialog.alert).toHaveBeenCalledWith(
-    "계정을 삭제할까요?",
-    "지금 삭제하면 되돌릴 수 없습니다. 다시 가입해도 이전 정보는 돌아오지 않습니다.",
-    expect.arrayContaining([
-      expect.objectContaining({ style: "cancel", text: "취소" }),
-      expect.objectContaining({ style: "destructive", text: "계정 삭제" }),
-    ])
-  );
-  expect(fake.functions.invoke).not.toHaveBeenCalled();
-
-  dialog.press("취소");
-
-  // Cancelling leaves both the account and the draft alone.
-  expect(fake.functions.invoke).not.toHaveBeenCalled();
-  expect(screen.getByTestId("profile-nickname").props.value).toBe("김민서");
-});
-
-test("확인 뒤 한 번만 삭제하고 기기 로그인과 사용자 캐시를 지운다", async () => {
-  const fake = resetFakeSupabase({
-    profile: createProfileRow(SAVED),
-    session: createFakeSession(),
-  });
-  const queryClient = createTestQueryClient();
-  const dialog = captureDeletionDialog();
-  let finishDeletion = () => {
-    // Replaced by the pending call below.
-  };
-
-  fake.functions.invoke.mockImplementationOnce(
-    () =>
-      new Promise((resolve) => {
-        finishDeletion = () =>
-          resolve({ data: { deleted: true }, error: null });
-      })
-  );
-
-  await renderEditor({ queryClient });
-  queryClient.setQueryData(["notes"], ["현재 사용자의 데이터"]);
-
-  await openDeletionDialog();
-  await act(() => {
-    dialog.press("계정 삭제");
-  });
-
-  // The button keeps its name for the whole action; only the indicator appears.
-  expect(
-    await screen.findByTestId("delete-account-progress")
-  ).toBeOnTheScreen();
-  expect(screen.getByText("계정 삭제")).toBeOnTheScreen();
-  expect(screen.queryByText("계정 삭제 중")).toBeNull();
-
-  // The button is showing progress, so pressing it again offers no second
-  // dialog and sends no second request.
-  await openDeletionDialog();
-  expect(dialog.alert).toHaveBeenCalledTimes(1);
-
-  await act(async () => {
-    finishDeletion();
-    await Promise.resolve();
-  });
-
-  await waitFor(() => {
-    expect(fake.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
-  });
-  expect(fake.functions.invoke).toHaveBeenCalledTimes(1);
-  expect(queryClient.getQueryData(["notes"])).toBeUndefined();
-});
-
-test("Android는 삭제가 시작되면 진행 중임을 화면 읽기에 알린다", async () => {
-  const fake = resetFakeSupabase({
-    profile: createProfileRow(SAVED),
-    session: createFakeSession(),
-  });
-  const dialog = captureDeletionDialog();
-  const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
-  const platform = jest.replaceProperty(Platform, "OS", "android");
-  let finishDeletion = () => {
-    // Replaced by the pending call below.
-  };
-
-  fake.functions.invoke.mockImplementationOnce(
-    () =>
-      new Promise((resolve) => {
-        finishDeletion = () =>
-          resolve({ data: { deleted: true }, error: null });
-      })
-  );
-
-  try {
-    await renderEditor();
-
-    expect(announce).not.toHaveBeenCalled();
-
-    await openDeletionDialog();
-    await act(() => {
-      dialog.press("계정 삭제");
-    });
-
-    // The row cannot hold the state on Android, so the announcement carries the
-    // action's own name rather than 진행 중 alone.
-    expect(announce).toHaveBeenCalledWith("계정 삭제 진행 중");
-
-    await act(async () => {
-      finishDeletion();
-      await Promise.resolve();
-    });
-  } finally {
-    platform.restore();
-  }
-});
-
-test("iOS는 행이 값을 지니므로 따로 알리지 않는다", async () => {
-  const fake = resetFakeSupabase({
-    profile: createProfileRow(SAVED),
-    session: createFakeSession(),
-  });
-  const dialog = captureDeletionDialog();
-  const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
-  let finishDeletion = () => {
-    // Replaced by the pending call below.
-  };
-
-  fake.functions.invoke.mockImplementationOnce(
-    () =>
-      new Promise((resolve) => {
-        finishDeletion = () =>
-          resolve({ data: { deleted: true }, error: null });
-      })
-  );
-
-  await renderEditor();
-
-  await openDeletionDialog();
-  await act(() => {
-    dialog.press("계정 삭제");
-  });
-
-  expect(
-    await screen.findByTestId("delete-account-progress")
-  ).toBeOnTheScreen();
-  expect(announce).not.toHaveBeenCalled();
-
-  await act(async () => {
-    finishDeletion();
-    await Promise.resolve();
-  });
-});
-
-test("삭제가 실패하면 설명 자리에 안내가 서고 다시 시도할 수 있다", async () => {
-  const fake = resetFakeSupabase({
-    profile: createProfileRow(SAVED),
-    session: createFakeSession(),
-  });
-  const queryClient = createTestQueryClient();
-  const dialog = captureDeletionDialog();
-
-  fake.functions.invoke.mockResolvedValueOnce({
-    data: null,
-    error: new Error("Network request failed"),
-  } as never);
-
-  await renderEditor({ queryClient });
-  queryClient.setQueryData(["notes"], ["현재 사용자의 데이터"]);
-
-  await openDeletionDialog();
-  await act(async () => {
-    await dialog.press("계정 삭제");
-  });
-
-  // The failure takes the notice's place rather than stacking under it.
-  expect(await screen.findByTestId("account-deletion-error")).toHaveTextContent(
-    "계정 삭제를 끝내지 못했습니다. 다시 시도해 주세요."
-  );
-  expect(screen.queryByTestId("account-deletion-notice")).toBeNull();
-  expect(fake.auth.signOut).not.toHaveBeenCalled();
-  expect(queryClient.getQueryData(["notes"])).toEqual(["현재 사용자의 데이터"]);
-
-  await openDeletionDialog();
-  await act(async () => {
-    await dialog.press("계정 삭제");
-  });
-
-  expect(fake.functions.invoke).toHaveBeenCalledTimes(2);
-  expect(fake.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
-  expect(queryClient.getQueryData(["notes"])).toBeUndefined();
-});

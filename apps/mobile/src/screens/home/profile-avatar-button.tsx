@@ -5,6 +5,7 @@ import {
   useProfile,
 } from "@/features/auth/query/profile";
 import { useAuthSession } from "@/features/auth/state/auth-session";
+import { profileLabels } from "@/features/auth/ui/profile-labels";
 import { UserAvatar } from "@/shared/ui/user-avatar";
 
 /**
@@ -19,8 +20,7 @@ export function ProfileAvatarButton({ onPress }: { onPress: () => void }) {
 
   return (
     <Pressable
-      accessibilityHint="Opens Settings as a sheet"
-      accessibilityLabel="Open settings"
+      accessibilityLabel={profileLabels.openSettings}
       accessibilityRole="button"
       onPress={onPress}
     >

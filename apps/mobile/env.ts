@@ -29,6 +29,9 @@ const mobileEnvSchema = z.object({
   EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: googleClientId,
   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().trim().min(1),
   EXPO_PUBLIC_SUPABASE_URL: httpUrl,
+  EXPO_PUBLIC_SUPPORT_EMAIL: z.string().trim().email(),
+  /** Where 이용약관 and 개인정보 처리방침 live. `apps/web` owns those pages. */
+  EXPO_PUBLIC_WEB_URL: httpUrl,
 });
 
 type MobileEnvSource = z.infer<typeof mobileEnvSchema>;
@@ -96,5 +99,7 @@ export function getMobileEnv(): MobileEnv {
     EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
       process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+    EXPO_PUBLIC_SUPPORT_EMAIL: process.env.EXPO_PUBLIC_SUPPORT_EMAIL,
+    EXPO_PUBLIC_WEB_URL: process.env.EXPO_PUBLIC_WEB_URL,
   });
 }

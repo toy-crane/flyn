@@ -2,6 +2,7 @@ import { router, Stack } from "expo-router";
 import { Platform } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
+import { profileLabels } from "@/features/auth/ui/profile-labels";
 import { chatLabels } from "@/features/chat/ui/chat-labels";
 import { useHome } from "@/features/story/query/story";
 import { HomeScreen } from "@/screens/home/home-screen";
@@ -63,7 +64,7 @@ export default function HomeRoute() {
           // hosted in it has no width of its own: it stretches across the
           // whole bar and pushes out the title and every sibling button.
           <Stack.Toolbar.Button
-            accessibilityLabel="Open settings"
+            accessibilityLabel={profileLabels.openSettings}
             icon={toolbarIcon("profile")}
             onPress={openSettings}
           />
