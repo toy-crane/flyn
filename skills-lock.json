@@ -113,7 +113,7 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/expo/expo-dev-loop/SKILL.md",
-      "computedHash": "112b244feb5147d0c9647803cde79a7bb08aa3dd4e87914ed22547c56f9b1366"
+      "computedHash": "998fcea6f694cd12e9d4a705d97d76708118ec67f51705aed26c25f1dcff7e35"
     },
     "expo-dom": {
       "source": "expo/skills",
@@ -161,7 +161,7 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/expo/expo-smoke-test/SKILL.md",
-      "computedHash": "385da14026d25889014746efb157b2be2fbe0c1ad6a7fe36bbd428e7ca28c80a"
+      "computedHash": "f8a9a8a160f7233885d711fadf4f3501ccda19b808da5ae7e8827b2fce703371"
     },
     "expo-tailwind-setup": {
       "source": "expo/skills",
@@ -299,7 +299,7 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/workflow/tdd/SKILL.md",
-      "computedHash": "a2c820cbb37e2150d26cae2f47c435a5348dfada5b7d4bc49456ffde54d9f198"
+      "computedHash": "2a27d1cf2992f10c65bfbaa2da0437c97eeedfb4e0c95806b35177d48c37677c"
     },
     "uniwind": {
       "source": "uni-stack/uniwind",
