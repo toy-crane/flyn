@@ -266,6 +266,14 @@ test("이메일에서 만든 아이디 후보를 미리 채우고 자동으로 �
 
   expect(screen.getByLabelText("사용할 수 있는 아이디")).toBeOnTheScreen();
   expect(screen.getByLabelText("시작하기")).toBeEnabled();
+
+  // 확인 중과 이 표시는 트리의 같은 자리에 서므로 React가 한 네이티브 뷰를
+  // 고쳐 쓴다. Android는 이때 사라진 `busy`를 지우지 않아서, 값을 적지 않으면
+  // 확인이 끝난 뒤에도 TalkBack이 "사용할 수 있는 아이디, 진행 중"으로 읽는다.
+  // 실제 에뮬레이터에서 본 동작이라 두 상태 모두 값을 적는다.
+  expect(
+    screen.getByTestId("onboarding-username-available").props.accessibilityState
+  ).toMatchObject({ busy: false });
 });
 
 test("뒤로 갔다 돌아와도 두 입력값이 남아 있다", async () => {
