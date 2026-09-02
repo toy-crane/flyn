@@ -97,6 +97,11 @@ export function UsernameScreen() {
  * replaces, so finishing the check does not jump. Colour and shape are not the
  * message either: the accessible name is, so a screen reader hears that the id
  * is free rather than that there is a green mark.
+ *
+ * Both states spell out `busy`. They sit at the same place in the tree, so
+ * React updates one native view rather than swapping two, and Android keeps a
+ * `busy` it is no longer given — which left TalkBack reading the finished
+ * check as still in progress on the emulator.
  */
 function UsernameMark({
   isAvailable,
@@ -126,6 +131,7 @@ function UsernameMark({
   return (
     <View
       accessibilityLabel={onboardingLabels.available}
+      accessibilityState={{ busy: false }}
       accessible
       testID="onboarding-username-available"
     >
