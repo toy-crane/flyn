@@ -1,5 +1,5 @@
 import { getMobileEnv } from "@env";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Linking } from "react-native";
 
 import { profileLabels } from "@/features/auth/ui/profile-labels";
@@ -29,7 +29,9 @@ export function getExternalDestinations() {
  */
 export function useExternalDestinations() {
   const [mailFailure, setMailFailure] = useState<string | undefined>();
-  const destinations = getExternalDestinations();
+  // Read once for the life of the screen: the addresses come from the build's
+  // environment, and reading them again validates every public variable.
+  const destinations = useMemo(getExternalDestinations, []);
 
   const openPrivacy = useCallback(() => {
     Linking.openURL(destinations.privacy).catch(() => undefined);
