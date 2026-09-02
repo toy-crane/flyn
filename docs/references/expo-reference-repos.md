@@ -61,6 +61,30 @@ Expo 화면이나 상호작용을 만들 때 골라 볼 수 있는 공개 구현
   [모바일 Uniwind 스타일 경계](../decisions/mobile-uniwind-styling.md)를
   따른다.
 
+## toy-crane/dearly
+
+- 무엇: 같은 계보의 Expo SDK 57 앱이다. Uniwind, HeroUI Native, `@expo/ui`와
+  Expo Router Native Stack을 같은 역할로 쓰고, 설정 계층과 화면 모드 선택을
+  결정 계약(`docs/decisions/mobile-ui-foundation.md`)으로 확정해 구현했다.
+  비공개 저장소라 이 사용자만 연다.
+- 고정 사본: [0438e47](https://github.com/toy-crane/dearly/tree/0438e477034b8f5af6245214a775f4903fe7aa88),
+  2026-09-02 검토.
+- 이럴 때 본다: 설정 화면과 하위 선택 화면을 만들 때 `apps/mobile/src/screens/settings/`를
+  연다. 화면 모드 원본과 저장은 `shared/lib/hooks/use-color-scheme.tsx`와
+  `core/theme/app-theme-bridge.tsx`, 선택 행의 플랫폼 분기와 접근성은
+  `theme-option-row.ios.tsx`·`theme-option-row.android.tsx`, iOS 폼의 배경 토큰
+  주입은 `settings-surface-modifiers.ios.ts`, 설정 라우트와 헤더 옵션은
+  `src/app/(authenticated)/_layout.tsx`, 상태 표시줄은 `src/app/_layout.tsx`를
+  본다.
+- 들여오지 않는다: Native Tabs 없이 Stack 하나로 앱을 구성하는 정보 구조, 글자
+  배율 상한(`dynamicTypeSize`, `MAX_FONT_SIZE_MULTIPLIER`, Android font scale
+  config plugin), `@react-native-async-storage/async-storage`, PostHog 이벤트,
+  행 앞 아이콘, 런타임 버전 행, 로딩 인디케이터 기본값 규칙. 우리는
+  [모바일 UI 렌더러 경계](../decisions/mobile-ui-renderer-boundaries.md),
+  [모바일 타이포그래피](../decisions/mobile-typography.md),
+  [모바일 색상 시맨틱](../decisions/mobile-color-semantics.md),
+  [모바일 작업 진행 표시](../decisions/mobile-action-progress.md)를 따른다.
+
 ## EvanBacon/expo-ai
 
 - 무엇: 서버에서 네이티브 UI를 렌더링해 AI 응답으로 스트리밍하는 React Server
