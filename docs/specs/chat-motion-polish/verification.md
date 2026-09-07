@@ -44,9 +44,11 @@ Android Emulator에서 얻었다. VoiceOver 실제 읽기는 아직 확인하지
   먼 경우 마지막 한 화면으로 먼저 옮긴 뒤 끝으로 이동했고, 도착 후 버튼이 사라졌다.
 - 최신 메시지 버튼을 누른 직후 직접 스크롤해 읽는 위치를 바꿨다. 자동으로 끝으로
   돌아가지 않았고, 이후 두 플랫폼에서 실제 키보드 입력과 닫기를 확인했다.
-  원본은 `/private/tmp/flyn-motion-evidence/{ios,android}-interrupt.mp4`에 있다.
-  iOS 도구 호출 간격 때문에 애니메이션 도중 손가락이 닿은 정확한 프레임은 확정하지
-  않았다. 이동 중 취소와 늦은 완료 신호 무시 조건은 공개 목록 테스트로 따로 확인했다.
+  iOS는 별도 CLI 호출 사이에 이동이 끝나는 첫 시도를 제외하고, 한 daemon 요청에서
+  버튼 누르기와 드래그를 연달아 보냈다. [iOS 중단 녹화](evidence/ios-interrupt.mp4)의
+  0.8~1.1초에서 끝으로 이동하는 동안 드래그가 시작되고, 읽던 위치와 버튼이 남았다.
+  Android 원본은 `/private/tmp/flyn-motion-evidence/android-interrupt.mp4`에 있다.
+  이동 중 취소와 늦은 완료 신호 무시 조건은 공개 목록 테스트로도 확인했다.
 - 대기 중 이 worktree 소유의 API 3951 연결을 종료했다. 두 플랫폼에서 점이 사라지고
   오류 안내와 다시 시도하기가 나타났다. [iOS](evidence/ios-connection-error.png),
   [Android](evidence/android-connection-error.png). 루트 `bun run dev ios android`로
@@ -54,7 +56,12 @@ Android Emulator에서 얻었다. VoiceOver 실제 읽기는 아직 확인하지
 - [iOS 글자 확대·다크](evidence/ios-dark-large-composer.png),
   [Android 글자 확대·다크](evidence/android-help-dark-large.png)를 확인했다.
   iOS의 여러 줄 입력창과 AI에게 물어보기 돌아가기 표시는 겹치지 않았다.
-  Android에서 돌아가기 표시와 오류·수정 안내를 모두 함께 띄운 조합은 미확인이다.
+  Android도 [여러 줄](evidence/android-return-multiline.png)과
+  [수정 중](evidence/android-return-edit.png)에 두 돌아가기 버튼이 겹치지 않았다.
+  수정 중 AI 도움 돌아가기는 기존 정책대로 비활성 상태였다.
+  [오류 상태](evidence/android-return-error.png)에서도 돌아가기 표시, 오류 안내와
+  입력창이 분리됐다. 이 장면의 마지막 질문은 보이는 상태여서 최신 메시지 버튼은
+  숨겨져 있었다. 모든 상태의 조합을 전부 확인했다는 뜻은 아니다.
 - [iOS 동작 줄이기](evidence/ios-reduced-motion.mp4),
   [Android 동작 줄이기](evidence/android-reduced-motion.mp4)에서 점 세 개의 밝기가
   같고 변하지 않았다. iOS는 Reduce Motion, Android는 세 가지 animation scale을
@@ -71,13 +78,22 @@ Android Emulator에서 얻었다. VoiceOver 실제 읽기는 아직 확인하지
 
 ### 남은 확인
 
+검증 계정은 두 플랫폼 모두 앱 화면에서 로그아웃하고 같은 `agent-device` 세션을
+닫았다. 라이트 모드, 기본 글자 크기, 동작 줄이기 해제와 Android Gboard를 복원했다.
+TalkBack 서비스 선택 및 검증용 음성 내용 표시도 원래대로 돌렸다. slot 5의 API
+`http://127.0.0.1:3951`과 Metro `http://127.0.0.1:8132`는 실행 중이다.
+다시 앱을 여는 명령은 이 worktree 루트의 `bun run dev ios android`다.
+
 - iOS 26.5 Simulator에는 VoiceOver가 없다. 현재 Xcode 26.6에서는 실물 기기가
   필요하다. 연결된 개인 iPhone 사용 여부를 사용자에게 물었고 답을 기다린다.
   접근성 트리에 상태 하나가 있다는 결과를 실제 VoiceOver 읽기로 대신하지 않는다.
-- Android의 돌아가기 표시·여러 줄·오류·수정 조합과 iOS 이동 도중 정확한 손가락
-  중단 시점은 위에 적은 범위까지만 확인했다.
-- 명세와 실제 확인 범위를 모두 대조한 뒤 실행할 전체 변경 자동 리뷰 1회는 아직
-  수행하지 않았다. 현재 리뷰 결과가 없다는 이유로 코드의 안전성을 주장하지 않는다.
+- Codex 기본 전체 리뷰를 실행하려 했으나 자동 승인 검토가 프로세스 실행 전에
+  거절했다. 사용자 지정 `implement` 요청과 설치한 Codex 0.147.0 정보를 근거로
+  재검토를 요청했지만 같은 이유로 거절됐다. 이유는 변경 코드가 외부 모델로 전송될
+  수 있으며 해당 코드와 목적지에 대한 구체적 승인이 없다는 것이다. 다른 도구나
+  에이전트로 우회하지 않았다. 모델 리뷰는 0회이며, 리뷰 결과가 없다는 이유로 코드의
+  안전성을 주장하지 않는다. 승인 뒤 실행할 명령은 `codex review -`이며, 기준 커밋과
+  범위를 적은 입력은 `/private/tmp/flyn-motion-evidence/review-context.txt`에 있다.
 
 ## 2026-09-07 대기 표시 변경
 
