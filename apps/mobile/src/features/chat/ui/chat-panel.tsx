@@ -589,11 +589,13 @@ export function ChatPanel({
   const freeze = useSharedValue(false);
   const bottomOcclusion =
     composerHeight + Math.max(0, keyboardHeight - insets.bottom);
-  const hasReachedEnd = useCallback(() => {
+  const hasReachedEnd = useCallback((offset?: number) => {
     const state = listRef.current?.getState();
     return (
       state !== undefined &&
-      Math.max(0, state.contentLength - state.scrollLength) - state.scroll <= 2
+      Math.max(0, state.contentLength - state.scrollLength) -
+        (offset ?? state.scroll) <=
+        2
     );
   }, []);
 
@@ -685,11 +687,18 @@ export function ChatPanel({
         return;
       }
 
-      if (startOffset - contentOffset.y >= USER_SCROLL_THRESHOLD) {
+      // 끝이 보인다는 신호는 실제 끝에 도착하기 전에 한 번만 올 수 있다.
+      // 사용자의 스크롤은 현재 이벤트 좌표로 도착 여부를 계속 확인한다.
+      if (
+        !(isPositioningQuestion || isMovingToLatest) &&
+        hasReachedEnd(contentOffset.y)
+      ) {
+        setIsFollowingLatest(true);
+      } else if (startOffset - contentOffset.y >= USER_SCROLL_THRESHOLD) {
         setIsFollowingLatest(false);
       }
     },
-    []
+    [hasReachedEnd, isMovingToLatest, isPositioningQuestion]
   );
   const moveToLatest = useCallback(async () => {
     cancelScrollMotion();
@@ -715,11 +724,10 @@ export function ChatPanel({
       if (generation !== motionGeneration.current) {
         return;
       }
-      // 움직이는 동안 본문이 자라도 목표를 다시 정하지 않는다.
-      const ready = list.getState();
+      // 첫 이동을 기다리는 동안 본문이 자라도 출발점과 같은 끝 좌표를 쓴다.
       await list.scrollToOffset({
         animated: !isReducedMotion,
-        offset: Math.max(0, ready.contentLength - ready.scrollLength),
+        offset: end,
       });
     } catch {
       // 실패하거나 손으로 멈추면 버튼으로 다시 이동할 수 있다.

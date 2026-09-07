@@ -991,6 +991,42 @@ describe("ChatPanel", () => {
     expect(screen.getByLabelText(chatLabels.latest)).toBeOnTheScreen();
   });
 
+  test("먼 이동의 첫 단계에서 답변이 늘어나도 한 화면만 움직인다", async () => {
+    const user = userEvent.setup();
+    await renderWithHeroUI(<ChatPanel chat={chatSession()} topInset={100} />);
+    await act(() => {
+      screen.getByTestId("chat-composer").props.onLayout({
+        nativeEvent: { layout: { height: 80 } },
+      });
+    });
+    await scrollAwayFromLatest();
+    Object.assign(mockListState, {
+      contentLength: 5000,
+      scroll: 200,
+      scrollLength: 800,
+    });
+    mockScrollToOffset.mockImplementationOnce(({ offset }) => {
+      mockListState.scroll = offset;
+      mockListState.contentLength = 5400;
+      return Promise.resolve();
+    });
+
+    await user.press(screen.getByLabelText(chatLabels.latest));
+    await waitFor(() => expect(mockScrollToOffset).toHaveBeenCalledTimes(2));
+    expect(mockScrollToOffset).toHaveBeenNthCalledWith(1, {
+      animated: false,
+      offset: 3580,
+    });
+    expect(mockScrollToOffset).toHaveBeenNthCalledWith(2, {
+      animated: true,
+      offset: 4200,
+    });
+    expect(screen.getByTestId("chat-list").props.maintainScrollAtEnd).toBe(
+      false
+    );
+    expect(screen.getByLabelText(chatLabels.latest)).toBeOnTheScreen();
+  });
+
   test("최신 메시지 이동 중 손으로 멈추면 늦게 끝나도 추적과 키보드 고정을 풀어 둔다", async () => {
     let finish: (() => void) | undefined;
     mockScrollToOffset.mockImplementationOnce(
@@ -1073,6 +1109,35 @@ describe("ChatPanel", () => {
 
     expect(screen.queryByLabelText(chatLabels.latest)).not.toBeOnTheScreen();
     expect(list.props.maintainScrollAtEnd).toEqual({
+      animated: false,
+      on: { dataChange: true, itemLayout: true },
+    });
+  });
+
+  test("끝이 보인다는 신호 뒤에 직접 끝까지 내려와도 자동 추적을 다시 켠다", async () => {
+    await renderWithHeroUI(<ChatPanel chat={chatSession()} />);
+    await scrollAwayFromLatest();
+    Object.assign(mockListState, {
+      contentLength: 2080,
+      scroll: 1000,
+      scrollLength: 800,
+    });
+    const list = screen.getByTestId("chat-list");
+    await act(() => list.props.onEndVisible(true));
+    expect(screen.getByLabelText(chatLabels.latest)).toBeOnTheScreen();
+
+    await act(() => {
+      list.props.onScrollBeginDrag({
+        nativeEvent: { contentOffset: { y: 1000 } },
+      });
+      // 목록의 가시성 값은 계속 true여서 도착 때 신호를 다시 보내지 않는다.
+      list.props.onScroll({
+        nativeEvent: { contentOffset: { y: 1280 } },
+      });
+    });
+
+    expect(screen.queryByLabelText(chatLabels.latest)).not.toBeOnTheScreen();
+    expect(screen.getByTestId("chat-list").props.maintainScrollAtEnd).toEqual({
       animated: false,
       on: { dataChange: true, itemLayout: true },
     });
