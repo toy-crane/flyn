@@ -1,5 +1,84 @@
 # 채팅 움직임 검증
 
+## 현재 확인 결과
+
+실행 코드는 `fc26717`과 같다. 아래 기록은 2026-09-07의 iOS Simulator와
+Android Emulator에서 얻었다. VoiceOver 실제 읽기는 아직 확인하지 않았다.
+따라서 명세 전체의 완료를 선언하지 않는다. 이전 단락의 미확인 항목은 이 절의
+최신 결과와 구분한다.
+
+- 루트 `bun run check`, `bun run check-types`, `bun run test`를 통과했다.
+  모바일 73개 suite의 535개 테스트, API 98개, 개발 스크립트 176개가 통과했다.
+- iOS·Android export와 Astro build를 통과했다. 단순 `bun run build`는 공개 환경
+  변수 누락으로 실패했다. `scripts/dev/environment.ts`의 `parseEnvFile`과
+  `buildMobileEnvironment`로 실제 `apps/mobile/.env.local` 및 slot 5 포트를 읽고,
+  그 환경에서 `bunx turbo run build --env-mode=loose`를 실행했다. 설정 검사나
+  환경 검증을 생략하지 않았다. 원본 로그는 `/private/tmp/flyn-motion-evidence/`의
+  `check.log`, `check-types.log`, `test.log`, `build-configured.log`에 있다.
+- `git diff --check`를 통과했다. 거리와 본문 렌더 횟수의 임시 계측 코드는 제거했다.
+
+### 실제 화면에서 확인한 범위
+
+| 항목 | iOS | Android |
+| --- | --- | --- |
+| 일반 채팅 전송, 대기, 첫 본문, 완료 | 실제 응답과 녹화 | 실제 응답과 녹화 |
+| 영어 입력, 교정, 한국어 AI 도움, 에피소드 마무리와 홈 예고 | 새 3·4화 진행 | 새 3·4화 진행 |
+| AI에게 물어보기의 네이티브 Markdown, 복사·다시 받기 | 실제 응답과 메뉴 | 실제 응답과 메뉴 |
+| 수정 전송, 중지, 전송 중 앱 이탈·복귀 | 실제 조작 | 실제 조작 |
+| 완료된 3화 읽기 전용 대화 | 입력·대기 없음 | 입력·대기 없음 |
+| 지난 본문 시작·완료 렌더 횟수 | 대상 4개, 0회 | 대상 13개, 0회 |
+| 밝은 화면·어두운 화면·글자 확대 | 화면 확인 | 화면 확인 |
+| 동작 줄이기의 고정된 세 점 | 설정 후 재실행·녹화 | 설정 후 재실행·녹화 |
+| 화면 읽기 | 접근성 상태 확인, VoiceOver 실제 읽기 미확인 | TalkBack 실제 출력 확인 |
+
+- 완료된 기록은 [iOS](evidence/ios-readonly.png),
+  [Android](evidence/android-readonly.png)에서 입력창이나 새 대기 표시 없이 열렸다.
+  새 4화에서도 마지막 발화와 지문을 마무리 카드 위에서 읽었고, 홈에 5화 예고가 남았다.
+- 가까운 거리는 iOS 0.49화면, Android 0.57화면이었다. 먼 거리는 각각 6.34화면과
+  4.63화면이었다. 실제 질문으로 긴 대화를 만들고 목록 공개 상태를 계측했다.
+  [거리 값](evidence/latest-distances.json),
+  [iOS 가까운 이동](evidence/ios-latest-near.mp4),
+  [iOS 먼 이동](evidence/ios-latest-far.mp4),
+  [Android 가까운 이동](evidence/android-latest-near.mp4),
+  [Android 먼 이동](evidence/android-latest-far.mp4).
+  먼 경우 마지막 한 화면으로 먼저 옮긴 뒤 끝으로 이동했고, 도착 후 버튼이 사라졌다.
+- 최신 메시지 버튼을 누른 직후 직접 스크롤해 읽는 위치를 바꿨다. 자동으로 끝으로
+  돌아가지 않았고, 이후 두 플랫폼에서 실제 키보드 입력과 닫기를 확인했다.
+  원본은 `/private/tmp/flyn-motion-evidence/{ios,android}-interrupt.mp4`에 있다.
+  iOS 도구 호출 간격 때문에 애니메이션 도중 손가락이 닿은 정확한 프레임은 확정하지
+  않았다. 이동 중 취소와 늦은 완료 신호 무시 조건은 공개 목록 테스트로 따로 확인했다.
+- 대기 중 이 worktree 소유의 API 3951 연결을 종료했다. 두 플랫폼에서 점이 사라지고
+  오류 안내와 다시 시도하기가 나타났다. [iOS](evidence/ios-connection-error.png),
+  [Android](evidence/android-connection-error.png). 루트 `bun run dev ios android`로
+  API와 Metro를 복원했다. 다른 worktree와 공유 Supabase는 종료하거나 초기화하지 않았다.
+- [iOS 글자 확대·다크](evidence/ios-dark-large-composer.png),
+  [Android 글자 확대·다크](evidence/android-help-dark-large.png)를 확인했다.
+  iOS의 여러 줄 입력창과 AI에게 물어보기 돌아가기 표시는 겹치지 않았다.
+  Android에서 돌아가기 표시와 오류·수정 안내를 모두 함께 띄운 조합은 미확인이다.
+- [iOS 동작 줄이기](evidence/ios-reduced-motion.mp4),
+  [Android 동작 줄이기](evidence/android-reduced-motion.mp4)에서 점 세 개의 밝기가
+  같고 변하지 않았다. iOS는 Reduce Motion, Android는 세 가지 animation scale을
+  모두 끈 뒤 앱을 재실행했다. Android의 Reanimated는 transition animation scale을
+  읽으므로 animator duration scale만 끈 첫 시도는 통과 근거에서 제외했다.
+- TalkBack의 실제 서비스 연결과 TTS 출력을 확인했다. AI 도움 답변을 다시 받았을 때
+  `답변을 준비하고 있어요.`를 하나의 상태로 출력했다. 세 점을 따로 읽지 않았다.
+  [TalkBack 음성 내용 표시](evidence/android-talkback-waiting.png).
+  UIAutomation이 TalkBack을 억제하는 도구 문제는
+  [별도 기록](../../follow-ups/android-agent-device-suppresses-talkback.md)에 남겼다.
+- Markdown 컴포넌트를 memo로 바꾸는 도중 Fast Refresh 상태에서 `Object is not a
+  function`이 발생했다. 프로세스를 새로 실행한 뒤 실제 AI 도움 질문·답변·다시 받기를
+  두 플랫폼에서 재현했고 같은 오류는 없었다. 기존 로그의 오류 줄을 지우지 않았다.
+
+### 남은 확인
+
+- iOS 26.5 Simulator에는 VoiceOver가 없다. 현재 Xcode 26.6에서는 실물 기기가
+  필요하다. 연결된 개인 iPhone 사용 여부를 사용자에게 물었고 답을 기다린다.
+  접근성 트리에 상태 하나가 있다는 결과를 실제 VoiceOver 읽기로 대신하지 않는다.
+- Android의 돌아가기 표시·여러 줄·오류·수정 조합과 iOS 이동 도중 정확한 손가락
+  중단 시점은 위에 적은 범위까지만 확인했다.
+- 명세와 실제 확인 범위를 모두 대조한 뒤 실행할 전체 변경 자동 리뷰 1회는 아직
+  수행하지 않았다. 현재 리뷰 결과가 없다는 이유로 코드의 안전성을 주장하지 않는다.
+
 ## 2026-09-07 대기 표시 변경
 
 `31d60e1` 이후 점 세 개 대기 표시를 바꾼 작업 트리를 확인했다.
