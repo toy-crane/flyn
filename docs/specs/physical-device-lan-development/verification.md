@@ -54,7 +54,8 @@ iOS 빌드 후 fingerprint가 한 번 바뀌어 기존 앱 자동 재연결을 �
 
 ## 남은 수락 기준과 재개 조건
 
-- 실제 iPhone 15 Pro, iOS 26.6.1은 무선으로 검색됐고 개발자 모드가 켜져 있었다. Xcode 26.6에서 `CoreDevice 12040: developer disk image could not be mounted`로 앱 조작이 실패했다. DDI 갱신은 기존 이미지와 같다는 결과였고 문제가 계속됐다. USB 연결과 잠금 해제 후 다시 확인해야 한다.
+- 실제 iPhone 15 Pro, iOS 26.6.1은 처음에 `CoreDevice 12040: developer disk image could not be mounted`로 앱 조작이 실패했다. 사용자가 USB를 연결한 뒤 재확인하니 `ddiServicesAvailable: true`, `developerModeStatus: enabled`, `passcodeRequired: false`였다. 기존 디스크 이미지 오류는 해소됐다.
+- iPhone에 설치된 `com.odd.flyn` 1.0.0 (1) 앱 실행과 현재 worktree LAN 링크 열기는 성공했다. 화면 읽기와 스크린샷은 Mac의 `DevToolsSecurity`가 꺼져 있어 실패했다. `DevToolsSecurity -status`로 실제 상태를 확인했다. `sudo -n DevToolsSecurity -enable`은 Mac 전체에 계속 적용되는 보안 설정 변경에 대한 명시적 승인이 없다는 자동 승인 검토의 거절로 실행되지 않았다. 사용자에게 설정 변경 승인을 요청했다. 화면 자동 검증은 승인을 받은 뒤 재개한다.
 - 실제 Android는 `adb devices -l`에 나타나지 않았다. 호환되는 Development Build가 설치된 폰을 USB로 연결하고 디버깅을 허용해야 한다.
 - 두 실기기의 이메일 로그인·로그아웃, 실제 API 요청 목적지, Google 로그인, iPhone Apple 로그인, 모든 종류의 사진 다운로드·업로드·재열기는 미검증이다. 제공자 본인 확인은 사용자가 직접 진행한다.
 - Android Emulator에서 새 사진 업로드는 미검증이다. 제공자가 준 프로필 사진과 이미지의 최종 요청 URL·응답도 아직 확인하지 않았다. `agent-device network dump`와 개발용 Network 이벤트 관찰에서 요청 기록을 얻지 못했다. 이미지의 화면 표시와 URL 단위 테스트를 실제 네트워크 기록으로 대체하지 않는다.
