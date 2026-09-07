@@ -1,6 +1,6 @@
 import { openURL } from "expo-linking";
 import { useThemeColor } from "heroui-native/hooks";
-import { useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { Platform } from "react-native";
 import type {
   AccessibilityLabels,
@@ -64,7 +64,7 @@ const ACCESSIBILITY_LABELS: AccessibilityLabels = {
  * menu. The renderer owns the selection and the menu; the items it is given
  * only say what else that selection can do.
  */
-export function MarkdownAnswer({
+export const MarkdownAnswer = memo(function MarkdownAnswerContent({
   contextMenuItems,
   markdown,
   testID,
@@ -160,4 +160,4 @@ export function MarkdownAnswer({
       testID={testID}
     />
   );
-}
+});

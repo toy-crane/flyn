@@ -1,9 +1,35 @@
+import { memo } from "react";
 import { Text, View } from "react-native";
 import type { TextContextMenuItem } from "react-native-enriched-markdown";
 
 import { MarkdownAnswer } from "./markdown-answer";
 import { MessageActions } from "./message-actions";
 import type { SceneSegment } from "./scene";
+
+const SceneSegmentBody = memo(function SceneSegmentBodyContent({
+  name,
+  text,
+  selectionMenuItems,
+}: SceneSegment & { selectionMenuItems?: TextContextMenuItem[] }) {
+  if (name === null) {
+    return (
+      <Text
+        className="px-1 text-muted text-sm leading-5"
+        testID="chat-scene-narration"
+      >
+        {text}
+      </Text>
+    );
+  }
+  return (
+    <View className="max-w-[85%] self-start" testID="chat-scene-utterance">
+      <Text className="mb-1 px-1 text-muted text-xs">{name}</Text>
+      <View className="rounded-2xl bg-surface px-4 py-3">
+        <MarkdownAnswer contextMenuItems={selectionMenuItems} markdown={text} />
+      </View>
+    </View>
+  );
+});
 
 /**
  * 한 장면: 인물별 말풍선과 지문이 도착한 순서대로 쌓인다.
@@ -14,6 +40,7 @@ import type { SceneSegment } from "./scene";
  */
 export function SceneMessage({
   areActionsDisabled,
+  areActionsVisible = true,
   hasActions,
   onCopy,
   onRegenerate,
@@ -21,6 +48,7 @@ export function SceneMessage({
   selectionMenuItems,
 }: {
   areActionsDisabled: boolean;
+  areActionsVisible?: boolean;
   hasActions: boolean;
   onCopy: () => void;
   onRegenerate: () => void;
@@ -29,36 +57,21 @@ export function SceneMessage({
 }) {
   return (
     <View className="w-full gap-2">
-      {segments.map((segment, index) =>
-        segment.name === null ? (
-          <Text
-            className="px-1 text-muted text-sm leading-5"
-            // biome-ignore lint/suspicious/noArrayIndexKey: 조각은 뒤로만 늘어난다
-            key={index}
-            testID="chat-scene-narration"
-          >
-            {segment.text}
-          </Text>
-        ) : (
-          <View
-            className="max-w-[85%] self-start"
-            // biome-ignore lint/suspicious/noArrayIndexKey: 조각은 뒤로만 늘어난다
-            key={index}
-            testID="chat-scene-utterance"
-          >
-            <Text className="mb-1 px-1 text-muted text-xs">{segment.name}</Text>
-            <View className="rounded-2xl bg-surface px-4 py-3">
-              <MarkdownAnswer
-                contextMenuItems={selectionMenuItems}
-                markdown={segment.text}
-              />
-            </View>
-          </View>
-        )
-      )}
+      {segments.map((segment, index) => (
+        <SceneSegmentBody
+          // biome-ignore lint/suspicious/noArrayIndexKey: 조각은 뒤로만 늘어난다
+          key={index}
+          name={segment.name}
+          selectionMenuItems={
+            segment.name === null ? undefined : selectionMenuItems
+          }
+          text={segment.text}
+        />
+      ))}
       {hasActions ? (
         <MessageActions
           isDisabled={areActionsDisabled}
+          isVisible={areActionsVisible}
           onCopy={onCopy}
           onRegenerate={onRegenerate}
         />

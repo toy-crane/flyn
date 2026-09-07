@@ -231,13 +231,23 @@ jest.mock("react-native-worklets", () =>
 // Motion is allowed by default. A screen that draws something moving has to
 // be seen both ways, so the answer is read from a switch a test can flip
 // rather than fixed here; see src/shared/test/reduced-motion.ts.
-jest.mock("react-native-reanimated", () => ({
-  ...require("react-native-reanimated/mock"),
-  useReducedMotion: () =>
-    (
-      require("@/shared/test/reduced-motion") as typeof import("@/shared/test/reduced-motion")
-    ).mockReducedMotion.isOn,
-}));
+jest.mock("react-native-reanimated", () => {
+  const React = require("react") as typeof import("react");
+  const mock = require("react-native-reanimated/mock");
+  return {
+    ...mock,
+    useReducedMotion: () =>
+      (
+        require("@/shared/test/reduced-motion") as typeof import("@/shared/test/reduced-motion")
+      ).mockReducedMotion.isOn,
+    // 실제 훅은 같은 객체를 유지한다. 매 렌더마다 새 객체를 주면 정리 효과가
+    // 대기 중인 스크롤을 취소해서 네이티브와 다른 경로를 검사하게 된다.
+    useSharedValue: (initial: unknown) => {
+      const [shared] = React.useState(() => mock.useSharedValue(initial));
+      return shared;
+    },
+  };
+});
 
 const reanimated = require("react-native-reanimated");
 reanimated.setUpTests();

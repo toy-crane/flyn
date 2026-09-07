@@ -1,6 +1,6 @@
 import type { MenuTriggerRef } from "heroui-native/menu";
 import { Menu } from "heroui-native/menu";
-import { useCallback, useRef } from "react";
+import { memo, useCallback, useRef } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { Icon } from "@/shared/ui/icon";
@@ -14,6 +14,22 @@ const LONG_PRESS_DELAY_MS = 400;
  * width the approved prototype used.
  */
 const MENU_WIDTH = 208;
+
+const UserMessageBody = memo(function UserMessageBodyContent({
+  text,
+}: {
+  text: string;
+}) {
+  return (
+    <Text
+      className="text-accent-foreground text-base leading-6"
+      selectable={false}
+      testID="chat-message-user"
+    >
+      {text}
+    </Text>
+  );
+});
 
 /**
  * A question, and the menu a long press opens on it.
@@ -54,15 +70,7 @@ export function UserMessage({
             delayLongPress={LONG_PRESS_DELAY_MS}
             onLongPress={canOpenMenu ? openMenu : undefined}
           >
-            <Text
-              className="text-accent-foreground text-base leading-6"
-              // Selecting a message would take the long press the menu needs.
-              // The menu's own copy is how a question gets taken away.
-              selectable={false}
-              testID="chat-message-user"
-            >
-              {text}
-            </Text>
+            <UserMessageBody text={text} />
           </Pressable>
         </View>
       </Menu.Trigger>

@@ -36,11 +36,8 @@ export const chatLabels = {
   sideChat: "AI에게 물어보기",
   /** Not shown: the send button's place while an answer is arriving. */
   stop: "답변 그만 받기",
-  /**
-   * Shown where the answer will appear, from the moment the wait is long
-   * enough to notice until the first character lands. A label, so no period.
-   */
-  waiting: "Thinking",
+  /** Not shown: one accessibility state for the three waiting dots. */
+  waiting: "답변을 준비하고 있어요.",
 } as const;
 
 /** Shown on the count floating above the parent conversation's composer. */

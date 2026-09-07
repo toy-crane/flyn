@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-09-07",
+  "revision": "fc26717",
+  "method": "실제 사용자 입력으로 긴 대화를 만든 뒤 손으로 스크롤하고 최신 메시지 버튼을 눌렀다. 버튼 시작 시 LegendList getState 값과 보이는 높이를 일시적으로 기록했다. 계측 코드는 제거했다.",
+  "unit": "React Native logical pixel",
+  "ios": {
+    "viewport": 656,
+    "far": { "end": 4174, "scroll": 11.666666666666666, "distance": 4162.333333333333 },
+    "near": { "end": 4174, "scroll": 3852.6666666666665, "distance": 321.3333333333335 },
+    "farVideo": "ios-latest-far.mp4",
+    "nearVideo": "ios-latest-near.mp4"
+  },
+  "android": {
+    "viewport": 752,
+    "far": { "end": 3478, "scroll": 0, "distance": 3478 },
+    "near": { "end": 3478, "scroll": 3047.333251953125, "distance": 430.666748046875 },
+    "farVideo": "android-latest-far.mp4",
+    "nearVideo": "android-latest-near.mp4"
+  }
+}

@@ -15,6 +15,7 @@ import { MessageActions } from "./message-actions";
  */
 export function AssistantMessage({
   areActionsDisabled,
+  areActionsVisible = true,
   hasActions,
   onCopy,
   onRegenerate,
@@ -22,6 +23,7 @@ export function AssistantMessage({
   text,
 }: {
   areActionsDisabled: boolean;
+  areActionsVisible?: boolean;
   hasActions: boolean;
   onCopy: () => void;
   onRegenerate: () => void;
@@ -38,6 +40,7 @@ export function AssistantMessage({
       {hasActions ? (
         <MessageActions
           isDisabled={areActionsDisabled}
+          isVisible={areActionsVisible}
           onCopy={onCopy}
           onRegenerate={onRegenerate}
         />

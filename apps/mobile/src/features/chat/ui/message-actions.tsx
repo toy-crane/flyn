@@ -53,25 +53,34 @@ function ActionButton({
 /** What a finished answer offers: take it away, or ask for another one. */
 export function MessageActions({
   isDisabled = false,
+  isVisible = true,
   onCopy,
   onRegenerate,
 }: {
   isDisabled?: boolean;
+  isVisible?: boolean;
   onCopy: () => void;
   onRegenerate: () => void;
 }) {
   return (
     // The negative margin puts the first icon's drawn shape, not the padding
     // around it, on the same left edge as the answer above.
-    <View className="mt-1.5 -ml-1.5 flex-row" testID="chat-message-actions">
+    <View
+      accessibilityElementsHidden={!isVisible}
+      className="mt-1.5 -ml-1.5 flex-row"
+      importantForAccessibility={isVisible ? "auto" : "no-hide-descendants"}
+      pointerEvents={isVisible ? "auto" : "none"}
+      style={{ opacity: isVisible ? 1 : 0 }}
+      testID="chat-message-actions"
+    >
       <ActionButton
-        isDisabled={isDisabled}
+        isDisabled={isDisabled || !isVisible}
         label={chatLabels.copyAnswer}
         name="copy"
         onPress={onCopy}
       />
       <ActionButton
-        isDisabled={isDisabled}
+        isDisabled={isDisabled || !isVisible}
         label={chatLabels.regenerate}
         name="regenerate"
         onPress={onRegenerate}
