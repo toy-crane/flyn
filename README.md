@@ -562,8 +562,24 @@ bun run dev:remove
 한 폴더에서 두 플랫폼을 함께 띄울 수 있습니다.
 `bun run dev ios android`는 두 플랫폼을 한 줄로 함께 시작합니다. 기기 부팅과 fingerprint 계산은 두 플랫폼이 함께 진행하고, 빌드와 앱 열기는 적은 순서대로 합니다. 아무것도 실행 중이지 않으면 필요한 네이티브 준비를 모두 마친 뒤에 API와 Metro를 띄웁니다. 한 플랫폼이 실패해도 나머지는 계속 시작하고, 실패가 있으면 명령은 실패로 끝납니다.
 이미 실행 중인 세션에 `bun run dev android`를 실행하면 iOS 세션이 살아 있는 채로 Android가 더해지고, 두 기기가 같은 API와 Metro에 붙습니다.
-세션은 포트만 정하고 호스트는 앱이 정합니다. iOS는 `127.0.0.1`, Android Emulator는 `10.0.2.2`로 개발 컴퓨터에 닿습니다.
+세션은 포트를 정하고, 앱은 실제로 연결한 Metro 주소를 기준으로 서버 호스트를 정합니다. 기존 loopback 연결에서는 iOS Simulator는 `127.0.0.1`, Android Emulator는 `10.0.2.2`를 사용합니다.
 Metro 입력이나 환경이 바뀌어 API와 Metro를 다시 시작할 때는 붙어 있던 두 기기의 앱을 모두 다시 엽니다.
+
+실제 폰은 호환되는 Development Build를 먼저 설치하고 Mac과 같은 Wi-Fi에 연결해 주세요. 설치·서명은 이 명령이 수행하지 않습니다.
+
+```bash
+bun run dev ios --physical
+bun run dev android --physical
+bun run dev ios android --physical
+# 자동 선택이 어렵거나 다른 인터페이스를 쓰려면 Mac에 배정된 IPv4를 지정합니다.
+bun run dev ios --physical --host 192.168.0.10
+```
+
+`--physical`은 가상 기기를 켜지 않고 이 worktree의 서버와 연결 링크를 준비합니다. 폰의 Development Build에서 출력한 연결을 여세요. Metro 화면에서 서버 주소를 직접 입력할 때는 출력된 `http://<LAN IP>:<Metro 포트>`를 사용합니다. Mac에서 서버가 응답하는지 확인한 결과이며, 폰의 로그인·API·사진 표시 성공을 뜻하지는 않습니다.
+
+LAN 주소가 바뀌면 명령을 다시 실행하고 새 연결을 여세요. 주소는 `.env.local`에 저장하지 않습니다. VPN이나 여러 네트워크 때문에 주소를 하나로 정할 수 없으면 `--host`로 지정합니다. 공유기의 기기 간 통신 차단, Mac 방화벽, 폰의 로컬 네트워크 권한도 확인해 주세요. Android 개발 앱은 로컬 HTTP 연결을 허용해야 합니다.
+
+실기기에 연결한 세션에 `bun run dev ios`나 `bun run dev android`를 실행해 가상 기기를 함께 사용할 수 있습니다. worktree를 바꿀 때는 대상 worktree의 연결을 명시적으로 여세요. 한 폰의 앱에 저장된 로그인 상태는 공유하고, 로컬 Supabase의 데이터와 스키마도 모든 worktree가 공유합니다. `dev:stop`과 `dev:remove`는 실제 폰의 앱과 데이터를 삭제하거나 초기화하지 않습니다.
 
 `bun run dev:status`는 모든 worktree의 slot, 포트, 프로세스, 붙은 플랫폼과 기기 배정을 보여 줍니다.
 아무것도 바꾸지 않으므로 언제 실행해도 안전합니다.

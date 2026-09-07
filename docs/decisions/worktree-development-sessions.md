@@ -2,7 +2,9 @@
 
 ## 결정
 
-- 루트의 `bun run dev <ios|android>`를 저장소 전체 로컬 개발 세션의 기본 실행 명령으로 사용한다. 이 명령은 API, Metro와 대상 Simulator 또는 Emulator를 함께 시작한다.
+기기 풀, 자동 빌드·설치, 기기별 로그인 격리에 관한 아래 규칙은 기존 Simulator·Emulator 경로에 적용한다. 실기기는 설치된 호환 Development Build의 LAN 연결을 다루며 상세 범위는 실기기 스펙을 따른다.
+
+- 루트의 `bun run dev <ios|android>`를 저장소 전체 로컬 개발 세션의 기본 실행 명령으로 사용한다. 이 명령은 API, Metro와 대상 Simulator 또는 Emulator를 함께 시작한다. 명시적으로 선택한 실기기에는 같은 Wi-Fi의 LAN 연결을 제공한다.
 - 플랫폼 인수는 필수다. `bun run dev`만 실행하면 아무것도 시작하지 않고 사용법을 보여 준다. 플랫폼은 여러 개를 나열할 수 있고(`bun run dev ios android`) 적은 순서가 시작 순서다. 기기 부팅과 fingerprint 계산은 모든 플랫폼이 함께 진행하고, 빌드와 앱 열기는 적은 순서대로 한다.
 - 한 Git worktree에서 iOS와 Android를 함께 실행한다. 플랫폼 시작 명령은 누적된다. 이미 실행 중인 플랫폼은 다른 플랫폼을 시작해도 내려가지 않는다.
 - 여러 플랫폼을 적은 명령은 한 플랫폼이 실패해도 나머지를 계속 시작한다. 결과를 플랫폼별로 보고하고 실패가 하나라도 있으면 명령은 실패로 끝난다. 아무것도 실행 중이지 않으면 요청한 모든 플랫폼의 네이티브 준비를 마친 뒤에 API와 Metro를 띄운다.
@@ -19,8 +21,8 @@
 - 대역 번호의 원본은 `supabase/config.toml`의 `[api] port` 하나다. Supabase 포트는 그 파일에 숫자로 커밋하고, 번호는 `(API 포트 - 54321) / 10`으로 읽는다. 세션은 이 값이 숫자가 아니면 추측하지 않고 멈춘다.
 - Supabase 주소가 필요한 프로그램은 `config.toml`의 포트에서 주소를 만든다. 개발 세션은 Metro뿐 아니라 API 자식 프로세스에도 `SUPABASE_URL`과 `SUPABASE_JWKS_URL`을 셸 환경으로 넘기고, `auth:otp`는 Mailpit과 로컬 Supabase 주소를 같은 파일에서 읽는다. 개발자의 `.env.local`은 읽기만 한다.
 - Portless를 기본 개발 경로에 넣지 않는다. slot에서 실제 포트를 계산하고 개발 세션이 직접 소유한다.
-- 개발 세션이 정한 모바일 API와 Supabase 포트는 `EXPO_PUBLIC_DEV_SESSION_API_PORT`와 `EXPO_PUBLIC_DEV_SESSION_SUPABASE_PORT`로 Metro에 전달한다. 앱은 이 값이 있으면 일반 모바일 URL보다 우선한다. 세션은 포트만 정하고 호스트는 앱이 정한다.
-- 앱은 `process.env.EXPO_OS`로 자기 번들의 플랫폼을 보고 호스트를 정한다. Android는 `10.0.2.2`, 나머지는 `127.0.0.1`이다. API는 worktree slot의 포트를 사용하고 Supabase는 `config.toml`의 API 포트를 사용한다.
+- 개발 세션이 정한 모바일 API와 Supabase 포트는 `EXPO_PUBLIC_DEV_SESSION_API_PORT`와 `EXPO_PUBLIC_DEV_SESSION_SUPABASE_PORT`로 Metro에 전달한다. 앱은 이 값이 있으면 일반 모바일 URL보다 우선한다. 세션은 포트와 실기기가 접근할 LAN 주소를 준비한다. 앱의 최종 호스트는 실제 연결한 Metro 주소를 기준으로 정한다. loopback Metro 연결에서는 기존 플랫폼별 호스트를 사용한다. LAN 주소는 실행 상태와 환경 fingerprint에도 반영해 주소가 바뀌면 해당 worktree의 서버를 다시 준비한다.
+- 가상 기기의 기존 호스트는 Android Emulator `10.0.2.2`, iOS Simulator `127.0.0.1`이다. 실제 iPhone과 Android 폰은 세션이 준비한 LAN 주소를 사용한다. 운영체제만으로 실기기와 가상 기기를 같은 대상으로 취급하지 않는다. API는 worktree slot의 포트를 사용하고 Supabase는 `config.toml`의 API 포트를 사용한다.
 - Android Emulator에는 Metro 포트만 `adb reverse`로 넘긴다. 개발 클라이언트 딥링크가 `127.0.0.1`을 담기 때문이다.
 - 실행 중인 세션은 공개 모바일 환경과 Metro 입력의 fingerprint가 모두 같을 때만 API와 Metro를 재사용한다. 하나라도 바뀌면 해당 worktree의 두 프로세스만 다시 시작하고 slot, 기기, 설치된 앱과 앱 데이터는 유지한다. 재사용 판단은 플랫폼과 무관하다.
 - API와 Metro를 다시 시작하면 그 worktree에 붙어 있던 모든 플랫폼의 앱을 다시 연결한다. 명령에 적지 않은 플랫폼도 함께 다시 연다.
@@ -30,9 +32,12 @@
 - `bun run dev <ios|android> --clear`는 입력 fingerprint와 관계없이 해당 worktree의 Metro 캐시를 한 번 초기화한다. `dev:stop`은 Metro와 Gradle 캐시를 남기고 `dev:remove`와 사라진 worktree 회수는 두 캐시를 함께 지운다.
 - 모든 시작 명령은 새 자원을 배정하기 전에 저장소 상태를 실제 Git worktree와 실행 중인 프로세스에 맞춘다. 사라진 worktree의 자원은 회수하고, 살아 있는 worktree의 기기 배정과 앱 데이터는 유지한다.
 
+- 실기기용 LAN 주소는 자동 선택하고 필요하면 개발자가 명시한다. 주소 변경은 다음 개발 시작 때 반영하며 환경 파일을 덮어쓰지 않는다. 연결 안내는 worktree와 목적지 주소를 함께 보여 준다.
+- 실기기는 가상 기기 풀에 포함하지 않는다. 종료·자원 반납 시 실제 폰의 앱과 데이터를 삭제하거나 기기를 초기화하지 않는다.
+
 ## 경계
 
-- 이 결정은 로컬 iOS Simulator와 Android Emulator 개발에 적용한다. 실제 기기, Expo Web, 원격 기기와 CI 기기 실행은 포함하지 않는다.
+- 이 결정은 로컬 iOS Simulator, Android Emulator와 같은 Wi-Fi의 실제 iPhone·Android 폰 개발에 적용한다. Expo Web, 외부 네트워크의 원격 기기와 CI 기기 실행은 포함하지 않는다. 실기기의 상세 범위와 수락 기준은 [실기기 LAN 개발 세션](../specs/physical-device-lan-development/spec.md)을 따른다.
 - worktree 격리는 한 저장소 clone 안에서만 보장한다. 같은 컴퓨터에서 같은 slug를 쓰는 clone을 둘 이상 실행하면 상태 파일은 따로지만 기기 이름은 모두 `<slug>-slot-<번호>` 형식이라 같은 slot끼리 충돌할 수 있다.
 - 프로젝트 사이의 격리는 대역 번호가 다를 때만 보장한다. 번호는 사람이 프로젝트마다 다르게 정하며, 같은 번호를 쓰는 프로젝트끼리는 다시 겹친다. 세션은 다른 프로젝트의 번호를 알지 못한다.
 - 대역 번호는 프로젝트 사이를 나누고, slot은 같은 프로젝트의 worktree 사이를 나눈다. worktree끼리는 Supabase 스택 하나를 계속 공유한다. `project_id`가 같으면 CLI가 같은 컨테이너에 붙으므로 포트만으로는 worktree별 스택을 만들 수 없다.
@@ -48,6 +53,8 @@
 
 ## 이유
 
+실기기는 Mac과 별개의 네트워크 장치이므로 가상 기기 전용 주소를 사용할 수 없다. 같은 Wi-Fi에서 개발하는 현재 요구에는 LAN 주소 자동 설정이 별도 VPN이나 공개 터널보다 준비할 것이 적다. 기존 worktree별 포트와 공용 Supabase는 유지한다.
+
 브랜치 이름은 같은 폴더에서 바뀔 수 있고 detached HEAD에는 없으므로 실행 환경의 안정적인 식별자가 아니다. worktree 경로에 고정 slot과 독점 기기 배정을 연결하면 같은 bundle ID를 유지하면서도 여러 checkout을 동시에 실행할 수 있다.
 
 네이티브 빌드는 느리지만 앱 데이터와 로그인 상태는 worktree마다 달라야 한다. 따라서 플랫폼과 native fingerprint가 같은 빌드 결과만 저장소 전체에서 공유하고, 설치 대상 기기는 worktree마다 독점 배정한다. worktree가 사라지면 기기를 초기화해 풀로 돌려놓으므로 이전 로그인 상태는 다음 worktree로 넘어가지 않는다.
@@ -60,7 +67,7 @@ Portless는 고정 hostname과 빈 포트 선택에는 유용하지만 Simulator
 
 `EXPO_PUBLIC_` 값은 Metro 프로세스의 환경에서 읽어 번들에 박힌다. 완성된 주소를 넘기면 호스트가 플랫폼마다 달라 Metro 하나가 한 플랫폼의 주소만 담을 수 있고, 그래서 worktree 하나가 한 번에 한 플랫폼만 실행할 수 있었다. 포트만 넘기면 값이 플랫폼과 무관해져 Metro 하나가 두 플랫폼의 번들을 함께 내보낸다.
 
-호스트는 앱이 정한다. `babel-preset-expo`가 `process.env.EXPO_OS`를 번들의 플랫폼 이름으로 치환하므로, 같은 Metro가 만든 iOS 번들과 Android 번들이 서로 다른 호스트를 담는다. `react-native`를 import하지 않으므로 이 판단이 `apps/mobile/env.ts` 안에 남고, 같은 파일을 쓰는 개발 세션 스크립트도 그대로 검증에 사용한다.
+가상 기기만 지원하던 기존 구현은 호스트를 앱에서 정했다. `babel-preset-expo`가 `process.env.EXPO_OS`를 번들의 플랫폼 이름으로 치환하므로, 같은 Metro가 만든 iOS 번들과 Android 번들이 서로 다른 호스트를 담는다. `react-native`를 import하지 않으므로 기존 판단이 `apps/mobile/env.ts` 안에 남고, 같은 파일을 쓰는 개발 세션 스크립트도 그대로 검증에 사용한다.
 
 빈 명령으로 기기를 켜는 주요 모바일 CLI는 없다. Expo `expo start`는 서버만 띄우고 키 입력을 기다리고, Flutter는 기기 선택지를 보여 주며, Capacitor는 플랫폼이 필수 인수다. 기기 부팅과 네이티브 빌드가 비싸므로 이 계열은 명시를 강제한다. 여러 대상을 위치 인수로 나열하는 형태는 `docker compose up [SERVICE...]`, GNU Make의 다중 goal, `gradle clean build`와 같은 가장 넓은 선례를 따른다.
 

@@ -34,6 +34,7 @@ export interface WorktreeStatus {
   /** Git no longer lists this worktree; the next start reclaims it. */
   gone: boolean;
   label: string;
+  lanHost?: string;
   metro: StatusProcess;
   path: string;
   slot: number;
@@ -122,6 +123,7 @@ function worktreeStatus(
   }
 
   return {
+    ...(record.lanHost ? { lanHost: record.lanHost } : {}),
     activePlatforms: [...record.activePlatforms],
     api: statusProcess(
       path,
@@ -219,6 +221,11 @@ export function renderStatusReport(report: StatusReport): string[] {
       );
     }
 
+    if (worktree.lanHost) {
+      lines.push(
+        `  실기기 LAN  ${worktree.lanHost} (폰 연결 여부는 별도 확인)`
+      );
+    }
     lines.push(processLine("API", worktree.api));
     lines.push(processLine("Metro", worktree.metro));
     lines.push(

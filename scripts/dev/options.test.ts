@@ -5,6 +5,23 @@ import { parseDevCommand, USAGE } from "./options";
 const usageMessage = /bun run dev <ios\|android>/;
 
 describe("parseDevCommand", () => {
+  test("실기기 LAN 연결과 명시한 주소를 선택한다", () => {
+    expect(
+      parseDevCommand([
+        "ios",
+        "android",
+        "--physical",
+        "--host",
+        "192.168.0.10",
+      ])
+    ).toEqual({
+      clear: false,
+      host: "192.168.0.10",
+      kind: "start",
+      physical: true,
+      platforms: ["ios", "android"],
+    });
+  });
   test("플랫폼 인수를 명령으로 바꾼다", () => {
     expect(parseDevCommand(["ios"])).toEqual({
       clear: false,
