@@ -613,30 +613,6 @@ export function ChatPanel({
     AccessibilityInfo.announceForAccessibility(chatLabels.errorAnnouncement);
   }, [chat.error]);
 
-  // 마무리는 입력창보다 크다. 그 자리가 커지는 만큼 목록의 끝도 아래로
-  // 내려가야 하는데, 자리의 높이가 바뀌었다고 목록이 스스로 따라가지는
-  // 않는다. 그대로 두면 마지막 장면이 마무리 뒤에 가려진 채로 대화가 끝난다.
-  // 잰 높이가 바뀔 때마다 끝으로 당기므로, 마무리가 자리를 잡은 뒤에 한 번 더
-  // 맞춘다.
-  useEffect(() => {
-    // 아직 재지 않은 자리로는 끝을 계산할 수 없다.
-    if (!isClosed || composerHeight === 0) {
-      return;
-    }
-
-    setIsFollowingLatest(true);
-
-    const frame = requestAnimationFrame(() => {
-      listRef.current
-        ?.scrollToEnd({ animated: !isReducedMotion })
-        .catch(() => undefined);
-    });
-
-    return () => {
-      cancelAnimationFrame(frame);
-    };
-  }, [composerHeight, isClosed, isReducedMotion]);
-
   const cancelScrollMotion = useCallback(() => {
     motionGeneration.current += 1;
     pendingAnchorIndex.current = undefined;
@@ -762,6 +738,41 @@ export function ChatPanel({
     hasReachedEnd,
     isReducedMotion,
   ]);
+  // 마무리 카드의 실제 높이를 목록에 반영한 뒤 끝으로 옮긴다.
+  // 진행 중이던 질문 배치를 취소해서 두 이동이 서로 덮어쓰지 않게 한다.
+  useEffect(() => {
+    if (!isClosed || composerHeight === 0) {
+      return;
+    }
+    const frame = requestAnimationFrame(async () => {
+      cancelScrollMotion();
+      const generation = motionGeneration.current;
+      setIsMovingToLatest(true);
+      setIsFollowingLatest(false);
+      freeze.set(true);
+      try {
+        // 마지막 행의 네이티브 높이 측정까지 목록이 기다리게 한다.
+        await listRef.current?.scrollToEnd({ animated: !isReducedMotion });
+      } catch {
+        // 실패하면 최신 메시지 버튼으로 다시 이동할 수 있다.
+      } finally {
+        if (generation === motionGeneration.current) {
+          freeze.set(false);
+          setIsMovingToLatest(false);
+          setIsFollowingLatest(hasReachedEnd());
+        }
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [
+    cancelScrollMotion,
+    composerHeight,
+    freeze,
+    hasReachedEnd,
+    isClosed,
+    isReducedMotion,
+  ]);
+
   const handleEndVisible = useCallback(
     (visible: boolean) => {
       if (

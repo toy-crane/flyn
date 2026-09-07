@@ -86,3 +86,20 @@ Android 24초 장면을 위 화면에 남겼다.
 
 iOS 마무리 카드가 생긴 뒤 마지막 발화 일부가 가려지는 것을 확인했다. 목록 끝 이동을
 바꾼 코드와 입력 영역 높이 갱신을 함께 조사한다. 제품 전체 검증은 아직 통과하지 않았다.
+
+## 2026-09-07 마무리 전환 보정
+
+- iOS에서 마무리 카드가 생긴 뒤 목록 높이가 53px 더 늘었다. 고정 좌표로 이동하면
+  뒤늦게 측정한 마지막 본문이 카드에 가려졌다. 마무리 전환에서는 질문 배치를 취소하고
+  키보드 보정을 잠시 고정한 뒤, 마지막 행의 측정을 기다리는 목록 끝 이동을 사용한다.
+  최신 메시지 버튼은 승인한 고정 목표 이동을 유지한다.
+- 변경 후 두 기기의 새 3화에서 영어로 요청하고 사건을 마무리했다. 마지막 발화와
+  지문을 카드 위에서 모두 읽을 수 있다. [iOS](evidence/ios-closing-visible.png),
+  [Android](evidence/android-closing-visible.png). 원본 녹화는 로컬
+  `/private/tmp/flyn-motion-evidence/{ios,android}-closing-deferred.mp4`에 있다.
+- ChatPanel 94개 테스트, 모바일 타입 검사와 변경 파일 Ultracite 검사를 통과했다.
+- Android 앱 프로세스에서 별도로 계측한 지난 본문 13개도 답변 시작부터 완료까지
+  0회 렌더됐다. [Android 계측 결과](evidence/android-body-render-counts.json).
+  임시 렌더 계측 코드는 제거했다.
+
+접근성 설정과 AI에게 물어보기 등 남은 수용 기준은 계속 확인한다.

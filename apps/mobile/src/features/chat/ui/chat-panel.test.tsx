@@ -2248,7 +2248,9 @@ describe("끝난 대화", () => {
     });
 
     await waitFor(() => {
-      expect(mockScrollToEnd).toHaveBeenCalled();
+      expect(mockScrollToEnd).toHaveBeenCalledWith({
+        animated: true,
+      });
     });
     expect(screen.queryByLabelText(chatLabels.latest)).not.toBeOnTheScreen();
   });
