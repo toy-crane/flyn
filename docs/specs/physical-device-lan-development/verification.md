@@ -1,6 +1,6 @@
 # 실기기 LAN 개발 검증
 
-2026-09-07 기준 구현 중간 확인이다. 자동 검사와 아래에 기록한 가상 기기 경로를 확인했다. 실기기 수락 기준과 일부 회귀 검증은 아직 완료하지 않았다.
+2026-09-07 기준 구현 중간 확인이다. 자동 검사, 가상 기기 경로와 USB iPhone 14의 이메일 로그인·대화·사진 표시를 확인했다. 전체 실기기 수락 기준과 일부 회귀 검증은 아직 완료하지 않았다.
 
 ## 구현과 실행
 
@@ -52,18 +52,27 @@ CLI 옵션, LAN 주소 선택, 실제 Metro 주소에 따른 API·Storage URL, �
 
 iOS 빌드 후 fingerprint가 한 번 바뀌어 기존 앱 자동 재연결을 거절했다. `bun run dev ios`로 재빌드한 뒤 두 가상 기기 연결을 정상 등록했다. 원인을 우회하거나 fingerprint 확인을 생략하지 않았다. [기존 fingerprint 후속 확인](../../follow-ups/parallel-worktree-native-fingerprint-drift.md)과 같은 원인인지는 확인하지 않았다.
 
-## 남은 수락 기준과 재개 조건
+## USB iPhone 준비와 직접 확인한 결과
 
 - 사용자가 지정한 테스트 대상은 USB의 `kim의 iPhone`(iPhone 14, iOS 18.7.7)이다. USB 트리의 식별자를 Xcode와 대조했고 `transportType: wired`를 확인했다. 앞으로 이 기기 식별자로만 iPhone 검증을 수행한다.
 - 대상 iPhone 14는 처음에 개발자 모드가 꺼져 앱 조회부터 실패했다. 사용자의 모드 활성화·재연결 뒤 `developerModeStatus: enabled`, `ddiServicesAvailable: true`, `transportType: wired`, `tunnelState: connected`를 확인했다. LAN 서버의 Mac 응답 확인도 통과했다.
 - 재연결한 iPhone 14에는 `com.odd.flyn`이 설치돼 있지 않았다. 기존 로컬 인증서와 Flyn 프로비저닝 프로필에 이 기기가 포함된 것을 확인하고 실기기용 Debug 빌드를 만들었다. `xcodebuild`는 현재 worktree의 `apps/mobile/ios/app.xcworkspace`, `app` scheme, 정확한 기기 식별자를 사용했고 성공했다. 원격 빌드와 프로비저닝 갱신은 요청하지 않았다. 결과는 `/tmp/flyn-lan-iphone14-derived/Build/Products/Debug-iphoneos/app.app`, 빌드 로그는 `/tmp/flyn-lan-iphone14-build.log`다.
 - iPhone 14에 해당 앱을 설치한 뒤 앱 목록에서 `com.odd.flyn` 1.0.0 (1)을 다시 확인했다. 앱 실행과 LAN 링크 열기 명령은 성공했다. 빌드의 최소 iOS는 16.4이며 `NSAllowsLocalNetworking: true`, `NSAllowsArbitraryLoads: false`를 확인했다. 앱 최초 설치를 위한 일회성 검증 준비이며 `bun run dev --physical`에 자동 설치 기능을 추가한 것은 아니다.
 - 앞서 접근한 `toy-crane iphone`(iPhone 15 Pro, iOS 26.6.1)은 로컬 네트워크로 연결된 다른 기기였다. USB 대상 대조 전에 잘못 선택했다. 이 기기의 DDI 복구, `com.odd.flyn` 1.0.0 (1) 조회와 앱·LAN 링크 열기 결과를 USB iPhone 14의 검증 결과로 사용하지 않는다.
-- iPhone 14의 새 `flyn-lan-iphone14` 세션에서도 화면 조회는 `Developer mode is disabled for Apple development tools`로 실패했다. Mac의 `DevToolsSecurity -status`도 꺼짐을 보고했다. 활성화 명령은 Mac 전체에 계속 적용되는 보안 설정 변경에 대한 명시적 승인이 없다는 앞선 자동 승인 검토의 거절 이후 재실행하지 않았다. 사용자에게 요청한 Mac 설정 변경 승인은 아직 받지 않았다. iPhone 개발자 모드와 Mac의 이 권한은 별도 설정이다.
-- iPhone 14의 로그인·사진·실제 API 기능은 아직 검증하지 못했다. LAN 링크 열기 뒤 Metro 디버그 대상 목록에는 가상 기기 두 개만 나타났다. 따라서 앱의 번들 수신이나 LAN 연결 성공도 명령의 성공만으로 판단하지 않는다.
+- 처음 화면 조회는 `Developer mode is disabled for Apple development tools`로 실패했다. 이후 사용자가 Mac 설정 변경을 명시적으로 승인했다. macOS 관리자 인증 창을 통해 `/usr/sbin/DevToolsSecurity -enable`을 실행했고, 마지막 `DevToolsSecurity -status`에서 `Developer mode is currently enabled.`를 확인했다. 이 설정은 Mac에 계속 적용된다. iPhone의 개발자 모드와는 별도 설정이다.
+- `agent-device` 0.20.5의 기본 테스트 실행기는 다른 개발 팀을 사용해 서명에 실패했다. 다른 세션의 daemon을 바꾸지 않고 `/tmp/flyn-iphone14-agent`에 전용 daemon을 시작했다. `AGENT_DEVICE_IOS_TEAM_ID=STRPJDK4MR`, `AGENT_DEVICE_IOS_BUNDLE_ID=com.odd.flyn.agentdevice.runner`를 지정한 실행기의 XCTest 빌드·서명·실행이 성공했다. Flyn 앱 설치와 별개로 이 테스트 실행기 빌드는 도구의 `-allowProvisioningUpdates` 경로를 사용했다.
+- `AGENT_DEVICE_STATE_DIR=/tmp/flyn-iphone14-agent`의 `flyn-lan-iphone14` 세션에서 정확한 USB 기기 식별자를 지정했다. 앱의 Development Build 서버 선택 화면에서 `Enter URL manually`에 `http://192.168.45.159:8122`를 입력하고 `Connect`를 눌렀다. 번들을 받은 뒤 로그인 화면이 표시됐고 개발 메뉴의 연결 주소도 일치했다. [실기기 Metro 주소](evidence/metro-iphone14.png).
+- 앱에서 `lan-20260907-sim@example.com`의 이메일 코드를 요청하고 로컬 `auth:otp`로 읽었다. 화면에 입력해 기존 테스트 계정으로 로그인했다. 인증 코드 입력란의 접근성 값은 실제 코드 대신 입력 자리 수를 보고했고, 도구의 키보드 label 선택은 서로 다른 키를 같은 좌표로 눌렀다. 잘못된 입력을 코드 재요청과 스크린샷에서 확인한 키 좌표 입력으로 해결했다. 세션 주입과 관리자 인증은 사용하지 않았다.
+- 스토리 표지 5개가 표시됐다. Simulator에서 앞서 업로드한 기본 꽃 사진도 이 iPhone의 프로필에 표시됐다. 이 기기에는 이번에 앱을 처음 설치했으므로 과거 앱 캐시만으로 표시한 결과는 아니다. [실기기 표지](evidence/stories-iphone14.png), [프로필 사진](evidence/avatar-iphone14.png).
+- 2화에서 `Sorry for the delay. Can I pay with my phone instead?`를 보내 실제 답변, 2화 완료, 3화 안내를 확인했다. [실기기 API 기능](evidence/api-iphone14.png). API 기능 성공을 확인한 결과이며 요청별 서버 로그나 패킷으로 목적지 포트를 입증한 결과는 아니다.
+- 같은 앱을 종료 후 재실행했다. 로그인, 40% 진행 상태와 프로필 사진이 유지됐다. [재실행 후 사진](evidence/avatar-iphone14-reopen.png). 프로필 버튼을 가리는 Expo 개발 메뉴의 `Tools button`은 이 앱에서 껐다. 실제 화면으로 로그아웃해 로그인 화면 복귀를 확인하고 `agent-device` 세션을 닫았다. API·Metro는 계속 실행 중이다.
+
+## 남은 수락 기준과 재개 조건
+
 - 실제 Android는 `adb devices -l`에 나타나지 않았다. 호환되는 Development Build가 설치된 폰을 USB로 연결하고 디버깅을 허용해야 한다.
-- 두 실기기의 이메일 로그인·로그아웃, 실제 API 요청 목적지, Google 로그인, iPhone Apple 로그인, 모든 종류의 사진 다운로드·업로드·재열기는 미검증이다. 제공자 본인 확인은 사용자가 직접 진행한다.
+- 실제 Android의 이메일 로그인·로그아웃과 API 기능, 두 실기기의 요청별 API 목적지, Google 로그인, iPhone Apple 로그인은 미검증이다. 제공자 본인 확인은 사용자가 직접 진행한다. iPhone에서 새 사진 업로드와 제공자 프로필 사진도 아직 확인하지 않았다.
 - Android Emulator에서 새 사진 업로드는 미검증이다. 제공자가 준 프로필 사진과 이미지의 최종 요청 URL·응답도 아직 확인하지 않았다. `agent-device network dump`와 개발용 Network 이벤트 관찰에서 요청 기록을 얻지 못했다. 이미지의 화면 표시와 URL 단위 테스트를 실제 네트워크 기록으로 대체하지 않는다.
+- iPhone 14의 대화 완료 스크린샷에는 스크롤한 본문과 상단 제목이 겹쳐 보인다. LAN 연결 결과와 별개로 iOS 18의 대화 화면 레이아웃 확인이 필요하다.
 - 실제 IP 변경 후 재시작, 두 worktree의 실기기 A → B → A 전환, 한 worktree 종료 후 다른 쪽 기능 유지, 실기기와 가상 기기의 동시 기능 실행은 미검증이다.
-- 생성된 iOS 설정에서 `NSAllowsLocalNetworking`과 로컬 네트워크 권한 문구를 확인했다. Android debug manifest는 HTTP를 허용했다. 배포용 설정은 바꾸지 않았다. 실제 폰의 OS 권한·대상 SDK별 동작은 남아 있다.
+- 생성된 iOS 설정에서 `NSAllowsLocalNetworking`과 로컬 네트워크 권한 문구를 확인했다. Android debug manifest는 HTTP를 허용했다. 배포용 설정은 바꾸지 않았다. iPhone 14 / iOS 18.7.7에서 이번 LAN 경로가 동작했으며, 실제 Android의 OS 권한·대상 SDK별 동작은 남아 있다.
 - `implement`의 모든 수락 기준 통과 뒤 단계인 전체 diff 자동 리뷰는 아직 실행하지 않았다. 실기기 검증과 남은 회귀 확인을 마친 실행 가능한 변경을 대상으로 Codex 표준 리뷰를 한 번 실행한다.
