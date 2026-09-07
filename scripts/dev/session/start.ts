@@ -27,6 +27,7 @@ import {
   developmentClientUrl,
   mobileEnvironmentFingerprint,
 } from "../environment";
+import { sessionLanHost, verifyLanServers } from "../lan";
 import { withLock } from "../lock";
 import {
   metroInputFingerprint,
@@ -95,7 +96,9 @@ class SessionDiedError extends Error {}
 export interface StartInput {
   clear: boolean;
   cwd: string;
+  host?: string;
   io: SessionIo;
+  physical?: boolean;
   /** Ordered and de-duplicated; the order is the start order. */
   platforms: Platform[];
 }
@@ -117,8 +120,10 @@ export interface StartResult {
   /** Every platform attached to this worktree's Metro once the command ends. */
   activePlatforms: Platform[];
   apiPort: number;
+  connectionUrl?: string;
   /** Requested platforms that did not come up; the session itself lives on. */
   failures: PlatformFailure[];
+  lanHost?: string;
   logDirectory: string;
   metroPort: number;
   slot: number;
@@ -329,7 +334,8 @@ async function allocate(
   io: SessionIo,
   environmentFingerprintForSlot: (slot: number) => string,
   metroInputsCurrent: boolean,
-  forceClear: boolean
+  forceClear: boolean,
+  lanHost?: string
 ): Promise<Allocation> {
   return await withLock(context.paths.lockDirectory, async () => {
     const { worktreePath } = context.git;
@@ -383,6 +389,7 @@ async function allocate(
       devices: existing?.devices ?? {},
       environmentFingerprint: existing?.environmentFingerprint ?? null,
       label: context.git.label,
+      lanHost,
       processes: existing?.processes ?? {},
       slot,
     };
@@ -399,7 +406,7 @@ async function allocate(
     // A worktree that never had a record and could not lease a single device
     // does not get one now: a slot held by an empty record would show up in
     // `dev:status` and block other worktrees for nothing.
-    if (!existing && Object.keys(worktree.devices).length === 0) {
+    if (!(existing || lanHost) && Object.keys(worktree.devices).length === 0) {
       delete state.worktrees[worktreePath];
     }
 
@@ -993,17 +1000,14 @@ function aggregateFailure(
   );
 }
 
-export async function startSession({
-  clear,
-  cwd,
-  io,
-  platforms,
-}: StartInput): Promise<StartResult> {
-  const context = await createSessionContext(cwd);
-  const failures: PlatformFailure[] = [];
+async function prepareDrivers(
+  context: SessionContext,
+  requestedVirtualPlatforms: Platform[],
+  failures: PlatformFailure[]
+): Promise<Map<Platform, PlatformDriver>> {
   const drivers = new Map<Platform, PlatformDriver>();
   const toolingChecks = await Promise.all(
-    platforms.map(async (platform) => {
+    requestedVirtualPlatforms.map(async (platform) => {
       const driver = driverFor(context, platform);
 
       try {
@@ -1031,7 +1035,43 @@ export async function startSession({
     }
   }
 
-  if (drivers.size === 0) {
+  return drivers;
+}
+
+/** A physical session prepares a link; it does not claim an attached phone. */
+function requireVirtualTarget(
+  physical: boolean,
+  count: number,
+  lead: string,
+  failures: PlatformFailure[]
+): void {
+  if (!physical && count === 0) {
+    throw aggregateFailure(lead, failures);
+  }
+}
+
+export async function startSession({
+  clear,
+  cwd,
+  io,
+  platforms,
+  physical = false,
+  host,
+}: StartInput): Promise<StartResult> {
+  const context = await createSessionContext(cwd);
+  const previous = readState(context.paths.statePath).worktrees[
+    context.git.worktreePath
+  ];
+  const lanHost = sessionLanHost(physical, host, previous?.lanHost);
+  const requestedVirtualPlatforms = physical ? [] : platforms;
+  const failures: PlatformFailure[] = [];
+  const drivers = await prepareDrivers(
+    context,
+    requestedVirtualPlatforms,
+    failures
+  );
+
+  if (!physical && drivers.size === 0) {
     throw new Error(failures.map((failure) => failure.message).join("\n\n"));
   }
 
@@ -1044,6 +1084,7 @@ export async function startSession({
   const mobileEnvironmentForSlot = (slot: number) =>
     buildMobileEnvironment({
       fileValues,
+      lanHost,
       ports: {
         api: apiPort(slot, context.band),
         supabase: context.supabasePort,
@@ -1071,7 +1112,8 @@ export async function startSession({
     io,
     (slot) => mobileEnvironmentFingerprint(mobileEnvironmentForSlot(slot)),
     previousMetroInputFingerprint === currentMetroInputFingerprint,
-    clear
+    clear,
+    lanHost
   );
 
   failures.push(...allocation.deviceFailures);
@@ -1080,12 +1122,12 @@ export async function startSession({
     (platform) => allocation.devices[platform] !== undefined
   );
 
-  if (startable.length === 0) {
-    throw aggregateFailure(
-      "요청한 플랫폼을 하나도 시작하지 못했습니다.",
-      failures
-    );
-  }
+  requireVirtualTarget(
+    physical,
+    startable.length,
+    "요청한 플랫폼을 하나도 시작하지 못했습니다.",
+    failures
+  );
 
   const metro = metroPort(allocation.slot, context.band);
   const api = apiPort(allocation.slot, context.band);
@@ -1121,6 +1163,40 @@ export async function startSession({
     watch,
   };
 
+  const connection = lanHost
+    ? {
+        connectionUrl: developmentClientUrl(
+          context.project.scheme,
+          metro,
+          lanHost
+        ),
+        lanHost,
+      }
+    : {};
+  const verifyLan = async () => {
+    await verifyLanServers(lanHost, api, metro, context.supabasePort);
+    if (lanHost) {
+      io.log(
+        `Mac에서 LAN 서버 응답을 확인했습니다: ${lanHost}. 폰의 연결은 링크를 연 뒤 확인해 주세요.`
+      );
+    }
+  };
+
+  if (allocation.running && physical) {
+    watch(allocation.reusedPids)();
+    await verifyLan();
+    return {
+      ...connection,
+      activePlatforms: allocation.attached,
+      apiPort: api,
+      failures,
+      logDirectory: logs.directory,
+      metroPort: metro,
+      slot: allocation.slot,
+      successes: [],
+    };
+  }
+
   if (allocation.running) {
     const { attachedNow, failedNow, successes } =
       await startOnRunningSession(setup);
@@ -1148,7 +1224,9 @@ export async function startSession({
       );
     }
 
+    await verifyLan();
     return {
+      ...connection,
       activePlatforms,
       apiPort: api,
       failures,
@@ -1163,12 +1241,12 @@ export async function startSession({
   // session's own Metro exists.
   const prepared = await prepareFreshPlatforms(setup);
 
-  if (prepared.length === 0) {
-    throw aggregateFailure(
-      "요청한 플랫폼을 하나도 시작하지 못했습니다.",
-      failures
-    );
-  }
+  requireVirtualTarget(
+    physical,
+    prepared.length,
+    "요청한 플랫폼을 하나도 시작하지 못했습니다.",
+    failures
+  );
 
   const started: number[] = [];
 
@@ -1210,7 +1288,11 @@ export async function startSession({
     const metroPid = spawnSession({
       argv: metroArguments,
       cwd: context.mobileDirectory,
-      env: { ...env, TMPDIR: metroCache.tmpDirectory },
+      env: {
+        ...env,
+        TMPDIR: metroCache.tmpDirectory,
+        ...(lanHost ? { REACT_NATIVE_PACKAGER_HOSTNAME: lanHost } : {}),
+      },
       logPath: logs.metro,
     });
 
@@ -1277,12 +1359,12 @@ export async function startSession({
       }
     }
 
-    if (attachedNow.length === 0) {
-      throw aggregateFailure(
-        "요청한 플랫폼의 앱을 하나도 열지 못했습니다.",
-        failures
-      );
-    }
+    requireVirtualTarget(
+      physical,
+      attachedNow.length,
+      "요청한 플랫폼의 앱을 하나도 열지 못했습니다.",
+      failures
+    );
 
     const reattached = await reopenOtherPlatforms({
       attached: allocation.attached,
@@ -1294,7 +1376,7 @@ export async function startSession({
       leasedElsewhere: allocation.leasedElsewhere,
       logs,
       metro,
-      requested: new Set(platforms),
+      requested: new Set(requestedVirtualPlatforms),
       running,
       slot: allocation.slot,
     });
@@ -1323,7 +1405,9 @@ export async function startSession({
       }
     });
 
+    await verifyLan();
     return {
+      ...connection,
       activePlatforms,
       apiPort: api,
       failures,

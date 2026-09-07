@@ -47,11 +47,33 @@ export type MobileEnv = Omit<
  * there `127.0.0.1` is the emulator itself. Anything else, including an unset
  * platform outside a bundle, uses the loopback address directly.
  */
-export function developmentSessionHost(platform: string | undefined): string {
+export function developmentSessionHost(
+  platform: string | undefined,
+  devServerUrl?: string
+): string {
+  if (devServerUrl) {
+    const server = new URL(devServerUrl);
+    if (server.protocol !== "http:") {
+      throw new Error("로컬 개발 서버는 LAN HTTP 주소로 연결해 주세요.");
+    }
+    const host = server.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1" && host !== "[::1]") {
+      // This workstream supports IPv4 LAN, not an Expo tunnel whose host
+      // cannot route the API and Storage ports.
+      const ipv4 = z.ipv4().safeParse(host);
+      if (!ipv4.success || host === "0.0.0.0") {
+        throw new Error("개발 서버의 LAN IPv4 주소를 확인해 주세요.");
+      }
+      return host;
+    }
+  }
   return platform === "android" ? "10.0.2.2" : "127.0.0.1";
 }
 
-export function parseMobileEnv(input: unknown): MobileEnv {
+export function parseMobileEnv(
+  input: unknown,
+  devServerUrl?: string
+): MobileEnv {
   const result = mobileEnvSchema.safeParse(input);
 
   if (!result.success) {
@@ -67,10 +89,15 @@ export function parseMobileEnv(input: unknown): MobileEnv {
     EXPO_PUBLIC_DEV_SESSION_SUPABASE_PORT,
     ...environment
   } = result.data;
-  // `babel-preset-expo` replaces this with the platform of the bundle it is
-  // building, so one Metro hands each platform its own host while the value
-  // the session passes in stays the same for both.
-  const host = developmentSessionHost(process.env.EXPO_OS);
+  // Runtime Metro URLs distinguish a LAN phone from a loopback simulator.
+  // EXPO_OS remains the fallback for the existing Android adb-reverse route.
+  // Without session ports, deployment URLs are used unchanged.
+  const host = developmentSessionHost(
+    process.env.EXPO_OS,
+    EXPO_PUBLIC_DEV_SESSION_API_PORT || EXPO_PUBLIC_DEV_SESSION_SUPABASE_PORT
+      ? devServerUrl
+      : undefined
+  );
   const sessionUrl = (sessionPort: number | undefined) =>
     sessionPort === undefined ? undefined : `http://${host}:${sessionPort}`;
 
@@ -85,21 +112,24 @@ export function parseMobileEnv(input: unknown): MobileEnv {
   };
 }
 
-export function getMobileEnv(): MobileEnv {
-  return parseMobileEnv({
-    EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
-    EXPO_PUBLIC_DEV_SESSION_API_PORT:
-      process.env.EXPO_PUBLIC_DEV_SESSION_API_PORT,
-    EXPO_PUBLIC_DEV_SESSION_SUPABASE_PORT:
-      process.env.EXPO_PUBLIC_DEV_SESSION_SUPABASE_PORT,
-    EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID:
-      process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID:
-      process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
-      process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-    EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
-    EXPO_PUBLIC_SUPPORT_EMAIL: process.env.EXPO_PUBLIC_SUPPORT_EMAIL,
-    EXPO_PUBLIC_WEB_URL: process.env.EXPO_PUBLIC_WEB_URL,
-  });
+export function getMobileEnv(devServerUrl?: string): MobileEnv {
+  return parseMobileEnv(
+    {
+      EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
+      EXPO_PUBLIC_DEV_SESSION_API_PORT:
+        process.env.EXPO_PUBLIC_DEV_SESSION_API_PORT,
+      EXPO_PUBLIC_DEV_SESSION_SUPABASE_PORT:
+        process.env.EXPO_PUBLIC_DEV_SESSION_SUPABASE_PORT,
+      EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID:
+        process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+      EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID:
+        process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+        process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+      EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+      EXPO_PUBLIC_SUPPORT_EMAIL: process.env.EXPO_PUBLIC_SUPPORT_EMAIL,
+      EXPO_PUBLIC_WEB_URL: process.env.EXPO_PUBLIC_WEB_URL,
+    },
+    devServerUrl
+  );
 }

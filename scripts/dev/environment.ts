@@ -40,6 +40,8 @@ export interface SessionPorts {
 export interface MobileEnvironmentInput {
   /** Values read from `apps/mobile/.env.local`. */
   fileValues: Record<string, string>;
+  /** Session reuse metadata; runtime hosts come from each device's Metro URL. */
+  lanHost?: string;
   ports: SessionPorts;
 }
 
@@ -53,9 +55,11 @@ export interface MobileEnvironmentInput {
 export function buildMobileEnvironment({
   fileValues,
   ports,
+  lanHost,
 }: MobileEnvironmentInput): Record<string, string> {
   const merged = {
     ...fileValues,
+    ...(lanHost ? { DEV_SESSION_LAN_HOST: lanHost } : {}),
     EXPO_PUBLIC_DEV_SESSION_API_PORT: String(ports.api),
     EXPO_PUBLIC_DEV_SESSION_SUPABASE_PORT: String(ports.supabase),
   };
@@ -96,9 +100,10 @@ export function mobileEnvironmentFingerprint(
 /** The development client deep link that pins the app to this worktree's Metro. */
 export function developmentClientUrl(
   scheme: string,
-  metroPort: number
+  metroPort: number,
+  host = "127.0.0.1"
 ): string {
-  const target = encodeURIComponent(`http://127.0.0.1:${metroPort}`);
+  const target = encodeURIComponent(`http://${host}:${metroPort}`);
 
   return `${scheme}://expo-development-client/?url=${target}`;
 }

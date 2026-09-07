@@ -27,9 +27,29 @@ const FILE_VALUES = {
   EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: "123-web.apps.googleusercontent.com",
   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
   EXPO_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+  EXPO_PUBLIC_SUPPORT_EMAIL: "support@example.com",
+  EXPO_PUBLIC_WEB_URL: "https://example.com",
 };
 
 describe("buildMobileEnvironment", () => {
+  test("LAN 주소가 바뀌면 세션 재사용 설정이 달라지고 연결 링크도 바뀐다", () => {
+    const first = buildMobileEnvironment({
+      fileValues: FILE_VALUES,
+      lanHost: "192.168.0.10",
+      ports: PORTS,
+    });
+    const next = buildMobileEnvironment({
+      fileValues: FILE_VALUES,
+      lanHost: "192.168.0.20",
+      ports: PORTS,
+    });
+    expect(mobileEnvironmentFingerprint(first)).not.toBe(
+      mobileEnvironmentFingerprint(next)
+    );
+    expect(developmentClientUrl("flyn", 8112, "192.168.0.20")).toBe(
+      "flyn://expo-development-client/?url=http%3A%2F%2F192.168.0.20%3A8112"
+    );
+  });
   test("일반 URL을 보존하고 개발 세션 전용 포트를 추가한다", () => {
     const env = buildMobileEnvironment({
       fileValues: FILE_VALUES,

@@ -19,6 +19,8 @@ export interface WorktreeRecord {
   devices: Partial<Record<Platform, string>>;
   environmentFingerprint: string | null;
   label: string;
+  /** LAN connection prepared for user-owned phones; never a pooled device. */
+  lanHost?: string;
   processes: Partial<Record<ProcessKind, ProcessRecord>>;
   slot: number;
 }
@@ -92,6 +94,7 @@ function parseWorktree(value: unknown): WorktreeRecord | undefined {
   const metro = parseProcess(processes.metro);
 
   return {
+    ...(typeof raw.lanHost === "string" ? { lanHost: raw.lanHost } : {}),
     activePlatforms: parsePlatforms(raw.activePlatforms),
     devices: {
       ...(typeof devices.android === "string"

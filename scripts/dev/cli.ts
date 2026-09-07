@@ -37,7 +37,9 @@ async function main(): Promise<void> {
   const result = await startSession({
     clear: command.clear,
     cwd: directory,
+    host: command.host,
     io,
+    physical: command.physical,
     platforms: command.platforms,
   });
   const buildLabels = {
@@ -54,10 +56,23 @@ async function main(): Promise<void> {
     io.log(`  빌드      ${buildLabels[success.build]}`);
   }
 
-  io.log(`  붙은 플랫폼  ${result.activePlatforms.join(", ")}`);
+  if (result.connectionUrl) {
+    io.log(`  worktree  ${directory}`);
+    io.log(`  실기기 연결  ${result.connectionUrl}`);
+    io.log(
+      "  설치된 Development Build에서 위 연결을 여세요. 빌드·설치와 폰의 연결 확인은 별도입니다."
+    );
+  }
+  io.log(
+    `  붙은 플랫폼  ${result.activePlatforms.join(", ") || "없음 (실기기 연결 여부는 별도 확인)"}`
+  );
   io.log(`  slot      ${result.slot}`);
-  io.log(`  API       http://127.0.0.1:${result.apiPort}`);
-  io.log(`  Metro     http://127.0.0.1:${result.metroPort}`);
+  io.log(
+    `  API       http://${result.lanHost ?? "127.0.0.1"}:${result.apiPort}`
+  );
+  io.log(
+    `  Metro     http://${result.lanHost ?? "127.0.0.1"}:${result.metroPort}`
+  );
   io.log(`  로그      ${result.logDirectory}`);
 
   if (result.failures.length > 0) {

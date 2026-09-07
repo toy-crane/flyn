@@ -5,7 +5,7 @@ const config = {
     // The same prefix tsconfig.json declares for Metro. Jest resolves modules
     // on its own, so a test that mocks "@/..." needs this to find the file.
     "^@/(.*)$": "<rootDir>/src/$1",
-    "^@env$": "<rootDir>/env.ts",
+    "^@env$": "<rootDir>/env-runtime.ts",
     "^lucide-react-native/icons/(.*)$":
       "<rootDir>/node_modules/lucide-react-native/dist/cjs/icons/$1.js",
   },

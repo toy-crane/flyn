@@ -34,6 +34,7 @@ function fullState(): RepositoryState {
         devices: { android: "avd-1" },
         environmentFingerprint: "env-fp",
         label: "main",
+        lanHost: "192.168.0.10",
         processes: {
           api: { logPath: "/cache/api.log", pid: 11, port: 3900 },
           metro: { logPath: "/cache/metro.log", pid: 12, port: 8081 },

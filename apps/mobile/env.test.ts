@@ -25,6 +25,18 @@ const validEnv = {
 };
 
 describe("parseMobileEnv", () => {
+  test("LAN Metro로 연 앱은 같은 Mac의 세션 API와 Supabase를 사용한다", () => {
+    const env = parseMobileEnv(
+      {
+        ...validEnv,
+        EXPO_PUBLIC_DEV_SESSION_API_PORT: "3931",
+        EXPO_PUBLIC_DEV_SESSION_SUPABASE_PORT: "54331",
+      },
+      "http://192.168.0.10:8112/"
+    );
+    expect(env.EXPO_PUBLIC_API_URL).toBe("http://192.168.0.10:3931");
+    expect(env.EXPO_PUBLIC_SUPABASE_URL).toBe("http://192.168.0.10:54331");
+  });
   test("모든 필수값이 올바르면 공백을 정리한 환경 설정을 반환한다", () => {
     expect(
       parseMobileEnv({
@@ -105,6 +117,14 @@ describe("parseMobileEnv", () => {
 });
 
 describe("developmentSessionHost", () => {
+  test("같은 Android 번들도 LAN 연결과 adb reverse 연결을 구분한다", () => {
+    expect(developmentSessionHost("android", "http://192.168.0.10:8112/")).toBe(
+      "192.168.0.10"
+    );
+    expect(developmentSessionHost("android", "http://127.0.0.1:8112/")).toBe(
+      "10.0.2.2"
+    );
+  });
   test("Android Emulator는 10.0.2.2로 호스트에 닿는다", () => {
     expect(developmentSessionHost("android")).toBe("10.0.2.2");
   });
