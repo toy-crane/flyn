@@ -55,9 +55,12 @@ iOS 빌드 후 fingerprint가 한 번 바뀌어 기존 앱 자동 재연결을 �
 ## 남은 수락 기준과 재개 조건
 
 - 사용자가 지정한 테스트 대상은 USB의 `kim의 iPhone`(iPhone 14, iOS 18.7.7)이다. USB 트리의 식별자를 Xcode와 대조했고 `transportType: wired`를 확인했다. 앞으로 이 기기 식별자로만 iPhone 검증을 수행한다.
-- 대상 iPhone 14는 `developerModeStatus: disabled`, `ddiServicesAvailable: false`다. 앱 조회부터 `CoreDeviceError 10005: Developer Mode is disabled`로 실패했으므로 앱 설치 여부와 실행 성공은 아직 확인하지 못했다. 사용자가 기기에서 개발자 모드를 켜고 재시작 후 확인을 마쳐야 한다. LAN 서버의 Mac 응답 확인은 통과했다.
+- 대상 iPhone 14는 처음에 개발자 모드가 꺼져 앱 조회부터 실패했다. 사용자의 모드 활성화·재연결 뒤 `developerModeStatus: enabled`, `ddiServicesAvailable: true`, `transportType: wired`, `tunnelState: connected`를 확인했다. LAN 서버의 Mac 응답 확인도 통과했다.
+- 재연결한 iPhone 14에는 `com.odd.flyn`이 설치돼 있지 않았다. 기존 로컬 인증서와 Flyn 프로비저닝 프로필에 이 기기가 포함된 것을 확인하고 실기기용 Debug 빌드를 만들었다. `xcodebuild`는 현재 worktree의 `apps/mobile/ios/app.xcworkspace`, `app` scheme, 정확한 기기 식별자를 사용했고 성공했다. 원격 빌드와 프로비저닝 갱신은 요청하지 않았다. 결과는 `/tmp/flyn-lan-iphone14-derived/Build/Products/Debug-iphoneos/app.app`, 빌드 로그는 `/tmp/flyn-lan-iphone14-build.log`다.
+- iPhone 14에 해당 앱을 설치한 뒤 앱 목록에서 `com.odd.flyn` 1.0.0 (1)을 다시 확인했다. 앱 실행과 LAN 링크 열기 명령은 성공했다. 빌드의 최소 iOS는 16.4이며 `NSAllowsLocalNetworking: true`, `NSAllowsArbitraryLoads: false`를 확인했다. 앱 최초 설치를 위한 일회성 검증 준비이며 `bun run dev --physical`에 자동 설치 기능을 추가한 것은 아니다.
 - 앞서 접근한 `toy-crane iphone`(iPhone 15 Pro, iOS 26.6.1)은 로컬 네트워크로 연결된 다른 기기였다. USB 대상 대조 전에 잘못 선택했다. 이 기기의 DDI 복구, `com.odd.flyn` 1.0.0 (1) 조회와 앱·LAN 링크 열기 결과를 USB iPhone 14의 검증 결과로 사용하지 않는다.
-- 이전 화면 자동 검증에서 Mac의 `DevToolsSecurity`가 꺼져 있음을 확인했다. 활성화 명령은 Mac 전체에 계속 적용되는 보안 설정 변경에 대한 명시적 승인이 없다는 자동 승인 검토의 거절로 실행되지 않았다. 사용자에게 요청한 Mac 설정 변경 승인은 아직 받지 않았다. iPhone 개발자 모드와 Mac의 이 권한은 별도 설정이다.
+- iPhone 14의 새 `flyn-lan-iphone14` 세션에서도 화면 조회는 `Developer mode is disabled for Apple development tools`로 실패했다. Mac의 `DevToolsSecurity -status`도 꺼짐을 보고했다. 활성화 명령은 Mac 전체에 계속 적용되는 보안 설정 변경에 대한 명시적 승인이 없다는 앞선 자동 승인 검토의 거절 이후 재실행하지 않았다. 사용자에게 요청한 Mac 설정 변경 승인은 아직 받지 않았다. iPhone 개발자 모드와 Mac의 이 권한은 별도 설정이다.
+- iPhone 14의 로그인·사진·실제 API 기능은 아직 검증하지 못했다. LAN 링크 열기 뒤 Metro 디버그 대상 목록에는 가상 기기 두 개만 나타났다. 따라서 앱의 번들 수신이나 LAN 연결 성공도 명령의 성공만으로 판단하지 않는다.
 - 실제 Android는 `adb devices -l`에 나타나지 않았다. 호환되는 Development Build가 설치된 폰을 USB로 연결하고 디버깅을 허용해야 한다.
 - 두 실기기의 이메일 로그인·로그아웃, 실제 API 요청 목적지, Google 로그인, iPhone Apple 로그인, 모든 종류의 사진 다운로드·업로드·재열기는 미검증이다. 제공자 본인 확인은 사용자가 직접 진행한다.
 - Android Emulator에서 새 사진 업로드는 미검증이다. 제공자가 준 프로필 사진과 이미지의 최종 요청 URL·응답도 아직 확인하지 않았다. `agent-device network dump`와 개발용 Network 이벤트 관찰에서 요청 기록을 얻지 못했다. 이미지의 화면 표시와 URL 단위 테스트를 실제 네트워크 기록으로 대체하지 않는다.
