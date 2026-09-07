@@ -23,6 +23,7 @@ import {
 } from "react";
 import {
   AccessibilityInfo,
+  AppState,
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -41,7 +42,7 @@ import Animated, {
   FadeInDown,
   FadeOutDown,
   ReduceMotion,
-  SlideInDown,
+  useReducedMotion,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -55,7 +56,6 @@ import { LatestMessageButton } from "./latest-message-button";
 import { sceneCopyText, sceneOfMessage } from "./scene";
 import { SceneMessage } from "./scene-message";
 import { SideChatCount, type SideChatEntry } from "./side-chat-count";
-import { useEnteringMessage } from "./use-entering-message";
 import { useLateAnswer } from "./use-late-answer";
 import { UserMessage } from "./user-message";
 import { WaitingAnswer } from "./waiting-answer";
@@ -78,6 +78,15 @@ const LATEST_OVERLAY_HEIGHT = 60;
 const SIDE_COUNT_OVERLAY_HEIGHT = 44;
 const USER_SCROLL_THRESHOLD = 24;
 const MESSAGE_TOP_SPACING = 12;
+// 닫힘 신호나 스크롤 완료 신호가 빠져도 입력과 읽기를 계속할 수 있다.
+const QUESTION_POSITION_TIMEOUT_MS = 4000;
+// 서버 메시지가 아직 없을 때만 목록의 답변 자리를 확보한다.
+// 채팅 세션이나 서버 요청에는 포함하지 않는다.
+const WAITING_MESSAGE: UIMessage = {
+  id: "flyn-waiting-answer",
+  parts: [],
+  role: "assistant",
+};
 /** Enough to read the messages about to go, not enough to mistake them for staying. */
 const DOOMED_OPACITY = 0.38;
 /**
@@ -94,21 +103,6 @@ const LATEST_ENTERING = FadeInDown.duration(240)
 const LATEST_EXITING = FadeOutDown.duration(160)
   .easing(Easing.in(Easing.cubic))
   .reduceMotion(ReduceMotion.System);
-/**
- * The question the person just sent rises from below the screen into the place
- * the list has already made for it. It sets off quickly and eases to a stop, so
- * the message is readable well before it settles. The list's own placement is
- * untouched: this is only how the row gets there.
- *
- * The curve is the one the button above already uses. An exponential ease-out
- * was tried first and measured on a device: three quarters of the travel was
- * over before the row cleared the keyboard, so what reached the eye was a jump
- * rather than a rise.
- */
-const MESSAGE_ENTERING = SlideInDown.duration(400)
-  .easing(Easing.out(Easing.cubic))
-  .reduceMotion(ReduceMotion.System);
-
 function textOfMessage(message: UIMessage): string {
   return message.parts
     .filter((part) => part.type === "text")
@@ -123,39 +117,30 @@ function copyText(text: string) {
   });
 }
 
-/**
- * One message, and what can be done with it.
- *
- * `hasActions` is off for the answer still on its way, which carries no icon
- * row, and for a panel that offers no per-message actions at all; while an
- * answer is arriving no message opens its menu either. `isDoomed` marks the
- * messages an edit in progress would drop. `isEntering` marks the one question
- * that comes in from below, and the row reports back once it has, so the list
- * rebuilding the row later leaves it where it is.
- */
+/** 메시지 본문과 동작. 이동은 목록에서만 처리한다. */
 function PlainTextMessage({
   areActionsDisabled,
+  areActionsVisible,
   canOpenMenu,
   hasActions,
   isDoomed,
-  isEntering,
+  isWaiting,
   message,
   MessageAddon,
   onAskInSideChat,
   onBeginEdit,
-  onEntered,
   onRegenerate,
 }: {
   areActionsDisabled: boolean;
+  areActionsVisible: boolean;
   canOpenMenu: boolean;
   hasActions: boolean;
   isDoomed: boolean;
-  isEntering: boolean;
+  isWaiting: boolean;
   message: UIMessage;
   MessageAddon: ComponentType<{ message: UIMessage }> | undefined;
   onAskInSideChat: ((input: AskInSideChat) => void) | undefined;
   onBeginEdit: (messageId: string) => void;
-  onEntered: () => void;
   onRegenerate: (messageId: string) => void;
 }) {
   // 장면 메시지는 화자 순서대로 자르고, 그 밖의 메시지는 지금까지처럼 텍스트
@@ -191,23 +176,18 @@ function PlainTextMessage({
         : undefined,
     [canOpenMenu, message.id, onAskInSideChat]
   );
-  // The row keeps the answer it was built with. Reporting back below takes the
-  // entry away from every later row, and this row is already on its way in.
-  const [playsEntry] = useState(isEntering);
-
-  useEffect(() => {
-    if (isEntering) {
-      onEntered();
-    }
-  }, [isEntering, onEntered]);
-
   if (!text) {
-    return null;
+    return isWaiting ? (
+      <View className="mb-4" testID="chat-message-row">
+        <WaitingAnswer />
+      </View>
+    ) : null;
   }
 
   let body = (
     <AssistantMessage
       areActionsDisabled={areActionsDisabled}
+      areActionsVisible={areActionsVisible}
       hasActions={hasActions}
       onCopy={copy}
       onRegenerate={regenerate}
@@ -229,6 +209,7 @@ function PlainTextMessage({
     body = (
       <SceneMessage
         areActionsDisabled={areActionsDisabled}
+        areActionsVisible={areActionsVisible}
         hasActions={hasActions}
         onCopy={copy}
         onRegenerate={regenerate}
@@ -241,7 +222,6 @@ function PlainTextMessage({
   return (
     <Animated.View
       className="mb-4"
-      entering={playsEntry ? MESSAGE_ENTERING : undefined}
       style={{ opacity: isDoomed ? DOOMED_OPACITY : 1 }}
       testID="chat-message-row"
     >
@@ -541,15 +521,18 @@ export function ChatPanel({
   topInset?: number;
 }) {
   const insets = useSafeAreaInsets();
+  const isReducedMotion = useReducedMotion();
   const listRef = useRef<LegendListRef | null>(null);
   const composerRef = useRef<View | null>(null);
   const [anchorIndex, setAnchorIndex] = useState<number | undefined>();
+  const [anchorSpace, setAnchorSpace] = useState(0);
   const [isFollowingLatest, setIsFollowingLatest] = useState(true);
   const [isPositioningQuestion, setIsPositioningQuestion] = useState(false);
   const [composerHeight, setComposerHeight] = useState(0);
   const [bannerHeight, setBannerHeight] = useState(0);
   const [inputHeight, setInputHeight] = useState(INPUT_MIN_HEIGHT);
   const pendingAnchorIndex = useRef<number | undefined>(undefined);
+  const questionGeneration = useRef(0);
   const userMomentum = useRef<true | undefined>(undefined);
   const userScrollStart = useRef<number | undefined>(undefined);
   const canSend = chat.draft.trim().length > 0 && !chat.isBusy;
@@ -574,12 +557,23 @@ export function ChatPanel({
     chat.isBusy &&
     (lastMessage?.role !== "assistant" || textOfMessage(lastMessage) === "");
   const isAnswerLate = useLateAnswer(isWaitingForAnswer);
-  const { enteringMessageId, markEntered, markSent } = useEnteringMessage(
-    chat.messages
+  const listMessages = useMemo(
+    () =>
+      isAnswerLate && lastMessage?.role !== "assistant"
+        ? [...chat.messages, WAITING_MESSAGE]
+        : chat.messages,
+    [chat.messages, isAnswerLate, lastMessage?.role]
   );
   const { contentInsetEndAdjustment, onComposerLayout } =
     useKeyboardChatComposerInset(listRef, composerRef);
   const { freeze, scrollMessageToEnd } = useKeyboardScrollToEnd({ listRef });
+  const hasReachedEnd = useCallback(() => {
+    const state = listRef.current?.getState();
+    return (
+      state !== undefined &&
+      Math.max(0, state.contentLength - state.scrollLength) - state.scroll <= 2
+    );
+  }, []);
 
   const announcedError = useRef<Error | undefined>(undefined);
 
@@ -621,12 +615,46 @@ export function ChatPanel({
     };
   }, [composerHeight, isClosed, scrollMessageToEnd]);
 
+  const cancelQuestionPositioning = useCallback(() => {
+    questionGeneration.current += 1;
+    pendingAnchorIndex.current = undefined;
+    setIsPositioningQuestion(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isPositioningQuestion) {
+      return;
+    }
+    const timeout = setTimeout(() => {
+      cancelQuestionPositioning();
+      setIsFollowingLatest(false);
+    }, QUESTION_POSITION_TIMEOUT_MS);
+    return () => clearTimeout(timeout);
+  }, [cancelQuestionPositioning, isPositioningQuestion]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active") {
+        cancelQuestionPositioning();
+        setIsFollowingLatest(false);
+      }
+    });
+    return () => {
+      subscription.remove();
+      questionGeneration.current += 1;
+    };
+  }, [cancelQuestionPositioning]);
+
   const beginUserScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       userMomentum.current = undefined;
       userScrollStart.current = event.nativeEvent.contentOffset.y;
+      if (isPositioningQuestion) {
+        cancelQuestionPositioning();
+        setIsFollowingLatest(false);
+      }
     },
-    []
+    [cancelQuestionPositioning, isPositioningQuestion]
   );
   const endUserScroll = useCallback(() => {
     userMomentum.current = undefined;
@@ -668,11 +696,14 @@ export function ChatPanel({
       () => undefined
     );
   }, [scrollMessageToEnd]);
-  const handleEndVisible = useCallback((visible: boolean) => {
-    if (visible) {
-      setIsFollowingLatest(true);
-    }
-  }, []);
+  const handleEndVisible = useCallback(
+    (visible: boolean) => {
+      if (visible && !isPositioningQuestion && hasReachedEnd()) {
+        setIsFollowingLatest(true);
+      }
+    },
+    [hasReachedEnd, isPositioningQuestion]
+  );
   const resizeInput = useCallback(
     (
       event: NativeSyntheticEvent<{
@@ -702,27 +733,45 @@ export function ChatPanel({
     NonNullable<AnchoredEndSpaceConfig["onReady"]>
   >(
     async ({ anchorIndex: readyAnchorIndex }) => {
-      if (readyAnchorIndex !== pendingAnchorIndex.current) {
+      if (
+        readyAnchorIndex === undefined ||
+        readyAnchorIndex !== pendingAnchorIndex.current
+      ) {
         return;
       }
 
       pendingAnchorIndex.current = undefined;
+      const generation = questionGeneration.current;
       try {
-        await new Promise<void>((resolve, reject) => {
+        await KeyboardController.dismiss({ animated: !isReducedMotion });
+        if (generation !== questionGeneration.current) {
+          return;
+        }
+        // 닫힘 신호 다음에 입력창 인셋과 목록의 배치를 반영한다.
+        await new Promise<void>((resolve) => {
           requestAnimationFrame(() => {
-            scrollMessageToEnd({ animated: true, closeKeyboard: true }).then(
-              resolve,
-              reject
-            );
+            requestAnimationFrame(() => resolve());
           });
         });
+        if (generation !== questionGeneration.current) {
+          return;
+        }
+        await listRef.current?.scrollToIndex({
+          animated: !isReducedMotion,
+          index: readyAnchorIndex,
+          viewOffset: contentTopInset + MESSAGE_TOP_SPACING,
+          viewPosition: 0,
+        });
       } catch {
-        // The next user action can still recover the scroll position.
+        // 사용자가 다음 동작으로 읽을 위치를 정할 수 있다.
       } finally {
-        setIsPositioningQuestion(false);
+        if (generation === questionGeneration.current) {
+          setIsPositioningQuestion(false);
+          setIsFollowingLatest(hasReachedEnd());
+        }
       }
     },
-    [scrollMessageToEnd]
+    [contentTopInset, hasReachedEnd, isReducedMotion]
   );
   const send = useCallback(() => {
     if (!canSend) {
@@ -734,6 +783,7 @@ export function ChatPanel({
     const nextAnchorIndex =
       doomedFromIndex >= 0 ? doomedFromIndex : chat.messages.length;
     const isFirstQuestion = nextAnchorIndex === 0;
+    questionGeneration.current += 1;
     setAnchorIndex(nextAnchorIndex);
     setIsFollowingLatest(true);
     setInputHeight(INPUT_MIN_HEIGHT);
@@ -741,7 +791,6 @@ export function ChatPanel({
       pendingAnchorIndex.current = nextAnchorIndex;
       setIsPositioningQuestion(true);
     }
-    markSent();
     chat.send();
 
     if (isFirstQuestion) {
@@ -749,7 +798,7 @@ export function ChatPanel({
         KeyboardController.dismiss();
       });
     }
-  }, [canSend, chat, doomedFromIndex, markSent]);
+  }, [canSend, chat, doomedFromIndex]);
   const stopAnswer = useCallback(() => {
     chat.stop().catch(() => {
       // The answer stays where it stopped either way.
@@ -759,39 +808,36 @@ export function ChatPanel({
   // on every keystroke, and every message in view would be redrawn with it.
   const { beginEdit, isBusy, regenerateAnswer } = chat;
   const isEditing = chat.editingMessageId !== undefined;
-  const messageCount = chat.messages.length;
+  const messageCount = listMessages.length;
   // The list redraws a row when the messages change or when this does, and a
   // fresh `renderItem` alone does not reach it. Everything a row reads beyond
   // its own message belongs here: without it the icon row never appears, since
   // the last answer arrives while the request is still open and nothing
   // changes in the list when it closes.
-  const rowState = `${isBusy}|${isEditing}|${doomedFromIndex}`;
+  const rowState = `${isBusy}|${isEditing}|${doomedFromIndex}|${isAnswerLate}`;
   const renderMessage = useCallback(
     ({ index, item }: LegendListRenderItemProps<UIMessage>) => (
       <PlainTextMessage
         areActionsDisabled={isEditing}
+        areActionsVisible={!(isBusy && index === messageCount - 1)}
         canOpenMenu={hasMessageActions && !(isBusy || isEditing)}
-        hasActions={
-          hasMessageActions && !(isBusy && index === messageCount - 1)
-        }
+        hasActions={hasMessageActions}
         isDoomed={doomedFromIndex >= 0 && index >= doomedFromIndex}
-        isEntering={item.id === enteringMessageId}
+        isWaiting={isAnswerLate && index === messageCount - 1}
         MessageAddon={messageAddon}
         message={item}
         onAskInSideChat={onAskInSideChat}
         onBeginEdit={beginEdit}
-        onEntered={markEntered}
         onRegenerate={regenerateAnswer}
       />
     ),
     [
       beginEdit,
       doomedFromIndex,
-      enteringMessageId,
       hasMessageActions,
+      isAnswerLate,
       isBusy,
       isEditing,
-      markEntered,
       messageAddon,
       messageCount,
       onAskInSideChat,
@@ -809,6 +855,7 @@ export function ChatPanel({
                 anchorIndex,
                 anchorOffset: contentTopInset + MESSAGE_TOP_SPACING,
                 onReady: anchorIndex === 0 ? undefined : positionQuestion,
+                onSizeChanged: setAnchorSpace,
               }
         }
         applyWorkaroundForContentInsetHitTestBug
@@ -818,18 +865,21 @@ export function ChatPanel({
         }}
         contentInsetAdjustmentBehavior="never"
         contentInsetEndAdjustment={contentInsetEndAdjustment}
-        data={chat.messages}
+        data={listMessages}
         extraData={rowState}
         freeze={freeze}
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-        keyboardLiftBehavior="whenAtEnd"
+        keyboardLiftBehavior={
+          isPositioningQuestion ? "persistent" : "whenAtEnd"
+        }
         keyboardOffset={insets.bottom}
         keyboardShouldPersistTaps="handled"
         keyExtractor={messageKey}
-        ListFooterComponent={isAnswerLate ? <WaitingAnswer /> : undefined}
         ListHeaderComponent={source ?? undefined}
         maintainScrollAtEnd={
-          isFollowingLatest && !isPositioningQuestion
+          isFollowingLatest &&
+          !isPositioningQuestion &&
+          anchorSpace <= composerHeight
             ? {
                 animated: false,
                 on: { dataChange: true, itemLayout: true },

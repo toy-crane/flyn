@@ -10,7 +10,12 @@ import {
 import type { UIMessage } from "ai";
 import { setStringAsync } from "expo-clipboard";
 import { useState } from "react";
-import { AccessibilityInfo, StyleSheet } from "react-native";
+import {
+  AccessibilityInfo,
+  AppState,
+  type AppStateStatus,
+  StyleSheet,
+} from "react-native";
 import { KeyboardController } from "react-native-keyboard-controller";
 
 import type { ChatSession } from "@/features/chat/state/use-chat-session";
@@ -21,6 +26,15 @@ import { SideChatSource } from "./side-chat-source";
 const mockScrollToEnd = jest.fn<
   (options?: { animated?: boolean }) => Promise<void>
 >(() => Promise.resolve());
+const mockScrollToIndex = jest.fn<
+  (options: {
+    animated?: boolean;
+    index: number;
+    viewOffset?: number;
+    viewPosition?: number;
+  }) => Promise<void>
+>(() => Promise.resolve());
+const mockListState = { contentLength: 1000, scroll: 500, scrollLength: 500 };
 
 interface MockAnchoredEndSpace {
   anchorIndex: number;
@@ -67,8 +81,10 @@ jest.mock("@legendapp/list/keyboard", () => {
     scrollEventThrottle?: unknown;
   };
   interface MockListRef {
+    getState: () => typeof mockListState;
     reportContentInset: (inset: { bottom: number }) => void;
     scrollToEnd: (options?: { animated?: boolean }) => Promise<void>;
+    scrollToIndex: typeof mockScrollToIndex;
   }
 
   const KeyboardAwareLegendList = React.forwardRef<MockListRef, MockListProps>(
@@ -88,7 +104,12 @@ jest.mock("@legendapp/list/keyboard", () => {
 
       React.useImperativeHandle(
         ref,
-        () => ({ reportContentInset: jest.fn(), scrollToEnd }),
+        () => ({
+          getState: () => mockListState,
+          reportContentInset: jest.fn(),
+          scrollToEnd,
+          scrollToIndex: mockScrollToIndex,
+        }),
         [scrollToEnd]
       );
 
@@ -138,10 +159,12 @@ jest.mock("@legendapp/list/keyboard", () => {
           animated: boolean;
           closeKeyboard: boolean;
         }) => {
-          if (closeKeyboard) {
-            await keyboardController.dismiss();
-          }
-          await listRef.current?.scrollToEnd({ animated });
+          // 설치된 3.3.5와 같이 닫기와 스크롤을 동시에 시작한다.
+          const dismissing = closeKeyboard && keyboardController.dismiss();
+          await Promise.all([
+            dismissing,
+            listRef.current?.scrollToEnd({ animated }),
+          ]);
         },
         [listRef]
       );
@@ -341,6 +364,12 @@ async function scrollAwayFromLatest() {
 describe("ChatPanel", () => {
   afterEach(() => {
     mockScrollToEnd.mockClear();
+    mockScrollToIndex.mockClear();
+    Object.assign(mockListState, {
+      contentLength: 1000,
+      scroll: 500,
+      scrollLength: 500,
+    });
     jest.restoreAllMocks();
     jest.useRealTimers();
   });
@@ -531,8 +560,8 @@ describe("ChatPanel", () => {
     expect(screen.getByLabelText(chatLabels.regenerate)).toBeOnTheScreen();
   });
 
-  test("받는 중인 답변에는 아이콘 줄을 붙이지 않는다", async () => {
-    await renderWithHeroUI(
+  test("받는 중부터 동작 줄을 두고 완료되면 같은 자리의 버튼만 보여 준다", async () => {
+    const { rerender } = await renderWithHeroUI(
       <ChatPanel
         chat={chatSession({
           isBusy: true,
@@ -547,6 +576,24 @@ describe("ChatPanel", () => {
     expect(
       screen.queryByLabelText(chatLabels.copyAnswer)
     ).not.toBeOnTheScreen();
+    const reserved = screen.getByTestId("chat-message-actions", {
+      includeHiddenElements: true,
+    });
+    expect(reserved).toHaveStyle({ opacity: 0 });
+
+    await rerender(
+      <ChatPanel
+        chat={chatSession({
+          messages: [
+            textMessage("user-1", "user", "질문"),
+            textMessage("assistant-1", "assistant", "받는 중"),
+          ],
+        })}
+      />
+    );
+    expect(screen.getByTestId("chat-message-actions")).toBe(reserved);
+    expect(reserved).toHaveStyle({ opacity: 1 });
+    expect(screen.getByLabelText(chatLabels.copyAnswer)).toBeOnTheScreen();
   });
 
   test("앞선 답변은 새 답변을 받는 동안에도 아이콘 줄을 그대로 둔다", async () => {
@@ -1005,61 +1052,246 @@ describe("ChatPanel", () => {
     });
   });
 
-  test("두 번째 질문은 고정 공간이 반영된 다음 프레임에 한 번 이동한다", async () => {
-    const dismiss = jest.mocked(KeyboardController.dismiss);
+  test("질문 아래 빈 공간이 남아 있으면 답변 높이 변화로 끝을 다시 따라가지 않는다", async () => {
     const user = userEvent.setup();
-    const messages = [
-      textMessage("user-1", "user", "이전 질문"),
-      textMessage("assistant-1", "assistant", "이전 답변"),
-    ];
-    dismiss.mockClear();
     await renderWithHeroUI(
-      <ChatPanel
-        chat={chatSession({ draft: "새 질문", messages, send: jest.fn() })}
-      />
+      <ChatPanel chat={chatSession({ draft: "첫 질문" })} />
     );
-
     await user.press(screen.getByLabelText(chatLabels.send));
-
-    const listBeforeReady = screen.getByTestId("chat-list");
-    const anchoredEndSpace = listBeforeReady.props
-      .anchoredEndSpace as MockAnchoredEndSpace;
-    expect(listBeforeReady.props.maintainScrollAtEnd).toBe(false);
-    expect(mockScrollToEnd).not.toHaveBeenCalled();
-    expect(dismiss).not.toHaveBeenCalled();
-    expect(anchoredEndSpace.onReady).toEqual(expect.any(Function));
-
-    let runPositioningFrame: FrameRequestCallback | undefined;
-    jest
-      .spyOn(global, "requestAnimationFrame")
-      .mockImplementation((callback) => {
-        runPositioningFrame = callback;
-        return 1;
+    await act(() => {
+      screen.getByTestId("chat-composer").props.onLayout({
+        nativeEvent: { layout: { height: 76 } },
       });
-    let positioning: Promise<void> | undefined;
-    await act(async () => {
-      positioning = anchoredEndSpace.onReady?.({
-        anchorIndex: 2,
-        anchorKey: "user-2",
-        size: 500,
-      }) as unknown as Promise<void>;
-      await Promise.resolve();
+      screen.getByTestId("chat-list").props.anchoredEndSpace.onSizeChanged(500);
     });
-    expect(mockScrollToEnd).not.toHaveBeenCalled();
-    expect(dismiss).not.toHaveBeenCalled();
-
-    await act(async () => {
-      runPositioningFrame?.(0);
-      await positioning;
+    expect(screen.getByTestId("chat-list").props.maintainScrollAtEnd).toBe(
+      false
+    );
+    await act(() => {
+      screen.getByTestId("chat-list").props.anchoredEndSpace.onSizeChanged(0);
     });
-
-    expect(mockScrollToEnd).toHaveBeenCalledTimes(1);
-    expect(mockScrollToEnd).toHaveBeenCalledWith({ animated: true });
-    expect(dismiss).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("chat-list").props.maintainScrollAtEnd).toEqual({
       animated: false,
       on: { dataChange: true, itemLayout: true },
     });
+  });
+
+  test("키보드가 닫힌 뒤 보낸 질문을 헤더 아래로 한 번만 옮긴다", async () => {
+    let finishDismiss: (() => void) | undefined;
+    jest.mocked(KeyboardController.dismiss).mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishDismiss = resolve;
+        })
+    );
+    const user = userEvent.setup();
+    await renderWithHeroUI(
+      <ChatPanel
+        chat={chatSession({
+          draft: "새 질문",
+          messages: [
+            textMessage("user-1", "user", "이전 질문"),
+            textMessage("assistant-1", "assistant", "이전 답변"),
+          ],
+        })}
+        topInset={116}
+      />
+    );
+    await user.press(screen.getByLabelText(chatLabels.send));
+    const ready =
+      screen.getByTestId("chat-list").props.anchoredEndSpace.onReady;
+    await act(() => {
+      ready({ anchorIndex: 2, anchorKey: "user-2", size: 500 });
+    });
+    await waitFor(() => {
+      expect(finishDismiss).toBeDefined();
+    });
+    expect(mockScrollToEnd).not.toHaveBeenCalled();
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+    expect(screen.getByTestId("chat-list").props.maintainScrollAtEnd).toBe(
+      false
+    );
+
+    await act(() => {
+      finishDismiss?.();
+    });
+    await waitFor(() => {
+      expect(mockScrollToIndex).toHaveBeenCalledWith({
+        animated: true,
+        index: 2,
+        viewOffset: 128,
+        viewPosition: 0,
+      });
+    });
+    await act(() => {
+      ready({ anchorIndex: 2, anchorKey: "user-2", size: 400 });
+    });
+    expect(mockScrollToIndex).toHaveBeenCalledTimes(1);
+    expect(mockScrollToEnd).not.toHaveBeenCalled();
+  });
+
+  test("질문 이동 중 답변이 길어져도 도착한 질문을 목록 끝으로 다시 당기지 않는다", async () => {
+    let finishMove: (() => void) | undefined;
+    mockScrollToIndex.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishMove = resolve;
+        })
+    );
+    await renderWithHeroUI(
+      <SendingChat
+        messages={[
+          textMessage("user-1", "user", "이전 질문"),
+          textMessage("assistant-1", "assistant", "이전 답변"),
+        ]}
+      />
+    );
+    await userEvent.setup().press(screen.getByLabelText(chatLabels.send));
+    await act(() => {
+      screen.getByTestId("chat-list").props.anchoredEndSpace.onReady({
+        anchorIndex: 2,
+        anchorKey: "sent-2",
+        size: 500,
+      });
+    });
+    await waitFor(() => {
+      expect(finishMove).toBeDefined();
+    });
+    await act(() => {
+      // 목록은 늘어난 답변까지 잰 길이를 보고한다. 질문은 처음 목표에 있다.
+      mockListState.contentLength = 1800;
+      finishMove?.();
+    });
+    expect(screen.getByTestId("chat-list").props.maintainScrollAtEnd).toBe(
+      false
+    );
+    expect(mockScrollToIndex).toHaveBeenCalledTimes(1);
+    expect(mockScrollToEnd).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(chatLabels.latest)).toBeOnTheScreen();
+  });
+
+  test("키보드 닫기를 기다리는 중 직접 스크롤하면 질문 이동을 취소한다", async () => {
+    let finishDismiss: (() => void) | undefined;
+    jest.mocked(KeyboardController.dismiss).mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishDismiss = resolve;
+        })
+    );
+    await renderWithHeroUI(
+      <SendingChat
+        messages={[
+          textMessage("user-1", "user", "이전 질문"),
+          textMessage("assistant-1", "assistant", "이전 답변"),
+        ]}
+      />
+    );
+    await userEvent.setup().press(screen.getByLabelText(chatLabels.send));
+    await act(() => {
+      screen.getByTestId("chat-list").props.anchoredEndSpace.onReady({
+        anchorIndex: 2,
+        anchorKey: "sent-2",
+        size: 500,
+      });
+    });
+    await scrollAwayFromLatest();
+    await act(async () => {
+      finishDismiss?.();
+      await new Promise((resolve) => {
+        setTimeout(resolve, 80);
+      });
+    });
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+    expect(screen.getByTestId("chat-list").props.maintainScrollAtEnd).toBe(
+      false
+    );
+    expect(screen.getByTestId("chat-list").props.keyboardLiftBehavior).toBe(
+      "whenAtEnd"
+    );
+    expect(screen.getByLabelText(chatLabels.latest)).toBeOnTheScreen();
+  });
+
+  test("전송 중 앱을 나가면 닫힘 신호가 늦게 와도 다시 질문을 옮기지 않는다", async () => {
+    let onAppState: ((state: AppStateStatus) => void) | undefined;
+    jest
+      .spyOn(AppState, "addEventListener")
+      .mockImplementation((_event, listener) => {
+        onAppState = listener;
+        return { remove: jest.fn() };
+      });
+    let finishDismiss: (() => void) | undefined;
+    jest.mocked(KeyboardController.dismiss).mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishDismiss = resolve;
+        })
+    );
+    await renderWithHeroUI(
+      <SendingChat
+        messages={[
+          textMessage("user-1", "user", "이전 질문"),
+          textMessage("assistant-1", "assistant", "이전 답변"),
+        ]}
+      />
+    );
+    await userEvent.setup().press(screen.getByLabelText(chatLabels.send));
+    await act(() => {
+      screen.getByTestId("chat-list").props.anchoredEndSpace.onReady({
+        anchorIndex: 2,
+        anchorKey: "sent-2",
+        size: 500,
+      });
+    });
+    expect(onAppState).toBeDefined();
+    await act(async () => {
+      onAppState?.("background");
+      finishDismiss?.();
+      onAppState?.("active");
+      await new Promise((resolve) => {
+        setTimeout(resolve, 80);
+      });
+    });
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+    expect(screen.getByTestId("chat-list").props.keyboardLiftBehavior).toBe(
+      "whenAtEnd"
+    );
+    expect(screen.getByTestId("chat-list").props.maintainScrollAtEnd).toBe(
+      false
+    );
+  });
+
+  test("키보드 닫힘 신호가 오지 않아도 배치 상태를 계속 유지하지 않는다", async () => {
+    jest.useFakeTimers();
+    jest.mocked(KeyboardController.dismiss).mockImplementationOnce(
+      () =>
+        new Promise<void>(() => {
+          /* 닫힘 신호 누락 */
+        })
+    );
+    await renderWithHeroUI(
+      <SendingChat
+        messages={[
+          textMessage("user-1", "user", "이전 질문"),
+          textMessage("assistant-1", "assistant", "이전 답변"),
+        ]}
+      />
+    );
+    await userEvent
+      .setup({ advanceTimers: jest.advanceTimersByTime })
+      .press(screen.getByLabelText(chatLabels.send));
+    await act(() => {
+      screen.getByTestId("chat-list").props.anchoredEndSpace.onReady({
+        anchorIndex: 2,
+        anchorKey: "sent-2",
+        size: 500,
+      });
+      jest.advanceTimersByTime(4000);
+    });
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+    expect(screen.getByTestId("chat-list").props.keyboardLiftBehavior).toBe(
+      "whenAtEnd"
+    );
+    expect(screen.getByLabelText(chatLabels.latest)).toBeOnTheScreen();
   });
 
   test("질문을 보내면 키보드를 닫고 최신 답변 자동 추적을 다시 켠다", async () => {
@@ -1363,7 +1595,7 @@ describe("ChatPanel", () => {
     ).not.toBeOnTheScreen();
   });
 
-  test("이번에 보낸 질문만 아래에서 올라온다", async () => {
+  test("보낸 질문은 말풍선 자체의 진입 애니메이션을 쓰지 않는다", async () => {
     const user = userEvent.setup();
     await renderWithHeroUI(
       <SendingChat
@@ -1378,7 +1610,7 @@ describe("ChatPanel", () => {
 
     await user.press(screen.getByLabelText(chatLabels.send));
 
-    expect(enteringRows()).toEqual([false, false, true]);
+    expect(enteringRows()).toEqual([false, false, false]);
   });
 
   test("과거 대화를 처음 보여 줄 때는 아무 메시지도 움직이지 않는다", async () => {
@@ -1396,9 +1628,7 @@ describe("ChatPanel", () => {
     expect(enteringRows()).toEqual([false, false]);
   });
 
-  // An edited question is a new send, so it arrives the same way a fresh one
-  // does even though the conversation got shorter first.
-  test("수정해서 다시 보낸 질문도 아래에서 올라온다", async () => {
+  test("수정해서 다시 보낸 질문도 자체 진입 애니메이션을 쓰지 않는다", async () => {
     const user = userEvent.setup();
     await renderWithHeroUI(
       <SendingChat
@@ -1414,7 +1644,7 @@ describe("ChatPanel", () => {
 
     await user.press(screen.getByLabelText(chatLabels.send));
 
-    expect(enteringRows()).toEqual([false, false, true]);
+    expect(enteringRows()).toEqual([false, false, false]);
   });
 
   test("답변을 다시 받는 것은 질문을 움직이지 않는다", async () => {
@@ -1453,6 +1683,14 @@ describe("ChatPanel", () => {
     });
 
     expect(screen.getAllByLabelText(chatLabels.waiting)).toHaveLength(1);
+    // 답변 자리 자체가 본문으로 바뀐다. 목록 바닥의 별도 높이를 걷어내지 않는다.
+    const responseRow = screen.getAllByTestId("chat-message-row").at(-1);
+    if (!responseRow) {
+      throw new Error("답변 자리가 있어야 한다.");
+    }
+    expect(
+      within(responseRow).getByLabelText(chatLabels.waiting)
+    ).toBeOnTheScreen();
 
     await rerender(
       <ChatPanel

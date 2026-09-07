@@ -14,6 +14,7 @@ import type { SceneSegment } from "./scene";
  */
 export function SceneMessage({
   areActionsDisabled,
+  areActionsVisible = true,
   hasActions,
   onCopy,
   onRegenerate,
@@ -21,6 +22,7 @@ export function SceneMessage({
   selectionMenuItems,
 }: {
   areActionsDisabled: boolean;
+  areActionsVisible?: boolean;
   hasActions: boolean;
   onCopy: () => void;
   onRegenerate: () => void;
@@ -59,6 +61,7 @@ export function SceneMessage({
       {hasActions ? (
         <MessageActions
           isDisabled={areActionsDisabled}
+          isVisible={areActionsVisible}
           onCopy={onCopy}
           onRegenerate={onRegenerate}
         />
