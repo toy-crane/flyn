@@ -83,7 +83,7 @@ iOS 빌드 후 fingerprint가 한 번 바뀌어 기존 앱 자동 재연결을 �
 
 - 두 실기기의 요청별 API 목적지, Google 로그인 완료, iPhone Apple 로그인은 미검증이다. 제공자 본인 확인은 사용자가 직접 진행한다. iPhone에서 새 사진 업로드와 제공자 프로필 사진도 아직 확인하지 않았다.
 - Android Emulator에서 새 사진 업로드는 미검증이다. 제공자가 준 프로필 사진과 이미지의 최종 요청 URL·응답도 아직 확인하지 않았다. `agent-device network dump`와 개발용 Network 이벤트 관찰에서 요청 기록을 얻지 못했다. 이미지의 화면 표시와 URL 단위 테스트를 실제 네트워크 기록으로 대체하지 않는다.
-- iPhone 14의 대화 완료 스크린샷에는 스크롤한 본문과 상단 제목이 겹쳐 보인다. LAN 연결 결과와 별개로 iOS 18의 대화 화면 레이아웃 확인이 필요하다.
+- iPhone 14의 대화 완료 스크린샷에는 스크롤한 본문과 상단 제목이 겹쳐 보인다. LAN 연결 결과와 별개로 [iOS 18 대화 헤더 겹침](../../follow-ups/ios18-episode-header-overlaps-scrolled-messages.md)을 확인한다.
 - 실제 IP 변경 후 재시작, 두 worktree의 실기기 A → B → A 전환, 한 worktree 종료 후 다른 쪽 기능 유지, 실기기와 가상 기기의 동시 기능 실행은 미검증이다.
 - 생성된 iOS 설정에서 `NSAllowsLocalNetworking`과 로컬 네트워크 권한 문구를 확인했다. Android debug manifest는 HTTP를 허용했다. 배포용 설정은 바꾸지 않았다. iPhone 14 / iOS 18.7.7과 SM-G991N / Android 15에서 이번 LAN 경로가 동작했다. 다른 OS 버전·제조사로 결과를 일반화하지 않는다.
 - `implement`의 모든 수락 기준 통과 뒤 단계인 전체 diff 자동 리뷰는 아직 실행하지 않았다. 실기기 검증과 남은 회귀 확인을 마친 실행 가능한 변경을 대상으로 Codex 표준 리뷰를 한 번 실행한다.
