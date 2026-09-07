@@ -627,6 +627,42 @@ describe("ChatPanel", () => {
     expect(screen.getAllByLabelText(chatLabels.copyAnswer)).toHaveLength(1);
   });
 
+  test("내용과 선택 메뉴가 같은 지난 본문은 다른 답변의 시작과 완료로 다시 그리지 않는다", async () => {
+    const markdownModule = require("react-native-enriched-markdown");
+    const renderBody = jest.spyOn(markdownModule, "EnrichedMarkdownText");
+    const previous = [
+      textMessage("user-1", "user", "이전 질문"),
+      textMessage("assistant-1", "assistant", "그대로 읽는 답변"),
+    ];
+    const { rerender } = await renderWithHeroUI(
+      <ChatPanel chat={chatSession({ messages: previous })} />
+    );
+    renderBody.mockClear();
+    const messages = [...previous, textMessage("user-2", "user", "다음 질문")];
+    await rerender(
+      <ChatPanel chat={chatSession({ isBusy: true, messages })} />
+    );
+    await rerender(
+      <ChatPanel
+        chat={chatSession({
+          messages: [
+            ...messages,
+            textMessage("assistant-2", "assistant", "새 답변"),
+          ],
+        })}
+      />
+    );
+    expect(
+      renderBody.mock.calls.filter(
+        ([props]) =>
+          (props as { markdown: string }).markdown === "그대로 읽는 답변"
+      )
+    ).toHaveLength(0);
+    expect(
+      screen.getAllByTestId("chat-message-assistant")[0]
+    ).toHaveTextContent("그대로 읽는 답변");
+  });
+
   // The list keeps its rows until `data` or `extraData` changes; handing it a
   // new renderItem does not reach them. The last answer arrives while the
   // request is still open, so nothing about the messages changes when it

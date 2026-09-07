@@ -1,0 +1,32 @@
+{
+  "platform": "ios",
+  "device": "flyn-slot-5",
+  "flow": "첫 에피소드의 영어 입력부터 교정과 마무리까지",
+  "source": "/private/tmp/flyn-motion-evidence/ios-body-profile.json",
+  "sourceSha256": "e90d48a0c0e687d45ffc44b1f17af19c5b4ee4f0c4a56148d7daf185e70d8e83",
+  "rootID": 7833,
+  "commitCount": 158,
+  "existingBodies": [
+    {
+      "id": 9380,
+      "name": "Memo(SceneSegmentBodyContent)",
+      "renders": 0
+    },
+    {
+      "id": 9383,
+      "name": "Memo(SceneSegmentBodyContent)",
+      "renders": 0
+    },
+    {
+      "id": 9390,
+      "name": "Memo(MarkdownAnswerContent)",
+      "renders": 0
+    },
+    {
+      "id": 9392,
+      "name": "Memo(SceneSegmentBodyContent)",
+      "renders": 0
+    }
+  ],
+  "scope": "선택 메뉴 조건과 내용이 그대로인 시작 장면의 지문과 발화. 다른 연결 앱의 프로필은 제외한다."
+}

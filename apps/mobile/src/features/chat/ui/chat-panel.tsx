@@ -16,6 +16,7 @@ import {
   type Ref,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -133,8 +134,10 @@ function PlainTextMessage({
   // 장면 메시지는 화자 순서대로 자르고, 그 밖의 메시지는 지금까지처럼 텍스트
   // 하나로 읽는다. 복사도 같은 갈림을 따라서, 장면은 화자 이름이 살아 있는
   // 각본으로 복사된다.
-  const scene =
-    message.role === "assistant" ? sceneOfMessage(message) : undefined;
+  const scene = useMemo(
+    () => (message.role === "assistant" ? sceneOfMessage(message) : undefined),
+    [message]
+  );
   const text = scene ? sceneCopyText(scene) : textOfMessage(message);
   const copy = useCallback(() => copyText(text), [text]);
   const regenerate = useCallback(
@@ -149,19 +152,24 @@ function PlainTextMessage({
   // copy, look up and translate stay where they were. It is hidden — not
   // removed — while an answer is arriving or a message is being rewritten,
   // which is the same condition that closes the message menus.
+  const askInSideChatRef = useRef(onAskInSideChat);
+  useLayoutEffect(() => {
+    askInSideChatRef.current = onAskInSideChat;
+  }, [onAskInSideChat]);
+  const canAskInSideChat = onAskInSideChat !== undefined;
   const selectionMenuItems = useMemo(
     () =>
-      onAskInSideChat
+      canAskInSideChat
         ? [
             {
               onPress: ({ text: phrase }: { text: string }) =>
-                onAskInSideChat({ messageId: message.id, phrase }),
+                askInSideChatRef.current?.({ messageId: message.id, phrase }),
               text: chatLabels.askInSideChat,
               visible: canOpenMenu,
             },
           ]
         : undefined,
-    [canOpenMenu, message.id, onAskInSideChat]
+    [canAskInSideChat, canOpenMenu, message.id]
   );
   if (!text) {
     return isWaiting ? (
