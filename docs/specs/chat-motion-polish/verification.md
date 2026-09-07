@@ -2,20 +2,25 @@
 
 ## 현재 확인 결과
 
-실행 코드는 `fc26717`과 같다. 아래 기록은 2026-09-07의 iOS Simulator와
-Android Emulator에서 얻었다. VoiceOver 실제 읽기는 아직 확인하지 않았다.
-따라서 명세 전체의 완료를 선언하지 않는다. 이전 단락의 미확인 항목은 이 절의
-최신 결과와 구분한다.
+실행 코드는 `78cbb1e` 기준이다. 아래 기록은 2026-09-07의 iOS Simulator와
+Android Emulator에서 얻었다. VoiceOver 실제 읽기는 확인하지 않았으며, 2026-09-07
+사용자 요청으로 이번 완료 조건에서 제외했다. 이전 단락의 미확인 항목은 이 절의
+최신 결과와 구분한다. Codex 전체 리뷰 1회에서 나온 두 문제를 수정하고 관련 검증을
+다시 통과했다. 승인된 범위의 구현과 검증을 완료했다.
 
 - 루트 `bun run check`, `bun run check-types`, `bun run test`를 통과했다.
-  모바일 73개 suite의 535개 테스트, API 98개, 개발 스크립트 176개가 통과했다.
+  모바일 73개 suite의 537개 테스트, API 98개, 개발 스크립트 176개가 통과했다.
 - iOS·Android export와 Astro build를 통과했다. 단순 `bun run build`는 공개 환경
   변수 누락으로 실패했다. `scripts/dev/environment.ts`의 `parseEnvFile`과
   `buildMobileEnvironment`로 실제 `apps/mobile/.env.local` 및 slot 5 포트를 읽고,
   그 환경에서 `bunx turbo run build --env-mode=loose`를 실행했다. 설정 검사나
   환경 검증을 생략하지 않았다. 원본 로그는 `/private/tmp/flyn-motion-evidence/`의
-  `check.log`, `check-types.log`, `test.log`, `build-configured.log`에 있다.
+  `review-final-check.log`, `review-final-check-types.log`, `review-final-test.log`,
+  `review-build.log`에 있다.
 - `git diff --check`를 통과했다. 거리와 본문 렌더 횟수의 임시 계측 코드는 제거했다.
+
+표의 기존 기기 검증에서 리뷰 수정의 영향을 받는 스크롤과 제품 흐름은 아래
+"리뷰 후 다시 확인한 범위"에서 다시 확인했다.
 
 ### 실제 화면에서 확인한 범위
 
@@ -76,7 +81,7 @@ Android Emulator에서 얻었다. VoiceOver 실제 읽기는 아직 확인하지
   function`이 발생했다. 프로세스를 새로 실행한 뒤 실제 AI 도움 질문·답변·다시 받기를
   두 플랫폼에서 재현했고 같은 오류는 없었다. 기존 로그의 오류 줄을 지우지 않았다.
 
-### 남은 확인
+### 실행 환경과 확인 범위
 
 검증 계정은 두 플랫폼 모두 앱 화면에서 로그아웃하고 같은 `agent-device` 세션을
 닫았다. 라이트 모드, 기본 글자 크기, 동작 줄이기 해제와 Android Gboard를 복원했다.
@@ -84,16 +89,65 @@ TalkBack 서비스 선택 및 검증용 음성 내용 표시도 원래대로 돌
 `http://127.0.0.1:3951`과 Metro `http://127.0.0.1:8132`는 실행 중이다.
 다시 앱을 여는 명령은 이 worktree 루트의 `bun run dev ios android`다.
 
-- iOS 26.5 Simulator에는 VoiceOver가 없다. 현재 Xcode 26.6에서는 실물 기기가
-  필요하다. 연결된 개인 iPhone 사용 여부를 사용자에게 물었고 답을 기다린다.
+- VoiceOver 실물 검증은 사용자 요청으로 생략한다. 개인 iPhone을 사용하지 않았다.
   접근성 트리에 상태 하나가 있다는 결과를 실제 VoiceOver 읽기로 대신하지 않는다.
-- Codex 기본 전체 리뷰를 실행하려 했으나 자동 승인 검토가 프로세스 실행 전에
-  거절했다. 사용자 지정 `implement` 요청과 설치한 Codex 0.147.0 정보를 근거로
-  재검토를 요청했지만 같은 이유로 거절됐다. 이유는 변경 코드가 외부 모델로 전송될
-  수 있으며 해당 코드와 목적지에 대한 구체적 승인이 없다는 것이다. 다른 도구나
-  에이전트로 우회하지 않았다. 모델 리뷰는 0회이며, 리뷰 결과가 없다는 이유로 코드의
-  안전성을 주장하지 않는다. 승인 뒤 실행할 명령은 `codex review -`이며, 기준 커밋과
-  범위를 적은 입력은 `/private/tmp/flyn-motion-evidence/review-context.txt`에 있다.
+- 처음에는 자동 승인 검토가 코드 전송 승인이 필요하다는 이유로 리뷰 실행을 거절했다.
+  2026-09-07 사용자가 리뷰를 허용한 뒤 다시 실행했다. 설치된 CLI 0.147.0은 현재
+  모델을 지원하지 않아 검토 전에 실패했다. 앱에 포함된 CLI 0.153.4의 읽기 전용
+  Codex 기본 리뷰를 한 번 완료했다. 환경 파일과 인증정보는 검토 범위에서 제외했다.
+
+### 전체 리뷰 결과
+
+- 기준은 `9e0cb71`이며, `4060e86`까지의 전체 변경과 사용자가 승인한 VoiceOver
+  검증 예외를 검토했다. 리뷰 명령은 `/Applications/ChatGPT.app/Contents/Resources/codex
+  review -c 'sandbox_mode="read-only"' -`다. 검토 입력과 원본 출력은 로컬
+  `/private/tmp/flyn-motion-evidence/review-context.txt`와
+  `/private/tmp/flyn-motion-evidence/whole-diff-review-bundled.log`에 있다.
+- P2: 직접 목록 끝까지 내려와도 자동 추적이 복구되지 않을 수 있었다.
+  `onEndVisible(true)`는 실제 끝에 도착하기 전에 한 번만 올 수 있다. 공개 목록
+  이벤트 테스트에서 이 신호 뒤 스크롤로 끝에 도달해도 버튼이 남는 것을 재현했다.
+  현재 스크롤 이벤트의 좌표로도 끝 도달을 확인하도록 수정했다.
+- P2: 먼 이동의 첫 단계에서 답변이 늘어나면 한 화면보다 길게 이동했다.
+  620px 화면에서 목록 높이가 400px 늘어나는 테스트에서 이동 거리가 1,020px였다.
+  출발점과 도착점에 같은 끝 좌표를 사용하도록 수정해 620px를 유지했다. 새 끝까지
+  도착하지 않았으면 자동 추적을 켜거나 추가로 당기지 않고 버튼을 남긴다.
+- 두 재현 테스트를 먼저 실패시킨 뒤 수정했다. ChatPanel 96개 테스트와 루트 전체
+  검사, 타입 검사, 테스트, iOS·Android export 및 Astro build를 통과했다.
+  수정 커밋은 `78cbb1e`다. 같은 변경을 두 번째 리뷰에 보내지 않았다.
+
+### 리뷰 후 다시 확인한 범위
+
+- 두 플랫폼에서 로컬 이메일 코드로 기존 검증 계정에 로그인했다. 새 5화에서 영어
+  문장을 보내 교정과 실제 응답, 에피소드 마무리를 확인했다. 교정에서 AI에게 물어보기를
+  열어 한국어 설명을 받았다. 첫 스토리를 마친 뒤 홈에는 다음 스토리 `출장 일주일`이
+  나타났다. iOS 일반 채팅에서도 별도의 긴 질문과 실제 응답을 확인했다.
+- 수동으로 끝에 도달한 iOS 좌표는 709px였다. 목록 길이 1,583px에서 높이 874px를
+  뺀 실제 끝과 같았다. Android도 목록 길이 4,246px, 높이 844px의 끝 3,402px에
+  도달했다. 두 플랫폼 모두 이전 위치에서 보이던 최신 메시지 버튼이 사라졌다.
+  [iOS 수동 이동](evidence/review-ios-manual-end.mp4),
+  [Android 수동 이동](evidence/review-android-manual-end.mp4),
+  [iOS 도착 화면](evidence/review-ios-manual-end.png),
+  [Android 도착 화면](evidence/review-android-manual-end.png).
+- 긴 대화의 최신 메시지 이동은 iOS 630→3,434px(보이는 높이 656px), Android
+  0→3,402px(보이는 높이 752px)에서 확인했다. 두 경우 모두 마지막 한 화면으로
+  먼저 옮긴 뒤 남은 한 화면만 이동하고 도착 후 버튼을 숨겼다.
+  [iOS 먼 이동](evidence/review-ios-latest-far.mp4),
+  [Android 먼 이동](evidence/review-android-latest-far.mp4),
+  [iOS 도착 화면](evidence/review-ios-latest-end.png).
+  첫 이동을 기다리는 바로 그 사이에 본문이 400px 늘어나는 조건은 위의 결정적
+  테스트로 재현했다. 기기 녹화에서 같은 순간의 증가까지 강제로 만들었다고 주장하지 않는다.
+- 원본은 `/private/tmp/flyn-motion-evidence/`의 `review-ios-core.mp4`,
+  `review-ios-far.mp4`와 `review-android-core*.mp4`다. Android 녹화는 도구가 여러
+  파일로 나눴다. 발췌 영상은 원본의 정지 구간 표시 시간을 유지하고 해당 동작만 담았다.
+  원본에 없는 중간 움직임 프레임은 만들지 않았다.
+- iOS의 긴 여러 줄 `fill`이 Return 키를 전송해 실행 제한 시간을 넘긴 도구 문제는
+  [별도 기록](../../follow-ups/ios-agent-device-multiline-fill-submits-chat.md)에 남겼다.
+  해당 입력 시도를 정상 검증으로 세지 않았다. 이후 시스템 Paste 메뉴로 4,484자를
+  한 초안에 넣고 전송했다. 임시 계측은 제거했으며 최종 코드로 전체 검사를 다시 통과했다.
+- 두 계정 모두 앱에서 로그아웃했고 두 `agent-device` 세션을 닫았다. Android의
+  테스트 입력기를 Gboard로 복원했다. 개인 iPhone과 VoiceOver는 사용하지 않았다.
+- 이번 수정의 기기 검증 구간에는 Metro의 새 오류가 없었다. 로그에 남은
+  `Object is not a function` 세 건은 위에 기록한 이전 Fast Refresh 오류다.
 
 ## 2026-09-07 대기 표시 변경
 
