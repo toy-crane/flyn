@@ -23,6 +23,7 @@ export type ButtonProps = OmitButtonState<ButtonRootProps> & {
   children: ReactNode;
   isDisabled?: boolean;
   isPending?: boolean;
+  labelClassName?: string;
   onLayout?: (event: LayoutChangeEvent) => void;
   startContent?: ReactNode;
 };
@@ -83,6 +84,7 @@ export function Button({
   className,
   isDisabled = false,
   isPending = false,
+  labelClassName,
   onLayout,
   size = "md",
   startContent,
@@ -141,7 +143,7 @@ export function Button({
             startContent
           )}
         </View>
-        <HeroButton.Label className="shrink text-center">
+        <HeroButton.Label className={cn("shrink text-center", labelClassName)}>
           {children}
         </HeroButton.Label>
       </View>

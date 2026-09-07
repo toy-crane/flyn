@@ -1,3 +1,5 @@
+import { aiUrl } from "@/shared/ai/request-options";
+
 /** 배울 표현 하나. 서버가 보낸 모양 그대로다. */
 export interface CorrectionEntry {
   /** 고친 문장에서 이 표현에 해당하는 조각. */
@@ -58,4 +60,43 @@ export function correctionOfData(data: unknown): EpisodeCorrection | undefined {
     messageId: sent.messageId,
     original: sent.original,
   };
+}
+
+export type ExpressionResult =
+  | { messageId: string; status: "natural" | "unclear" }
+  | { messageId: string; status: "corrected"; correction: EpisodeCorrection };
+
+export async function checkEpisodeExpression(
+  accessToken: string | undefined,
+  episodeId: string,
+  messageId: string,
+  signal: AbortSignal
+): Promise<ExpressionResult> {
+  const response = await fetch(aiUrl("/ai/episode/correction"), {
+    body: JSON.stringify({ episodeId, messageId }),
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    method: "POST",
+    signal,
+  });
+  if (!response.ok) {
+    throw new Error(`Checking expression failed with ${response.status}`);
+  }
+  const result = (await response.json()) as Partial<ExpressionResult> | null;
+  if (result?.messageId !== messageId) {
+    throw new Error("Expression response belongs to another message.");
+  }
+  if (result.status === "natural" || result.status === "unclear") {
+    return { messageId, status: result.status };
+  }
+  const correction =
+    result.status === "corrected"
+      ? correctionOfData(result.correction)
+      : undefined;
+  if (!correction || correction.messageId !== messageId) {
+    throw new Error("Invalid expression response.");
+  }
+  return { correction, messageId, status: "corrected" };
 }

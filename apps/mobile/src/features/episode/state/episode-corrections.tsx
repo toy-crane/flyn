@@ -3,60 +3,43 @@ import {
   type ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+import type {
+  EpisodeCorrection,
+  ExpressionResult,
+} from "@/features/episode/api/episode-correction";
 
-import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
-
-/** 대화가 소유하는 교정 상태. 어느 화면도 이것을 직접 그리지 않는다. */
-export interface EpisodeCorrectionStore {
-  /** 다시 보내기를 누른 교정을 기억해 둔다. 실제로 보내야 표시가 남는다. */
-  beginResend: (messageId: string) => void;
-  /** 메시지 ID로 찾는 교정. */
-  byMessageId: Record<string, EpisodeCorrection>;
-  /** 입력창의 말을 보냈다. 직전에 고른 배울 표현이 있으면 보냈다고 적는다. */
-  confirmResend: () => void;
-  /** 서버에서 온 교정을 받아 둔다. */
-  receive: (correction: EpisodeCorrection) => void;
-  /** 이미 다시 보낸 교정의 메시지 ID. */
-  resent: Record<string, true>;
-}
-
-/** 말풍선 아래의 한 줄이 읽는 것. 화면이 상태와 두 동작을 여기에 모아 준다. */
+export type ExpressionState =
+  | { status: "pending"; retrying: boolean }
+  | { status: "error" | "natural" | "unclear" }
+  | { status: "corrected"; correction: EpisodeCorrection };
+type CheckExpression = (
+  messageId: string,
+  signal: AbortSignal
+) => Promise<ExpressionResult>;
 export interface EpisodeCorrections {
-  /** 배울 표현 하나를 두고 한국어로 묻는 자리를 연다. */
   ask: (correction: EpisodeCorrection) => void;
   byMessageId: Record<string, EpisodeCorrection>;
-  /** 고친 문장을 본 채팅 입력창에 담는다. */
-  resend: (correction: EpisodeCorrection) => void;
-  resent: Record<string, true>;
+  retry: (messageId: string) => void;
+  states: Record<string, ExpressionState>;
 }
-
-const NO_CORRECTIONS: EpisodeCorrections = {
+export interface EpisodeCorrectionStore
+  extends Omit<EpisodeCorrections, "ask"> {
+  begin: (messageId: string) => void;
+  check: (messageId: string) => void;
+  failWaiting: () => void;
+  retain: (messageIds: Set<string>) => void;
+}
+const EpisodeCorrectionsContext = createContext<EpisodeCorrections>({
   ask: () => undefined,
   byMessageId: {},
-  resend: () => undefined,
-  resent: {},
-};
-
-/**
- * 이 에피소드가 지금까지 받은 배울 표현.
- *
- * 교정은 계정에 남는다. 화면을 나갔다 와도 서버가 세션에 실어 보낸 것으로 같은
- * 자리에 다시 붙는다.
- */
-const EpisodeCorrectionsContext =
-  createContext<EpisodeCorrections>(NO_CORRECTIONS);
-
-/**
- * 교정 하나가 도착해도 장면 목록 전체를 다시 그리지 않게 하는 자리.
- *
- * 말풍선 아래에 매달리는 한 줄은 이 값을 직접 읽는다. 목록이 그 행을 다시
- * 만들지 않아도 문맥이 바뀌면 그 한 줄만 다시 그려지므로, 흐르는 장면이 교정
- * 때문에 멈추지 않는다.
- */
+  retry: () => undefined,
+  states: {},
+});
 export function EpisodeCorrectionsProvider({
   children,
   value,
@@ -70,55 +53,159 @@ export function EpisodeCorrectionsProvider({
     </EpisodeCorrectionsContext.Provider>
   );
 }
-
-export function useCorrections(): EpisodeCorrections {
+export function useCorrections() {
   return useContext(EpisodeCorrectionsContext);
 }
-
-/**
- * 한 에피소드의 교정 상태. 서버가 세션에 실어 보낸 것으로 시작한다.
- *
- * 대화를 굴리는 훅이 이 상태를 소유한다. 흐르는 응답에서 교정이 도착하는 자리가
- * 그 대화 안에 있기 때문이다.
- */
+// 서버의 30초 판정 제한에 요청과 응답 전달 시간을 더한다.
+const CHECK_TIMEOUT_MS = 35_000;
 export function useEpisodeCorrections(
-  saved: readonly EpisodeCorrection[] = []
+  saved: readonly EpisodeCorrection[] | undefined,
+  request: CheckExpression
 ): EpisodeCorrectionStore {
-  const [byMessageId, setByMessageId] = useState<
-    Record<string, EpisodeCorrection>
-  >(() =>
+  const [states, setStates] = useState<Record<string, ExpressionState>>(() =>
     Object.fromEntries(
-      saved.map((correction) => [correction.messageId, correction])
+      (saved ?? []).map((correction) => [
+        correction.messageId,
+        { correction, status: "corrected" },
+      ])
     )
   );
-  const [resent, setResent] = useState<Record<string, true>>({});
-  // 다시 보내기를 누른 배울 표현. 보내기 전까지는 아직 보낸 것이 아니다.
-  const pendingResend = useRef<string | undefined>(undefined);
-
-  const receive = useCallback((correction: EpisodeCorrection) => {
-    setByMessageId((current) => ({
-      ...current,
-      [correction.messageId]: correction,
-    }));
+  const current = useRef(states);
+  const checker = useRef(request);
+  checker.current = request;
+  const running = useRef(new Map<string, AbortController>());
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const publish = useCallback((next: Record<string, ExpressionState>) => {
+    current.current = next;
+    setStates(next);
   }, []);
-
-  const beginResend = useCallback((messageId: string) => {
-    pendingResend.current = messageId;
+  const clearTimer = useCallback((id: string) => {
+    clearTimeout(timers.current.get(id));
+    timers.current.delete(id);
   }, []);
-
-  const confirmResend = useCallback(() => {
-    const messageId = pendingResend.current;
-
-    if (messageId === undefined) {
-      return;
+  const startPending = useCallback(
+    (id: string, retrying: boolean) => {
+      clearTimer(id);
+      publish({ ...current.current, [id]: { retrying, status: "pending" } });
+      timers.current.set(
+        id,
+        setTimeout(() => {
+          running.current.get(id)?.abort();
+          running.current.delete(id);
+          timers.current.delete(id);
+          if (current.current[id]?.status === "pending") {
+            publish({ ...current.current, [id]: { status: "error" } });
+          }
+        }, CHECK_TIMEOUT_MS)
+      );
+    },
+    [clearTimer, publish]
+  );
+  const begin = useCallback(
+    (id: string) => {
+      if (!current.current[id]) {
+        startPending(id, false);
+      }
+    },
+    [startPending]
+  );
+  const run = useCallback(
+    (id: string, retrying: boolean) => {
+      if (running.current.has(id)) {
+        return;
+      }
+      const previous = current.current[id];
+      if (
+        retrying
+          ? previous?.status !== "error"
+          : previous && previous.status !== "pending"
+      ) {
+        return;
+      }
+      startPending(id, retrying);
+      const controller = new AbortController();
+      running.current.set(id, controller);
+      const finish = (next: ExpressionState) => {
+        if (running.current.get(id) !== controller) {
+          return;
+        }
+        running.current.delete(id);
+        clearTimer(id);
+        publish({ ...current.current, [id]: next });
+      };
+      checker.current(id, controller.signal).then(
+        (result) =>
+          finish(
+            result.status === "corrected"
+              ? { correction: result.correction, status: "corrected" }
+              : { status: result.status }
+          ),
+        () => finish({ status: "error" })
+      );
+    },
+    [clearTimer, publish, startPending]
+  );
+  const check = useCallback((id: string) => run(id, false), [run]);
+  const retry = useCallback((id: string) => run(id, true), [run]);
+  const retain = useCallback(
+    (ids: Set<string>) => {
+      const next = { ...current.current };
+      let changed = false;
+      for (const id of Object.keys(next)) {
+        if (ids.has(id)) {
+          continue;
+        }
+        running.current.get(id)?.abort();
+        running.current.delete(id);
+        clearTimer(id);
+        delete next[id];
+        changed = true;
+      }
+      if (changed) {
+        publish(next);
+      }
+    },
+    [clearTimer, publish]
+  );
+  const failWaiting = useCallback(() => {
+    const next = { ...current.current };
+    let changed = false;
+    for (const [id, state] of Object.entries(next)) {
+      if (state.status === "pending" && !running.current.has(id)) {
+        clearTimer(id);
+        next[id] = { status: "error" };
+        changed = true;
+      }
     }
-
-    pendingResend.current = undefined;
-    setResent((current) => ({ ...current, [messageId]: true }));
+    if (changed) {
+      publish(next);
+    }
+  }, [clearTimer, publish]);
+  useEffect(() => {
+    const requests = running.current;
+    const pendingTimers = timers.current;
+    return () => {
+      for (const controller of requests.values()) {
+        controller.abort();
+      }
+      requests.clear();
+      for (const timer of pendingTimers.values()) {
+        clearTimeout(timer);
+      }
+      pendingTimers.clear();
+    };
   }, []);
-
+  const byMessageId = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(states).flatMap(([id, state]) =>
+          state.status === "corrected" ? [[id, state.correction]] : []
+        )
+      ),
+    [states]
+  );
   return useMemo(
-    () => ({ beginResend, byMessageId, confirmResend, receive, resent }),
-    [beginResend, byMessageId, confirmResend, receive, resent]
+    () => ({ begin, byMessageId, check, failWaiting, retain, retry, states }),
+    [begin, byMessageId, check, failWaiting, retain, retry, states]
   );
 }

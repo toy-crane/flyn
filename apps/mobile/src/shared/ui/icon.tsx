@@ -41,12 +41,14 @@ const iconSizes = {
   lg: 24,
   md: 20,
   sm: 16,
+  xs: 14,
 } as const;
 
 const iconSizeClassNames = {
   lg: "size-6",
   md: "size-5",
   sm: "size-4",
+  xs: "size-3.5",
 } as const satisfies Record<keyof typeof iconSizes, string>;
 
 /**
@@ -58,6 +60,7 @@ const LEARN_VARIABLE = "--learn";
 const iconTones = {
   accent: "accent",
   accentForeground: "accent-foreground",
+  danger: "danger-soft-foreground",
   default: "foreground",
   muted: "muted",
   // Not `success`. That one is a light, vivid green, and as a stroke it sits at
@@ -69,7 +72,7 @@ const iconTones = {
 
 export type IconName = keyof typeof icons;
 export type IconSize = keyof typeof iconSizes;
-export type IconTone = keyof typeof iconTones | "learn";
+export type IconTone = keyof typeof iconTones | "learn" | "expression";
 
 export interface IconProps {
   /** Paints the shape solid instead of drawing its outline. */
@@ -87,13 +90,19 @@ export function Icon({
   testID,
   tone = "default",
 }: IconProps) {
-  // 두 원본을 다 읽고 하나를 고른다. 훅은 조건부로 부를 수 없고, 보라만
-  // HeroUI 바깥에 있다.
+  // 훅은 조건부로 부를 수 없으므로 공통 색과 전용 안내 색을 읽은 뒤 고른다.
   const themeColor = useThemeColor(
-    tone === "learn" ? "accent" : iconTones[tone]
+    tone === "learn" || tone === "expression" ? "accent" : iconTones[tone]
   );
   const learnColor = useCSSVariable(LEARN_VARIABLE);
-  const color = tone === "learn" ? String(learnColor) : themeColor;
+  const expressionColor = useCSSVariable("--expression");
+  let color: string = themeColor;
+  if (tone === "expression") {
+    color = String(expressionColor);
+  }
+  if (tone === "learn") {
+    color = String(learnColor);
+  }
   const IconComponent = icons[name];
   const pixelSize = iconSizes[size];
 

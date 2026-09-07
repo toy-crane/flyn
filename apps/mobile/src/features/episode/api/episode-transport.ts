@@ -25,8 +25,8 @@ export const EPISODE_API_PATH = "/ai/episode";
  * wrong scene. It is a function for the same reason the token is: the transport
  * resolves the body on every send.
  *
- * 이미 받은 배울 표현의 패턴은 싣지 않는다. 교정이 행으로 남으므로 서버가 자기
- * 기록에서 읽고, 그래서 앱을 껐다 켜도 같은 규칙이 다시 붙지 않는다.
+ * 교정 기록이나 원문은 별도로 싣지 않는다. 표현 확인 경로는 저장된 사용자
+ * 메시지를 읽고, 반복된 실수도 메시지마다 확인한다.
  */
 export function createEpisodeTransport(
   getAccessToken: () => string | undefined,

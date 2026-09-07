@@ -17,11 +17,13 @@
 | `background` | `#F4F4F6` | `#0B0B0D` |
 | `foreground` | `#111114` | `#FFFFFF` |
 | `surface` | `#FFFFFF` | `#1A1A1E` |
-| `learn` | `oklch(0.55 0.19 300)` | `oklch(0.78 0.15 300)` |
+| `learn` | `oklch(0.54 0.19 300)` | `oklch(0.78 0.15 300)` |
 | `learn-foreground` | `oklch(0.9911 0 0)` | `oklch(0.21 0.03 300)` |
 | `learn-surface` | `oklch(0.945 0.022 300)` | `oklch(0.27 0.045 300)` |
+| `expression` | `#0F766E` | `#76D6C9` |
+| `expression-surface` | `#E5F3EF` | `#152F2C` |
 
-- HeroUI의 시맨틱 집합으로 뜻을 표현할 수 없는 제품 역할은 전역 CSS에 직접 등재한다. 지금 여기에 해당하는 것은 교정 채널의 `learn`, `learn-foreground`, `learn-surface` 셋뿐이다. 값은 다른 역할과 같은 자리에서 Light와 Dark를 함께 정의하고, `@theme inline`으로 `bg-learn`, `text-learn` 같은 클래스를 만든다.
+- HeroUI의 시맨틱 집합으로 뜻을 표현할 수 없는 제품 역할은 전역 CSS에 직접 등재한다. 영어 교정에는 `learn`, `learn-foreground`, `learn-surface`를, 한국어 입력의 영어 안내에는 `expression`, `expression-surface`를 쓴다. 한국어 안내는 문제없음이나 실패 상태와 다른 학습 안내이므로 전용 역할을 둔다. 값은 다른 역할과 같은 자리에서 Light와 Dark를 함께 정의하고, `@theme inline`으로 `bg-learn`, `text-expression` 같은 클래스를 만든다.
 - 등재한 이름이 HeroUI의 `useThemeColor`가 아는 목록에 없으므로, 클래스를 쓸 수 없는 자리는 Uniwind의 CSS 변수 읽기로 같은 값을 얻는다. 이름은 `--color-` 접두사 없이 등재한 이름 그대로다.
 - 클래스를 사용할 수 없는 Expo Router, 네이티브 Stack 옵션과 루트 창에는 얇은 테마 브리지가 Uniwind 변숫값을 전달한다. 이 브리지는 색상을 정의하지 않는다.
 - Expo Router 내비게이션 테마의 `background`와 `card`는 HeroUI의 `background`에 연결하고, `text`는 `foreground`에 연결한다. 기본 내비게이션 테마의 시스템 폰트는 덮어쓰지 않는다.

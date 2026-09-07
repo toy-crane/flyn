@@ -20,8 +20,8 @@ export const episodeLabels = {
   leave: "홈으로 가기",
   /** Shown over the episode that comes next, on Home and at an episode's end. */
   nextEyebrow: "다음 이야기",
-  /** Shown in the empty input while the scene is open. A label, so no period. */
-  placeholder: "영어로 말해 보세요",
+  /** 에피소드에서 두 언어를 모두 입력할 수 있음을 알린다. */
+  placeholder: "영어나 한국어로 적어 주세요.",
   /** Shown when the story could not be read, as the way to ask again. */
   retry: "다시 시도하기",
   /** Opens the transcript of a finished episode from the story detail. */
@@ -38,10 +38,7 @@ export const episodeLabels = {
 } as const;
 
 /**
- * 에피소드 대화에서 몰랐던 표현에 붙는 교정이 쓰는 말.
- *
- * 틀림을 세는 말과 유형 이름은 여기에 없다. 채점받는 느낌을 만들지 않으려고
- * 라벨을 "배울 표현" 하나로 고정한다.
+ * 에피소드의 영어 교정과 한국어 입력 안내, 표현 확인 상태가 쓰는 말.
  */
 export const correctionLabels = {
   /** Shown as the button that opens the Korean question sheet. */
@@ -52,16 +49,11 @@ export const correctionLabels = {
   askPlaceholder: "궁금한 것을 한국어로 물어보세요",
   /** Shown as the sheet's title. */
   askTitle: "AI에게 물어보기",
-  /** Not shown: the chevron that folds an open card back into one line. */
-  fold: "배울 표현 접기",
-  /** Shown as the card's heading, and as the sheet's source label. */
-  label: "배울 표현",
-  /** Shown as the card's heading when one message carries several. */
-  labelCount: (count: number) => `배울 표현 ${count}개`,
-  /** Not shown: the one line under a message, which opens the card. */
-  open: "배울 표현 보기",
-  /** Shown as the button that puts the fixed sentence in the composer. */
-  resend: "다시 보내기",
-  /** Shown on the line once its fixed sentence has been sent again. */
-  resent: "고쳐서 다시 보냈어요",
+  checking: "표현을 확인하고 있어요.",
+  failed: "표현을 확인하지 못했어요.",
+  label: "더 자연스러운 영어 표현",
+  natural: "자연스러운 표현이에요.",
+  retry: "표현 다시 확인",
+  suggestionLabel: "이럴 때 쓰는 영어 표현",
+  unclear: "표현의 뜻을 파악하기 어려워요.",
 } as const;

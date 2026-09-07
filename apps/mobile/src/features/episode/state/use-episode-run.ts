@@ -4,7 +4,7 @@ import { randomUUID } from "expo-crypto";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
-import { correctionOfData } from "@/features/episode/api/episode-correction";
+import { checkEpisodeExpression } from "@/features/episode/api/episode-correction";
 import { createEpisodeTransport } from "@/features/episode/api/episode-transport";
 import {
   type EpisodeCorrectionStore,
@@ -55,7 +55,16 @@ export function useEpisodeRun(
 ): EpisodeRun {
   const currentToken = useRef(accessToken);
   const currentEpisodeId = useRef(episodeId);
-  const corrections = useEpisodeCorrections(savedCorrections);
+  const corrections = useEpisodeCorrections(
+    savedCorrections,
+    (messageId, signal) =>
+      checkEpisodeExpression(
+        currentToken.current,
+        currentEpisodeId.current,
+        messageId,
+        signal
+      )
+  );
   // 대화는 한 번만 만들어지므로 그때의 함수가 그대로 붙잡힌다. 지금 상태를
   // 읽는 자리는 ref 하나로 남겨 둔다.
   const currentCorrections = useRef(corrections);
@@ -77,22 +86,50 @@ export function useEpisodeRun(
     // 짧은 문자열은 들어가지 못하므로 앱도 서버와 같은 모양으로 만든다.
     generateId: () => randomUUID(),
     messages: initialMessages,
-    // 교정은 장면 메시지에 들어가지 않는 transient part로 온다. 받는 자리가
-    // 여기뿐이라, 저장되는 대화 기록은 교정이 붙기 전과 똑같이 남는다.
     onData: (part) => {
-      if (part.type !== "data-correction") {
+      if (part.type !== "data-expression-ready") {
         return;
       }
-
-      const correction = correctionOfData(part.data);
-
-      if (correction) {
-        currentCorrections.current.receive(correction);
+      const data = part.data as { messageId?: unknown } | null;
+      if (typeof data?.messageId === "string") {
+        currentCorrections.current.check(data.messageId);
       }
     },
     throttle: SCENE_UPDATE_INTERVAL_MS,
     transport,
   });
+  const knownMessages = useRef(
+    new Set(initialMessages.map((message) => message.id))
+  );
+  const previousStatus = useRef(chat.status);
+  useEffect(() => {
+    const userIds = new Set(
+      chat.messages
+        .filter((message) => message.role === "user")
+        .map((message) => message.id)
+    );
+    corrections.retain(userIds);
+    for (const id of userIds) {
+      if (!(knownMessages.current.has(id) || readOnly)) {
+        corrections.begin(id);
+      }
+    }
+    knownMessages.current = new Set(chat.messages.map((message) => message.id));
+    const wasSending =
+      previousStatus.current === "submitted" ||
+      previousStatus.current === "streaming";
+    previousStatus.current = chat.status;
+    if (wasSending && (chat.status === "ready" || chat.status === "error")) {
+      corrections.failWaiting();
+    }
+  }, [
+    chat.messages,
+    chat.status,
+    corrections.begin,
+    corrections.failWaiting,
+    corrections.retain,
+    readOnly,
+  ]);
   const open = useCallback(() => {
     if (readOnly) {
       return;

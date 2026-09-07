@@ -1,8 +1,8 @@
-import { Text, View } from "react-native";
+import { Text, useWindowDimensions, View } from "react-native";
 
 import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
 import { Icon } from "@/shared/ui/icon";
-import { correctionLabels } from "./episode-labels";
+import { correctionPresentation } from "./correction-presentation";
 
 /**
  * 물어보기 시트가 어디서 왔는지, 시트 맨 위에 읽기 전용으로.
@@ -16,15 +16,21 @@ export function CorrectionSource({
 }: {
   correction: EpisodeCorrection;
 }) {
+  const { fontScale } = useWindowDimensions();
+  const appearance = correctionPresentation(correction.original);
   return (
     <View
-      className="mb-4 rounded-2xl bg-learn-surface px-3.5 py-3"
+      className={`mb-4 rounded-2xl px-3.5 py-3 ${appearance.surface}`}
+      key={fontScale}
       testID="correction-source"
     >
       <View className="mb-1 flex-row items-center gap-1.5">
-        <Icon name="learn" size="sm" tone="learn" />
-        <Text className="font-semibold text-learn text-xs" selectable={false}>
-          {correctionLabels.label}
+        <Icon name="learn" size="sm" tone={appearance.tone} />
+        <Text
+          className={`shrink font-semibold text-xs ${appearance.text}`}
+          selectable={false}
+        >
+          {appearance.title}
         </Text>
       </View>
       <Text
