@@ -397,6 +397,7 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 | `메시지` | 대화 화면 입력 |
 | `보내기` | 대화 화면 전송 버튼 |
 | `답변 그만 받기` | 답변을 받는 동안의 전송 버튼 자리 |
+| `답변을 준비하고 있어요.` | 답변을 기다리는 점 세 개의 상태. 화면에 문구는 나오지 않습니다 |
 | `답변 복사` | AI 답변 아래 아이콘 줄 |
 | `답변 다시 받기` | AI 답변 아래 아이콘 줄 |
 | `복사` | 메시지를 길게 눌러 여는 메뉴 항목 |
@@ -455,7 +456,7 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 - 목록과 오류: `chat-list`, `chat-error`, `chat-retry`
 - 메시지: `chat-message-row`, `chat-message-user`, `chat-message-assistant`
 - 답변 아래 아이콘 줄: `chat-message-actions`
-- 답변을 기다리는 동안: `chat-waiting`, `chat-waiting-sweep`
+- 답변을 기다리는 동안: `chat-waiting`, `chat-waiting-dot`
 - 수정 상태: `chat-edit-notice`, `chat-edit-cancel`
 - 물어보기: `chat-side-count`, `side-chat-source`, `side-chat-source-phrase`
 

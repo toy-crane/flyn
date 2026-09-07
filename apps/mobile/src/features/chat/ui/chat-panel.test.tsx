@@ -1189,7 +1189,7 @@ describe("ChatPanel", () => {
       jest.advanceTimersByTime(300);
     });
 
-    expect(screen.queryAllByText(chatLabels.waiting)).toHaveLength(0);
+    expect(screen.queryAllByLabelText(chatLabels.waiting)).toHaveLength(0);
     expect(screen.getByLabelText(chatLabels.stop)).toHaveProp(
       "accessibilityValue",
       { text: "진행을 저장하고 있어요" }
@@ -1452,9 +1452,7 @@ describe("ChatPanel", () => {
       jest.advanceTimersByTime(300);
     });
 
-    // The line paints its word twice, once as the mask and once as what the
-    // band runs over, so the count is not what is being checked here.
-    expect(screen.queryAllByText(chatLabels.waiting).length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText(chatLabels.waiting)).toHaveLength(1);
 
     await rerender(
       <ChatPanel
@@ -1468,7 +1466,7 @@ describe("ChatPanel", () => {
       />
     );
 
-    expect(screen.queryAllByText(chatLabels.waiting)).toHaveLength(0);
+    expect(screen.queryAllByLabelText(chatLabels.waiting)).toHaveLength(0);
   });
 
   // Showing it for an answer that is already landing would put a line in the
@@ -1488,7 +1486,7 @@ describe("ChatPanel", () => {
       jest.advanceTimersByTime(299);
     });
 
-    expect(screen.queryAllByText(chatLabels.waiting)).toHaveLength(0);
+    expect(screen.queryAllByLabelText(chatLabels.waiting)).toHaveLength(0);
 
     await rerender(
       <ChatPanel
@@ -1505,7 +1503,7 @@ describe("ChatPanel", () => {
       jest.advanceTimersByTime(1000);
     });
 
-    expect(screen.queryAllByText(chatLabels.waiting)).toHaveLength(0);
+    expect(screen.queryAllByLabelText(chatLabels.waiting)).toHaveLength(0);
   });
 
   test("답변을 받고 있지 않으면 대기 표시를 두지 않는다", async () => {
@@ -1520,7 +1518,7 @@ describe("ChatPanel", () => {
       />
     );
 
-    expect(screen.queryAllByText(chatLabels.waiting)).toHaveLength(0);
+    expect(screen.queryAllByLabelText(chatLabels.waiting)).toHaveLength(0);
   });
 
   test("입력창의 return 키로 전송한다", async () => {
