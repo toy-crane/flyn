@@ -1,6 +1,6 @@
 # 실기기 LAN 개발 검증
 
-2026-09-07 기준 구현 중간 확인이다. 자동 검사, 가상 기기 경로와 USB iPhone 14의 이메일 로그인·대화·사진 표시를 확인했다. 전체 실기기 수락 기준과 일부 회귀 검증은 아직 완료하지 않았다.
+2026-09-07 기준 구현 중간 확인이다. 자동 검사, 가상 기기 경로와 USB iPhone 14·Samsung SM-G991N의 이메일 로그인·대화·사진 표시를 확인했다. Android 실기기의 새 사진 업로드도 확인했다. 전체 실기기 수락 기준과 일부 회귀 검증은 아직 완료하지 않았다.
 
 ## 구현과 실행
 
@@ -67,12 +67,23 @@ iOS 빌드 후 fingerprint가 한 번 바뀌어 기존 앱 자동 재연결을 �
 - 2화에서 `Sorry for the delay. Can I pay with my phone instead?`를 보내 실제 답변, 2화 완료, 3화 안내를 확인했다. [실기기 API 기능](evidence/api-iphone14.png). API 기능 성공을 확인한 결과이며 요청별 서버 로그나 패킷으로 목적지 포트를 입증한 결과는 아니다.
 - 같은 앱을 종료 후 재실행했다. 로그인, 40% 진행 상태와 프로필 사진이 유지됐다. [재실행 후 사진](evidence/avatar-iphone14-reopen.png). 프로필 버튼을 가리는 Expo 개발 메뉴의 `Tools button`은 이 앱에서 껐다. 실제 화면으로 로그아웃해 로그인 화면 복귀를 확인하고 `agent-device` 세션을 닫았다. API·Metro는 계속 실행 중이다.
 
+## USB Android에서 직접 확인한 결과
+
+- 사용자가 폰을 켠 뒤 `adb devices -l`에서 USB `R3CR60CZNME`, Samsung `SM-G991N`, Android 15를 확인했다. `agent-device`의 기기 이름은 `SM G991N`이며 `flyn-lan-samsung` 세션으로 이 실기기만 조작했다. Wi-Fi 주소는 `192.168.45.43`, Mac은 같은 대역의 `192.168.45.159`였다.
+- 폰에 `com.odd.flyn`이 없어 이 worktree에서 앞서 만든 `apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk`를 설치했다. APK의 arm64 라이브러리 포함과 설치 성공을 확인했다. `bun run dev android --physical`로 현재 slot 4 서버를 유지하고 LAN 링크로 앱을 열었다. 앱 설치는 일회성 검증 준비이며 루트 개발 명령에 추가한 기능이 아니다.
+- Expo 개발 메뉴에서 `http://192.168.45.159:8122` 연결을 확인했다. `adb reverse --list`는 비어 있었다. USB는 기기 조작에 사용하고 앱은 LAN 서버에 연결한 결과다. [Android 실기기 Metro 주소](evidence/metro-samsung.png).
+- 휴대전화 업데이트 완료 알림이 첫 이메일 입력 도중 앱을 가렸다. 알림을 닫고 앱을 다시 연 뒤 실제 화면에서 이메일 코드 요청·입력·로그인을 완료했다. 기존 검증 계정 `lan-20260907-sim@example.com`과 `auth:otp`를 사용했으며 세션 주입과 관리자 인증은 사용하지 않았다.
+- 스토리 표지 5개와 iOS에서 올린 기존 꽃 사진이 표시됐다. 이 폰에는 앱을 처음 설치했으므로 과거 앱 캐시만으로 표시한 결과는 아니다. [스토리 표지](evidence/stories-samsung.png), [기존 프로필 사진](evidence/avatar-samsung-before.png).
+- 3화에서 `Yes, that is my bag. I was here first, but we can share the table if you like.`를 보냈다. Owen과 Mia의 새 답변이 표시됐다. [실기기 API 응답](evidence/api-samsung.png). 요청별 목적지 포트와 응답 패킷은 별도로 기록하지 못했다.
+- 새 업로드는 프로젝트의 `apps/mobile/assets/icon.png`를 `/sdcard/Download/flyn-lan-avatar-test.png`로 복사해 확인했다. 앱의 사진 편집 → 사진 보관함 → 해당 테스트 아이콘 선택 → 자르기 → 저장을 진행했다. 개인 사진은 선택하지 않았다. 앱을 종료 후 다시 열어 로그인·이야기 진행 상태·새 프로필 사진이 유지되는 것을 확인했다. [새 사진 저장 후 재실행](evidence/avatar-samsung-reopen.png).
+- Expo `Tools button`이 네이티브 프로필 버튼을 가려 개발 메뉴에서 껐다. 앱 화면으로 로그아웃해 로그인 화면 복귀를 확인했다. Google 로그인은 계정 확인 화면까지 열었고 사용자의 폰 직접 확인을 기다리는 중이다.
+- 복사한 `/sdcard/Download/flyn-lan-avatar-test.png`만 검증 후 삭제했다. Google 확인을 이어가기 위해 `flyn-lan-samsung` 세션은 열어 두었다. 확인 완료 또는 취소 후 앱에서 로그아웃하고 세션을 닫는다. 마지막 `dev:status`에서 slot 4 API·Metro PID 646·649, 다른 worktree의 slot 1 PID 19105·19106이 유지됐다.
+
 ## 남은 수락 기준과 재개 조건
 
-- 실제 Android는 `adb devices -l`에 나타나지 않았다. 호환되는 Development Build가 설치된 폰을 USB로 연결하고 디버깅을 허용해야 한다.
-- 실제 Android의 이메일 로그인·로그아웃과 API 기능, 두 실기기의 요청별 API 목적지, Google 로그인, iPhone Apple 로그인은 미검증이다. 제공자 본인 확인은 사용자가 직접 진행한다. iPhone에서 새 사진 업로드와 제공자 프로필 사진도 아직 확인하지 않았다.
+- 두 실기기의 요청별 API 목적지, Google 로그인 완료, iPhone Apple 로그인은 미검증이다. 제공자 본인 확인은 사용자가 직접 진행한다. iPhone에서 새 사진 업로드와 제공자 프로필 사진도 아직 확인하지 않았다.
 - Android Emulator에서 새 사진 업로드는 미검증이다. 제공자가 준 프로필 사진과 이미지의 최종 요청 URL·응답도 아직 확인하지 않았다. `agent-device network dump`와 개발용 Network 이벤트 관찰에서 요청 기록을 얻지 못했다. 이미지의 화면 표시와 URL 단위 테스트를 실제 네트워크 기록으로 대체하지 않는다.
 - iPhone 14의 대화 완료 스크린샷에는 스크롤한 본문과 상단 제목이 겹쳐 보인다. LAN 연결 결과와 별개로 iOS 18의 대화 화면 레이아웃 확인이 필요하다.
 - 실제 IP 변경 후 재시작, 두 worktree의 실기기 A → B → A 전환, 한 worktree 종료 후 다른 쪽 기능 유지, 실기기와 가상 기기의 동시 기능 실행은 미검증이다.
-- 생성된 iOS 설정에서 `NSAllowsLocalNetworking`과 로컬 네트워크 권한 문구를 확인했다. Android debug manifest는 HTTP를 허용했다. 배포용 설정은 바꾸지 않았다. iPhone 14 / iOS 18.7.7에서 이번 LAN 경로가 동작했으며, 실제 Android의 OS 권한·대상 SDK별 동작은 남아 있다.
+- 생성된 iOS 설정에서 `NSAllowsLocalNetworking`과 로컬 네트워크 권한 문구를 확인했다. Android debug manifest는 HTTP를 허용했다. 배포용 설정은 바꾸지 않았다. iPhone 14 / iOS 18.7.7과 SM-G991N / Android 15에서 이번 LAN 경로가 동작했다. 다른 OS 버전·제조사로 결과를 일반화하지 않는다.
 - `implement`의 모든 수락 기준 통과 뒤 단계인 전체 diff 자동 리뷰는 아직 실행하지 않았다. 실기기 검증과 남은 회귀 확인을 마친 실행 가능한 변경을 대상으로 Codex 표준 리뷰를 한 번 실행한다.
