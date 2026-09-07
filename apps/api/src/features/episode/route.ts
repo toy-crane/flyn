@@ -22,7 +22,7 @@ import {
   storyDetailViewOf,
   storyListViewOf,
 } from "./catalog";
-import { type EpisodeCorrection, judgeCorrection } from "./correction";
+import { judgeExpression } from "./correction";
 import { episodeSystemPrompt, episodeTags } from "./episode";
 import {
   appendEpisodeCorrection,
@@ -33,7 +33,6 @@ import {
   openEpisodePlay,
   readEpisodeSession,
   readFinishedEpisodes,
-  readSeenPatterns,
   recordEpisodeEnding,
   storyMemoriesOf,
 } from "./progress";
@@ -123,45 +122,6 @@ function textOfMessage(message: UIMessage): string {
     .filter((part) => part.type === "text")
     .map((part) => part.text)
     .join("");
-}
-
-/**
- * 장면과 나란히 도는 교정 한 건.
- *
- * 장면을 만드는 호출과 같은 턴에 있지만 서로를 기다리지 않는다. 교정이 늦어도
- * 장면은 그대로 흐르고, 교정이 실패해도 이야기는 계속된다. 실패를 여기서
- * 삼키는 것이 그 약속이다.
- */
-async function correctionFor(
-  messages: UIMessage[],
-  model: LanguageModel,
-  seenPatterns: string[],
-  signal: AbortSignal,
-  onFailure: (error: unknown) => void
-): Promise<EpisodeCorrection | undefined> {
-  const asked = messages.at(-1);
-
-  if (asked?.role !== "user") {
-    return;
-  }
-
-  try {
-    return await judgeCorrection({
-      context: await convertToModelMessages(messages.slice(0, -1), {
-        convertDataPart: (part) =>
-          part.type === "data-speaker"
-            ? { text: speakerModelText(part.data), type: "text" }
-            : undefined,
-      }),
-      messageId: asked.id,
-      model,
-      original: textOfMessage(asked),
-      seenPatterns,
-      signal,
-    });
-  } catch (error) {
-    onFailure(error);
-  }
 }
 
 /** 앱이 한 턴에 보내는 것. 지난 장면은 여기 없다. */
@@ -338,6 +298,67 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
 
         return c.json(session);
       })
+      .post("/correction", requireUser, requireCurrentUser, async (c) => {
+        const body = (await c.req.json().catch(() => null)) as {
+          episodeId?: unknown;
+          messageId?: unknown;
+        } | null;
+        if (
+          typeof body?.episodeId !== "string" ||
+          typeof body.messageId !== "string"
+        ) {
+          return c.json({ error: "Invalid request body." }, 400);
+        }
+        const client = c.var.supabaseContext.supabase;
+        const story = await readStoryOfEpisode(client, body.episodeId);
+        const session = story
+          ? await readEpisodeSession(client, story, body.episodeId)
+          : undefined;
+        if (!session) {
+          return c.json({ error: "Message is unavailable." }, 404);
+        }
+        const at = session.messages.findIndex(
+          (candidate) =>
+            candidate.id === body.messageId && candidate.role === "user"
+        );
+        const message = session.messages[at];
+        if (!message) {
+          return c.json({ error: "Message is unavailable." }, 404);
+        }
+        const saved = session.corrections.find(
+          (correction) => correction.messageId === message.id
+        );
+        if (saved) {
+          return c.json({
+            correction: saved,
+            messageId: message.id,
+            status: "corrected",
+          });
+        }
+        const result = await judgeExpression({
+          context: await convertToModelMessages(session.messages.slice(0, at), {
+            convertDataPart: (part) =>
+              part.type === "data-speaker"
+                ? { text: speakerModelText(part.data), type: "text" }
+                : undefined,
+          }),
+          messageId: message.id,
+          model: dependencies.model ?? resolveModelId(),
+          original: textOfMessage(message),
+          signal: AbortSignal.any([
+            c.req.raw.signal,
+            AbortSignal.timeout(30_000),
+          ]),
+        });
+        if (result.status === "corrected") {
+          try {
+            await appendEpisodeCorrection(client, result.correction);
+          } catch (error) {
+            logRequestFailure(c.req.method, c.req.path, error);
+          }
+        }
+        return c.json(result);
+      })
       /*
       배울 표현 하나를 두고 한국어로 묻는 자리.
 
@@ -424,18 +445,6 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
         }
 
         const model = dependencies.model ?? resolveModelId();
-        // 이미 알려 준 규칙은 서버가 자기 교정 행에서 읽는다. 앱이 그 목록을
-        // 나르지 않으므로, 앱을 껐다 켜도 같은 규칙이 다시 붙지 않는다.
-        const seenPatterns = await readSeenPatterns(client, play.playId);
-        // 장면보다 먼저 시작해 둔다. 두 호출이 나란히 돌아야 교정이 장면을
-        // 기다리게 만들지 않는다.
-        const correcting = correctionFor(
-          play.messages,
-          model,
-          seenPatterns,
-          c.req.raw.signal,
-          (error) => logRequestFailure(c.req.method, c.req.path, error)
-        );
         const result = streamText({
           abortSignal: c.req.raw.signal,
           messages: await convertToModelMessages(play.messages, {
@@ -468,30 +477,16 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           originalMessages: [],
           responseMessageId: sceneId,
           write: async (writer) => {
-            // 판정이 끝나는 대로 흘려보낸다. 장면 한가운데에 도착해도 되고,
-            // 실제로 그렇게 도착하는 편이 이 단위가 약속한 모습이다. 흘려보낸 뒤
-            // 같은 값을 행으로도 남긴다. 저장이 실패해도 화면에는 이미 붙었고
-            // 이야기도 그대로 이어진다.
-            const correctionWritten = correcting.then(async (correction) => {
-              if (!correction) {
-                return;
-              }
-
+            // 사용자 메시지가 저장된 뒤 앱이 독립된 표현 확인 요청을 시작한다.
+            // 장면 응답은 그 요청의 완료를 기다리지 않는다.
+            const target = play.messages.at(-1);
+            if (target?.role === "user") {
               writer.write({
-                data: correction,
-                id: `correction-${correction.messageId}`,
-                // transient part는 메시지 목록에 들어가지 않는다. 교정은 자기
-                // 행에 남고, 저장되는 장면은 교정이 붙기 전과 똑같다.
+                data: { messageId: target.id },
                 transient: true,
-                type: "data-correction",
+                type: "data-expression-ready",
               });
-
-              try {
-                await appendEpisodeCorrection(client, correction);
-              } catch (error) {
-                logRequestFailure(c.req.method, c.req.path, error);
-              }
-            });
+            }
             const { ending } = await streamSceneText(
               result.textStream,
               tags,
@@ -514,9 +509,6 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
                 type: "data-next-up",
               });
             }
-
-            // 장면이 먼저 끝나도 응답은 교정을 두고 닫지 않는다.
-            await correctionWritten;
           },
         });
       })

@@ -354,8 +354,8 @@ export async function appendEpisodeMessage(
  * 배울 표현을 그것이 붙은 사용자 메시지에 매단다.
  *
  * 항목 하나가 행 하나다. 고친 문장은 메시지마다 하나뿐이라 행마다 같은 값이
- * 들어가는데, 그 문장이 한 줄로 접힌 배울 표현이 보여 주는 것이고 다시 보내기가
- * 입력창에 담는 것이기도 하다. 항목별로 다시 합칠 필요 없이 행 하나만 읽어도
+ * 들어간다. 한 줄로 접힌 배울 표현은 그 문장을 보여 준다.
+ * 항목별로 다시 합칠 필요 없이 행 하나만 읽어도
  * 화면을 그릴 수 있다.
  *
  * 결말이 난 뒤에도 들어간다. 결말이 얼리는 것은 대화이고, 마지막 턴의 배울
@@ -421,22 +421,6 @@ async function readCorrectionRows(
     pattern: row.pattern,
     reason: row.reason,
   }));
-}
-
-/**
- * 이 플레이에서 이미 알려 준 규칙.
- *
- * 판정자는 이 목록에 있는 규칙으로 새 항목을 만들지 않는다. 교정이 행으로 남으니
- * 서버가 자기 기록에서 읽으면 되고, 앱이 목록을 나르지 않아도 된다. 앱을 껐다 켜도
- * 같은 규칙이 다시 붙지 않는 것이 그 차이다.
- */
-export async function readSeenPatterns(
-  client: EpisodeClient,
-  playId: string
-): Promise<string[]> {
-  const rows = await readCorrectionRows(client, playId);
-
-  return [...new Set(rows.map((row) => row.pattern))];
 }
 
 function textOf(message: UIMessage): string {

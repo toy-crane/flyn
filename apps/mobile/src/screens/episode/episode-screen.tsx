@@ -94,16 +94,6 @@ export function EpisodeScreen({
 
     conversation.retry();
   }, [conversation.messages.length, conversation.retry, open]);
-  // 고친 문장을 입력창에 담는다. 보내는 것은 사용자의 몫이고, 그 전에 문장을
-  // 고칠 수도 있다. 실제로 보내야 한 줄에 보냈다는 표시가 남는다.
-  const resendCorrection = useCallback(
-    (correction: EpisodeCorrection) => {
-      corrections.beginResend(correction.messageId);
-      conversation.setDraft(correction.fixed);
-      inputRef.current?.focus();
-    },
-    [conversation.setDraft, corrections.beginResend]
-  );
   const { messages } = conversation;
   const askAboutCorrection = useCallback(
     (correction: EpisodeCorrection) => {
@@ -129,25 +119,19 @@ export function EpisodeScreen({
     () => ({
       ask: askAboutCorrection,
       byMessageId: corrections.byMessageId,
-      resend: resendCorrection,
-      resent: corrections.resent,
+      retry: corrections.retry,
+      states: corrections.states,
     }),
     [
       askAboutCorrection,
       corrections.byMessageId,
-      corrections.resent,
-      resendCorrection,
+      corrections.retry,
+      corrections.states,
     ]
   );
-  const { confirmResend } = corrections;
-  const { send } = conversation;
-  const sendMessage = useCallback(() => {
-    confirmResend();
-    send();
-  }, [confirmResend, send]);
   const conversationRun = useMemo(
-    () => ({ ...conversation, retry, send: sendMessage }),
-    [conversation, retry, sendMessage]
+    () => ({ ...conversation, retry }),
+    [conversation, retry]
   );
 
   let closing: ReactNode;

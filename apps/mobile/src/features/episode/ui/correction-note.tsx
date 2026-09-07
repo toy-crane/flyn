@@ -1,13 +1,19 @@
 import type { UIMessage } from "ai";
 import { useCallback, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, useWindowDimensions, View } from "react-native";
 
 import type {
   CorrectionEntry,
   EpisodeCorrection,
 } from "@/features/episode/api/episode-correction";
-import { useCorrections } from "@/features/episode/state/episode-corrections";
+import {
+  type ExpressionState,
+  useCorrections,
+} from "@/features/episode/state/episode-corrections";
+import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
+import { LoadingSpinner } from "@/shared/ui/loading-spinner";
+import { correctionPresentation } from "./correction-presentation";
 import { fixedMarks, markedParts } from "./correction-text";
 import { correctionLabels } from "./episode-labels";
 
@@ -62,6 +68,7 @@ function CorrectionRow({
   isFirst: boolean;
 }) {
   const showsSentence = correction.entries.length === 1;
+  const appearance = correctionPresentation(correction.original);
 
   return (
     <View
@@ -78,7 +85,7 @@ function CorrectionRow({
       />
       <MarkedSentence
         className="mb-1.5 font-semibold text-base text-foreground leading-6"
-        markClassName="text-learn"
+        markClassName={appearance.text}
         marks={[entry.fixed]}
         text={showsSentence ? correction.fixed : entry.fixed}
       />
@@ -89,38 +96,19 @@ function CorrectionRow({
   );
 }
 
-/** 카드 아래의 두 버튼. 하나는 대화로 돌아가고, 하나는 한국어로 묻는다. */
-function CorrectionActions({
-  onAsk,
-  onResend,
-}: {
-  onAsk: () => void;
-  onResend: () => void;
-}) {
+function CorrectionActions({ onAsk }: { onAsk: () => void }) {
   return (
-    <View className="mt-3 flex-row gap-2">
-      <Pressable
-        accessibilityLabel={correctionLabels.resend}
-        accessibilityRole="button"
-        className="min-h-10 flex-1 items-center justify-center rounded-full bg-learn px-3"
-        onPress={onResend}
-        testID="correction-resend"
-      >
-        <Text className="font-semibold text-learn-foreground text-sm">
-          {correctionLabels.resend}
-        </Text>
-      </Pressable>
-      <Pressable
+    <View className="mt-3">
+      <Button
         accessibilityLabel={correctionLabels.ask}
-        accessibilityRole="button"
-        className="min-h-10 flex-1 items-center justify-center rounded-full border border-border bg-surface px-3"
+        className="w-full rounded-full bg-surface"
+        labelClassName="font-semibold text-foreground text-sm"
         onPress={onAsk}
         testID="correction-ask"
+        variant="outline"
       >
-        <Text className="font-semibold text-foreground text-sm">
-          {correctionLabels.ask}
-        </Text>
-      </Pressable>
+        {correctionLabels.ask}
+      </Button>
     </View>
   );
 }
@@ -137,55 +125,40 @@ function CorrectionActions({
  */
 export function CorrectionNote({
   correction,
-  isResent,
   onAsk,
-  onResend,
 }: {
   correction: EpisodeCorrection;
-  isResent: boolean;
   onAsk: (correction: EpisodeCorrection) => void;
-  onResend: (correction: EpisodeCorrection) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  // iOS 글자 크기가 바뀌면 내부 배치를 새로 만들고 펼침 상태는 유지한다.
+  const { fontScale } = useWindowDimensions();
   const open = useCallback(() => setIsOpen(true), []);
   const fold = useCallback(() => setIsOpen(false), []);
   const ask = useCallback(() => onAsk(correction), [correction, onAsk]);
-  // 고친 문장을 입력창으로 보내고 나면 카드가 할 일은 끝났다. 한 줄로 접혀
-  // 입력창 앞을 비운다.
-  const resend = useCallback(() => {
-    setIsOpen(false);
-    onResend(correction);
-  }, [correction, onResend]);
+  const appearance = correctionPresentation(correction.original);
 
   if (!isOpen) {
     return (
       <Pressable
-        accessibilityLabel={correctionLabels.open}
+        accessibilityLabel={`${appearance.title} 보기`}
         accessibilityRole="button"
-        className="mt-1 max-w-[85%] flex-row items-start gap-2 self-end rounded-2xl rounded-tl-md bg-learn-surface px-3.5 py-2.5"
+        className={`mt-1 max-w-[85%] flex-row items-start gap-2 self-end rounded-2xl rounded-tl-md px-3.5 py-2.5 ${appearance.surface}`}
+        key={fontScale}
         onPress={open}
         testID="correction-line"
       >
         <View className="mt-1">
-          <Icon name="learn" size="sm" tone="learn" />
+          <Icon name="learn" size="sm" tone={appearance.tone} />
         </View>
         <View className="flex-1">
           <MarkedSentence
             className="text-foreground text-sm leading-5"
-            markClassName="font-semibold text-learn"
+            markClassName={`font-semibold ${appearance.text}`}
             marks={fixedMarks(correction)}
             testID="correction-line-fixed"
             text={correction.fixed}
           />
-          {isResent ? (
-            <Text
-              className="mt-1 text-muted text-xs"
-              selectable={false}
-              testID="correction-resent"
-            >
-              ✓ {correctionLabels.resent}
-            </Text>
-          ) : null}
         </View>
         <View className="mt-0.5">
           <Icon name="expand" size="sm" tone="muted" />
@@ -196,22 +169,26 @@ export function CorrectionNote({
 
   return (
     <View
-      className="mt-1 max-w-[85%] self-end rounded-2xl rounded-tl-md bg-learn-surface px-3.5 py-3"
+      className={`mt-1 max-w-[85%] self-end rounded-2xl rounded-tl-md px-3.5 py-3 ${appearance.surface}`}
+      key={fontScale}
       testID="correction-card"
     >
       <View className="mb-2 flex-row items-center justify-between">
-        <View className="flex-row items-center gap-1.5">
-          <Icon name="learn" size="sm" tone="learn" />
-          <Text className="font-semibold text-learn text-xs" selectable={false}>
+        <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
+          <Icon name="learn" size="sm" tone={appearance.tone} />
+          <Text
+            className={`shrink font-semibold text-xs ${appearance.text}`}
+            selectable={false}
+          >
             {correction.entries.length > 1
-              ? correctionLabels.labelCount(correction.entries.length)
-              : correctionLabels.label}
+              ? `${appearance.title} ${correction.entries.length}개`
+              : appearance.title}
           </Text>
         </View>
         <Pressable
-          accessibilityLabel={correctionLabels.fold}
+          accessibilityLabel={`${appearance.title} 접기`}
           accessibilityRole="button"
-          hitSlop={8}
+          className="-my-2 -mr-2 size-11 items-center justify-center"
           onPress={fold}
           testID="correction-fold"
         >
@@ -223,10 +200,10 @@ export function CorrectionNote({
           correction={correction}
           entry={entry}
           isFirst={index === 0}
-          key={entry.pattern}
+          key={`${entry.pattern}:${entry.original}:${entry.fixed}`}
         />
       ))}
-      <CorrectionActions onAsk={ask} onResend={resend} />
+      <CorrectionActions onAsk={ask} />
     </View>
   );
 }
@@ -238,20 +215,89 @@ export function CorrectionNote({
  * 어떤 교정인지는 이 자리가 스스로 읽는다. 그래야 교정 하나가 도착할 때 흐르는
  * 장면과 지나간 말풍선을 함께 다시 그리지 않는다.
  */
-export function EpisodeCorrectionNote({ message }: { message: UIMessage }) {
-  const { ask, byMessageId, resend, resent } = useCorrections();
-  const correction = byMessageId[message.id];
+function ExpressionStatusNote({
+  state,
+  onRetry,
+}: {
+  state: Exclude<ExpressionState, { status: "corrected" }>;
+  onRetry: () => void;
+}) {
+  const { fontScale } = useWindowDimensions();
+  const pending = state.status === "pending";
+  const retrying = pending && state.retrying;
+  if (state.status === "error" || retrying) {
+    return (
+      <View
+        accessibilityLiveRegion="polite"
+        className="mt-1 max-w-[85%] flex-row items-center self-end"
+        key={fontScale}
+      >
+        <Text
+          className={`shrink text-xs ${retrying ? "text-muted" : "text-danger-soft-foreground"}`}
+        >
+          {retrying ? correctionLabels.checking : correctionLabels.failed}
+        </Text>
+        <Pressable
+          accessibilityLabel={correctionLabels.retry}
+          accessibilityRole="button"
+          accessibilityState={{ busy: retrying, disabled: retrying }}
+          className="size-11 items-center justify-center"
+          disabled={retrying}
+          onPress={onRetry}
+          testID="expression-retry"
+        >
+          {retrying ? (
+            <LoadingSpinner color="muted" />
+          ) : (
+            <Icon name="regenerate" size="xs" tone="danger" />
+          )}
+        </Pressable>
+      </View>
+    );
+  }
+  const natural = state.status === "natural";
+  const label = {
+    natural: correctionLabels.natural,
+    pending: correctionLabels.checking,
+    unclear: correctionLabels.unclear,
+  }[state.status];
+  return (
+    <View
+      accessibilityLabel={label}
+      accessibilityLiveRegion="polite"
+      accessibilityRole={pending ? "progressbar" : "text"}
+      accessibilityState={{ busy: pending }}
+      accessible
+      className="mt-1 max-w-[85%] flex-row items-center gap-1.5 self-end py-1"
+      key={fontScale}
+    >
+      {pending ? <LoadingSpinner /> : null}
+      {natural ? <Icon name="check" size="sm" tone="success" /> : null}
+      <Text
+        className={`shrink text-xs ${natural ? "text-success-soft-foreground" : "text-muted"}`}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
 
-  if (message.role !== "user" || !correction) {
+export function EpisodeCorrectionNote({ message }: { message: UIMessage }) {
+  const { ask, byMessageId, states, retry } = useCorrections();
+  const correction = byMessageId[message.id];
+  const state = states?.[message.id];
+  const retryExpression = useCallback(
+    () => retry(message.id),
+    [retry, message.id]
+  );
+  if (message.role !== "user") {
     return null;
   }
-
-  return (
-    <CorrectionNote
-      correction={correction}
-      isResent={resent[message.id] === true}
-      onAsk={ask}
-      onResend={resend}
-    />
-  );
+  if (state && state.status !== "corrected") {
+    return <ExpressionStatusNote onRetry={retryExpression} state={state} />;
+  }
+  if (!correction) {
+    return null;
+  }
+  return <CorrectionNote correction={correction} onAsk={ask} />;
 }

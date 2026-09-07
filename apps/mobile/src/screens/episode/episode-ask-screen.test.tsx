@@ -118,7 +118,7 @@ test("출처에 내가 쓴 원문과 고친 문장을 배울 표현으로 보여
   );
 
   expect(screen.getByTestId("ask-panel")).toBeOnTheScreen();
-  expect(screen.getByText("배울 표현")).toBeOnTheScreen();
+  expect(screen.getByText("더 자연스러운 영어 표현")).toBeOnTheScreen();
   expect(screen.getByTestId("correction-source-original")).toHaveTextContent(
     "I think this is wrong coffee."
   );

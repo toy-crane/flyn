@@ -93,11 +93,9 @@ const CORRECTION = {
 
 /** 교정 상태도 대화가 소유하므로 같은 스탠드인이 함께 돌려준다. */
 let mockCorrections: {
-  beginResend: jest.Mock<(messageId: string) => void>;
   byMessageId: Record<string, typeof CORRECTION>;
-  confirmResend: jest.Mock<() => void>;
-  receive: jest.Mock<() => void>;
-  resent: Record<string, true>;
+  states: Record<string, never>;
+  retry: jest.Mock<(messageId: string) => void>;
 };
 
 jest.mock("@/features/episode/state/use-episode-run", () => {
@@ -217,11 +215,9 @@ beforeEach(() => {
   panel = undefined;
   mockEnding = undefined;
   mockCorrections = {
-    beginResend: jest.fn(),
     byMessageId: {},
-    confirmResend: jest.fn(),
-    receive: jest.fn(),
-    resent: {},
+    retry: jest.fn(),
+    states: {},
   };
   mockOpenAsk.mockClear();
   mockOpenAskConversation.mockClear();
@@ -263,7 +259,7 @@ test("화면에 들어오면 그 자리에서 에피소드를 연다", async () 
   );
   expect(panel?.chat).toMatchObject({ tag: "conversation" });
   expect(panel?.topInset).toBe(96);
-  expect(panel?.placeholder).toBe("영어로 말해 보세요");
+  expect(panel?.placeholder).toBe("영어나 한국어로 적어 주세요.");
 });
 
 // 물어보는 자리로 들어가는 길은 교정 카드 하나뿐이다. 템플릿의 텍스트 선택
@@ -300,37 +296,15 @@ test("몰랐던 표현이 있으면 그 말풍선 아래에 고친 문장 한 �
   );
 });
 
-test("다시 보내기를 누르면 고친 문장이 입력창에 담긴다", async () => {
+test("교정 카드에 다시 보내기를 두지 않고 원래 입력을 유지한다", async () => {
   mockCorrections.byMessageId = { m1: CORRECTION };
   const user = userEvent.setup();
-
   await renderWithHeroUI(
     <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
   );
-
-  await user.press(screen.getByLabelText("배울 표현 보기"));
-  await user.press(screen.getByTestId("correction-resend"));
-
-  expect(mockSetDraft).toHaveBeenCalledWith(
-    "I think you gave me the wrong coffee."
-  );
-  expect(mockCorrections.beginResend).toHaveBeenCalledWith("m1");
-});
-
-// 보내기 전까지는 아직 보낸 것이 아니다. 사용자는 담긴 문장을 고칠 수 있다.
-test("보내야 그 배울 표현을 다시 보냈다고 적는다", async () => {
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
-  );
-
-  expect(mockCorrections.confirmResend).not.toHaveBeenCalled();
-
-  // 패널이 보내기를 부르는 자리를 그대로 부른다. 두 mock 말고는 아무것도
-  // 바뀌지 않으므로 렌더를 기다릴 것이 없다.
-  panel?.chat.send?.();
-
-  expect(mockCorrections.confirmResend).toHaveBeenCalled();
-  expect(mockSend).toHaveBeenCalled();
+  await user.press(screen.getByLabelText("더 자연스러운 영어 표현 보기"));
+  expect(screen.queryByText("다시 보내기")).toBeNull();
+  expect(mockSetDraft).not.toHaveBeenCalled();
 });
 
 test("AI에게 물어보기를 누르면 그 말까지의 대화를 이어받은 자리를 연다", async () => {
@@ -341,7 +315,7 @@ test("AI에게 물어보기를 누르면 그 말까지의 대화를 이어받은
     <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
   );
 
-  await user.press(screen.getByLabelText("배울 표현 보기"));
+  await user.press(screen.getByLabelText("더 자연스러운 영어 표현 보기"));
   await user.press(screen.getByTestId("correction-ask"));
 
   expect(mockOpenAskConversation).toHaveBeenCalledWith({

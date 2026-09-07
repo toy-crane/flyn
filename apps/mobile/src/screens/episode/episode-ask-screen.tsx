@@ -32,8 +32,7 @@ function AskConversation({ ask }: { ask: EpisodeAsk }) {
       chat={conversation}
       inputRef={inputRef}
       placeholder={correctionLabels.askPlaceholder}
-      // 본 채팅으로 무언가를 보내는 장치는 두지 않는다. 이 시트는 이해 전용이고,
-      // 반영은 시트를 닫은 뒤 그대로 열려 있는 카드의 다시 보내기가 맡는다.
+      // 표현을 이해하는 대화다. 시트를 닫아도 본 채팅과 교정 카드는 그대로 남는다.
       source={<CorrectionSource correction={ask.correction} />}
       topInset={Platform.OS === "ios" ? headerHeight : 0}
     />

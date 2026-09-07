@@ -10,6 +10,8 @@
   채널이라는 것이 바로 보여야 하므로 보라 계열을 쓴다.
 */
 @theme inline {
+  --color-expression: var(--expression);
+  --color-expression-surface: var(--expression-surface);
   --color-learn: var(--learn);
   --color-learn-foreground: var(--learn-foreground);
   --color-learn-surface: var(--learn-surface);
@@ -22,7 +24,9 @@
       --foreground: #111114;
       --surface: #ffffff;
       --surface-foreground: var(--foreground);
-      --learn: oklch(0.55 0.19 300);
+      --expression: #0f766e;
+      --expression-surface: #e5f3ef;
+      --learn: oklch(0.54 0.19 300);
       --learn-foreground: oklch(0.9911 0 0);
       --learn-surface: oklch(0.945 0.022 300);
     }
@@ -34,6 +38,8 @@
       --foreground: #ffffff;
       --surface: #1a1a1e;
       --surface-foreground: var(--foreground);
+      --expression: #76d6c9;
+      --expression-surface: #152f2c;
       --learn: oklch(0.78 0.15 300);
       --learn-foreground: oklch(0.21 0.03 300);
       --learn-surface: oklch(0.27 0.045 300);
