@@ -1,9 +1,19 @@
-import { expect, jest, test } from "@jest/globals";
+import { afterEach, expect, jest, test } from "@jest/globals";
 import { screen, userEvent } from "@testing-library/react-native";
+import { Dimensions } from "react-native";
 
 import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
+import {
+  EpisodeCorrectionsProvider,
+  type ExpressionState,
+} from "@/features/episode/state/episode-corrections";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
-import { CorrectionNote } from "./correction-note";
+import { CorrectionNote, EpisodeCorrectionNote } from "./correction-note";
+
+const originalWindow = Dimensions.get("window");
+afterEach(() => {
+  Dimensions.set({ window: originalWindow });
+});
 
 const ONE_EXPRESSION: EpisodeCorrection = {
   entries: [
@@ -153,3 +163,51 @@ test("한국어 안내도 같은 카드로 열리고 상황에 맞는 제목과 
   await user.press(screen.getByLabelText("이럴 때 쓰는 영어 표현 접기"));
   expect(screen.queryByTestId("correction-card")).toBeNull();
 });
+
+test.each([
+  { fontScale: 1, marginLeft: -9 },
+  { fontScale: 2, marginLeft: -2 },
+])(
+  "글자 배율 $fontScale에서 재시도는 표시 간격과 44px 터치 영역을 유지한다",
+  async ({ fontScale, marginLeft }) => {
+    Dimensions.set({ window: { ...originalWindow, fontScale } });
+    const retry = jest.fn();
+    const renderStatus = (state: ExpressionState) => (
+      <EpisodeCorrectionsProvider
+        value={{
+          ask: jest.fn(),
+          byMessageId: {},
+          retry,
+          states: { m1: state },
+        }}
+      >
+        <EpisodeCorrectionNote
+          message={{
+            id: "m1",
+            parts: [{ text: "I wants coffee.", type: "text" }],
+            role: "user",
+          }}
+        />
+      </EpisodeCorrectionsProvider>
+    );
+    const rendered = await renderWithHeroUI(renderStatus({ status: "error" }));
+    const button = screen.getByTestId("expression-retry");
+    expect(button.props.style).toMatchObject({
+      height: 44,
+      marginLeft,
+      width: 44,
+    });
+    await userEvent.setup().press(button);
+    expect(retry).toHaveBeenCalledWith("m1");
+    await rendered.rerender(
+      renderStatus({ retrying: true, status: "pending" })
+    );
+    expect(screen.getByTestId("expression-retry").props.style).toEqual(
+      button.props.style
+    );
+    expect(screen.getByTestId("expression-retry")).toBeDisabled();
+    expect(
+      screen.getByTestId("expression-retry").props.accessibilityState.busy
+    ).toBe(true);
+  }
+);
