@@ -59,6 +59,7 @@
 - [모바일 타이포그래피](mobile-typography.md) — 모바일 텍스트 역할, 시스템 폰트, monospace 사용, Dynamic Type 또는 렌더러별 타이포그래피 매핑을 변경할 때 읽는다.
 - [모바일 아이콘 렌더링](mobile-icon-rendering.md) — RN UI, 네이티브 셸 또는 `@expo/ui` 안에서 아이콘 렌더러와 플랫폼별 심벌을 선택할 때 읽는다.
 - [모바일 작업 진행 표시](mobile-action-progress.md) — 모바일 버튼이나 자동 실행 작업의 진행 중 표시, 그 표시를 그리는 컴포넌트와 색, 중복 실행 차단 또는 표시 위치를 정할 때 읽는다.
+- [모바일 하단 CTA](mobile-bottom-cta.md) — 하단 행동 버튼의 고정 배치, 투명한 주변 영역, 효과, 여백과 강조 수준을 정할 때 읽는다.
 - [모바일 키보드 회피](mobile-keyboard-avoidance.md) — 키보드가 입력이나 하단 버튼을 가리는 화면을 만들거나 고칠 때 읽는다.
 - [모바일 진입 키보드](mobile-keyboard-entry-focus.md) — 화면에 들어오자마자 입력을 시작하게 만들거나 고칠 때 읽는다.
 - [화면 문구 한국어 말투](korean-ui-writing.md) — 앱 화면에 보이는 문구의 종결어미, 버튼과 오류 문구, 마침표를 쓰거나 고칠 때 읽는다.
@@ -79,6 +80,6 @@
 - [모바일 AI 채팅 표현](mobile-ai-chat-rendering.md) — 모바일 AI 채팅의 Liquid Glass 입력창, 스트리밍 Markdown, 메시지 진입 또는 답변 대기 표시를 만들거나 바꿀 때 읽는다.
 - [모바일 채팅 메시지 동작](mobile-chat-message-actions.md) — 채팅 메시지의 복사, 수정, 다시 받기, 중지 또는 실패 뒤 다시 시도를 만들거나 바꿀 때 읽는다.
 - [모바일 채팅 스크롤](mobile-chat-scrolling.md) — 모바일 채팅의 질문 배치, 스트리밍 자동 추적, 읽던 위치 또는 최신 메시지 이동을 변경할 때 읽는다.
-- [모바일 스토리 탐색](mobile-story-browsing.md) — 홈과 스토리 탭의 역할, 이어 하기 카드, 스토리 목록·상세 또는 잠긴 화 표시를 변경할 때 읽는다.
+- [모바일 스토리 탐색](mobile-story-browsing.md) — 홈·탐색·스토리 탭의 역할, 스토리 상세, 새 대화와 회차별 기록를 변경할 때 읽는다.
 - [모바일 AI에게 물어보기](mobile-ask-ai.md) — AI에게 물어보기를 시작하는 자리, 이어받는 문맥, 시트, 수명 또는 다시 열기 방식을 변경할 때 읽는다.
 - [모바일 대화 중 교정](mobile-episode-correction.md) — 에피소드의 영어 교정과 한국어 입력 안내의 제목, 상태 표시, 카드, 재시도 또는 색을 변경할 때 읽는다.

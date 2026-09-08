@@ -634,11 +634,14 @@ bun run agent-device:doctor
 
    ```dotenv
    AI_GATEWAY_API_KEY=<Vercel AI Gateway 키>
-   AI_GATEWAY_MODEL=openai/gpt-4.1-nano
+   AI_GATEWAY_MODEL=openai/gpt-5.6-luna
    SUPABASE_URL=http://127.0.0.1:54331
    SUPABASE_JWKS_URL=http://127.0.0.1:54331/auth/v1/.well-known/jwks.json
    SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
    ```
+
+   채팅, 에피소드 장면, 표현 교정과 표현 질문은 모두 Luna를 사용합니다.
+   Vercel의 Development, Preview와 Production에도 같은 `AI_GATEWAY_MODEL` 값을 설정합니다.
 
 2. 서버를 실행합니다. 3901 포트로 뜹니다.
    Next.js가 3000을 잡고 겹칠 때마다 1씩 올려 찾기 때문에 3000번대 앞쪽을 피했고, 끝자리 1은 이 프로젝트의 포트 대역 번호입니다.
