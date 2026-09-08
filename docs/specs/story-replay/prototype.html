@@ -196,7 +196,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline:3px solid
 .episode-copy strong { display:block; font-size:15px; font-weight:550 }
 .episode-copy small { display:block; color:var(--muted); font-size:12px; line-height:1.6; margin-top:4px; word-break:keep-all }
 .tab-wrap { position:sticky; bottom:0; z-index:9; display:flex; justify-content:center; padding:10px 0 17px; background:linear-gradient(transparent,var(--background) 70%); margin-top:auto; }
-.tabs { display:flex; background:#ffffffc9; padding:4px; border:1px solid white; border-radius:40px; width:172px; box-shadow:0 4px 24px #1515280b; backdrop-filter:blur(20px) }
+.tabs { display:flex; background:#ffffffc9; padding:4px; border:1px solid white; border-radius:40px; width:252px; box-shadow:0 4px 24px #1515280b; backdrop-filter:blur(20px) }
 .tabs button { display:flex; flex:1; flex-direction:column; align-items:center; padding:6px 14px 5px; border:0; background:none; border-radius:28px; gap:1px; font-size:9px; }
 .tabs .icon { width:25px; height:25px }
 .tabs button.active { background:#ededf0; color:var(--accent) }
@@ -316,8 +316,9 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
 </header>
 
 <main class="sh-stage">
-<section data-screen="home" data-title="홈" data-states="처음 방문,모든 스토리 완주"></section>
-<section data-screen="stories" data-title="스토리" data-states="불러오기 실패"></section>
+<section data-screen="home" data-title="홈 (학습 화면 추후 설계)"></section>
+<section data-screen="explore" data-title="탐색" data-states="불러오기 실패"></section>
+<section data-screen="stories" data-title="스토리" data-states="기록 없음,불러오기 실패"></section>
 <section data-screen="story" data-title="스토리 상세" data-states="처음 시작,스토리 완주,시작 실패,불러오기 실패"></section>
 <section data-screen="history" data-title="대화 기록" data-states="기록 없음,기록이 많을 때,불러오기 실패"></section>
 <section data-screen="episode" data-title="에피소드 대화" data-states="에피소드 마무리,스토리 마무리,지난 대화,대화 없음,불러오기 실패"></section>
@@ -404,7 +405,7 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
 <script>
 (() => {
   if(new URLSearchParams(location.search).has('historyCompare')||new URLSearchParams(location.search).has('historyDesign'))history.replaceState(null,'',location.pathname+'#history');
-  const I = (name,small=false) => `<svg class="icon${small?' small':''}" viewBox="0 0 24 24" aria-hidden="true">${({back:'<path d="m14 5-7 7 7 7"/>',forward:'<path d="m9 5 7 7-7 7"/>',home:'<path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9"/>',book:'<path d="M12 5v16M12 5C9 2 5 3 2 4v15c4-1 7-1 10 2 3-3 6-3 10-2V4c-3-1-7-2-10 1Z"/>',history:'<path d="M3 10a9 9 0 1 1 1 7M3 4v6h6M12 7v6l4 2"/>',lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/>',up:'<path d="m6 11 6-6 6 6M12 5v14"/>',refresh:'<path d="M20 8a9 9 0 0 0-16-2L2 9m0-6v6h6M4 16a9 9 0 0 0 16 2l2-3m0 6v-6h-6"/>',down:'<path d="m6 9 6 6 6-6"/>',signal:'<path d="M3 19v-4M8 19v-8M13 19V7M18 19V3"/>'})[name]||''}</svg>`;
+  const I = (name,small=false) => `<svg class="icon${small?' small':''}" viewBox="0 0 24 24" aria-hidden="true">${({search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',back:'<path d="m14 5-7 7 7 7"/>',forward:'<path d="m9 5 7 7-7 7"/>',home:'<path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9"/>',book:'<path d="M12 5v16M12 5C9 2 5 3 2 4v15c4-1 7-1 10 2 3-3 6-3 10-2V4c-3-1-7-2-10 1Z"/>',history:'<path d="M3 10a9 9 0 1 1 1 7M3 4v6h6M12 7v6l4 2"/>',lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/>',up:'<path d="m6 11 6-6 6 6M12 5v14"/>',refresh:'<path d="M20 8a9 9 0 0 0-16-2L2 9m0-6v6h6M4 16a9 9 0 0 0 16 2l2-3m0 6v-6h-6"/>',down:'<path d="m6 9 6 6 6-6"/>',signal:'<path d="M3 19v-4M8 19v-8M13 19V7M18 19V3"/>'})[name]||''}</svg>`;
   const escape = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const runName = n => `${n}회차`;
   const playStartedLabel = r => `${r.start||'9월 8일'} ${r.startTime||(r.no===2?'오후 3:42':r.no===1?'오전 10:18':`오후 ${1+(r.no%8)}:${String((r.no*7)%60).padStart(2,'0')}`)}`;
@@ -446,23 +447,20 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
   const button = (label,action,style='primary') => `<button class="button ${style}" data-component="Button" data-variant="${style}" data-action="${action}"><span data-component="Button.Label">${label}</span></button>`;
   const status = () => `<div class="statusbar"><span>9:41</span><span class="island"></span><span class="status-icons">${I('signal',true)}<span>⌁</span><span class="battery"></span></span></div>`;
   const nav = (title,back,subtitle='',trailing='') => `<header class="nav" data-component="NativeStack"><button class="circle" data-action="${back}" aria-label="뒤로 가기">${I('back')}</button><div class="nav-title">${title}${subtitle?`<small>${subtitle}</small>`:''}</div>${trailing}</header>`;
-  const tabs = active => `<div class="tab-wrap"><nav class="tabs" aria-label="기본 탭" data-component="NativeTabs"><button class="${active==='home'?'active':''}" data-action="home" ${active==='home'?'aria-current="page"':''}>${I('home')}<span>홈</span></button><button class="${active==='stories'?'active':''}" data-action="stories" ${active==='stories'?'aria-current="page"':''}>${I('book')}<span>스토리</span></button></nav></div>`;
+  const tabs = active => `<div class="tab-wrap"><nav class="tabs" aria-label="기본 탭" data-component="NativeTabs">${[['home','home','홈'],['explore','search','탐색'],['stories','book','스토리']].map(([id,icon,label])=>`<button class="${active===id?'active':''}" data-action="${id}" ${active===id?'aria-current="page"':''}>${I(icon)}<span>${label}</span></button>`).join('')}</nav></div>`;
   const cover = s=>`<img class="cover" data-component="StoryCover" src="${ASSETS[s.image]}" alt="">`;
-  function storyRow(s,card=false) { const r=records[s.id],n=Math.min(r.finished+1,5); return `<div class="story-row" data-component="StoryCard">${cover(s)}<div class="copy"><strong>${s.title}</strong>${card?`<span class="secondary">${n}화 · ${s.titles[n-1]}</span>`:''}<span class="secondary">${card?(r.no>1?runName(r.no)+' · 진행하던 장면부터 이어가요.':(r.started?'진행하던 이야기를 만나 봐요.':'Mia와 첫 대화를 시작해 봐요.')):s.hook}</span>${progress(r.finished)}</div>${card?'':`<span class="chevron">${I('forward',true)}</span>`}</div>`; }
+  function storyRow(s,card=false) { const r=records[s.id],n=Math.min(r.finished+1,5); return `<div class="story-row" data-component="StoryCard">${cover(s)}<div class="copy"><strong>${s.title}</strong>${card?`<span class="secondary">${n}화 · ${s.titles[n-1]}</span>`:''}<span class="secondary">${card?(r.no>1?runName(r.no)+' · 진행하던 장면부터 이어가요.':(r.started?'진행하던 이야기를 만나 봐요.':'Mia와 첫 대화를 시작해 봐요.')):s.hook}</span>${card?progress(r.finished):''}</div>${card?'':`<span class="chevron">${I('forward',true)}</span>`}</div>`; }
   function contentState(title,action,label='다시 시도',empty=false) { return `<div class="sample-empty" data-component="new:ContentUnavailableView"><div class="sample-symbol">${I(empty?'history':'refresh')}</div><h2>${title}</h2>${action?button(label,action,empty?'secondary':'primary'):''}</div>`; }
   function errorBox(action) { return contentState('스토리를 불러오지 못했어요',action); }
   function startAlert() { return `<dialog class="start-alert" aria-labelledby="start-alert-title" data-component="NativeAlert"><h2 id="start-alert-title">새로 시작하지 못했어요</h2><div class="alert-actions"><button data-action="dismiss-start">닫기</button><button data-action="replay">다시 시도</button></div></dialog>`; }
-  function renderHome(state) {
-    const previousSelected=selected;for(const item of data){selected=item.id;chooseResumeDefault();}selected=previousSelected;
-    const active=data.filter(s=>records[s.id].started && records[s.id].finished<5);
-    const first=active.find(s=>records[s.id].no>1)||active[0]||data.find(s=>!records[s.id].started);
-    const initial=Object.values(records).every(r=>!r.started);
-    let main='';
-    if(!first) main=`<div class="empty"><div class="empty-symbol">${I('book')}</div><h2>모든 스토리를 끝냈어요</h2><p>다시 만나고 싶은 인물이 있나요?<br>같은 스토리에서 다른 말을 건네 봐요.</p>${button('스토리 보러 가기','stories')}</div>`;
-    else { main=`<div><h2 class="section-heading">${initial?'첫 이야기':'이어 하기'}</h2><div class="card story-card"><button class="plain" data-action="continue:${first.id}" aria-label="${first.title} ${resumeLabel(first)}">${storyRow(first,true)}</button>${button(resumeLabel(first),'continue:'+first.id)}</div></div>`; const rest=active.filter(s=>s.id!==first.id); if(rest.length) main+=`<div><h2 class="section-heading">진행 중인 스토리</h2><div class="card story-list">${rest.map(s=>`<button class="plain" data-action="continue:${s.id}" aria-label="${s.title} 이어서 하기">${storyRow(s)}</button>`).join('')}</div></div>`; }
-    return status()+`<div class="content"><h1 class="title large-title">홈</h1>${main}</div>`+tabs('home');
+  let storySource='explore',historySource='story';
+  function renderHome() { return status()+`<div class="content"><h1 class="title large-title">홈</h1></div>`+tabs('home'); }
+  function renderExplore(state) { return status()+`<div class="content"><h1 class="title large-title">탐색</h1>${state==='불러오기 실패'?errorBox('retry-explore'):`<div class="card story-list">${data.map(s=>`<button class="plain" data-action="story:${s.id}" aria-label="${s.title} 스토리 보기">${storyRow(s)}</button>`).join('')}</div>`}</div>`+tabs('explore'); }
+  function renderStories(state) {
+    const original=selected;
+    const played=data.filter(s=>{selected=s.id;return historyRuns().length>0;});selected=original;
+    return status()+`<div class="content"><h1 class="title large-title">스토리</h1>${state==='불러오기 실패'?errorBox('retry-stories'):played.length?`<div class="card story-list">${played.map(s=>`<button class="plain" data-action="story-history:${s.id}" aria-label="${s.title} 대화 기록 보기">${storyRow(s)}</button>`).join('')}</div>`:contentState('아직 시작한 스토리가 없어요','explore','스토리 찾아보기',true)}</div>`+tabs('stories');
   }
-  function renderStories(state) { return status()+`<div class="content"><h1 class="title large-title">스토리</h1>${state==='불러오기 실패'?errorBox('retry-stories'):`<div><h2 class="section-heading">모든 스토리</h2><div class="card story-list">${data.map(s=>`<button class="plain" data-action="story:${s.id}" aria-label="${s.title} 스토리 보기">${storyRow(s)}</button>`).join('')}</div></div>`}</div>`+tabs('stories'); }
   const previews = {
     cafe: ['주문과 다른 커피가 나왔는데, 직원은 벌써 다음 손님을 부르고 있어요.', '다음 날 아침, 카드가 자꾸 튕기는데 뒤에 선 남자의 한숨 소리가 점점 커져요.', '잠깐 자리를 비운 사이, 창가 자리에 어제 아침의 그 남자가 앉아 있어요.', 'Mia가 메뉴판에 없는 음료를 내밀며 솔직한 감상을 부탁해요.', 'Mia의 음료가 정식 메뉴가 된 날, Mia는 오늘이 마지막 근무라며 짐을 싸고 있어요.'],
     trip: ['출장 첫날, 호텔 직원이 제 이름으로 된 예약을 찾지 못해요.', '혼자 저녁을 먹으려는데 낯선 사람이 합석해도 되는지 물어요.', '회의 시간이 다가오는데 안내받은 회의실이 비어 있어요.', '출장 일정에 없던 일을 동료가 부탁해요.', '돌아가는 날 아침, 함께 일한 동료와 마지막 인사를 나눠요.'],
@@ -474,13 +472,13 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
     return `<ol class="episode-list episode-catalog" aria-label="에피소드 목록">${s.titles.map((title,i)=>`<li class="episode-row" data-component="EpisodeRow"><span class="episode-number">${i+1}화</span><span class="episode-copy"><strong>${title}</strong><small>${escape(previews[s.id][i])}</small></span></li>`).join('')}</ol>`;
   }
   function renderStory(state) {
-    if(state==='불러오기 실패')return status()+nav('','stories')+contentState('스토리를 불러오지 못했어요','retry-story');
+    if(state==='불러오기 실패')return status()+nav('','story-list-back')+contentState('스토리를 불러오지 못했어요','retry-story');
     chooseResumeDefault();
     const s=story(), r=rec(), done=r.finished===5;
     const actions=done
       ? button('새로 시작하기','replay')
       : button(r.started?'이어서 하기':'시작하기','continue:'+selected)+(r.started?button('새로 시작하기','replay','outline'):'');
-    return status()+nav('','stories','',`<button class="circle" data-component="NativeStack.Toolbar.Button" data-action="history" aria-label="대화 기록">${I('history')}</button>`)+`<div class="content"><div class="story-heading" data-component="StoryCard">${cover(s)}<div class="story-heading-copy"><h1 class="title">${s.title}</h1><p class="intro">${s.intro}</p></div></div><div><div class="story-actions">${actions}</div></div><div><h2 class="section-heading">에피소드</h2>${episodeCatalog(s)}</div></div>${state==='시작 실패'?startAlert():''}`;
+    return status()+nav('','story-list-back','',`<button class="circle" data-component="NativeStack.Toolbar.Button" data-action="history" aria-label="대화 기록">${I('history')}</button>`)+`<div class="content"><div class="story-heading" data-component="StoryCard">${cover(s)}<div class="story-heading-copy"><h1 class="title">${s.title}</h1><p class="intro">${s.intro}</p></div></div><div><div class="story-actions">${actions}</div></div><div><h2 class="section-heading">에피소드</h2>${episodeCatalog(s)}</div></div>${state==='시작 실패'?startAlert():''}`;
   }
 
   function currentPlaySnapshot() {
@@ -501,7 +499,7 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
     records[selected]={...saved,started:true,history};
   }
   function renderHistory(state) {
-    if(state==='불러오기 실패')return status()+nav('대화 기록','story-back')+contentState('대화 기록을 불러오지 못했어요','retry-history');
+    if(state==='불러오기 실패')return status()+nav('대화 기록','history-back')+contentState('대화 기록을 불러오지 못했어요','retry-history');
     const s=story(),runs=historyRuns();
     const cards=runs.map(r=>{
       const done=r.finished===5;
@@ -511,7 +509,7 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
       const episodes=s.titles.slice(0,r.finished).map((title,i)=>`<button class="episode-row" data-component="EpisodeRow" data-action="review:${r.no}:${i+1}" aria-label="${date}에 시작한 대화 ${i+1}화 ${title} 대화 보기"><span class="episode-number">${i+1}화</span><span class="episode-copy"><strong>${title}</strong><small>${outcome(s,i,r.no)}</small></span><span class="episode-row-action">${I('forward',true)}</span></button>`).join('');
       return `<div class="history-card" data-component="new:StoryPlayHistoryCard"><button class="run-toggle" data-action="toggle-run:${r.no}" aria-expanded="${openedHistory===r.no}" aria-controls="run-episodes-${r.no}"><span class="run-content">${headings}${progress(r.finished)}<span class="summary">${detail}</span></span><span class="chevron">${I('forward',true)}</span></button>${openedHistory===r.no?`<div class="history-episodes" id="run-episodes-${r.no}">${episodes}${!done?`<div class="history-resume">${button('이어서 하기','resume-run:'+r.no,'outline')}</div>`:''}</div>`:''}</div>`;
     }).join('');
-    return status()+nav('대화 기록','story-back')+`<div class="content history-design"><div class="record-story" data-component="StoryCard">${cover(s)}<div><h1>${s.title}</h1><p>${s.intro}</p></div></div>${runs.length?`<div class="record-list">${cards}</div>`:`${contentState('아직 나눈 대화가 없어요','story-back','스토리로 돌아가기',true)}`}</div>`;
+    return status()+nav('대화 기록','history-back')+`<div class="content history-design"><div class="record-story" data-component="StoryCard">${cover(s)}<div><h1>${s.title}</h1><p>${s.intro}</p></div></div>${runs.length?`<div class="record-list">${cards}</div>`:`${contentState('아직 나눈 대화가 없어요','story-back','스토리로 돌아가기',true)}`}</div>`;
   }
   const correction = () => `<details class="correction" data-component="CorrectionNote"><summary>더 자연스러운 영어 표현 ${I('down',true)}</summary><p class="fixed">I ordered an iced americano.</p><p>‘주문했어요’처럼 이미 한 일에는 ordered를 써요.</p></details>`;
   function conversation() { const s=story(),review=episodeMode==='review',sc=scene(); let out=`<p class="narration">${sc[2]}</p><div><div class="speaker-name">${s.actor}</div><div class="bubble">${sc[3]}</div></div><p class="narration">${sc[4]}</p>`;
@@ -528,12 +526,12 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
   }
   function preset(screen,state) {
     if(screen==='home') { reset(); if(state==='처음 방문') records=fresh(); else if(state==='모든 스토리 완주') data.forEach(s=>records[s.id]={no:1,finished:5,started:true,history:[prior()]}); else records.cafe={no:2,finished:2,started:true,history:[prior()]}; }
-    if(screen==='stories') reset();
+    if(screen==='stories'||screen==='explore'){reset();if(state==='기록 없음'){records=fresh();conversations={};}}
     if(screen==='story') { reset(); if(state==='처음 시작') records.cafe={no:1,finished:0,started:false,history:[]}; if(state==='스토리 완주') records.cafe={no:1,finished:5,started:true,history:[prior()]}; }
     if(screen==='history') { reset(); records.cafe.history=[prior(1)]; records.cafe.no=2; openedHistory=null; historyMany=state==='기록이 많을 때'; forceEmptyHistory=state==='기록 없음'; if(historyMany){records.cafe.history=Array.from({length:12},(_,i)=>prior(i+1));records.cafe.no=13;} if(forceEmptyHistory)records.cafe={no:1,finished:0,started:false,history:[]}; }
     if(screen==='episode') { reset(); records.cafe={no:2,finished:0,started:false,history:[prior()]}; episodeSource='story'; episodeNo=1; turns=0; sent=[]; episodeMode='live'; if(state==='지난 대화'||state==='대화 없음'||state==='불러오기 실패'){episodeMode='review';reviewNo=1;episodeSource='history';} if(state==='에피소드 마무리'||state==='스토리 마무리'){records.cafe.started=true;sent=['Excuse me, I order an iced americano.','Yes, please. Thank you!']; turns=2; if(state==='스토리 마무리') { episodeNo=5; records.cafe.finished=5; records.cafe.history.push(finalRecord());sent=[scene()[5],scene()[6]]; } else records.cafe.finished=1;} }
   }
-  const renderers={home:renderHome,stories:renderStories,story:renderStory,history:renderHistory,episode:renderEpisode};
+  const renderers={home:renderHome,stories:renderStories,explore:renderExplore,story:renderStory,history:renderHistory,episode:renderEpisode};
   function render() {document.querySelectorAll('.start-alert').forEach(d=>{d.close();d.remove();});const screen=prototypeShell.getScreen(),state=prototypeShell.getState(); document.querySelector(`[data-screen="${screen}"]`).innerHTML=`<div class="screen-inner">${renderers[screen](state)}</div>`; const alert=document.querySelector('.start-alert');if(alert){alert.showModal();alert.addEventListener('cancel',e=>{e.preventDefault();go('story');});} }
   addEventListener('prototype:state',e=>{if(!preserving) preset(e.detail.screen,e.detail.state); render();});
   function stateFor(screen) { if(screen==='story')return rec().finished===5?'스토리 완주':rec().started?'Default':'처음 시작'; if(screen==='history'){const count=historyRuns().length;return count>5?'기록이 많을 때':count?'Default':'기록 없음';} if(screen==='episode')return episodeMode==='review'?'지난 대화':'Default'; if(screen==='home')return Object.values(records).every(r=>r.finished===5)?'모든 스토리 완주':Object.values(records).every(r=>!r.started)?'처음 방문':'Default'; return 'Default'; }
@@ -554,8 +552,11 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
     r.history=r.history.filter(h=>h.no!==r.no).concat(currentPlaySnapshot());
   }
   document.addEventListener('click',e=>{ const el=e.target.closest('[data-action]'); if(!el)return; const [action,a,b]=el.dataset.action.split(':');
-    if(action==='home'||action==='stories')go(action);
-    if(action==='story'){selected=a;go('story');}
+    if(action==='home'||action==='stories'||action==='explore')go(action);
+    if(action==='story-list-back')go(storySource);
+    if(action==='history-back')go(historySource);
+    if(action==='story-history'){selected=a;forceEmptyHistory=false;openedHistory=null;historySource='stories';go('history');}
+    if(action==='story'){storySource=prototypeShell.getScreen();selected=a;go('story');}
     if(action==='story-back')go('story');
     if(action==='continue'){selected=a;chooseResumeDefault();startEpisode(Math.min(rec().finished+1,5),prototypeShell.getScreen());}
     if(action==='replay'){
@@ -568,11 +569,12 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
       startEpisode(1);
     }
     if(action==='resume-run'){const r=rec();if(r.no===Number(a)&&r.finished<5){startEpisode(r.finished+1);return;}const saved=r.history.find(h=>h.no===Number(a));if(!saved||saved.finished===5)return;archiveCurrentPlay();r.no=saved.no;r.finished=saved.finished;r.start=saved.start;r.startTime=saved.startTime;r.lastTalk=saved.lastTalk||saved.no;r.started=true;r.history=r.history.filter(h=>h.no!==saved.no);startEpisode(r.finished+1);}
-    if(action==='history'){forceEmptyHistory=false;historyMany=false;openedHistory=null;go('history');}
+    if(action==='history'){if(prototypeShell.getScreen()==='story')historySource='story';forceEmptyHistory=false;historyMany=false;openedHistory=null;go('history');}
     if(action==='toggle-run'){openedHistory=openedHistory===Number(a)?null:Number(a);render();}
     if(action==='review'){reviewNo=Number(a);episodeNo=Number(b);episodeMode='review';episodeSource=prototypeShell.getScreen();go('episode','지난 대화');}
     if(action==='episode-back'){discardUnstartedPlay();go(episodeSource);}
     if(action==='next-episode')startEpisode(Math.min(episodeNo+1,5));
+    if(action==='retry-explore')go('explore');
     if(action==='retry-stories')go('stories');
     if(action==='retry-story'||action==='dismiss-start')go('story');
     if(action==='retry-history')go('history');
