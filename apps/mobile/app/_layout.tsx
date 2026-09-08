@@ -1,8 +1,10 @@
 import "../global.css";
 
 import { Stack } from "expo-router";
+import { hide as hideSplashScreen } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { HeroUINativeProvider } from "heroui-native/provider";
+import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
@@ -24,23 +26,31 @@ const heroUIConfig = {
 
 function ThemedRootLayout() {
   const { background, scheme } = useAppTheme();
-  const { area, isRetryingProfile, problem, retryProfile } = useProtectedArea();
+  const { area, checkingPhase, isRetryingProfile, problem, retryProfile } =
+    useProtectedArea();
   const settingsScreenOptions = getSettingsScreenOptions(background);
+  useEffect(() => {
+    if (area === "misconfigured" || area === "profileUnavailable") {
+      hideSplashScreen();
+    }
+  }, [area]);
 
   if (area === "checking") {
-    return <SessionCheckingScreen />;
+    return <SessionCheckingScreen phase={checkingPhase} />;
   }
 
-  if (area === "misconfigured") {
-    return <SetupNeededScreen problem={problem ?? ""} />;
-  }
-
-  if (area === "profileUnavailable") {
+  if (area === "misconfigured" || area === "profileUnavailable") {
     return (
-      <ProfileUnavailableScreen
-        isRetrying={isRetryingProfile}
-        onRetry={retryProfile}
-      />
+      <>
+        {area === "misconfigured" ? (
+          <SetupNeededScreen problem={problem ?? ""} />
+        ) : (
+          <ProfileUnavailableScreen
+            isRetrying={isRetryingProfile}
+            onRetry={retryProfile}
+          />
+        )}
+      </>
     );
   }
 
