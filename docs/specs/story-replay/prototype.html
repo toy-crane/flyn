@@ -407,6 +407,7 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
   const I = (name,small=false) => `<svg class="icon${small?' small':''}" viewBox="0 0 24 24" aria-hidden="true">${({back:'<path d="m14 5-7 7 7 7"/>',forward:'<path d="m9 5 7 7-7 7"/>',home:'<path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9"/>',book:'<path d="M12 5v16M12 5C9 2 5 3 2 4v15c4-1 7-1 10 2 3-3 6-3 10-2V4c-3-1-7-2-10 1Z"/>',history:'<path d="M3 10a9 9 0 1 1 1 7M3 4v6h6M12 7v6l4 2"/>',lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/>',up:'<path d="m6 11 6-6 6 6M12 5v14"/>',refresh:'<path d="M20 8a9 9 0 0 0-16-2L2 9m0-6v6h6M4 16a9 9 0 0 0 16 2l2-3m0 6v-6h-6"/>',down:'<path d="m6 9 6 6 6-6"/>',signal:'<path d="M3 19v-4M8 19v-8M13 19V7M18 19V3"/>'})[name]||''}</svg>`;
   const escape = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const runName = n => `${n}회차`;
+  const playStartedLabel = r => `${r.start||'9월 8일'} ${r.startTime||(r.no===2?'오후 3:42':r.no===1?'오전 10:18':`오후 ${1+(r.no%8)}:${String((r.no*7)%60).padStart(2,'0')}`)}`;
   const data = [
     {id:'cafe',title:'우리 동네 카페',image:'mia-cafe',hook:'늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요.',intro:'매일 들르는 동네 카페에서 벌어지는 다섯 번의 사건. 바리스타 Mia와 조금씩 가까워져요.',actor:'Mia',titles:['잘못 나온 첫 잔','계산이 꼬인 아침','창가 자리의 남자','이름 없는 신메뉴','마지막 잔'],outcomes:['원하는 아이스 아메리카노로 바꿔냈어요.','다른 카드로 계산을 마쳤어요.','서로 양보해서 창가 자리를 나눠 썼어요.','솔직한 감상을 전해 새 음료를 함께 다듬었어요.','새 지점에서도 만나기로 했어요.']},
     {id:'trip',title:'출장 일주일',image:'business-trip',hook:'첫 해외 출장인데, 호텔에 제 예약이 없대요.',intro:'낯선 도시에서 보내는 첫 출장. 예상과 다른 순간마다 내 뜻을 전해 봐요.',actor:'Alex',titles:['사라진 예약','뜻밖의 합석','회의실이 바뀐 날','일정 밖의 부탁','돌아가는 아침'],outcomes:['예약을 확인하고 방을 구했어요.','함께 저녁을 먹기로 했어요.','회의실을 찾아 제때 도착했어요.','도울 수 있는 범위를 정했어요.','다음 만남을 약속했어요.']},
@@ -425,7 +426,7 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
   const hasProgress = r => r.finished>0 || Object.entries(conversations).some(([key,messages])=>key.startsWith(selected+':'+r.no+':')&&messages.length>0);
   const resumeLabel = s => { const r=records[s.id], n=Math.min(r.finished+1,5); return n+(r.started?'화 이어하기':'화 시작하기'); };
   const outcome = (s,index,run) => s.id==='cafe'&&index===4?(records[s.id].history.find(h=>h.no===run)?.summary || (historyMany?prior(run).summary:s.outcomes[index])):s.outcomes[index];
-  const finalRecord = () => ({no:rec().no,finished:5,start:'9월 8일',end:'9월 8일',summary:story().outcomes[4]});
+  const finalRecord = () => ({no:rec().no,finished:5,start:rec().start||'9월 8일',startTime:rec().startTime,end:'9월 8일',summary:story().outcomes[4]});
   const scenes = {
     cafe:[
       ['☕','잘못 나온 커피를 원하는 커피로 바꿔 보세요','늘 오던 동네 카페, 계산대 앞이다. 아이스 아메리카노를 시켰는데, 받아 든 잔은 뜨겁다.','Next in line, please!','명찰을 단 직원은 벌써 다음 손님 쪽을 보고 있다. 뒤로 줄이 길다.','Excuse me, I order an iced americano.','Yes, please. Thank you!','Oh, I’m sorry! You wanted an iced americano, right?','Here you go. Sorry about the mix-up!'],
@@ -484,7 +485,7 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
 
   function currentPlaySnapshot() {
     const r=rec(),previous=r.history.find(h=>h.no===r.no);
-    return {no:r.no,lastTalk:r.lastTalk||r.no,finished:r.finished,start:r.start||previous?.start||'9월 8일',end:r.finished===5?(previous?.end||'9월 8일'):null,summary:r.finished===5?(previous?.summary||story().outcomes[4]):''};
+    return {no:r.no,lastTalk:r.lastTalk||r.no,finished:r.finished,start:r.start||previous?.start||'9월 8일',startTime:r.startTime||previous?.startTime,end:r.finished===5?(previous?.end||'9월 8일'):null,summary:r.finished===5?(previous?.summary||story().outcomes[4]):''};
   }
   function historyRuns() {
     if(forceEmptyHistory)return [];
@@ -504,10 +505,10 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
     const s=story(),runs=historyRuns();
     const cards=runs.map(r=>{
       const done=r.finished===5;
-      const date=`${r.start}${done?' ~ '+r.end:' 시작'}`;
+      const date=playStartedLabel(r);
       const detail=done?(s.id==='cafe'?r.summary:s.outcomes[4]):`${s.titles[r.finished]}에서 대화 중이에요.`;
-      const headings=`<strong>${runName(r.no)}</strong><span class="date">${date}</span>`;
-      const episodes=s.titles.slice(0,r.finished).map((title,i)=>`<button class="episode-row" data-component="EpisodeRow" data-action="review:${r.no}:${i+1}" aria-label="${runName(r.no)} ${i+1}화 ${title} 대화 보기"><span class="episode-number">${i+1}화</span><span class="episode-copy"><strong>${title}</strong><small>${outcome(s,i,r.no)}</small></span><span class="episode-row-action">${I('forward',true)}</span></button>`).join('');
+      const headings=`<strong>${date}</strong>`;
+      const episodes=s.titles.slice(0,r.finished).map((title,i)=>`<button class="episode-row" data-component="EpisodeRow" data-action="review:${r.no}:${i+1}" aria-label="${date}에 시작한 대화 ${i+1}화 ${title} 대화 보기"><span class="episode-number">${i+1}화</span><span class="episode-copy"><strong>${title}</strong><small>${outcome(s,i,r.no)}</small></span><span class="episode-row-action">${I('forward',true)}</span></button>`).join('');
       return `<div class="history-card" data-component="new:StoryPlayHistoryCard"><button class="run-toggle" data-action="toggle-run:${r.no}" aria-expanded="${openedHistory===r.no}" aria-controls="run-episodes-${r.no}"><span class="run-content">${headings}${progress(r.finished)}<span class="summary">${detail}</span></span><span class="chevron">${I('forward',true)}</span></button>${openedHistory===r.no?`<div class="history-episodes" id="run-episodes-${r.no}">${episodes}${!done?`<div class="history-resume">${button('이어서 하기','resume-run:'+r.no,'outline')}</div>`:''}</div>`:''}</div>`;
     }).join('');
     return status()+nav('대화 기록','story-back')+`<div class="content history-design"><div class="record-story" data-component="StoryCard">${cover(s)}<div><h1>${s.title}</h1><p>${s.intro}</p></div></div>${runs.length?`<div class="record-list">${cards}</div>`:`${contentState('아직 나눈 대화가 없어요','story-back','스토리로 돌아가기',true)}`}</div>`;
@@ -561,11 +562,12 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
       const previous={...rec(),history:rec().history.map(h=>({...h}))};
       archiveCurrentPlay();
       const r=rec(),nextNo=Math.max(0,...r.history.map(h=>h.no)) + 1;
-      records[selected]={no:nextNo,finished:0,started:false,start:'9월 8일',history:r.history};
+      const now=new Date();
+      records[selected]={no:nextNo,finished:0,started:false,start:new Intl.DateTimeFormat('ko-KR',{month:'long',day:'numeric'}).format(now),startTime:new Intl.DateTimeFormat('ko-KR',{hour:'numeric',minute:'2-digit',hour12:true}).format(now),history:r.history};
       pendingPlay={previous};
       startEpisode(1);
     }
-    if(action==='resume-run'){const r=rec();if(r.no===Number(a)&&r.finished<5){startEpisode(r.finished+1);return;}const saved=r.history.find(h=>h.no===Number(a));if(!saved||saved.finished===5)return;archiveCurrentPlay();r.no=saved.no;r.finished=saved.finished;r.start=saved.start;r.lastTalk=saved.lastTalk||saved.no;r.started=true;r.history=r.history.filter(h=>h.no!==saved.no);startEpisode(r.finished+1);}
+    if(action==='resume-run'){const r=rec();if(r.no===Number(a)&&r.finished<5){startEpisode(r.finished+1);return;}const saved=r.history.find(h=>h.no===Number(a));if(!saved||saved.finished===5)return;archiveCurrentPlay();r.no=saved.no;r.finished=saved.finished;r.start=saved.start;r.startTime=saved.startTime;r.lastTalk=saved.lastTalk||saved.no;r.started=true;r.history=r.history.filter(h=>h.no!==saved.no);startEpisode(r.finished+1);}
     if(action==='history'){forceEmptyHistory=false;historyMany=false;openedHistory=null;go('history');}
     if(action==='toggle-run'){openedHistory=openedHistory===Number(a)?null:Number(a);render();}
     if(action==='review'){reviewNo=Number(a);episodeNo=Number(b);episodeMode='review';episodeSource=prototypeShell.getScreen();go('episode','지난 대화');}
