@@ -11,7 +11,7 @@
       "source": "callstack/agent-device",
       "sourceType": "github",
       "skillPath": "skills/agent-device/SKILL.md",
-      "computedHash": "817a81fc498f0a23a6aadcd18dc6079b17430823152d8ce35dcc48d51b34224b"
+      "computedHash": "0a673fe5ec24469f6ad35596cdf40f9d33076b78d0a929742d9e1de83f97d231"
     },
     "ai-sdk": {
       "source": "vercel/ai",
@@ -37,17 +37,35 @@
       "skillPath": "skills/git/commit/SKILL.md",
       "computedHash": "f75ca87a7d4838eea1e649180ea9b275ba4e8d31df4e6ff33558e5b426eae67a"
     },
+    "define-piece": {
+      "source": "toy-crane/skills",
+      "sourceType": "github",
+      "skillPath": "skills/writing/define-piece/SKILL.md",
+      "computedHash": "08c38bfbf7b8c884d3808ee1876934703949f39d0e229239802e2c94fa1e46d5"
+    },
     "define-product": {
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/workflow/define-product/SKILL.md",
       "computedHash": "a7fba03cb0068fc814f5b051e421d31d3422c5d37ee7c44a8b10e1c83cdf1344"
     },
+    "define-publication": {
+      "source": "toy-crane/skills",
+      "sourceType": "github",
+      "skillPath": "skills/writing/define-publication/SKILL.md",
+      "computedHash": "2eb54009f6a4b0eaa1cd04da1d6560fc6c073cdb8790089853a3600fa799e453"
+    },
+    "draft-piece": {
+      "source": "toy-crane/skills",
+      "sourceType": "github",
+      "skillPath": "skills/writing/draft-piece/SKILL.md",
+      "computedHash": "742ee95db555d2b0270a66dea3bee754181c7b6a57793199dba28025d68ca047"
+    },
     "eas-app-stores": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/eas-app-stores/SKILL.md",
-      "computedHash": "d5cf165eefc06860e93db3977dca5936175beff75b365caf3980d37f4fb175c5"
+      "computedHash": "4092e637ac0db1ac728accd9621f0e92d25934dabdc326ea119ec0c7437be519"
     },
     "eas-hosting": {
       "source": "expo/skills",
@@ -59,13 +77,13 @@
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/eas-observe/SKILL.md",
-      "computedHash": "030ebc10f9a2fb707bbeb308b0dc0b500c4c1c1ed86a94a1b66481ca6ac9ec2f"
+      "computedHash": "ee5f33e5de29ca3131763f68c83efa7e4fb6e9ce43b4d9565ab4e6765799c4e0"
     },
     "eas-simulator": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/eas-simulator/SKILL.md",
-      "computedHash": "12d06f342740b0349dff5d17212d9b45f8773f820af6a8e2da0d8a744716db53"
+      "computedHash": "772c471d1144b1d0665c00a36d6cfb16ee499c2c42d13913ae513b72380715b5"
     },
     "eas-update-insights": {
       "source": "expo/skills",
@@ -77,7 +95,7 @@
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/eas-workflows/SKILL.md",
-      "computedHash": "dd0eaa3d2ce25e6f74fee771cfd611e821e85ca1aca4c735139c672ad1360600"
+      "computedHash": "40c39c7c73597ce263e35f2e6bbc6e534321b5365f70beb772085e9adbc3ec5c"
     },
     "explain-visually": {
       "source": "toy-crane/skills",
@@ -125,7 +143,7 @@
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-examples/SKILL.md",
-      "computedHash": "1d525c773458f166590f40cd3575d6fca440786fc99fdf58d4704af77d1495df"
+      "computedHash": "fd52b5e5db25dca8ccd482b3d2258e45a87390d7ff9ecd191514d431947bf24e"
     },
     "expo-module": {
       "source": "expo/skills",
@@ -137,7 +155,7 @@
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-native-ui/SKILL.md",
-      "computedHash": "938f33e77410dd410b7baa25f2380b5fa104e7b7d67b0f0ca64f7a53ddedcc61"
+      "computedHash": "3bebacbb5882f72f89322391b2b82f643cea15c0e2b3e27c39659969a6addd75"
     },
     "expo-project-structure": {
       "source": "expo/skills",
@@ -173,37 +191,37 @@
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-ui/SKILL.md",
-      "computedHash": "5cbb2f0049e4d3a51cf6450b2d0032684e0881681a8f3dcea21b94164352fe61"
+      "computedHash": "0e3b343c6e60acab6f4fd4ae6364973f3641ee6de609f3e469bf0347302ead9e"
     },
     "expo-upgrade": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-upgrade/SKILL.md",
-      "computedHash": "440ca7d3ea4a7ff6c4ee10b18288e1dd79062d002be68f7d209c33ef8fc47daf"
+      "computedHash": "2e7f5ffbeeb8e4d1e6d8441c30abe9d3817b6ab59bd19106bede903581680144"
     },
     "expo-web-to-native": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-web-to-native/SKILL.md",
-      "computedHash": "8b438fca8004ae91514c9ad8e2fd34566cef0866065451a6e89279c52992a966"
+      "computedHash": "91c5a9827989c25d997893216741fcbc5681260848dbc40ca890f03bb68ba451"
     },
     "heroui-native": {
       "source": "heroui-inc/heroui",
       "sourceType": "github",
       "skillPath": "skills/heroui-native/SKILL.md",
-      "computedHash": "d2fc03a13d03678d40799726a144ba72ba1cb08126176ddbf0a0461c901aef29"
+      "computedHash": "8f8fc3913fd585563795ce27a534428024f794621114f0c83039bc3c983dabdd"
     },
     "human-review": {
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/workflow/human-review/SKILL.md",
-      "computedHash": "6cae4216d8512c4db0a2c7ec6050c741cf0f236872c89f8e8092af43fbc9f5c8"
+      "computedHash": "ab21c961cd9f78ad5704fab8091a85bb1eae68ab17507335b0063f5efec84883"
     },
     "implement": {
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/workflow/implement/SKILL.md",
-      "computedHash": "0b8ef41d1a8de2bac8b7c2c0db41c22665dce79574ec246d9535bd33a27364e0"
+      "computedHash": "1f5a74fcb302a84ab12266faa3772d8da15bcb2973385f4da1e61350ecfac58d"
     },
     "maintain-project-context": {
       "source": "toy-crane/skills",
@@ -245,7 +263,7 @@
       "source": "react-native-nitro-google-sign-in/google-signin",
       "sourceType": "github",
       "skillPath": "skills/react-native-nitro-google-signin/SKILL.md",
-      "computedHash": "e5c6928864dbd4f403b6451f71ebb3ee74d8fd5958a5e3af12a3f19fa0395c5c"
+      "computedHash": "9dc18ef90b5b8625c486c95001602d1cc2357fcd997570ec50c6fc8592c3e2ca"
     },
     "react-native-testing": {
       "source": "callstack/react-native-testing-library",
@@ -263,7 +281,7 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/workflow/shape-idea/SKILL.md",
-      "computedHash": "6bfe2d38e9b9f614550b77db38068db87166baad50af85f226aeec437d12d8d4"
+      "computedHash": "0855516f50356c9f7aaaad1b639bd93846fe30ac7911a64f95159fe9d2093a09"
     },
     "split-into-tasks": {
       "source": "toy-crane/skills",
@@ -275,7 +293,7 @@
       "source": "supabase/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/supabase/SKILL.md",
-      "computedHash": "886743d08edece523e48b5c6c737afa29029503bdd3b28a722795712cedfcd91"
+      "computedHash": "583344c20e90f3654dbb0632f088d89fd9f1dde8ac85e8a644dd12eee59b1380"
     },
     "supabase-postgres-best-practices": {
       "source": "supabase/agent-skills",
@@ -289,12 +307,6 @@
       "skillPath": "skills/supabase-server/SKILL.md",
       "computedHash": "b430ad2b08734bba89f2168c201bc7e090729d38a0206eebba338a7a5c1de3d6"
     },
-    "sync-toycrane-skills": {
-      "source": "toy-crane/skills",
-      "sourceType": "github",
-      "skillPath": "skills/workflow/sync-toycrane-skills/SKILL.md",
-      "computedHash": "dbbd19556fb4b37a3ee61588f257c4196e950a77180ee0fcdf471e43f0074784"
-    },
     "tdd": {
       "source": "toy-crane/skills",
       "sourceType": "github",
@@ -305,7 +317,13 @@
       "source": "uni-stack/uniwind",
       "sourceType": "github",
       "skillPath": "skills/uniwind/SKILL.md",
-      "computedHash": "ecdc81b7f18b46ca48843bdf052c0f9796d9da42578471ca725c38faf74673fd"
+      "computedHash": "d886797a7bf8989393c3f784b48242e4d6baeb9ad85ef765143010f893ea3656"
+    },
+    "update-project-skills": {
+      "source": "toy-crane/skills",
+      "sourceType": "github",
+      "skillPath": "skills/workflow/update-project-skills/SKILL.md",
+      "computedHash": "e8df92d8ccd489e20c760726f4afe10d96eec3131025e1db17261e38932e4f8e"
     }
   }
 }
