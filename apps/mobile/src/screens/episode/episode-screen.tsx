@@ -46,26 +46,35 @@ export function EpisodeScreen({
   isStartingNext,
   onLeave,
   onOpenAsk,
+  onRunStarted,
   onStartNext,
   readOnly,
   recordedEnding,
   recordedNextUp,
+  runId,
   savedCorrections,
   situation,
   situationEmoji,
+  storyId,
 }: {
   episodeId: string;
   initialMessages: UIMessage[];
   isStartingNext: boolean;
   onLeave: () => void;
   onOpenAsk: (id: string) => void;
+  /** 새 대화의 회차가 서버에서 막 생겼다. */
+  onRunStarted: (runId: string) => void;
   onStartNext: (episodeId: string) => void;
   readOnly: boolean;
   recordedEnding?: EpisodeEnding;
   recordedNextUp?: EpisodeNextUp;
+  /** 이어가는 회차. 새 대화는 아직 없다. */
+  runId?: string;
   savedCorrections?: readonly EpisodeCorrection[];
   situation: string;
   situationEmoji: string;
+  /** 새 대화가 시작할 스토리. 이어가는 회차에는 필요 없다. */
+  storyId?: string;
 }) {
   const { session } = useAuthSession();
   const accessToken = session?.access_token;
@@ -74,6 +83,9 @@ export function EpisodeScreen({
     episodeId,
     initialMessages,
     readOnly,
+    storyId,
+    runId,
+    onRunStarted,
     recordedEnding,
     recordedNextUp,
     savedCorrections

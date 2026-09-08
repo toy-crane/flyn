@@ -132,9 +132,12 @@ const PLAYING = {
   initialMessages: [],
   isStartingNext: false,
   onOpenAsk: mockOpenAsk,
+  onRunStarted: jest.fn<(runId: string) => void>(),
   readOnly: false,
+  runId: "1a000000-0000-4000-8000-000000000001",
   situation: "다른 방법을 찾아 계산을 끝내 보세요",
   situationEmoji: "💳",
+  storyId: "10000000-0000-4000-8000-000000000001",
 };
 
 interface PanelProps {

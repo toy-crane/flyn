@@ -49,17 +49,25 @@ export function useEpisodeRun(
   episodeId: string,
   initialMessages: UIMessage[],
   readOnly: boolean,
+  storyId: string | undefined,
+  runId: string | undefined,
+  onRunStarted: (runId: string) => void,
   recordedEnding?: EpisodeEnding,
   recordedNextUp?: EpisodeNextUp,
   savedCorrections?: readonly EpisodeCorrection[]
 ): EpisodeRun {
   const currentToken = useRef(accessToken);
   const currentEpisodeId = useRef(episodeId);
+  const currentStoryId = useRef(storyId);
+  // 새 대화는 회차 없이 시작해 첫 응답에서 회차를 받는다. 그 뒤의 턴과 표현
+  // 확인은 이 ref가 가리키는 회차를 쓴다.
+  const currentRunId = useRef(runId);
   const corrections = useEpisodeCorrections(
     savedCorrections,
     (messageId, signal) =>
       checkEpisodeExpression(
         currentToken.current,
+        currentRunId.current ?? "",
         currentEpisodeId.current,
         messageId,
         signal
@@ -71,13 +79,23 @@ export function useEpisodeRun(
 
   currentToken.current = accessToken;
   currentEpisodeId.current = episodeId;
+  currentStoryId.current = storyId;
   currentCorrections.current = corrections;
+  const startedRun = useRef(onRunStarted);
+
+  startedRun.current = onRunStarted;
+
+  if (runId !== undefined) {
+    currentRunId.current = runId;
+  }
 
   const transport = useMemo(
     () =>
       createEpisodeTransport(
         () => currentToken.current,
-        () => currentEpisodeId.current
+        () => currentEpisodeId.current,
+        () => currentRunId.current,
+        () => currentStoryId.current
       ),
     []
   );
@@ -87,6 +105,16 @@ export function useEpisodeRun(
     generateId: () => randomUUID(),
     messages: initialMessages,
     onData: (part) => {
+      // 회차가 방금 생겼다. 다음 턴부터 이 회차를 이어가고, 뒤로 가기와 다음
+      // 화도 이 회차를 따라간다.
+      if (part.type === "data-run-started") {
+        const data = part.data as { runId?: unknown } | null;
+        if (typeof data?.runId === "string") {
+          currentRunId.current = data.runId;
+          startedRun.current(data.runId);
+        }
+        return;
+      }
       if (part.type !== "data-expression-ready") {
         return;
       }

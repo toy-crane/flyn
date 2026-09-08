@@ -2,23 +2,27 @@ import { router } from "expo-router";
 import { useCallback } from "react";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
-import { useStories } from "@/features/story/query/story";
-import { StoriesScreen } from "@/screens/stories/stories-screen";
+import { useRecentStories } from "@/features/story/query/story";
+import { RecentStoriesScreen } from "@/screens/stories/recent-stories-screen";
 import { useVisibleRetry } from "@/shared/query/use-visible-retry";
 
 export default function StoriesRoute() {
   const { session } = useAuthSession();
-  const stories = useStories(session?.user.id, session?.access_token);
+  const stories = useRecentStories(session?.user.id, session?.access_token);
   const { isRetrying, retry } = useVisibleRetry(stories.refetch);
-  const openStory = useCallback((storyId: string) => {
-    router.push({ params: { storyId }, pathname: "/story/[storyId]" });
+  const openRecords = useCallback((storyId: string) => {
+    router.push({ params: { storyId }, pathname: "/records/[storyId]" });
+  }, []);
+  const browse = useCallback(() => {
+    router.push("/browse");
   }, []);
 
   return (
-    <StoriesScreen
+    <RecentStoriesScreen
       isLoading={stories.isPending && !isRetrying}
       isRetrying={isRetrying}
-      onOpenStory={openStory}
+      onBrowse={browse}
+      onOpenRecords={openRecords}
       onRetry={retry}
       stories={stories.data}
     />

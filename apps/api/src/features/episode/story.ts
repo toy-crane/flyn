@@ -44,6 +44,7 @@ export interface StoryCatalogEpisode {
   preview: string;
   /** 상세가 모든 화에 공개하는, 결말을 드러내지 않는 상황 설명. */
   situation: string;
+  situationEmoji: string;
   title: string;
 }
 
@@ -79,7 +80,7 @@ export async function readStoryCatalog(
   const { data, error } = await client
     .from("stories")
     .select(
-      "id, position, slug, title, hook, intro, cover_emoji, cover_image_path, completion_title, completion_copy, episodes(id, number, title, preview, situation)"
+      "id, position, slug, title, hook, intro, cover_emoji, cover_image_path, completion_title, completion_copy, episodes(id, number, title, preview, situation, situation_emoji)"
     )
     .order("position")
     .order("number", { referencedTable: "episodes" });
@@ -100,6 +101,7 @@ export async function readStoryCatalog(
       number: episode.number,
       preview: episode.preview,
       situation: episode.situation,
+      situationEmoji: episode.situation_emoji,
       title: episode.title,
     })),
     hook: story.hook,

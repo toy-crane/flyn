@@ -1,217 +1,106 @@
 import { expect, jest, test } from "@jest/globals";
-import { screen, userEvent } from "@testing-library/react-native";
+import { screen } from "@testing-library/react-native";
 
-import type { StoryDetail, StoryEpisode } from "@/features/story/api/story";
+import type { StoryDetail } from "@/features/story/api/story";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { StoryDetailScreen } from "./story-detail-screen";
 
-const ENDING_WORDS = /성공|타협|실패/;
-const ANY_OPEN_BUTTON = /시작하기|이어서 하기/;
-const COMPLETION_COPY = /끝냈어요/;
 const STORY_ID = "10000000-0000-4000-8000-000000000001";
 
-function episodeId(number: number) {
+function episodeId(number: number): string {
   return `11000000-0000-4000-8000-${number.toString().padStart(12, "0")}`;
 }
 
-function finished(
-  number: number,
-  title: string,
-  outcome: string
-): StoryEpisode {
-  return {
-    episodeId: episodeId(number),
-    hasTranscript: true,
-    number,
-    outcome,
-    preview: null,
-    state: "finished",
-    title,
-  };
-}
-
-function locked(number: number, title: string): StoryEpisode {
-  return {
-    episodeId: episodeId(number),
-    hasTranscript: false,
-    number,
-    outcome: null,
-    preview: null,
-    state: "locked",
-    title,
-  };
-}
-
-function createDetail(partial: Partial<StoryDetail> = {}): StoryDetail {
+function story(): StoryDetail {
   return {
     coverEmoji: "☕",
     coverImagePath: null,
     episodes: [
-      finished(1, "카페에서 생긴 일", "원하는 커피로 바꿔냈어요."),
+      {
+        episodeId: episodeId(1),
+        number: 1,
+        situation: "잘못 나온 커피를 원하는 커피로 바꿔 보세요",
+        situationEmoji: "☕",
+        title: "카페에서 생긴 일",
+      },
       {
         episodeId: episodeId(2),
-        hasTranscript: false,
         number: 2,
-        outcome: null,
-        preview: "계산대 앞에서 카드가 자꾸 튕겨요.",
-        state: "next",
+        situation: "다른 방법을 찾아 계산을 끝내 보세요",
+        situationEmoji: "💳",
         title: "계산이 꼬인 아침",
       },
-      locked(3, "자리를 맡아 둔 사이에"),
     ],
-    finished: 1,
     hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
     intro: "매일 들르는 동네 카페에서 벌어지는 다섯 번의 사건.",
-    next: { episodeId: episodeId(2), number: 2, resuming: false },
     storyId: STORY_ID,
     title: "Mia의 카페",
-    total: 3,
-    ...partial,
+    total: 5,
   };
 }
 
-test("끝낸 화의 결과와 다음 화의 예고를 보여 주고 잠긴 화는 제목만 남긴다", async () => {
-  await renderWithHeroUI(
+function renderDetail(
+  overrides: Partial<Parameters<typeof StoryDetailScreen>[0]> = {}
+) {
+  return renderWithHeroUI(
     <StoryDetailScreen
       isLoading={false}
       isRetrying={false}
-      onOpenEpisode={jest.fn()}
+      isStarting={false}
       onRetry={jest.fn()}
-      story={createDetail()}
+      onStart={jest.fn()}
+      story={story()}
+      {...overrides}
     />
   );
+}
 
-  expect(screen.getByText("에피소드 목록")).toBeOnTheScreen();
-  expect(screen.getByText("원하는 커피로 바꿔냈어요.")).toBeOnTheScreen();
+test("표지 소개와 모든 화의 제목·상황 설명을 보여 준다", async () => {
+  await renderDetail();
+
+  expect(screen.getByText("Mia의 카페")).toBeVisible();
   expect(
-    screen.getByText("계산대 앞에서 카드가 자꾸 튕겨요.")
-  ).toBeOnTheScreen();
-  expect(screen.getByText("자리를 맡아 둔 사이에")).toBeOnTheScreen();
+    screen.getByText("매일 들르는 동네 카페에서 벌어지는 다섯 번의 사건.")
+  ).toBeVisible();
+  expect(screen.getByText("카페에서 생긴 일")).toBeVisible();
   expect(
-    screen.getByLabelText("3화 자리를 맡아 둔 사이에, 아직 열리지 않았어요")
-  ).toBeOnTheScreen();
-  expect(screen.queryByText(ENDING_WORDS)).not.toBeOnTheScreen();
+    screen.getByText("잘못 나온 커피를 원하는 커피로 바꿔 보세요")
+  ).toBeVisible();
+  expect(screen.getByText("계산이 꼬인 아침")).toBeVisible();
 });
 
-test("다음 화는 버튼으로도 행으로도 열린다", async () => {
-  const user = userEvent.setup();
-  const openEpisode = jest.fn();
+// 상세는 콘텐츠 소개다. 회차마다 다른 진행이 여기 섞이면 어느 회차의 상태인지
+// 먼저 해석해야 한다.
+test("진행 상태와 결과 문구를 보여 주지 않는다", async () => {
+  await renderDetail();
 
-  await renderWithHeroUI(
-    <StoryDetailScreen
-      isLoading={false}
-      isRetrying={false}
-      onOpenEpisode={openEpisode}
-      onRetry={jest.fn()}
-      story={createDetail()}
-    />
-  );
-
-  await user.press(screen.getByRole("button", { name: "2화 시작하기" }));
-  await user.press(screen.getByTestId("story-episode-2"));
-
-  expect(openEpisode).toHaveBeenCalledTimes(2);
-  expect(openEpisode).toHaveBeenCalledWith(episodeId(2));
+  expect(screen.queryByTestId("story-progress")).toBeNull();
+  expect(screen.queryByText("이어서 하기")).toBeNull();
+  expect(screen.queryByText("완료")).toBeNull();
 });
 
-test("대화 기록이 남은 끝낸 화는 다시 열 수 있다", async () => {
-  const user = userEvent.setup();
-  const openEpisode = jest.fn();
+test("기록 유무와 관계없이 하단 버튼 하나를 보여 준다", async () => {
+  await renderDetail();
 
-  await renderWithHeroUI(
-    <StoryDetailScreen
-      isLoading={false}
-      isRetrying={false}
-      onOpenEpisode={openEpisode}
-      onRetry={jest.fn()}
-      story={createDetail()}
-    />
-  );
+  const start = screen.getByTestId("story-start");
 
-  await user.press(
-    screen.getByRole("button", { name: "1화 카페에서 생긴 일, 대화 보기" })
-  );
-
-  expect(openEpisode).toHaveBeenCalledWith(episodeId(1));
+  expect(start).toBeVisible();
+  expect(screen.getByText("대화 시작하기")).toBeVisible();
 });
 
-test("시작 전 스토리는 진행 바 대신 화 수를 센다", async () => {
-  await renderWithHeroUI(
-    <StoryDetailScreen
-      isLoading={false}
-      isRetrying={false}
-      onOpenEpisode={jest.fn()}
-      onRetry={jest.fn()}
-      story={createDetail({
-        episodes: [
-          {
-            episodeId: episodeId(1),
-            hasTranscript: false,
-            number: 1,
-            outcome: null,
-            preview: "주문과 다른 커피가 나왔어요.",
-            state: "next",
-            title: "카페에서 생긴 일",
-          },
-          locked(2, "계산이 꼬인 아침"),
-          locked(3, "자리를 맡아 둔 사이에"),
-        ],
-        finished: 0,
-        next: { episodeId: episodeId(1), number: 1, resuming: false },
-      })}
-    />
-  );
+test("에피소드 행은 눌러서 열 수 없다", async () => {
+  await renderDetail();
 
-  expect(screen.getByText("에피소드 3개")).toBeOnTheScreen();
-  expect(screen.queryByTestId("story-progress")).not.toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "1화 시작하기" })
-  ).toBeOnTheScreen();
+  expect(screen.getByTestId("story-episode-1")).not.toHaveProp(
+    "accessibilityRole",
+    "button"
+  );
 });
 
-test("완주한 스토리에는 시작 버튼도 완주 안내 카드도 없다", async () => {
-  await renderWithHeroUI(
-    <StoryDetailScreen
-      isLoading={false}
-      isRetrying={false}
-      onOpenEpisode={jest.fn()}
-      onRetry={jest.fn()}
-      story={createDetail({
-        episodes: [
-          finished(1, "카페에서 생긴 일", "원하는 커피로 바꿔냈어요."),
-          finished(2, "계산이 꼬인 아침", "현금으로 냈어요."),
-          finished(3, "자리를 맡아 둔 사이에", "자리를 되찾았어요."),
-        ],
-        finished: 3,
-        next: null,
-      })}
-    />
-  );
+test("불러오지 못하면 다시 시도할 수 있고 하단 버튼은 두지 않는다", async () => {
+  await renderDetail({ story: undefined });
 
-  expect(screen.getByTestId("story-progress")).toHaveProp(
-    "accessibilityValue",
-    { max: 3, min: 0, now: 3 }
-  );
-  expect(screen.queryByText(ANY_OPEN_BUTTON)).not.toBeOnTheScreen();
-  expect(screen.queryByText(COMPLETION_COPY)).not.toBeOnTheScreen();
-});
-
-test("스토리를 읽지 못했으면 다시 시도할 길을 준다", async () => {
-  const user = userEvent.setup();
-  const retry = jest.fn();
-
-  await renderWithHeroUI(
-    <StoryDetailScreen
-      isLoading={false}
-      isRetrying={false}
-      onOpenEpisode={jest.fn()}
-      onRetry={retry}
-      story={undefined}
-    />
-  );
-
-  expect(screen.getByTestId("story-detail-empty")).toBeOnTheScreen();
-  await user.press(screen.getByRole("button", { name: "다시 시도하기" }));
-
-  expect(retry).toHaveBeenCalledTimes(1);
+  expect(screen.getByTestId("story-detail-unavailable")).toBeVisible();
+  expect(screen.getByText("다시 시도하기")).toBeVisible();
+  expect(screen.queryByTestId("story-start")).toBeNull();
 });

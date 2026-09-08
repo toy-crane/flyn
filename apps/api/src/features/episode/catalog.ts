@@ -33,6 +33,13 @@ export interface StoryEpisodeView {
   number: number;
   /** 결말을 드러내지 않는 상황 설명. 모든 화가 공개한다. */
   situation: string;
+  /**
+   * 상황 줄이 앞에 두는 그림 문자.
+   *
+   * 상세는 쓰지 않는다. 새 회차의 1화는 아직 회차가 없어 저장된 대화를 읽을 수
+   * 없으므로, 그 화면이 상황 줄을 그리는 데 필요한 값을 상세에서 가져간다.
+   */
+  situationEmoji: string;
   title: string;
 }
 
@@ -73,6 +80,7 @@ export function storyDetailViewOf(entry: StoryCatalogEntry): StoryDetailView {
       episodeId: episode.id,
       number: episode.number,
       situation: episode.situation,
+      situationEmoji: episode.situationEmoji,
       title: episode.title,
     })),
     intro: entry.intro,

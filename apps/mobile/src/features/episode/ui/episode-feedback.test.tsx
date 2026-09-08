@@ -62,7 +62,10 @@ function Harness() {
         role: "assistant",
       },
     ],
-    false
+    false,
+    "story",
+    "run",
+    () => undefined
   );
   const send = useCallback(() => {
     chat.sendMessage({ text: "I want to go home." });

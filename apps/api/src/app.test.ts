@@ -2342,6 +2342,7 @@ describe("GET /ai/episode/stories/:storyId", () => {
         episodeId: string;
         number: number;
         situation: string;
+        situationEmoji: string;
         title: string;
       }[];
       intro: string;
@@ -2355,12 +2356,14 @@ describe("GET /ai/episode/stories/:storyId", () => {
       episodeId: episodeId(1),
       number: 1,
       situation: "잘못 나온 커피를 원하는 커피로 바꿔 보세요",
+      situationEmoji: "☕",
       title: "카페에서 생긴 일",
     });
     expect(view.episodes[4]).toEqual({
       episodeId: episodeId(5),
       number: 5,
       situation: "문 닫기 전에 하고 싶은 말을 건네 보세요",
+      situationEmoji: "👋",
       title: "마지막 잔",
     });
   });
