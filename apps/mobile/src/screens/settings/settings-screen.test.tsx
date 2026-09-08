@@ -9,8 +9,9 @@ import {
   within,
 } from "@testing-library/react-native";
 import Constants from "expo-constants";
+import { openURL } from "expo-linking";
 import type { PropsWithChildren } from "react";
-import { AccessibilityInfo, Alert, Linking, Platform } from "react-native";
+import { AccessibilityInfo, Alert, Platform } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
 import {
@@ -30,6 +31,10 @@ const DANGER = "#dc2626";
 const MUTED = "#6b7280";
 const SURFACE = "#ffffff";
 const APP_VERSION = Constants.expoConfig?.version ?? "Unknown";
+
+jest.mock("expo-linking", () => ({
+  openURL: jest.fn(() => Promise.resolve(true)),
+}));
 
 jest.mock("@/features/auth/state/auth-session", () => ({
   useAuthSession: jest.fn(),
@@ -135,8 +140,11 @@ jest.mock("@expo/ui", () => {
 });
 
 const mockUseAuthSession = jest.mocked(useAuthSession);
+const mockOpenURL = jest.mocked(openURL);
 
 beforeEach(() => {
+  mockOpenURL.mockReset();
+  mockOpenURL.mockResolvedValue(true);
   resetFakeSupabase({ session: createFakeSession() });
   mockUseAuthSession.mockReturnValue({
     session: createFakeSession(),
@@ -404,45 +412,32 @@ test("화면 모드 행이 현재 값을 보여 주고 전용 화면을 연다",
 });
 
 test("앱 밖으로 나가는 세 행은 각자의 주소를 시스템에 넘긴다", async () => {
-  const openURL = jest
-    .spyOn(Linking, "openURL")
-    .mockResolvedValue(true as never);
   const user = userEvent.setup();
 
-  try {
-    await renderSettings();
+  await renderSettings();
 
-    await user.press(screen.getByTestId("terms-row"));
-    await user.press(screen.getByTestId("privacy-row"));
-    await user.press(screen.getByTestId("support-row"));
+  await user.press(screen.getByTestId("terms-row"));
+  await user.press(screen.getByTestId("privacy-row"));
+  await user.press(screen.getByTestId("support-row"));
 
-    expect(openURL).toHaveBeenNthCalledWith(1, "https://example.com/terms");
-    expect(openURL).toHaveBeenNthCalledWith(2, "https://example.com/privacy");
-    expect(openURL).toHaveBeenNthCalledWith(3, "mailto:support@example.com");
-  } finally {
-    openURL.mockRestore();
-  }
+  expect(mockOpenURL).toHaveBeenNthCalledWith(1, "https://example.com/terms");
+  expect(mockOpenURL).toHaveBeenNthCalledWith(2, "https://example.com/privacy");
+  expect(mockOpenURL).toHaveBeenNthCalledWith(3, "mailto:support@example.com");
 });
 
 test("메일 앱을 열지 못하면 지원 섹션에서 그렇게 말한다", async () => {
-  const openURL = jest
-    .spyOn(Linking, "openURL")
-    .mockRejectedValue(new Error("No handler"));
+  mockOpenURL.mockRejectedValue(new Error("No handler"));
   const user = userEvent.setup();
 
-  try {
-    await renderSettings();
+  await renderSettings();
 
-    await user.press(screen.getByTestId("support-row"));
+  await user.press(screen.getByTestId("support-row"));
 
-    // A device with no mail app rejects `mailto:`, and without this the row
-    // would look like one that does nothing when pressed.
-    expect(await screen.findByTestId("support-mail-error")).toHaveTextContent(
-      "메일 앱을 열지 못했습니다."
-    );
-  } finally {
-    openURL.mockRestore();
-  }
+  // A device with no mail app rejects `mailto:`, and without this the row
+  // would look like one that does nothing when pressed.
+  expect(await screen.findByTestId("support-mail-error")).toHaveTextContent(
+    "메일 앱을 열지 못했습니다."
+  );
 });
 
 test("섹션이 확정된 순서로 서고 각자의 행만 담는다", async () => {
