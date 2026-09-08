@@ -464,7 +464,7 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
     const actions=done
       ? button('새로 시작하기','replay')
       : button(r.started?'이어서 하기':'시작하기','continue:'+selected)+(r.started?button('새로 시작하기','replay','outline'):'');
-    return status()+nav('','stories','',`<button class="circle" data-component="NativeStack.Toolbar.Button" data-action="history" aria-label="대화 기록">${I('history')}</button>`)+`<div class="content"><div class="story-heading" data-component="StoryCard">${cover(s)}<div class="story-heading-copy"><h1 class="title">${s.title}</h1><p class="intro">${s.intro}</p></div></div><div>${state==='시작 실패'?'<div class="error-inline" role="alert">새 플레이를 시작하지 못했어요.<br>이전 기록은 그대로 있어요. 다시 시도해 주세요.</div>':''}<div class="story-actions">${actions}</div>${done?'<p class="helper">이전 대화와 배울 표현은 그대로 남아요.</p>':''}</div><div><h2 class="section-heading">에피소드</h2>${episodeCatalog(s)}</div></div>`;
+    return status()+nav('','stories','',`<button class="circle" data-component="NativeStack.Toolbar.Button" data-action="history" aria-label="대화 기록">${I('history')}</button>`)+`<div class="content"><div class="story-heading" data-component="StoryCard">${cover(s)}<div class="story-heading-copy"><h1 class="title">${s.title}</h1><p class="intro">${s.intro}</p></div></div><div>${state==='시작 실패'?'<div class="error-inline" role="alert">새 플레이를 시작하지 못했어요.<br>이전 기록은 그대로 있어요. 다시 시도해 주세요.</div>':''}<div class="story-actions">${actions}</div></div><div><h2 class="section-heading">에피소드</h2>${episodeCatalog(s)}</div></div>`;
   }
 
   function currentPlaySnapshot() {
