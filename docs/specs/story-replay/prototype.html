@@ -288,32 +288,11 @@ body:not(.sh-vp-390) .island { display:none }
 [data-screen="episode"] .nav {background:var(--background);backdrop-filter:none}
 [data-screen="episode"] .situation {position:sticky;top:58px;z-index:9;flex-shrink:0;background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
 [data-screen="episode"] .ending-mark {position:sticky;bottom:0;z-index:10;flex-shrink:0;padding:20px 20px 24px;background:var(--background);box-shadow:0 -16px 20px var(--background)}
-/* Disposable review: error and empty state examples. */
-.error-comparison > .sh-bar,.error-comparison > .sh-stage { display:none!important }
-.error-board {max-width:1250px;margin:0 auto;padding:32px 24px;color:var(--foreground);font-family:var(--font)}
-.sample-review-header {display:flex;justify-content:space-between;align-items:center;gap:24px;margin-bottom:28px}
-.sample-eyebrow {font-size:11px;letter-spacing:1px;font-weight:700;color:var(--muted)}
-.sample-review-header h1 {font-size:26px;letter-spacing:-1px;margin:10px 0}
-.sample-review-header p,.sample-caption {font-size:14px;color:var(--muted);line-height:1.5;margin:8px 0 16px}
-.sample-review-header a {font-size:13px;color:var(--foreground);text-underline-offset:4px}
-.error-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
-.sample-label {display:flex;gap:8px;align-items:center}.sample-label span {font-size:11px;color:var(--muted)}
-.sample-label h2 {font-size:16px;margin:0;letter-spacing:-.4px}
-.sample-column iframe {display:block;width:100%;height:690px;border:6px solid white;box-sizing:border-box;border-radius:36px;background:var(--background);box-shadow:0 12px 30px #1111140d}
-.sample-column footer {display:flex;align-items:start;gap:12px;justify-content:space-between;margin-top:14px}
-.sample-column footer p {font-size:12px;line-height:1.6;color:var(--muted);margin:0}
-.sample-column footer button {border:0;background:none;text-decoration:underline;text-underline-offset:3px;font-size:12px;white-space:nowrap;padding:0}
-.error-sample {padding:0;background:var(--background)}
-.error-sample > .sh-bar {display:none}
-.error-sample.sh-vp-390 .sh-stage {margin:0;max-width:none;width:100%;height:100dvh;border:0;border-radius:0;box-shadow:none}
+/* Shared unavailable content state. */
 .sample-empty {flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:24px 20px 90px;gap:20px;text-align:center;min-height:420px}
 .sample-empty h2 {font-size:20px;letter-spacing:-.6px;line-height:1.5;margin:0;word-break:keep-all}
 .sample-symbol {color:var(--muted);padding:16px;border-radius:50%;background:var(--default)}
 .sample-empty .button {width:auto;min-width:144px;padding-left:22px;padding-right:22px}
-.sample-inline {font-size:14px;line-height:1.5;margin:12px 0 0;color:var(--foreground)}
-.error-sample .story-actions .sample-inline + .button {margin-top:8px}
-@media(max-width:950px){.error-grid{grid-template-columns:1fr;justify-items:center;gap:32px}.sample-column{width:100%;max-width:390px}.sample-review-header{align-items:start;flex-direction:column;gap:0}.error-board{padding:24px 16px}}
-body.error-comparison,body.error-sample {min-width:0}
 .start-alert {padding:0;border:0;border-radius:16px;width:270px;max-width:calc(100% - 48px);background:var(--surface);color:var(--foreground);font-family:var(--font);box-shadow:0 12px 60px #0002}
 .start-alert::backdrop {background:rgb(0 0 0 / 32%)}
 .start-alert h2 {margin:0;padding:24px 16px;font-size:17px;line-height:1.5;text-align:center;font-weight:650;letter-spacing:-.4px}
@@ -323,7 +302,7 @@ body.error-comparison,body.error-sample {min-width:0}
 </style>
 <script>
 const legacyPreview = new URLSearchParams(location.search);
-if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview')) {
+if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview') || legacyPreview.has('errorCompare') || legacyPreview.has('errorSample')) {
   history.replaceState(null, '', location.pathname + '#story');
 }
 </script>
@@ -600,27 +579,6 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
   document.addEventListener('keydown',e=>{if(e.target.matches('#chat-form textarea')&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();e.target.form.requestSubmit();}});
   document.addEventListener('submit',e=> {if(e.target.id!=='chat-form')return;e.preventDefault();const field=e.target.querySelector('textarea'),text=field.value.trim();if(!text)return;rec().started=true;rec().lastTalk=Date.now();pendingPlay=null;sent.push(text);conversations[chatKey()]=sent;turns++;if(turns>=2){rec().finished=Math.max(rec().finished,episodeNo);if(episodeNo===5&&!rec().history.some(r=>r.no===rec().no))rec().history.push(finalRecord());syncState(episodeNo===5?'스토리 마무리':'에피소드 마무리');}else render();const stage=document.querySelector('.sh-stage');stage.scrollTop=stage.scrollHeight; });
   preset(prototypeShell.getScreen(),prototypeShell.getState());render();
-
-  const sample = new URLSearchParams(location.search).get('errorSample');
-  const compareErrors = new URLSearchParams(location.search).has('errorCompare');
-  if(sample) {
-    document.body.classList.add('error-sample');
-    const screen=sample==='start'?'story':'episode';
-    const state=sample==='start'?'시작 실패':sample==='load'?'불러오기 실패':'대화 없음';
-    preset(screen,state);go(screen,state);
-  }
-  if(compareErrors) {
-    document.body.classList.add('error-comparison');
-    const board=document.createElement('main');
-    board.className='error-board';
-    board.innerHTML=`<header class="sample-review-header"><div><div class="sample-eyebrow">FLYN · 상태 화면 검토</div><h1>같은 규칙, 상황에 맞는 표시</h1><p>각 화면의 버튼을 눌러 복구 흐름을 확인해 보세요.</p></div><a href="/#story">스토리 상세로 돌아가기</a></header><div class="error-grid">${[
-      ['load','01','대화를 불러오지 못한 경우','대화 영역에서 재시도','다시 시도를 누르면 저장된 대화를 보여줍니다.'],
-      ['start','02','새로 시작하지 못한 경우','상세 화면을 유지','알림창에서 닫거나 새 대화 시작을 재시도합니다.'],
-      ['empty','03','대화 기록이 없는 경우','빈 상태로 안내','재시도 없이 대화 기록 목록으로 돌아갑니다.']
-    ].map(([key,n,title,subtitle,note])=>`<section class="sample-column"><div class="sample-label"><span>${n}</span><h2>${title}</h2></div><p class="sample-caption">${subtitle}</p><iframe title="${title}" src="?errorSample=${key}#${key==='start'?'story':'episode'}"></iframe><footer><p>${note}</p><button data-reset-sample="${key}">샘플 초기화</button></footer></section>`).join('')}</div>`;
-    document.body.append(board);
-    board.addEventListener('click',e=>{const key=e.target.closest('[data-reset-sample]')?.dataset.resetSample;if(key){const frame=board.querySelector(`iframe[src*="errorSample=${key}"]`);const url=new URL(frame.src);url.searchParams.set('reset',Date.now());frame.src=url.href;}});
-  }
 
 })();
 
