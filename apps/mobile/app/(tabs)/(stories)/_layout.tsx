@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import { Platform } from "react-native";
 
 import {
   getTabStackRouteOptions,
@@ -30,6 +31,11 @@ export default function StoriesLayout() {
           headerBackButtonDisplayMode: "minimal",
           headerLargeTitleEnabled: false,
           title: "",
+          ...(Platform.OS === "ios" && {
+            headerShadowVisible: false,
+            headerTransparent: true,
+            scrollEdgeEffects: { top: "soft" },
+          }),
         }}
       />
     </Stack>
