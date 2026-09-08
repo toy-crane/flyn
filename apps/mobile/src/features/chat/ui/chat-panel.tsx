@@ -47,6 +47,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
 
 import type { ChatSession } from "@/features/chat/state/use-conversation";
 import { Icon } from "@/shared/ui/icon";
@@ -54,6 +55,7 @@ import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { AssistantMessage } from "./assistant-message";
 import { chatLabels } from "./chat-labels";
 import { ComposerBackdrop } from "./composer-backdrop";
+import { COMPOSER_BACKDROP_FADE_HEIGHT } from "./composer-backdrop-layout";
 import { ComposerSurface } from "./composer-surface";
 import { LatestMessageButton } from "./latest-message-button";
 import { sceneCopyText, sceneOfMessage } from "./scene";
@@ -209,21 +211,43 @@ function ReturnControls({
 }) {
   const isReducedMotion = useReducedMotion();
   const progress = useSharedValue(isFollowingLatest ? 0 : 1);
+  const [isRendered, setIsRendered] = useState(!isFollowingLatest);
+  const followingLatestRef = useRef(isFollowingLatest);
+  const hideButton = useCallback(() => {
+    if (followingLatestRef.current) {
+      setIsRendered(false);
+    }
+  }, []);
   useEffect(() => {
+    followingLatestRef.current = isFollowingLatest;
     const target = isFollowingLatest ? 0 : 1;
+    if (!isFollowingLatest) {
+      setIsRendered(true);
+    }
+    if (isReducedMotion) {
+      progress.set(target);
+      setIsRendered(!isFollowingLatest);
+      return;
+    }
     progress.set(
-      isReducedMotion
-        ? target
-        : withTiming(target, {
-            duration: isFollowingLatest ? 160 : 200,
-            easing: Easing.out(Easing.cubic),
-            reduceMotion: ReduceMotion.System,
-          })
+      withTiming(
+        target,
+        {
+          duration: isFollowingLatest ? 160 : 200,
+          easing: Easing.out(Easing.cubic),
+          reduceMotion: ReduceMotion.System,
+        },
+        (finished) => {
+          if (finished && target === 0) {
+            scheduleOnRN(hideButton);
+          }
+        }
+      )
     );
-  }, [isFollowingLatest, isReducedMotion, progress]);
+  }, [hideButton, isFollowingLatest, isReducedMotion, progress]);
   const motionStyle = useAnimatedStyle(() => ({
-    // Glass는 흐리게 만들지 않는다. 이동을 마친 뒤에만 잔상을 끈다.
-    opacity: progress.get() === 0 ? 0 : 1,
+    // 부모 opacity가 0이면 네이티브 Glass 재질도 사라진다.
+    // 이동이 끝난 뒤 버튼을 제거하며 재질과 부모의 투명도는 바꾸지 않는다.
     transform: [{ translateY: (1 - progress.get()) * LATEST_OVERLAY_HEIGHT }],
   }));
   return (
@@ -240,7 +264,7 @@ function ReturnControls({
         style={motionStyle}
         testID="chat-latest-motion"
       >
-        <LatestMessageButton onPress={onMoveToLatest} />
+        {isRendered ? <LatestMessageButton onPress={onMoveToLatest} /> : null}
       </Animated.View>
     </View>
   );
@@ -852,6 +876,10 @@ export function ChatPanel({
         }
         applyWorkaroundForContentInsetHitTestBug
         contentContainerStyle={{
+          paddingBottom:
+            closing !== undefined && Platform.OS === "ios"
+              ? COMPOSER_BACKDROP_FADE_HEIGHT
+              : 0,
           paddingHorizontal: 20,
           paddingTop: MESSAGE_TOP_SPACING,
         }}
@@ -898,6 +926,21 @@ export function ChatPanel({
         testID="chat-list"
       />
 
+      {/* 흐림은 대화에만 적용하고 최신 메시지 버튼은 그 위에 그린다. */}
+      <KeyboardStickyView
+        offset={{
+          closed: 0,
+          opened: composerBottomPadding - KEYBOARD_INPUT_GAP,
+        }}
+        pointerEvents="none"
+        style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
+      >
+        <ComposerBackdrop
+          height={composerHeight}
+          variant={closing === undefined ? "composer" : "closing"}
+        />
+      </KeyboardStickyView>
+
       {/* 입력창보다 먼저 그려 버튼이 입력창 뒤로 내려간다. */}
       <KeyboardStickyView
         offset={{
@@ -909,6 +952,7 @@ export function ChatPanel({
           bottom: composerHeight,
           height: LATEST_OVERLAY_HEIGHT,
           left: 0,
+          overflow: "hidden",
           position: "absolute",
           right: 0,
         }}
@@ -935,9 +979,6 @@ export function ChatPanel({
         }}
         style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
       >
-        {closing === undefined ? (
-          <ComposerBackdrop height={composerHeight} />
-        ) : null}
         <View
           className="gap-2 px-5 pt-2"
           onLayout={updateComposerLayout}
