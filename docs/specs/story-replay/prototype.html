@@ -288,6 +288,38 @@ body:not(.sh-vp-390) .island { display:none }
 [data-screen="episode"] .nav {background:var(--background);backdrop-filter:none}
 [data-screen="episode"] .situation {position:sticky;top:58px;z-index:9;flex-shrink:0;background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
 [data-screen="episode"] .ending-mark {position:sticky;bottom:0;z-index:10;flex-shrink:0;padding:20px 20px 24px;background:var(--background);box-shadow:0 -16px 20px var(--background)}
+/* Disposable review: error and empty state examples. */
+.error-comparison > .sh-bar,.error-comparison > .sh-stage { display:none!important }
+.error-board {max-width:1250px;margin:0 auto;padding:32px 24px;color:var(--foreground);font-family:var(--font)}
+.sample-review-header {display:flex;justify-content:space-between;align-items:center;gap:24px;margin-bottom:28px}
+.sample-eyebrow {font-size:11px;letter-spacing:1px;font-weight:700;color:var(--muted)}
+.sample-review-header h1 {font-size:26px;letter-spacing:-1px;margin:10px 0}
+.sample-review-header p,.sample-caption {font-size:14px;color:var(--muted);line-height:1.5;margin:8px 0 16px}
+.sample-review-header a {font-size:13px;color:var(--foreground);text-underline-offset:4px}
+.error-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.sample-label {display:flex;gap:8px;align-items:center}.sample-label span {font-size:11px;color:var(--muted)}
+.sample-label h2 {font-size:16px;margin:0;letter-spacing:-.4px}
+.sample-column iframe {display:block;width:100%;height:690px;border:6px solid white;box-sizing:border-box;border-radius:36px;background:var(--background);box-shadow:0 12px 30px #1111140d}
+.sample-column footer {display:flex;align-items:start;gap:12px;justify-content:space-between;margin-top:14px}
+.sample-column footer p {font-size:12px;line-height:1.6;color:var(--muted);margin:0}
+.sample-column footer button {border:0;background:none;text-decoration:underline;text-underline-offset:3px;font-size:12px;white-space:nowrap;padding:0}
+.error-sample {padding:0;background:var(--background)}
+.error-sample > .sh-bar {display:none}
+.error-sample.sh-vp-390 .sh-stage {margin:0;max-width:none;width:100%;height:100dvh;border:0;border-radius:0;box-shadow:none}
+.sample-empty {flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:24px 20px 90px;gap:20px;text-align:center;min-height:420px}
+.sample-empty h2 {font-size:20px;letter-spacing:-.6px;line-height:1.5;margin:0;word-break:keep-all}
+.sample-symbol {color:var(--muted);padding:16px;border-radius:50%;background:var(--default)}
+.sample-empty .button {width:auto;min-width:144px;padding-left:22px;padding-right:22px}
+.sample-inline {font-size:14px;line-height:1.5;margin:12px 0 0;color:var(--foreground)}
+.error-sample .story-actions .sample-inline + .button {margin-top:8px}
+@media(max-width:950px){.error-grid{grid-template-columns:1fr;justify-items:center;gap:32px}.sample-column{width:100%;max-width:390px}.sample-review-header{align-items:start;flex-direction:column;gap:0}.error-board{padding:24px 16px}}
+body.error-comparison,body.error-sample {min-width:0}
+.start-alert {padding:0;border:0;border-radius:16px;width:270px;max-width:calc(100% - 48px);background:var(--surface);color:var(--foreground);font-family:var(--font);box-shadow:0 12px 60px #0002}
+.start-alert::backdrop {background:rgb(0 0 0 / 32%)}
+.start-alert h2 {margin:0;padding:24px 16px;font-size:17px;line-height:1.5;text-align:center;font-weight:650;letter-spacing:-.4px}
+.alert-actions {display:flex;border-top:1px solid var(--border)}
+.alert-actions button {flex:1;border:0;background:none;padding:14px 8px;color:var(--accent);font-size:17px}
+.alert-actions button+button {border-left:1px solid var(--border);font-weight:600}
 </style>
 <script>
 const legacyPreview = new URLSearchParams(location.search);
@@ -306,9 +338,9 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
 <main class="sh-stage">
 <section data-screen="home" data-title="홈" data-states="처음 방문,모든 스토리 완주"></section>
 <section data-screen="stories" data-title="스토리" data-states="불러오기 실패"></section>
-<section data-screen="story" data-title="스토리 상세" data-states="처음 시작,스토리 완주,시작 실패"></section>
-<section data-screen="history" data-title="대화 기록" data-states="기록 없음,기록이 많을 때"></section>
-<section data-screen="episode" data-title="에피소드 대화" data-states="에피소드 마무리,스토리 마무리,지난 대화,대화 없음"></section>
+<section data-screen="story" data-title="스토리 상세" data-states="처음 시작,스토리 완주,시작 실패,불러오기 실패"></section>
+<section data-screen="history" data-title="대화 기록" data-states="기록 없음,기록이 많을 때,불러오기 실패"></section>
+<section data-screen="episode" data-title="에피소드 대화" data-states="에피소드 마무리,스토리 마무리,지난 대화,대화 없음,불러오기 실패"></section>
 </main>
 
 <script>
@@ -436,7 +468,9 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
   const tabs = active => `<div class="tab-wrap"><nav class="tabs" aria-label="기본 탭" data-component="NativeTabs"><button class="${active==='home'?'active':''}" data-action="home" ${active==='home'?'aria-current="page"':''}>${I('home')}<span>홈</span></button><button class="${active==='stories'?'active':''}" data-action="stories" ${active==='stories'?'aria-current="page"':''}>${I('book')}<span>스토리</span></button></nav></div>`;
   const cover = s=>`<img class="cover" data-component="StoryCover" src="${ASSETS[s.image]}" alt="">`;
   function storyRow(s,card=false) { const r=records[s.id],n=Math.min(r.finished+1,5); return `<div class="story-row" data-component="StoryCard">${cover(s)}<div class="copy"><strong>${s.title}</strong>${card?`<span class="secondary">${n}화 · ${s.titles[n-1]}</span>`:''}<span class="secondary">${card?(r.no>1?runName(r.no)+' · 진행하던 장면부터 이어가요.':(r.started?'진행하던 이야기를 만나 봐요.':'Mia와 첫 대화를 시작해 봐요.')):s.hook}</span>${progress(r.finished)}</div>${card?'':`<span class="chevron">${I('forward',true)}</span>`}</div>`; }
-  function errorBox(action) { return `<div class="error-box"><p>이야기를 불러오지 못했어요.<br>잠시 후 다시 시도해 주세요.</p>${button('다시 시도하기',action)}</div>`; }
+  function contentState(title,action,label='다시 시도',empty=false) { return `<div class="sample-empty" data-component="new:ContentUnavailableView"><div class="sample-symbol">${I(empty?'history':'refresh')}</div><h2>${title}</h2>${action?button(label,action,empty?'secondary':'primary'):''}</div>`; }
+  function errorBox(action) { return contentState('스토리를 불러오지 못했어요',action); }
+  function startAlert() { return `<dialog class="start-alert" aria-labelledby="start-alert-title" data-component="NativeAlert"><h2 id="start-alert-title">새로 시작하지 못했어요</h2><div class="alert-actions"><button data-action="dismiss-start">닫기</button><button data-action="replay">다시 시도</button></div></dialog>`; }
   function renderHome(state) {
     const previousSelected=selected;for(const item of data){selected=item.id;chooseResumeDefault();}selected=previousSelected;
     const active=data.filter(s=>records[s.id].started && records[s.id].finished<5);
@@ -459,12 +493,13 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
     return `<ol class="episode-list episode-catalog" aria-label="에피소드 목록">${s.titles.map((title,i)=>`<li class="episode-row" data-component="EpisodeRow"><span class="episode-number">${i+1}화</span><span class="episode-copy"><strong>${title}</strong><small>${escape(previews[s.id][i])}</small></span></li>`).join('')}</ol>`;
   }
   function renderStory(state) {
+    if(state==='불러오기 실패')return status()+nav('','stories')+contentState('스토리를 불러오지 못했어요','retry-story');
     chooseResumeDefault();
     const s=story(), r=rec(), done=r.finished===5;
     const actions=done
       ? button('새로 시작하기','replay')
       : button(r.started?'이어서 하기':'시작하기','continue:'+selected)+(r.started?button('새로 시작하기','replay','outline'):'');
-    return status()+nav('','stories','',`<button class="circle" data-component="NativeStack.Toolbar.Button" data-action="history" aria-label="대화 기록">${I('history')}</button>`)+`<div class="content"><div class="story-heading" data-component="StoryCard">${cover(s)}<div class="story-heading-copy"><h1 class="title">${s.title}</h1><p class="intro">${s.intro}</p></div></div><div>${state==='시작 실패'?'<div class="error-inline" role="alert">새 플레이를 시작하지 못했어요.<br>이전 기록은 그대로 있어요. 다시 시도해 주세요.</div>':''}<div class="story-actions">${actions}</div></div><div><h2 class="section-heading">에피소드</h2>${episodeCatalog(s)}</div></div>`;
+    return status()+nav('','stories','',`<button class="circle" data-component="NativeStack.Toolbar.Button" data-action="history" aria-label="대화 기록">${I('history')}</button>`)+`<div class="content"><div class="story-heading" data-component="StoryCard">${cover(s)}<div class="story-heading-copy"><h1 class="title">${s.title}</h1><p class="intro">${s.intro}</p></div></div><div><div class="story-actions">${actions}</div></div><div><h2 class="section-heading">에피소드</h2>${episodeCatalog(s)}</div></div>${state==='시작 실패'?startAlert():''}`;
   }
 
   function currentPlaySnapshot() {
@@ -485,6 +520,7 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
     records[selected]={...saved,started:true,history};
   }
   function renderHistory(state) {
+    if(state==='불러오기 실패')return status()+nav('대화 기록','story-back')+contentState('대화 기록을 불러오지 못했어요','retry-history');
     const s=story(),runs=historyRuns();
     const cards=runs.map(r=>{
       const done=r.finished===5;
@@ -494,7 +530,7 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
       const episodes=s.titles.slice(0,r.finished).map((title,i)=>`<button class="episode-row" data-component="EpisodeRow" data-action="review:${r.no}:${i+1}" aria-label="${runName(r.no)} ${i+1}화 ${title} 대화 보기"><span class="episode-number">${i+1}화</span><span class="episode-copy"><strong>${title}</strong><small>${outcome(s,i,r.no)}</small></span><span class="episode-row-action">${I('forward',true)}</span></button>`).join('');
       return `<div class="history-card" data-component="new:StoryPlayHistoryCard"><button class="run-toggle" data-action="toggle-run:${r.no}" aria-expanded="${openedHistory===r.no}" aria-controls="run-episodes-${r.no}"><span class="run-content">${headings}${progress(r.finished)}<span class="summary">${detail}</span></span><span class="chevron">${I('forward',true)}</span></button>${openedHistory===r.no?`<div class="history-episodes" id="run-episodes-${r.no}">${episodes}${!done?`<div class="history-resume">${button('이어서 하기','resume-run:'+r.no,'outline')}</div>`:''}</div>`:''}</div>`;
     }).join('');
-    return status()+nav('대화 기록','story-back')+`<div class="content history-design"><div class="record-story" data-component="StoryCard">${cover(s)}<div><h1>${s.title}</h1><p>${s.intro}</p></div></div>${runs.length?`<div class="record-list">${cards}</div>`:`<div class="empty"><h2>아직 나눈 대화가 없어요</h2><p>대화를 시작하면 여기에 기록이 남아요.</p>${button('스토리로 돌아가기','story-back','secondary')}</div>`}</div>`;
+    return status()+nav('대화 기록','story-back')+`<div class="content history-design"><div class="record-story" data-component="StoryCard">${cover(s)}<div><h1>${s.title}</h1><p>${s.intro}</p></div></div>${runs.length?`<div class="record-list">${cards}</div>`:`${contentState('아직 나눈 대화가 없어요','story-back','스토리로 돌아가기',true)}`}</div>`;
   }
   const correction = () => `<details class="correction" data-component="CorrectionNote"><summary>더 자연스러운 영어 표현 ${I('down',true)}</summary><p class="fixed">I ordered an iced americano.</p><p>‘주문했어요’처럼 이미 한 일에는 ordered를 써요.</p></details>`;
   function conversation() { const s=story(),review=episodeMode==='review',sc=scene(); let out=`<p class="narration">${sc[2]}</p><div><div class="speaker-name">${s.actor}</div><div class="bubble">${sc[3]}</div></div><p class="narration">${sc[4]}</p>`;
@@ -503,7 +539,7 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
     return out;
   }
   function renderEpisode(state) { const s=story(),r=rec(),review=episodeMode==='review',no=review?reviewNo:r.no; const sub=(!review&&!r.started?'새 플레이':runName(no))+(review?' · 대화 기록':''); let body='';
-    if(state==='대화 없음') return status()+nav(`${episodeNo}화 · ${s.titles[episodeNo-1]}`,'episode-back',sub)+`<div class="content"><div class="empty"><div class="empty-symbol">${I('book')}</div><h2>대화 기록이 남아 있지 않아요</h2><p>${outcome(s,episodeNo-1,no)}</p>${button('대화 기록으로 돌아가기','history','secondary')}</div></div>`;
+    if(state==='대화 없음'||state==='불러오기 실패') return status()+nav(`${episodeNo}화 · ${s.titles[episodeNo-1]}`,'episode-back',sub)+contentState(state==='대화 없음'?'대화 기록이 없어요':'대화를 불러오지 못했어요',state==='대화 없음'?'history':'retry-episode',state==='대화 없음'?'대화 기록으로 돌아가기':'다시 시도',state==='대화 없음');
     body+=`<div class="situation" data-component="EpisodeSituationBanner"><span>${scene()[0]}</span><span>${scene()[1]}</span></div><div class="chat" data-component="SceneMessage">${conversation()}</div>${review?`<div class="ending-mark" data-component="EpisodeEndingMark"><div class="rule">끝</div><p>${outcome(s,episodeNo-1,no)}</p></div>`:''}`;
     if(!review && (state==='에피소드 마무리'||state==='스토리 마무리')) { const complete=state==='스토리 마무리'; body+=`<div class="closing" data-component="EpisodeClosing"><h2>${outcome(s,episodeNo-1,no)}</h2>${complete?`<div class="next-title">${s.title}의 마지막 장면까지 함께했어요</div><p>대화와 배울 표현은 대화 기록에서 다시 볼 수 있어요.</p>${button('스토리로 돌아가기','story-back')}`:`<div class="eyebrow">다음 이야기</div><div class="next-title">${episodeNo+1}화 · ${s.titles[episodeNo]}</div><p>다음 날, 같은 장소에서 예상하지 못한 일이 생겨요.</p><div class="buttons">${button('홈으로','home','secondary')}${button(episodeNo+1+'화 시작하기','next-episode')}</div>`}</div>`; }
     else if(!review) body+=`<div class="composer-wrap" data-component="ChatComposer"><form class="composer" id="chat-form"><textarea aria-label="대화 입력" placeholder="하고 싶은 말을 써 보세요" rows="1"></textarea><button class="send" aria-label="보내기" disabled>${I('up')}</button></form></div>`;
@@ -514,10 +550,10 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
     if(screen==='stories') reset();
     if(screen==='story') { reset(); if(state==='처음 시작') records.cafe={no:1,finished:0,started:false,history:[]}; if(state==='스토리 완주') records.cafe={no:1,finished:5,started:true,history:[prior()]}; }
     if(screen==='history') { reset(); records.cafe.history=[prior(1)]; records.cafe.no=2; openedHistory=null; historyMany=state==='기록이 많을 때'; forceEmptyHistory=state==='기록 없음'; if(historyMany){records.cafe.history=Array.from({length:12},(_,i)=>prior(i+1));records.cafe.no=13;} if(forceEmptyHistory)records.cafe={no:1,finished:0,started:false,history:[]}; }
-    if(screen==='episode') { reset(); records.cafe={no:2,finished:0,started:false,history:[prior()]}; episodeSource='story'; episodeNo=1; turns=0; sent=[]; episodeMode='live'; if(state==='지난 대화'||state==='대화 없음'){episodeMode='review';reviewNo=1;episodeSource='history';} if(state==='에피소드 마무리'||state==='스토리 마무리'){records.cafe.started=true;sent=['Excuse me, I order an iced americano.','Yes, please. Thank you!']; turns=2; if(state==='스토리 마무리') { episodeNo=5; records.cafe.finished=5; records.cafe.history.push(finalRecord());sent=[scene()[5],scene()[6]]; } else records.cafe.finished=1;} }
+    if(screen==='episode') { reset(); records.cafe={no:2,finished:0,started:false,history:[prior()]}; episodeSource='story'; episodeNo=1; turns=0; sent=[]; episodeMode='live'; if(state==='지난 대화'||state==='대화 없음'||state==='불러오기 실패'){episodeMode='review';reviewNo=1;episodeSource='history';} if(state==='에피소드 마무리'||state==='스토리 마무리'){records.cafe.started=true;sent=['Excuse me, I order an iced americano.','Yes, please. Thank you!']; turns=2; if(state==='스토리 마무리') { episodeNo=5; records.cafe.finished=5; records.cafe.history.push(finalRecord());sent=[scene()[5],scene()[6]]; } else records.cafe.finished=1;} }
   }
   const renderers={home:renderHome,stories:renderStories,story:renderStory,history:renderHistory,episode:renderEpisode};
-  function render() {const screen=prototypeShell.getScreen(),state=prototypeShell.getState(); document.querySelector(`[data-screen="${screen}"]`).innerHTML=`<div class="screen-inner">${renderers[screen](state)}</div>`; }
+  function render() {document.querySelectorAll('.start-alert').forEach(d=>{d.close();d.remove();});const screen=prototypeShell.getScreen(),state=prototypeShell.getState(); document.querySelector(`[data-screen="${screen}"]`).innerHTML=`<div class="screen-inner">${renderers[screen](state)}</div>`; const alert=document.querySelector('.start-alert');if(alert){alert.showModal();alert.addEventListener('cancel',e=>{e.preventDefault();go('story');});} }
   addEventListener('prototype:state',e=>{if(!preserving) preset(e.detail.screen,e.detail.state); render();});
   function stateFor(screen) { if(screen==='story')return rec().finished===5?'스토리 완주':rec().started?'Default':'처음 시작'; if(screen==='history'){const count=historyRuns().length;return count>5?'기록이 많을 때':count?'Default':'기록 없음';} if(screen==='episode')return episodeMode==='review'?'지난 대화':'Default'; if(screen==='home')return Object.values(records).every(r=>r.finished===5)?'모든 스토리 완주':Object.values(records).every(r=>!r.started)?'처음 방문':'Default'; return 'Default'; }
   function go(screen,state) {if(screen==='story')chooseResumeDefault();state=state||stateFor(screen);preserving=true;prototypeShell.showScreen(screen);prototypeShell.setState(state);preserving=false;const stage=document.querySelector('.sh-stage');stage.scrollTop=screen==='episode'?stage.scrollHeight:0;}
@@ -556,11 +592,35 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
     if(action==='episode-back'){discardUnstartedPlay();go(episodeSource);}
     if(action==='next-episode')startEpisode(Math.min(episodeNo+1,5));
     if(action==='retry-stories')go('stories');
+    if(action==='retry-story'||action==='dismiss-start')go('story');
+    if(action==='retry-history')go('history');
+    if(action==='retry-episode')go('episode','지난 대화');
   });
   document.addEventListener('input',e=> { if(e.target.matches('#chat-form textarea')) e.target.form.querySelector('button').disabled=!e.target.value.trim(); });
   document.addEventListener('keydown',e=>{if(e.target.matches('#chat-form textarea')&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();e.target.form.requestSubmit();}});
   document.addEventListener('submit',e=> {if(e.target.id!=='chat-form')return;e.preventDefault();const field=e.target.querySelector('textarea'),text=field.value.trim();if(!text)return;rec().started=true;rec().lastTalk=Date.now();pendingPlay=null;sent.push(text);conversations[chatKey()]=sent;turns++;if(turns>=2){rec().finished=Math.max(rec().finished,episodeNo);if(episodeNo===5&&!rec().history.some(r=>r.no===rec().no))rec().history.push(finalRecord());syncState(episodeNo===5?'스토리 마무리':'에피소드 마무리');}else render();const stage=document.querySelector('.sh-stage');stage.scrollTop=stage.scrollHeight; });
   preset(prototypeShell.getScreen(),prototypeShell.getState());render();
+
+  const sample = new URLSearchParams(location.search).get('errorSample');
+  const compareErrors = new URLSearchParams(location.search).has('errorCompare');
+  if(sample) {
+    document.body.classList.add('error-sample');
+    const screen=sample==='start'?'story':'episode';
+    const state=sample==='start'?'시작 실패':sample==='load'?'불러오기 실패':'대화 없음';
+    preset(screen,state);go(screen,state);
+  }
+  if(compareErrors) {
+    document.body.classList.add('error-comparison');
+    const board=document.createElement('main');
+    board.className='error-board';
+    board.innerHTML=`<header class="sample-review-header"><div><div class="sample-eyebrow">FLYN · 상태 화면 검토</div><h1>같은 규칙, 상황에 맞는 표시</h1><p>각 화면의 버튼을 눌러 복구 흐름을 확인해 보세요.</p></div><a href="/#story">스토리 상세로 돌아가기</a></header><div class="error-grid">${[
+      ['load','01','대화를 불러오지 못한 경우','대화 영역에서 재시도','다시 시도를 누르면 저장된 대화를 보여줍니다.'],
+      ['start','02','새로 시작하지 못한 경우','상세 화면을 유지','알림창에서 닫거나 새 대화 시작을 재시도합니다.'],
+      ['empty','03','대화 기록이 없는 경우','빈 상태로 안내','재시도 없이 대화 기록 목록으로 돌아갑니다.']
+    ].map(([key,n,title,subtitle,note])=>`<section class="sample-column"><div class="sample-label"><span>${n}</span><h2>${title}</h2></div><p class="sample-caption">${subtitle}</p><iframe title="${title}" src="?errorSample=${key}#${key==='start'?'story':'episode'}"></iframe><footer><p>${note}</p><button data-reset-sample="${key}">샘플 초기화</button></footer></section>`).join('')}</div>`;
+    document.body.append(board);
+    board.addEventListener('click',e=>{const key=e.target.closest('[data-reset-sample]')?.dataset.resetSample;if(key){const frame=board.querySelector(`iframe[src*="errorSample=${key}"]`);const url=new URL(frame.src);url.searchParams.set('reset',Date.now());frame.src=url.href;}});
+  }
 
 })();
 
