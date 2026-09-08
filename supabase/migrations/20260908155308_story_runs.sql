@@ -239,9 +239,13 @@ CREATE POLICY story_runs_start_own ON public.story_runs
 -- 기억은 플레이에 매달려 있어 이 이동으로 함께 따라온다. 없는 대화를 만들어
 -- 채우지 않는다.
 --
--- 2026-09-09 로컬 데이터에서 (사람, 화) 중복 0건, 결말만 남고 대화가 없는 플레이
--- 0건, 대화가 없는 미완료 플레이 0건을 확인했다. 원격 데이터는 이 자리에서
--- 확인하지 않았다.
+-- 2026-09-09 로컬 데이터에서 (사람, 화) 중복 0건, 메시지 행이 하나도 없는 플레이
+-- 0건을 확인했다. 그 세기는 역할을 가리지 않으므로, 첫 장면만 저장하고 사용자가
+-- 말하지 않은 플레이는 걸리지 않는다. 그런 플레이만 가진 (사람, 스토리)는 여기서
+-- 회차를 받되 `last_user_message_at`이 NULL로 남아 대화 기록과 최근 대화에
+-- 나오지 않는다. 사용자가 말하지 않은 진입을 기록으로 세우지 않는 수락 기준 4·9와
+-- 같은 판단이다. 원격에 그런 묶음이 몇 개인지는 이 자리에서 확인하지 않았다.
+-- docs/follow-ups/runs-backfilled-without-a-user-message.md를 본다.
 INSERT INTO public.story_runs (user_id, story_id, started_at)
 SELECT played.user_id, episode.story_id, min(played.started_at)
 FROM public.episode_plays played
