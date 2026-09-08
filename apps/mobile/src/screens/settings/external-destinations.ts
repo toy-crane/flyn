@@ -1,6 +1,6 @@
 import { getMobileEnv } from "@env";
+import { openURL } from "expo-linking";
 import { useCallback, useMemo, useState } from "react";
-import { Linking } from "react-native";
 
 import { profileLabels } from "@/features/auth/ui/profile-labels";
 
@@ -34,16 +34,16 @@ export function useExternalDestinations() {
   const destinations = useMemo(getExternalDestinations, []);
 
   const openPrivacy = useCallback(() => {
-    Linking.openURL(destinations.privacy).catch(() => undefined);
+    openURL(destinations.privacy).catch(() => undefined);
   }, [destinations.privacy]);
 
   const openTerms = useCallback(() => {
-    Linking.openURL(destinations.terms).catch(() => undefined);
+    openURL(destinations.terms).catch(() => undefined);
   }, [destinations.terms]);
 
   const openSupportMail = useCallback(() => {
     setMailFailure(undefined);
-    Linking.openURL(destinations.supportMail).catch(() => {
+    openURL(destinations.supportMail).catch(() => {
       setMailFailure(profileLabels.mailAppUnavailable);
     });
   }, [destinations.supportMail]);
