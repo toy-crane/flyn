@@ -131,6 +131,8 @@ SELECT throws_ok(
 -- 밀지 않는다.
 RESET ROLE;
 
+-- 소유자 권한으로 도는 문장이라 RLS가 걸리지 않는다. 이 계정의 회차로 좁히지
+-- 않으면 데이터베이스에 이미 있던 남의 회차를 골라 엉뚱한 곳에 플레이를 매단다.
 INSERT INTO public.episode_plays (id, user_id, run_id, episode_id)
 SELECT
   '1c000000-0000-4000-8000-000000000001',
@@ -138,6 +140,7 @@ SELECT
   run.id,
   '11000000-0000-4000-8000-000000000001'
 FROM public.story_runs run
+WHERE run.user_id = '11111111-1111-4111-8111-111111111111'
 ORDER BY run.started_at
 LIMIT 1;
 
