@@ -1246,6 +1246,31 @@ describe("ChatPanel", () => {
     expect(screen.getByLabelText(chatLabels.latest)).toBeOnTheScreen();
   });
 
+  test.each([false, true])(
+    "앱을 잠깐 나갔다 돌아와도 읽던 위치 추적 상태를 유지한다: %s",
+    async (readingHistory) => {
+      let onAppState: ((state: AppStateStatus) => void) | undefined;
+      jest
+        .spyOn(AppState, "addEventListener")
+        .mockImplementation((_event, listener) => {
+          onAppState = listener;
+          return { remove: jest.fn() };
+        });
+      await renderWithHeroUI(<EditableChat onSend={jest.fn()} />);
+      if (readingHistory) {
+        await scrollAwayFromLatest();
+      }
+      await act(() => {
+        onAppState?.("background");
+        onAppState?.("active");
+      });
+      expect(
+        Boolean(screen.getByTestId("chat-list").props.maintainScrollAtEnd)
+      ).toBe(!readingHistory);
+      expect(mockScrollToEnd).not.toHaveBeenCalled();
+    }
+  );
+
   test("전송 중 앱을 나가면 늦은 키보드 신호가 목록을 다시 옮기지 않는다", async () => {
     let onAppState: ((state: AppStateStatus) => void) | undefined;
     jest
@@ -1289,6 +1314,25 @@ describe("ChatPanel", () => {
     expect(mockScrollToEnd).not.toHaveBeenCalled();
     expect(screen.getByTestId("chat-list").props.freeze.value).toBe(false);
     expect(screen.getByLabelText(chatLabels.latest)).toBeOnTheScreen();
+  });
+
+  test("전송 뒤 이동 중 답변이 늘어나도 도착한 뒤 최신 내용을 계속 따라간다", async () => {
+    let finish: (() => void) | undefined;
+    mockScrollToEnd.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        })
+    );
+    await renderWithHeroUI(<SendingChat messages={[]} />);
+    await userEvent.setup().press(screen.getByLabelText(chatLabels.send));
+    await waitFor(() => expect(mockScrollToEnd).toHaveBeenCalled());
+    mockListState.contentLength += 52;
+    await act(() => finish?.());
+    expect(
+      screen.getByTestId("chat-list").props.maintainScrollAtEnd
+    ).toBeTruthy();
+    expect(screen.queryByLabelText(chatLabels.latest)).not.toBeOnTheScreen();
   });
 
   test("이전 대화를 읽다가 전송하면 끝에 도착한 뒤 자동 추적을 재개한다", async () => {

@@ -563,8 +563,11 @@ export function ChatPanel({
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state !== "active") {
+        const wasMoving = freeze.get();
         cancelScrollMotion();
-        setIsFollowingLatest(false);
+        if (wasMoving) {
+          setIsFollowingLatest(false);
+        }
       }
     });
     return () => {
@@ -713,6 +716,7 @@ export function ChatPanel({
     freeze.set(true);
     setInputHeight(minInputHeight);
     chat.send();
+    let didScroll = false;
     try {
       await KeyboardController.dismiss({ animated: !isReducedMotion });
       if (generation !== motionGeneration.current) {
@@ -726,13 +730,16 @@ export function ChatPanel({
         return;
       }
       await listRef.current?.scrollToEnd({ animated: !isReducedMotion });
+      didScroll = true;
     } catch {
       // 이동에 실패해도 사용자가 읽던 위치와 최신 메시지 버튼을 남긴다.
     } finally {
       if (generation === motionGeneration.current) {
         freeze.set(false);
         setIsSendingMessage(false);
-        setIsFollowingLatest(hasReachedEnd());
+        // 이동 중 추가된 대기 표시나 답변도 전송 뒤의 최신 내용이다.
+        // 중단되지 않은 이동이 끝나면 그 내용까지 계속 따라간다.
+        setIsFollowingLatest(didScroll);
       }
     }
   }, [
@@ -740,7 +747,6 @@ export function ChatPanel({
     canSend,
     chat,
     freeze,
-    hasReachedEnd,
     isReducedMotion,
     minInputHeight,
   ]);
