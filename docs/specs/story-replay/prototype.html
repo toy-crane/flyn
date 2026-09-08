@@ -151,7 +151,8 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline:3px solid
 .nav { position:sticky; top:0; z-index:10; display:flex; align-items:center; min-height:58px; padding:7px 19px; gap:11px; background:color-mix(in srgb,var(--background) 93%, transparent); backdrop-filter:blur(20px); border-bottom:1px solid transparent }
 .nav-title { min-width:0; flex:1; font-size:16px; font-weight:650; text-align:center; padding-right:45px; line-height:1.4 }
 .nav-title small { display:block; color:var(--muted); font-size:11px; font-weight:400; margin-top:2px }
-.circle { width:40px; height:40px; border:1px solid #fff; border-radius:50%; display:grid; place-items:center; background:#ffffffd9; box-shadow:0 3px 12px #11111407; flex-shrink:0 }
+.circle, .nav-text-action {height:40px;border:1px solid #fff;display:grid;place-items:center;background:#ffffffd9;box-shadow:0 3px 12px #11111407;flex-shrink:0}
+.circle {width:40px;border-radius:50%}
 .icon { width:22px; height:22px; display:block; flex-shrink:0; fill:none; stroke:currentColor; stroke-width:1.85; stroke-linecap:round; stroke-linejoin:round }
 .icon.small { width:17px; height:17px }
 .content { padding:18px 20px 28px; flex:1 }
@@ -308,9 +309,9 @@ body:not(.sh-vp-390) .island { display:none }
 .history-start .button.outline {background:var(--background)}
 
 /* Header action uses the native toolbar text pattern. */
-.nav:has(.nav-text-action) {display:grid;grid-template-columns:72px minmax(0,1fr) 72px}
+.nav:has(.nav-text-action) {display:grid;grid-template-columns:84px minmax(0,1fr) 84px}
 .nav:has(.nav-text-action) .nav-title {padding-right:0}
-.nav-text-action {justify-self:end;min-height:44px;padding:0 4px;border:0;background:transparent;color:var(--foreground);font:inherit;font-size:16px;white-space:nowrap;cursor:pointer}
+.nav-text-action {justify-self:end;padding:0 16px;border-radius:999px;color:var(--foreground);font:inherit;font-size:16px;font-weight:500;white-space:nowrap;cursor:pointer}
 .nav-text-action:active {opacity:.6}
 </style>
 <script>
