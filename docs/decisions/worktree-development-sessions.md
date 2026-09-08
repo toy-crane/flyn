@@ -2,7 +2,7 @@
 
 ## 결정
 
-기기 풀, 자동 빌드·설치, 기기별 로그인 격리에 관한 아래 규칙은 기존 Simulator·Emulator 경로에 적용한다. 실기기는 설치된 호환 Development Build의 LAN 연결을 다루며 상세 범위는 실기기 스펙을 따른다.
+기기 풀, 자동 빌드·설치, 기기별 로그인 격리에 관한 아래 규칙은 기존 Simulator·Emulator 경로에 적용한다. 실기기는 이미 설치된 호환 Development Build를 LAN으로 연결하는 것만 다룬다.
 
 - 루트의 `bun run dev <ios|android>`를 저장소 전체 로컬 개발 세션의 기본 실행 명령으로 사용한다. 이 명령은 API, Metro와 대상 Simulator 또는 Emulator를 함께 시작한다. 명시적으로 선택한 실기기에는 같은 Wi-Fi의 LAN 연결을 제공한다.
 - 플랫폼 인수는 필수다. `bun run dev`만 실행하면 아무것도 시작하지 않고 사용법을 보여 준다. 플랫폼은 여러 개를 나열할 수 있고(`bun run dev ios android`) 적은 순서가 시작 순서다. 기기 부팅과 fingerprint 계산은 모든 플랫폼이 함께 진행하고, 빌드와 앱 열기는 적은 순서대로 한다.
@@ -32,12 +32,17 @@
 - `bun run dev <ios|android> --clear`는 입력 fingerprint와 관계없이 해당 worktree의 Metro 캐시를 한 번 초기화한다. `dev:stop`은 Metro와 Gradle 캐시를 남기고 `dev:remove`와 사라진 worktree 회수는 두 캐시를 함께 지운다.
 - 모든 시작 명령은 새 자원을 배정하기 전에 저장소 상태를 실제 Git worktree와 실행 중인 프로세스에 맞춘다. 사라진 worktree의 자원은 회수하고, 살아 있는 worktree의 기기 배정과 앱 데이터는 유지한다.
 
-- 실기기용 LAN 주소는 자동 선택하고 필요하면 개발자가 명시한다. 주소 변경은 다음 개발 시작 때 반영하며 환경 파일을 덮어쓰지 않는다. 연결 안내는 worktree와 목적지 주소를 함께 보여 준다.
+- 실기기 연결은 `bun run dev <ios|android> --physical`로 명시한다. 세션은 Mac의 LAN IPv4를 자동으로 고르고, `--host <IPv4>`를 주면 그 주소를 쓴다. 주소 변경은 다음 개발 시작 때 반영하며 환경 파일을 덮어쓰지 않는다. 연결 안내는 worktree와 목적지 주소를 함께 보여 준다.
+- 후보 주소가 없거나 여럿이어서 확실히 고를 수 없으면 임의의 주소를 골라 성공으로 보고하지 않는다. 실패한 연결과 다음 행동을 구분해 안내하고 `--host` 지정 방법을 알려 준다.
+- 실기기의 최초 빌드, 서명과 설치는 개발자가 미리 마치는 사전 준비다. `--physical`은 설치된 앱을 이번 worktree의 서버에 연결할 뿐 실기기에 앱을 빌드하거나 설치하지 않는다.
 - 실기기는 가상 기기 풀에 포함하지 않는다. 종료·자원 반납 시 실제 폰의 앱과 데이터를 삭제하거나 기기를 초기화하지 않는다.
+- 폰 하나의 앱 하나로 worktree를 번갈아 연다. 가상 기기와 달리 폰에 저장된 로그인 상태와 앱 데이터는 worktree별로 나누지 않는다. 완전한 격리가 필요하면 앱 설치 구조를 다시 정해야 한다.
 
 ## 경계
 
-- 이 결정은 로컬 iOS Simulator, Android Emulator와 같은 Wi-Fi의 실제 iPhone·Android 폰 개발에 적용한다. Expo Web, 외부 네트워크의 원격 기기와 CI 기기 실행은 포함하지 않는다. 실기기의 상세 범위와 수락 기준은 [실기기 LAN 개발 세션](../specs/physical-device-lan-development/spec.md)을 따른다.
+- 이 결정은 로컬 iOS Simulator, Android Emulator와 같은 Wi-Fi의 실제 iPhone·Android 폰 개발에 적용한다. Expo Web, 외부 네트워크의 원격 기기와 CI 기기 실행은 포함하지 않는다.
+- 실행 중에 네트워크를 계속 지켜보다 IP 변경을 스스로 복구하지 않는다. 바뀐 주소는 다음 개발 시작에서 반영한다.
+- 본인 폰에서 코드를 고쳐 가며 확인하는 로컬 개발만 다룬다. 외부 사용자에게 iOS 앱을 나눠 주는 일은 TestFlight의 몫이며 그 배포 설정은 이 계약이 정하지 않는다.
 - worktree 격리는 한 저장소 clone 안에서만 보장한다. 같은 컴퓨터에서 같은 slug를 쓰는 clone을 둘 이상 실행하면 상태 파일은 따로지만 기기 이름은 모두 `<slug>-slot-<번호>` 형식이라 같은 slot끼리 충돌할 수 있다.
 - 프로젝트 사이의 격리는 대역 번호가 다를 때만 보장한다. 번호는 사람이 프로젝트마다 다르게 정하며, 같은 번호를 쓰는 프로젝트끼리는 다시 겹친다. 세션은 다른 프로젝트의 번호를 알지 못한다.
 - 대역 번호는 프로젝트 사이를 나누고, slot은 같은 프로젝트의 worktree 사이를 나눈다. worktree끼리는 Supabase 스택 하나를 계속 공유한다. `project_id`가 같으면 CLI가 같은 컨테이너에 붙으므로 포트만으로는 worktree별 스택을 만들 수 없다.
@@ -99,6 +104,7 @@ fingerprint마다 새 캐시 폴더를 만드는 대신 worktree마다 하나의
 - 두 기기를 함께 띄우는 자원 사용이 일상 개발을 방해할 때
 - `10.0.2.2`가 닿지 않는 Android 실행 환경을 기본으로 지원해야 할 때
 - Expo가 `process.env.EXPO_OS` 치환을 바꾸거나 그만둘 때
+- Expo Router를 올려 `expo-router/build/getDevServer`의 내부 경로나 반환값이 달라질 때
 - 실제 기기나 원격 기기를 기본 개발 대상으로 지원할 때
 - 공유 Supabase 때문에 서로 다른 스키마 변경을 동시에 검증하지 못하는 일이 반복될 때
 - 공용 네이티브 빌드가 쌓여 저장 공간 관리가 필요할 때
@@ -148,6 +154,9 @@ fingerprint마다 새 캐시 폴더를 만드는 대신 worktree마다 하나의
 - Android Emulator에서 호스트의 loopback 서비스는 `10.0.2.2`로 접근하거나, `adb reverse tcp:<포트> tcp:<포트>`로 기기의 `127.0.0.1:<포트>`를 호스트로 넘겨야 한다. iOS Simulator는 `127.0.0.1`을 그대로 사용한다.
 - Expo SDK 57의 `expo/virtual/env` 개발 변환은 `.env` 파일 값을 `process.env` 뒤에 합친다. Expo 이슈 `#41981`과 열린 PR `#41999`도 셸 값이 `.env` 값에 덮이는 같은 동작을 다룬다.
 - Expo SDK 57의 플랫폼별 native fingerprint는 서로 다르므로 공용 빌드는 플랫폼별로 구분해야 한다.
+- 앱이 실제 연결한 Metro 주소는 `expo-router/build/getDevServer`에서 읽는다. Expo Router 57.0.18에서 React Native 0.86.3의 실제 bundle URL을 돌려주는 것을 확인했다. 공개 API가 아닌 내부 경로이므로 Expo를 올릴 때 다시 확인한다. `Constants.expoConfig.hostUri`도 같은 값을 주지만 스킴이 없고 터널에서는 포트가 빠진다.
+- 실기기 LAN 경로는 2026-09-07에 iPhone 14 / iOS 18.7.7과 Samsung SM-G991N / Android 15에서 동작했다. 다른 OS 버전이나 제조사로 이 결과를 일반화하지 않는다.
+- 생성된 iOS 설정의 `NSAllowsLocalNetworking`이 `true`, `NSAllowsArbitraryLoads`가 `false`이고 Android debug manifest가 HTTP를 허용해 개발용 LAN 평문 연결이 통한다. 배포용 설정은 바꾸지 않았으므로 이 경로가 스토어 빌드에서도 열려 있다고 보지 않는다.
 - 현재 앱에서 `EXPO_PUBLIC_API_URL`만 `http://127.0.0.1:3900`과 `http://127.0.0.1:3910`으로 바꿔 만든 iOS native fingerprint는 모두 `4a36fb8683f551d9b9cf800effec1f673b736511`이었다. slot별 API 포트는 공용 네이티브 빌드 재사용을 막지 않는다.
 - 삭제한 `.claude/worktrees/hello-8dab8b`에서 만든 Gradle 결과를 다른 worktree가 `FROM-CACHE`로 읽었고, 존재하지 않는 `AndroidManifest.xml` 절대 경로를 열려다 `:app:packageDebug`가 실패했다. Metro와 API가 정상이어도 전역 Gradle 캐시는 별도로 격리해야 한다는 직접 근거다.
 - Gradle 공식 문서는 daemon의 기본 유휴 종료 시간이 3시간이며, `GRADLE_OPTS`의 `-Dorg.gradle.daemon=false`로 daemon을 끌 수 있다고 설명한다. [Gradle Daemon](https://docs.gradle.org/current/userguide/gradle_daemon.html)
