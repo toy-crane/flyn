@@ -2010,7 +2010,7 @@ describe("상황 줄 배너", () => {
     expect(screen.queryByTestId("chat-banner")).not.toBeOnTheScreen();
   });
 
-  test("상황 줄은 헤더 아래에서 자신의 공간을 차지하고 목록에 겹치지 않는다", async () => {
+  test("iOS는 상황 줄 높이를 확인한 뒤 헤더 뒤까지 이어지는 목록을 배치한다", async () => {
     const { Text } = require("react-native") as typeof import("react-native");
     await renderWithHeroUI(
       <ChatPanel
@@ -2020,16 +2020,30 @@ describe("상황 줄 배너", () => {
       />
     );
     const banner = screen.getByTestId("chat-banner");
-    expect(StyleSheet.flatten(banner.props.style)?.position).not.toBe(
-      "absolute"
-    );
-    expect(banner.props.onLayout).toBeUndefined();
+    expect(screen.queryByTestId("chat-list")).not.toBeOnTheScreen();
+    expect(StyleSheet.flatten(banner.props.style)).toMatchObject({
+      position: "absolute",
+      top: 116,
+    });
+    await act(() => {
+      fireEvent(banner, "layout", {
+        nativeEvent: { layout: { height: 36, width: 390, x: 0, y: 116 } },
+      });
+    });
+    const list = screen.getByTestId("chat-list");
     expect(
-      StyleSheet.flatten(
-        screen.getByTestId("chat-list").props.contentContainerStyle
-      ).paddingTop
-    ).toBe(12);
-    expect(screen.getByTestId("chat-panel").props.style.paddingTop).toBe(116);
+      StyleSheet.flatten(list.props.contentContainerStyle).paddingTop
+    ).toBe(164);
+    expect(screen.getByTestId("chat-panel").props.style.paddingTop).toBe(0);
+    await act(() => {
+      fireEvent(banner, "layout", {
+        nativeEvent: { layout: { height: 76, width: 390, x: 0, y: 116 } },
+      });
+    });
+    expect(screen.getByTestId("chat-list")).toBe(list);
+    expect(
+      StyleSheet.flatten(list.props.contentContainerStyle).paddingTop
+    ).toBe(204);
   });
 
   test("사건이 끝나도 배너는 그대로 있는다", async () => {
