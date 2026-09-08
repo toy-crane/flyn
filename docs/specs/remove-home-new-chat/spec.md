@@ -460,3 +460,16 @@
   React Native 오류를 찾지 못했다. Android 기기 검증은 이번에 하지 않았다.
 - 화면 근거는 `/tmp/flyn-episode-header-short.png`, `/tmp/flyn-episode-header-long.png`,
   `/tmp/flyn-episode-header-large-text.png`다.
+
+## 2026-09-08 상단 통합 흐림 시안
+
+사용자가 실제 화면에서 느낌을 확인하도록 요청한 시안이다. 최종 표현은 검토 후 정한다.
+
+- iOS 상황 줄의 파란 배경과 구분선을 제거하고 이모지와 문구를 유지했다.
+- 네이티브 제목과 뒤로 가기를 유지한다. 상단 배경은 헤더부터 상황 줄까지 하나의
+  마스킹된 시스템 BlurView로 연결한다. 기본 상단 Scroll Edge Effect는 이 화면에서
+  꺼서 흐림을 중복하지 않는다. 이는 네이티브 효과의 영역을 확장한 구현은 아니다.
+- 상황 줄 아래 24px에서 흐림이 사라지며, 첫 지문과 질문 위치에 이 범위를 반영한다.
+  Android의 기존 상황 줄 표현은 유지한다.
+- iOS에서 대화 스크롤 중 상황 줄의 가독성과 아래쪽 전환을 확인했다. 타입·린트
+  검사와 관련 테스트 90개가 통과했다. 비교 화면은 `/tmp/flyn-header-preview-scroll.png`다.

@@ -1,0 +1,1 @@
+export const HEADER_BACKDROP_FADE_HEIGHT = 24;

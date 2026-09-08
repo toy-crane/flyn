@@ -106,7 +106,8 @@ export default function EpisodeRoute() {
             ? {
                 headerShadowVisible: false,
                 headerTransparent: true,
-                scrollEdgeEffects: { top: "soft" },
+                // 상황 줄이 있으면 상단 전체의 공통 배경이 흐림을 맡는다.
+                scrollEdgeEffects: { top: playing ? "hidden" : "soft" },
               }
             : {
                 headerStyle: { backgroundColor: background },

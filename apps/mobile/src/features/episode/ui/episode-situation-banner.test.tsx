@@ -24,9 +24,7 @@ test("상황 문구 전체를 자연스럽게 줄바꿈하며 글자 확대를 �
   expect(text.props.allowFontScaling).not.toBe(false);
 });
 
-// 틴트만 깔면 강조색이 투명과 섞인 색이라 아래로 지나가는 말풍선이 비쳐
-// 글씨가 겹쳐 읽힌다. 실제 기기에서 그렇게 보여 바깥에 배경을 한 겹 깔았다.
-test("틴트 아래에 불투명한 배경을 깔아 뒤가 비치지 않게 한다", async () => {
+test("iOS 상황 줄은 공통 상단 배경 위에 문구만 표시한다", async () => {
   await renderWithHeroUI(
     <EpisodeSituationBanner emoji="☕" text={SITUATION} />
   );
@@ -34,8 +32,8 @@ test("틴트 아래에 불투명한 배경을 깔아 뒤가 비치지 않게 한
   const banner = screen.getByTestId("episode-situation-banner");
   const tint = screen.getByText(SITUATION).parent;
 
-  expect(banner.props.className).toContain("bg-background");
-  expect(tint?.props.className).toContain("bg-accent-soft");
+  expect(banner.props.className).toBeUndefined();
+  expect(tint?.props.className).not.toContain("bg-accent-soft");
 });
 
 // 문구를 꾸미는 장식이라 낭독에서는 빠져야 한다. 남으면 문장 앞에서 이모지

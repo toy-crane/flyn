@@ -2033,7 +2033,7 @@ describe("상황 줄 배너", () => {
     const list = screen.getByTestId("chat-list");
     expect(
       StyleSheet.flatten(list.props.contentContainerStyle).paddingTop
-    ).toBe(164);
+    ).toBe(188);
     expect(screen.getByTestId("chat-panel").props.style.paddingTop).toBe(0);
     await act(() => {
       fireEvent(banner, "layout", {
@@ -2043,7 +2043,7 @@ describe("상황 줄 배너", () => {
     expect(screen.getByTestId("chat-list")).toBe(list);
     expect(
       StyleSheet.flatten(list.props.contentContainerStyle).paddingTop
-    ).toBe(204);
+    ).toBe(228);
   });
 
   test("사건이 끝나도 배너는 그대로 있는다", async () => {
