@@ -4,9 +4,6 @@ import type { SupabaseContext } from "@supabase/server";
 /** 로그인한 사람의 권한으로 데이터베이스에 닿는 클라이언트. */
 export type EpisodeClient = SupabaseContext<Database>["supabase"];
 
-/** 지금 홈이 바로 보여 주는 공식 스토리. */
-export const DEFAULT_STORY_SLUG = "mia-cafe";
-
 /** 데이터베이스에서 읽어 장면과 화면이 함께 쓰는 한 에피소드. */
 export interface EpisodeScript {
   cast: readonly string[];
@@ -152,26 +149,6 @@ export async function readStoryOfEpisode(
 }
 
 /**
- * 공식 스토리와 각본을 데이터베이스에서 읽는다.
- *
- * 두 쿼리를 따로 써서 스토리 한 줄과 에피소드 순서의 실패를 각각 드러낸다.
- * 앱이 가진 제목이나 각본을 보태는 길은 없다.
- */
-export async function readStoryContent(
-  client: EpisodeClient,
-  slug = DEFAULT_STORY_SLUG
-): Promise<StoryContent> {
-  return await readStoryBy(client, "slug", slug);
-}
-
-export async function readStoryContentById(
-  client: EpisodeClient,
-  storyId: string
-): Promise<StoryContent> {
-  return await readStoryBy(client, "id", storyId);
-}
-
-/**
  * 이 회차가 진행하는 스토리의 각본을 읽는다.
  *
  * 이어가는 요청은 회차 하나만 들고 온다. 행 권한이 남의 회차를 감추므로, 읽히지
@@ -198,21 +175,26 @@ export async function readStoryOfRun(
   return data ? await readStoryContentById(client, data.story_id) : undefined;
 }
 
-async function readStoryBy(
+/**
+ * 스토리 하나와 그 각본을 데이터베이스에서 읽는다.
+ *
+ * 두 쿼리를 따로 써서 스토리 한 줄과 에피소드 순서의 실패를 각각 드러낸다.
+ * 앱이 가진 제목이나 각본을 보태는 길은 없다.
+ */
+export async function readStoryContentById(
   client: EpisodeClient,
-  column: "id" | "slug",
-  value: string
+  storyId: string
 ): Promise<StoryContent> {
   const { data: story, error: storyError } = await client
     .from("stories")
     .select(
       "id, position, slug, title, target_language, completion_title, completion_copy"
     )
-    .eq(column, value)
+    .eq("id", storyId)
     .single();
 
   if (storyError) {
-    throw new Error(`Reading story ${value} failed: ${storyError.message}`);
+    throw new Error(`Reading story ${storyId} failed: ${storyError.message}`);
   }
 
   const { slug } = story;
