@@ -2,7 +2,7 @@
 
 **Symptom**: 대화 완료 화면에서 위로 스크롤된 메시지가 상단 제목과 상태 표시줄 뒤에 겹쳐 보인다.
 
-**Observed evidence**: 2026-09-07에 USB iPhone 14, iOS 18.7.7, Development Build `com.odd.flyn` 1.0.0 (1)로 확인했다. `df4b/flyn` worktree의 Metro 8122에 LAN으로 연결해 이메일 로그인 후 2화 대화를 완료했다. [당시 화면](../specs/physical-device-lan-development/evidence/api-iphone14.png)에 Owen의 앞선 메시지와 `계산이 꼬인 아침` 제목이 겹쳐 있다. [Android 15 대화 화면](../specs/physical-device-lan-development/evidence/api-samsung.png)에서는 같은 형태의 겹침이 보이지 않았다. 두 화면은 서로 다른 화이므로 플랫폼 차이의 원인으로 단정하지 않는다.
+**Observed evidence**: 2026-09-07에 USB iPhone 14, iOS 18.7.7, Development Build `com.odd.flyn` 1.0.0 (1)로 확인했다. `df4b/flyn` worktree의 Metro 8122에 LAN으로 연결해 이메일 로그인 후 2화 대화를 완료했다. [당시 화면](evidence/ios18-header-overlap-iphone14.png)에 Owen의 앞선 메시지와 `계산이 꼬인 아침` 제목이 겹쳐 있다. [Android 15 대화 화면](evidence/ios18-header-overlap-samsung.png)에서는 같은 형태의 겹침이 보이지 않았다. 두 화면은 서로 다른 화이므로 플랫폼 차이의 원인으로 단정하지 않는다.
 
 **Suspected cause**: iOS 네이티브 헤더의 배경 또는 스크롤 본문의 상단 처리와 관련됐을 가능성이 있다. 원인은 확인하지 않았다.
 
