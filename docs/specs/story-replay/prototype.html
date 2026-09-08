@@ -304,7 +304,8 @@ body:not(.sh-vp-390) .island { display:none }
 .history-start {position:sticky;bottom:0;z-index:9;flex-shrink:0;margin-top:auto;padding:12px 24px 26px;background:transparent;pointer-events:none}
 .history-design {padding-bottom:24px}
 
-.history-start .button {pointer-events:auto;background:var(--background);backdrop-filter:none;box-shadow:none}
+.history-start .button {pointer-events:auto;backdrop-filter:none;box-shadow:none}
+.history-start .button.outline {background:var(--background)}
 </style>
 <script>
 const legacyPreview = new URLSearchParams(location.search);
@@ -478,12 +479,8 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
   }
   function renderStory(state) {
     if(state==='불러오기 실패')return status()+nav('','story-list-back')+contentState('스토리를 불러오지 못했어요','retry-story');
-    chooseResumeDefault();
-    const s=story(), r=rec(), done=r.finished===5;
-    const actions=done
-      ? button('새로 시작하기','replay')
-      : button(r.started?'이어서 하기':'시작하기','continue:'+selected)+(r.started?button('새로 시작하기','replay','outline'):'');
-    return status()+nav('','story-list-back','',`<button class="circle" data-component="NativeStack.Toolbar.Button" data-action="history" aria-label="대화 기록">${I('history')}</button>`)+`<div class="content"><div class="story-heading" data-component="StoryCard">${cover(s)}<div class="story-heading-copy"><h1 class="title">${s.title}</h1><p class="intro">${s.intro}</p></div></div><div><div class="story-actions">${actions}</div></div><div><h2 class="section-heading">에피소드</h2>${episodeCatalog(s)}</div></div>${state==='시작 실패'?startAlert():''}`;
+    const s=story();
+    return status()+nav('','story-list-back','',`<button class="circle" data-component="NativeStack.Toolbar.Button" data-action="history" aria-label="대화 기록">${I('history')}</button>`)+`<div class="content"><div class="story-heading" data-component="StoryCard">${cover(s)}<div class="story-heading-copy"><h1 class="title">${s.title}</h1><p class="intro">${s.intro}</p></div></div><div><h2 class="section-heading">에피소드</h2>${episodeCatalog(s)}</div></div><footer class="history-start" data-component="new:BottomAction">${button('대화 시작하기','replay')}</footer>${state==='시작 실패'?startAlert():''}`;
   }
 
   function currentPlaySnapshot() {
