@@ -21,7 +21,7 @@ export const episodeLabels = {
    * 둘이고 홈에는 없으므로, 어느 쪽에서 왔는지 이름으로 특정하지 않는다.
    */
   leave: "돌아가기",
-  /** Shown over the episode that comes next, on Home and at an episode's end. */
+  /** Shown over the episode that comes next, at an episode's end. */
   nextEyebrow: "다음 이야기",
   /** 에피소드에서 두 언어를 모두 입력할 수 있음을 알린다. */
   placeholder: "영어나 한국어로 적어 주세요.",
