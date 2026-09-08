@@ -1,5 +1,4 @@
 import AccountCircle from "@expo/material-symbols/account_circle.xml";
-import Add from "@expo/material-symbols/add.xml";
 import ArrowBack from "@expo/material-symbols/arrow_back.xml";
 import Check from "@expo/material-symbols/check.xml";
 import Close from "@expo/material-symbols/close.xml";
@@ -21,7 +20,6 @@ import Close from "@expo/material-symbols/close.xml";
 export const toolbarIcons = {
   back: { android: ArrowBack, ios: "chevron.backward" },
   close: { android: Close, ios: "xmark" },
-  newChat: { android: Add, ios: "plus" },
   profile: { android: AccountCircle, ios: "person.crop.circle" },
   /**
    * The confirmation action of a settings form.

@@ -9,8 +9,8 @@ import {
 import type { ComponentType, ReactNode } from "react";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
-import type { ChatSession } from "@/features/chat/state/use-chat-session";
-import { useConversation } from "@/features/chat/state/use-chat-session";
+import type { ChatSession } from "@/features/chat/state/use-conversation";
+import { useConversation } from "@/features/chat/state/use-conversation";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
 import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
@@ -31,7 +31,7 @@ jest.mock("expo-router/react-navigation", () => ({
   usePreventRemove: jest.fn(),
 }));
 
-jest.mock("@/features/chat/state/use-chat-session", () => ({
+jest.mock("@/features/chat/state/use-conversation", () => ({
   useConversation: jest.fn(),
   useLocalChatDrafts: () => ({
     draft: "",
@@ -154,10 +154,7 @@ interface PanelProps {
   closing?: ReactNode;
   hasMessageActions?: boolean;
   messageAddon?: ComponentType<{ message: UIMessage }>;
-  onAskInSideChat?: unknown;
-  onOpenSideChat?: unknown;
   placeholder?: string;
-  sideChats?: unknown;
   topInset?: number;
 }
 
@@ -262,16 +259,12 @@ test("화면에 들어오면 그 자리에서 에피소드를 연다", async () 
   expect(panel?.placeholder).toBe("영어나 한국어로 적어 주세요.");
 });
 
-// 물어보는 자리로 들어가는 길은 교정 카드 하나뿐이다. 템플릿의 텍스트 선택
-// 진입과 메시지 하나에 거는 동작은 에피소드에 붙이지 않는다.
-test("텍스트 선택 진입과 메시지 동작을 두지 않는다", async () => {
+// 메시지 하나에 거는 동작은 에피소드에 붙이지 않는다.
+test("메시지 동작을 두지 않는다", async () => {
   await renderWithHeroUI(
     <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
   );
 
-  expect(panel?.onAskInSideChat).toBeUndefined();
-  expect(panel?.onOpenSideChat).toBeUndefined();
-  expect(panel?.sideChats).toBeUndefined();
   expect(panel?.hasMessageActions).toBe(false);
 });
 

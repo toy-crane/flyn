@@ -62,27 +62,16 @@ function ThemedRootLayout() {
         <Stack.Protected guard={area === "app"}>
           <Stack.Screen name="(tabs)" />
           {/*
-            An episode is pushed here for the same reason a conversation is:
-            the native push covers the tab bar, and the scene needs the whole
-            screen. It brings its own stack, which draws the episode's header
+            An episode is pushed here so the native push covers the tab bar.
+            The scene needs the whole screen. It brings its own stack,
+            which draws the episode's header
             and presents asking about a correction as a sheet over it. Left on,
             this screen would show a second header above that one.
           */}
           <Stack.Screen name="episode" />
           {/*
-            A conversation is pushed here rather than inside the tabs so the
-            native push covers the tab bar. Hiding the bar from inside the tab
-            navigator leaves its strip on screen on Android, where it swallows
-            every touch meant for the composer.
-
-            It brings its own stack, which draws the conversation's header and
-            presents a side chat as a sheet over it. Left on, this screen would
-            show a second header above that one.
-          */}
-          <Stack.Screen name="chat" />
-          {/*
             The settings hierarchy is pushed here, screen by screen, for the
-            same reason: the native push covers the tab bar. Unlike 대화 and
+            same reason: the native push covers the tab bar. Unlike
             에피소드 these bring no stack of their own — a nested stack would
             make 설정 a first screen, and a first screen has no native back
             button to go back to the tab with.

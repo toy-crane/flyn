@@ -1,8 +1,6 @@
-import { type UseChatHelpers, useChat } from "@ai-sdk/react";
+import type { UseChatHelpers } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { useCallback, useMemo, useRef, useState } from "react";
-
-import { createChatTransport } from "@/features/chat/api/chat-transport";
 
 /** How often a stream is let through to React, in milliseconds. */
 export const STREAM_UPDATE_INTERVAL_MS = 50;
@@ -32,7 +30,7 @@ export interface ChatSession {
  * Where a conversation keeps what has been typed but not sent.
  *
  * A conversation on a screen of its own keeps this in the screen, and it goes
- * when the screen does. A side chat keeps it above the sheet instead, so
+ * when the screen does. Asking about a correction keeps it above the sheet instead, so
  * closing the sheet leaves the half-written question and the edit in progress
  * where they were.
  */
@@ -74,7 +72,7 @@ export function useLocalChatDrafts(): ChatDrafts {
  * What a conversation offers a screen, whichever chat is behind it.
  *
  * The chat itself and the drafts are handed in: the screen's own conversation
- * builds both here, and a side chat brings a chat that outlives its sheet and
+ * builds both here, and an episode question brings a chat that outlives its sheet and
  * drafts that are kept with it.
  */
 export function useConversation(
@@ -236,23 +234,4 @@ export function useConversation(
     setDraft,
     stop,
   };
-}
-
-/** One in-memory conversation for as long as the chat screen is mounted. */
-export function useChatSession(accessToken: string | undefined): ChatSession {
-  const currentToken = useRef(accessToken);
-
-  currentToken.current = accessToken;
-
-  const transport = useMemo(
-    () => createChatTransport(() => currentToken.current),
-    []
-  );
-  const chat = useChat({
-    throttle: STREAM_UPDATE_INTERVAL_MS,
-    transport,
-  });
-  const drafts = useLocalChatDrafts();
-
-  return useConversation(chat, drafts, accessToken);
 }

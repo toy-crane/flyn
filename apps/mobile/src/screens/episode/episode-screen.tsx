@@ -7,7 +7,7 @@ import { useAuthSession } from "@/features/auth/state/auth-session";
 import {
   useConversation,
   useLocalChatDrafts,
-} from "@/features/chat/state/use-chat-session";
+} from "@/features/chat/state/use-conversation";
 import { ChatPanel } from "@/features/chat/ui/chat-panel";
 import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
 import { useEpisodeAsks } from "@/features/episode/state/episode-asks";

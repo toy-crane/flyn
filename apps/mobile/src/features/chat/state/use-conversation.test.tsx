@@ -1,16 +1,26 @@
+import { useChat } from "@ai-sdk/react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
-import type { UIMessage, UIMessageChunk } from "ai";
+import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 import { simulateReadableStream } from "ai";
 
-import { createChatTransport } from "@/features/chat/api/chat-transport";
-import { type ChatSession, useChatSession } from "./use-chat-session";
+import {
+  type ChatSession,
+  STREAM_UPDATE_INTERVAL_MS,
+  useConversation,
+  useLocalChatDrafts,
+} from "./use-conversation";
 
-jest.mock("@/features/chat/api/chat-transport", () => ({
-  createChatTransport: jest.fn(),
-}));
+let testTransport: ChatTransport<UIMessage>;
 
-const mockCreateChatTransport = jest.mocked(createChatTransport);
+function useTestConversation(accessToken: string | undefined) {
+  const chat = useChat({
+    throttle: STREAM_UPDATE_INTERVAL_MS,
+    transport: testTransport,
+  });
+  return useConversation(chat, useLocalChatDrafts(), accessToken);
+}
+
 const ACCESS_TOKEN = "test-access-token";
 
 function answerStream(...deltas: string[]): ReadableStream<UIMessageChunk> {
@@ -37,9 +47,7 @@ function fakeTransport(respond: () => Promise<ReadableStream<UIMessageChunk>>) {
     sendMessages: jest.fn((_options: { messages: UIMessage[] }) => respond()),
   };
 
-  mockCreateChatTransport.mockReturnValue(
-    transport as unknown as ReturnType<typeof createChatTransport>
-  );
+  testTransport = transport;
 
   return transport;
 }
@@ -87,7 +95,7 @@ async function ask(result: { current: ChatSession }, text: string) {
   });
 }
 
-describe("useChatSession", () => {
+describe("useConversation", () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
@@ -96,7 +104,9 @@ describe("useChatSession", () => {
     const transport = fakeTransport(() =>
       Promise.resolve(answerStream("안녕", "하세요"))
     );
-    const { result } = await renderHook(() => useChatSession(ACCESS_TOKEN));
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
 
     await act(() => {
       result.current.setDraft("  질문  ");
@@ -120,7 +130,9 @@ describe("useChatSession", () => {
     const transport = fakeTransport(() =>
       Promise.resolve(answerStream("답변"))
     );
-    const { result } = await renderHook(() => useChatSession(ACCESS_TOKEN));
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
 
     await act(() => {
       result.current.setDraft("   ");
@@ -136,7 +148,7 @@ describe("useChatSession", () => {
     const transport = fakeTransport(() =>
       Promise.resolve(answerStream("답변"))
     );
-    const { result } = await renderHook(() => useChatSession(undefined));
+    const { result } = await renderHook(() => useTestConversation(undefined));
 
     await act(() => {
       result.current.setDraft("질문");
@@ -158,7 +170,9 @@ describe("useChatSession", () => {
 
       return answerStream("답변");
     });
-    const { result } = await renderHook(() => useChatSession(ACCESS_TOKEN));
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
 
     await act(() => {
       result.current.setDraft("질문");
@@ -178,7 +192,9 @@ describe("useChatSession", () => {
 
   test("요청이 실패하면 오류를 공개한다", async () => {
     fakeTransport(() => Promise.reject(new Error("network is down")));
-    const { result } = await renderHook(() => useChatSession(ACCESS_TOKEN));
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
 
     await act(() => {
       result.current.setDraft("질문");
@@ -201,7 +217,9 @@ describe("useChatSession", () => {
 
       return Promise.resolve(answerStream(answer));
     });
-    const { result } = await renderHook(() => useChatSession(ACCESS_TOKEN));
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
 
     await ask(result, "첫 질문");
     await waitFor(() => {
@@ -242,7 +260,9 @@ describe("useChatSession", () => {
 
       return Promise.resolve(answerStream("답변"));
     });
-    const { result } = await renderHook(() => useChatSession(ACCESS_TOKEN));
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
 
     await ask(result, "질문");
     await waitFor(() => {
@@ -270,7 +290,9 @@ describe("useChatSession", () => {
     const transport = fakeTransport(() =>
       Promise.resolve(answerStream("답변"))
     );
-    const { result } = await renderHook(() => useChatSession(ACCESS_TOKEN));
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
 
     await act(() => {
       result.current.retry();
@@ -283,7 +305,9 @@ describe("useChatSession", () => {
   test("그만 받으면 그때까지 받은 답변을 대화에 남긴다", async () => {
     const answer = openAnswerStream();
     fakeTransport(() => Promise.resolve(answer.stream));
-    const { result } = await renderHook(() => useChatSession(ACCESS_TOKEN));
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
 
     await ask(result, "질문");
     await act(() => {
@@ -321,7 +345,9 @@ describe("useChatSession", () => {
 
       return Promise.resolve(answerStream("다음 답변"));
     });
-    const { result } = await renderHook(() => useChatSession(ACCESS_TOKEN));
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
 
     await ask(result, "첫 질문");
     await act(() => {
@@ -350,7 +376,9 @@ describe("useChatSession", () => {
 
   test("수정을 시작하면 원문이 입력창에 들어가고 쓰던 초안은 보관한다", async () => {
     fakeTransport(() => Promise.resolve(answerStream("답변")));
-    const { result } = await renderHook(() => useChatSession(ACCESS_TOKEN));
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
 
     await ask(result, "원래 질문");
     await waitFor(() => {
@@ -379,7 +407,9 @@ describe("useChatSession", () => {
 
   test("수정을 시작하면 남아 있던 오류를 지운다", async () => {
     fakeTransport(() => Promise.reject(new Error("network is down")));
-    const { result } = await renderHook(() => useChatSession(ACCESS_TOKEN));
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
 
     await ask(result, "질문");
     await waitFor(() => {
@@ -406,7 +436,9 @@ describe("useChatSession", () => {
 
       return Promise.resolve(answerStream(answer));
     });
-    const { result } = await renderHook(() => useChatSession(ACCESS_TOKEN));
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
 
     await ask(result, "첫 질문");
     await waitFor(() => {

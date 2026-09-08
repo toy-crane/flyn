@@ -16,7 +16,6 @@ import {
   type Ref,
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -48,7 +47,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import type { ChatSession } from "@/features/chat/state/use-chat-session";
+import type { ChatSession } from "@/features/chat/state/use-conversation";
 import { Icon } from "@/shared/ui/icon";
 import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { AssistantMessage } from "./assistant-message";
@@ -57,27 +56,17 @@ import { ComposerSurface } from "./composer-surface";
 import { LatestMessageButton } from "./latest-message-button";
 import { sceneCopyText, sceneOfMessage } from "./scene";
 import { SceneMessage } from "./scene-message";
-import { SideChatCount, type SideChatEntry } from "./side-chat-count";
 import { useLateAnswer } from "./use-late-answer";
 import { UserMessage } from "./user-message";
 import { WaitingAnswer } from "./waiting-answer";
 
 // biome-ignore lint/performance/noBarrelFile: screens and tests share these accessibility names
 export { chatLabels } from "./chat-labels";
-export type { SideChatEntry } from "./side-chat-count";
-
-/** What starting a side chat needs to know: the answer, and the words in it. */
-export interface AskInSideChat {
-  messageId: string;
-  phrase: string;
-}
 
 const INPUT_MAX_HEIGHT = 120;
 const INPUT_MIN_HEIGHT = 48;
 const KEYBOARD_INPUT_GAP = 8;
 const LATEST_OVERLAY_HEIGHT = 60;
-/** The row the side chat count takes when it stacks above the composer too. */
-const SIDE_COUNT_OVERLAY_HEIGHT = 44;
 const USER_SCROLL_THRESHOLD = 24;
 const MESSAGE_TOP_SPACING = 12;
 // 닫힘 신호나 스크롤 완료 신호가 빠져도 입력과 읽기를 계속할 수 있다.
@@ -115,7 +104,6 @@ function PlainTextMessage({
   isWaiting,
   message,
   MessageAddon,
-  onAskInSideChat,
   onBeginEdit,
   onRegenerate,
 }: {
@@ -127,7 +115,6 @@ function PlainTextMessage({
   isWaiting: boolean;
   message: UIMessage;
   MessageAddon: ComponentType<{ message: UIMessage }> | undefined;
-  onAskInSideChat: ((input: AskInSideChat) => void) | undefined;
   onBeginEdit: (messageId: string) => void;
   onRegenerate: (messageId: string) => void;
 }) {
@@ -148,29 +135,6 @@ function PlainTextMessage({
     () => onBeginEdit(message.id),
     [message.id, onBeginEdit]
   );
-  // Added to the system's own selection menu rather than replacing it, so
-  // copy, look up and translate stay where they were. It is hidden — not
-  // removed — while an answer is arriving or a message is being rewritten,
-  // which is the same condition that closes the message menus.
-  const askInSideChatRef = useRef(onAskInSideChat);
-  useLayoutEffect(() => {
-    askInSideChatRef.current = onAskInSideChat;
-  }, [onAskInSideChat]);
-  const canAskInSideChat = onAskInSideChat !== undefined;
-  const selectionMenuItems = useMemo(
-    () =>
-      canAskInSideChat
-        ? [
-            {
-              onPress: ({ text: phrase }: { text: string }) =>
-                askInSideChatRef.current?.({ messageId: message.id, phrase }),
-              text: chatLabels.askInSideChat,
-              visible: canOpenMenu,
-            },
-          ]
-        : undefined,
-    [canAskInSideChat, canOpenMenu, message.id]
-  );
   if (!text) {
     return isWaiting ? (
       <View className="mb-4" testID="chat-message-row">
@@ -186,7 +150,6 @@ function PlainTextMessage({
       hasActions={hasActions}
       onCopy={copy}
       onRegenerate={regenerate}
-      selectionMenuItems={selectionMenuItems}
       text={text}
     />
   );
@@ -209,7 +172,6 @@ function PlainTextMessage({
         onCopy={copy}
         onRegenerate={regenerate}
         segments={scene}
-        selectionMenuItems={selectionMenuItems}
       />
     );
   }
@@ -235,30 +197,16 @@ function messageKey(message: UIMessage) {
   return message.id;
 }
 
-/**
- * The ways back, stacked in one column just above the composer.
- *
- * The newest message and a side chat are both places a person left, and both
- * are reached from the same spot however far back they have read. The count
- * takes itself away when there is nothing to go back into.
- */
+/** 입력창 바로 위에서 최신 메시지로 돌아가는 버튼. */
 function ReturnControls({
-  isEditing,
   isFollowingLatest,
   onMoveToLatest,
-  onOpenSideChat,
-  sideChats,
 }: {
-  isEditing: boolean;
   isFollowingLatest: boolean;
   onMoveToLatest: () => void;
-  onOpenSideChat: ((id: string) => void) | undefined;
-  sideChats: SideChatEntry[] | undefined;
 }) {
   const isReducedMotion = useReducedMotion();
   const progress = useSharedValue(isFollowingLatest ? 0 : 1);
-  const travel =
-    LATEST_OVERLAY_HEIGHT + (sideChats?.length ? SIDE_COUNT_OVERLAY_HEIGHT : 0);
   useEffect(() => {
     const target = isFollowingLatest ? 0 : 1;
     progress.set(
@@ -274,7 +222,7 @@ function ReturnControls({
   const motionStyle = useAnimatedStyle(() => ({
     // Glass는 흐리게 만들지 않는다. 이동을 마친 뒤에만 잔상을 끈다.
     opacity: progress.get() === 0 ? 0 : 1,
-    transform: [{ translateY: (1 - progress.get()) * travel }],
+    transform: [{ translateY: (1 - progress.get()) * LATEST_OVERLAY_HEIGHT }],
   }));
   return (
     <View
@@ -292,15 +240,6 @@ function ReturnControls({
       >
         <LatestMessageButton onPress={onMoveToLatest} />
       </Animated.View>
-      {sideChats && onOpenSideChat ? (
-        <SideChatCount
-          chats={sideChats}
-          // Pressing it during an edit would leave the notice above a composer
-          // that is no longer the one it is about.
-          isDisabled={isEditing}
-          onOpen={onOpenSideChat}
-        />
-      ) : null}
     </View>
   );
 }
@@ -481,10 +420,7 @@ export function ChatPanel({
   hasMessageActions = true,
   inputRef,
   messageAddon,
-  onAskInSideChat,
-  onOpenSideChat,
   placeholder = "메시지를 입력하세요",
-  sideChats,
   source,
   topInset = 0,
 }: {
@@ -524,16 +460,8 @@ export function ChatPanel({
    * arriving mid-scene reaches one bubble instead of the whole conversation.
    */
   messageAddon?: ComponentType<{ message: UIMessage }>;
-  /**
-   * What selecting part of a finished answer offers. Left out inside a side
-   * chat, which is what keeps a side chat from starting another one.
-   */
-  onAskInSideChat?: (input: AskInSideChat) => void;
-  onOpenSideChat?: (id: string) => void;
   /** What stands in the empty input. */
   placeholder?: string;
-  /** The side chats to get back into, newest first. */
-  sideChats?: SideChatEntry[];
   /** The read-only source a side conversation started from, above its list. */
   source?: ReactElement;
   topInset?: number;
@@ -563,7 +491,6 @@ export function ChatPanel({
   // 것도 없는 것으로 친다.
   const hasBanner = banner !== undefined && banner !== null;
   const contentTopInset = topInset + (hasBanner ? bannerHeight : 0);
-  const hasSideChats = sideChats !== undefined && sideChats.length > 0;
   const lastMessage = chat.messages.at(-1);
   const doomedFromIndex = chat.editingMessageId
     ? chat.messages.findIndex((message) => message.id === chat.editingMessageId)
@@ -915,7 +842,6 @@ export function ChatPanel({
         isWaiting={isAnswerLate && index === messageCount - 1}
         MessageAddon={messageAddon}
         message={item}
-        onAskInSideChat={onAskInSideChat}
         onBeginEdit={beginEdit}
         onRegenerate={regenerateAnswer}
       />
@@ -929,7 +855,6 @@ export function ChatPanel({
       isEditing,
       messageAddon,
       messageCount,
-      onAskInSideChat,
       regenerateAnswer,
     ]
   );
@@ -1017,9 +942,7 @@ export function ChatPanel({
         pointerEvents="box-none"
         style={{
           bottom: composerHeight,
-          height:
-            LATEST_OVERLAY_HEIGHT +
-            (hasSideChats ? SIDE_COUNT_OVERLAY_HEIGHT : 0),
+          height: LATEST_OVERLAY_HEIGHT,
           left: 0,
           position: "absolute",
           right: 0,
@@ -1027,11 +950,8 @@ export function ChatPanel({
         testID="chat-latest-overlay"
       >
         <ReturnControls
-          isEditing={isEditing}
           isFollowingLatest={isFollowingLatest}
           onMoveToLatest={moveToLatest}
-          onOpenSideChat={onOpenSideChat}
-          sideChats={sideChats}
         />
       </KeyboardStickyView>
 

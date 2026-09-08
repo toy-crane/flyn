@@ -14,8 +14,7 @@
 
 ## 경계
 
-- 첫 기능은 공개 상태 확인을 맡는 `health`와 인증된 AI 요청을 맡는
-  `ai-chat`이다.
+- 공개 상태 확인은 `health`, 인증된 에피소드와 물어보기 요청은 `episode`가 맡는다.
 - 한 기능은 다른 기능의 내부 파일을 직접 import하지 않는다.
 - Hono handler는 경로 선언과 함께 두며 별도 Controller로 분리하지 않는다.
 - 실제 코드가 생기기 전에는 `Service`, `Repository`, `Model`, `Types` 폴더와
