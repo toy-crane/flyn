@@ -75,7 +75,14 @@ Expo 화면이나 상호작용을 만들 때 골라 볼 수 있는 공개 구현
   `theme-option-row.ios.tsx`·`theme-option-row.android.tsx`, iOS 폼의 배경 토큰
   주입은 `settings-surface-modifiers.ios.ts`, 설정 라우트와 헤더 옵션은
   `src/app/(authenticated)/_layout.tsx`, 상태 표시줄은 `src/app/_layout.tsx`를
-  본다.
+  본다. 채팅의 전송 순서와 스크롤을 손볼 때는
+  [전송 순서와 한 화면 이동](https://github.com/toy-crane/dearly/commit/f57711fa805f2d84f0cf43a3dd8af58fee7f5cc0),
+  [최신 메시지 버튼의 이동](https://github.com/toy-crane/dearly/commit/e1f7187edfe2a79e63a8e8649138f9245aa2346f),
+  [답변 완료 시 본문과 메뉴 유지](https://github.com/toy-crane/dearly/commit/bda3e9ec6e4fc263c678955a808cabd4b5c7831f)를
+  본다. 세 커밋이
+  [모바일 채팅 스크롤](../decisions/mobile-chat-scrolling.md)과
+  [모바일 채팅 메시지 동작](../decisions/mobile-chat-message-actions.md)의 출처다.
+  키보드와 목록 라이브러리 버전이 우리와 다르므로 동작은 이 앱에서 다시 확인한다.
 - 들여오지 않는다: Native Tabs 없이 Stack 하나로 앱을 구성하는 정보 구조, 글자
   배율 상한(`dynamicTypeSize`, `MAX_FONT_SIZE_MULTIPLIER`, Android font scale
   config plugin), `@react-native-async-storage/async-storage`, PostHog 이벤트,
