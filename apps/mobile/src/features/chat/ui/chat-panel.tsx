@@ -489,6 +489,7 @@ export function ChatPanel({
   const [composerHeight, setComposerHeight] = useState(0);
   const [inputHeight, setInputHeight] = useState(INPUT_MIN_HEIGHT);
   const pendingAnchorIndex = useRef<number | undefined>(undefined);
+  const questionMotionActive = useRef(false);
   const motionGeneration = useRef(0);
   const userMomentum = useRef<true | undefined>(undefined);
   const userScrollStart = useRef<number | undefined>(undefined);
@@ -549,6 +550,7 @@ export function ChatPanel({
   const cancelScrollMotion = useCallback(() => {
     motionGeneration.current += 1;
     pendingAnchorIndex.current = undefined;
+    questionMotionActive.current = false;
     setIsPositioningQuestion(false);
     setIsMovingToLatest(false);
     freeze.set(false);
@@ -568,8 +570,11 @@ export function ChatPanel({
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state !== "active") {
+        const wasMoving = freeze.get() || questionMotionActive.current;
         cancelScrollMotion();
-        setIsFollowingLatest(false);
+        if (wasMoving) {
+          setIsFollowingLatest(false);
+        }
       }
     });
     return () => {
@@ -744,6 +749,7 @@ export function ChatPanel({
         // 사용자가 다음 동작으로 읽을 위치를 정할 수 있다.
       } finally {
         if (generation === motionGeneration.current) {
+          questionMotionActive.current = false;
           setIsPositioningQuestion(false);
           setIsFollowingLatest(hasReachedEnd());
         }
@@ -767,6 +773,7 @@ export function ChatPanel({
     setInputHeight(minInputHeight);
     if (!isFirstQuestion) {
       pendingAnchorIndex.current = nextAnchorIndex;
+      questionMotionActive.current = true;
       setIsPositioningQuestion(true);
     }
     chat.send();
@@ -853,6 +860,7 @@ export function ChatPanel({
         data={listMessages}
         extraData={rowState}
         freeze={freeze}
+        initialScrollAtEnd
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         keyboardLiftBehavior={
           isPositioningQuestion ? "persistent" : "whenAtEnd"

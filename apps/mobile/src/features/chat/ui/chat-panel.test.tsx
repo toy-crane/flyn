@@ -1185,7 +1185,7 @@ describe("ChatPanel", () => {
       size: true,
     });
     expect(list.props.keyboardLiftBehavior).toBe("whenAtEnd");
-    expect(list.props.initialScrollAtEnd).toBeUndefined();
+    expect(list.props.initialScrollAtEnd).toBe(true);
     expect(list.props.alignItemsAtEnd).toBeUndefined();
   });
 
@@ -1394,6 +1394,31 @@ describe("ChatPanel", () => {
     );
     expect(screen.getByLabelText(chatLabels.latest)).toBeOnTheScreen();
   });
+
+  test.each([false, true])(
+    "앱을 잠깐 나갔다 돌아와도 읽던 위치 추적 상태를 유지한다: %s",
+    async (readingHistory) => {
+      let onAppState: ((state: AppStateStatus) => void) | undefined;
+      jest
+        .spyOn(AppState, "addEventListener")
+        .mockImplementation((_event, listener) => {
+          onAppState = listener;
+          return { remove: jest.fn() };
+        });
+      await renderWithHeroUI(<EditableChat onSend={jest.fn()} />);
+      if (readingHistory) {
+        await scrollAwayFromLatest();
+      }
+      await act(() => {
+        onAppState?.("background");
+        onAppState?.("active");
+      });
+      expect(
+        Boolean(screen.getByTestId("chat-list").props.maintainScrollAtEnd)
+      ).toBe(!readingHistory);
+      expect(mockScrollToEnd).not.toHaveBeenCalled();
+    }
+  );
 
   test("전송 중 앱을 나가면 닫힘 신호가 늦게 와도 다시 질문을 옮기지 않는다", async () => {
     let onAppState: ((state: AppStateStatus) => void) | undefined;
