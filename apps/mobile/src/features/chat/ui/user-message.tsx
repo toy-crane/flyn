@@ -1,7 +1,7 @@
 import type { MenuTriggerRef } from "heroui-native/menu";
 import { Menu } from "heroui-native/menu";
 import { memo, useCallback, useRef } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, useWindowDimensions, View } from "react-native";
 
 import { Icon } from "@/shared/ui/icon";
 import { chatLabels } from "./chat-labels";
@@ -20,9 +20,11 @@ const UserMessageBody = memo(function UserMessageBodyContent({
 }: {
   text: string;
 }) {
+  const { fontScale } = useWindowDimensions();
   return (
     <Text
       className="text-accent-foreground text-base leading-6"
+      key={fontScale}
       selectable={false}
       testID="chat-message-user"
     >

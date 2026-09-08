@@ -3,7 +3,6 @@ import {
   useKeyboardChatComposerInset,
 } from "@legendapp/list/keyboard";
 import type {
-  AnchoredEndSpaceConfig,
   LegendListRef,
   LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
@@ -30,6 +29,7 @@ import {
   Pressable,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import {
@@ -52,6 +52,7 @@ import { Icon } from "@/shared/ui/icon";
 import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { AssistantMessage } from "./assistant-message";
 import { chatLabels } from "./chat-labels";
+import { ComposerBackdrop } from "./composer-backdrop";
 import { ComposerSurface } from "./composer-surface";
 import { LatestMessageButton } from "./latest-message-button";
 import { sceneCopyText, sceneOfMessage } from "./scene";
@@ -258,6 +259,7 @@ function Composer({
   canStop,
   chat,
   inputHeight,
+  maxInputHeight,
   inputRef,
   onResize,
   onSend,
@@ -269,6 +271,7 @@ function Composer({
   canStop: boolean;
   chat: ChatSession;
   inputHeight: number;
+  maxInputHeight: number;
   inputRef?: Ref<TextInput>;
   onResize: (
     event: NativeSyntheticEvent<{
@@ -387,7 +390,7 @@ function Composer({
           placeholder={placeholder}
           ref={inputRef}
           returnKeyType="send"
-          style={{ height: inputHeight, maxHeight: INPUT_MAX_HEIGHT }}
+          style={{ height: inputHeight, maxHeight: maxInputHeight }}
           submitBehavior="submit"
           testID="chat-input"
           value={chat.draft}
@@ -467,30 +470,27 @@ export function ChatPanel({
   topInset?: number;
 }) {
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
+  const minInputHeight = Math.max(
+    INPUT_MIN_HEIGHT,
+    Math.ceil(24 * fontScale + 20)
+  );
+  const maxInputHeight = Math.max(INPUT_MAX_HEIGHT, minInputHeight);
   const isReducedMotion = useReducedMotion();
   const keyboardHeight = useKeyboardState((state) => state.height);
   const listRef = useRef<LegendListRef | null>(null);
   const composerRef = useRef<View | null>(null);
-  const [anchorIndex, setAnchorIndex] = useState<number | undefined>();
-  const [anchorSpace, setAnchorSpace] = useState(0);
   const [isFollowingLatest, setIsFollowingLatest] = useState(true);
-  const [isPositioningQuestion, setIsPositioningQuestion] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isMovingToLatest, setIsMovingToLatest] = useState(false);
   const [composerHeight, setComposerHeight] = useState(0);
-  const [bannerHeight, setBannerHeight] = useState(0);
   const [inputHeight, setInputHeight] = useState(INPUT_MIN_HEIGHT);
-  const pendingAnchorIndex = useRef<number | undefined>(undefined);
   const motionGeneration = useRef(0);
   const userMomentum = useRef<true | undefined>(undefined);
   const userScrollStart = useRef<number | undefined>(undefined);
   const canSend = chat.draft.trim().length > 0 && !chat.isBusy;
-  const isClosed = closing !== undefined;
   const composerBottomPadding = Math.max(insets.bottom, 12);
-  // 배너가 없는 화면은 자리도 요구하지 않는다. 있으면 잰 높이만큼 헤더 아래
-  // 목록의 시작점을 더 내린다. 조건부로 배너를 넘기는 화면이 `null`을 주는
-  // 것도 없는 것으로 친다.
   const hasBanner = banner !== undefined && banner !== null;
-  const contentTopInset = topInset + (hasBanner ? bannerHeight : 0);
   const lastMessage = chat.messages.at(-1);
   const doomedFromIndex = chat.editingMessageId
     ? chat.messages.findIndex((message) => message.id === chat.editingMessageId)
@@ -544,14 +544,13 @@ export function ChatPanel({
 
   const cancelScrollMotion = useCallback(() => {
     motionGeneration.current += 1;
-    pendingAnchorIndex.current = undefined;
-    setIsPositioningQuestion(false);
+    setIsSendingMessage(false);
     setIsMovingToLatest(false);
     freeze.set(false);
   }, [freeze]);
 
   useEffect(() => {
-    if (!(isPositioningQuestion || isMovingToLatest)) {
+    if (!(isSendingMessage || isMovingToLatest)) {
       return;
     }
     const timeout = setTimeout(() => {
@@ -559,7 +558,7 @@ export function ChatPanel({
       setIsFollowingLatest(false);
     }, SCROLL_MOTION_TIMEOUT_MS);
     return () => clearTimeout(timeout);
-  }, [cancelScrollMotion, isMovingToLatest, isPositioningQuestion]);
+  }, [cancelScrollMotion, isMovingToLatest, isSendingMessage]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
@@ -579,12 +578,12 @@ export function ChatPanel({
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       userMomentum.current = undefined;
       userScrollStart.current = event.nativeEvent.contentOffset.y;
-      if (isPositioningQuestion || isMovingToLatest) {
+      if (isSendingMessage || isMovingToLatest) {
         cancelScrollMotion();
         setIsFollowingLatest(false);
       }
     },
-    [cancelScrollMotion, isMovingToLatest, isPositioningQuestion]
+    [cancelScrollMotion, isMovingToLatest, isSendingMessage]
   );
   const endUserScroll = useCallback(() => {
     userMomentum.current = undefined;
@@ -617,7 +616,7 @@ export function ChatPanel({
       // 끝이 보인다는 신호는 실제 끝에 도착하기 전에 한 번만 올 수 있다.
       // 사용자의 스크롤은 현재 이벤트 좌표로 도착 여부를 계속 확인한다.
       if (
-        !(isPositioningQuestion || isMovingToLatest) &&
+        !(isSendingMessage || isMovingToLatest) &&
         hasReachedEnd(contentOffset.y)
       ) {
         setIsFollowingLatest(true);
@@ -625,7 +624,7 @@ export function ChatPanel({
         setIsFollowingLatest(false);
       }
     },
-    [hasReachedEnd, isMovingToLatest, isPositioningQuestion]
+    [hasReachedEnd, isMovingToLatest, isSendingMessage]
   );
   const moveToLatest = useCallback(async () => {
     cancelScrollMotion();
@@ -641,10 +640,7 @@ export function ChatPanel({
     try {
       const state = list.getState();
       const end = Math.max(0, state.contentLength - state.scrollLength);
-      const viewport = Math.max(
-        1,
-        state.scrollLength - contentTopInset - bottomOcclusion
-      );
+      const viewport = Math.max(1, state.scrollLength - bottomOcclusion);
       if (!isReducedMotion && end - state.scroll > viewport) {
         await list.scrollToOffset({ animated: false, offset: end - viewport });
       }
@@ -668,57 +664,21 @@ export function ChatPanel({
   }, [
     bottomOcclusion,
     cancelScrollMotion,
-    contentTopInset,
     freeze,
     hasReachedEnd,
     isReducedMotion,
   ]);
-  // 마무리 카드의 실제 높이를 목록에 반영한 뒤 끝으로 옮긴다.
-  // 진행 중이던 질문 배치를 취소해서 두 이동이 서로 덮어쓰지 않게 한다.
-  useEffect(() => {
-    if (!isClosed || composerHeight === 0) {
-      return;
-    }
-    const frame = requestAnimationFrame(async () => {
-      cancelScrollMotion();
-      const generation = motionGeneration.current;
-      setIsMovingToLatest(true);
-      setIsFollowingLatest(false);
-      freeze.set(true);
-      try {
-        // 마지막 행의 네이티브 높이 측정까지 목록이 기다리게 한다.
-        await listRef.current?.scrollToEnd({ animated: !isReducedMotion });
-      } catch {
-        // 실패하면 최신 메시지 버튼으로 다시 이동할 수 있다.
-      } finally {
-        if (generation === motionGeneration.current) {
-          freeze.set(false);
-          setIsMovingToLatest(false);
-          setIsFollowingLatest(hasReachedEnd());
-        }
-      }
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [
-    cancelScrollMotion,
-    composerHeight,
-    freeze,
-    hasReachedEnd,
-    isClosed,
-    isReducedMotion,
-  ]);
-
   const handleEndVisible = useCallback(
     (visible: boolean) => {
       if (
         visible &&
-        !(isPositioningQuestion || isMovingToLatest) &&
+        !(isSendingMessage || isMovingToLatest) &&
         hasReachedEnd()
       ) {
         setIsFollowingLatest(true);
       }
     },
-    [hasReachedEnd, isMovingToLatest, isPositioningQuestion]
+    [hasReachedEnd, isMovingToLatest, isSendingMessage]
   );
   const resizeInput = useCallback(
     (
@@ -728,12 +688,12 @@ export function ChatPanel({
     ) => {
       setInputHeight(
         Math.min(
-          INPUT_MAX_HEIGHT,
-          Math.max(INPUT_MIN_HEIGHT, event.nativeEvent.contentSize.height)
+          maxInputHeight,
+          Math.max(minInputHeight, event.nativeEvent.contentSize.height)
         )
       );
     },
-    []
+    [maxInputHeight, minInputHeight]
   );
   const updateComposerLayout = useCallback(
     (event: LayoutChangeEvent) => {
@@ -742,79 +702,48 @@ export function ChatPanel({
     },
     [onComposerLayout]
   );
-  const updateBannerLayout = useCallback((event: LayoutChangeEvent) => {
-    setBannerHeight(event.nativeEvent.layout.height);
-  }, []);
-  const positionQuestion = useCallback<
-    NonNullable<AnchoredEndSpaceConfig["onReady"]>
-  >(
-    async ({ anchorIndex: readyAnchorIndex }) => {
-      if (
-        readyAnchorIndex === undefined ||
-        readyAnchorIndex !== pendingAnchorIndex.current
-      ) {
-        return;
-      }
-
-      pendingAnchorIndex.current = undefined;
-      const generation = motionGeneration.current;
-      try {
-        await KeyboardController.dismiss({ animated: !isReducedMotion });
-        if (generation !== motionGeneration.current) {
-          return;
-        }
-        // 닫힘 신호 다음에 입력창 인셋과 목록의 배치를 반영한다.
-        await new Promise<void>((resolve) => {
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => resolve());
-          });
-        });
-        if (generation !== motionGeneration.current) {
-          return;
-        }
-        await listRef.current?.scrollToIndex({
-          animated: !isReducedMotion,
-          index: readyAnchorIndex,
-          viewOffset: contentTopInset + MESSAGE_TOP_SPACING,
-          viewPosition: 0,
-        });
-      } catch {
-        // 사용자가 다음 동작으로 읽을 위치를 정할 수 있다.
-      } finally {
-        if (generation === motionGeneration.current) {
-          setIsPositioningQuestion(false);
-          setIsFollowingLatest(hasReachedEnd());
-        }
-      }
-    },
-    [contentTopInset, hasReachedEnd, isReducedMotion]
-  );
-  const send = useCallback(() => {
+  const send = useCallback(async () => {
     if (!canSend) {
       return;
     }
-
-    // Sending from the edit state drops the message it started from and
-    // everything after it, so the new question lands where that message was.
-    const nextAnchorIndex =
-      doomedFromIndex >= 0 ? doomedFromIndex : chat.messages.length;
-    const isFirstQuestion = nextAnchorIndex === 0;
     cancelScrollMotion();
-    setAnchorIndex(nextAnchorIndex);
-    setIsFollowingLatest(true);
-    setInputHeight(INPUT_MIN_HEIGHT);
-    if (!isFirstQuestion) {
-      pendingAnchorIndex.current = nextAnchorIndex;
-      setIsPositioningQuestion(true);
-    }
+    const generation = motionGeneration.current;
+    setIsSendingMessage(true);
+    setIsFollowingLatest(false);
+    freeze.set(true);
+    setInputHeight(minInputHeight);
     chat.send();
-
-    if (isFirstQuestion) {
-      requestAnimationFrame(() => {
-        KeyboardController.dismiss();
+    try {
+      await KeyboardController.dismiss({ animated: !isReducedMotion });
+      if (generation !== motionGeneration.current) {
+        return;
+      }
+      // 키보드와 입력창의 실제 높이가 목록에 반영된 다음 끝으로 이동한다.
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
       });
+      if (generation !== motionGeneration.current) {
+        return;
+      }
+      await listRef.current?.scrollToEnd({ animated: !isReducedMotion });
+    } catch {
+      // 이동에 실패해도 사용자가 읽던 위치와 최신 메시지 버튼을 남긴다.
+    } finally {
+      if (generation === motionGeneration.current) {
+        freeze.set(false);
+        setIsSendingMessage(false);
+        setIsFollowingLatest(hasReachedEnd());
+      }
     }
-  }, [cancelScrollMotion, canSend, chat, doomedFromIndex]);
+  }, [
+    cancelScrollMotion,
+    canSend,
+    chat,
+    freeze,
+    hasReachedEnd,
+    isReducedMotion,
+    minInputHeight,
+  ]);
   const stopAnswer = useCallback(() => {
     chat.stop().catch(() => {
       // The answer stays where it stopped either way.
@@ -860,48 +789,46 @@ export function ChatPanel({
   );
 
   return (
-    <View className="flex-1 bg-background">
+    <View
+      className="flex-1 bg-background"
+      style={{ paddingTop: topInset }}
+      testID="chat-panel"
+    >
+      {hasBanner ? (
+        <View pointerEvents="none" testID="chat-banner">
+          {banner}
+        </View>
+      ) : null}
       <KeyboardAwareLegendList
-        anchoredEndSpace={
-          anchorIndex === undefined
-            ? undefined
-            : {
-                anchorIndex,
-                anchorOffset: contentTopInset + MESSAGE_TOP_SPACING,
-                onReady: anchorIndex === 0 ? undefined : positionQuestion,
-                onSizeChanged: setAnchorSpace,
-              }
-        }
+        alignItemsAtEnd
         applyWorkaroundForContentInsetHitTestBug
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingTop: contentTopInset + MESSAGE_TOP_SPACING,
+          paddingTop: MESSAGE_TOP_SPACING,
         }}
         contentInsetAdjustmentBehavior="never"
         contentInsetEndAdjustment={contentInsetEndAdjustment}
         data={listMessages}
         extraData={rowState}
         freeze={freeze}
+        initialScrollAtEnd
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-        keyboardLiftBehavior={
-          isPositioningQuestion ? "persistent" : "whenAtEnd"
-        }
+        keyboardLiftBehavior="whenAtEnd"
         keyboardOffset={insets.bottom}
         keyboardShouldPersistTaps="handled"
         keyExtractor={messageKey}
         ListHeaderComponent={source ?? undefined}
         maintainScrollAtEnd={
-          isFollowingLatest &&
-          !isPositioningQuestion &&
-          !isMovingToLatest &&
-          anchorSpace <= bottomOcclusion
+          isFollowingLatest && !isSendingMessage && !isMovingToLatest
             ? {
                 animated: false,
-                on: { dataChange: true, itemLayout: true },
+                on: { dataChange: true, itemLayout: true, layout: true },
               }
             : false
         }
-        maintainScrollAtEndThreshold={0.05}
+        // 추적 여부는 사용자 동작으로 정한다. 글자나 상황 줄이 커진 거리는
+        // 추적을 끄는 이유가 아니므로 목록 내부의 거리 기준은 제한하지 않는다.
+        maintainScrollAtEndThreshold={Number.POSITIVE_INFINITY}
         maintainVisibleContentPosition={{ data: false, size: true }}
         onEndVisible={handleEndVisible}
         onMomentumScrollBegin={beginUserMomentum}
@@ -916,22 +843,6 @@ export function ChatPanel({
         style={{ flex: 1 }}
         testID="chat-list"
       />
-
-      {/*
-        Fixed at the same spot the header ends, on iOS or Android alike, so it
-        never scrolls away and never sits under the header. Nothing in it is
-        pressable, so touches fall through to the list underneath.
-      */}
-      {hasBanner ? (
-        <View
-          onLayout={updateBannerLayout}
-          pointerEvents="none"
-          style={{ left: 0, position: "absolute", right: 0, top: topInset }}
-          testID="chat-banner"
-        >
-          {banner}
-        </View>
-      ) : null}
 
       {/* 입력창보다 먼저 그려 버튼이 입력창 뒤로 내려간다. */}
       <KeyboardStickyView
@@ -970,11 +881,9 @@ export function ChatPanel({
         }}
         style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
       >
-        {/*
-          No background of its own either: a band across the screen would cut
-          the list off just as surely. The notice and the error sit on the same
-          open ground, just above the control rather than inside it.
-        */}
+        {closing === undefined ? (
+          <ComposerBackdrop height={composerHeight} />
+        ) : null}
         <View
           className="gap-2 px-5 pt-2"
           onLayout={updateComposerLayout}
@@ -992,8 +901,9 @@ export function ChatPanel({
               canSend={canSend}
               canStop={canStop}
               chat={chat}
-              inputHeight={inputHeight}
+              inputHeight={Math.max(minInputHeight, inputHeight)}
               inputRef={inputRef}
+              maxInputHeight={maxInputHeight}
               onResize={resizeInput}
               onSend={send}
               onStop={stopAnswer}

@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Text, View } from "react-native";
+import { Text, useWindowDimensions, View } from "react-native";
 
 import { MarkdownAnswer } from "./markdown-answer";
 import { MessageActions } from "./message-actions";
@@ -9,10 +9,12 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
   name,
   text,
 }: SceneSegment) {
+  const { fontScale } = useWindowDimensions();
   if (name === null) {
     return (
       <Text
         className="px-1 text-muted text-sm leading-5"
+        key={fontScale}
         testID="chat-scene-narration"
       >
         {text}
@@ -21,7 +23,9 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
   }
   return (
     <View className="max-w-[85%] self-start" testID="chat-scene-utterance">
-      <Text className="mb-1 px-1 text-muted text-xs">{name}</Text>
+      <Text className="mb-1 px-1 text-muted text-xs" key={fontScale}>
+        {name}
+      </Text>
       <View className="rounded-2xl bg-surface px-4 py-3">
         <MarkdownAnswer markdown={text} />
       </View>

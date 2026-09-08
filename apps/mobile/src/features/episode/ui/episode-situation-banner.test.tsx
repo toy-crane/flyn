@@ -6,7 +6,7 @@ import { EpisodeSituationBanner } from "./episode-situation-banner";
 
 const SITUATION = "잘못 나온 커피를 원하는 커피로 바꿔 보세요";
 
-test("이모지와 문구를 한 줄로 보여 준다", async () => {
+test("상황 문구 전체를 자연스럽게 줄바꿈하며 글자 확대를 허용한다", async () => {
   await renderWithHeroUI(
     <EpisodeSituationBanner emoji="☕" text={SITUATION} />
   );
@@ -19,7 +19,9 @@ test("이모지와 문구를 한 줄로 보여 준다", async () => {
   const text = screen.getByText(SITUATION);
 
   expect(text).toBeOnTheScreen();
-  expect(text.props.numberOfLines).toBe(1);
+  expect(text.props.numberOfLines).toBeUndefined();
+  expect(text.props.adjustsFontSizeToFit).not.toBe(true);
+  expect(text.props.allowFontScaling).not.toBe(false);
 });
 
 // 틴트만 깔면 강조색이 투명과 섞인 색이라 아래로 지나가는 말풍선이 비쳐
