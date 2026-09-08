@@ -332,9 +332,9 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
 <section data-screen="home" data-title="홈 (학습 화면 추후 설계)"></section>
 <section data-screen="explore" data-title="탐색" data-states="불러오기 실패"></section>
 <section data-screen="stories" data-title="스토리" data-states="기록 없음,불러오기 실패"></section>
-<section data-screen="story" data-title="스토리 상세" data-states="처음 시작,스토리 완주,시작 실패,불러오기 실패"></section>
-<section data-screen="history" data-title="대화 기록" data-states="기록 없음,기록이 많을 때,불러오기 실패"></section>
-<section data-screen="episode" data-title="에피소드 대화" data-states="에피소드 마무리,스토리 마무리,지난 대화,대화 없음,불러오기 실패"></section>
+<section data-screen="story" data-title="스토리 상세" data-states="시작 실패,불러오기 실패"></section>
+<section data-screen="history" data-title="대화 기록" data-states="여러 대화 진행 중,모든 대화 완료,기록 없음,기록이 많을 때,시작 실패,불러오기 실패"></section>
+<section data-screen="episode" data-title="에피소드 대화" data-states="대화 진행 중,에피소드 마무리,스토리 마무리,지난 대화,긴 대화 기록,대화 기록 없음,불러오기 실패,기록 불러오기 실패"></section>
 </main>
 
 <script>
@@ -429,16 +429,16 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
     {id:'office',title:'첫 주의 사무실',image:'first-week-office',hook:'첫 출근인데, 다들 제가 맡았다는 일을 저만 몰라요.',intro:'처음 온 사무실에서 질문하고, 부탁하고, 내 의견을 전하는 다섯 번의 대화예요.',actor:'Daniel',titles:['자리에 앉자마자','말하지 못한 질문','회의 뒤의 부탁','다시 쓰는 메일','금요일의 제안'],outcomes:['맡은 일을 확인했어요.','궁금한 점을 물어봤어요.','도움을 받기로 했어요.','뜻이 분명한 메일을 보냈어요.','내 의견을 제안했어요.']},
     {id:'neighbor',title:'윗집 사람',image:'upstairs-neighbor',hook:'이사 온 지 일주일, 윗집 소리에 오늘도 잠을 설쳤어요.',intro:'새로 이사 온 건물에서 벌어지는 다섯 번의 곤란. 이웃과 조금씩 아는 사이가 돼요.',actor:'Frank',titles:['천장 위의 소리','문 앞의 상자','주차장 한 칸','복도의 인사','작은 초대'],outcomes:['밤에는 조용히 하기로 했어요.','택배를 돌려줬어요.','주차 자리를 찾았어요.','이웃과 인사를 나눴어요.','저녁 초대를 받았어요.']}
   ];
-  let conversations={}, records, selected='cafe', episodeNo=1, episodeMode='live', reviewNo=1, episodeSource='story', openedHistory=null, historyMany=false, forceEmptyHistory=false, turns=0, sent=[], preserving=false, pendingPlay=null;
+  let conversations={}, records, selected='cafe', episodeNo=1, episodeMode='live', reviewNo=1, episodeSource='story', openedHistory=null, historyMany=false, storySource='explore', historySource='story', turns=0, sent=[], preserving=false, pendingPlay=null;
   const fresh = () => Object.fromEntries(data.map(s=>[s.id,{no:1,finished:0,started:false,history:[]} ]));
   const prior = (n=1) => ({no:n,lastTalk:1788000000000+n*60000,finished:5,start:n===1?'8월 24일':'9월 1일',end:n===1?'8월 27일':'9월 4일',summary:n===1?'새 지점에서도 만나기로 했어요.':'마지막 커피를 함께 마시며 인사했어요.'});
-  function reset() { pendingPlay=null; conversations={'cafe:2:3':['I can share the table. Is this seat free?']}; records=fresh(); records.cafe={no:2,finished:2,started:true,lastTalk:1788850800000,history:[prior()]}; records.room={no:1,finished:1,started:true,lastTalk:1788764400000,history:[]}; selected='cafe'; openedHistory=null; historyMany=false; forceEmptyHistory=false; turns=0; sent=[]; episodeNo=1; episodeMode='live'; }
+  function reset() { pendingPlay=null; conversations={'cafe:2:3':['I can share the table. Is this seat free?']}; records=fresh(); records.cafe={no:2,finished:2,started:true,lastTalk:1788850800000,history:[prior()]}; records.room={no:1,finished:1,started:true,lastTalk:1788764400000,history:[]}; selected='cafe'; storySource='explore'; historySource='story'; episodeSource='story'; openedHistory=null; historyMany=false;  turns=0; sent=[]; episodeNo=1; episodeMode='live'; }
   reset();
   const story = () => data.find(s=>s.id===selected);
   const rec = () => records[selected];
   const chatKey = (run=rec().no, n=episodeNo) => selected+':'+run+':'+n;
   const hasProgress = r => r.finished>0 || Object.entries(conversations).some(([key,messages])=>key.startsWith(selected+':'+r.no+':')&&messages.length>0);
-  const resumeLabel = s => { const r=records[s.id], n=Math.min(r.finished+1,5); return n+(r.started?'화 이어하기':'화 시작하기'); };
+
   const outcome = (s,index,run) => s.id==='cafe'&&index===4?(records[s.id].history.find(h=>h.no===run)?.summary || (historyMany?prior(run).summary:s.outcomes[index])):s.outcomes[index];
   const finalRecord = () => ({no:rec().no,lastTalk:rec().lastTalk,finished:5,start:rec().start||'9월 8일',startTime:rec().startTime,end:'9월 8일',summary:story().outcomes[4]});
   const scenes = {
@@ -462,11 +462,10 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
   const nav = (title,back,subtitle='',trailing='') => `<header class="nav" data-component="NativeStack"><button class="circle" data-action="${back}" aria-label="뒤로 가기">${I('back')}</button><div class="nav-title">${title}${subtitle?`<small>${subtitle}</small>`:''}</div>${trailing}</header>`;
   const tabs = active => `<div class="tab-wrap"><nav class="tabs" aria-label="기본 탭" data-component="NativeTabs">${[['home','home','홈'],['explore','search','탐색'],['stories','book','스토리']].map(([id,icon,label])=>`<button class="${active===id?'active':''}" data-action="${id}" ${active===id?'aria-current="page"':''}>${I(icon)}<span>${label}</span></button>`).join('')}</nav></div>`;
   const cover = s=>`<img class="cover" data-component="StoryCover" src="${ASSETS[s.image]}" alt="">`;
-  function storyRow(s,card=false) { const r=records[s.id],n=Math.min(r.finished+1,5); return `<div class="story-row" data-component="StoryCard">${cover(s)}<div class="copy"><strong>${s.title}</strong>${card?`<span class="secondary">${n}화 · ${s.titles[n-1]}</span>`:''}<span class="secondary">${card?(r.no>1?runName(r.no)+' · 진행하던 장면부터 이어가요.':(r.started?'진행하던 이야기를 만나 봐요.':'Mia와 첫 대화를 시작해 봐요.')):s.hook}</span>${card?progress(r.finished):''}</div>${card?'':`<span class="chevron">${I('forward',true)}</span>`}</div>`; }
+  function storyRow(s) { return `<div class="story-row" data-component="StoryCard">${cover(s)}<div class="copy"><strong>${s.title}</strong><span class="secondary">${s.hook}</span></div><span class="chevron">${I('forward',true)}</span></div>`; }
   function contentState(title,action,label='다시 시도',empty=false) { return `<div class="sample-empty" data-component="new:ContentUnavailableView"><div class="sample-symbol">${I(empty?'history':'refresh')}</div><h2>${title}</h2>${action?button(label,action,empty?'secondary':'primary'):''}</div>`; }
   function errorBox(action) { return contentState('스토리를 불러오지 못했어요',action); }
-  function startAlert() { return `<dialog class="start-alert" aria-labelledby="start-alert-title" data-component="NativeAlert"><h2 id="start-alert-title">새로 시작하지 못했어요</h2><div class="alert-actions"><button data-action="dismiss-start">닫기</button><button data-action="replay">다시 시도</button></div></dialog>`; }
-  let storySource='explore',historySource='story';
+  function startAlert() { return `<dialog class="start-alert" aria-labelledby="start-alert-title" data-component="NativeAlert"><h2 id="start-alert-title">대화를 시작하지 못했어요</h2><div class="alert-actions"><button data-action="dismiss-start">닫기</button><button data-action="replay">다시 시도</button></div></dialog>`; }
   function renderHome() { return status()+`<div class="content"><h1 class="title large-title">홈</h1></div>`+tabs('home'); }
   function renderExplore(state) { return status()+`<div class="content"><h1 class="title large-title">탐색</h1>${state==='불러오기 실패'?errorBox('retry-explore'):`<div class="card story-list">${data.map(s=>`<button class="plain" data-action="story:${s.id}" aria-label="${s.title} 스토리 보기">${storyRow(s)}</button>`).join('')}</div>`}</div>`+tabs('explore'); }
   function renderStories(state) {
@@ -495,20 +494,13 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
     return {no:r.no,lastTalk:r.lastTalk||previous?.lastTalk||0,finished:r.finished,start:r.start||previous?.start||'9월 8일',startTime:r.startTime||previous?.startTime,end:r.finished===5?(previous?.end||'9월 8일'):null,summary:r.finished===5?(previous?.summary||story().outcomes[4]):''};
   }
   function historyRuns() {
-    if(forceEmptyHistory)return [];
     const runs=new Map(rec().history.filter(hasProgress).map(r=>[r.no,r]));
     if(hasProgress(rec()))runs.set(rec().no,currentPlaySnapshot());
     return [...runs.values()].sort((a,b)=>b.no-a.no);
   }
-  function chooseResumeDefault() {
-    const saved=historyRuns().filter(r=>r.finished<5).sort((a,b)=>(b.lastTalk||b.no)-(a.lastTalk||a.no))[0];
-    if(!saved||saved.no===rec().no)return;
-    archiveCurrentPlay();
-    const history=rec().history.filter(r=>r.no!==saved.no);
-    records[selected]={...saved,started:true,history};
-  }
   function renderHistory(state) {
-    if(state==='불러오기 실패')return status()+nav('대화 기록','history-back')+contentState('대화 기록을 불러오지 못했어요','retry-history');
+    const header=status()+nav('대화 기록','history-back','',`<button class="nav-text-action" data-component="NativeStack.Toolbar.Button" data-action="replay">새 대화</button>`);
+    if(state==='불러오기 실패')return header+contentState('대화 기록을 불러오지 못했어요','retry-history');
     const s=story(),runs=historyRuns();
     const cards=runs.map(r=>{
       const done=r.finished===5;
@@ -518,7 +510,7 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
       const episodes=s.titles.slice(0,r.finished).map((title,i)=>`<button class="episode-row" data-component="EpisodeRow" data-action="review:${r.no}:${i+1}" aria-label="${date}에 시작한 대화 ${i+1}화 ${title} 대화 보기"><span class="episode-number">${i+1}화</span><span class="episode-copy"><strong>${title}</strong><small>${outcome(s,i,r.no)}</small></span><span class="episode-row-action">${I('forward',true)}</span></button>`).join('');
       return `<div class="history-card" data-component="new:StoryPlayHistoryCard"><button class="run-toggle" data-action="toggle-run:${r.no}" aria-expanded="${openedHistory===r.no}" aria-controls="run-episodes-${r.no}"><span class="run-content">${headings}${progress(r.finished)}<span class="summary">${detail}</span></span><span class="chevron">${I('forward',true)}</span></button>${openedHistory===r.no?`<div class="history-episodes" id="run-episodes-${r.no}">${episodes}${!done?`<div class="history-resume">${button('이어서 하기','resume-run:'+r.no,'outline')}</div>`:''}</div>`:''}</div>`;
     }).join('');
-    return status()+nav('대화 기록','history-back','',`<button class="nav-text-action" data-component="NativeStack.Toolbar.Button" data-action="replay">새 대화</button>`)+`<div class="content history-design"><div class="record-story" data-component="StoryCard">${cover(s)}<div><h1>${s.title}</h1><p>${s.intro}</p></div></div>${runs.length?`<div class="record-list">${cards}</div>`:`${contentState('아직 나눈 대화가 없어요','story-back','스토리로 돌아가기',true)}`}</div>`;
+    return header+`<div class="content history-design"><div class="record-story" data-component="StoryCard">${cover(s)}<div><h1>${s.title}</h1><p>${s.intro}</p></div></div>${runs.length?`<div class="record-list">${cards}</div>`:`${contentState('아직 나눈 대화가 없어요','story-back','스토리로 돌아가기',true)}`}</div>${state==='시작 실패'?startAlert():''}`;
   }
   const correction = () => `<details class="correction" data-component="CorrectionNote"><summary>더 자연스러운 영어 표현 ${I('down',true)}</summary><p class="fixed">I ordered an iced americano.</p><p>‘주문했어요’처럼 이미 한 일에는 ordered를 써요.</p></details>`;
   function conversation() { const s=story(),review=episodeMode==='review',sc=scene(); let out=`<p class="narration">${sc[2]}</p><div><div class="speaker-name">${s.actor}</div><div class="bubble">${sc[3]}</div></div><p class="narration">${sc[4]}</p>`;
@@ -527,24 +519,72 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
     return out;
   }
   function renderEpisode(state) { const s=story(),r=rec(),review=episodeMode==='review',no=review?reviewNo:r.no; const sub=(!review&&!r.started?'새 플레이':runName(no))+(review?' · 대화 기록':''); let body='';
-    if(state==='대화 없음'||state==='불러오기 실패') return status()+nav(`${episodeNo}화 · ${s.titles[episodeNo-1]}`,'episode-back',sub)+contentState(state==='대화 없음'?'대화 기록이 없어요':'대화를 불러오지 못했어요',state==='대화 없음'?'history':'retry-episode',state==='대화 없음'?'대화 기록으로 돌아가기':'다시 시도',state==='대화 없음');
+    if(state==='대화 기록 없음'||state==='불러오기 실패'||state==='기록 불러오기 실패') return status()+nav(`${episodeNo}화 · ${s.titles[episodeNo-1]}`,'episode-back',sub)+contentState(state==='대화 기록 없음'?'대화 기록이 없어요':'대화를 불러오지 못했어요',state==='대화 기록 없음'?'history':'retry-episode',state==='대화 기록 없음'?'대화 기록으로 돌아가기':'다시 시도',state==='대화 기록 없음');
     body+=`<div class="situation" data-component="EpisodeSituationBanner"><span>${scene()[0]}</span><span>${scene()[1]}</span></div><div class="chat" data-component="SceneMessage">${conversation()}</div>${review?`<div class="ending-mark" data-component="EpisodeEndingMark"><div class="rule">끝</div><p>${outcome(s,episodeNo-1,no)}</p></div>`:''}`;
-    if(!review && (state==='에피소드 마무리'||state==='스토리 마무리')) { const complete=state==='스토리 마무리'; body+=`<div class="closing" data-component="EpisodeClosing"><h2>${outcome(s,episodeNo-1,no)}</h2>${complete?`<div class="next-title">${s.title}의 마지막 장면까지 함께했어요</div><p>대화와 배울 표현은 대화 기록에서 다시 볼 수 있어요.</p>${button('스토리로 돌아가기','story-back')}`:`<div class="eyebrow">다음 이야기</div><div class="next-title">${episodeNo+1}화 · ${s.titles[episodeNo]}</div><p>다음 날, 같은 장소에서 예상하지 못한 일이 생겨요.</p><div class="buttons">${button('홈으로','home','secondary')}${button(episodeNo+1+'화 시작하기','next-episode')}</div>`}</div>`; }
+    if(!review && (state==='에피소드 마무리'||state==='스토리 마무리')) { const complete=state==='스토리 마무리'; body+=`<div class="closing" data-component="EpisodeClosing"><h2>${outcome(s,episodeNo-1,no)}</h2>${complete?`<div class="next-title">${s.title}의 마지막 장면까지 함께했어요</div>${button('스토리로 돌아가기','story-back')}`:`<div class="eyebrow">다음 이야기</div><div class="next-title">${episodeNo+1}화 · ${s.titles[episodeNo]}</div><p>${escape(previews[s.id][episodeNo])}</p><div class="buttons">${button('홈으로','home','secondary')}${button(episodeNo+1+'화 시작하기','next-episode')}</div>`}</div>`; }
     else if(!review) body+=`<div class="composer-wrap" data-component="ChatComposer"><form class="composer" id="chat-form"><textarea aria-label="대화 입력" placeholder="하고 싶은 말을 써 보세요" rows="1"></textarea><button class="send" aria-label="보내기" disabled>${I('up')}</button></form></div>`;
     return status()+nav(`${episodeNo}화 · ${s.titles[episodeNo-1]}`,'episode-back',sub)+body;
   }
   function preset(screen,state) {
-    if(screen==='home') { reset(); if(state==='처음 방문') records=fresh(); else if(state==='모든 스토리 완주') data.forEach(s=>records[s.id]={no:1,finished:5,started:true,history:[prior()]}); else records.cafe={no:2,finished:2,started:true,history:[prior()]}; }
-    if(screen==='stories'||screen==='explore'){reset();if(state==='기록 없음'){records=fresh();conversations={};}}
-    if(screen==='story') { reset(); if(state==='처음 시작') records.cafe={no:1,finished:0,started:false,history:[]}; if(state==='스토리 완주') records.cafe={no:1,finished:5,started:true,history:[prior()]}; }
-    if(screen==='history') { reset(); records.cafe.history=[prior(1)]; records.cafe.no=2; openedHistory=null; historyMany=state==='기록이 많을 때'; forceEmptyHistory=state==='기록 없음'; if(historyMany){records.cafe.history=Array.from({length:12},(_,i)=>prior(i+1));records.cafe.no=13;} if(forceEmptyHistory)records.cafe={no:1,finished:0,started:false,history:[]}; }
-    if(screen==='episode') { reset(); records.cafe={no:2,finished:0,started:false,history:[prior()]}; episodeSource='story'; episodeNo=1; turns=0; sent=[]; episodeMode='live'; if(state==='지난 대화'||state==='대화 없음'||state==='불러오기 실패'){episodeMode='review';reviewNo=1;episodeSource='history';} if(state==='에피소드 마무리'||state==='스토리 마무리'){records.cafe.started=true;sent=['Excuse me, I order an iced americano.','Yes, please. Thank you!']; turns=2; if(state==='스토리 마무리') { episodeNo=5; records.cafe.finished=5; records.cafe.history.push(finalRecord());sent=[scene()[5],scene()[6]]; } else records.cafe.finished=1;} }
+    reset();
+    if(screen==='stories'&&state==='기록 없음') { records=fresh(); conversations={}; }
+    if(screen==='history') {
+      if(state==='기록 없음') { records.cafe={no:1,finished:0,started:false,history:[]}; conversations={}; }
+      if(state==='여러 대화 진행 중') {
+        records.cafe.history.push({no:3,finished:0,start:'9월 9일',startTime:'오전 9:15',lastTalk:1788912900000});
+        conversations['cafe:3:1']=['Excuse me, I ordered an iced americano.'];
+      }
+      if(state==='모든 대화 완료') { records.cafe.finished=5; conversations={}; }
+      if(state==='기록이 많을 때') {
+        historyMany=true;
+        records.cafe.history=Array.from({length:12},(_,i)=>prior(i+1)); records.cafe.no=13;
+        conversations={'cafe:13:3':['I can share the table. Is this seat free?']};
+      }
+    }
+    if(screen==='episode') {
+      records.cafe={no:2,finished:0,started:false,history:[prior()]}; conversations={};
+      if(state==='Default') pendingPlay={previous:{...records.cafe,history:[...records.cafe.history]}};
+      if(state==='대화 진행 중'||state==='불러오기 실패') {records.cafe.started=true; sent=[scene()[5]];}
+      if(['지난 대화','긴 대화 기록','대화 기록 없음','기록 불러오기 실패'].includes(state)) {
+        episodeMode='review';reviewNo=1;episodeSource='history';
+        if(state==='긴 대화 기록') conversations[chatKey(reviewNo)]=Array.from({length:16},(_,i)=>[
+          'Could you check the order on my receipt?',
+          'I would prefer an iced americano, please.',
+          'Would it be possible to have less ice?',
+          'Thank you for helping me with the order.'
+        ][i%4]);
+      }
+      if(state==='에피소드 마무리'||state==='스토리 마무리') {
+        episodeNo=state==='스토리 마무리'?5:1;
+        records.cafe.started=true; records.cafe.finished=episodeNo; sent=[scene()[5],scene()[6]];
+        if(episodeNo===5)records.cafe.history.push(finalRecord());
+      }
+      turns=sent.length;
+      if(sent.length) {conversations[chatKey()]=sent; records.cafe.lastTalk=1788912900000;}
+    }
   }
   const renderers={home:renderHome,stories:renderStories,explore:renderExplore,story:renderStory,history:renderHistory,episode:renderEpisode};
-  function render() {document.querySelectorAll('.start-alert').forEach(d=>{d.close();d.remove();});const screen=prototypeShell.getScreen(),state=prototypeShell.getState(); document.querySelector(`[data-screen="${screen}"]`).innerHTML=`<div class="screen-inner">${renderers[screen](state)}</div>`; const alert=document.querySelector('.start-alert');if(alert){alert.showModal();alert.addEventListener('cancel',e=>{e.preventDefault();go('story');});} }
-  addEventListener('prototype:state',e=>{if(!preserving) preset(e.detail.screen,e.detail.state); render();});
-  function stateFor(screen) { if(screen==='story')return rec().finished===5?'스토리 완주':rec().started?'Default':'처음 시작'; if(screen==='history'){const count=historyRuns().length;return count>5?'기록이 많을 때':count?'Default':'기록 없음';} if(screen==='episode')return episodeMode==='review'?'지난 대화':'Default'; if(screen==='home')return Object.values(records).every(r=>r.finished===5)?'모든 스토리 완주':Object.values(records).every(r=>!r.started)?'처음 방문':'Default'; return 'Default'; }
-  function go(screen,state) {if(screen==='story')chooseResumeDefault();state=state||stateFor(screen);preserving=true;prototypeShell.showScreen(screen);prototypeShell.setState(state);preserving=false;const stage=document.querySelector('.sh-stage');stage.scrollTop=screen==='episode'?stage.scrollHeight:0;}
+  function render() {document.querySelectorAll('.start-alert').forEach(d=>{d.close();d.remove();});const screen=prototypeShell.getScreen(),state=prototypeShell.getState(); document.querySelector(`[data-screen="${screen}"]`).innerHTML=`<div class="screen-inner">${renderers[screen](state)}</div>`; const alert=document.querySelector('.start-alert');if(alert){alert.showModal();alert.addEventListener('cancel',e=>{e.preventDefault();go(prototypeShell.getScreen());});} }
+  addEventListener('prototype:state',e=>{if(!preserving) preset(e.detail.screen,e.detail.state); render();if(!preserving)scrollOnEntry();});
+  function stateFor(screen) {
+    if(screen==='history') {
+      const runs=historyRuns();
+      return !runs.length?'기록 없음':runs.length>5?'기록이 많을 때':runs.every(r=>r.finished===5)?'모든 대화 완료':runs.filter(r=>r.finished<5).length>1?'여러 대화 진행 중':'Default';
+    }
+    if(screen==='stories') {
+      const original=selected;
+      const any=data.some(s=>{selected=s.id;return historyRuns().length>0;}); selected=original;
+      return any?'Default':'기록 없음';
+    }
+    if(screen==='episode') {
+      if(episodeMode==='review')return (conversations[chatKey(reviewNo)]?.length||0)>10?'긴 대화 기록':'지난 대화';
+      if(rec().finished>=episodeNo)return episodeNo===5?'스토리 마무리':'에피소드 마무리';
+      return sent.length?'대화 진행 중':'Default';
+    }
+    return 'Default';
+  }
+  function go(screen,state) {state=state||stateFor(screen);preserving=true;prototypeShell.showScreen(screen);prototypeShell.setState(state);preserving=false;scrollOnEntry();}
+  function scrollOnEntry() {const stage=document.querySelector('.sh-stage');stage.scrollTop=prototypeShell.getScreen()==='episode'?stage.scrollHeight:0;}
   function syncState(state) {preserving=true;prototypeShell.setState(state);preserving=false;}
   function startEpisode(n,source='story') {episodeNo=n;episodeMode='live';episodeSource=source;sent=conversations[chatKey()]||[];conversations[chatKey()]=sent;turns=sent.length;go('episode');}
   function discardUnstartedPlay() {
@@ -564,10 +604,10 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
     if(action==='home'||action==='stories'||action==='explore')go(action);
     if(action==='story-list-back')go(storySource);
     if(action==='history-back')go(historySource);
-    if(action==='story-history'){selected=a;forceEmptyHistory=false;openedHistory=null;historySource='stories';go('history');}
+    if(action==='story-history'){selected=a;openedHistory=null;historySource='stories';go('history');}
     if(action==='story'){storySource=prototypeShell.getScreen();selected=a;go('story');}
     if(action==='story-back')go('story');
-    if(action==='continue'){selected=a;chooseResumeDefault();startEpisode(Math.min(rec().finished+1,5),prototypeShell.getScreen());}
+
     if(action==='replay'){
       const previous={...rec(),history:rec().history.map(h=>({...h}))};
       archiveCurrentPlay();
@@ -575,24 +615,25 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
       const now=new Date();
       records[selected]={no:nextNo,finished:0,started:false,start:new Intl.DateTimeFormat('ko-KR',{month:'long',day:'numeric'}).format(now),startTime:new Intl.DateTimeFormat('ko-KR',{hour:'numeric',minute:'2-digit',hour12:true}).format(now),history:r.history};
       pendingPlay={previous};
-      forceEmptyHistory=false;
+
       startEpisode(1,prototypeShell.getScreen());
     }
     if(action==='resume-run'){const r=rec();if(r.no===Number(a)&&r.finished<5){startEpisode(r.finished+1,'history');return;}const saved=r.history.find(h=>h.no===Number(a));if(!saved||saved.finished===5)return;archiveCurrentPlay();r.no=saved.no;r.finished=saved.finished;r.start=saved.start;r.startTime=saved.startTime;r.lastTalk=saved.lastTalk||saved.no;r.started=true;r.history=r.history.filter(h=>h.no!==saved.no);startEpisode(r.finished+1,'history');}
-    if(action==='history'){if(prototypeShell.getScreen()==='story')historySource='story';forceEmptyHistory=false;historyMany=false;openedHistory=null;go('history');}
+    if(action==='history'){if(prototypeShell.getScreen()==='story')historySource='story';historyMany=false;openedHistory=null;go('history');}
     if(action==='toggle-run'){openedHistory=openedHistory===Number(a)?null:Number(a);render();}
     if(action==='review'){reviewNo=Number(a);episodeNo=Number(b);episodeMode='review';episodeSource=prototypeShell.getScreen();go('episode','지난 대화');}
     if(action==='episode-back'){discardUnstartedPlay();go(episodeSource);}
-    if(action==='next-episode')startEpisode(Math.min(episodeNo+1,5));
+    if(action==='next-episode')startEpisode(Math.min(episodeNo+1,5),episodeSource);
     if(action==='retry-explore')go('explore');
     if(action==='retry-stories')go('stories');
-    if(action==='retry-story'||action==='dismiss-start')go('story');
+    if(action==='retry-story')go('story');
+    if(action==='dismiss-start')go(prototypeShell.getScreen());
     if(action==='retry-history')go('history');
-    if(action==='retry-episode')go('episode','지난 대화');
+    if(action==='retry-episode')go('episode');
   });
   document.addEventListener('input',e=> { if(e.target.matches('#chat-form textarea')) e.target.form.querySelector('button').disabled=!e.target.value.trim(); });
   document.addEventListener('keydown',e=>{if(e.target.matches('#chat-form textarea')&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();e.target.form.requestSubmit();}});
-  document.addEventListener('submit',e=> {if(e.target.id!=='chat-form')return;e.preventDefault();const field=e.target.querySelector('textarea'),text=field.value.trim();if(!text)return;rec().started=true;rec().lastTalk=Date.now();pendingPlay=null;sent.push(text);conversations[chatKey()]=sent;turns++;if(turns>=2){rec().finished=Math.max(rec().finished,episodeNo);if(episodeNo===5&&!rec().history.some(r=>r.no===rec().no))rec().history.push(finalRecord());syncState(episodeNo===5?'스토리 마무리':'에피소드 마무리');}else render();const stage=document.querySelector('.sh-stage');stage.scrollTop=stage.scrollHeight; });
+  document.addEventListener('submit',e=> {if(e.target.id!=='chat-form')return;e.preventDefault();const field=e.target.querySelector('textarea'),text=field.value.trim();if(!text)return;rec().started=true;rec().lastTalk=Date.now();pendingPlay=null;sent.push(text);conversations[chatKey()]=sent;turns++;if(turns>=2){rec().finished=Math.max(rec().finished,episodeNo);if(episodeNo===5&&!rec().history.some(r=>r.no===rec().no))rec().history.push(finalRecord());syncState(episodeNo===5?'스토리 마무리':'에피소드 마무리');}else syncState('대화 진행 중');const stage=document.querySelector('.sh-stage');stage.scrollTop=stage.scrollHeight; });
   preset(prototypeShell.getScreen(),prototypeShell.getState());render();
 
 })();
