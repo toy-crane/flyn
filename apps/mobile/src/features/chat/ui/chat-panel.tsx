@@ -60,7 +60,6 @@ import { ComposerSurface } from "./composer-surface";
 import { LatestMessageButton } from "./latest-message-button";
 import { sceneCopyText, sceneOfMessage } from "./scene";
 import { SceneMessage } from "./scene-message";
-import { useChatHeaderLayout } from "./use-chat-header-layout";
 import { useLateAnswer } from "./use-late-answer";
 import { UserMessage } from "./user-message";
 import { WaitingAnswer } from "./waiting-answer";
@@ -269,16 +268,6 @@ function ReturnControls({
       </Animated.View>
     </View>
   );
-}
-
-function MeasuredChatList({
-  children,
-  ready,
-}: {
-  children: ReactElement;
-  ready: boolean;
-}) {
-  return ready ? children : null;
 }
 
 /**
@@ -530,9 +519,7 @@ export function ChatPanel({
   const userScrollStart = useRef<number | undefined>(undefined);
   const canSend = chat.draft.trim().length > 0 && !chat.isBusy;
   const composerBottomPadding = Math.max(insets.bottom, 12);
-  const headerLayout = useChatHeaderLayout(banner, topInset);
-  const { contentTopInset } = headerLayout;
-  const messageTop = contentTopInset + MESSAGE_TOP_SPACING;
+  const hasBanner = banner !== undefined && banner !== null;
   const lastMessage = chat.messages.at(-1);
   const doomedFromIndex = chat.editingMessageId
     ? chat.messages.findIndex((message) => message.id === chat.editingMessageId)
@@ -687,10 +674,7 @@ export function ChatPanel({
     try {
       const state = list.getState();
       const end = Math.max(0, state.contentLength - state.scrollLength);
-      const viewport = Math.max(
-        1,
-        state.scrollLength - bottomOcclusion - contentTopInset
-      );
+      const viewport = Math.max(1, state.scrollLength - bottomOcclusion);
       if (!isReducedMotion && end - state.scroll > viewport) {
         await list.scrollToOffset({ animated: false, offset: end - viewport });
       }
@@ -713,7 +697,6 @@ export function ChatPanel({
     }
   }, [
     bottomOcclusion,
-    contentTopInset,
     cancelScrollMotion,
     freeze,
     hasReachedEnd,
@@ -783,7 +766,7 @@ export function ChatPanel({
         await listRef.current?.scrollToIndex({
           animated: !isReducedMotion,
           index: readyAnchorIndex,
-          viewOffset: messageTop,
+          viewOffset: MESSAGE_TOP_SPACING,
           viewPosition: 0,
         });
       } catch {
@@ -796,7 +779,7 @@ export function ChatPanel({
         }
       }
     },
-    [hasReachedEnd, isReducedMotion, messageTop]
+    [hasReachedEnd, isReducedMotion]
   );
   const send = useCallback(() => {
     if (!canSend) {
@@ -872,78 +855,76 @@ export function ChatPanel({
   return (
     <View
       className="flex-1 bg-background"
-      style={{ paddingTop: headerLayout.panelTopInset }}
+      style={{ paddingTop: topInset }}
       testID="chat-panel"
     >
-      {headerLayout.aboveList}
-      <MeasuredChatList ready={headerLayout.listReady}>
-        <KeyboardAwareLegendList
-          anchoredEndSpace={
-            anchorIndex === undefined
-              ? undefined
-              : {
-                  anchorIndex,
-                  anchorOffset: messageTop,
-                  onReady: anchorIndex === 0 ? undefined : positionQuestion,
-                  onSizeChanged: setAnchorSpace,
-                }
-          }
-          applyWorkaroundForContentInsetHitTestBug
-          contentContainerStyle={{
-            paddingBottom:
-              closing !== undefined && Platform.OS === "ios"
-                ? COMPOSER_BACKDROP_FADE_HEIGHT
-                : 0,
-            paddingHorizontal: 20,
-            paddingTop: messageTop,
-          }}
-          contentInsetAdjustmentBehavior="never"
-          contentInsetEndAdjustment={contentInsetEndAdjustment}
-          data={listMessages}
-          extraData={rowState}
-          freeze={freeze}
-          initialScrollAtEnd
-          keyboardDismissMode={
-            Platform.OS === "ios" ? "interactive" : "on-drag"
-          }
-          keyboardLiftBehavior={
-            isPositioningQuestion ? "persistent" : "whenAtEnd"
-          }
-          keyboardOffset={insets.bottom}
-          keyboardShouldPersistTaps="handled"
-          keyExtractor={messageKey}
-          ListHeaderComponent={source ?? undefined}
-          maintainScrollAtEnd={
-            isFollowingLatest &&
-            !isPositioningQuestion &&
-            !isMovingToLatest &&
-            anchorSpace <= bottomOcclusion
-              ? {
-                  animated: false,
-                  on: { dataChange: true, itemLayout: true, layout: true },
-                }
-              : false
-          }
-          // 추적 여부는 사용자 동작으로 정한다. 글자나 상황 줄이 커진 거리는
-          // 추적을 끄는 이유가 아니므로 목록 내부의 거리 기준은 제한하지 않는다.
-          maintainScrollAtEndThreshold={Number.POSITIVE_INFINITY}
-          maintainVisibleContentPosition={{ data: false, size: true }}
-          onEndVisible={handleEndVisible}
-          onMomentumScrollBegin={beginUserMomentum}
-          onMomentumScrollEnd={endUserScroll}
-          onScroll={updateScrollPosition}
-          onScrollBeginDrag={beginUserScroll}
-          onScrollEndDrag={endUserDrag}
-          recycleItems={false}
-          ref={listRef}
-          renderItem={renderMessage}
-          scrollEventThrottle={16}
-          style={{ flex: 1 }}
-          testID="chat-list"
-        />
-      </MeasuredChatList>
-
-      {headerLayout.overlay}
+      {hasBanner ? (
+        <View pointerEvents="none" testID="chat-banner">
+          {banner}
+        </View>
+      ) : null}
+      <KeyboardAwareLegendList
+        anchoredEndSpace={
+          anchorIndex === undefined
+            ? undefined
+            : {
+                anchorIndex,
+                anchorOffset: MESSAGE_TOP_SPACING,
+                onReady: anchorIndex === 0 ? undefined : positionQuestion,
+                onSizeChanged: setAnchorSpace,
+              }
+        }
+        applyWorkaroundForContentInsetHitTestBug
+        contentContainerStyle={{
+          paddingBottom:
+            closing !== undefined && Platform.OS === "ios"
+              ? COMPOSER_BACKDROP_FADE_HEIGHT
+              : 0,
+          paddingHorizontal: 20,
+          paddingTop: MESSAGE_TOP_SPACING,
+        }}
+        contentInsetAdjustmentBehavior="never"
+        contentInsetEndAdjustment={contentInsetEndAdjustment}
+        data={listMessages}
+        extraData={rowState}
+        freeze={freeze}
+        initialScrollAtEnd
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+        keyboardLiftBehavior={
+          isPositioningQuestion ? "persistent" : "whenAtEnd"
+        }
+        keyboardOffset={insets.bottom}
+        keyboardShouldPersistTaps="handled"
+        keyExtractor={messageKey}
+        ListHeaderComponent={source ?? undefined}
+        maintainScrollAtEnd={
+          isFollowingLatest &&
+          !isPositioningQuestion &&
+          !isMovingToLatest &&
+          anchorSpace <= bottomOcclusion
+            ? {
+                animated: false,
+                on: { dataChange: true, itemLayout: true, layout: true },
+              }
+            : false
+        }
+        // 추적 여부는 사용자 동작으로 정한다. 글자나 상황 줄이 커진 거리는
+        // 추적을 끄는 이유가 아니므로 목록 내부의 거리 기준은 제한하지 않는다.
+        maintainScrollAtEndThreshold={Number.POSITIVE_INFINITY}
+        maintainVisibleContentPosition={{ data: false, size: true }}
+        onEndVisible={handleEndVisible}
+        onMomentumScrollBegin={beginUserMomentum}
+        onMomentumScrollEnd={endUserScroll}
+        onScroll={updateScrollPosition}
+        onScrollBeginDrag={beginUserScroll}
+        onScrollEndDrag={endUserDrag}
+        recycleItems={false}
+        ref={listRef}
+        renderItem={renderMessage}
+        scrollEventThrottle={16}
+        style={{ flex: 1 }}
+        testID="chat-list"
+      />
 
       {/* 흐림은 대화에만 적용하고 최신 메시지 버튼은 그 위에 그린다. */}
       <KeyboardStickyView

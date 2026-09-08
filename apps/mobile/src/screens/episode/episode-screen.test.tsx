@@ -2,10 +2,7 @@ import { beforeEach, expect, jest, test } from "@jest/globals";
 import type { Session } from "@supabase/supabase-js";
 import { screen, userEvent } from "@testing-library/react-native";
 import type { UIMessage } from "ai";
-import {
-  useHeaderHeight,
-  usePreventRemove,
-} from "expo-router/react-navigation";
+import { usePreventRemove } from "expo-router/react-navigation";
 import type { ComponentType, ReactNode } from "react";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
@@ -27,7 +24,6 @@ jest.mock("expo-router", () => ({
 }));
 
 jest.mock("expo-router/react-navigation", () => ({
-  useHeaderHeight: jest.fn(),
   usePreventRemove: jest.fn(),
 }));
 
@@ -188,7 +184,6 @@ jest.mock("@/features/chat/ui/chat-panel", () => {
 
 const mockUseAuthSession = jest.mocked(useAuthSession);
 const mockUseConversation = jest.mocked(useConversation);
-const mockUseHeaderHeight = jest.mocked(useHeaderHeight);
 const mockUsePreventRemove = jest.mocked(usePreventRemove);
 
 let preventedRemoval:
@@ -231,7 +226,6 @@ beforeEach(() => {
   preventedRemoval = undefined;
   isRemovalPrevented = false;
   conversation.isBusy = false;
-  mockUseHeaderHeight.mockReturnValue(96);
   mockUseAuthSession.mockReturnValue({
     session: { access_token: "token-1" } as Session,
     status: "signedIn",
@@ -255,7 +249,8 @@ test("화면에 들어오면 그 자리에서 에피소드를 연다", async () 
     false
   );
   expect(panel?.chat).toMatchObject({ tag: "conversation" });
-  expect(panel?.topInset).toBe(96);
+  // 불투명 네이티브 헤더가 확보한 높이를 본문에 다시 더하지 않는다.
+  expect(panel?.topInset).toBeUndefined();
   expect(panel?.placeholder).toBe("영어나 한국어로 적어 주세요.");
 });
 

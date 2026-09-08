@@ -1,7 +1,6 @@
 import type { UIMessage } from "ai";
-import { useHeaderHeight } from "expo-router/react-navigation";
 import { type ReactNode, useCallback, useMemo, useRef } from "react";
-import { Platform, type TextInput } from "react-native";
+import type { TextInput } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
 import {
@@ -83,7 +82,6 @@ export function EpisodeScreen({
   const conversation = useConversation(chat, drafts, accessToken);
   const { openAsk } = useEpisodeAsks();
   const inputRef = useRef<TextInput>(null);
-  const headerHeight = useHeaderHeight();
   // 첫 장면을 받지 못했다면 다시 받을 것은 답변이 아니라 에피소드의 시작이다.
   // 되받을 답변이 없어 그냥 돌아서는 다시 시도는 눌러도 아무 일이 없다.
   const retry = useCallback(() => {
@@ -169,7 +167,6 @@ export function EpisodeScreen({
         key={panelKey}
         messageAddon={EpisodeCorrectionNote}
         placeholder={episodeLabels.placeholder}
-        topInset={Platform.OS === "ios" ? headerHeight : 0}
       />
     </EpisodeCorrectionsProvider>
   );
