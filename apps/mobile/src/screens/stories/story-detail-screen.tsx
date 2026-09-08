@@ -1,4 +1,5 @@
-import { ScrollView, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import { type LayoutChangeEvent, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { StoryDetail, StoryEpisode } from "@/features/story/api/story";
@@ -107,6 +108,12 @@ export function StoryDetailScreen({
 }) {
   const insets = useSafeAreaInsets();
   const bottom = Math.max(insets.bottom, BOTTOM_PADDING);
+  // 고정한 CTA가 실제로 차지한 높이. 큰 글자에서는 버튼이 커지므로 어림수로
+  // 자리를 잡아 두면 마지막 에피소드가 버튼 뒤로 들어간다.
+  const [footerHeight, setFooterHeight] = useState(0);
+  const measureFooter = useCallback((event: LayoutChangeEvent) => {
+    setFooterHeight(event.nativeEvent.layout.height);
+  }, []);
 
   return (
     <View className="flex-1 bg-background">
@@ -114,7 +121,7 @@ export function StoryDetailScreen({
         className="flex-1"
         contentContainerClassName="gap-6 px-5 pt-5"
         // 마지막 화가 하단 CTA 뒤로 숨지 않도록 그만큼의 자리를 남긴다.
-        contentContainerStyle={{ paddingBottom: bottom + 76 }}
+        contentContainerStyle={{ paddingBottom: footerHeight }}
         contentInsetAdjustmentBehavior="automatic"
         testID="story-detail-scroll"
       >
@@ -129,7 +136,11 @@ export function StoryDetailScreen({
       </ScrollView>
 
       {story ? (
-        <View className="px-6 pt-3" style={{ paddingBottom: bottom }}>
+        <View
+          className="px-6 pt-3"
+          onLayout={measureFooter}
+          style={{ paddingBottom: bottom }}
+        >
           <Button
             accessibilityLabel={storyLabels.start}
             isPending={isStarting}
