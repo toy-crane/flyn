@@ -71,9 +71,17 @@ export interface EpisodeSessionView {
   readOnly: boolean;
 }
 
+/**
+ * 이 회차에서 끝낸 화를 순서대로 읽는다.
+ *
+ * 회차로 거르는 것이 이 함수의 요점이다. 같은 화를 여러 회차에서 플레이하므로,
+ * 화 id만으로 물으면 다른 회차의 결말과 이야기 기억이 함께 딸려 온다. 그러면
+ * 다음 화의 프롬프트가 두 흐름을 섞어 읽는다.
+ */
 export async function readFinishedEpisodes(
   client: EpisodeClient,
-  story: StoryContent
+  story: StoryContent,
+  runId: string
 ): Promise<FinishedEpisodeRow[]> {
   const ids = story.episodes.map((episode) => episode.id);
 
@@ -86,6 +94,7 @@ export async function readFinishedEpisodes(
     .select(
       "episode_id, ending_kind, ending_outcome, memory_choice, memory_relationship, memory_question"
     )
+    .eq("run_id", runId)
     .not("finished_at", "is", null)
     .in("episode_id", ids);
 
@@ -124,6 +133,7 @@ export async function readFinishedEpisodes(
 
 export async function recordEpisodeEnding(
   client: EpisodeClient,
+  runId: string,
   episodeId: string,
   outcome: SceneOutcome
 ): Promise<void> {
@@ -140,6 +150,7 @@ export async function recordEpisodeEnding(
     memory_question: usableNote(notes[EPISODE_NOTES.question]),
     memory_relationship: usableNote(notes[EPISODE_NOTES.relationship]),
     outcome: outcome.ending.outcome,
+    run_id: runId,
   });
 
   if (error) {
@@ -175,18 +186,23 @@ interface StoredMessage {
 }
 
 /**
- * 이 계정의 이 화 플레이를 연다. 이미 열려 있으면 그 플레이를 그대로 쓴다.
+ * 이 회차의 이 화 플레이를 연다. 이미 열려 있으면 그 플레이를 그대로 쓴다.
  *
  * 먼저 찾아보고 없을 때만 만든다. 두 요청이 겹쳐 둘 다 만들려 하면 유니크 제약이
  * 뒤에 온 쪽을 거절하므로, 그때는 앞선 요청이 만든 행을 다시 읽는다.
+ *
+ * 회차 안의 2화부터는 이렇게 미리 열어도 된다. 빈 플레이는 기록에 새 줄을 만들지
+ * 않는다. 기록의 단위는 회차이고, 회차는 사용자가 1화에서 처음 말할 때만 생긴다.
  */
 async function openPlay(
   client: EpisodeClient,
+  runId: string,
   episodeId: string
 ): Promise<string> {
   const found = await client
     .from("episode_plays")
     .select("id")
+    .eq("run_id", runId)
     .eq("episode_id", episodeId)
     .maybeSingle();
 
@@ -202,7 +218,7 @@ async function openPlay(
 
   const opened = await client
     .from("episode_plays")
-    .insert({ episode_id: episodeId })
+    .insert({ episode_id: episodeId, run_id: runId })
     .select("id")
     .maybeSingle();
 
@@ -213,6 +229,7 @@ async function openPlay(
   const raced = await client
     .from("episode_plays")
     .select("id")
+    .eq("run_id", runId)
     .eq("episode_id", episodeId)
     .maybeSingle();
 
@@ -272,10 +289,11 @@ async function readPlayMessages(
  */
 export async function openEpisodePlay(
   client: EpisodeClient,
+  runId: string,
   episodeId: string,
   keepThrough?: string | null
 ): Promise<EpisodePlay> {
-  const playId = await openPlay(client, episodeId);
+  const playId = await openPlay(client, runId, episodeId);
   const stored = await readStoredMessages(client, playId);
   const kept = keptThrough(stored, keepThrough);
 
@@ -548,6 +566,7 @@ function nextEpisodeView(episode: EpisodeScript): NextEpisodeView {
 export async function readEpisodeSession(
   client: EpisodeClient,
   story: StoryContent,
+  runId: string,
   episodeId: string
 ): Promise<EpisodeSessionView | undefined> {
   const episode = story.episodes.find(
@@ -558,7 +577,7 @@ export async function readEpisodeSession(
     return;
   }
 
-  const finished = await readFinishedEpisodes(client, story);
+  const finished = await readFinishedEpisodes(client, story, runId);
   const ending = finished.find((row) => row.episode_id === episodeId);
   const current = currentEpisode(story, finished);
 
@@ -569,6 +588,7 @@ export async function readEpisodeSession(
   const play = await client
     .from("episode_plays")
     .select("id")
+    .eq("run_id", runId)
     .eq("episode_id", episodeId)
     .maybeSingle();
 

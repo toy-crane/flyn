@@ -24,6 +24,10 @@ function createUserAuthMiddleware(): MiddlewareHandler {
 }
 
 const STORY_ID = "10000000-0000-4000-8000-000000000001";
+/** 테스트가 이어가는 회차. 새로 시작하는 요청만 이 값을 싣지 않는다. */
+const RUN_ID = "1a000000-0000-4000-8000-000000000001";
+/** 새 회차가 생길 때 가짜 데이터베이스가 붙이는 id. */
+const NEW_RUN_ID = "1a000000-0000-4000-8000-00000000000f";
 const EPISODE_IDS = [1, 2, 3, 4, 5].map(
   (number) => `11000000-0000-4000-8000-${number.toString().padStart(12, "0")}`
 );
@@ -172,6 +176,14 @@ interface CorrectionRow {
   reason: string;
 }
 
+/** 회차 한 줄, `story_runs`가 들고 있는 모양대로. */
+interface RunRow {
+  id: string;
+  last_user_message_at: string | null;
+  started_at: string;
+  story_id: string;
+}
+
 interface SeasonState {
   /** 교정을 남기는 문장만 실패시킨다. 장면 저장은 그대로 성공한다. */
   correctionSaveError?: string;
@@ -181,11 +193,37 @@ interface SeasonState {
   recordAccepted?: boolean;
   recordError?: string;
   recorded: Record<string, unknown>[];
+  runs: RunRow[];
   saveError?: string;
 }
 
+/** 이미 진행 중인 회차 하나. 이어가는 테스트가 기본으로 쓴다. */
+function startedRun(): RunRow {
+  return {
+    id: RUN_ID,
+    last_user_message_at: "2026-08-29T00:05:00.000Z",
+    started_at: "2026-08-29T00:00:00.000Z",
+    story_id: STORY_ID,
+  };
+}
+
 function createSeasonState(finished: FinishedRow[] = []): SeasonState {
-  return { corrections: [], finished, messages: [], recorded: [] };
+  return {
+    corrections: [],
+    finished,
+    messages: [],
+    recorded: [],
+    runs: [startedRun()],
+  };
+}
+
+/** 아직 아무 회차도 없는 계정. 새 대화를 시작하는 경로가 쓴다. */
+function createEmptyState(): SeasonState {
+  const state = createSeasonState();
+
+  state.runs = [];
+
+  return state;
 }
 
 /** Every episode of the story, ended. */
@@ -215,6 +253,8 @@ type Row = Record<string, unknown>;
  */
 function signedInWith(state: SeasonState): MiddlewareHandler {
   const openedPlays = new Set<string>();
+  /** 이번 요청이 연 플레이가 어느 회차에 붙었는지. */
+  const openedRuns = new Map<string, string>();
 
   function finishedRows(): Row[] {
     return state.finished.map(({ episode, ...row }) => {
@@ -225,6 +265,9 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
         episode_id: identifier,
         finished_at: `2026-08-29T00:0${episode}:00.000Z`,
         id: playIdOf(identifier),
+        // 진행은 회차 안에서만 읽힌다. 가짜도 그 열을 달아 주어야 회차로 거르는
+        // 조회가 실제와 같은 답을 낸다.
+        run_id: state.runs.at(0)?.id ?? RUN_ID,
         started_at: `2026-08-29T00:0${episode}:00.000Z`,
       };
     });
@@ -244,6 +287,7 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
         episode_id: id.slice("play-".length),
         finished_at: null,
         id,
+        run_id: openedRuns.get(id) ?? state.runs.at(0)?.id ?? RUN_ID,
         started_at: "2026-08-29T00:10:00.000Z",
       }));
 
@@ -260,10 +304,13 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
     },
     from: (table: string) => {
       const equals = new Map<string, unknown>();
-      const sorted: string[] = [];
+      const sorted: { ascending: boolean; column: string }[] = [];
+      /** `not(column, "is", null)`이 거르는 열. */
+      const present = new Set<string>();
       let within: { column: string; values: unknown[] } | undefined;
       let after: { column: string; value: string } | undefined;
       let nested = false;
+      let nestedPlays = false;
       let wantsCounts = false;
       const value = (row: Row, column: string) => row[column];
 
@@ -274,6 +321,10 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
 
         if (table === "episodes") {
           return TEST_EPISODES as unknown as Row[];
+        }
+
+        if (table === "story_runs") {
+          return state.runs as unknown as Row[];
         }
 
         if (table === "episode_plays") {
@@ -313,6 +364,10 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
             [...equals].every(
               ([name, wanted]) => value(row, name) === wanted
             ) &&
+            [...present].every(
+              (name) =>
+                value(row, name) !== null && value(row, name) !== undefined
+            ) &&
             (!within || within.values.includes(value(row, within.column))) &&
             (after === undefined ||
               String(value(row, after.column)) > after.value)
@@ -320,19 +375,41 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
         const [by] = sorted;
         // 숫자로 견주면 시각 문자열이 NaN이 되어 정렬이 통째로 무너진다.
         const ordered = by
-          ? [...kept].sort((left, right) =>
-              String(value(left, by)).localeCompare(String(value(right, by)))
-            )
+          ? [...kept].sort((left, right) => {
+              const compared = String(value(left, by.column)).localeCompare(
+                String(value(right, by.column))
+              );
+
+              return by.ascending ? compared : -compared;
+            })
           : kept;
 
-        // 중첩 select는 스토리 한 줄에 그 스토리의 화 목록을, 플레이 한 줄에 그
-        // 플레이에 남은 메시지 수를 달아 준다.
+        // 중첩 select는 스토리 한 줄에 그 스토리의 화 목록을, 회차 한 줄에 그
+        // 회차의 플레이를, 플레이 한 줄에 그 플레이에 남은 메시지 수를 달아 준다.
         if (nested) {
           return ordered.map((row) => ({
             ...row,
             episodes: TEST_EPISODES.filter(
               (episode) => episode.story_id === value(row, "id")
             ),
+          }));
+        }
+
+        if (nestedPlays) {
+          return ordered.map((run) => ({
+            ...run,
+            episode_plays: playRows()
+              .filter((play) => value(play, "run_id") === value(run, "id"))
+              .map((play) => ({
+                ...play,
+                episode_messages: [
+                  {
+                    count: state.messages.filter(
+                      (message) => message.play_id === play.id
+                    ).length,
+                  },
+                ],
+              })),
           }));
         }
 
@@ -365,6 +442,7 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
           error: failure,
           select: () => ({
             maybeSingle: () => Promise.resolve({ data, error: failure }),
+            single: () => Promise.resolve({ data, error: failure }),
           }),
         };
       }
@@ -480,25 +558,45 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
               return writeResult(null);
             }
 
+            if (table === "story_runs") {
+              const run: RunRow = {
+                id: NEW_RUN_ID,
+                last_user_message_at: null,
+                started_at: nextCreatedAt(),
+                story_id: String(added[0]?.story_id),
+              };
+
+              state.runs.push(run);
+
+              return writeResult(run as unknown as Row);
+            }
+
             const identifier = String(added[0]?.episode_id);
             const id = playIdOf(identifier);
+            const run = String(added[0]?.run_id);
 
             openedPlays.add(id);
+            openedRuns.set(id, run);
 
-            return writeResult({ episode_id: identifier, id });
+            return writeResult({ episode_id: identifier, id, run_id: run });
           },
           maybeSingle: () =>
             Promise.resolve({ data: rows()[0] ?? null, error: null }),
-          // 끝난 플레이만 고르는 조회가 이것을 쓴다. `finishedRows`가 내놓는
-          // 행은 모두 이미 끝난 것이라 여기서는 바뀌는 것이 없다.
-          not: () => builder,
-          order: (column: string) => {
-            sorted.push(column);
+          // `not(column, "is", null)`은 그 열이 채워진 행만 남긴다. 끝난 플레이를
+          // 고르는 조회와, 사용자가 말한 적 있는 회차를 고르는 조회가 함께 쓴다.
+          not: (column: string) => {
+            present.add(column);
+
+            return builder;
+          },
+          order: (column: string, options?: { ascending?: boolean }) => {
+            sorted.push({ ascending: options?.ascending !== false, column });
 
             return builder;
           },
           select: (projection?: string) => {
             nested = projection?.includes("episodes(") ?? false;
+            nestedPlays = projection?.includes("episode_plays(") ?? false;
             wantsCounts = projection?.includes("episode_messages(") ?? false;
 
             return builder;
@@ -647,13 +745,21 @@ function createEpisodeRequest(
     keepThrough?: string | null;
     message?: unknown;
     messages?: unknown[];
+    runId?: string | null;
     seenPatterns?: string[];
+    storyId?: string;
   },
   token?: string
 ): Request {
-  const { messages, ...rest } = body;
-  const payload =
+  const { messages, runId, ...rest } = body;
+  const sent =
     messages === undefined ? rest : { ...rest, message: messages.at(-1) };
+  // 이어가는 요청이 기본이다. `runId: null`은 회차를 싣지 않는다는 뜻이라, 새
+  // 대화를 시작하는 테스트가 그렇게 적는다.
+  const payload =
+    runId === null || rest.storyId !== undefined
+      ? sent
+      : { ...sent, runId: runId ?? RUN_ID };
 
   return new Request(`http://localhost${EPISODE_PATH}`, {
     body: JSON.stringify(payload),
@@ -665,10 +771,15 @@ function createEpisodeRequest(
   });
 }
 
-function createHomeRequest(token?: string): Request {
-  return new Request(`http://localhost${EPISODE_PATH}/home`, {
+function createRecentRequest(token?: string): Request {
+  return new Request(`http://localhost${EPISODE_PATH}/recent`, {
     headers: token ? { authorization: `Bearer ${token}` } : {},
   });
+}
+
+/** 저장된 대화 한 화를 회차와 함께 읽는 요청. */
+function episodeSessionPath(number: number, runId: string = RUN_ID): string {
+  return `${EPISODE_PATH}/${episodeId(number)}?runId=${runId}`;
 }
 
 function createUserMessage(text: string) {
@@ -1061,6 +1172,7 @@ describe("POST /ai/episode", () => {
         memory_question: undefined,
         memory_relationship: undefined,
         outcome: "원하던 커피를 새로 받아냈다.",
+        run_id: RUN_ID,
       },
     ]);
   });
@@ -1095,6 +1207,7 @@ describe("POST /ai/episode", () => {
         memory_question: "내일도 이 카페에 들를지.",
         memory_relationship: "Mia가 실수를 인정했다.",
         outcome: "원하던 커피를 새로 받아냈다.",
+        run_id: RUN_ID,
       },
     ]);
     expect(body).toContain("Here is your iced americano.");
@@ -1361,6 +1474,7 @@ test("표현만 다시 확인하면 문제없음을 명시하고 대화는 바�
       body: JSON.stringify({
         episodeId: episodeId(1),
         messageId: "natural-message",
+        runId: RUN_ID,
       }),
       headers: { "content-type": "application/json" },
       method: "POST",
@@ -1403,7 +1517,7 @@ describe("메시지별 표현 확인 API", () => {
   }
   function request(messageId = "m1", identifier = episodeId(1)) {
     return new Request(`http://localhost${EPISODE_PATH}/correction`, {
-      body: JSON.stringify({ episodeId: identifier, messageId }),
+      body: JSON.stringify({ episodeId: identifier, messageId, runId: RUN_ID }),
       headers: { "content-type": "application/json" },
       method: "POST",
     });
@@ -1493,7 +1607,7 @@ describe("메시지별 표현 확인 API", () => {
       status: "corrected",
     });
     const restored = (await (
-      await app.request(`http://localhost${EPISODE_PATH}/${episodeId(1)}`)
+      await app.request(`http://localhost${episodeSessionPath(1)}`)
     ).json()) as { corrections: unknown[] };
     expect(restored.corrections).toEqual([result.correction]);
   });
@@ -1918,56 +2032,145 @@ describe("POST /ai/episode/ask", () => {
   });
 });
 
-interface HomeViewBody {
-  continueCard: {
-    episodeId: string;
-    episodeNumber: number;
-    episodeTitle: string;
-    finished: number;
+interface RecentViewBody {
+  stories: {
+    coverEmoji: string;
+    coverImagePath: string | null;
     hook: string;
-    preview: string;
-    resuming: boolean;
     storyId: string;
     title: string;
-    total: number;
-  } | null;
-  firstTime: boolean;
-  others: { storyId: string }[];
+  }[];
 }
 
-describe("GET /ai/episode/home", () => {
+interface RunsViewBody {
+  intro: string;
+  runs: {
+    episodes: {
+      episodeId: string;
+      hasTranscript: boolean;
+      number: number;
+      outcome: string;
+      title: string;
+    }[];
+    finished: number;
+    next: { episodeId: string; number: number; title: string } | null;
+    runId: string;
+    startedAt: string;
+  }[];
+  storyId: string;
+  title: string;
+  total: number;
+}
+
+describe("GET /ai/episode/recent", () => {
   test("rejects a request with no access token", async () => {
     const app = createApp({ authMiddleware: createUserAuthMiddleware() });
 
-    const response = await app.request(createHomeRequest());
+    const response = await app.request(createRecentRequest());
 
     expect(response.status).toBe(401);
   });
 
-  // 처음 온 사람의 홈. 제품이 정한 첫 스토리의 1화가 카드로 선다.
-  test("points at the first episode before anything is started", async () => {
+  // 대화한 적 없는 계정. 스토리 탭은 비어 있고 탐색으로 안내한다.
+  test("is empty before anything has been said", async () => {
+    const app = createApp({ authMiddleware: signedInWith(createEmptyState()) });
+
+    const response = await app.request(createRecentRequest());
+    const view = (await response.json()) as RecentViewBody;
+
+    expect(response.status).toBe(200);
+    expect(view.stories).toEqual([]);
+  });
+
+  // 대화한 스토리가 하나씩 선다. 진행 바는 목록에 없다.
+  test("lists a story that has been spoken in, without progress", async () => {
     const app = createApp({
       authMiddleware: signedInWith(createSeasonState()),
     });
 
-    const response = await app.request(createHomeRequest());
-    const view = (await response.json()) as HomeViewBody;
+    const response = await app.request(createRecentRequest());
+    const view = (await response.json()) as RecentViewBody;
 
-    expect(response.status).toBe(200);
-    expect(view.firstTime).toBe(true);
-    expect(view.others).toEqual([]);
-    expect(view.continueCard).toMatchObject({
-      episodeNumber: 1,
-      episodeTitle: "카페에서 생긴 일",
-      finished: 0,
-      resuming: false,
-      storyId: STORY_ID,
-      total: 5,
-    });
+    expect(view.stories).toEqual([
+      {
+        coverEmoji: "☕",
+        coverImagePath: null,
+        hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
+        storyId: STORY_ID,
+        title: "Mia의 카페",
+      },
+    ]);
   });
 
-  // 화 사이의 홈. 끝낸 만큼 진행이 차고 다음 화를 가리킨다.
-  test("counts what is finished and points at the next episode", async () => {
+  // 같은 스토리를 여러 번 진행해도 목록에는 한 줄만 선다.
+  test("shows a story once however many runs it has", async () => {
+    const state = createSeasonState();
+
+    state.runs.push({
+      id: "1a000000-0000-4000-8000-000000000002",
+      last_user_message_at: "2026-08-29T00:09:00.000Z",
+      started_at: "2026-08-29T00:08:00.000Z",
+      story_id: STORY_ID,
+    });
+
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    const response = await app.request(createRecentRequest());
+    const view = (await response.json()) as RecentViewBody;
+
+    expect(view.stories).toHaveLength(1);
+  });
+
+  // 첫 장면만 열고 나온 회차는 사용자 메시지가 없다. 목록을 만들지 않는다.
+  test("leaves out a run nobody has spoken in", async () => {
+    const state = createEmptyState();
+
+    state.runs.push({
+      id: RUN_ID,
+      last_user_message_at: null,
+      started_at: "2026-08-29T00:00:00.000Z",
+      story_id: STORY_ID,
+    });
+
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    const response = await app.request(createRecentRequest());
+    const view = (await response.json()) as RecentViewBody;
+
+    expect(view.stories).toEqual([]);
+  });
+});
+
+describe("GET /ai/episode/stories/:storyId/runs", () => {
+  test("answers 404 for a story that does not exist", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(createSeasonState()),
+    });
+
+    const response = await app.request(
+      `${EPISODE_PATH}/stories/10000000-0000-4000-8000-000000000009/runs`
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  // 기록이 없는 스토리. 빈 화면이지 실패가 아니다.
+  test("is empty when this story has no record", async () => {
+    const app = createApp({ authMiddleware: signedInWith(createEmptyState()) });
+
+    const response = await app.request(
+      `${EPISODE_PATH}/stories/${STORY_ID}/runs`
+    );
+    const view = (await response.json()) as RunsViewBody;
+
+    expect(response.status).toBe(200);
+    expect(view.runs).toEqual([]);
+    expect(view.title).toBe("Mia의 카페");
+    expect(view.total).toBe(5);
+  });
+
+  // 카드 하나. 끝낸 화가 목록으로 열리고, 이어갈 화는 그다음 화다.
+  test("opens the finished episodes and names the one to continue", async () => {
     const app = createApp({
       authMiddleware: signedInWith(
         createSeasonState([
@@ -1980,55 +2183,44 @@ describe("GET /ai/episode/home", () => {
       ),
     });
 
-    const response = await app.request(createHomeRequest());
-    const view = (await response.json()) as HomeViewBody;
+    const response = await app.request(
+      `${EPISODE_PATH}/stories/${STORY_ID}/runs`
+    );
+    const view = (await response.json()) as RunsViewBody;
+    const [run] = view.runs;
 
-    expect(view.firstTime).toBe(false);
-    expect(view.continueCard).toMatchObject({
-      episodeNumber: 2,
-      episodeTitle: "계산이 꼬인 아침",
+    expect(run).toMatchObject({
       finished: 1,
-      resuming: false,
+      next: { episodeId: episodeId(2), number: 2, title: "계산이 꼬인 아침" },
+      runId: RUN_ID,
+      startedAt: "2026-08-29T00:00:00.000Z",
     });
+    expect(run?.episodes).toEqual([
+      {
+        episodeId: episodeId(1),
+        hasTranscript: false,
+        number: 1,
+        outcome: "새 잔을 받아냈다.",
+        title: "카페에서 생긴 일",
+      },
+    ]);
   });
 
-  // 결말이 나지 않은 장면이 남아 있으면 시작이 아니라 이어 하기다.
-  test("resumes the episode whose scene is still open", async () => {
-    const state = createSeasonState();
-
-    state.messages.push({
-      created_at: "2026-08-29T00:00:00.000Z",
-      id: "m1",
-      parts: [{ text: "Next in line, please!", type: "text" }],
-      play_id: playIdOf(episodeId(1)),
-      role: "assistant",
-    });
-
-    const app = createApp({ authMiddleware: signedInWith(state) });
-
-    const response = await app.request(createHomeRequest());
-    const view = (await response.json()) as HomeViewBody;
-
-    expect(view.firstTime).toBe(false);
-    expect(view.continueCard).toMatchObject({
-      episodeNumber: 1,
-      resuming: true,
-    });
-  });
-
-  test("has no card left once every story is finished", async () => {
+  // 완주한 회차에는 이어갈 화가 없다.
+  test("has nothing left to continue once the run is finished", async () => {
     const app = createApp({
       authMiddleware: signedInWith(createSeasonState(finishedSeason())),
     });
 
-    const response = await app.request(createHomeRequest());
-    const view = (await response.json()) as HomeViewBody;
+    const response = await app.request(
+      `${EPISODE_PATH}/stories/${STORY_ID}/runs`
+    );
+    const view = (await response.json()) as RunsViewBody;
 
-    expect(view.continueCard).toBeNull();
-    expect(view.others).toEqual([]);
+    expect(view.runs[0]).toMatchObject({ finished: 5, next: null });
   });
 
-  // 결말 낱말은 서버 안에서만 쓴다. 홈으로 나가는 값에 실리지 않는다.
+  // 결말 낱말은 서버 안에서만 쓴다. 기록으로 나가는 값에 실리지 않는다.
   test("never sends the ending word to the screen", async () => {
     const app = createApp({
       authMiddleware: signedInWith(
@@ -2042,14 +2234,43 @@ describe("GET /ai/episode/home", () => {
       ),
     });
 
-    const response = await app.request(createHomeRequest());
+    const response = await app.request(
+      `${EPISODE_PATH}/stories/${STORY_ID}/runs`
+    );
 
     expect(await response.text()).not.toContain("성공");
+  });
+
+  // 아직 아무 화도 끝내지 않은 회차도 기록에 선다. 진행 바만 비어 있다.
+  test("shows a run that has not finished an episode yet", async () => {
+    const state = createSeasonState();
+
+    state.messages.push({
+      created_at: "2026-08-29T00:05:00.000Z",
+      id: "m1",
+      parts: [{ text: "Can I change it?", type: "text" }],
+      play_id: playIdOf(episodeId(1)),
+      role: "user",
+    });
+
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    const response = await app.request(
+      `${EPISODE_PATH}/stories/${STORY_ID}/runs`
+    );
+    const view = (await response.json()) as RunsViewBody;
+
+    expect(view.runs[0]).toMatchObject({
+      episodes: [],
+      finished: 0,
+      next: { number: 1 },
+    });
   });
 });
 
 describe("GET /ai/episode/stories", () => {
-  test("lists every official story with its hook, cover and progress", async () => {
+  // 탐색은 콘텐츠를 소개한다. 어느 회차의 진행도 여기 실리지 않는다.
+  test("lists every official story with its hook and cover, and no progress", async () => {
     const app = createApp({
       authMiddleware: signedInWith(
         createSeasonState([
@@ -2067,7 +2288,6 @@ describe("GET /ai/episode/stories", () => {
       stories: {
         coverEmoji: string;
         coverImagePath: string | null;
-        finished: number;
         hook: string;
         storyId: string;
         title: string;
@@ -2080,7 +2300,6 @@ describe("GET /ai/episode/stories", () => {
       {
         coverEmoji: "☕",
         coverImagePath: null,
-        finished: 1,
         hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
         storyId: STORY_ID,
         title: "Mia의 카페",
@@ -2103,8 +2322,8 @@ describe("GET /ai/episode/stories/:storyId", () => {
     expect(response.status).toBe(404);
   });
 
-  // 끝낸 화는 결과 한 줄을, 다음 화는 예고를, 그 뒤는 제목만 남긴다.
-  test("opens the finished result, the next preview and nothing more", async () => {
+  // 모든 화가 제목과 상황 설명을 공개한다. 진행 상태와 잠금은 여기 없다.
+  test("opens every episode with its title and situation", async () => {
     const app = createApp({
       authMiddleware: signedInWith(
         createSeasonState([
@@ -2120,65 +2339,59 @@ describe("GET /ai/episode/stories/:storyId", () => {
     const response = await app.request(`${EPISODE_PATH}/stories/${STORY_ID}`);
     const view = (await response.json()) as {
       episodes: {
-        hasTranscript: boolean;
+        episodeId: string;
         number: number;
-        outcome: string | null;
-        preview: string | null;
-        state: string;
+        situation: string;
         title: string;
       }[];
       intro: string;
-      next: { episodeId: string; number: number; resuming: boolean } | null;
+      total: number;
     };
 
     expect(response.status).toBe(200);
-    expect(view.next).toEqual({
-      episodeId: episodeId(2),
-      number: 2,
-      resuming: false,
+    expect(view.total).toBe(5);
+    expect(view.episodes).toHaveLength(5);
+    expect(view.episodes[0]).toEqual({
+      episodeId: episodeId(1),
+      number: 1,
+      situation: "잘못 나온 커피를 원하는 커피로 바꿔 보세요",
+      title: "카페에서 생긴 일",
     });
-    expect(view.episodes[0]).toMatchObject({
-      hasTranscript: false,
-      outcome: "새 잔을 받아냈다.",
-      preview: null,
-      state: "finished",
-    });
-    expect(view.episodes[1]).toMatchObject({
-      outcome: null,
-      preview: "카드가 자꾸 튕겨요.",
-      state: "next",
-    });
-    expect(view.episodes[2]).toMatchObject({
-      outcome: null,
-      preview: null,
-      state: "locked",
-      title: "자리를 맡아 둔 사이에",
+    expect(view.episodes[4]).toEqual({
+      episodeId: episodeId(5),
+      number: 5,
+      situation: "문 닫기 전에 하고 싶은 말을 건네 보세요",
+      title: "마지막 잔",
     });
   });
 
-  test("has no next episode left once the story is finished", async () => {
+  // 회차를 바꿔도 목록은 같다. 상세가 진행을 읽지 않기 때문이다.
+  test("shows the same list however far a run has gone", async () => {
     const app = createApp({
       authMiddleware: signedInWith(createSeasonState(finishedSeason())),
     });
 
     const response = await app.request(`${EPISODE_PATH}/stories/${STORY_ID}`);
-    const view = (await response.json()) as {
-      finished: number;
-      next: unknown;
+    const body = await response.text();
+    const view = JSON.parse(body) as {
+      episodes: { number: number }[];
     };
 
-    expect(view.next).toBeNull();
-    expect(view.finished).toBe(5);
+    expect(view.episodes.map((episode) => episode.number)).toEqual([
+      1, 2, 3, 4, 5,
+    ]);
+    expect(body).not.toContain("outcome");
+    expect(body).not.toContain("새 잔을 받아냈다.");
   });
 });
 
 describe("story content database contract", () => {
-  test("serves the home view from the database", async () => {
+  test("serves the story list from the database", async () => {
     const app = createApp({
       authMiddleware: signedInWith(createSeasonState()),
     });
 
-    const response = await app.request(`${EPISODE_PATH}/home`);
+    const response = await app.request(`${EPISODE_PATH}/stories`);
 
     expect(response.status).toBe(200);
   });
@@ -2188,11 +2401,21 @@ describe("story content database contract", () => {
       authMiddleware: signedInWith(createSeasonState()),
     });
 
-    const response = await app.request(
-      `${EPISODE_PATH}/11000000-0000-4000-8000-000000000001`
-    );
+    const response = await app.request(episodeSessionPath(1));
 
     expect(response.status).toBe(200);
+  });
+
+  // 어느 대화인지 말하지 않은 요청은 읽을 회차를 고를 수 없다.
+  test("refuses to open an episode without naming the conversation", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(createSeasonState()),
+    });
+    const withoutRun = `${EPISODE_PATH}/${episodeId(1)}`;
+
+    const response = await app.request(withoutRun);
+
+    expect(response.status).toBe(400);
   });
 
   // 경로에서 오는 값이라 모양조차 보장되지 않는다. uuid가 아닌 화 id는 없는
@@ -2202,7 +2425,9 @@ describe("story content database contract", () => {
       authMiddleware: signedInWith(createSeasonState()),
     });
 
-    const response = await app.request(`${EPISODE_PATH}/not-a-uuid`);
+    const response = await app.request(
+      `${EPISODE_PATH}/not-a-uuid?runId=${RUN_ID}`
+    );
 
     expect(response.status).toBe(404);
   });
@@ -2284,7 +2509,7 @@ describe("story content database contract", () => {
     });
 
     const app = createApp({ authMiddleware: signedInWith(state) });
-    const response = await app.request(`${EPISODE_PATH}/${episodeId(1)}`);
+    const response = await app.request(episodeSessionPath(1));
     const session = (await response.json()) as {
       messages: unknown[];
       readOnly: boolean;
@@ -2315,7 +2540,7 @@ describe("story content database contract", () => {
     });
 
     const app = createApp({ authMiddleware: signedInWith(state) });
-    const response = await app.request(`${EPISODE_PATH}/${episodeId(1)}`);
+    const response = await app.request(episodeSessionPath(1));
     const session = (await response.json()) as {
       ending: { kind: string; outcome: string };
       messages: unknown[];
@@ -2369,7 +2594,7 @@ describe("story content database contract", () => {
     );
 
     const app = createApp({ authMiddleware: signedInWith(state) });
-    const response = await app.request(`${EPISODE_PATH}/${episodeId(1)}`);
+    const response = await app.request(episodeSessionPath(1));
     const session = (await response.json()) as {
       corrections: {
         entries: { pattern: string }[];
@@ -2400,12 +2625,13 @@ describe("story content database contract", () => {
     ]);
     const app = createApp({ authMiddleware: signedInWith(state) });
 
-    const response = await app.request(`${EPISODE_PATH}/${episodeId(1)}`);
+    const response = await app.request(episodeSessionPath(1));
 
     expect(response.status).toBe(404);
   });
 
-  test("marks only completed conversations as reviewable on the story detail", async () => {
+  // 결말만 남고 대화가 없는 화는 펼쳐도 열 것이 없다. 기록이 그것을 구분한다.
+  test("marks only conversations with messages as reviewable in the record", async () => {
     const state = createSeasonState([
       { ending_kind: "성공", ending_outcome: "새 잔을 받아냈다.", episode: 1 },
       { ending_kind: "타협", ending_outcome: "현금으로 냈다.", episode: 2 },
@@ -2420,13 +2646,16 @@ describe("story content database contract", () => {
     });
 
     const app = createApp({ authMiddleware: signedInWith(state) });
-    const response = await app.request(`${EPISODE_PATH}/stories/${STORY_ID}`);
+    const response = await app.request(
+      `${EPISODE_PATH}/stories/${STORY_ID}/runs`
+    );
     const view = (await response.json()) as {
-      episodes: { hasTranscript: boolean }[];
+      runs: { episodes: { hasTranscript: boolean }[] }[];
     };
+    const [run] = view.runs;
 
-    expect(view.episodes[0]?.hasTranscript).toBeTrue();
-    expect(view.episodes[1]?.hasTranscript).toBeFalse();
+    expect(run?.episodes[0]?.hasTranscript).toBeTrue();
+    expect(run?.episodes[1]?.hasTranscript).toBeFalse();
   });
 
   test("keeps playing when an active-scene save fails", async () => {
@@ -2687,5 +2916,131 @@ describe("story content database contract", () => {
       { data: { name: "Mia" }, id: "speaker-1", type: "data-speaker" },
       { state: "done", text: "Here you go.", type: "text" },
     ]);
+  });
+});
+
+/*
+  새 대화가 시작되는 자리.
+
+  회차는 사용자가 1화에서 처음 말할 때 생긴다. 상세에서 `대화 시작하기`를 눌러
+  첫 장면만 보고 나오면 아무 행도 남지 않으므로, 반복해서 들어갔다 나와도 기록에
+  빈 줄이 늘지 않는다.
+*/
+describe("새 대화 시작", () => {
+  test("첫 장면만 여는 요청은 회차도 대화도 남기지 않는다", async () => {
+    const state = createEmptyState();
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    const response = await app.request(
+      createEpisodeRequest({ storyId: STORY_ID })
+    );
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain("Next in line, please!");
+    expect(state.runs).toEqual([]);
+    expect(state.messages).toEqual([]);
+  });
+
+  test("첫 장면만 보고 나오기를 되풀이해도 회차가 늘지 않는다", async () => {
+    const state = createEmptyState();
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    for (const _ of [1, 2, 3]) {
+      // biome-ignore lint/performance/noAwaitInLoops: 같은 진입을 되풀이하는 것이 이 검사다.
+      const response = await app.request(
+        createEpisodeRequest({ storyId: STORY_ID })
+      );
+      await response.text();
+    }
+
+    expect(state.runs).toEqual([]);
+    expect(state.messages).toEqual([]);
+  });
+
+  test("처음 말하면 회차가 생기고 첫 장면과 그 말이 함께 남는다", async () => {
+    const state = createEmptyState();
+    const model = createMockModel(["Mia: Sure, let me remake it."]);
+    const app = createApp({ authMiddleware: signedInWith(state), model });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        keepThrough: "opening-1",
+        messages: [createUserMessage("This is not my coffee.")],
+        storyId: STORY_ID,
+      })
+    );
+    const body = await response.text();
+
+    expect(state.runs).toHaveLength(1);
+    expect(state.runs[0]).toMatchObject({ story_id: STORY_ID });
+    // 첫 장면, 사용자의 말, 그리고 이번 턴의 장면.
+    expect(state.messages.map((row) => row.role)).toEqual([
+      "assistant",
+      "user",
+      "assistant",
+    ]);
+    // 앱이 보고 있던 첫 장면의 id 그대로 남는다. 다시 받기가 가리키는 자리와
+    // 저장된 자리가 어긋나지 않는다.
+    expect(state.messages[0]?.id).toBe("opening-1");
+    expect(state.messages[0]?.parts).toEqual([
+      { data: { name: null }, id: "speaker-1", type: "data-speaker" },
+      { state: "done", text: "카페 카운터 앞이다.", type: "text" },
+      { data: { name: "Mia" }, id: "speaker-2", type: "data-speaker" },
+      { state: "done", text: "Next in line, please!", type: "text" },
+      { data: { name: null }, id: "speaker-3", type: "data-speaker" },
+      {
+        state: "done",
+        text: "직원은 벌써 뒤에 선 손님을 부른다.",
+        type: "text",
+      },
+    ]);
+    // 앱은 이 회차가 생긴 것을 응답에서 처음 안다.
+    expect(body).toContain('"type":"data-run-started"');
+    expect(body).toContain(NEW_RUN_ID);
+  });
+
+  test("새 대화는 완주한 스토리에서도 1화에서 시작한다", async () => {
+    const state = createSeasonState(finishedSeason());
+    const model = createMockModel(["Mia: Next in line!"]);
+    const app = createApp({ authMiddleware: signedInWith(state), model });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        messages: [createUserMessage("Hello again.")],
+        storyId: STORY_ID,
+      })
+    );
+
+    await response.text();
+
+    expect(state.runs).toHaveLength(2);
+    expect(state.recorded).toEqual([]);
+    // 새 회차의 플레이는 1화에 붙는다. 앞 회차의 진행을 물려받지 않는다.
+    expect(
+      state.messages.every((row) => row.play_id === playIdOf(episodeId(1)))
+    ).toBeTrue();
+  });
+
+  test("회차도 스토리도 말하지 않은 요청은 거절한다", async () => {
+    const app = createApp({ authMiddleware: signedInWith(createEmptyState()) });
+
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Hi")], runId: null })
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  test("없는 스토리로 시작하려는 요청은 거절한다", async () => {
+    const app = createApp({ authMiddleware: signedInWith(createEmptyState()) });
+
+    const response = await app.request(
+      createEpisodeRequest({
+        storyId: "10000000-0000-4000-8000-000000000009",
+      })
+    );
+
+    expect(response.status).toBe(409);
   });
 });

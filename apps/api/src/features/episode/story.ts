@@ -42,6 +42,8 @@ export interface StoryCatalogEpisode {
   id: string;
   number: number;
   preview: string;
+  /** 상세가 모든 화에 공개하는, 결말을 드러내지 않는 상황 설명. */
+  situation: string;
   title: string;
 }
 
@@ -77,7 +79,7 @@ export async function readStoryCatalog(
   const { data, error } = await client
     .from("stories")
     .select(
-      "id, position, slug, title, hook, intro, cover_emoji, cover_image_path, completion_title, completion_copy, episodes(id, number, title, preview)"
+      "id, position, slug, title, hook, intro, cover_emoji, cover_image_path, completion_title, completion_copy, episodes(id, number, title, preview, situation)"
     )
     .order("position")
     .order("number", { referencedTable: "episodes" });
@@ -97,6 +99,7 @@ export async function readStoryCatalog(
       id: episode.id,
       number: episode.number,
       preview: episode.preview,
+      situation: episode.situation,
       title: episode.title,
     })),
     hook: story.hook,
@@ -159,11 +162,38 @@ export async function readStoryContent(
   return await readStoryBy(client, "slug", slug);
 }
 
-async function readStoryContentById(
+export async function readStoryContentById(
   client: EpisodeClient,
   storyId: string
 ): Promise<StoryContent> {
   return await readStoryBy(client, "id", storyId);
+}
+
+/**
+ * 이 회차가 진행하는 스토리의 각본을 읽는다.
+ *
+ * 이어가는 요청은 회차 하나만 들고 온다. 행 권한이 남의 회차를 감추므로, 읽히지
+ * 않으면 이어갈 수 없다는 답이 그대로 나온다.
+ */
+export async function readStoryOfRun(
+  client: EpisodeClient,
+  runId: string
+): Promise<StoryContent | undefined> {
+  if (!EPISODE_ID.test(runId)) {
+    return;
+  }
+
+  const { data, error } = await client
+    .from("story_runs")
+    .select("story_id")
+    .eq("id", runId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Reading run ${runId} failed: ${error.message}`);
+  }
+
+  return data ? await readStoryContentById(client, data.story_id) : undefined;
 }
 
 async function readStoryBy(
