@@ -44,7 +44,7 @@ test("결말과 다음 이야기 예고를 함께 보여 주고 갈 곳 두 군�
   expect(screen.getByText(NEXT_EPISODE.copy)).toBeOnTheScreen();
 
   await user.press(screen.getByRole("button", { name: "2화 시작하기" }));
-  await user.press(screen.getByRole("button", { name: "홈으로 가기" }));
+  await user.press(screen.getByRole("button", { name: "돌아가기" }));
 
   expect(startNext).toHaveBeenCalledTimes(1);
   expect(startNext).toHaveBeenCalledWith(NEXT_EPISODE.episodeId);
@@ -64,7 +64,7 @@ test("스토리의 마지막 화에서는 완주 안내를 보여 주고 홈으�
   );
 
   expect(screen.getByText("첫 이야기를 끝냈어요")).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "홈으로 가기" })).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "돌아가기" })).toBeOnTheScreen();
   expect(screen.queryByText("다음 이야기")).not.toBeOnTheScreen();
 });
 
@@ -104,7 +104,7 @@ test("다시 보는 대화는 끝 표시와 결과 한 줄로 닫는다", async 
   );
   expect(screen.queryByText("끝난 대화 기록")).not.toBeOnTheScreen();
   expect(
-    screen.queryByRole("button", { name: "홈으로 가기" })
+    screen.queryByRole("button", { name: "돌아가기" })
   ).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "2화 시작하기" })
@@ -133,7 +133,7 @@ test("결말 뒤 저장이 1초를 넘기면 마무리 안에서 진행 상태�
   expect(
     screen.getByRole("progressbar", { name: "진행을 저장하고 있어요" })
   ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "홈으로 가기" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "돌아가기" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "2화 시작하기" })).toBeDisabled();
 });
 
@@ -152,5 +152,5 @@ test("다음 화를 여는 동안 그 버튼에만 진행 상태를 두고 다�
     "accessibilityState",
     { busy: true, disabled: true }
   );
-  expect(screen.getByRole("button", { name: "홈으로 가기" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "돌아가기" })).toBeDisabled();
 });

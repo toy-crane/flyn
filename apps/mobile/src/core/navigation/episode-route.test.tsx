@@ -353,7 +353,7 @@ test("다음 에피소드를 읽는 중 화면을 떠나면 늦은 화면 전환
   expect(mockReplace).not.toHaveBeenCalled();
 });
 
-test("마무리에서 홈으로 가기는 왔던 자리로 돌아간다", async () => {
+test("마무리의 돌아가기는 왔던 자리로 간다", async () => {
   const user = userEvent.setup();
   await renderWithHeroUI(<EpisodeRoute />);
 

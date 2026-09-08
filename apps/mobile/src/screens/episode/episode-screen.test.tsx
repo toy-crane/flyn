@@ -351,7 +351,7 @@ test("결말이 오면 마무리가 입력 자리를 대신한다", async () => 
   );
   expect(screen.queryByText("성공")).not.toBeOnTheScreen();
 
-  await user.press(screen.getByRole("button", { name: "홈으로 가기" }));
+  await user.press(screen.getByRole("button", { name: "돌아가기" }));
 
   expect(leave).toHaveBeenCalledTimes(1);
 });
@@ -367,7 +367,7 @@ test("장면 응답 중에도 중지와 나가기 동작을 열어 둔다", asyn
     <EpisodeScreen {...PLAYING} onLeave={leave} onStartNext={startNext} />
   );
 
-  expect(screen.getByRole("button", { name: "홈으로 가기" })).toHaveProp(
+  expect(screen.getByRole("button", { name: "돌아가기" })).toHaveProp(
     "accessibilityState",
     { busy: false, disabled: false }
   );
@@ -376,7 +376,7 @@ test("장면 응답 중에도 중지와 나가기 동작을 열어 둔다", asyn
     { busy: false, disabled: false }
   );
 
-  await user.press(screen.getByRole("button", { name: "홈으로 가기" }));
+  await user.press(screen.getByRole("button", { name: "돌아가기" }));
   await user.press(screen.getByRole("button", { name: "3화 시작하기" }));
 
   expect(leave).toHaveBeenCalledTimes(1);
@@ -433,7 +433,7 @@ test("다음 화를 여는 동안 마무리의 두 길을 잠근다", async () =
     "accessibilityState",
     { busy: true, disabled: true }
   );
-  expect(screen.getByRole("button", { name: "홈으로 가기" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "돌아가기" })).toBeDisabled();
 });
 
 test("끝난 대화는 입력 없이 읽기 전용으로 연다", async () => {

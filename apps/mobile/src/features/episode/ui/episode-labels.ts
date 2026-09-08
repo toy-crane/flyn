@@ -14,22 +14,22 @@ export const episodeLabels = {
   conversationUnavailable: "대화를 불러오지 못했어요.",
   /** Shown on the divider that closes a finished conversation. */
   endMark: "끝",
-  /** Shown over the first episode's card on Home, before anything is finished. */
-  firstEyebrow: "첫 이야기",
-  /** Shown as the button that leaves the finished episode. */
-  leave: "홈으로 가기",
+  /**
+   * Shown as the button that leaves the finished episode.
+   *
+   * 왔던 화면으로 돌아간다. 에피소드로 들어오는 길은 스토리 상세와 대화 기록
+   * 둘이고 홈에는 없으므로, 어느 쪽에서 왔는지 이름으로 특정하지 않는다.
+   */
+  leave: "돌아가기",
   /** Shown over the episode that comes next, on Home and at an episode's end. */
   nextEyebrow: "다음 이야기",
   /** 에피소드에서 두 언어를 모두 입력할 수 있음을 알린다. */
   placeholder: "영어나 한국어로 적어 주세요.",
   /** Shown when the story could not be read, as the way to ask again. */
   retry: "다시 시도하기",
-  /** Opens the transcript of a finished episode from the story detail. */
-  review: (episode: number, title: string) =>
-    `${episode}화 ${title}, 대화 보기`,
   /** Read while the scene left by Stop is being matched with the server. */
   saving: "진행을 저장하고 있어요",
-  /** Shown as the button that opens an episode, from Home or from an ending. */
+  /** Shown as the button that opens the next episode from an ending. */
   start: (episode: number) => `${episode}화 시작하기`,
   /** Shown wherever an episode is named next to its number. */
   title: (episode: number, title: string) => `${episode}화 · ${title}`,
