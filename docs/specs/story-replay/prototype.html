@@ -306,6 +306,12 @@ body:not(.sh-vp-390) .island { display:none }
 
 .history-start .button {pointer-events:auto;backdrop-filter:none;box-shadow:none}
 .history-start .button.outline {background:var(--background)}
+
+/* Header action uses the native toolbar text pattern. */
+.nav:has(.nav-text-action) {display:grid;grid-template-columns:72px minmax(0,1fr) 72px}
+.nav:has(.nav-text-action) .nav-title {padding-right:0}
+.nav-text-action {justify-self:end;min-height:44px;padding:0 4px;border:0;background:transparent;color:var(--foreground);font:inherit;font-size:16px;white-space:nowrap;cursor:pointer}
+.nav-text-action:active {opacity:.6}
 </style>
 <script>
 const legacyPreview = new URLSearchParams(location.search);
@@ -511,7 +517,7 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
       const episodes=s.titles.slice(0,r.finished).map((title,i)=>`<button class="episode-row" data-component="EpisodeRow" data-action="review:${r.no}:${i+1}" aria-label="${date}에 시작한 대화 ${i+1}화 ${title} 대화 보기"><span class="episode-number">${i+1}화</span><span class="episode-copy"><strong>${title}</strong><small>${outcome(s,i,r.no)}</small></span><span class="episode-row-action">${I('forward',true)}</span></button>`).join('');
       return `<div class="history-card" data-component="new:StoryPlayHistoryCard"><button class="run-toggle" data-action="toggle-run:${r.no}" aria-expanded="${openedHistory===r.no}" aria-controls="run-episodes-${r.no}"><span class="run-content">${headings}${progress(r.finished)}<span class="summary">${detail}</span></span><span class="chevron">${I('forward',true)}</span></button>${openedHistory===r.no?`<div class="history-episodes" id="run-episodes-${r.no}">${episodes}${!done?`<div class="history-resume">${button('이어서 하기','resume-run:'+r.no,'outline')}</div>`:''}</div>`:''}</div>`;
     }).join('');
-    return status()+nav('대화 기록','history-back')+`<div class="content history-design"><div class="record-story" data-component="StoryCard">${cover(s)}<div><h1>${s.title}</h1><p>${s.intro}</p></div></div>${runs.length?`<div class="record-list">${cards}</div>`:`${contentState('아직 나눈 대화가 없어요','story-back','스토리로 돌아가기',true)}`}</div><footer class="history-start" data-component="new:BottomAction">${button('새로 시작하기','replay','outline')}</footer>`;
+    return status()+nav('대화 기록','history-back','',`<button class="nav-text-action" data-component="NativeStack.Toolbar.Button" data-action="replay">새 대화</button>`)+`<div class="content history-design"><div class="record-story" data-component="StoryCard">${cover(s)}<div><h1>${s.title}</h1><p>${s.intro}</p></div></div>${runs.length?`<div class="record-list">${cards}</div>`:`${contentState('아직 나눈 대화가 없어요','story-back','스토리로 돌아가기',true)}`}</div>`;
   }
   const correction = () => `<details class="correction" data-component="CorrectionNote"><summary>더 자연스러운 영어 표현 ${I('down',true)}</summary><p class="fixed">I ordered an iced americano.</p><p>‘주문했어요’처럼 이미 한 일에는 ordered를 써요.</p></details>`;
   function conversation() { const s=story(),review=episodeMode==='review',sc=scene(); let out=`<p class="narration">${sc[2]}</p><div><div class="speaker-name">${s.actor}</div><div class="bubble">${sc[3]}</div></div><p class="narration">${sc[4]}</p>`;
