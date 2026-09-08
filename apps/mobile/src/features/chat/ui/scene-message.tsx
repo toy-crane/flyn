@@ -1,6 +1,5 @@
 import { memo } from "react";
-import { Text, View } from "react-native";
-import type { TextContextMenuItem } from "react-native-enriched-markdown";
+import { Text, useWindowDimensions, View } from "react-native";
 
 import { MarkdownAnswer } from "./markdown-answer";
 import { MessageActions } from "./message-actions";
@@ -9,12 +8,13 @@ import type { SceneSegment } from "./scene";
 const SceneSegmentBody = memo(function SceneSegmentBodyContent({
   name,
   text,
-  selectionMenuItems,
-}: SceneSegment & { selectionMenuItems?: TextContextMenuItem[] }) {
+}: SceneSegment) {
+  const { fontScale } = useWindowDimensions();
   if (name === null) {
     return (
       <Text
         className="px-1 text-muted text-sm leading-5"
+        key={fontScale}
         testID="chat-scene-narration"
       >
         {text}
@@ -23,9 +23,11 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
   }
   return (
     <View className="max-w-[85%] self-start" testID="chat-scene-utterance">
-      <Text className="mb-1 px-1 text-muted text-xs">{name}</Text>
+      <Text className="mb-1 px-1 text-muted text-xs" key={fontScale}>
+        {name}
+      </Text>
       <View className="rounded-2xl bg-surface px-4 py-3">
-        <MarkdownAnswer contextMenuItems={selectionMenuItems} markdown={text} />
+        <MarkdownAnswer markdown={text} />
       </View>
     </View>
   );
@@ -45,7 +47,6 @@ export function SceneMessage({
   onCopy,
   onRegenerate,
   segments,
-  selectionMenuItems,
 }: {
   areActionsDisabled: boolean;
   areActionsVisible?: boolean;
@@ -53,7 +54,6 @@ export function SceneMessage({
   onCopy: () => void;
   onRegenerate: () => void;
   segments: SceneSegment[];
-  selectionMenuItems?: TextContextMenuItem[];
 }) {
   return (
     <View className="w-full gap-2">
@@ -62,9 +62,6 @@ export function SceneMessage({
           // biome-ignore lint/suspicious/noArrayIndexKey: 조각은 뒤로만 늘어난다
           key={index}
           name={segment.name}
-          selectionMenuItems={
-            segment.name === null ? undefined : selectionMenuItems
-          }
           text={segment.text}
         />
       ))}

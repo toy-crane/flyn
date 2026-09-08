@@ -6,7 +6,6 @@ import type {
   AccessibilityLabels,
   LinkPressEvent,
   MarkdownStyle,
-  TextContextMenuItem,
 } from "react-native-enriched-markdown";
 import { EnrichedMarkdownText } from "react-native-enriched-markdown";
 
@@ -59,17 +58,11 @@ const ACCESSIBILITY_LABELS: AccessibilityLabels = {
  *
  * The renderer ships light-mode colours and has no colour scheme of its own, so
  * every colour it draws comes from the app's semantic tokens here.
- *
- * `contextMenuItems` is what this app adds to the system's own text selection
- * menu. The renderer owns the selection and the menu; the items it is given
- * only say what else that selection can do.
  */
 export const MarkdownAnswer = memo(function MarkdownAnswerContent({
-  contextMenuItems,
   markdown,
   testID,
 }: {
-  contextMenuItems?: TextContextMenuItem[];
   markdown: string;
   testID?: string;
 }) {
@@ -149,7 +142,6 @@ export const MarkdownAnswer = memo(function MarkdownAnswerContent({
   return (
     <EnrichedMarkdownText
       accessibilityLabels={ACCESSIBILITY_LABELS}
-      contextMenuItems={contextMenuItems}
       flavor="commonmark"
       markdown={markdown}
       markdownStyle={markdownStyle}

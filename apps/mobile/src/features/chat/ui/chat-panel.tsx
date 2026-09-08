@@ -16,7 +16,6 @@ import {
   type Ref,
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -31,6 +30,7 @@ import {
   Pressable,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import {
@@ -47,37 +47,30 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
 
-import type { ChatSession } from "@/features/chat/state/use-chat-session";
+import type { ChatSession } from "@/features/chat/state/use-conversation";
 import { Icon } from "@/shared/ui/icon";
 import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { AssistantMessage } from "./assistant-message";
 import { chatLabels } from "./chat-labels";
+import { ComposerBackdrop } from "./composer-backdrop";
+import { COMPOSER_BACKDROP_FADE_HEIGHT } from "./composer-backdrop-layout";
 import { ComposerSurface } from "./composer-surface";
 import { LatestMessageButton } from "./latest-message-button";
 import { sceneCopyText, sceneOfMessage } from "./scene";
 import { SceneMessage } from "./scene-message";
-import { SideChatCount, type SideChatEntry } from "./side-chat-count";
 import { useLateAnswer } from "./use-late-answer";
 import { UserMessage } from "./user-message";
 import { WaitingAnswer } from "./waiting-answer";
 
 // biome-ignore lint/performance/noBarrelFile: screens and tests share these accessibility names
 export { chatLabels } from "./chat-labels";
-export type { SideChatEntry } from "./side-chat-count";
-
-/** What starting a side chat needs to know: the answer, and the words in it. */
-export interface AskInSideChat {
-  messageId: string;
-  phrase: string;
-}
 
 const INPUT_MAX_HEIGHT = 120;
 const INPUT_MIN_HEIGHT = 48;
 const KEYBOARD_INPUT_GAP = 8;
 const LATEST_OVERLAY_HEIGHT = 60;
-/** The row the side chat count takes when it stacks above the composer too. */
-const SIDE_COUNT_OVERLAY_HEIGHT = 44;
 const USER_SCROLL_THRESHOLD = 24;
 const MESSAGE_TOP_SPACING = 12;
 // 닫힘 신호나 스크롤 완료 신호가 빠져도 입력과 읽기를 계속할 수 있다.
@@ -115,7 +108,6 @@ function PlainTextMessage({
   isWaiting,
   message,
   MessageAddon,
-  onAskInSideChat,
   onBeginEdit,
   onRegenerate,
 }: {
@@ -127,7 +119,6 @@ function PlainTextMessage({
   isWaiting: boolean;
   message: UIMessage;
   MessageAddon: ComponentType<{ message: UIMessage }> | undefined;
-  onAskInSideChat: ((input: AskInSideChat) => void) | undefined;
   onBeginEdit: (messageId: string) => void;
   onRegenerate: (messageId: string) => void;
 }) {
@@ -148,29 +139,6 @@ function PlainTextMessage({
     () => onBeginEdit(message.id),
     [message.id, onBeginEdit]
   );
-  // Added to the system's own selection menu rather than replacing it, so
-  // copy, look up and translate stay where they were. It is hidden — not
-  // removed — while an answer is arriving or a message is being rewritten,
-  // which is the same condition that closes the message menus.
-  const askInSideChatRef = useRef(onAskInSideChat);
-  useLayoutEffect(() => {
-    askInSideChatRef.current = onAskInSideChat;
-  }, [onAskInSideChat]);
-  const canAskInSideChat = onAskInSideChat !== undefined;
-  const selectionMenuItems = useMemo(
-    () =>
-      canAskInSideChat
-        ? [
-            {
-              onPress: ({ text: phrase }: { text: string }) =>
-                askInSideChatRef.current?.({ messageId: message.id, phrase }),
-              text: chatLabels.askInSideChat,
-              visible: canOpenMenu,
-            },
-          ]
-        : undefined,
-    [canAskInSideChat, canOpenMenu, message.id]
-  );
   if (!text) {
     return isWaiting ? (
       <View className="mb-4" testID="chat-message-row">
@@ -186,7 +154,6 @@ function PlainTextMessage({
       hasActions={hasActions}
       onCopy={copy}
       onRegenerate={regenerate}
-      selectionMenuItems={selectionMenuItems}
       text={text}
     />
   );
@@ -209,7 +176,6 @@ function PlainTextMessage({
         onCopy={copy}
         onRegenerate={regenerate}
         segments={scene}
-        selectionMenuItems={selectionMenuItems}
       />
     );
   }
@@ -235,46 +201,54 @@ function messageKey(message: UIMessage) {
   return message.id;
 }
 
-/**
- * The ways back, stacked in one column just above the composer.
- *
- * The newest message and a side chat are both places a person left, and both
- * are reached from the same spot however far back they have read. The count
- * takes itself away when there is nothing to go back into.
- */
+/** 입력창 바로 위에서 최신 메시지로 돌아가는 버튼. */
 function ReturnControls({
-  isEditing,
   isFollowingLatest,
   onMoveToLatest,
-  onOpenSideChat,
-  sideChats,
 }: {
-  isEditing: boolean;
   isFollowingLatest: boolean;
   onMoveToLatest: () => void;
-  onOpenSideChat: ((id: string) => void) | undefined;
-  sideChats: SideChatEntry[] | undefined;
 }) {
   const isReducedMotion = useReducedMotion();
   const progress = useSharedValue(isFollowingLatest ? 0 : 1);
-  const travel =
-    LATEST_OVERLAY_HEIGHT + (sideChats?.length ? SIDE_COUNT_OVERLAY_HEIGHT : 0);
+  const [isRendered, setIsRendered] = useState(!isFollowingLatest);
+  const followingLatestRef = useRef(isFollowingLatest);
+  const hideButton = useCallback(() => {
+    if (followingLatestRef.current) {
+      setIsRendered(false);
+    }
+  }, []);
   useEffect(() => {
+    followingLatestRef.current = isFollowingLatest;
     const target = isFollowingLatest ? 0 : 1;
+    if (!isFollowingLatest) {
+      setIsRendered(true);
+    }
+    if (isReducedMotion) {
+      progress.set(target);
+      setIsRendered(!isFollowingLatest);
+      return;
+    }
     progress.set(
-      isReducedMotion
-        ? target
-        : withTiming(target, {
-            duration: isFollowingLatest ? 160 : 200,
-            easing: Easing.out(Easing.cubic),
-            reduceMotion: ReduceMotion.System,
-          })
+      withTiming(
+        target,
+        {
+          duration: isFollowingLatest ? 160 : 200,
+          easing: Easing.out(Easing.cubic),
+          reduceMotion: ReduceMotion.System,
+        },
+        (finished) => {
+          if (finished && target === 0) {
+            scheduleOnRN(hideButton);
+          }
+        }
+      )
     );
-  }, [isFollowingLatest, isReducedMotion, progress]);
+  }, [hideButton, isFollowingLatest, isReducedMotion, progress]);
   const motionStyle = useAnimatedStyle(() => ({
-    // Glass는 흐리게 만들지 않는다. 이동을 마친 뒤에만 잔상을 끈다.
-    opacity: progress.get() === 0 ? 0 : 1,
-    transform: [{ translateY: (1 - progress.get()) * travel }],
+    // 부모 opacity가 0이면 네이티브 Glass 재질도 사라진다.
+    // 이동이 끝난 뒤 버튼을 제거하며 재질과 부모의 투명도는 바꾸지 않는다.
+    transform: [{ translateY: (1 - progress.get()) * LATEST_OVERLAY_HEIGHT }],
   }));
   return (
     <View
@@ -290,17 +264,8 @@ function ReturnControls({
         style={motionStyle}
         testID="chat-latest-motion"
       >
-        <LatestMessageButton onPress={onMoveToLatest} />
+        {isRendered ? <LatestMessageButton onPress={onMoveToLatest} /> : null}
       </Animated.View>
-      {sideChats && onOpenSideChat ? (
-        <SideChatCount
-          chats={sideChats}
-          // Pressing it during an edit would leave the notice above a composer
-          // that is no longer the one it is about.
-          isDisabled={isEditing}
-          onOpen={onOpenSideChat}
-        />
-      ) : null}
     </View>
   );
 }
@@ -319,6 +284,7 @@ function Composer({
   canStop,
   chat,
   inputHeight,
+  maxInputHeight,
   inputRef,
   onResize,
   onSend,
@@ -330,6 +296,7 @@ function Composer({
   canStop: boolean;
   chat: ChatSession;
   inputHeight: number;
+  maxInputHeight: number;
   inputRef?: Ref<TextInput>;
   onResize: (
     event: NativeSyntheticEvent<{
@@ -448,7 +415,7 @@ function Composer({
           placeholder={placeholder}
           ref={inputRef}
           returnKeyType="send"
-          style={{ height: inputHeight, maxHeight: INPUT_MAX_HEIGHT }}
+          style={{ height: inputHeight, maxHeight: maxInputHeight }}
           submitBehavior="submit"
           testID="chat-input"
           value={chat.draft}
@@ -481,10 +448,7 @@ export function ChatPanel({
   hasMessageActions = true,
   inputRef,
   messageAddon,
-  onAskInSideChat,
-  onOpenSideChat,
   placeholder = "메시지를 입력하세요",
-  sideChats,
   source,
   topInset = 0,
 }: {
@@ -524,21 +488,19 @@ export function ChatPanel({
    * arriving mid-scene reaches one bubble instead of the whole conversation.
    */
   messageAddon?: ComponentType<{ message: UIMessage }>;
-  /**
-   * What selecting part of a finished answer offers. Left out inside a side
-   * chat, which is what keeps a side chat from starting another one.
-   */
-  onAskInSideChat?: (input: AskInSideChat) => void;
-  onOpenSideChat?: (id: string) => void;
   /** What stands in the empty input. */
   placeholder?: string;
-  /** The side chats to get back into, newest first. */
-  sideChats?: SideChatEntry[];
   /** The read-only source a side conversation started from, above its list. */
   source?: ReactElement;
   topInset?: number;
 }) {
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
+  const minInputHeight = Math.max(
+    INPUT_MIN_HEIGHT,
+    Math.ceil(24 * fontScale + 20)
+  );
+  const maxInputHeight = Math.max(INPUT_MAX_HEIGHT, minInputHeight);
   const isReducedMotion = useReducedMotion();
   const keyboardHeight = useKeyboardState((state) => state.height);
   const listRef = useRef<LegendListRef | null>(null);
@@ -549,21 +511,15 @@ export function ChatPanel({
   const [isPositioningQuestion, setIsPositioningQuestion] = useState(false);
   const [isMovingToLatest, setIsMovingToLatest] = useState(false);
   const [composerHeight, setComposerHeight] = useState(0);
-  const [bannerHeight, setBannerHeight] = useState(0);
   const [inputHeight, setInputHeight] = useState(INPUT_MIN_HEIGHT);
   const pendingAnchorIndex = useRef<number | undefined>(undefined);
+  const questionMotionActive = useRef(false);
   const motionGeneration = useRef(0);
   const userMomentum = useRef<true | undefined>(undefined);
   const userScrollStart = useRef<number | undefined>(undefined);
   const canSend = chat.draft.trim().length > 0 && !chat.isBusy;
-  const isClosed = closing !== undefined;
   const composerBottomPadding = Math.max(insets.bottom, 12);
-  // 배너가 없는 화면은 자리도 요구하지 않는다. 있으면 잰 높이만큼 헤더 아래
-  // 목록의 시작점을 더 내린다. 조건부로 배너를 넘기는 화면이 `null`을 주는
-  // 것도 없는 것으로 친다.
   const hasBanner = banner !== undefined && banner !== null;
-  const contentTopInset = topInset + (hasBanner ? bannerHeight : 0);
-  const hasSideChats = sideChats !== undefined && sideChats.length > 0;
   const lastMessage = chat.messages.at(-1);
   const doomedFromIndex = chat.editingMessageId
     ? chat.messages.findIndex((message) => message.id === chat.editingMessageId)
@@ -618,6 +574,7 @@ export function ChatPanel({
   const cancelScrollMotion = useCallback(() => {
     motionGeneration.current += 1;
     pendingAnchorIndex.current = undefined;
+    questionMotionActive.current = false;
     setIsPositioningQuestion(false);
     setIsMovingToLatest(false);
     freeze.set(false);
@@ -637,8 +594,11 @@ export function ChatPanel({
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state !== "active") {
+        const wasMoving = freeze.get() || questionMotionActive.current;
         cancelScrollMotion();
-        setIsFollowingLatest(false);
+        if (wasMoving) {
+          setIsFollowingLatest(false);
+        }
       }
     });
     return () => {
@@ -714,10 +674,7 @@ export function ChatPanel({
     try {
       const state = list.getState();
       const end = Math.max(0, state.contentLength - state.scrollLength);
-      const viewport = Math.max(
-        1,
-        state.scrollLength - contentTopInset - bottomOcclusion
-      );
+      const viewport = Math.max(1, state.scrollLength - bottomOcclusion);
       if (!isReducedMotion && end - state.scroll > viewport) {
         await list.scrollToOffset({ animated: false, offset: end - viewport });
       }
@@ -741,46 +698,10 @@ export function ChatPanel({
   }, [
     bottomOcclusion,
     cancelScrollMotion,
-    contentTopInset,
     freeze,
     hasReachedEnd,
     isReducedMotion,
   ]);
-  // 마무리 카드의 실제 높이를 목록에 반영한 뒤 끝으로 옮긴다.
-  // 진행 중이던 질문 배치를 취소해서 두 이동이 서로 덮어쓰지 않게 한다.
-  useEffect(() => {
-    if (!isClosed || composerHeight === 0) {
-      return;
-    }
-    const frame = requestAnimationFrame(async () => {
-      cancelScrollMotion();
-      const generation = motionGeneration.current;
-      setIsMovingToLatest(true);
-      setIsFollowingLatest(false);
-      freeze.set(true);
-      try {
-        // 마지막 행의 네이티브 높이 측정까지 목록이 기다리게 한다.
-        await listRef.current?.scrollToEnd({ animated: !isReducedMotion });
-      } catch {
-        // 실패하면 최신 메시지 버튼으로 다시 이동할 수 있다.
-      } finally {
-        if (generation === motionGeneration.current) {
-          freeze.set(false);
-          setIsMovingToLatest(false);
-          setIsFollowingLatest(hasReachedEnd());
-        }
-      }
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [
-    cancelScrollMotion,
-    composerHeight,
-    freeze,
-    hasReachedEnd,
-    isClosed,
-    isReducedMotion,
-  ]);
-
   const handleEndVisible = useCallback(
     (visible: boolean) => {
       if (
@@ -801,12 +722,12 @@ export function ChatPanel({
     ) => {
       setInputHeight(
         Math.min(
-          INPUT_MAX_HEIGHT,
-          Math.max(INPUT_MIN_HEIGHT, event.nativeEvent.contentSize.height)
+          maxInputHeight,
+          Math.max(minInputHeight, event.nativeEvent.contentSize.height)
         )
       );
     },
-    []
+    [maxInputHeight, minInputHeight]
   );
   const updateComposerLayout = useCallback(
     (event: LayoutChangeEvent) => {
@@ -815,9 +736,6 @@ export function ChatPanel({
     },
     [onComposerLayout]
   );
-  const updateBannerLayout = useCallback((event: LayoutChangeEvent) => {
-    setBannerHeight(event.nativeEvent.layout.height);
-  }, []);
   const positionQuestion = useCallback<
     NonNullable<AnchoredEndSpaceConfig["onReady"]>
   >(
@@ -848,19 +766,20 @@ export function ChatPanel({
         await listRef.current?.scrollToIndex({
           animated: !isReducedMotion,
           index: readyAnchorIndex,
-          viewOffset: contentTopInset + MESSAGE_TOP_SPACING,
+          viewOffset: MESSAGE_TOP_SPACING,
           viewPosition: 0,
         });
       } catch {
         // 사용자가 다음 동작으로 읽을 위치를 정할 수 있다.
       } finally {
         if (generation === motionGeneration.current) {
+          questionMotionActive.current = false;
           setIsPositioningQuestion(false);
           setIsFollowingLatest(hasReachedEnd());
         }
       }
     },
-    [contentTopInset, hasReachedEnd, isReducedMotion]
+    [hasReachedEnd, isReducedMotion]
   );
   const send = useCallback(() => {
     if (!canSend) {
@@ -875,9 +794,10 @@ export function ChatPanel({
     cancelScrollMotion();
     setAnchorIndex(nextAnchorIndex);
     setIsFollowingLatest(true);
-    setInputHeight(INPUT_MIN_HEIGHT);
+    setInputHeight(minInputHeight);
     if (!isFirstQuestion) {
       pendingAnchorIndex.current = nextAnchorIndex;
+      questionMotionActive.current = true;
       setIsPositioningQuestion(true);
     }
     chat.send();
@@ -887,7 +807,7 @@ export function ChatPanel({
         KeyboardController.dismiss();
       });
     }
-  }, [cancelScrollMotion, canSend, chat, doomedFromIndex]);
+  }, [cancelScrollMotion, canSend, chat, doomedFromIndex, minInputHeight]);
   const stopAnswer = useCallback(() => {
     chat.stop().catch(() => {
       // The answer stays where it stopped either way.
@@ -915,7 +835,6 @@ export function ChatPanel({
         isWaiting={isAnswerLate && index === messageCount - 1}
         MessageAddon={messageAddon}
         message={item}
-        onAskInSideChat={onAskInSideChat}
         onBeginEdit={beginEdit}
         onRegenerate={regenerateAnswer}
       />
@@ -929,34 +848,47 @@ export function ChatPanel({
       isEditing,
       messageAddon,
       messageCount,
-      onAskInSideChat,
       regenerateAnswer,
     ]
   );
 
   return (
-    <View className="flex-1 bg-background">
+    <View
+      className="flex-1 bg-background"
+      style={{ paddingTop: topInset }}
+      testID="chat-panel"
+    >
+      {hasBanner ? (
+        <View pointerEvents="none" testID="chat-banner">
+          {banner}
+        </View>
+      ) : null}
       <KeyboardAwareLegendList
         anchoredEndSpace={
           anchorIndex === undefined
             ? undefined
             : {
                 anchorIndex,
-                anchorOffset: contentTopInset + MESSAGE_TOP_SPACING,
+                anchorOffset: MESSAGE_TOP_SPACING,
                 onReady: anchorIndex === 0 ? undefined : positionQuestion,
                 onSizeChanged: setAnchorSpace,
               }
         }
         applyWorkaroundForContentInsetHitTestBug
         contentContainerStyle={{
+          paddingBottom:
+            closing !== undefined && Platform.OS === "ios"
+              ? COMPOSER_BACKDROP_FADE_HEIGHT
+              : 0,
           paddingHorizontal: 20,
-          paddingTop: contentTopInset + MESSAGE_TOP_SPACING,
+          paddingTop: MESSAGE_TOP_SPACING,
         }}
         contentInsetAdjustmentBehavior="never"
         contentInsetEndAdjustment={contentInsetEndAdjustment}
         data={listMessages}
         extraData={rowState}
         freeze={freeze}
+        initialScrollAtEnd
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         keyboardLiftBehavior={
           isPositioningQuestion ? "persistent" : "whenAtEnd"
@@ -972,11 +904,13 @@ export function ChatPanel({
           anchorSpace <= bottomOcclusion
             ? {
                 animated: false,
-                on: { dataChange: true, itemLayout: true },
+                on: { dataChange: true, itemLayout: true, layout: true },
               }
             : false
         }
-        maintainScrollAtEndThreshold={0.05}
+        // 추적 여부는 사용자 동작으로 정한다. 글자나 상황 줄이 커진 거리는
+        // 추적을 끄는 이유가 아니므로 목록 내부의 거리 기준은 제한하지 않는다.
+        maintainScrollAtEndThreshold={Number.POSITIVE_INFINITY}
         maintainVisibleContentPosition={{ data: false, size: true }}
         onEndVisible={handleEndVisible}
         onMomentumScrollBegin={beginUserMomentum}
@@ -992,21 +926,20 @@ export function ChatPanel({
         testID="chat-list"
       />
 
-      {/*
-        Fixed at the same spot the header ends, on iOS or Android alike, so it
-        never scrolls away and never sits under the header. Nothing in it is
-        pressable, so touches fall through to the list underneath.
-      */}
-      {hasBanner ? (
-        <View
-          onLayout={updateBannerLayout}
-          pointerEvents="none"
-          style={{ left: 0, position: "absolute", right: 0, top: topInset }}
-          testID="chat-banner"
-        >
-          {banner}
-        </View>
-      ) : null}
+      {/* 흐림은 대화에만 적용하고 최신 메시지 버튼은 그 위에 그린다. */}
+      <KeyboardStickyView
+        offset={{
+          closed: 0,
+          opened: composerBottomPadding - KEYBOARD_INPUT_GAP,
+        }}
+        pointerEvents="none"
+        style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
+      >
+        <ComposerBackdrop
+          height={composerHeight}
+          variant={closing === undefined ? "composer" : "closing"}
+        />
+      </KeyboardStickyView>
 
       {/* 입력창보다 먼저 그려 버튼이 입력창 뒤로 내려간다. */}
       <KeyboardStickyView
@@ -1017,21 +950,17 @@ export function ChatPanel({
         pointerEvents="box-none"
         style={{
           bottom: composerHeight,
-          height:
-            LATEST_OVERLAY_HEIGHT +
-            (hasSideChats ? SIDE_COUNT_OVERLAY_HEIGHT : 0),
+          height: LATEST_OVERLAY_HEIGHT,
           left: 0,
+          overflow: "hidden",
           position: "absolute",
           right: 0,
         }}
         testID="chat-latest-overlay"
       >
         <ReturnControls
-          isEditing={isEditing}
           isFollowingLatest={isFollowingLatest}
           onMoveToLatest={moveToLatest}
-          onOpenSideChat={onOpenSideChat}
-          sideChats={sideChats}
         />
       </KeyboardStickyView>
 
@@ -1050,11 +979,6 @@ export function ChatPanel({
         }}
         style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
       >
-        {/*
-          No background of its own either: a band across the screen would cut
-          the list off just as surely. The notice and the error sit on the same
-          open ground, just above the control rather than inside it.
-        */}
         <View
           className="gap-2 px-5 pt-2"
           onLayout={updateComposerLayout}
@@ -1072,8 +996,9 @@ export function ChatPanel({
               canSend={canSend}
               canStop={canStop}
               chat={chat}
-              inputHeight={inputHeight}
+              inputHeight={Math.max(minInputHeight, inputHeight)}
               inputRef={inputRef}
+              maxInputHeight={maxInputHeight}
               onResize={resizeInput}
               onSend={send}
               onStop={stopAnswer}

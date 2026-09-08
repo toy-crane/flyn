@@ -18,10 +18,9 @@ import {
 } from "react-native";
 import { KeyboardController } from "react-native-keyboard-controller";
 
-import type { ChatSession } from "@/features/chat/state/use-chat-session";
+import type { ChatSession } from "@/features/chat/state/use-conversation";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { ChatPanel, chatLabels } from "./chat-panel";
-import { SideChatSource } from "./side-chat-source";
 
 const mockScrollToEnd = jest.fn<
   (options?: { animated?: boolean }) => Promise<void>
@@ -42,16 +41,6 @@ const mockScrollToOffset = jest.fn<
   return Promise.resolve();
 });
 
-interface MockAnchoredEndSpace {
-  anchorIndex: number;
-  anchorOffset: number;
-  onReady?: (info: {
-    anchorIndex: number | undefined;
-    anchorKey: string | undefined;
-    size: number;
-  }) => void;
-}
-
 jest.mock("@legendapp/list/keyboard", () => {
   const React = require("react") as typeof import("react");
   const { KeyboardController: keyboardController } =
@@ -60,7 +49,6 @@ jest.mock("@legendapp/list/keyboard", () => {
 
   type MockListProps = React.ComponentProps<typeof View> & {
     applyWorkaroundForContentInsetHitTestBug?: boolean;
-    anchoredEndSpace?: MockAnchoredEndSpace;
     contentContainerStyle?: unknown;
     contentInsetEndAdjustment?: unknown;
     data: UIMessage[];
@@ -314,26 +302,6 @@ function SendingChat({
   );
 }
 
-/** The items this app adds to an answer's own system selection menu. */
-function selectionMenuItems(answer: {
-  props: {
-    contextMenuItems?: {
-      onPress: (event: {
-        selection: { end: number; start: number };
-        text: string;
-      }) => void;
-      text: string;
-      visible?: boolean;
-    }[];
-  };
-}) {
-  return answer.props.contextMenuItems ?? [];
-}
-
-function sideChatEntry(id: string, phrase: string, lastLine: string) {
-  return { id, lastLine, phrase };
-}
-
 /** Which rows carry an entry animation, in list order. */
 function enteringRows() {
   return screen
@@ -407,13 +375,13 @@ describe("ChatPanel", () => {
     expect(screen.getByLabelText(chatLabels.input).props.autoFocus).toBeFalsy();
   });
 
-  test("메시지는 투명한 헤더 아래에 12px 간격을 둔다", async () => {
+  test("메시지는 헤더와 분리된 목록 안에서 12px 간격을 둔다", async () => {
     await renderWithHeroUI(<ChatPanel chat={chatSession()} topInset={116} />);
 
     const list = screen.getByTestId("chat-list");
 
     expect(StyleSheet.flatten(list.props.contentContainerStyle)).toMatchObject({
-      paddingTop: 128,
+      paddingTop: 12,
     });
     expect(list.props.contentInsetAdjustmentBehavior).toBe("never");
   });
@@ -952,7 +920,7 @@ describe("ChatPanel", () => {
     expect(screen.queryByLabelText(chatLabels.latest)).not.toBeOnTheScreen();
   });
 
-  test("먼 최신 메시지는 입력창과 헤더를 뺀 마지막 한 화면만 부드럽게 이동한다", async () => {
+  test("먼 최신 메시지는 헤더 아래 목록에서 입력창을 뺀 마지막 한 화면만 이동한다", async () => {
     const user = userEvent.setup();
     await renderWithHeroUI(<ChatPanel chat={chatSession()} topInset={100} />);
     await act(() => {
@@ -970,7 +938,7 @@ describe("ChatPanel", () => {
     await waitFor(() => expect(mockScrollToOffset).toHaveBeenCalledTimes(2));
     expect(mockScrollToOffset).toHaveBeenNthCalledWith(1, {
       animated: false,
-      offset: 3580,
+      offset: 3480,
     });
     expect(mockScrollToOffset).toHaveBeenNthCalledWith(2, {
       animated: true,
@@ -1015,7 +983,7 @@ describe("ChatPanel", () => {
     await waitFor(() => expect(mockScrollToOffset).toHaveBeenCalledTimes(2));
     expect(mockScrollToOffset).toHaveBeenNthCalledWith(1, {
       animated: false,
-      offset: 3580,
+      offset: 3480,
     });
     expect(mockScrollToOffset).toHaveBeenNthCalledWith(2, {
       animated: true,
@@ -1110,7 +1078,7 @@ describe("ChatPanel", () => {
     expect(screen.queryByLabelText(chatLabels.latest)).not.toBeOnTheScreen();
     expect(list.props.maintainScrollAtEnd).toEqual({
       animated: false,
-      on: { dataChange: true, itemLayout: true },
+      on: { dataChange: true, itemLayout: true, layout: true },
     });
   });
 
@@ -1139,7 +1107,7 @@ describe("ChatPanel", () => {
     expect(screen.queryByLabelText(chatLabels.latest)).not.toBeOnTheScreen();
     expect(screen.getByTestId("chat-list").props.maintainScrollAtEnd).toEqual({
       animated: false,
-      on: { dataChange: true, itemLayout: true },
+      on: { dataChange: true, itemLayout: true, layout: true },
     });
   });
 
@@ -1210,14 +1178,15 @@ describe("ChatPanel", () => {
 
     expect(list.props.maintainScrollAtEnd).toEqual({
       animated: false,
-      on: { dataChange: true, itemLayout: true },
+      on: { dataChange: true, itemLayout: true, layout: true },
     });
     expect(list.props.maintainVisibleContentPosition).toEqual({
       data: false,
       size: true,
     });
     expect(list.props.keyboardLiftBehavior).toBe("whenAtEnd");
-    expect(list.props.initialScrollAtEnd).toBeUndefined();
+    expect(list.props.initialScrollAtEnd).toBe(true);
+    expect(list.props.alignItemsAtEnd).toBeUndefined();
   });
 
   test("첫 질문도 헤더 아래 12px 기준으로 끝 공간을 만든다", async () => {
@@ -1235,7 +1204,7 @@ describe("ChatPanel", () => {
       screen.getByTestId("chat-list").props.anchoredEndSpace
     ).toMatchObject({
       anchorIndex: 0,
-      anchorOffset: 128,
+      anchorOffset: 12,
     });
     expect(
       screen.getByTestId("chat-list").props
@@ -1263,7 +1232,7 @@ describe("ChatPanel", () => {
       screen.getByTestId("chat-list").props.anchoredEndSpace
     ).toMatchObject({
       anchorIndex: 2,
-      anchorOffset: 128,
+      anchorOffset: 12,
     });
   });
 
@@ -1287,7 +1256,7 @@ describe("ChatPanel", () => {
     });
     expect(screen.getByTestId("chat-list").props.maintainScrollAtEnd).toEqual({
       animated: false,
-      on: { dataChange: true, itemLayout: true },
+      on: { dataChange: true, itemLayout: true, layout: true },
     });
   });
 
@@ -1334,7 +1303,7 @@ describe("ChatPanel", () => {
       expect(mockScrollToIndex).toHaveBeenCalledWith({
         animated: true,
         index: 2,
-        viewOffset: 128,
+        viewOffset: 12,
         viewPosition: 0,
       });
     });
@@ -1425,6 +1394,31 @@ describe("ChatPanel", () => {
     );
     expect(screen.getByLabelText(chatLabels.latest)).toBeOnTheScreen();
   });
+
+  test.each([false, true])(
+    "앱을 잠깐 나갔다 돌아와도 읽던 위치 추적 상태를 유지한다: %s",
+    async (readingHistory) => {
+      let onAppState: ((state: AppStateStatus) => void) | undefined;
+      jest
+        .spyOn(AppState, "addEventListener")
+        .mockImplementation((_event, listener) => {
+          onAppState = listener;
+          return { remove: jest.fn() };
+        });
+      await renderWithHeroUI(<EditableChat onSend={jest.fn()} />);
+      if (readingHistory) {
+        await scrollAwayFromLatest();
+      }
+      await act(() => {
+        onAppState?.("background");
+        onAppState?.("active");
+      });
+      expect(
+        Boolean(screen.getByTestId("chat-list").props.maintainScrollAtEnd)
+      ).toBe(!readingHistory);
+      expect(mockScrollToEnd).not.toHaveBeenCalled();
+    }
+  );
 
   test("전송 중 앱을 나가면 닫힘 신호가 늦게 와도 다시 질문을 옮기지 않는다", async () => {
     let onAppState: ((state: AppStateStatus) => void) | undefined;
@@ -1547,6 +1541,7 @@ describe("ChatPanel", () => {
       />
     );
     const input = screen.getByLabelText(chatLabels.input);
+    const singleLineHeight = StyleSheet.flatten(input.props.style).height;
 
     await act(() => {
       input.props.onContentSizeChange({
@@ -1564,7 +1559,7 @@ describe("ChatPanel", () => {
     expect(
       StyleSheet.flatten(screen.getByLabelText(chatLabels.input).props.style)
         .height
-    ).toBe(48);
+    ).toBe(singleLineHeight);
   });
 
   test("답변을 받는 동안 전송 자리는 중지가 된다", async () => {
@@ -1986,194 +1981,17 @@ describe("ChatPanel", () => {
     expect(send).toHaveBeenCalledTimes(1);
   });
 
-  describe("Side chat", () => {
-    const answered = [
-      textMessage("user-1", "user", "질문"),
-      textMessage("assistant-1", "assistant", "답변"),
-    ];
-
-    test("완료된 답변의 선택 메뉴에 Ask in side chat을 더한다", async () => {
-      await renderWithHeroUI(
-        <ChatPanel
-          chat={chatSession({ messages: answered })}
-          onAskInSideChat={jest.fn()}
-        />
-      );
-
-      expect(
-        selectionMenuItems(screen.getByTestId("chat-message-assistant"))
-      ).toMatchObject([{ text: chatLabels.askInSideChat, visible: true }]);
-    });
-
-    test("메뉴 항목을 누르면 고른 구절과 그 답변을 알린다", async () => {
-      const onAskInSideChat = jest.fn();
-      await renderWithHeroUI(
-        <ChatPanel
-          chat={chatSession({ messages: answered })}
-          onAskInSideChat={onAskInSideChat}
-        />
-      );
-
-      const [item] = selectionMenuItems(
-        screen.getByTestId("chat-message-assistant")
-      );
-      item.onPress({ selection: { end: 6, start: 0 }, text: "고른 구절" });
-
-      expect(onAskInSideChat).toHaveBeenCalledWith({
-        messageId: "assistant-1",
-        phrase: "고른 구절",
-      });
-    });
-
-    test("답변을 받는 동안과 수정 중에는 그 항목을 감춘다", async () => {
-      const { rerender } = await renderWithHeroUI(
-        <ChatPanel
-          chat={chatSession({ isBusy: true, messages: answered })}
-          onAskInSideChat={jest.fn()}
-        />
-      );
-
-      expect(
-        selectionMenuItems(screen.getByTestId("chat-message-assistant"))
-      ).toMatchObject([{ visible: false }]);
-
-      await rerender(
-        <ChatPanel
-          chat={chatSession({ editingMessageId: "user-1", messages: answered })}
-          onAskInSideChat={jest.fn()}
-        />
-      );
-
-      expect(
-        selectionMenuItems(screen.getByTestId("chat-message-assistant"))
-      ).toMatchObject([{ visible: false }]);
-    });
-
-    // The side chat sheet leaves this out, which is what keeps a side chat
-    // from starting another one while its answers stay selectable.
-    test("Side chat을 시작할 수 없는 화면에서는 항목을 두지 않는다", async () => {
-      await renderWithHeroUI(
-        <ChatPanel chat={chatSession({ messages: answered })} />
-      );
-
-      expect(
-        screen.getByTestId("chat-message-assistant").props.contextMenuItems
-      ).toBeUndefined();
-    });
-
-    test("고른 구절을 목록 맨 위에 읽기 전용 출처로 보여 준다", async () => {
-      await renderWithHeroUI(
-        <ChatPanel
-          chat={chatSession()}
-          source={<SideChatSource phrase="이어받은 구절" />}
-        />
-      );
-
-      const phrase = screen.getByTestId("side-chat-source-phrase");
-      expect(phrase).toHaveTextContent("이어받은 구절");
-      expect(phrase.props.selectable).toBe(false);
-      expect(
-        within(screen.getByTestId("chat-list")).getByTestId("side-chat-source")
-      ).toBeOnTheScreen();
-    });
-
-    test("출처가 없으면 아무것도 얹지 않는다", async () => {
-      await renderWithHeroUI(<ChatPanel chat={chatSession()} />);
-
-      expect(screen.queryByTestId("side-chat-source")).not.toBeOnTheScreen();
-    });
-
-    test("Side chat이 없으면 수 표시를 두지 않는다", async () => {
-      await renderWithHeroUI(
-        <ChatPanel
-          chat={chatSession()}
-          onOpenSideChat={jest.fn()}
-          sideChats={[]}
-        />
-      );
-
-      expect(screen.queryByTestId("chat-side-count")).not.toBeOnTheScreen();
-    });
-
-    test("Side chat이 하나면 눌러서 바로 다시 연다", async () => {
-      const onOpenSideChat = jest.fn();
-      const user = userEvent.setup();
-      await renderWithHeroUI(
-        <ChatPanel
-          chat={chatSession()}
-          onOpenSideChat={onOpenSideChat}
-          sideChats={[sideChatEntry("side-chat-1", "앞 구절", "마지막 말")]}
-        />
-      );
-
-      expect(screen.getByText("AI에게 물어보기 1개")).toBeOnTheScreen();
-
-      await user.press(screen.getByLabelText("AI에게 물어보기 1개 다시 열기"));
-
-      expect(onOpenSideChat).toHaveBeenCalledWith("side-chat-1");
-    });
-
-    test("Side chat이 여럿이면 구절과 마지막 말로 갈린 목록에서 고른다", async () => {
-      const onOpenSideChat = jest.fn();
-      const user = userEvent.setup();
-      await renderWithHeroUI(
-        <ChatPanel
-          chat={chatSession()}
-          onOpenSideChat={onOpenSideChat}
-          sideChats={[
-            sideChatEntry("side-chat-2", "같은 구절", "두 번째 대화의 끝"),
-            sideChatEntry("side-chat-1", "같은 구절", "첫 대화의 끝"),
-          ]}
-        />
-      );
-
-      expect(screen.getByText("AI에게 물어보기 2개")).toBeOnTheScreen();
-
-      await user.press(screen.getByLabelText("AI에게 물어보기 2개 고르기"));
-
-      expect(screen.getByText("두 번째 대화의 끝")).toBeOnTheScreen();
-      expect(screen.getByText("첫 대화의 끝")).toBeOnTheScreen();
-      expect(onOpenSideChat).not.toHaveBeenCalled();
-
-      await user.press(
-        screen.getAllByLabelText("같은 구절 AI에게 물어보기 열기")[1]
-      );
-
-      expect(onOpenSideChat).toHaveBeenCalledWith("side-chat-1");
-    });
-
-    test("수 표시는 최신 메시지 버튼과 같은 오버레이에 쌓인다", async () => {
-      await renderWithHeroUI(
-        <ChatPanel
-          chat={chatSession({
-            messages: [textMessage("assistant-1", "assistant", "답변")],
-          })}
-          onOpenSideChat={jest.fn()}
-          sideChats={[sideChatEntry("side-chat-1", "구절", "마지막 말")]}
-        />
-      );
-      await scrollAwayFromLatest();
-
-      const overlay = screen.getByTestId("chat-latest-overlay");
-      expect(within(overlay).getByTestId("chat-side-count")).toBeOnTheScreen();
-      expect(within(overlay).getByTestId("chat-latest")).toBeOnTheScreen();
-      expect(StyleSheet.flatten(overlay.props.style).height).toBe(104);
-    });
-
-    test("수정 중에는 수 표시를 누를 수 없다", async () => {
-      await renderWithHeroUI(
-        <ChatPanel
-          chat={chatSession({
-            editingMessageId: "user-1",
-            messages: [textMessage("user-1", "user", "질문")],
-          })}
-          onOpenSideChat={jest.fn()}
-          sideChats={[sideChatEntry("side-chat-1", "구절", "마지막 말")]}
-        />
-      );
-
-      expect(screen.getByTestId("chat-side-count")).toBeDisabled();
-    });
+  test("물어보기의 읽기 전용 출처를 목록 앞에 표시한다", async () => {
+    const { Text } = require("react-native") as typeof import("react-native");
+    await renderWithHeroUI(
+      <ChatPanel
+        chat={chatSession()}
+        source={<Text testID="question-source">교정 출처</Text>}
+      />
+    );
+    expect(
+      within(screen.getByTestId("chat-list")).getByTestId("question-source")
+    ).toHaveTextContent("교정 출처");
   });
 });
 
@@ -2192,50 +2010,26 @@ describe("상황 줄 배너", () => {
     expect(screen.queryByTestId("chat-banner")).not.toBeOnTheScreen();
   });
 
-  test("배너는 헤더 아래 고정 자리에 있는다", async () => {
+  test("상황 줄은 헤더 아래에서 자신의 공간을 차지하고 목록에 겹치지 않는다", async () => {
     const { Text } = require("react-native") as typeof import("react-native");
-
     await renderWithHeroUI(
       <ChatPanel
-        banner={<Text testID="panel-banner">상황</Text>}
+        banner={<Text>상황</Text>}
         chat={chatSession()}
         topInset={116}
       />
     );
-
-    const wrapper = screen.getByTestId("chat-banner");
-
-    expect(screen.getByTestId("panel-banner")).toBeOnTheScreen();
-    expect(StyleSheet.flatten(wrapper.props.style)).toMatchObject({
-      position: "absolute",
-      top: 116,
-    });
-  });
-
-  // 목록의 시작점은 배너가 잰 높이만큼 헤더보다 더 내려가야, 첫 장면이 배너
-  // 뒤에 가려지지 않는다.
-  test("배너 높이만큼 목록의 시작점을 더 내린다", async () => {
-    const { Text } = require("react-native") as typeof import("react-native");
-
-    await renderWithHeroUI(
-      <ChatPanel
-        banner={<Text testID="panel-banner">상황</Text>}
-        chat={chatSession()}
-        topInset={116}
-      />
+    const banner = screen.getByTestId("chat-banner");
+    expect(StyleSheet.flatten(banner.props.style)?.position).not.toBe(
+      "absolute"
     );
-
-    await act(() => {
-      screen.getByTestId("chat-banner").props.onLayout({
-        nativeEvent: { layout: { height: 40 } },
-      });
-    });
-
-    const list = screen.getByTestId("chat-list");
-
-    expect(StyleSheet.flatten(list.props.contentContainerStyle)).toMatchObject({
-      paddingTop: 168,
-    });
+    expect(banner.props.onLayout).toBeUndefined();
+    expect(
+      StyleSheet.flatten(
+        screen.getByTestId("chat-list").props.contentContainerStyle
+      ).paddingTop
+    ).toBe(12);
+    expect(screen.getByTestId("chat-panel").props.style.paddingTop).toBe(116);
   });
 
   test("사건이 끝나도 배너는 그대로 있는다", async () => {
@@ -2294,7 +2088,7 @@ describe("끝난 대화", () => {
 
   // 마무리는 입력창보다 크다. 목록이 그대로면 마지막 장면이 그 뒤에 가린 채로
   // 대화가 끝난다.
-  test("마무리가 자리를 잡으면 목록을 끝까지 당긴다", async () => {
+  test("지난 대화를 읽는 중에는 마무리 높이가 바뀌어도 읽던 위치를 유지한다", async () => {
     const { Text } = require("react-native") as typeof import("react-native");
 
     await renderWithHeroUI(
@@ -2312,12 +2106,9 @@ describe("끝난 대화", () => {
       });
     });
 
-    await waitFor(() => {
-      expect(mockScrollToEnd).toHaveBeenCalledWith({
-        animated: true,
-      });
-    });
-    expect(screen.queryByLabelText(chatLabels.latest)).not.toBeOnTheScreen();
+    await act(() => new Promise((resolve) => setTimeout(resolve, 80)));
+    expect(mockScrollToEnd).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(chatLabels.latest)).toBeOnTheScreen();
   });
 
   test("아직 열려 있는 대화는 자리 크기가 바뀌어도 당기지 않는다", async () => {

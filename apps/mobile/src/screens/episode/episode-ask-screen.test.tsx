@@ -4,8 +4,8 @@ import { useHeaderHeight } from "expo-router/react-navigation";
 import type { ReactElement } from "react";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
-import type { ChatSession } from "@/features/chat/state/use-chat-session";
-import { useConversation } from "@/features/chat/state/use-chat-session";
+import type { ChatSession } from "@/features/chat/state/use-conversation";
+import { useConversation } from "@/features/chat/state/use-conversation";
 import type { EpisodeAsk } from "@/features/episode/state/episode-asks";
 import { useEpisodeAsks } from "@/features/episode/state/episode-asks";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
@@ -23,7 +23,7 @@ jest.mock("@ai-sdk/react", () => ({
   useChat: () => ({ messages: [] }),
 }));
 
-jest.mock("@/features/chat/state/use-chat-session", () => ({
+jest.mock("@/features/chat/state/use-conversation", () => ({
   STREAM_UPDATE_INTERVAL_MS: 50,
   useConversation: jest.fn(),
 }));
@@ -45,7 +45,6 @@ jest.mock("@/shared/navigation/use-screen-arrival", () => ({
 
 interface PanelProps {
   chat: { tag?: string };
-  onAskInSideChat?: unknown;
   placeholder?: string;
   source?: ReactElement;
 }
@@ -126,16 +125,6 @@ test("출처에 내가 쓴 원문과 고친 문장을 배울 표현으로 보여
     "I think you gave me the wrong coffee."
   );
   expect(panel?.placeholder).toBe("궁금한 것을 한국어로 물어보세요");
-});
-
-// 이 시트는 이해 전용이다. 본 채팅으로 무언가를 보내는 장치를 두지 않고,
-// 여기서 또 다른 물어보기를 시작하지도 않는다.
-test("여기서 또 다른 물어보기를 시작할 수 없다", async () => {
-  await renderWithHeroUI(
-    <EpisodeAskScreen id="ask-m1" onMissing={onMissing} />
-  );
-
-  expect(panel?.onAskInSideChat).toBeUndefined();
 });
 
 test("열려던 대화가 없으면 아무것도 그리지 않고 시트를 닫는다", async () => {

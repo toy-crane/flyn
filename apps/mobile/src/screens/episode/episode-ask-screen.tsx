@@ -8,7 +8,7 @@ import { useAuthSession } from "@/features/auth/state/auth-session";
 import {
   STREAM_UPDATE_INTERVAL_MS,
   useConversation,
-} from "@/features/chat/state/use-chat-session";
+} from "@/features/chat/state/use-conversation";
 import { ChatPanel } from "@/features/chat/ui/chat-panel";
 import {
   type EpisodeAsk,

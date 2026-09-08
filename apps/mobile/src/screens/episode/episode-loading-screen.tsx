@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 import { episodeLabels } from "@/features/episode/ui/episode-labels";
-import { LoadingSpinner } from "@/shared/ui/loading-spinner";
+import { StatusLine } from "@/shared/ui/status-line";
 
 const LOAD_PROGRESS_DELAY_MS = 1000;
 
@@ -26,19 +26,12 @@ export function EpisodeLoadingScreen() {
 
   return (
     <View className="flex-1 items-center justify-center bg-background px-6">
-      <View
-        accessibilityLabel={episodeLabels.conversationLoading}
-        accessibilityRole="progressbar"
-        accessibilityState={{ busy: true }}
-        accessible
-        className="flex-row items-center gap-2"
+      <StatusLine
+        label={episodeLabels.conversationLoading}
+        loading
+        sizeRole="screen"
         testID="episode-loading"
-      >
-        <LoadingSpinner />
-        <Text className="text-muted text-sm">
-          {episodeLabels.conversationLoading}
-        </Text>
-      </View>
+      />
     </View>
   );
 }

@@ -56,11 +56,8 @@ const DYNAMIC_TYPE_CLASS_NAME: Record<
   },
 };
 
-const LEADING_SLOT_CLASS_NAME: Record<ButtonSize, string> = {
-  lg: "absolute right-full top-1/2 size-4 -translate-x-2.5 -translate-y-2",
-  md: "absolute right-full top-1/2 size-4 -translate-x-2 -translate-y-2",
-  sm: "absolute right-full top-1/2 size-4 -translate-x-1.5 -translate-y-2",
-};
+const LEADING_SLOT_CLASS_NAME =
+  "absolute right-full top-1/2 size-5 -translate-x-2 -translate-y-2.5 items-center justify-center";
 
 function getDynamicTypeClassName(
   size: ButtonSize,
@@ -132,7 +129,7 @@ export function Button({
       <View className="relative shrink items-center justify-center">
         <View
           accessibilityElementsHidden
-          className={LEADING_SLOT_CLASS_NAME[size]}
+          className={LEADING_SLOT_CLASS_NAME}
           importantForAccessibility="no-hide-descendants"
           pointerEvents="none"
           testID="button-leading-content"

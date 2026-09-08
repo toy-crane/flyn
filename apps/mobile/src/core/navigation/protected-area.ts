@@ -26,6 +26,7 @@ export type ProtectedArea =
 
 export interface ProtectedAreaState {
   area: ProtectedArea;
+  checkingPhase?: "session" | "profile";
   /** True while the recovery button reads a failed profile again. */
   isRetryingProfile: boolean;
   /** Only set for `misconfigured`, which no screen can recover from. */
@@ -48,7 +49,12 @@ export function useProtectedArea(): ProtectedAreaState {
   }
 
   if (status === "checking") {
-    return { area: "checking", isRetryingProfile, retryProfile };
+    return {
+      area: "checking",
+      checkingPhase: "session",
+      isRetryingProfile,
+      retryProfile,
+    };
   }
 
   if (status === "signedOut") {
@@ -68,9 +74,15 @@ export function useProtectedArea(): ProtectedAreaState {
   // A profile that cannot be read is not a signed-out person. Signing them out
   // here would cost them a working session over a dropped request, and would
   // hide the one thing they can act on: trying again.
-  if (profile.isError) {
+  // 재시도는 오류 화면의 버튼에서 계속 알린다. 새 진입 대기로 바꾸지 않는다.
+  if (profile.isError || profile.errorUpdatedAt > 0) {
     return { area: "profileUnavailable", isRetryingProfile, retryProfile };
   }
 
-  return { area: "checking", isRetryingProfile, retryProfile };
+  return {
+    area: "checking",
+    checkingPhase: "profile",
+    isRetryingProfile,
+    retryProfile,
+  };
 }

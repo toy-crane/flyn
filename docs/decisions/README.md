@@ -66,7 +66,7 @@
 - [모바일 에피소드 상황 줄](mobile-episode-situation-line.md) — 에피소드 화면의 사건·목표 안내 위치, 내용 소유권, 표시 수명 또는 형태를 변경할 때 읽는다.
 - [모바일 뒤로 가기 표시](mobile-back-button-display.md) — 뒤로 가기 버튼의 라벨, 쉐브론 표시 또는 접근성 이름을 바꿀 때 읽는다.
 - [모바일 앱 에셋 생성](mobile-app-asset-generation.md) — 앱 아이콘, Android adaptive icon, 스플래시 이미지 또는 이를 만드는 에이전트 작업을 추가하거나 바꿀 때 읽는다.
-- [모바일 UI 일관성 검토](mobile-ui-consistency-review.md) — 모바일 UI 검토 에이전트의 범위, 근거, 읽기 전용 권한 또는 실행 방식을 변경할 때 읽는다.
+- [모바일 UI 일관성 검토](mobile-ui-consistency-review.md) — 모바일 UI를 작성하거나 검토할 때, 같은 역할의 조합·크기·간격·상태·배치 검증 기준과 검토 에이전트의 범위를 확인하려면 읽는다.
 
 ## 모바일 기능
 

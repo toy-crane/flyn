@@ -136,7 +136,7 @@ export function createFakeSupabase(options: FakeSupabaseOptions = {}) {
         settleSession = resolve;
       })
     : Promise.resolve();
-  const profileGate = options.holdProfile
+  let profileGate = options.holdProfile
     ? new Promise<void>((resolve) => {
         settleProfile = resolve;
       })
@@ -411,6 +411,11 @@ export function createFakeSupabase(options: FakeSupabaseOptions = {}) {
       return release;
     },
     /** Lets a held profile read succeed after it was made to fail. */
+    holdProfile: () => {
+      profileGate = new Promise<void>((resolve) => {
+        settleProfile = resolve;
+      });
+    },
     recoverProfile: () => {
       profileError = undefined;
     },

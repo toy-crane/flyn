@@ -7,6 +7,7 @@ import {
   screen,
   waitFor,
 } from "expo-router/testing-library";
+import { hide as hideSplashScreen } from "expo-splash-screen";
 
 import { queryClient } from "@/core/providers/query-provider";
 import {
@@ -24,6 +25,8 @@ import {
  * the behaviour under test, and that is decided by the session and the profile
  * together rather than by either screen.
  */
+
+jest.mock("expo-splash-screen", () => ({ hide: jest.fn() }));
 
 jest.mock("@/shared/supabase/client", () => ({
   getSupabaseClient: () =>
@@ -105,6 +108,7 @@ beforeEach(() => {
   // The cache outlives a render on purpose, so without this one test's profile
   // decides the next one's starting screen.
   queryClient.clear();
+  jest.clearAllMocks();
   resetFakeSupabase();
 });
 
@@ -166,7 +170,7 @@ test("프로필을 확인하는 동안에는 온보딩도 홈도 잠깐 나타�
 
   await openApp();
 
-  expect(screen.getByLabelText("로그인 상태 확인 중")).toBeOnTheScreen();
+  expect(screen.getByLabelText("프로필 확인 중")).toBeOnTheScreen();
   expect(screen.queryByTestId("onboarding-nickname")).toBeNull();
   expect(screen.queryByLabelText("Home placeholder")).toBeNull();
 
@@ -193,12 +197,24 @@ test("프로필을 읽지 못하면 로그아웃하지 않고 다시 시도하�
 
   // A failed read is not the end of a session. Signing the person out here
   // would cost them a working one over a dropped request.
+  expect(hideSplashScreen).toHaveBeenCalled();
   expect(fake.auth.signOut).not.toHaveBeenCalled();
   expect(screen.queryByLabelText("Google로 계속하기")).toBeNull();
 
   fake.recoverProfile();
+  fake.holdProfile();
 
   await press("프로필 다시 불러오기");
+  await waitFor(() => {
+    expect(
+      screen.getByRole("button", { name: "프로필 다시 불러오기" })
+    ).toBeBusy();
+  });
+  expect(
+    screen.getByRole("button", { name: "프로필 다시 불러오기" })
+  ).toBeDisabled();
+  expect(screen.queryByTestId("session-checking")).toBeNull();
+  await act(() => fake.settleProfile());
 
   await waitFor(() => {
     expect(screen.getByTestId("onboarding-nickname")).toBeOnTheScreen();

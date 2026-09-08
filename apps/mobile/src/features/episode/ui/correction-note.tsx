@@ -12,7 +12,7 @@ import {
 } from "@/features/episode/state/episode-corrections";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
-import { LoadingSpinner } from "@/shared/ui/loading-spinner";
+import { StatusLine } from "@/shared/ui/status-line";
 import { correctionPresentation } from "./correction-presentation";
 import { fixedMarks, markedParts } from "./correction-text";
 import { correctionLabels } from "./episode-labels";
@@ -222,36 +222,22 @@ function ExpressionStatusNote({
   state: Exclude<ExpressionState, { status: "corrected" }>;
   onRetry: () => void;
 }) {
-  const { fontScale } = useWindowDimensions();
   const pending = state.status === "pending";
   const retrying = pending && state.retrying;
   if (state.status === "error" || retrying) {
     return (
-      <View
-        accessibilityLiveRegion="polite"
-        className="mt-1 max-w-[85%] flex-row items-center self-end"
-        key={fontScale}
-      >
-        <Text
-          className={`shrink text-xs ${retrying ? "text-muted" : "text-danger-soft-foreground"}`}
-        >
-          {retrying ? correctionLabels.checking : correctionLabels.failed}
-        </Text>
-        <Pressable
-          accessibilityLabel={correctionLabels.retry}
-          accessibilityRole="button"
-          accessibilityState={{ busy: retrying, disabled: retrying }}
-          className="size-11 items-center justify-center"
-          disabled={retrying}
-          onPress={onRetry}
-          testID="expression-retry"
-        >
-          {retrying ? (
-            <LoadingSpinner color="muted" />
-          ) : (
-            <Icon name="regenerate" size="xs" tone="danger" />
-          )}
-        </Pressable>
+      <View className="mt-1 max-w-[85%] self-end">
+        <StatusLine
+          icon="regenerate"
+          label={retrying ? correctionLabels.checking : correctionLabels.failed}
+          loading={retrying}
+          retry={{
+            label: correctionLabels.retry,
+            onPress: onRetry,
+            testID: "expression-retry",
+          }}
+          tone={retrying ? "muted" : "danger"}
+        />
       </View>
     );
   }
@@ -262,22 +248,13 @@ function ExpressionStatusNote({
     unclear: correctionLabels.unclear,
   }[state.status];
   return (
-    <View
-      accessibilityLabel={label}
-      accessibilityLiveRegion="polite"
-      accessibilityRole={pending ? "progressbar" : "text"}
-      accessibilityState={{ busy: pending }}
-      accessible
-      className="mt-1 max-w-[85%] flex-row items-center gap-1.5 self-end py-1"
-      key={fontScale}
-    >
-      {pending ? <LoadingSpinner /> : null}
-      {natural ? <Icon name="check" size="sm" tone="success" /> : null}
-      <Text
-        className={`shrink text-xs ${natural ? "text-success-soft-foreground" : "text-muted"}`}
-      >
-        {label}
-      </Text>
+    <View className="mt-1 max-w-[85%] self-end py-1">
+      <StatusLine
+        icon={natural ? "check" : undefined}
+        label={label}
+        loading={pending}
+        tone={natural ? "success" : "muted"}
+      />
     </View>
   );
 }

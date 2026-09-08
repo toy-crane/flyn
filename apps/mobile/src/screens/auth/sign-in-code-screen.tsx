@@ -1,6 +1,6 @@
 import { InputOTP, REGEXP_ONLY_DIGITS } from "heroui-native/input-otp";
 import { type ComponentRef, type ReactNode, useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 import { OTP_LENGTH } from "@/features/auth/config/email-otp";
 import {
@@ -17,7 +17,7 @@ import {
 import { signInLabels } from "@/features/auth/ui/sign-in-labels";
 import { useFocusOnArrival } from "@/shared/navigation/use-screen-arrival";
 import { Button } from "@/shared/ui/button";
-import { LoadingSpinner } from "@/shared/ui/loading-spinner";
+import { StatusLine } from "@/shared/ui/status-line";
 
 const VERIFY_PROGRESS_DELAY_MS = 1000;
 
@@ -85,18 +85,13 @@ function CodeInputTarget({
   return (
     <View className="min-h-14 justify-center">
       {showsProgress ? (
-        <View
-          accessibilityLabel={signInLabels.verifying}
-          accessibilityRole="progressbar"
-          accessibilityState={{ busy: true }}
-          accessible
-          className="min-h-14 flex-row items-center justify-center gap-2 px-2"
-          testID="sign-in-code-checking"
-        >
-          <LoadingSpinner />
-          <Text className="flex-shrink text-center font-medium text-muted">
-            {signInLabels.verifying}
-          </Text>
+        <View className="min-h-14 items-center justify-center px-2">
+          <StatusLine
+            label={signInLabels.verifying}
+            loading
+            sizeRole="control"
+            testID="sign-in-code-checking"
+          />
         </View>
       ) : (
         children

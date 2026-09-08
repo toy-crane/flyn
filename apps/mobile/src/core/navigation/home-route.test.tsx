@@ -156,16 +156,13 @@ beforeEach(() => {
   homeStatus = undefined;
 });
 
-test("새 대화는 왼쪽에서 채팅을 열고 프로필은 오른쪽에 둔다", async () => {
-  const user = userEvent.setup();
+test("새 대화와 빈 왼쪽 도구 모음을 없애고 오른쪽 프로필을 유지한다", async () => {
   await render(<HomeRoute />);
 
-  const leftToolbar = within(screen.getByTestId("home-toolbar-left"));
   const rightToolbar = within(screen.getByTestId("home-toolbar-right"));
 
-  await user.press(leftToolbar.getByRole("button", { name: "새 대화" }));
-
-  expect(mockPush).toHaveBeenCalledWith("/chat");
+  expect(screen.queryByRole("button", { name: "새 대화" })).toBeNull();
+  expect(screen.queryByTestId("home-toolbar-left")).toBeNull();
   expect(
     rightToolbar.getByRole("button", { name: "Open settings" })
   ).toBeOnTheScreen();

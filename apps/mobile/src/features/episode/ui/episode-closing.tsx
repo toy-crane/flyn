@@ -4,7 +4,7 @@ import { Text, View } from "react-native";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
 import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { Button } from "@/shared/ui/button";
-import { LoadingSpinner } from "@/shared/ui/loading-spinner";
+import { StatusLine } from "@/shared/ui/status-line";
 import { EpisodeEndingMark } from "./episode-ending-mark";
 import { episodeLabels } from "./episode-labels";
 
@@ -29,17 +29,11 @@ function EpisodeSavingProgress() {
   }
 
   return (
-    <View
-      accessibilityLabel={episodeLabels.saving}
-      accessibilityRole="progressbar"
-      accessibilityState={{ busy: true }}
-      accessible
-      className="flex-row items-center gap-2"
+    <StatusLine
+      label={episodeLabels.saving}
+      loading
       testID="episode-closing-saving"
-    >
-      <LoadingSpinner />
-      <Text className="text-muted text-sm">{episodeLabels.saving}</Text>
-    </View>
+    />
   );
 }
 

@@ -105,8 +105,9 @@ export default function EpisodeRoute() {
           ...(Platform.OS === "ios"
             ? {
                 headerShadowVisible: false,
-                headerTransparent: true,
-                scrollEdgeEffects: { top: "soft" },
+                headerStyle: { backgroundColor: background },
+                headerTransparent: false,
+                scrollEdgeEffects: { top: "hidden" },
               }
             : {
                 headerStyle: { backgroundColor: background },

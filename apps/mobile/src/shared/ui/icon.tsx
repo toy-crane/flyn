@@ -8,7 +8,6 @@ import ChevronRight from "lucide-react-native/icons/chevron-right";
 import ChevronUp from "lucide-react-native/icons/chevron-up";
 import Copy from "lucide-react-native/icons/copy";
 import Lock from "lucide-react-native/icons/lock";
-import MessagesSquare from "lucide-react-native/icons/messages-square";
 import Pencil from "lucide-react-native/icons/pencil";
 import RefreshCw from "lucide-react-native/icons/refresh-cw";
 import Sparkles from "lucide-react-native/icons/sparkles";
@@ -33,7 +32,6 @@ const icons = {
   locked: Lock,
   regenerate: RefreshCw,
   send: ArrowUp,
-  sideChat: MessagesSquare,
   stop: Square,
 } as const;
 

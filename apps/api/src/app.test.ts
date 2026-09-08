@@ -8,7 +8,6 @@ import type { MiddlewareHandler } from "hono";
 
 import { createApp } from "./app";
 
-const CHAT_PATH = "/ai/chat";
 const EPISODE_PATH = "/ai/episode";
 
 /**
@@ -635,17 +634,6 @@ function createMockModel(
   });
 }
 
-function createChatRequest(body: unknown, token?: string): Request {
-  return new Request(`http://localhost${CHAT_PATH}`, {
-    body: JSON.stringify(body),
-    headers: {
-      "content-type": "application/json",
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
-    },
-    method: "POST",
-  });
-}
-
 /**
  * 앱이 보내는 요청 하나.
  *
@@ -746,17 +734,12 @@ function neverEndingModel(): MockLanguageModelV4 {
  */
 async function abortMidStream(
   app: ReturnType<typeof createApp>,
-  message: string
+  request: Request
 ): Promise<void> {
   const controller = new AbortController();
-  const request = new Request(`http://localhost${CHAT_PATH}`, {
-    body: JSON.stringify({ messages: [createUserMessage(message)] }),
-    headers: { "content-type": "application/json" },
-    method: "POST",
-    signal: controller.signal,
-  });
-
-  const response = await app.request(request);
+  const response = await app.request(
+    new Request(request, { signal: controller.signal })
+  );
 
   expect(response.status).toBe(200);
 
@@ -785,297 +768,20 @@ describe("GET /health", () => {
   });
 });
 
-describe("POST /ai/chat", () => {
-  test("rejects a request with no access token before calling the model", async () => {
-    const model = createMockModel(["안녕하세요"]);
-    const app = createApp({
-      authMiddleware: createUserAuthMiddleware(),
-      model,
-    });
-
-    const response = await app.request(
-      createChatRequest({ messages: [createUserMessage("안녕")] })
-    );
-
-    expect(response.status).toBe(401);
-    expect(model.doStreamCalls).toHaveLength(0);
-  });
-
-  test("rejects an access token it cannot verify before calling the model", async () => {
-    const model = createMockModel(["안녕하세요"]);
-    const app = createApp({
-      authMiddleware: createUserAuthMiddleware(),
-      model,
-    });
-
-    const response = await app.request(
-      createChatRequest(
-        { messages: [createUserMessage("안녕")] },
-        "not-a-real-token"
-      )
-    );
-
-    expect(response.status).toBe(401);
-    expect(model.doStreamCalls).toHaveLength(0);
-  });
-
-  test("rejects a deleted user before calling the model", async () => {
-    const model = createMockModel(["안녕하세요"]);
-    const app = createApp({ authMiddleware: deletedUserAuth, model });
-
-    const response = await app.request(
-      createChatRequest({ messages: [createUserMessage("안녕")] })
-    );
-
-    expect(response.status).toBe(401);
-    expect(model.doStreamCalls).toHaveLength(0);
-  });
-
-  test("returns a UI message stream for an authenticated request", async () => {
-    const model = createMockModel(["안녕", "하세요"]);
+describe("제거한 일반 채팅", () => {
+  test("제거한 일반 채팅 경로는 모델을 호출하지 않고 404를 반환한다", async () => {
+    const model = createMockModel(["답변"]);
     const app = createApp({ authMiddleware: bypassAuth, model });
-
     const response = await app.request(
-      createChatRequest({ messages: [createUserMessage("안녕")] })
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("x-vercel-ai-ui-message-stream")).toBe("v1");
-
-    const body = await response.text();
-
-    expect(body).toContain('"type":"text-delta"');
-    expect(body).toContain("안녕");
-    expect(body).toContain("하세요");
-    expect(model.doStreamCalls).toHaveLength(1);
-  });
-
-  test("turns screenplay lines into speaker parts and narration", async () => {
-    const model = createMockModel([
-      "국물 김이 오른다.\n",
-      "만복: 어서 와.\n",
-      "준호: 사장님, 저도요.",
-    ]);
-    const app = createApp({ authMiddleware: bypassAuth, model });
-
-    const response = await app.request(
-      createChatRequest({ messages: [createUserMessage("안녕하세요")] })
-    );
-
-    expect(response.status).toBe(200);
-
-    const body = await response.text();
-
-    // The line heads become speaker parts; the spoken words flow as plain
-    // deltas without the name prefix the model wrote.
-    expect(body).toContain('"type":"data-speaker"');
-    expect(body).toContain('"name":"만복"');
-    expect(body).toContain('"name":null');
-    expect(body).toContain("어서 와.");
-    expect(body).not.toContain("만복:");
-  });
-
-  test("restores speaker parts as screenplay lines for the model", async () => {
-    const model = createMockModel(["만복: 또 왔네."]);
-    const app = createApp({ authMiddleware: bypassAuth, model });
-
-    const response = await app.request(
-      createChatRequest({
-        messages: [
-          createUserMessage("안녕하세요"),
-          {
-            id: "m2",
-            parts: [
-              {
-                data: { name: "준호" },
-                id: "speaker-1",
-                type: "data-speaker",
-              },
-              { text: "어서 와, 처음 보는 얼굴이네.", type: "text" },
-            ],
-            role: "assistant",
-          },
-          {
-            id: "m3",
-            parts: [{ text: "네, 처음이에요", type: "text" }],
-            role: "user",
-          },
-        ],
+      new Request("http://localhost/ai/chat", {
+        body: JSON.stringify({ messages: [createUserMessage("질문")] }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
       })
     );
 
-    expect(response.status).toBe(200);
-    await response.text();
-
-    // Without this, the model would see last scene's words with no idea who
-    // said them.
-    const prompt = JSON.stringify(model.doStreamCalls[0]?.prompt);
-
-    expect(prompt).toContain("준호:");
-    expect(prompt).toContain("어서 와, 처음 보는 얼굴이네.");
-  });
-
-  test("rejects a malformed body before calling the model", async () => {
-    const model = createMockModel(["안녕하세요"]);
-    const app = createApp({ authMiddleware: bypassAuth, model });
-
-    const response = await app.request(
-      createChatRequest({ messages: [{ role: "user" }] })
-    );
-
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(404);
     expect(model.doStreamCalls).toHaveLength(0);
-  });
-
-  test("keeps the conversation out of the log when the provider fails", async () => {
-    const secret = "내-주민등록번호-900101-1234567";
-    // The shape the AI SDK actually produces: the error carries the request it
-    // sent, so anything that prints the object prints the conversation.
-    const model = new MockLanguageModelV4({
-      doStream: () =>
-        Promise.reject(
-          new APICallError({
-            message: "Unauthorized",
-            requestBodyValues: {
-              messages: [{ content: secret, role: "user" }],
-            },
-            responseBody: '{"error":"bad key"}',
-            statusCode: 401,
-            url: "https://ai-gateway.example/v1/chat",
-          })
-        ),
-    });
-    const app = createApp({ authMiddleware: bypassAuth, model });
-    const written: string[] = [];
-    const realError = console.error;
-
-    // `inspect`, not `String`: that is what a console does with an object, and
-    // it is the step that would expose the error's own properties.
-    console.error = (...parts: unknown[]) => {
-      written.push(parts.map((part) => inspect(part, { depth: 6 })).join(" "));
-    };
-
-    try {
-      const response = await app.request(
-        createChatRequest({ messages: [createUserMessage(secret)] })
-      );
-
-      await response.text();
-    } finally {
-      console.error = realError;
-    }
-
-    expect(written.join("\n")).not.toContain(secret);
-    expect(written.join("\n")).toContain("Request failed on");
-  });
-
-  test("rejects a body that is not an AI SDK message list", async () => {
-    const model = createMockModel(["안녕하세요"]);
-    const app = createApp({ authMiddleware: bypassAuth, model });
-
-    const response = await app.request(createChatRequest({ prompt: "안녕" }));
-
-    expect(response.status).toBe(400);
-    expect(model.doStreamCalls).toHaveLength(0);
-  });
-
-  test("passes the request abort through to the model call", async () => {
-    const model = neverEndingModel();
-    const app = createApp({ authMiddleware: bypassAuth, model });
-
-    await abortMidStream(app, "안녕");
-
-    // `streamText` may hand the model a derived signal, so the check is that
-    // the signal it received fired, not that it is the request's own object.
-    await until(() => model.doStreamCalls[0]?.abortSignal?.aborted === true);
-  });
-
-  test("logs an abort as method and path only", async () => {
-    const secret = "내-주민등록번호-900101-1234567";
-    const model = neverEndingModel();
-    const app = createApp({ authMiddleware: bypassAuth, model });
-    const written: string[] = [];
-    const realLog = console.log;
-    const realError = console.error;
-
-    console.log = (...parts: unknown[]) => {
-      written.push(parts.map((part) => inspect(part, { depth: 6 })).join(" "));
-    };
-    console.error = (...parts: unknown[]) => {
-      written.push(parts.map((part) => inspect(part, { depth: 6 })).join(" "));
-    };
-
-    try {
-      await abortMidStream(app, secret);
-      await until(() =>
-        written.some((line) => line.includes("Request aborted on"))
-      );
-    } finally {
-      console.log = realLog;
-      console.error = realError;
-    }
-
-    const log = written.join("\n");
-
-    expect(log).toContain("Request aborted on");
-    expect(log).toContain("POST");
-    expect(log).toContain(CHAT_PATH);
-    expect(log).not.toContain(secret);
-  });
-
-  test("keeps reasoning out of the response while text passes through", async () => {
-    const reasoning = "모델이 몰래 생각한 내용";
-    const chunks: LanguageModelV4StreamPart[] = [
-      { type: "stream-start", warnings: [] },
-      { id: "r0", type: "reasoning-start" },
-      { delta: reasoning, id: "r0", type: "reasoning-delta" },
-      { id: "r0", type: "reasoning-end" },
-      { id: "0", type: "text-start" },
-      { delta: "안녕", id: "0", type: "text-delta" },
-      { delta: "하세요", id: "0", type: "text-delta" },
-      { id: "0", type: "text-end" },
-      {
-        finishReason: { raw: undefined, unified: "stop" },
-        type: "finish",
-        usage: {
-          inputTokens: {
-            cacheRead: undefined,
-            cacheWrite: undefined,
-            noCache: undefined,
-            total: undefined,
-          },
-          outputTokens: {
-            reasoning: undefined,
-            text: undefined,
-            total: undefined,
-          },
-        },
-      },
-    ];
-    const model = new MockLanguageModelV4({
-      doStream: {
-        stream: simulateReadableStream({
-          chunkDelayInMs: null,
-          chunks,
-          initialDelayInMs: null,
-        }),
-      },
-    });
-    const app = createApp({ authMiddleware: bypassAuth, model });
-
-    const response = await app.request(
-      createChatRequest({ messages: [createUserMessage("안녕")] })
-    );
-
-    expect(response.status).toBe(200);
-
-    const body = await response.text();
-
-    expect(body).not.toContain("reasoning");
-    expect(body).not.toContain(reasoning);
-    expect(body).toContain('"type":"text-delta"');
-    expect(body).toContain("안녕");
-    expect(body).toContain("하세요");
   });
 });
 
@@ -1900,6 +1606,233 @@ describe("POST /ai/episode/ask", () => {
     fixed: WRONG_COFFEE.fixed,
     original: "I think this is wrong coffee.",
   };
+
+  function createConversationRequest(
+    body: Record<string, unknown>,
+    token?: string
+  ): Request {
+    return createAskRequest({ correction: ASKED, ...body }, token);
+  }
+
+  test("rejects a request with no access token before calling the model", async () => {
+    const model = createMockModel(["안녕하세요"]);
+    const app = createApp({
+      authMiddleware: createUserAuthMiddleware(),
+      model,
+    });
+
+    const response = await app.request(
+      createConversationRequest({ messages: [createUserMessage("안녕")] })
+    );
+
+    expect(response.status).toBe(401);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  test("rejects an access token it cannot verify before calling the model", async () => {
+    const model = createMockModel(["안녕하세요"]);
+    const app = createApp({
+      authMiddleware: createUserAuthMiddleware(),
+      model,
+    });
+
+    const response = await app.request(
+      createConversationRequest(
+        { messages: [createUserMessage("안녕")] },
+        "not-a-real-token"
+      )
+    );
+
+    expect(response.status).toBe(401);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  test("rejects a deleted user before calling the model", async () => {
+    const model = createMockModel(["안녕하세요"]);
+    const app = createApp({ authMiddleware: deletedUserAuth, model });
+
+    const response = await app.request(
+      createConversationRequest({ messages: [createUserMessage("안녕")] })
+    );
+
+    expect(response.status).toBe(401);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  test("returns a UI message stream for an authenticated request", async () => {
+    const model = createMockModel(["안녕", "하세요"]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createConversationRequest({ messages: [createUserMessage("안녕")] })
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-vercel-ai-ui-message-stream")).toBe("v1");
+
+    const body = await response.text();
+
+    expect(body).toContain('"type":"text-delta"');
+    expect(body).toContain("안녕");
+    expect(body).toContain("하세요");
+    expect(model.doStreamCalls).toHaveLength(1);
+  });
+
+  test("restores speaker parts as screenplay lines for the model", async () => {
+    const model = createMockModel(["Mia: Welcome back."]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createConversationRequest({
+        messages: [
+          createUserMessage("안녕하세요"),
+          {
+            id: "m2",
+            parts: [
+              {
+                data: { name: "Mia" },
+                id: "speaker-1",
+                type: "data-speaker",
+              },
+              { text: "어서 와, 처음 보는 얼굴이네.", type: "text" },
+            ],
+            role: "assistant",
+          },
+          {
+            id: "m3",
+            parts: [{ text: "네, 처음이에요", type: "text" }],
+            role: "user",
+          },
+        ],
+      })
+    );
+
+    expect(response.status).toBe(200);
+    await response.text();
+
+    // Without this, the model would see last scene's words with no idea who
+    // said them.
+    const prompt = JSON.stringify(model.doStreamCalls[0]?.prompt);
+
+    expect(prompt).toContain("Mia:");
+    expect(prompt).toContain("어서 와, 처음 보는 얼굴이네.");
+  });
+
+  test("rejects a malformed body before calling the model", async () => {
+    const model = createMockModel(["안녕하세요"]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createConversationRequest({ messages: [{ role: "user" }] })
+    );
+
+    expect(response.status).toBe(400);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  test("keeps the conversation out of the log when the provider fails", async () => {
+    const secret = "내-주민등록번호-900101-1234567";
+    // The shape the AI SDK actually produces: the error carries the request it
+    // sent, so anything that prints the object prints the conversation.
+    const model = new MockLanguageModelV4({
+      doStream: () =>
+        Promise.reject(
+          new APICallError({
+            message: "Unauthorized",
+            requestBodyValues: {
+              messages: [{ content: secret, role: "user" }],
+            },
+            responseBody: '{"error":"bad key"}',
+            statusCode: 401,
+            url: "https://ai-gateway.example/v1/chat",
+          })
+        ),
+    });
+    const app = createApp({ authMiddleware: bypassAuth, model });
+    const written: string[] = [];
+    const realError = console.error;
+
+    // `inspect`, not `String`: that is what a console does with an object, and
+    // it is the step that would expose the error's own properties.
+    console.error = (...parts: unknown[]) => {
+      written.push(parts.map((part) => inspect(part, { depth: 6 })).join(" "));
+    };
+
+    try {
+      const response = await app.request(
+        createConversationRequest({ messages: [createUserMessage(secret)] })
+      );
+
+      await response.text();
+    } finally {
+      console.error = realError;
+    }
+
+    expect(written.join("\n")).not.toContain(secret);
+    expect(written.join("\n")).toContain("Request failed on");
+  });
+
+  test("rejects a body that is not an AI SDK message list", async () => {
+    const model = createMockModel(["안녕하세요"]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createConversationRequest({ prompt: "안녕" })
+    );
+
+    expect(response.status).toBe(400);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
+
+  test("passes the request abort through to the model call", async () => {
+    const model = neverEndingModel();
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    await abortMidStream(
+      app,
+      createConversationRequest({ messages: [createUserMessage("안녕")] })
+    );
+
+    // `streamText` may hand the model a derived signal, so the check is that
+    // the signal it received fired, not that it is the request's own object.
+    await until(() => model.doStreamCalls[0]?.abortSignal?.aborted === true);
+  });
+
+  test("logs an abort as method and path only", async () => {
+    const secret = "내-주민등록번호-900101-1234567";
+    const model = neverEndingModel();
+    const app = createApp({ authMiddleware: bypassAuth, model });
+    const written: string[] = [];
+    const realLog = console.log;
+    const realError = console.error;
+
+    console.log = (...parts: unknown[]) => {
+      written.push(parts.map((part) => inspect(part, { depth: 6 })).join(" "));
+    };
+    console.error = (...parts: unknown[]) => {
+      written.push(parts.map((part) => inspect(part, { depth: 6 })).join(" "));
+    };
+
+    try {
+      await abortMidStream(
+        app,
+        createConversationRequest({ messages: [createUserMessage(secret)] })
+      );
+      await until(() =>
+        written.some((line) => line.includes("Request aborted on"))
+      );
+    } finally {
+      console.log = realLog;
+      console.error = realError;
+    }
+
+    const log = written.join("\n");
+
+    expect(log).toContain("Request aborted on");
+    expect(log).toContain("POST");
+    expect(log).toContain(`${EPISODE_PATH}/ask`);
+    expect(log).not.toContain(secret);
+  });
 
   test("로그인하지 않은 요청은 받지 않는다", async () => {
     const model = createMockModel(["the를 붙여요."]);

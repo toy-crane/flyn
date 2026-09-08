@@ -62,7 +62,7 @@ test("화면 읽기에서는 스스로 드러나지 않는다", async () => {
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
 
-test("크기는 한 줄에 서는 small 하나로 고정한다", async () => {
+test("컨트롤 역할은 시스템 small 진행 표시를 원래 아이콘 자리에 둔다", async () => {
   await renderWithHeroUI(<LoadingSpinner testID="loading" />);
 
   expect(indicator().props.size).toBe("small");
