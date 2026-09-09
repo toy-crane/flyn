@@ -170,8 +170,8 @@
   .row .mine { font-size: 15px; line-height: 22px; color: #8a8a92; word-break: break-word }
   .row .mine u { text-decoration: underline }
   .row .en { font-size: 17px; line-height: 25px; font-weight: 600; word-break: break-word }
-  .row .en b { color: var(--learn) }
-  .row.expression .en b { color: var(--expression) }
+  .row .en b { background: var(--learn-surface); color: var(--learn); font-weight: inherit; padding: 0 3px; border-radius: 4px }
+  .row.expression .en b { background: var(--expression-surface); color: var(--expression) }
   .row .why { font-size: 14px; line-height: 21px; color: var(--muted); word-break: keep-all }
   .row .ko { font-size: 15px; line-height: 22px; color: var(--muted); word-break: keep-all }
   .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; background: #ececf0; color: #55555e }
@@ -314,7 +314,7 @@
       learn: { id: 'c1', kind: 'learn', title: '더 자연스러운 영어 표현', original: 'I order hot americano but this is ice latte.', originalMarks: ['order', 'ice'], fixed: 'I ordered a hot americano, but this is an iced latte.', fixedMarks: ['ordered', 'iced'], why: '지난 일은 ordered로, 얼음 넣은 음료는 iced라고 해요.', meaning: '뜨거운 아메리카노를 시켰는데 아이스 라테가 나왔어요.' } },
     { type: 'utterance', id: 'u2', who: '미아', text: "Oh no, I'm so sorry about that. Let me remake it for you right away.", meaning: '어머, 정말 죄송해요. 바로 다시 만들어 드릴게요.' },
     { type: 'reply', text: '괜찮아요, 그런데 좀 급해서요.',
-      learn: { id: 'c2', kind: 'expression', title: '이럴 때 쓰는 영어 표현', original: '괜찮아요, 그런데 좀 급해서요.', originalMarks: [], fixed: "No worries, but I'm in a bit of a hurry.", fixedMarks: ['No worries', 'in a bit of a hurry'], why: "'괜찮아요'는 No worries, '좀 급해요'는 in a bit of a hurry라고 해요.", meaning: '괜찮아요, 그런데 좀 급해서요.' } },
+      learn: { id: 'c2', kind: 'expression', title: '이럴 때 쓰는 영어 표현', original: '괜찮아요, 그런데 좀 급해서요.', originalMarks: [], fixed: "No worries, but I'm in a bit of a hurry.", fixedMarks: ['No worries,', 'in a bit of a hurry.'], why: "'괜찮아요'는 No worries, '좀 급해요'는 in a bit of a hurry라고 해요.", meaning: '괜찮아요, 그런데 좀 급해서요.' } },
     { type: 'utterance', id: 'u3', who: '미아', text: "Got it. I'll have it ready in two minutes. Sorry again for the mix-up.", meaning: '알겠어요. 2분 안에 준비할게요. 착오가 있어서 다시 한번 죄송해요.' }
   ];
   let saved = [];
