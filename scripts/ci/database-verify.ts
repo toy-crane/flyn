@@ -168,6 +168,10 @@ export async function verifyDatabase(
       mkdirSync(dirname(destination), { recursive: true });
       cpSync(path, destination);
     }
+    cpSync(
+      join(source, "seed_identity_test.sql"),
+      join(target, "seed_identity_test.sql")
+    );
     console.log(`격리된 DB 검증: ${id} (port ${dbPort})`);
     await run(["db", "start"]);
     await verifyUpgrades(source, target, upgrades, run);
@@ -184,7 +188,12 @@ export async function verifyDatabase(
         "--fail-on",
         "error",
       ]);
-      await run(["test", "db"]);
+      await run([
+        "test",
+        "db",
+        join(target, "tests"),
+        join(target, "seed_identity_test.sql"),
+      ]);
       const generated = await run(
         ["gen", "types", "typescript", "--local"],
         true

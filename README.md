@@ -525,6 +525,7 @@ bun run test:integration
 ```
 
 `db:test`는 pgTAP으로 trigger, 권한, RLS를 확인합니다.
+같은 명령이 `supabase/seed_identity_test.sql`도 실행해 실제 seed의 반복 적용과 ID 보존을 확인합니다. 이 테스트는 CLI 컨테이너에서 `seed.sql`을 함께 읽도록 seed와 같은 폴더에 둡니다.
 `db:lint`는 `public` 스키마의 함수를 정적으로 검사합니다.
 `test:integration`은 실제 Supabase Auth와 Mailpit으로 가입부터 프로필 조회·수정까지 확인합니다.
 둘 다 로컬 스택이 켜져 있어야 합니다.
