@@ -1,4 +1,4 @@
-import { createApp } from "./app";
+import { createApp } from "./app.js";
 
 /**
  * 첫 글자가 오기까지 기다려 주는 시간. 초 단위다.
