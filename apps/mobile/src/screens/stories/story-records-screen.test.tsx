@@ -122,7 +122,19 @@ test("현재 플레이 배지를 붙이지 않고 회차마다 진행 바를 둔
 
   expect(screen.queryByText("현재 플레이")).toBeNull();
   expect(screen.getAllByTestId("story-progress")).toHaveLength(2);
-  expect(screen.getAllByText("이어서 하기")).toHaveLength(2);
+  expect(screen.queryByText("이어서 하기")).toBeNull();
+});
+
+test("접힌 회차는 현재 위치와 화 제목 또는 완료를 보여 준다", async () => {
+  const { rendered } = renderRecords({
+    runs: records([unfinishedRun(), finishedRun()]),
+  });
+
+  await rendered;
+
+  expect(screen.getByText("2/5화 · 계산이 꼬인 아침")).toBeVisible();
+  expect(screen.getByText("5/5화 · 완료")).toBeVisible();
+  expect(screen.queryByText("이어서 하기")).toBeNull();
 });
 
 test("완주한 회차에는 이어서 하기가 없다", async () => {
@@ -141,6 +153,7 @@ test("미완료 회차의 이어서 하기는 그 회차의 다음 화를 연다
   await rendered;
   const user = userEvent.setup();
 
+  await user.press(screen.getByTestId(`run-toggle-${runId(1)}`));
   await user.press(screen.getByTestId(`run-resume-${runId(1)}`));
 
   expect(onResume).toHaveBeenCalledWith(runId(1), episodeId(2));
@@ -153,12 +166,23 @@ test("카드를 펼치면 그 회차에서 끝낸 화의 결과가 보이고 눌
 
   await rendered;
   const user = userEvent.setup();
+  const toggle = screen.getByTestId(`run-toggle-${runId(1)}`);
 
   expect(screen.queryByText("원하는 커피로 바꿔냈어요.")).toBeNull();
+  expect(toggle).toHaveProp(
+    "accessibilityLabel",
+    "9월 8일 오후 3:42, 2/5화 · 계산이 꼬인 아침, 대화 기록 펼치기"
+  );
+  expect(toggle).toHaveProp("accessibilityState", { expanded: false });
 
-  await user.press(screen.getByTestId(`run-toggle-${runId(1)}`));
+  await user.press(toggle);
 
   expect(screen.getByText("원하는 커피로 바꿔냈어요.")).toBeVisible();
+  expect(toggle).toHaveProp(
+    "accessibilityLabel",
+    "9월 8일 오후 3:42, 2/5화 · 계산이 꼬인 아침, 대화 기록 접기"
+  );
+  expect(toggle).toHaveProp("accessibilityState", { expanded: true });
 
   await user.press(screen.getByTestId("run-episode-1"));
 
@@ -166,8 +190,8 @@ test("카드를 펼치면 그 회차에서 끝낸 화의 결과가 보이고 눌
 });
 
 // 첫 화를 끝내지 않았어도 사용자 메시지가 있으면 기록에 선다. 이때는 펼칠 것이
-// 없으므로 진행 바와 이어서 하기만 남는다.
-test("아직 아무 화도 끝내지 않은 회차는 펼치지 않고 이어가기만 둔다", async () => {
+// 없으므로 펼친 뒤 이어서 하기만 나타난다.
+test("아직 아무 화도 끝내지 않은 회차도 펼쳐서 이어간다", async () => {
   const started: StoryRun = {
     episodes: [],
     finished: 0,
@@ -178,9 +202,20 @@ test("아직 아무 화도 끝내지 않은 회차는 펼치지 않고 이어가
   const { rendered } = renderRecords({ runs: records([started]) });
 
   await rendered;
+  const user = userEvent.setup();
 
-  expect(screen.queryByTestId(`run-toggle-${runId(3)}`)).toBeNull();
+  expect(screen.getByTestId(`run-toggle-${runId(3)}`)).toBeVisible();
   expect(screen.getByTestId("story-progress")).toBeVisible();
+  expect(screen.getByText("1/5화 · 카페에서 생긴 일")).toBeVisible();
+  expect(screen.getByTestId("story-progress-step-1")).toHaveProp(
+    "className",
+    expect.stringContaining("border-accent")
+  );
+  expect(screen.queryByText("이어서 하기")).toBeNull();
+
+  await user.press(screen.getByTestId(`run-toggle-${runId(3)}`));
+
+  expect(screen.queryByTestId(`run-episodes-${runId(3)}`)).toBeNull();
   expect(screen.getByText("이어서 하기")).toBeVisible();
 });
 

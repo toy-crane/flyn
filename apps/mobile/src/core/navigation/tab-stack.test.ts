@@ -12,6 +12,9 @@ describe("getTabStackScreenOptions", () => {
     expect(options).not.toHaveProperty("headerStyle");
     expect(options).toMatchObject({
       headerLargeTitleStyle: { color: "#111114" },
+      headerShadowVisible: false,
+      headerTransparent: true,
+      scrollEdgeEffects: { top: "soft" },
     });
   });
 

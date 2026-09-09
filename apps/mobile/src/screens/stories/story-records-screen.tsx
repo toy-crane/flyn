@@ -95,7 +95,8 @@ function RunCard({
       onResume(run.runId, next.episodeId);
     }
   }, [next, onResume, run.runId]);
-  const canExpand = run.episodes.length > 0;
+  const canExpand = run.episodes.length > 0 || next !== null;
+  const progress = storyLabels.runProgress(run.finished, total, next);
 
   return (
     <View
@@ -104,8 +105,9 @@ function RunCard({
     >
       {canExpand ? (
         <Pressable
-          accessibilityLabel={storyLabels.runCard(startedAt)}
+          accessibilityLabel={storyLabels.runCard(startedAt, progress, isOpen)}
           accessibilityRole="button"
+          accessibilityState={{ expanded: isOpen }}
           className="flex-row items-center gap-3"
           onPress={toggle}
           testID={`run-toggle-${run.runId}`}
@@ -114,7 +116,12 @@ function RunCard({
             <Text className="font-bold text-base text-foreground">
               {startedAt}
             </Text>
-            <StoryProgress finished={run.finished} total={total} />
+            <StoryProgress
+              current={next?.number}
+              finished={run.finished}
+              total={total}
+            />
+            <Text className="text-muted text-sm leading-5">{progress}</Text>
           </View>
           <Icon name={isOpen ? "collapse" : "expand"} size="md" tone="muted" />
         </Pressable>
@@ -124,11 +131,15 @@ function RunCard({
             {startedAt}
           </Text>
           <StoryProgress finished={run.finished} total={total} />
+          <Text className="text-muted text-sm leading-5">{progress}</Text>
         </View>
       )}
 
-      {isOpen && canExpand ? (
-        <View className="border-border border-t pt-1">
+      {isOpen && run.episodes.length > 0 ? (
+        <View
+          className="border-border border-t pt-1"
+          testID={`run-episodes-${run.runId}`}
+        >
           {run.episodes.map((episode) => (
             <RunEpisodeRow
               episode={episode}
@@ -140,12 +151,12 @@ function RunCard({
         </View>
       ) : null}
 
-      {next ? (
+      {isOpen && next ? (
         <Button
           accessibilityLabel={storyLabels.resumeRun(startedAt)}
           onPress={resume}
           testID={`run-resume-${run.runId}`}
-          variant="secondary"
+          variant="outline"
         >
           {storyLabels.resume}
         </Button>

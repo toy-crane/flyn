@@ -3,6 +3,7 @@ import { type LayoutChangeEvent, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { StoryDetail, StoryEpisode } from "@/features/story/api/story";
+import { StoryCover } from "@/features/story/ui/story-cover";
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { StoryUnavailable } from "@/features/story/ui/story-status";
 import { Button } from "@/shared/ui/button";
@@ -48,17 +49,17 @@ function EpisodeRow({
 function StoryDetailBody({ story }: { story: StoryDetail }) {
   return (
     <>
-      <View className="gap-2.5 px-1">
-        <Text
-          accessibilityRole="header"
-          className="font-extrabold text-3xl text-foreground leading-9"
-        >
-          {story.title}
-        </Text>
-        <Text className="text-base text-muted leading-6">{story.intro}</Text>
-        <Text className="text-muted text-sm">
-          {storyLabels.episodeCount(story.total)}
-        </Text>
+      <View className="flex-row items-center gap-3.5 px-1">
+        <StoryCover emoji={story.coverEmoji} imagePath={story.coverImagePath} />
+        <View className="flex-1 gap-1">
+          <Text
+            accessibilityRole="header"
+            className="font-extrabold text-foreground text-xl leading-7"
+          >
+            {story.title}
+          </Text>
+          <Text className="text-muted text-sm leading-5">{story.intro}</Text>
+        </View>
       </View>
 
       <View className="gap-3">

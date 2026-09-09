@@ -25,3 +25,8 @@ export const appTabs = [
     routeName: "(stories)",
   },
 ] as const;
+
+/** 목록보다 깊이 들어간 화면은 해당 탭의 흐름만 보여 준다. */
+export function isTabBarHidden(pathname: string): boolean {
+  return pathname.startsWith("/story/") || pathname.startsWith("/records/");
+}

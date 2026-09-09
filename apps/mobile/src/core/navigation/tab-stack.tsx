@@ -17,6 +17,11 @@ export function getTabStackScreenOptions(
   return {
     contentStyle: { backgroundColor: colors.background },
     headerLargeTitleStyle: { color: colors.foreground },
+    ...(platform === "ios" && {
+      headerShadowVisible: false,
+      headerTransparent: true,
+      scrollEdgeEffects: { top: "soft" as const },
+    }),
     ...(platform === "android" && {
       headerStyle: { backgroundColor: colors.background },
     }),

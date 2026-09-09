@@ -58,6 +58,9 @@ function renderDetail(
 test("표지 소개와 모든 화의 제목·상황 설명을 보여 준다", async () => {
   await renderDetail();
 
+  expect(
+    screen.getByTestId("story-cover", { includeHiddenElements: true })
+  ).toBeTruthy();
   expect(screen.getByText("Mia의 카페")).toBeVisible();
   expect(
     screen.getByText("매일 들르는 동네 카페에서 벌어지는 다섯 번의 사건.")

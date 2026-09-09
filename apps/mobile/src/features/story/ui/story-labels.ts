@@ -6,18 +6,15 @@
  * 스토리에서나 같은 말뿐이다.
  *
  * 성공·타협·실패도 없다. 결말의 종류는 서버 안에서만 쓰는 말이라 화면 어디에도
- * 나오지 않는다. 진행을 문장으로 세는 말("5화 중 2화 완료")과 상태 낱말
- * ("시작 전", "완료")도 두지 않는다. 진행은 분절 바 하나로만 말한다.
+ * 나오지 않는다. 진행은 분절 바와 `현재 위치 · 화 제목`으로 짧게 말한다.
  */
 export const storyLabels = {
   /** 탐색의 목록 제목. */
   allStories: "모든 스토리",
   /** 탐색 탭의 이름이자 그 화면의 큰 제목. */
   browseTab: "탐색",
-  /** 상세가 세는 총 화 수. */
-  episodeCount: (total: number) => `에피소드 ${total}개`,
   /** 상세의 에피소드 목록 제목. */
-  episodeList: "에피소드 목록",
+  episodeList: "에피소드",
   /** 어디서나 화를 번호로 부르는 말. */
   episodeNumber: (episode: number) => `${episode}화`,
   /** 대화 기록 헤더 오른쪽의 텍스트 버튼. */
@@ -42,7 +39,17 @@ export const storyLabels = {
   reviewEpisode: (episode: number, title: string) =>
     `${episode}화 ${title}, 대화 보기`,
   /** Not shown: 회차 카드를 펼치고 접는 자리. */
-  runCard: (startedAt: string) => `${startedAt}, 대화 기록 펼치기`,
+  runCard: (startedAt: string, progress: string, isOpen: boolean) =>
+    `${startedAt}, ${progress}, 대화 기록 ${isOpen ? "접기" : "펼치기"}`,
+  /** 회차 카드에서 진행 바 아래에 보이는 현재 위치. */
+  runProgress: (
+    finished: number,
+    total: number,
+    next: { number: number; title: string } | null
+  ) =>
+    next
+      ? `${next.number}/${total}화 · ${next.title}`
+      : `${finished}/${total}화 · 완료`,
   /** 상세 하단에 고정하는 하나뿐인 주요 행동. */
   start: "대화 시작하기",
   startFailedClose: "닫기",
