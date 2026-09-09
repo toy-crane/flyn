@@ -21,7 +21,7 @@ function BrowseRow({
 
   return (
     <StoryRow
-      coverEmoji={story.coverEmoji}
+      coverBlurhash={story.coverBlurhash}
       coverImagePath={story.coverImagePath}
       hasBorder={hasBorder}
       hook={story.hook}

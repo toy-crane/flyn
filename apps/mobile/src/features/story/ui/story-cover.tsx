@@ -1,24 +1,22 @@
+import { isBlurhashValid } from "blurhash";
+import { Image } from "expo-image";
 import { useMemo } from "react";
-import { Image, Text, View } from "react-native";
+import { View } from "react-native";
+import { withUniwind } from "uniwind";
 
 import { readStoryCoverUrl } from "@/features/story/api/story-cover";
 import { getSupabaseClient } from "@/shared/supabase/client";
 
-/**
- * 스토리의 표지 타일.
- *
- * 이모지가 바탕에 늘 깔리고, 대표 캐릭터 일러스트가 있으면 그 위를 덮는다.
- * 그림을 아직 그리지 않은 스토리도, 그림을 못 받아 온 화면도 빈 사각형 대신
- * 그 스토리를 알아볼 무언가를 남긴다.
- *
- * 표지는 스토리를 알아보는 표시일 뿐 읽을 내용이 아니라서 보조 기술에는
- * 드러내지 않는다. 목록 행과 카드가 이미 제목과 소개를 읽어 준다.
- */
+const CoverImage = withUniwind(Image);
+const BASE83 =
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~";
+
+/** 표지는 제목과 함께 표시하는 장식 이미지다. 로딩 중에는 같은 원본의 미리보기를 보인다. */
 export function StoryCover({
-  emoji,
+  blurhash,
   imagePath,
 }: {
-  emoji: string;
+  blurhash: string | null;
   imagePath: string | null;
 }) {
   const imageUrl = useMemo(
@@ -26,20 +24,30 @@ export function StoryCover({
       imagePath ? readStoryCoverUrl(getSupabaseClient(), imagePath) : null,
     [imagePath]
   );
+  const validHash =
+    typeof blurhash === "string" &&
+    [...blurhash].every((character) => BASE83.includes(character)) &&
+    isBlurhashValid(blurhash).result;
 
   return (
     <View
       accessibilityElementsHidden
-      className="size-[72px] items-center justify-center overflow-hidden rounded-[14px] bg-accent-soft"
+      className="size-[72px] overflow-hidden rounded-[14px] bg-accent-soft"
       importantForAccessibility="no-hide-descendants"
       testID="story-cover"
     >
-      <Text className="text-3xl">{emoji}</Text>
       {imageUrl ? (
-        <Image
-          className="absolute inset-0 size-full"
+        <CoverImage
+          accessible={false}
+          className="size-full"
+          contentFit="cover"
+          key={imageUrl}
+          placeholder={validHash ? { blurhash } : null}
+          placeholderContentFit="cover"
+          recyclingKey={imageUrl}
           source={{ uri: imageUrl }}
           testID="story-cover-image"
+          transition={200}
         />
       ) : null}
     </View>

@@ -832,3 +832,19 @@ Supabase 세션에는 베어러 토큰이 들어 있습니다.
 - **앱이 로컬 API에 연결되지 않을 때**: `http://127.0.0.1:54331`은 iOS Simulator에서만 그대로 사용할 수 있습니다. Android Emulator는 `10.0.2.2`로 호스트의 loopback에 연결합니다. 실제 기기에서는 개발 컴퓨터의 LAN IP가 필요합니다. 사용하는 기기에서 접근할 수 있는 주소를 찾아 `EXPO_PUBLIC_SUPABASE_URL`에 넣으세요. 이 템플릿은 터널을 자동으로 만들거나 호스트 주소를 바꾸지 않습니다.
 - **네이티브 모듈을 추가했을 때**: `expo-sqlite`처럼 네이티브 코드가 있는 의존성은 기존 Development Build에서 실행할 수 없습니다. `ios` 또는 `android` 명령으로 다시 빌드하세요.
 - **Android에서 Google 버튼을 눌렀는데 아무 반응이 없을 때**: 앱이 취소로 처리한 것입니다. Credential Manager는 사용자가 창을 닫았을 때와 SHA-1, package, client ID가 맞지 않을 때를 같은 값으로 알려 주므로, 앱은 둘을 구분할 수 없습니다. 계정을 고른 뒤에 이렇게 되면 서명 지문 문제일 가능성이 큽니다. `adb logcat`에서 `NitroGoogleSignin` 경고를 확인하고, 지금 설치본을 서명한 SHA-1이 Android OAuth client에 등록되어 있는지 보세요. 배포 빌드라면 release 키와 Play App Signing 지문도 등록해야 합니다.
+
+## 스토리 표지 준비와 교체
+
+스토리 표지는 Expo Image와 BlurHash를 사용합니다. 프로필 사진은 기존 HeroUI Avatar를 유지합니다.
+
+로컬 기본 표지를 추가하거나 바꾸려면 `supabase/story-covers/`의 해당 PNG를 교체한 뒤 루트에서 `bun run covers:prepare`를 실행하세요. 같은 스토리의 파일은 하나만 두세요. 파일 이름은 `<스토리 slug>.png` 또는 기존 파일 이름을 사용합니다. 이 명령은 원본 내용으로 파일 이름을 정하고 `supabase/seed-story-covers.sql`에 표지 경로와 BlurHash를 함께 기록합니다. 생성한 PNG와 SQL을 함께 커밋하세요. `bun run check`가 둘의 일치를 확인합니다.
+
+DB 초기화는 `seed.sql` 다음에 표지 SQL을 적용합니다. 기존 로컬 DB를 보존하면서 표지를 갱신하거나 운영 환경의 표지를 등록할 때는 먼저 마이그레이션을 적용한 뒤 다음 명령을 사용하세요.
+
+```sh
+bun run covers:publish <스토리 slug> <이미지 파일>
+```
+
+대상 환경의 `SUPABASE_URL`과 `SUPABASE_SECRET_KEY`를 실행 환경에 설정해야 합니다. 비밀 키는 앱의 `EXPO_PUBLIC_*` 변수에 넣지 마세요. 명령은 스토리가 있는지 확인하고 새 경로에 PNG를 업로드한 뒤, 한 번의 DB 변경으로 경로와 해시를 갱신합니다. 이전 파일은 덮어쓰거나 삭제하지 않습니다. 기존 스토리도 이 명령으로 표지를 한 번씩 등록하면 됩니다. 운영 환경 실행은 배포 작업에 해당합니다.
+
+실제 Storage 등록·교체 테스트는 사용자 데이터가 없는 임시 Supabase 스택에서 실행합니다. 해당 스택의 `supabase status -o json` 결과를 작업 폴더 밖의 접근 제한된 파일에 저장한 뒤 `STORY_COVER_TEST_STATUS=<상태 파일> bun test scripts/integration/story-covers.test.ts`로 확인하세요. 환경 변수가 없으면 이 테스트는 건너뜁니다. 검증 후 비밀 키가 든 임시 파일을 지우세요.

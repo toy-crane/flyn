@@ -15,6 +15,7 @@ const OTHER_STORY_ID = "10000000-0000-4000-8000-000000000002";
 function stories(): RecentStory[] {
   return [
     {
+      coverBlurhash: null,
       coverEmoji: "☕",
       coverImagePath: null,
       hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
@@ -22,6 +23,7 @@ function stories(): RecentStory[] {
       title: "Mia의 카페",
     },
     {
+      coverBlurhash: null,
       coverEmoji: "✈️",
       coverImagePath: null,
       hook: "첫 출장인데 공항에서부터 꼬였어요",

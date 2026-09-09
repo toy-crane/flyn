@@ -8,6 +8,7 @@ import type { StoryCatalogEntry } from "./story";
  * 것이 아예 없다.
  */
 export interface StoryCardView {
+  coverBlurhash: string | null;
   coverEmoji: string;
   coverImagePath: string | null;
   hook: string;
@@ -51,6 +52,7 @@ export interface StoryDetailView extends StoryCardView {
 
 function storyCardOf(entry: StoryCatalogEntry): StoryCardView {
   return {
+    coverBlurhash: entry.coverBlurhash,
     coverEmoji: entry.coverEmoji,
     coverImagePath: entry.coverImagePath,
     hook: entry.hook,

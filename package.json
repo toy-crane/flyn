@@ -13,6 +13,8 @@
     "build": "turbo run build",
     "check": "turbo run check",
     "check-types": "turbo run check-types",
+    "covers:prepare": "bun scripts/story-covers/seed.ts",
+    "covers:publish": "bun scripts/story-covers/publish.ts",
     "db:diff": "supabase db diff",
     "db:lint": "supabase db lint --level warning --schema public",
     "db:reset": "supabase db reset && supabase seed buckets --local",

@@ -10,6 +10,7 @@ const STORY_ID = "10000000-0000-4000-8000-000000000001";
 function stories(): StoryCard[] {
   return [
     {
+      coverBlurhash: null,
       coverEmoji: "☕",
       coverImagePath: null,
       hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",

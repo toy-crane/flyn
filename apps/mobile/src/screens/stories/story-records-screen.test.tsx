@@ -58,6 +58,7 @@ function finishedRun(): StoryPlay {
 
 function records(storyPlays: StoryPlay[]): StoryPlays {
   return {
+    coverBlurhash: null,
     coverEmoji: "☕",
     coverImagePath: null,
     intro: "매일 들르는 동네 카페에서 벌어지는 다섯 번의 사건.",

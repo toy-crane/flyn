@@ -170,7 +170,7 @@ function StoryHeader({ storyPlays }: { storyPlays: StoryPlays }) {
   return (
     <View className="flex-row items-center gap-3.5 px-1">
       <StoryCover
-        emoji={storyPlays.coverEmoji}
+        blurhash={storyPlays.coverBlurhash}
         imagePath={storyPlays.coverImagePath}
       />
       <View className="flex-1 gap-1">
