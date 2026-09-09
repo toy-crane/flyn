@@ -92,12 +92,17 @@ function renderRecords(
   };
 }
 
-test("표지 소개와 회차 카드를 시작한 날짜와 시간으로 보여 준다", async () => {
+jest.mock("expo-router/react-navigation", () => ({
+  useHeaderHeight: () => 103,
+}));
+
+test("표지 소개와 최근 대화 아래에 회차 카드를 시작한 날짜와 시간으로 보여 준다", async () => {
   const { rendered } = renderRecords();
 
   await rendered;
 
   expect(screen.getByText("Mia의 카페")).toBeVisible();
+  expect(screen.getByRole("header", { name: "최근 대화" })).toBeVisible();
   expect(screen.getByText("9월 8일 오후 3:42")).toBeVisible();
   expect(screen.getByText("9월 2일 오전 9:05")).toBeVisible();
 });
@@ -250,6 +255,8 @@ test("기록이 없으면 빈 화면을 보여 주고 다시 시도를 붙이지
   await rendered;
 
   expect(screen.getByTestId("story-records-empty")).toBeVisible();
+  expect(screen.getByRole("header", { name: "최근 대화" })).toBeVisible();
+  expect(screen.getByText("아직 나눈 대화가 없어요.")).toBeVisible();
   expect(screen.queryByText("다시 시도하기")).toBeNull();
 });
 
@@ -262,4 +269,5 @@ test("불러오지 못하면 다시 시도할 수 있다", async () => {
   expect(screen.getByTestId("story-records-unavailable")).toBeVisible();
   expect(screen.getByText("다시 시도하기")).toBeVisible();
   expect(screen.queryByTestId("story-records-empty")).toBeNull();
+  expect(screen.queryByRole("header", { name: "최근 대화" })).toBeNull();
 });

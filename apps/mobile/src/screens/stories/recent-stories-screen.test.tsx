@@ -5,6 +5,10 @@ import type { RecentStory } from "@/features/story/api/story";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { RecentStoriesScreen } from "./recent-stories-screen";
 
+jest.mock("expo-router/react-navigation", () => ({
+  useHeaderHeight: () => 140,
+}));
+
 const STORY_ID = "10000000-0000-4000-8000-000000000001";
 const OTHER_STORY_ID = "10000000-0000-4000-8000-000000000002";
 
@@ -90,7 +94,7 @@ test("대화한 적 없으면 탐색으로 안내하고 다시 시도를 붙이�
   expect(screen.getByTestId("recent-empty")).toBeVisible();
   expect(screen.queryByText("다시 시도하기")).toBeNull();
 
-  await user.press(screen.getByText("탐색에서 스토리 고르기"));
+  await user.press(screen.getByText("스토리 둘러보기"));
 
   expect(onBrowse).toHaveBeenCalledTimes(1);
 });

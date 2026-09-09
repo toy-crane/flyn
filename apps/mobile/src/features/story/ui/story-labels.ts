@@ -20,15 +20,15 @@ export const storyLabels = {
   /** 대화 기록 헤더 오른쪽의 텍스트 버튼. */
   newConversation: "새 대화",
   /** 대화가 없는 스토리 탭이 안내하는 곳. */
-  recentEmptyAction: "탐색에서 스토리 고르기",
+  recentEmptyAction: "스토리 둘러보기",
   /** 대화한 스토리가 아직 없는 스토리 탭. */
-  recentEmptyTitle: "아직 나눈 대화가 없어요",
-  /** 스토리 탭의 목록 제목. */
+  recentEmptyTitle: "아직 대화한 스토리가 없어요.",
+  /** 스토리 탭과 대화 기록의 목록 제목. */
   recentHeading: "최근 대화",
   /** 상세 우측 상단 버튼. 이 스토리의 대화 기록을 연다. */
   records: "대화 기록",
   /** 이 스토리에 아직 기록이 없는 대화 기록 화면. */
-  recordsEmptyTitle: "아직 나눈 대화가 없어요",
+  recordsEmptyTitle: "아직 나눈 대화가 없어요.",
   /** 대화 기록에서 미완료 회차를 다시 여는 버튼. */
   resume: "이어서 하기",
   /** Not shown: 회차 카드에서 이 회차를 이어가는 버튼. */
