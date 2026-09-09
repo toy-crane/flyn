@@ -121,6 +121,14 @@ export async function removeSession({
         continue;
       }
 
+      // App removal can succeed before shutdown fails. Persist an unknown
+      // install state first so a later start reinstalls instead of trusting it.
+      const device = state.devicePool[platform][deviceId];
+      if (device) {
+        device.installedFingerprint = null;
+      }
+      writeState(context.paths.statePath, state);
+
       // biome-ignore lint/performance/noAwaitInLoops: returning devices in parallel makes the tools contend for the same daemons.
       await driverFor(context, platform).returnToPool(deviceId);
       releaseDevice(state, platform, deviceId);
