@@ -1,6 +1,8 @@
 name: Publish fingerprint label
 
 on:
+  push:
+    branches: ["**"]
   workflow_run:
     workflows: [PR fingerprint]
     types: [in_progress, completed]
@@ -11,12 +13,12 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: fingerprint-label-${{ github.event.workflow_run.head_repository.id }}-${{ github.event.workflow_run.head_branch }}
+  group: fingerprint-label-${{ github.repository_id }}-${{ github.event.workflow_run.head_branch || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   label:
-    if: github.event.workflow_run.event == 'pull_request'
+    if: github.event_name == 'push' || github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -26,7 +28,16 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
           sparse-checkout: scripts/ci
+      - name: Check the default-branch implementation
+        id: trusted
+        run: |
+          if [ -f scripts/ci/fingerprint-labels.cjs ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Default-branch label implementation is not merged yet."
+          fi
       - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        if: steps.trusted.outputs.available == 'true'
         with:
           script: |
             const { run } = require('./scripts/ci/fingerprint-labels.cjs');

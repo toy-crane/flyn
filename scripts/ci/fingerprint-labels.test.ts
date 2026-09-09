@@ -76,6 +76,31 @@ test("늦게 끝난 이전 커밋 결과는 최신 PR 라벨을 바꾸지 않는
   expect([...labels].sort()).toEqual(["Fingerprint:changed", "bug"]);
 });
 
+test("base 브랜치가 바뀌면 열린 PR의 이전 fingerprint 라벨을 지운다", async () => {
+  const { github: boundary, labels } = fixture();
+  const github = {
+    paginate: () =>
+      Promise.resolve([
+        { base: { sha: target.base }, head: { sha: target.head }, number: 1 },
+      ]),
+    rest: {
+      ...boundary.rest,
+      pulls: { ...boundary.rest.pulls, list: () => undefined },
+    },
+  };
+  await run({
+    context: {
+      eventName: "push",
+      payload: { deleted: false },
+      ref: "refs/heads/main",
+      repo: { owner: "test", repo: "test" },
+    },
+    core: {},
+    github,
+  });
+  expect([...labels]).toEqual(["bug"]);
+});
+
 test("두 정상 해시만 비교하고 누락·오류 결과를 compatible로 바꾸지 않는다", () => {
   const data = {
     base: target.base,
@@ -98,7 +123,7 @@ test("두 정상 해시만 비교하고 누락·오류 결과를 compatible로 �
   }
 });
 
-test.each(["success", "failure", "invalid", "old-attempt"])(
+test.each(["success", "failure", "invalid", "old-attempt", "fork"])(
   "workflow_run의 %s 결과를 안전하게 라벨로 반영한다",
   async (scenario) => {
     const { github: boundary, labels } = fixture();
@@ -159,7 +184,13 @@ test.each(["success", "failure", "invalid", "old-attempt"])(
               Promise.resolve({
                 data: {
                   base: { repo: { full_name: "test/test" }, sha: target.base },
-                  head: { sha: target.head },
+                  head: {
+                    repo: {
+                      full_name:
+                        scenario === "fork" ? "external/fork" : "test/test",
+                    },
+                    sha: target.head,
+                  },
                   number: 1,
                   state: "open",
                 },
@@ -185,6 +216,7 @@ test.each(["success", "failure", "invalid", "old-attempt"])(
       });
       const expected: Record<string, string> = {
         failure: "Fingerprint:error",
+        fork: "Fingerprint:error",
         invalid: "Fingerprint:error",
         "old-attempt": "Fingerprint:changed",
         success: "Fingerprint:compatible",
@@ -194,7 +226,7 @@ test.each(["success", "failure", "invalid", "old-attempt"])(
         "bug",
       ]);
       expect(failures.length > 0).toBe(
-        scenario === "failure" || scenario === "invalid"
+        scenario === "failure" || scenario === "invalid" || scenario === "fork"
       );
     } finally {
       rmSync(directory, { force: true, recursive: true });

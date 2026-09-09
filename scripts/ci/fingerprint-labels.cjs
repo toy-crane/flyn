@@ -130,6 +130,12 @@ async function resultStatus(github, owner, repo, current, pr, core) {
   let status = "pending";
   if (current.status === "completed") {
     status = "error";
+    if (pr.head.repo?.full_name !== `${owner}/${repo}`) {
+      core.error(
+        "외부 fork의 계산 결과는 신뢰할 수 있는 비교 결과로 게시하지 않습니다."
+      );
+      return status;
+    }
     if (current.conclusion === "success") {
       try {
         status = compare(
@@ -147,6 +153,33 @@ async function resultStatus(github, owner, repo, current, pr, core) {
 
 async function run({ github, context, core }) {
   const { owner, repo } = context.repo;
+  if (context.eventName === "push") {
+    if (context.payload.deleted || !context.ref.startsWith("refs/heads/")) {
+      return;
+    }
+    const prs = await github.paginate(github.rest.pulls.list, {
+      base: context.ref.slice("refs/heads/".length),
+      owner,
+      per_page: 100,
+      repo,
+      state: "open",
+    });
+    for (const pr of prs) {
+      // biome-ignore lint/performance/noAwaitInLoops: Clear stale comparisons without running PR code in this write-enabled job.
+      await publish(
+        github,
+        {
+          base: pr.base.sha,
+          head: pr.head.sha,
+          number: pr.number,
+          owner,
+          repo,
+        },
+        "pending"
+      );
+    }
+    return;
+  }
   const event = context.payload.workflow_run;
   const { data: current } = await github.rest.actions.getWorkflowRun({
     owner,
