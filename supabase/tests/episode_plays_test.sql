@@ -22,18 +22,18 @@ VALUES
   (
     '1a000000-0000-4000-8000-000000000001',
     '11111111-1111-4111-8111-111111111111',
-    '10000000-0000-4000-8000-000000000001'
+    (select id from public.stories where slug = 'mia-cafe')
   ),
   (
     '1a000000-0000-4000-8000-000000000002',
     '11111111-1111-4111-8111-111111111111',
-    '10000000-0000-4000-8000-000000000001'
+    (select id from public.stories where slug = 'mia-cafe')
   ),
   -- 둘째 계정의 회차. 첫 계정이 여기에 손대지 못해야 한다.
   (
     '1b000000-0000-4000-8000-000000000001',
     '22222222-2222-4222-8222-222222222222',
-    '10000000-0000-4000-8000-000000000001'
+    (select id from public.stories where slug = 'mia-cafe')
   );
 
 SELECT has_table('public', 'episode_plays', 'public.episode_plays exists');
@@ -196,7 +196,7 @@ SELECT lives_ok(
   $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1a000000-0000-4000-8000-000000000001',
-      '11000000-0000-4000-8000-000000000001'
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)
     )$$,
   'a person opens the first episode of a story in one of their runs'
 );
@@ -204,7 +204,7 @@ SELECT lives_ok(
 SELECT is(
   (SELECT finished_at FROM public.episode_plays
    WHERE story_play_id = '1a000000-0000-4000-8000-000000000001'
-     AND episode_id = '11000000-0000-4000-8000-000000000001'),
+     AND episode_id = (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)),
   NULL, 'an opened play carries no ending yet'
 );
 
@@ -212,7 +212,7 @@ SELECT throws_ok(
   $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1a000000-0000-4000-8000-000000000001',
-      '11000000-0000-4000-8000-000000000003'
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 3)
     )$$,
   '42501', NULL,
   'an episode cannot be opened before the one in front of it is finished'
@@ -223,7 +223,7 @@ SELECT throws_ok(
   $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1a000000-0000-4000-8000-000000000001',
-      '12000000-0000-4000-8000-000000000001'
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'business-trip' and e.number = 1)
     )$$,
   '42501', NULL,
   'an episode of another story cannot be hung on this run'
@@ -234,7 +234,7 @@ SELECT throws_ok(
   $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1b000000-0000-4000-8000-000000000001',
-      '11000000-0000-4000-8000-000000000001'
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)
     )$$,
   '42501', NULL, 'a person cannot open a play inside somebody else''s run'
 );
@@ -245,7 +245,7 @@ SELECT throws_ok(
     values (
       '22222222-2222-4222-8222-222222222222',
       '1a000000-0000-4000-8000-000000000001',
-      '11000000-0000-4000-8000-000000000001'
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)
     )$$,
   '42501', NULL, 'a person cannot open a play in somebody else''s name'
 );
@@ -253,14 +253,14 @@ SELECT throws_ok(
 SELECT throws_ok(
   $$update public.episode_plays
     set finished_at = now(), ending_kind = '성공', ending_outcome = '직접 쓴 결말.'
-    where episode_id = '11000000-0000-4000-8000-000000000001'$$,
+    where episode_id = (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)$$,
   '42501', NULL, 'a signed-in user cannot close their own play by hand'
 );
 
 SELECT is(
   (select public.finish_episode(
       '1a000000-0000-4000-8000-000000000001'::uuid,
-      '11000000-0000-4000-8000-000000000001'::uuid,
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)::uuid,
       '성공', '새 아이스 아메리카노를 받아냈다.',
       '바꿔 달라고 다시 말했다.'
     )),
@@ -271,21 +271,21 @@ SELECT is(
 SELECT is(
   (SELECT ending_kind FROM public.episode_plays
    WHERE story_play_id = '1a000000-0000-4000-8000-000000000001'
-     AND episode_id = '11000000-0000-4000-8000-000000000001'),
+     AND episode_id = (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)),
   '성공', 'the ending is stored as it was judged'
 );
 
 SELECT isnt(
   (SELECT finished_at FROM public.episode_plays
    WHERE story_play_id = '1a000000-0000-4000-8000-000000000001'
-     AND episode_id = '11000000-0000-4000-8000-000000000001'),
+     AND episode_id = (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)),
   NULL, 'and the play is closed from that moment'
 );
 
 SELECT throws_ok(
   $$select public.finish_episode(
       '1a000000-0000-4000-8000-000000000001'::uuid,
-      '11000000-0000-4000-8000-000000000003'::uuid,
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 3)::uuid,
       '성공', '건너뛴 화.'
     )$$,
   '22023', NULL,
@@ -295,7 +295,7 @@ SELECT throws_ok(
 SELECT throws_ok(
   $$select public.finish_episode(
       '1b000000-0000-4000-8000-000000000001'::uuid,
-      '11000000-0000-4000-8000-000000000001'::uuid,
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)::uuid,
       '성공', '남의 회차.'
     )$$,
   '22023', NULL,
@@ -305,7 +305,7 @@ SELECT throws_ok(
 SELECT is(
   (select public.finish_episode(
       '1a000000-0000-4000-8000-000000000001'::uuid,
-      '11000000-0000-4000-8000-000000000001'::uuid,
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)::uuid,
       '실패', '다시 쓴 결말.'
     )),
   false,
@@ -315,14 +315,14 @@ SELECT is(
 SELECT is(
   (SELECT ending_kind FROM public.episode_plays
    WHERE story_play_id = '1a000000-0000-4000-8000-000000000001'
-     AND episode_id = '11000000-0000-4000-8000-000000000001'),
+     AND episode_id = (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)),
   '성공', 'and it does not overwrite the ending that already happened'
 );
 
 SELECT throws_ok(
   $$select public.finish_episode(
       '1a000000-0000-4000-8000-000000000001'::uuid,
-      '11000000-0000-4000-8000-000000000002'::uuid,
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 2)::uuid,
       '보류', '없는 결말.'
     )$$,
   '23514', NULL, 'an ending outside the three words is refused'
@@ -331,7 +331,7 @@ SELECT throws_ok(
 SELECT throws_ok(
   $$select public.finish_episode(
       '1a000000-0000-4000-8000-000000000001'::uuid,
-      '11000000-0000-4000-8000-000000000002'::uuid,
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 2)::uuid,
       '성공', '   '
     )$$,
   '23514', NULL, 'an ending with no outcome line is refused'
@@ -350,7 +350,7 @@ SELECT throws_ok(
 SELECT lives_ok(
   $$select public.finish_episode(
       '1a000000-0000-4000-8000-000000000001'::uuid,
-      '11000000-0000-4000-8000-000000000002'::uuid,
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 2)::uuid,
       '타협', '더 싼 음료로 바꿔 계산을 끝냈다.',
       '카드가 막히자 더 싼 음료로 바꿨다.',
       'Mia가 방법을 같이 찾아 줬다.',
@@ -363,7 +363,7 @@ SELECT lives_ok(
 SELECT is(
   (SELECT memory_choice FROM public.episode_plays
    WHERE story_play_id = '1a000000-0000-4000-8000-000000000001'
-     AND episode_id = '11000000-0000-4000-8000-000000000002'),
+     AND episode_id = (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 2)),
   '카드가 막히자 더 싼 음료로 바꿨다.',
   'the story memory is stored with the ending'
 );
@@ -379,7 +379,7 @@ SELECT lives_ok(
   $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1a000000-0000-4000-8000-000000000002',
-      '11000000-0000-4000-8000-000000000001'
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)
     )$$,
   'the same episode opens again in a second run of the same story'
 );
@@ -388,7 +388,7 @@ SELECT throws_ok(
   $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1a000000-0000-4000-8000-000000000002',
-      '11000000-0000-4000-8000-000000000002'
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 2)
     )$$,
   '42501', NULL,
   'the second run does not inherit the first run''s finished episodes'
@@ -397,7 +397,7 @@ SELECT throws_ok(
 SELECT is(
   (select public.finish_episode(
       '1a000000-0000-4000-8000-000000000002'::uuid,
-      '11000000-0000-4000-8000-000000000001'::uuid,
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)::uuid,
       '실패', '이번에는 그냥 받아 나왔다.',
       '아무 말도 못 하고 나왔다.'
     )),
@@ -408,7 +408,7 @@ SELECT is(
 SELECT results_eq(
   $$select ending_kind, memory_choice
     from public.episode_plays
-    where episode_id = '11000000-0000-4000-8000-000000000001'
+    where episode_id = (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)
     order by story_play_id$$,
   $$values
     ('성공'::text, '바꿔 달라고 다시 말했다.'::text),
@@ -420,7 +420,7 @@ SELECT throws_ok(
   $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1a000000-0000-4000-8000-000000000002',
-      '11000000-0000-4000-8000-000000000001'
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)
     )$$,
   '23505', NULL, 'the same episode cannot be opened twice inside one run'
 );
@@ -428,7 +428,7 @@ SELECT throws_ok(
 SELECT lives_ok(
   $$select public.finish_episode(
       '1a000000-0000-4000-8000-000000000001'::uuid,
-      '11000000-0000-4000-8000-000000000002'::uuid,
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 2)::uuid,
       '실패', '나중에 도착한 다른 결말.',
       null, null, null,
       '고급. 나중 호출이 쓴 다른 관찰.'
@@ -445,7 +445,7 @@ SELECT is(
 SELECT lives_ok(
   $$select public.finish_episode(
       '1a000000-0000-4000-8000-000000000001'::uuid,
-      '11000000-0000-4000-8000-000000000003'::uuid,
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 3)::uuid,
       '실패', '자리를 잃고 나왔다.'
     )$$,
   'an episode that says nothing about the level still finishes'
@@ -460,7 +460,7 @@ SELECT is(
 SELECT lives_ok(
   $$select public.finish_episode(
       '1a000000-0000-4000-8000-000000000001'::uuid,
-      '11000000-0000-4000-8000-000000000004'::uuid,
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 4)::uuid,
       '성공', '솔직한 감상을 전했다.',
       null, null, null,
       '중급 중반. 이유를 덧붙인 문장을 쓴다.'
@@ -485,7 +485,7 @@ SELECT lives_ok(
   $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1a000000-0000-4000-8000-000000000001',
-      '11000000-0000-4000-8000-000000000005'
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 5)
     )$$,
   'the next episode opens once every earlier one in that run is finished'
 );
@@ -505,7 +505,7 @@ SELECT is(
 SELECT lives_ok(
   $$select public.finish_episode(
       '1b000000-0000-4000-8000-000000000001'::uuid,
-      '11000000-0000-4000-8000-000000000001'::uuid,
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)::uuid,
       '실패', '다른 계정의 1화.'
     )$$,
   'another account starts the story at its own first episode'
@@ -521,7 +521,7 @@ RESET ROLE;
 SELECT is(
   (SELECT ending_kind FROM public.episode_plays
    WHERE story_play_id = '1a000000-0000-4000-8000-000000000001'
-     AND episode_id = '11000000-0000-4000-8000-000000000001'),
+     AND episode_id = (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)),
   '성공', 'the first account''s ending is untouched by the second'
 );
 

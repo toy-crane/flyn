@@ -9,12 +9,13 @@
 --
 -- Add inserts here for tables that carry no user data, such as reference or
 -- lookup rows.
+-- ID는 처음 INSERT할 때 DB가 만든다. 다시 실행할 때는 스토리 slug와
+-- (story_id, number)로 갱신하며 기존 ID와 플레이 기록의 연결은 바꾸지 않는다.
 
 -- 공식 스토리 다섯 편. `position`이 스토리 탭의 순서이고, `cover_image_path`는
 -- `story-covers` 버킷 안의 파일 이름이다. 그 파일들은 `supabase/story-covers/`에
 -- 있고 로컬 스택이 시작할 때 버킷으로 올라간다.
 insert into public.stories (
-  id,
   position,
   slug,
   title,
@@ -28,7 +29,6 @@ insert into public.stories (
 )
 values
   (
-    '10000000-0000-4000-8000-000000000001',
     1,
     'mia-cafe',
     $content$우리 동네 카페$content$,
@@ -41,7 +41,6 @@ values
     $content$잘못 나온 커피 한 잔에서 Mia의 새 출발까지, 다섯 번의 사건을 영어로 지나왔어요.$content$
   ),
   (
-    '10000000-0000-4000-8000-000000000002',
     2,
     'business-trip',
     $content$출장 일주일$content$,
@@ -54,7 +53,6 @@ values
     $content$계획이 어긋난 일주일을 영어로 지나왔어요.$content$
   ),
   (
-    '10000000-0000-4000-8000-000000000003',
     3,
     'roommate-month',
     $content$룸메이트 구함$content$,
@@ -67,7 +65,6 @@ values
     $content$냉장고 칸부터 우리 집 규칙까지, 다섯 번의 대화를 영어로 지나왔어요.$content$
   ),
   (
-    '10000000-0000-4000-8000-000000000004',
     4,
     'first-week-office',
     $content$첫 주의 사무실$content$,
@@ -80,7 +77,6 @@ values
     $content$월요일의 첫 질문부터 금요일의 제안까지 영어로 지나왔어요.$content$
   ),
   (
-    '10000000-0000-4000-8000-000000000005',
     5,
     'upstairs-neighbor',
     $content$윗집 사람$content$,
@@ -92,9 +88,8 @@ values
     $content$이웃이 생겼어요$content$,
     $content$다섯 번의 곤란을 지나 윗집 사람과 아는 사이가 됐어요.$content$
   )
-on conflict (id) do update
+on conflict (slug) do update
 set position = excluded.position,
-    slug = excluded.slug,
     title = excluded.title,
     hook = excluded.hook,
     intro = excluded.intro,
@@ -107,7 +102,6 @@ set position = excluded.position,
 -- 각 스토리의 다섯 화. 사람이 쓴 무대이고, 그 뒤의 대사와 전개는 모델이 쓴다.
 -- 근거는 docs/decisions/episode-authoring.md가 소유한다.
 insert into public.episodes (
-  id,
   story_id,
   number,
   title,
@@ -123,8 +117,7 @@ insert into public.episodes (
 )
 values
 (
-  '11000000-0000-4000-8000-000000000001',
-  '10000000-0000-4000-8000-000000000001',
+  (select id from public.stories where slug = 'mia-cafe'),
   1,
   $content$잘못 나온 첫 잔$content$,
   $content$주문과 다른 커피가 나왔는데, 직원은 벌써 다음 손님을 부르고 있어요.$content$,
@@ -148,8 +141,7 @@ Mia: Next in line, please!
   $content$잘못 나온 커피를 그대로 든 채 물러났을 때$content$
 ),
 (
-  '11000000-0000-4000-8000-000000000002',
-  '10000000-0000-4000-8000-000000000001',
+  (select id from public.stories where slug = 'mia-cafe'),
   2,
   $content$계산이 꼬인 아침$content$,
   $content$다음 날 아침, 카드가 자꾸 튕기는데 뒤에 선 남자의 한숨 소리가 점점 커져요.$content$,
@@ -175,8 +167,7 @@ Owen: Sorry, I have a meeting in ten minutes. Is this going to take long?$conten
   $content$계산하지 못하고 음료를 받지 못한 채 물러났을 때$content$
 ),
 (
-  '11000000-0000-4000-8000-000000000003',
-  '10000000-0000-4000-8000-000000000001',
+  (select id from public.stories where slug = 'mia-cafe'),
   3,
   $content$창가 자리의 남자$content$,
   $content$잠깐 자리를 비운 사이, 창가 자리에 어제 아침의 그 남자가 앉아 있어요.$content$,
@@ -202,8 +193,7 @@ Owen: Oh, is this your bag? Sorry, the table looked empty.
   $content$자리를 잃고 아무것도 정리하지 못한 채 물러났을 때$content$
 ),
 (
-  '11000000-0000-4000-8000-000000000004',
-  '10000000-0000-4000-8000-000000000001',
+  (select id from public.stories where slug = 'mia-cafe'),
   4,
   $content$이름 없는 신메뉴$content$,
   $content$Mia가 메뉴판에 없는 음료를 내밀며 솔직한 감상을 부탁해요.$content$,
@@ -228,8 +218,7 @@ Mia가 앞치마에 손을 닦으며 대답을 기다린다.$content$,
   $content$말이 상처가 되거나 대화를 피해 Mia가 마음을 닫았을 때$content$
 ),
 (
-  '11000000-0000-4000-8000-000000000005',
-  '10000000-0000-4000-8000-000000000001',
+  (select id from public.stories where slug = 'mia-cafe'),
   5,
   $content$마지막 잔$content$,
   $content$Mia의 음료가 정식 메뉴가 된 날, Mia는 오늘이 마지막 근무라며 짐을 싸고 있어요.$content$,
@@ -256,8 +245,7 @@ Mia: Iced americano, right? I got it wrong the first time we met.
 )
 ,
 (
-  '12000000-0000-4000-8000-000000000001',
-  '10000000-0000-4000-8000-000000000002',
+  (select id from public.stories where slug = 'business-trip'),
   1,
   $content$체크인이 막힌 밤$content$,
   $content$예약 확인 메일은 분명히 있는데, 프런트에서는 이름이 없다고 해요.$content$,
@@ -282,8 +270,7 @@ Anna: Could you show me anything that has your booking details?$content$,
   $content$예약도 방도 확인하지 못한 채 사용자가 그만뒀을 때$content$
 ),
 (
-  '12000000-0000-4000-8000-000000000002',
-  '10000000-0000-4000-8000-000000000002',
+  (select id from public.stories where slug = 'business-trip'),
   2,
   $content$줄어든 발표 시간$content$,
   $content$회의 날 아침이에요. 한 시간짜리 발표가 갑자기 십 분으로 줄었대요.$content$,
@@ -308,8 +295,7 @@ Daniel: So, what do you want to do? Ten minutes goes fast.$content$,
   $content$아무것도 정하지 못한 채 회의 시간이 됐거나 사용자가 그만뒀을 때$content$
 ),
 (
-  '12000000-0000-4000-8000-000000000003',
-  '10000000-0000-4000-8000-000000000002',
+  (select id from public.stories where slug = 'business-trip'),
   3,
   $content$끝나지 않는 저녁$content$,
   $content$Daniel의 단골집이에요. 배는 벌써 가득한데 Daniel은 새 접시를 또 시키려고 해요.$content$,
@@ -334,8 +320,7 @@ Daniel: Should I get us two more plates?$content$,
   $content$뜻을 전하지 못해 저녁이 계속 길어졌거나 분위기가 상했을 때$content$
 ),
 (
-  '12000000-0000-4000-8000-000000000004',
-  '10000000-0000-4000-8000-000000000002',
+  (select id from public.stories where slug = 'business-trip'),
   4,
   $content$오지 않는 택시$content$,
   $content$제일 중요한 회의가 있는 아침인데, 불러 둔 택시가 취소됐어요.$content$,
@@ -360,8 +345,7 @@ Anna: There are a few other ways to get there. What would you like to do?$conten
   $content$방법을 정하지 못하고 로비에서 시간을 다 써 버렸을 때$content$
 ),
 (
-  '12000000-0000-4000-8000-000000000005',
-  '10000000-0000-4000-8000-000000000002',
+  (select id from public.stories where slug = 'business-trip'),
   5,
   $content$십오 분의 배웅$content$,
   $content$출장 마지막 날이에요. 비행기 시간이 당겨져서 Daniel과의 점심이 십오 분 배웅으로 줄었어요.$content$,
@@ -389,8 +373,7 @@ Daniel: I got your message. Forget lunch, I had to come anyway. We have about fi
 )
 ,
 (
-  '13000000-0000-4000-8000-000000000001',
-  '10000000-0000-4000-8000-000000000003',
+  (select id from public.stories where slug = 'roommate-month'),
   1,
   $content$사라진 냉장고 칸$content$,
   $content$이사 온 다음 날 아침, 냉장고를 열었는데 제 칸이 룸메이트의 짐으로 가득해요.$content$,
@@ -414,8 +397,7 @@ Jamie는 소파에서 시리얼을 먹으며 대수롭지 않게 말한다. 손�
   $content$자리도 기준도 얻지 못했거나 사용자가 말을 접었을 때$content$
 ),
 (
-  '13000000-0000-4000-8000-000000000002',
-  '10000000-0000-4000-8000-000000000003',
+  (select id from public.stories where slug = 'roommate-month'),
   2,
   $content$새벽 두 시의 통화$content$,
   $content$며칠째 새벽마다 벽 너머로 Jamie의 웃음소리와 통화 소리가 넘어와요.$content$,
@@ -439,8 +421,7 @@ Jamie: Oh, did I wake you up? Sorry, my best friend lives overseas, so this is t
   $content$아무것도 바뀌지 않은 채 대화가 끝났거나 사용자가 그만뒀을 때$content$
 ),
 (
-  '13000000-0000-4000-8000-000000000003',
-  '10000000-0000-4000-8000-000000000003',
+  (select id from public.stories where slug = 'roommate-month'),
   3,
   $content$반반의 기준$content$,
   $content$Jamie가 이번 주 정산표를 보냈는데, 제가 쓰지 않는 물건까지 반반으로 적혀 있어요.$content$,
@@ -464,8 +445,7 @@ Jamie는 계산이 다 끝났다는 얼굴로 설거지를 하고 있다.$conten
   $content$기준을 말하지 못한 채 목록 그대로 내기로 했거나 대화를 접었을 때$content$
 ),
 (
-  '13000000-0000-4000-8000-000000000004',
-  '10000000-0000-4000-8000-000000000003',
+  (select id from public.stories where slug = 'roommate-month'),
   4,
   $content$사흘째 손님$content$,
   $content$Jamie의 친구 Noah가 말도 없이 사흘째 거실 소파에서 지내고 있어요.$content$,
@@ -490,8 +470,7 @@ Jamie: Noah's place is getting repairs this week. He can stay a little longer, r
   $content$아무 선도 긋지 못한 채 사용자가 방으로 물러났을 때$content$
 ),
 (
-  '13000000-0000-4000-8000-000000000005',
-  '10000000-0000-4000-8000-000000000003',
+  (select id from public.stories where slug = 'roommate-month'),
   5,
   $content$한 달째 저녁$content$,
   $content$함께 산 지 한 달째 되는 날, Jamie가 식탁에 빈 종이 한 장을 올려놓아요.$content$,
@@ -516,8 +495,7 @@ Jamie: So I thought we could write our own house rules tonight. You go first, wh
 )
 ,
 (
-  '14000000-0000-4000-8000-000000000001',
-  '10000000-0000-4000-8000-000000000004',
+  (select id from public.stories where slug = 'first-week-office'),
   1,
   $content$자리에 앉자마자$content$,
   $content$첫 출근 아침, 옆자리 동료가 제가 맡았다는 보고서를 묻는데 처음 듣는 이야기예요.$content$,
@@ -544,8 +522,7 @@ Dan: Quick question. You're taking over the weekly numbers report, right? It goe
   $content$모른다는 말을 꺼내지 못하고 아는 척한 채 끝났거나 사용자가 그만뒀을 때$content$
 ),
 (
-  '14000000-0000-4000-8000-000000000002',
-  '10000000-0000-4000-8000-000000000004',
+  (select id from public.stories where slug = 'first-week-office'),
   2,
   $content$회의가 끝나기 전에$content$,
   $content$첫 주간 회의에서 제 이름 옆에 무리한 마감이 붙었는데, 회의가 벌써 끝나 가요.$content$,
@@ -571,8 +548,7 @@ Dan: I'm good.
   $content$아무 말도 못 한 채 일정이 그대로 확정됐거나 사용자가 그만뒀을 때$content$
 ),
 (
-  '14000000-0000-4000-8000-000000000003',
-  '10000000-0000-4000-8000-000000000004',
+  (select id from public.stories where slug = 'first-week-office'),
   3,
   $content$틀린 숫자의 주인$content$,
   $content$제가 보낸 보고서에서 틀린 숫자가 나왔는데, 건네받은 원본 파일부터 잘못돼 있었어요.$content$,
@@ -597,8 +573,7 @@ Grace가 모니터를 돌려 보이며 자리 옆에 선다. Dan은 회의에 �
   $content$사용자의 잘못으로 굳어진 채 대화가 끝났거나 사용자가 그만뒀을 때$content$
 ),
 (
-  '14000000-0000-4000-8000-000000000004',
-  '10000000-0000-4000-8000-000000000004',
+  (select id from public.stories where slug = 'first-week-office'),
   4,
   $content$괜찮다고 하기 전에$content$,
   $content$내일 아침까지 낼 자료가 반나절째 막혔는데, 옆자리 동료는 퇴근 준비를 해요.$content$,
@@ -622,8 +597,7 @@ Dan이 가방을 챙기다가 이쪽을 본다. 여기서 괜찮다고 하면 �
   $content$괜찮다고 돌려보내 혼자 남았거나 사용자가 그만뒀을 때$content$
 ),
 (
-  '14000000-0000-4000-8000-000000000005',
-  '10000000-0000-4000-8000-000000000004',
+  (select id from public.stories where slug = 'first-week-office'),
   5,
   $content$금요일의 제안$content$,
   $content$팀장은 다음 주도 보고서를 똑같이 가자는데, 저는 이번 주에 겪은 문제를 알아요.$content$,
@@ -650,8 +624,7 @@ Dan이 이쪽을 슬쩍 본다. 수요일에 숫자가 꼬였던 그 방식 그�
 )
 ,
 (
-  '15000000-0000-4000-8000-000000000001',
-  '10000000-0000-4000-8000-000000000005',
+  (select id from public.stories where slug = 'upstairs-neighbor'),
   1,
   $content$천장 위의 소리$content$,
   $content$밤마다 윗집에서 소리가 나서 잠을 설쳤는데, 아침 복도에서 그 사람과 마주쳤어요.$content$,
@@ -676,8 +649,7 @@ Nora는 아무것도 모르는 얼굴로 웃으며 엘리베이터 버튼을 누
   $content$말을 꺼내지 못했거나 감정만 상한 채 끝났을 때$content$
 ),
 (
-  '15000000-0000-4000-8000-000000000002',
-  '10000000-0000-4000-8000-000000000005',
+  (select id from public.stories where slug = 'upstairs-neighbor'),
   2,
   $content$사라진 택배$content$,
   $content$배송 완료 문자는 왔는데, 문 앞에 상자가 없어요.$content$,
@@ -702,8 +674,7 @@ Frank는 손에 든 서류를 내려놓고 사용자를 본다.$content$,
   $content$행방을 확인하지 못했거나 사용자가 그만뒀을 때$content$
 ),
 (
-  '15000000-0000-4000-8000-000000000003',
-  '10000000-0000-4000-8000-000000000005',
+  (select id from public.stories where slug = 'upstairs-neighbor'),
   3,
   $content$젖은 빨래$content$,
   $content$세탁실에 내려가 보니 제 빨래가 꺼내져 있고, 세탁기는 다른 빨래를 돌리고 있어요.$content$,
@@ -728,8 +699,7 @@ Nora가 세탁기와 테이블 위의 빨래를 번갈아 본다.$content$,
   $content$서운함만 주고받았거나 사용자가 그만뒀을 때$content$
 ),
 (
-  '15000000-0000-4000-8000-000000000004',
-  '10000000-0000-4000-8000-000000000005',
+  (select id from public.stories where slug = 'upstairs-neighbor'),
   4,
   $content$이상한 고지서$content$,
   $content$첫 관리비 고지서에 이사 오기 전 달의 요금까지 붙어 나왔어요.$content$,
@@ -753,8 +723,7 @@ Frank가 고지서를 돌려주며 사용자를 본다.$content$,
   $content$요금을 바로잡지 못했거나 사용자가 그만뒀을 때$content$
 ),
 (
-  '15000000-0000-4000-8000-000000000005',
-  '10000000-0000-4000-8000-000000000005',
+  (select id from public.stories where slug = 'upstairs-neighbor'),
   5,
   $content$402호의 부탁$content$,
   $content$저녁에 초인종이 울리더니, Nora가 쿠키 상자를 들고 문 앞에 서 있어요.$content$,
@@ -777,10 +746,8 @@ Nora가 상자를 내밀며 멋쩍게 웃는다.$content$,
   $content$부탁만 정리하고 짧은 인사로 헤어졌을 때$content$,
   $content$부탁이 정리되지 않은 채 어색하게 헤어졌을 때$content$
 )
-on conflict (id) do update
-set story_id = excluded.story_id,
-    number = excluded.number,
-    title = excluded.title,
+on conflict (story_id, number) do update
+set title = excluded.title,
     preview = excluded.preview,
     situation = excluded.situation,
     situation_emoji = excluded.situation_emoji,

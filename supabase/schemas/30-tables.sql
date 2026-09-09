@@ -125,7 +125,7 @@ create index retired_usernames_protected_until_idx
 -- 화면에서 이 단위의 이름은 아직 쓰지 않지만, 데이터에서는 공유 가능한
 -- 자기 완결 단위가 된다.
 create table public.stories (
-  id uuid primary key,
+  id uuid primary key default gen_random_uuid(),
   position smallint not null unique,
   slug text not null unique,
   title text not null,
@@ -178,7 +178,7 @@ create table public.stories (
 
 -- 사람이 쓴 각본 한 편. 번호는 스토리 안의 순서이고, 참조에는 안정된 id를 쓴다.
 create table public.episodes (
-  id uuid primary key,
+  id uuid primary key default gen_random_uuid(),
   story_id uuid not null references public.stories (id) on delete restrict,
   number smallint not null,
   title text not null,

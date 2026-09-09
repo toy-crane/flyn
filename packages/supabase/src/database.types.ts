@@ -198,7 +198,7 @@ export type Database = {
           ending_compromise: string
           ending_failure: string
           ending_success: string
-          id: string
+          id?: string
           number: number
           opening: string
           preview: string
@@ -352,7 +352,7 @@ export type Database = {
           cover_emoji: string
           cover_image_path?: string | null
           hook: string
-          id: string
+          id?: string
           intro: string
           position: number
           slug: string
@@ -579,4 +579,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-
