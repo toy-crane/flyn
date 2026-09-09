@@ -42,5 +42,5 @@
 
 ## 관련
 
-- [스토리 재플레이 명세](../specs/story-replay/spec.md)의 "동시 시작" 항목이
-  회차를 첫 메시지에 만드는 이유를 적어 두었다.
+- [AI 에피소드 프로토콜](../decisions/ai-episode-protocol.md)이 회차를 첫 사용자
+  메시지에 만드는 규칙과 이유를 적어 두었다.
