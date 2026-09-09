@@ -2,8 +2,9 @@
 
 ## 결정
 
-- `apps/api/src/index.ts`는 배포 진입점만 소유하고 `app.ts`가 Hono 앱을
-  조립한다.
+- `apps/api/src/app.ts`가 Hono 앱을 조립하고 Vercel에 기본 내보내기로 제공한다.
+  `index.ts`는 같은 `createApp()`을 사용하는 로컬 Bun 진입점이며 Bun의
+  idle timeout만 설정한다. 인증, 경로와 오류 처리를 진입점마다 복제하지 않는다.
 - 서버 코드는 API 기능을 먼저 나누고 각 기능 안에 Hono sub-app, handler와
   기능 전용 설정을 함께 둔다.
 - `app.ts`는 기능 sub-app을 `app.route()`로 조립하고 앱 전체 오류 처리를
@@ -11,6 +12,8 @@
 - 둘 이상의 기능 또는 앱 조립 코드가 실제로 함께 쓰는 코드만 `shared`에 둔다.
 - 테스트는 `createApp().request()`를 공개 경계로 사용하고 내부 파일 배치를
   계약으로 검사하지 않는다.
+- 배포용 기본 내보내기도 HTTP 요청으로 확인한다. 로컬 Bun 설정만 바꾸어
+  Vercel 실행에도 적용했다고 판단하지 않는다.
 
 ## 경계
 
@@ -52,3 +55,8 @@
 
 - Hono 공식 Best Practices는 큰 앱에서 기능별 Hono 인스턴스를 만들고
   `app.route()`로 합치며, 가능한 경우 별도 Controller를 만들지 않도록 권한다.
+- 2026-09-10: 기존 운영 배포 수정을 복원하며 Vercel CLI 51.6.1의 실제 빌드가
+  `src/app.ts`를 handler로 선택함을 확인했다. 기존 `index.ts`만 배포 진입점이라는
+  설명을 실제 운영 방식과 맞췄다. [Vercel의 Hono 안내](https://vercel.com/docs/frameworks/backend/hono)는
+  Hono를 가져오는 앱 파일의 기본 내보내기를 요구한다. 운영 배포 기록은
+  [API 운영 배포](../api-production.md)에 남긴다.

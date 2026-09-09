@@ -37,6 +37,11 @@ Supabase secret key는 API에 등록하지 않는다. AI Gateway는 Vercel의 OI
   `POST /ai/episode`는 401과 `{"error":"Unauthorized."}`를 반환했다.
 - API 로컬 테스트 111개, 타입 검사와 코드 검사를 통과했다.
 - 실제 로그인과 AI 대화 검증은 운영 인증 설정 후 별도로 진행한다.
+- 2026-09-10 복원 변경에서 API 테스트 112개, 코드·타입 검사와 기존 프로젝트의
+  production 로컬 Vercel 빌드가 통과했다. 빌드 출력은 Node.js 24의
+  `apps/api/src/app.js` handler를 가리킨다. 이 결과는 새 운영 배포나 실제 로그인
+  검증을 뜻하지 않는다. 출력 파일을 단독 Node로 읽는 시도는 Vercel의 파일 경로
+  매핑 없이 의존성을 찾지 못했으므로 실제 함수 실행 증거로 사용하지 않는다.
 
 ## 배포 호환 설정
 
