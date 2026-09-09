@@ -177,9 +177,12 @@
   .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; background: #ececf0; color: #55555e }
   .pill.me { background: #dbe9ff; color: #1d5fb3 }
   .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--muted); padding-bottom: 72px }
-  .empty svg { width: 32px; height: 32px; margin-bottom: 18px }
+  .empty svg { width: 32px; height: 32px; margin-bottom: 16px; color: var(--muted) }
   .empty p { font-size: 17px; line-height: 26px; word-break: keep-all }
-  .empty .retry { margin-top: 18px; min-height: 44px; display: inline-flex; align-items: center; color: var(--accent); font-size: 17px }
+  .unavailable { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 48px 24px }
+  .unavailable svg { width: 32px; height: 32px; color: var(--muted) }
+  .unavailable p { font-size: 18px; line-height: 28px; font-weight: 700; color: var(--foreground); word-break: keep-all }
+  .unavailable .retry { min-height: 48px; padding: 12px 22px; border-radius: 26px; background: #eaeaec; color: var(--accent); font-size: 17px; display: inline-flex; align-items: center }
   .tabs-wrap { position: sticky; bottom: 0; flex-shrink: 0; display: flex; justify-content: center; padding: 10px 0 4px }
   .tabbar { height: 64px; width: 330px; border-radius: 40px; background: #fdfdfdee; box-shadow: 0 3px 24px #00000010; display: flex; padding: 5px }
   .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 32px; color: #151518; font-size: 10px; line-height: 12px; font-weight: 500; text-decoration: none }
@@ -208,7 +211,7 @@
     <div class="body">
       <div id="expression-list" data-when="Default"></div>
       <div class="empty" data-when="비어 있음"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg><p>아직 저장한 표현이 없어요.</p></div>
-      <div class="empty" data-when="불러오기 실패"><p>표현 노트를 불러오지 못했어요.</p><button class="retry" type="button" data-retry>다시 시도</button></div>
+      <div class="unavailable" data-when="불러오기 실패"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18M10.6 5.1A11 11 0 0 1 21.9 8M2.1 8a11 11 0 0 1 4-2.6M5 12a7 7 0 0 1 3-1.7M15.9 11.1A7 7 0 0 1 19 12M8.6 15.6A3 3 0 0 1 12 15c.6 0 1.2.2 1.7.5"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/></svg><p>표현 노트를 불러오지 못했어요.</p><button class="retry" type="button" data-retry>다시 시도하기</button></div>
     </div>
     <div class="tabs-wrap"><nav class="tabbar" aria-label="탭">
       <a class="tab" href="#home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-8 9 8M5 8v13h5v-7h4v7h5V8"/></svg><span>홈</span></a>
