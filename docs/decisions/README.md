@@ -53,6 +53,8 @@
 
 ## 모바일 화면 표현
 
+- [모바일 이미지 로딩](mobile-image-loading.md) — 원격 이미지의 로딩 미리보기, 원본 전환 또는 표지 이모지 표시를 변경할 때 읽는다.
+
 - [모바일 UI 렌더러 경계](mobile-ui-renderer-boundaries.md) — 모바일 화면의 주 렌더러, 네이티브 셸 소유권 또는 Liquid Glass 사용 범위를 선택할 때 읽는다.
 - [모바일 탭과 상세 화면 배치](mobile-tab-navigation.md) — 화면을 탭 안이나 바깥에 둘 기준, 상세 화면의 탭 표시 또는 진입 경로별 뒤로 가기를 변경할 때 읽는다.
 - [모바일 Uniwind 스타일 경계](mobile-uniwind-styling.md) — React Native UI의 `className`, inline `style`, 런타임 값 또는 외부 컴포넌트 스타일 경계를 변경할 때 읽는다.

@@ -22,6 +22,7 @@
 
 - 공식 문서의 사본을 저장소에 두지 않는다. 사본은 금방 낡고, 어느 시점의 문서인지도 알 수 없다.
 - 필요한 문서는 작업을 시작할 때 아래 경로로 원본에서 읽고, 설치한 버전과 맞는지 확인한다.
+- Expo Image를 다룰 때는 `https://docs.expo.dev/versions/latest/sdk/image/`를 원문에서 읽고, 프로젝트의 Expo SDK 호환 버전과 설치한 `expo-image` 버전에 맞는지 확인한다. 다른 Expo 문서는 `https://docs.expo.dev/llms.txt`에서 찾는다.
 - Hono 문서는 `bunx @hono/cli@0.1.11 docs [path]`로 읽고, 주제 검색은 `bunx @hono/cli@0.1.11 search <query>`를 사용한다. 문서 목록은 `https://hono.dev/llms.txt`에 있다.
 - Astro 문서는 `astro-docs` MCP의 `search_astro_docs`로 찾는다. Astro는 `llms.txt`를 제공하지 않아서 `.mcp.json`과 `.codex/config.toml`에 공식 문서 MCP 서버를 등록해 두었다.
 - SEED의 화면 문구 판정 기준은 `https://seed-design.io/llms/foundations/writing.txt`와 `https://seed-design.io/llms/foundations/voice-and-tone.txt`에서 읽는다. 다른 섹션의 주소는 `https://seed-design.io/llms.txt`에 있다.
