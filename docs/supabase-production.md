@@ -1,5 +1,11 @@
 # Supabase 운영 배포
 
+## GitHub 배포 인증
+
+- 2026-09-10: Flyn 전용 키체인의 DB 비밀번호를 `toy-crane/flyn` 저장소의 `SUPABASE_DB_PASSWORD` Secret에 등록했다. 값은 파일이나 로그에 남기지 않았다.
+- `SUPABASE_ACCESS_TOKEN`은 아직 등록하지 않았다. 기존 CLI 토큰은 다른 프로젝트도 조회할 수 있으므로 CI에 그대로 복사하지 않는다.
+- 계정의 실제 토큰 생성 화면에는 이름과 만료만 있으며 프로젝트·권한 제한 선택이 없었다. 공식 문서의 scoped PAT는 점진 배포 중이다. 계정 전체 권한의 classic PAT를 CI에 등록하려면 Flyn 밖의 프로젝트 접근에 대한 승인이 필요하다. 토큰은 생성하지 않았다.
+
 ## 프로젝트
 
 - 조직: ODD (`doeklaqqvlojxjhvemzg`)
