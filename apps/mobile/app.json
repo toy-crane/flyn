@@ -2,6 +2,18 @@
   "expo": {
     "name": "플린",
     "slug": "flyn",
+    "owner": "odd-corp",
+    "extra": {
+      "eas": {
+        "projectId": "7d2f7888-8fc8-4ecb-b430-9fee421c68cc"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7d2f7888-8fc8-4ecb-b430-9fee421c68cc"
+    },
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +26,10 @@
     "ios": {
       "bundleIdentifier": "com.odd.flyn",
       "supportsTablet": true,
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.odd.flyn",
