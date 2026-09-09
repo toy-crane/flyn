@@ -116,6 +116,10 @@ EAS Workflows
 
 ## 현재 구현 증거
 
+- 2026-09-10: PR #54·#55를 필수 검사 통과 후 rebase 방식으로 main에 병합했다. API 설정과 DB 권한·UUID·seed 검증이 main에 들어갔으며, 이 병합만으로 운영 배포를 실행하지 않았다.
+- 배포 실행 모듈은 DB→Edge→API→모바일 순서, 실패 후 중단, 성공 단계 재사용과 응답 유실 시 원격 조회를 처리한다. 원격 요청 전에 요청 ID를 기록하며, 상태를 모르면 재요청하지 않는다. GitHub의 별도 `deployment-state` 브랜치에 상태를 저장하는 연결 모듈은 읽었던 blob SHA로만 갱신하고 충돌을 자동 덮어쓰지 않는다. 운영 상태 브랜치 초기화와 서비스별 실행 연결은 아직 남아 있다.
+- 배포 실행·상태 저장·기존 대상 판정 테스트 20개와 scripts 타입 검사를 통과했다. 명시적으로 실행한 `RUN_DELIVERY_JOURNAL_RUNTIME_TESTS=1` 검증은 실제 GitHub 임시 브랜치에서 상태 재조회와 오래된 SHA 쓰기의 HTTP 409를 확인했다. 토큰을 출력하지 않았으며 임시 브랜치를 삭제하고 잔여 브랜치 0개를 확인했다. 이 결과는 실제 DB·Vercel·EAS 배포나 전체 구현 최종 리뷰를 대신하지 않는다.
+
 - 2026-09-09: 공통 PR 검증을 구현 중이다. `validate.yml`은 코드·타입·테스트를 별도 작업으로 실행한다. `Required validation`은 실패·취소·건너뛰기를 통과시키지 않는다. 운영 비밀값을 전달하지 않고 checkout 자격 증명을 남기지 않는다. 기존 Claude workflow는 변경하지 않았다.
 - workflow가 없을 때 실패하는 테스트와 필수 검사 단계가 없을 때 실패하는 테스트를 먼저 확인했다. 구현 후 두 테스트가 통과했다. 실제 shell 명령으로 success만 종료 코드 0이고 failure·cancelled·skipped·빈 결과는 실패함을 확인했다.
 - Bun 1.3.6, `CI=true`, `TURBO_FORCE=true`에서 `bun run check`, `bun run check-types`, `bun run test`가 모두 통과했다. 모바일 테스트는 72개 suite, 512개 case가 통과했다. 기존 테스트의 React act 경고는 남아 있으며 실제 앱 오류로 확인한 것은 아니다. `actionlint` 1.7.7과 `git diff --check`도 통과했다.
