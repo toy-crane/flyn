@@ -5,6 +5,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      base_sha:
+        description: "비교 기준 SHA. 비우면 실행 커밋의 부모와 비교합니다."
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -31,15 +36,20 @@ jobs:
       - name: Detect database changes and protect migration history
         id: plan
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = 0000000000000000000000000000000000000000 ]; then
-            BASE_SHA=$(git rev-list --max-parents=0 "$HEAD_SHA")
+            BASE_SHA=$(git rev-parse --verify "$HEAD_SHA^")
           fi
           plan=$(bun scripts/ci/database.ts plan "$BASE_SHA" "$HEAD_SHA")
           echo "base=$BASE_SHA" >> "$GITHUB_OUTPUT"
-          echo "database=$(echo "$plan" | jq -r .database)" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            echo "database=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "database=$(echo "$plan" | jq -r .database)" >> "$GITHUB_OUTPUT"
+          fi
 
   database:
     needs: [changes]
