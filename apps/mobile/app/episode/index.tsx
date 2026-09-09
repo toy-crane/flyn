@@ -1,10 +1,12 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
 
 import { useAppTheme } from "@/core/theme/app-theme-bridge";
 import { useAuthSession } from "@/features/auth/state/auth-session";
 import { useEpisodeSession } from "@/features/episode/query/episode-session";
+import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
+import { useEpisodeReview } from "@/features/episode/state/episode-review";
 import { episodeLabels } from "@/features/episode/ui/episode-labels";
 import { useStoryDetail, useStoryRefresh } from "@/features/story/query/story";
 import { EpisodeLoadingScreen } from "@/screens/episode/episode-loading-screen";
@@ -53,11 +55,7 @@ export default function EpisodeRoute() {
     paramStoryPlayId === undefined ? paramStoryId : undefined
   );
   const refreshStory = useStoryRefresh(session?.user.id);
-  const [startingNextEpisodeId, setStartingNextEpisodeId] = useState<string>();
-  const startingNextEpisode = useRef<string | undefined>(undefined);
-  const isStartingNext =
-    startingNextEpisodeId !== undefined && startingNextEpisodeId !== episodeId;
-  const isRoutePending = isStartingNext;
+  const { openReview } = useEpisodeReview();
   const { isRetrying, retry: retryEpisode } = useVisibleRetry(
     paramStoryPlayId === undefined ? detail.refetch : episode.refetch
   );
@@ -70,17 +68,18 @@ export default function EpisodeRoute() {
 
     const first = detail.data?.episodes[0];
 
-    if (!first) {
+    if (!(first && detail.data)) {
       return;
     }
 
     return {
-      corrections: undefined,
       ending: undefined,
       episode: first,
+      expressionResults: [],
       messages: [],
       nextUp: undefined,
       readOnly: false,
+      story: { id: detail.data.storyId, title: detail.data.title },
     };
   }, [detail.data, episode.data, paramStoryPlayId]);
 
@@ -90,18 +89,26 @@ export default function EpisodeRoute() {
   const isError =
     paramStoryPlayId === undefined ? detail.isError : episode.isError;
 
-  useEffect(
-    () => () => {
-      startingNextEpisode.current = undefined;
-    },
-    []
-  );
+  const leaveEpisode = useCallback(() => router.back(), []);
 
-  const leaveEpisode = useCallback(() => {
-    if (!isRoutePending) {
-      router.back();
-    }
-  }, [isRoutePending]);
+  const reviewExpressions = useCallback(
+    (nextUp: EpisodeNextUp | undefined) => {
+      if (!(playing && storyPlayId)) {
+        return;
+      }
+      openReview({
+        episode: playing.episode,
+        nextUp,
+        story: playing.story,
+        storyPlayId,
+      });
+      router.push({
+        params: { episodeId: playing.episode.episodeId, storyPlayId },
+        pathname: "/episode/review",
+      });
+    },
+    [openReview, playing, storyPlayId]
+  );
 
   const openAsk = useCallback((id: string) => {
     router.push({ params: { id }, pathname: "/episode/ask" });
@@ -112,40 +119,6 @@ export default function EpisodeRoute() {
       refreshStory();
     },
     [refreshStory]
-  );
-
-  const startNextEpisode = useCallback(
-    async (nextEpisodeId: string) => {
-      const claimedEpisodeId = startingNextEpisode.current;
-      if (claimedEpisodeId !== undefined && claimedEpisodeId !== episodeId) {
-        return;
-      }
-
-      // The ref claims the action before React renders the pending state, so
-      // two presses in one frame still start only one refresh.
-      startingNextEpisode.current = nextEpisodeId;
-      setStartingNextEpisodeId(nextEpisodeId);
-
-      try {
-        await refreshStory();
-        if (startingNextEpisode.current !== nextEpisodeId) {
-          return;
-        }
-
-        // `replace`라 뒤로 가기는 다음 화가 아니라 처음 들어온 상세나 대화
-        // 기록으로 돌아간다. 같은 회차의 몇 화를 지나도 그 복귀 경로가 남는다.
-        router.replace({
-          params: { episodeId: nextEpisodeId, storyPlayId: storyPlayId ?? "" },
-          pathname: "/episode",
-        });
-      } catch {
-        if (startingNextEpisode.current === nextEpisodeId) {
-          startingNextEpisode.current = undefined;
-          setStartingNextEpisodeId(undefined);
-        }
-      }
-    },
-    [episodeId, refreshStory, storyPlayId]
   );
 
   return (
@@ -172,19 +145,14 @@ export default function EpisodeRoute() {
         <EpisodeScreen
           episodeId={playing.episode.episodeId}
           initialMessages={playing.messages}
-          isStartingNext={isStartingNext}
-          key={playing.episode.episodeId}
-          onLeave={leaveEpisode}
+          key={`${paramStoryPlayId ?? paramStoryId}:${playing.episode.episodeId}`}
           onOpenAsk={openAsk}
-          onStartNext={startNextEpisode}
+          onReview={reviewExpressions}
           onStoryPlayStarted={setStartedStoryPlayId}
           readOnly={playing.readOnly}
           recordedEnding={playing.ending}
           recordedNextUp={playing.nextUp}
-          // 끝난 화의 읽기 전용 복습에는 배울 표현을 붙이지 않는다. 행은 이미
-          // 쌓이고, 복습에서 그것을 어떻게 보여 줄지는 보관함을 만드는 단위가
-          // 정한다.
-          savedCorrections={playing.readOnly ? undefined : playing.corrections}
+          savedResults={playing.expressionResults}
           situation={playing.episode.situation}
           situationEmoji={playing.episode.situationEmoji}
           storyId={storyId}
@@ -203,7 +171,6 @@ export default function EpisodeRoute() {
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button
           accessibilityLabel={episodeLabels.back}
-          disabled={isRoutePending}
           icon={toolbarIcon("back")}
           onPress={leaveEpisode}
         />

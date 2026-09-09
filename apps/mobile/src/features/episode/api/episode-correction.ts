@@ -21,6 +21,12 @@ export interface EpisodeCorrection {
   messageId: string;
   /** 사용자가 쓴 원문. */
   original: string;
+  review: {
+    situation: string;
+    meaning: string;
+    example: string;
+    exampleMeaning: string;
+  };
 }
 
 function isEntry(value: unknown): value is CorrectionEntry {
@@ -49,7 +55,14 @@ export function correctionOfData(data: unknown): EpisodeCorrection | undefined {
     typeof sent.original !== "string" ||
     !Array.isArray(sent.entries) ||
     sent.entries.length === 0 ||
-    !sent.entries.every(isEntry)
+    !sent.entries.every(isEntry) ||
+    !sent.review ||
+    ![
+      sent.review.situation,
+      sent.review.meaning,
+      sent.review.example,
+      sent.review.exampleMeaning,
+    ].every((value) => typeof value === "string" && value.trim().length > 0)
   ) {
     return;
   }
@@ -59,6 +72,7 @@ export function correctionOfData(data: unknown): EpisodeCorrection | undefined {
     fixed: sent.fixed,
     messageId: sent.messageId,
     original: sent.original,
+    review: sent.review,
   };
 }
 

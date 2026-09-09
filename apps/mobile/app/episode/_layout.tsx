@@ -4,6 +4,7 @@ import { getAskSheetOptions } from "@/core/navigation/ask-sheet";
 import { useAppTheme } from "@/core/theme/app-theme-bridge";
 import { useAuthSession } from "@/features/auth/state/auth-session";
 import { EpisodeAsksProvider } from "@/features/episode/state/episode-asks";
+import { EpisodeReviewProvider } from "@/features/episode/state/episode-review";
 import { correctionLabels } from "@/features/episode/ui/episode-labels";
 
 /**
@@ -19,13 +20,22 @@ export default function EpisodeLayout() {
 
   return (
     <EpisodeAsksProvider accessToken={session?.access_token}>
-      <Stack screenOptions={{ contentStyle: { backgroundColor: background } }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen
-          name="ask"
-          options={getAskSheetOptions(background, correctionLabels.askTitle)}
-        />
-      </Stack>
+      <EpisodeReviewProvider>
+        <Stack
+          screenOptions={{
+            contentStyle: { backgroundColor: background },
+            headerBackButtonDisplayMode: "minimal",
+            headerBackTitle: "뒤로 가기",
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="review" />
+          <Stack.Screen
+            name="ask"
+            options={getAskSheetOptions(background, correctionLabels.askTitle)}
+          />
+        </Stack>
+      </EpisodeReviewProvider>
     </EpisodeAsksProvider>
   );
 }

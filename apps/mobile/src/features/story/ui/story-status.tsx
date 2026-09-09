@@ -47,10 +47,12 @@ export function StoryUnavailable({
   isRetrying,
   onRetry,
   testID,
+  title = storyLabels.unavailable,
 }: {
   isRetrying: boolean;
   onRetry: () => void;
   testID: string;
+  title?: string;
 }) {
   return (
     <StoryStatus
@@ -66,7 +68,7 @@ export function StoryUnavailable({
       }
       icon="offline"
       testID={testID}
-      title={storyLabels.unavailable}
+      title={title}
     />
   );
 }

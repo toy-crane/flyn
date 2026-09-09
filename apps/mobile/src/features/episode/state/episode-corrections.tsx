@@ -59,16 +59,23 @@ export function useCorrections() {
 // 서버의 30초 판정 제한에 요청과 응답 전달 시간을 더한다.
 const CHECK_TIMEOUT_MS = 35_000;
 export function useEpisodeCorrections(
-  saved: readonly EpisodeCorrection[] | undefined,
-  request: CheckExpression
+  saved: readonly ExpressionResult[] | undefined,
+  request: CheckExpression,
+  initialMessageIds: readonly string[] = []
 ): EpisodeCorrectionStore {
   const [states, setStates] = useState<Record<string, ExpressionState>>(() =>
-    Object.fromEntries(
-      (saved ?? []).map((correction) => [
-        correction.messageId,
-        { correction, status: "corrected" },
-      ])
-    )
+    Object.fromEntries([
+      ...initialMessageIds.map((id) => [
+        id,
+        { retrying: false, status: "pending" },
+      ]),
+      ...(saved ?? []).map((result) => [
+        result.messageId,
+        result.status === "corrected"
+          ? { correction: result.correction, status: "corrected" }
+          : { status: result.status },
+      ]),
+    ])
   );
   const current = useRef(states);
   const checker = useRef(request);

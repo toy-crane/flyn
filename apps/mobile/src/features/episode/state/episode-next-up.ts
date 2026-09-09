@@ -5,6 +5,7 @@ export interface EpisodeNextUp {
   copy: string;
   /** The next episode's id, or null once the story is finished. */
   episodeId: string | null;
+  isCompleted?: boolean;
   number: number | null;
   title: string;
 }

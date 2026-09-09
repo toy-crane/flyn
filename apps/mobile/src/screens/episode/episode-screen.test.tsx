@@ -85,12 +85,21 @@ const CORRECTION = {
   fixed: "I think you gave me the wrong coffee.",
   messageId: "m1",
   original: "I think this is wrong coffee.",
+  review: {
+    example: "This is the wrong bag.",
+    exampleMeaning: "이건 다른 가방이에요.",
+    meaning: "다른 커피인 것 같아요.",
+    situation: "주문을 확인할 때",
+  },
 };
 
 /** 교정 상태도 대화가 소유하므로 같은 스탠드인이 함께 돌려준다. */
 let mockCorrections: {
   byMessageId: Record<string, typeof CORRECTION>;
-  states: Record<string, never>;
+  states: Record<
+    string,
+    import("@/features/episode/state/episode-corrections").ExpressionState
+  >;
   retry: jest.Mock<(messageId: string) => void>;
 };
 
@@ -130,8 +139,8 @@ const mockOpenAsk = jest.fn<(id: string) => void>();
 const PLAYING = {
   episodeId: "11000000-0000-4000-8000-000000000002",
   initialMessages: [],
-  isStartingNext: false,
   onOpenAsk: mockOpenAsk,
+  onReview: jest.fn(),
   onStoryPlayStarted: jest.fn<(storyPlayId: string) => void>(),
   readOnly: false,
   situation: "다른 방법을 찾아 계산을 끝내 보세요",
@@ -241,9 +250,7 @@ beforeEach(() => {
 });
 
 test("화면에 들어오면 그 자리에서 에피소드를 연다", async () => {
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
-  );
+  await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
 
   expect(mockOpenedStoryPlays).toHaveBeenCalledWith(
     "token-1",
@@ -257,19 +264,23 @@ test("화면에 들어오면 그 자리에서 에피소드를 연다", async () 
   expect(panel?.placeholder).toBe("영어나 한국어로 적어 주세요.");
 });
 
+test("표현을 확인하거나 장면을 받는 중에도 화면 이탈을 막지 않는다", async () => {
+  conversation.isBusy = true;
+  mockCorrections.states = { m1: { retrying: false, status: "pending" } };
+  await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
+  expect(isRemovalPrevented).toBe(false);
+  expect(preventedRemoval).toBeUndefined();
+});
+
 // 메시지 하나에 거는 동작은 에피소드에 붙이지 않는다.
 test("메시지 동작을 두지 않는다", async () => {
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
-  );
+  await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
 
   expect(panel?.hasMessageActions).toBe(false);
 });
 
 test("교정이 없는 메시지에는 아무것도 붙지 않는다", async () => {
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
-  );
+  await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
 
   expect(panel?.messageAddon).toBeDefined();
   expect(screen.queryByTestId("correction-line")).toBeNull();
@@ -278,9 +289,7 @@ test("교정이 없는 메시지에는 아무것도 붙지 않는다", async () 
 test("몰랐던 표현이 있으면 그 말풍선 아래에 고친 문장 한 줄이 붙는다", async () => {
   mockCorrections.byMessageId = { m1: CORRECTION };
 
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
-  );
+  await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
 
   expect(screen.getByTestId("correction-line-fixed")).toHaveTextContent(
     "I think you gave me the wrong coffee."
@@ -290,9 +299,7 @@ test("몰랐던 표현이 있으면 그 말풍선 아래에 고친 문장 한 �
 test("교정 카드에 다시 보내기를 두지 않고 원래 입력을 유지한다", async () => {
   mockCorrections.byMessageId = { m1: CORRECTION };
   const user = userEvent.setup();
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
-  );
+  await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
   await user.press(screen.getByLabelText("더 자연스러운 영어 표현 보기"));
   expect(screen.queryByText("다시 보내기")).toBeNull();
   expect(mockSetDraft).not.toHaveBeenCalled();
@@ -302,9 +309,7 @@ test("AI에게 물어보기를 누르면 그 말까지의 대화를 이어받은
   mockCorrections.byMessageId = { m1: CORRECTION };
   const user = userEvent.setup();
 
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
-  );
+  await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
 
   await user.press(screen.getByLabelText("더 자연스러운 영어 표현 보기"));
   await user.press(screen.getByTestId("correction-ask"));
@@ -317,9 +322,7 @@ test("AI에게 물어보기를 누르면 그 말까지의 대화를 이어받은
 });
 
 test("사건이 진행 중이면 마무리를 두지 않는다", async () => {
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
-  );
+  await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
 
   expect(panel?.closing).toBeUndefined();
 });
@@ -327,145 +330,66 @@ test("사건이 진행 중이면 마무리를 두지 않는다", async () => {
 // 상황 줄은 사건이 끝났는지와 무관하게 늘 같은 자리에 있어야 한다.
 test("결말과 무관하게 상황 줄 배너를 채팅 패널에 넘긴다", async () => {
   mockEnding = { kind: "성공", outcome: "원하던 커피를 새로 받아냈다." };
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
-  );
+  await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
 
   expect(panel?.banner).toBeDefined();
   expect(screen.getByTestId("episode-situation-banner")).toBeOnTheScreen();
   expect(screen.getByText(PLAYING.situation)).toBeOnTheScreen();
 });
 
-test("결말이 오면 마무리가 입력 자리를 대신한다", async () => {
-  const leave = jest.fn();
-  const user = userEvent.setup();
-
-  mockEnding = { kind: "성공", outcome: "원하던 커피를 새로 받아냈다." };
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={leave} onStartNext={jest.fn()} />
+test("마지막 대사가 와도 앞선 메시지의 표현 확인이 남으면 종료 카드를 기다린다", async () => {
+  mockEnding = { kind: "성공", outcome: "커피를 받았다." };
+  mockCorrections.states = { earlier: { retrying: false, status: "pending" } };
+  await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
+  expect(screen.getByTestId("episode-ending-checking")).toHaveTextContent(
+    "표현을 확인하고 있어요."
   );
-
+  expect(screen.queryByTestId("episode-closing")).toBeNull();
+  expect(screen.queryByRole("button", { name: "표현 돌아보기" })).toBeNull();
   expect(panel?.closing).toBeDefined();
-  expect(screen.getByTestId("episode-closing-outcome")).toHaveTextContent(
-    "원하던 커피를 새로 받아냈다."
-  );
-  expect(screen.queryByText("성공")).not.toBeOnTheScreen();
-
-  await user.press(screen.getByRole("button", { name: "돌아가기" }));
-
-  expect(leave).toHaveBeenCalledTimes(1);
 });
 
-test("장면 응답 중에도 중지와 나가기 동작을 열어 둔다", async () => {
-  const leave = jest.fn();
-  const startNext = jest.fn();
+test("모든 확인이 실패로 끝나도 실제 결말과 표현 돌아보기를 표시한다", async () => {
+  mockEnding = { kind: "타협", outcome: "다른 음료를 받았다." };
+  mockCorrections.states = { m1: { status: "error" } };
+  const onReview = jest.fn();
   const user = userEvent.setup();
-
-  conversation.isBusy = true;
-  mockEnding = { kind: "성공", outcome: "원하던 커피를 새로 받아냈다." };
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={leave} onStartNext={startNext} />
-  );
-
-  expect(screen.getByRole("button", { name: "돌아가기" })).toHaveProp(
-    "accessibilityState",
-    { busy: false, disabled: false }
-  );
-  expect(screen.getByRole("button", { name: "3화 시작하기" })).toHaveProp(
-    "accessibilityState",
-    { busy: false, disabled: false }
-  );
-
-  await user.press(screen.getByRole("button", { name: "돌아가기" }));
-  await user.press(screen.getByRole("button", { name: "3화 시작하기" }));
-
-  expect(leave).toHaveBeenCalledTimes(1);
-  expect(startNext).toHaveBeenCalledTimes(1);
+  await renderWithHeroUI(<EpisodeScreen {...PLAYING} onReview={onReview} />);
+  expect(screen.getByText("다른 음료를 받았다")).toBeOnTheScreen();
+  expect(screen.getByText("표현을 확인하지 못했어요.")).toBeOnTheScreen();
+  await user.press(screen.getByRole("button", { name: "표현 돌아보기" }));
+  expect(onReview).toHaveBeenCalledWith(mockNextUp);
 });
 
-// 저장하는 주체가 서버 하나가 되면서 화면이 붙잡을 이유가 사라졌다. 답변을
-// 받는 중에 나가도 서버는 자기가 만든 데까지를 스스로 남긴다.
-test("답변을 받는 중에도 나가기를 붙잡지 않는다", async () => {
-  conversation.isBusy = true;
-
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
-  );
-
-  expect(isRemovalPrevented).toBe(false);
-  expect(preventedRemoval).toBeUndefined();
-  expect(mockNavigationDispatch).not.toHaveBeenCalled();
-  expect(panel?.busyLabel).toBeUndefined();
-});
-
-// 다음 화로 넘어가는 것은 지난 에피소드를 이어 가는 것이 아니라 화면을 새로
-// 여는 것이라, 이 화면은 알리기만 하고 경로가 연다.
-test("다음 화 시작하기는 경로에 알린다", async () => {
-  const startNext = jest.fn();
-  const user = userEvent.setup();
-
-  mockEnding = { kind: "실패", outcome: "그냥 들고 나왔다." };
-  await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={startNext} />
-  );
-
-  await user.press(screen.getByRole("button", { name: "3화 시작하기" }));
-
-  expect(startNext).toHaveBeenCalledTimes(1);
-  expect(startNext).toHaveBeenCalledWith(
-    "11000000-0000-4000-8000-000000000003"
-  );
-});
-
-test("다음 화를 여는 동안 마무리의 두 길을 잠근다", async () => {
-  mockEnding = { kind: "성공", outcome: "원하던 커피를 새로 받아냈다." };
-
-  await renderWithHeroUI(
-    <EpisodeScreen
-      {...PLAYING}
-      isStartingNext
-      onLeave={jest.fn()}
-      onStartNext={jest.fn()}
-    />
-  );
-
-  expect(screen.getByRole("button", { name: "3화 시작하기" })).toHaveProp(
-    "accessibilityState",
-    { busy: true, disabled: true }
-  );
-  expect(screen.getByRole("button", { name: "돌아가기" })).toBeDisabled();
-});
-
-test("끝난 대화는 입력 없이 읽기 전용으로 연다", async () => {
-  mockEnding = { kind: "성공", outcome: "원하던 커피를 새로 받아냈다." };
-
-  await renderWithHeroUI(
-    <EpisodeScreen
-      {...PLAYING}
-      initialMessages={[
-        {
-          id: "saved-1",
-          parts: [{ text: "Done", type: "text" }],
-          role: "user",
-        },
-      ]}
-      onLeave={jest.fn()}
-      onStartNext={jest.fn()}
-      readOnly
-    />
-  );
-
-  expect(mockOpenedStoryPlays).toHaveBeenCalledWith(
-    "token-1",
-    PLAYING.episodeId,
-    1,
-    true
-  );
-  expect(panel?.closing).toBeDefined();
-  expect(screen.getByTestId("episode-ending-mark")).toBeOnTheScreen();
-  expect(screen.getByText("끝")).toBeOnTheScreen();
-  expect(screen.queryByText("끝난 대화 기록")).not.toBeOnTheScreen();
+test("재시도가 끝나도 축하를 다시 재생하지 않는다", async () => {
+  mockEnding = { kind: "성공", outcome: "커피를 받았다." };
+  const view = await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
   expect(
-    screen.queryByRole("button", { name: "3화 시작하기" })
-  ).not.toBeOnTheScreen();
+    screen.getByTestId("episode-celebration-burst", {
+      includeHiddenElements: true,
+    })
+  ).toBeOnTheScreen();
+  mockCorrections.states = { m1: { retrying: true, status: "pending" } };
+  await view.rerender(<EpisodeScreen {...PLAYING} />);
+  expect(screen.queryByTestId("episode-closing")).toBeNull();
+  mockCorrections.states = { m1: { status: "natural" } };
+  await view.rerender(<EpisodeScreen {...PLAYING} />);
+  expect(screen.getByTestId("episode-closing")).toBeOnTheScreen();
+  expect(
+    screen.queryByTestId("episode-celebration-burst", {
+      includeHiddenElements: true,
+    })
+  ).toBeNull();
+});
+
+test("기록에서도 같은 종료 카드와 교정을 보여 주고 축하는 반복하지 않는다", async () => {
+  mockEnding = { kind: "성공", outcome: "커피를 받았다." };
+  mockCorrections.byMessageId = { m1: CORRECTION };
+  await renderWithHeroUI(
+    <EpisodeScreen {...PLAYING} readOnly recordedEnding={mockEnding} />
+  );
+  expect(screen.getByTestId("episode-closing")).toBeOnTheScreen();
+  expect(screen.getByTestId("correction-line-fixed")).toBeOnTheScreen();
+  expect(screen.queryByTestId("episode-celebration-burst")).toBeNull();
+  expect(screen.queryByText("끝")).toBeNull();
 });

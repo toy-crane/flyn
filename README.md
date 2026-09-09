@@ -352,13 +352,18 @@ bun run auth:otp -- --email agent-20260809-01@example.test
     보이고 하단에 **대화 시작하기** 하나만 고정되는지 확인합니다. 그 버튼으로 1화를
     열면 입력하기 전에 첫 장면이 먼저 나와야 합니다. 아무 말도 하지 않고 뒤로 나갔다
     **스토리** 탭을 보면 기록이 생기지 않아야 합니다.
-12. 탐색의 상세로 돌아가 다시 1화를 열고, 영어로 몇 번 주고받아 사건을 마무리합니다. 결말과 2화 예고가
-    함께 나오고 입력이 닫히는지 확인합니다. 배울 표현 카드의 **AI에게 물어보기**를
+12. 탐색의 상세로 돌아가 다시 1화를 열고, 영어로 몇 번 주고받아 사건을 마무리합니다.
+    마지막 대사와 함께 입력이 닫히고, 진행 중인 표현 확인이 모두 끝나면 결말 카드와
+    **표현 돌아보기**가 나오는지 확인합니다. 배울 표현 카드의 **AI에게 물어보기**를
     열고 질문을 보내 답변을 확인합니다. 시트를 닫았다 같은 카드에서 다시 열면 대화가
-    남아 있어야 합니다. **돌아가기**를 누르면 들어왔던 상세로 돌아갑니다.
+    남아 있어야 합니다. **표현 돌아보기**에서 준비된 카드의 뜻과 다른 예문을
+    확인하고, 하단에 다음 화 예고와 시작 버튼이 있는지 봅니다. 뒤로 가기는 같은
+    대화로 돌아오며 축하 연출은 반복되지 않아야 합니다. 홈 아이콘은 홈으로 이동합니다.
 13. **스토리** 탭에 그 스토리가 서고, 눌러서 연 대화 기록에 회차 카드가 하나
     보이는지 확인합니다. 카드를 펼쳐 **1화 …, 대화 보기**를 누르면 첫 장면부터
-    결말까지 보이고 입력창은 없어야 합니다. 헤더의 **새 대화**로 회차를 하나 더 만들면
+    결말과 메시지 곁의 배울 표현이 보이고 입력창은 없어야 합니다. 같은 결말 카드의
+    **표현 돌아보기**로 그 화의 표현을 다시 볼 수 있어야 합니다. 뒤로 두 번 이동하면
+    같은 대화 기록으로 돌아옵니다. 헤더의 **새 대화**로 회차를 하나 더 만들면
     두 카드가 나란히 서고, 각각을 **이어서 하기**로 열 수 있어야 합니다.
 14. 설정에서 로그아웃합니다.
 15. 로그인 화면으로 돌아왔는지 확인합니다.
@@ -415,7 +420,9 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 | `AI에게 물어보기 닫기` | 물어보기 시트의 닫기 버튼 |
 | `궁금한 것을 한국어로 물어보세요` | 에피소드에서 연 물어보기 시트 입력의 빈 자리 문구 |
 | `뒤로 가기` | 대화 화면과 에피소드 화면 헤더의 뒤로 가기 버튼 |
-| `<화 번호>화 시작하기` | 끝난 에피소드의 마무리에서 다음 화를 여는 버튼. 숫자는 열리는 화입니다 |
+| `<화 번호>화 시작하기` | 표현 돌아보기 하단에서 다음 화를 여는 버튼. 숫자는 열리는 화입니다 |
+| `<화 번호>화 다시 보기` | 같은 회차에서 이미 끝난 다음 화의 대화를 여는 버튼 |
+| `대화 기록 보기` | 마지막 화의 표현 돌아보기에서 해당 스토리의 대화 기록을 여는 버튼 |
 | `대화 시작하기` | 스토리 상세 하단에 고정한 버튼. 새 회차의 1화를 엽니다 |
 | `대화 기록` | 스토리 상세 헤더 오른쪽 버튼. 그 스토리의 회차 목록을 엽니다 |
 | `새 대화` | 대화 기록 헤더 오른쪽의 텍스트 버튼 |
@@ -426,10 +433,13 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 | `<시작 시각> 대화, 이어서 하기` | 회차 카드에서 그 회차를 이어가는 버튼 |
 | `<화 번호>화 <제목>, 대화 보기` | 회차 카드에서 대화 기록이 남은 끝낸 에피소드 줄 |
 | `영어나 한국어로 적어 주세요.` | 에피소드 화면 입력의 빈 자리 문구 |
-| `돌아가기` | 끝난 에피소드의 마무리에서 왔던 화면으로 나가는 버튼 |
+| `표현 돌아보기` | 종료 직후와 기록에서 같은 화의 표현 목록을 여는 버튼 |
+| `홈으로 이동` | 표현 돌아보기 헤더 오른쪽 홈 아이콘 |
+| `내 대화와 다른 예문` | 표현 돌아보기 카드의 원문, 설명과 다른 예문을 펼치고 접는 버튼 |
 | `대화를 시작하지 못했어요` | 1화 정보를 읽지 못했을 때의 알림창. `닫기`와 `다시 시도`가 있습니다 |
 | `대화를 불러오고 있어요` | 에피소드 대화를 1초 넘게 읽을 때 본문의 진행 상태 |
-| `다시 시도하기` | 스토리나 에피소드 대화를 읽지 못했을 때 본문의 버튼 |
+| `표현을 불러오고 있어요` | 표현 목록을 1초 넘게 읽을 때 본문의 진행 상태 |
+| `다시 시도하기` | 스토리, 에피소드 대화나 표현 목록을 읽지 못했을 때 본문의 버튼 |
 | `더 자연스러운 영어 표현 보기` / `접기` | 영어 교정의 펼치기와 접기 |
 | `이럴 때 쓰는 영어 표현 보기` / `접기` | 한국어 입력 안내의 펼치기와 접기 |
 | `표현 다시 확인` | 표현 확인 실패 문구 바로 뒤의 새로고침 아이콘. 재시도 중에는 비활성화됩니다 |
@@ -478,27 +488,29 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 - 회차 카드: `run-card-<회차 id>`, `run-toggle-<회차 id>`, `run-resume-<회차 id>`, `run-episode-<화 번호>`
 - 스토리 카드의 표지와 진행 바: `story-cover`, `story-cover-image`, `story-progress`
 - 상황 줄: `episode-situation-banner`
-- 끝난 에피소드의 마무리: `episode-closing`, `episode-closing-outcome`
-- 다음 에피소드 예고: `episode-closing-next`
-- 다시 여는 기록의 끝 표시: `episode-ending-mark`, `episode-ending-outcome`
-- 배울 표현 한 줄: `correction-line`, `correction-line-fixed`, `correction-resent`
-- 펼친 교정 카드: `correction-card`, `correction-fold`, `correction-entry`, `correction-resend`, `correction-ask`
+- 종료 직후와 다시 여는 기록의 결말: `episode-closing`, `episode-closing-outcome`, `episode-completion-mark`
+- 마지막 대사 뒤 표현 확인 대기: `episode-ending-checking`
+- 표현 돌아보기 목록과 조회 오류: `expression-review-scroll`, `expression-review-unavailable`
+- 다음 화 예고와 마지막 화 안내: `expression-review-next`
+- 배울 표현 한 줄: `correction-line`, `correction-line-fixed`
+- 펼친 교정 카드: `correction-card`, `correction-fold`, `correction-entry`, `correction-ask`
 - 물어보기 시트의 출처: `correction-source`, `correction-source-original`, `correction-source-fixed`
 
 에피소드 화면은 대화 화면과 같은 패널을 씁니다.
 그래서 `chat-list`, `chat-input`, `chat-send`, `chat-message-row`와
 `chat-scene-narration`, `chat-scene-utterance`가 그대로 있습니다.
 상황 줄은 패널의 `chat-banner` 자리에 들어가며, 사건이 끝나도 사라지지 않습니다.
-사건이 끝나면 입력 자리를 `episode-closing`이 대신하므로 `chat-input`과
-`chat-send`는 사라집니다.
-끝난 화를 스토리 상세에서 다시 열면 그 자리에 `episode-ending-mark`만 남습니다.
+마지막 대사가 끝나면 `chat-input`과 `chat-send`는 사라집니다. 표현 확인 중에는
+그 자리에 `episode-ending-checking`, 모든 요청이 끝나면 `episode-closing`을 보여 줍니다.
+대화 기록에서 끝난 화를 다시 열어도 같은 결말 카드와 표현 안내가 남습니다.
+완료 결과가 없는 메시지만 자동으로 다시 확인하고, 실패한 메시지의 개별 재시도는
+대화 화면에 남깁니다. 표현 돌아보기에는 준비된 카드만 표시합니다.
 텍스트 선택으로 물어보기를 여는 길과 메시지 하나에 거는 동작은 에피소드 화면에
 두지 않습니다. 물어보기로 들어가는 길은 교정 카드의 `correction-ask` 하나입니다.
 
 `correction-line`은 몰랐던 표현이 있는 사용자 메시지에만 붙습니다.
 탭하면 `correction-card`가 그 자리를 대신하고, `correction-fold`로 다시
 `correction-line`이 됩니다.
-`correction-resent`는 고친 문장을 실제로 다시 보낸 뒤에만 나타납니다.
 
 `chat-composer-surface`는 입력창과 보내기 버튼을 함께 담은 영역입니다.
 iOS 26 이상에서는 Liquid Glass이고 나머지 플랫폼에서는 같은 모양의 일반 surface입니다.

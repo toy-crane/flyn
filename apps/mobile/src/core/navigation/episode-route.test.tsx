@@ -48,7 +48,7 @@ jest.mock("expo-router", () => {
   );
 
   return {
-    router: { back: jest.fn(), replace: jest.fn() },
+    router: { back: jest.fn(), push: jest.fn(), replace: jest.fn() },
     Stack: {
       Screen: ({
         options,
@@ -100,57 +100,39 @@ jest.mock("@/shared/ui/toolbar-icons", () => ({
   toolbarIcon: (name: string) => name,
 }));
 
+const mockOpenReview = jest.fn();
+jest.mock("@/features/episode/state/episode-review", () => ({
+  useEpisodeReview: () => ({ openReview: mockOpenReview }),
+}));
 jest.mock("@/screens/episode/episode-screen", () => {
   const React = require("react") as typeof import("react");
   const { Pressable } =
     require("react-native") as typeof import("react-native");
-
   return {
-    EpisodeScreen: ({
-      episodeId,
-      isStartingNext,
-      onLeave,
-      onStartNext,
-      readOnly,
-      savedCorrections,
-      situation,
-    }: {
+    EpisodeScreen: (props: {
       episodeId: string;
-      isStartingNext: boolean;
-      onLeave: () => void;
-      onStartNext: (episodeId: string) => void;
       readOnly: boolean;
-      savedCorrections?: readonly unknown[];
+      savedResults?: readonly unknown[];
       situation: string;
+      onReview: (next: unknown) => void;
     }) => {
       playing = {
-        episodeId,
-        isStartingNext,
-        readOnly,
-        savedCorrections,
-        situation,
+        episodeId: props.episodeId,
+        readOnly: props.readOnly,
+        savedResults: props.savedResults,
+        situation: props.situation,
       };
-      startNextFromScreen = () => onStartNext(NEXT_EPISODE_ID);
-
-      return React.createElement(
-        React.Fragment,
-        null,
-        React.createElement(Pressable, {
-          accessibilityLabel: "leave",
-          accessibilityRole: "button",
-          onPress: onLeave,
-        }),
-        React.createElement(Pressable, {
-          accessibilityLabel: "start next",
-          accessibilityRole: "button",
-          accessibilityState: {
-            busy: isStartingNext,
-            disabled: isStartingNext,
-          },
-          disabled: isStartingNext,
-          onPress: () => onStartNext(NEXT_EPISODE_ID),
-        })
-      );
+      return React.createElement(Pressable, {
+        accessibilityLabel: "표현 돌아보기",
+        accessibilityRole: "button",
+        onPress: () =>
+          props.onReview({
+            copy: "예고",
+            episodeId: NEXT_EPISODE_ID,
+            number: 3,
+            title: "다음 화",
+          }),
+      });
     },
   };
 });
@@ -169,7 +151,8 @@ const mockRefresh = jest.fn(() => Promise.resolve());
 const mockEpisodeRefetch = jest.fn(() => Promise.resolve());
 let mockSession:
   | {
-      corrections?: readonly unknown[];
+      expressionResults?: readonly unknown[];
+      story?: { id: string; title: string };
       episode: typeof NEXT_EPISODE;
       messages: never[];
       readOnly: boolean;
@@ -185,13 +168,12 @@ let mockEpisodeQuery: {
 let playing:
   | {
       episodeId: string;
-      isStartingNext: boolean;
+
       readOnly: boolean;
-      savedCorrections?: readonly unknown[];
+      savedResults?: readonly unknown[];
       situation: string;
     }
   | undefined;
-let startNextFromScreen: (() => void) | undefined;
 
 beforeEach(() => {
   mockBack.mockClear();
@@ -207,7 +189,8 @@ beforeEach(() => {
     refetch: mockEpisodeRefetch,
   };
   playing = undefined;
-  startNextFromScreen = undefined;
+  mockOpenReview.mockClear();
+  jest.mocked(router.push).mockClear();
   headerOptions = undefined;
 });
 
@@ -223,9 +206,8 @@ test("ID로 읽은 에피소드 이름을 헤더에 걸고 뒤로 가기로 나�
   expect(headerOptions?.headerBackButtonMenuEnabled).toBe(false);
   expect(playing).toEqual({
     episodeId: EPISODE_ID,
-    isStartingNext: false,
     readOnly: false,
-    savedCorrections: undefined,
+    savedResults: undefined,
     situation: NEXT_EPISODE.situation,
   });
 
@@ -234,9 +216,7 @@ test("ID로 읽은 에피소드 이름을 헤더에 걸고 뒤로 가기로 나�
   expect(mockBack).toHaveBeenCalledTimes(1);
 });
 
-// 행은 이미 쌓이지만 복습에서 그것을 어떻게 보여 줄지는 보관함을 만드는 단위가
-// 정한다. 끝난 화에는 붙이지 않는다.
-test("끝난 화를 다시 열 때는 저장된 배울 표현을 넘기지 않는다", async () => {
+test("끝난 화와 진행 중인 화 모두 저장된 완료 결과를 넘긴다", async () => {
   const saved = [
     {
       entries: [
@@ -254,8 +234,8 @@ test("끝난 화를 다시 열 때는 저장된 배울 표현을 넘기지 않�
   ];
 
   mockSession = {
-    corrections: saved,
     episode: NEXT_EPISODE,
+    expressionResults: saved,
     messages: [],
     readOnly: true,
   };
@@ -263,11 +243,11 @@ test("끝난 화를 다시 열 때는 저장된 배울 표현을 넘기지 않�
   await renderWithHeroUI(<EpisodeRoute />);
 
   expect(playing?.readOnly).toBe(true);
-  expect(playing?.savedCorrections).toBeUndefined();
+  expect(playing?.savedResults).toEqual(saved);
 
   mockSession = {
-    corrections: saved,
     episode: NEXT_EPISODE,
+    expressionResults: saved,
     messages: [],
     readOnly: false,
   };
@@ -275,94 +255,35 @@ test("끝난 화를 다시 열 때는 저장된 배울 표현을 넘기지 않�
   await renderWithHeroUI(<EpisodeRoute />);
 
   // 진행 중인 화에는 그대로 돌아온다.
-  expect(playing?.savedCorrections).toEqual(saved);
+  expect(playing?.savedResults).toEqual(saved);
 });
 
-test("다음 에피소드로 갈 때 진행을 다시 읽고 새 ID로 바꾼다", async () => {
+test("표현 돌아보기는 같은 회차와 화의 문맥을 전달하고 대화 위에 연다", async () => {
   const user = userEvent.setup();
+  mockSession = {
+    episode: NEXT_EPISODE,
+    messages: [],
+    readOnly: true,
+    story: { id: "story", title: "우리 동네 카페" },
+  };
+  mockEpisodeQuery.data = mockSession;
   await renderWithHeroUI(<EpisodeRoute />);
-
-  await user.press(screen.getByRole("button", { name: "start next" }));
-
-  expect(mockRefresh).toHaveBeenCalledTimes(1);
-  expect(mockReplace).toHaveBeenCalledWith({
-    params: { episodeId: NEXT_EPISODE_ID, storyPlayId: STORY_PLAY_ID },
-    pathname: "/episode",
+  await user.press(screen.getByRole("button", { name: "표현 돌아보기" }));
+  expect(mockOpenReview).toHaveBeenCalledWith({
+    episode: NEXT_EPISODE,
+    nextUp: {
+      copy: "예고",
+      episodeId: NEXT_EPISODE_ID,
+      number: 3,
+      title: "다음 화",
+    },
+    story: mockSession.story,
+    storyPlayId: STORY_PLAY_ID,
   });
-});
-
-test("다음 에피소드를 읽는 동안 같은 실행을 겹치지 않고 버튼에 알린다", async () => {
-  let finishRefresh: (() => void) | undefined;
-  mockRefresh.mockImplementationOnce(
-    () =>
-      new Promise<void>((resolve) => {
-        finishRefresh = resolve;
-      })
-  );
-  await renderWithHeroUI(<EpisodeRoute />);
-
-  await act(() => {
-    startNextFromScreen?.();
-    startNextFromScreen?.();
-
-    return Promise.resolve();
+  expect(router.push).toHaveBeenCalledWith({
+    params: { episodeId: EPISODE_ID, storyPlayId: STORY_PLAY_ID },
+    pathname: "/episode/review",
   });
-
-  expect(mockRefresh).toHaveBeenCalledTimes(1);
-  expect(playing?.isStartingNext).toBe(true);
-  expect(screen.getByRole("button", { name: "start next" })).toHaveProp(
-    "accessibilityState",
-    { busy: true, disabled: true }
-  );
-  expect(screen.getByRole("button", { name: "뒤로 가기" })).toBeDisabled();
-
-  await act(() => {
-    finishRefresh?.();
-
-    return Promise.resolve();
-  });
-
-  await waitFor(() => {
-    expect(mockReplace).toHaveBeenCalledTimes(1);
-  });
-});
-
-test("다음 에피소드를 읽는 중 화면을 떠나면 늦은 화면 전환을 취소한다", async () => {
-  let finishRefresh: (() => void) | undefined;
-  mockRefresh.mockImplementationOnce(
-    () =>
-      new Promise<void>((resolve) => {
-        finishRefresh = resolve;
-      })
-  );
-  await renderWithHeroUI(<EpisodeRoute />);
-
-  await act(() => {
-    startNextFromScreen?.();
-
-    return Promise.resolve();
-  });
-  await act(() => {
-    screen.unmount();
-
-    return Promise.resolve();
-  });
-  await act(() => {
-    finishRefresh?.();
-
-    return Promise.resolve();
-  });
-
-  expect(mockReplace).not.toHaveBeenCalled();
-});
-
-test("마무리의 돌아가기는 왔던 자리로 간다", async () => {
-  const user = userEvent.setup();
-  await renderWithHeroUI(<EpisodeRoute />);
-
-  await user.press(screen.getByRole("button", { name: "leave" }));
-
-  expect(mockBack).toHaveBeenCalledTimes(1);
 });
 
 test("어떤 길로 나가든 스토리 진행을 다시 읽는다", async () => {
@@ -385,7 +306,9 @@ test("서버 장면을 읽기 전에는 에피소드 화면을 그리지 않는�
   await renderWithHeroUI(<EpisodeRoute />);
 
   expect(playing).toBeUndefined();
-  expect(screen.queryByRole("button", { name: "leave" })).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "표현 돌아보기" })
+  ).not.toBeOnTheScreen();
 });
 
 test("서버 장면을 1초 넘게 읽으면 본문에서 진행 상태를 알린다", async () => {

@@ -1,144 +1,186 @@
-import { useCallback, useEffect, useState } from "react";
-import { Text, View } from "react-native";
-
+import { useEffect, useState } from "react";
+import {
+  AccessibilityInfo,
+  ScrollView,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import Animated, { cubicBezier } from "react-native-reanimated";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
-import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { Button } from "@/shared/ui/button";
-import { StatusLine } from "@/shared/ui/status-line";
-import { EpisodeEndingMark } from "./episode-ending-mark";
-import { episodeLabels } from "./episode-labels";
+import { Icon } from "@/shared/ui/icon";
 
-const SAVE_PROGRESS_DELAY_MS = 1000;
+const arrive = {
+  from: { opacity: 0, transform: [{ scale: 0.95 }] },
+  to: { opacity: 1, transform: [{ scale: 1 }] },
+};
+const easeOut = cubicBezier(0.23, 1, 0.32, 1);
+const TRAILING_PERIOD = /[.]$/;
+const particles = Array.from({ length: 18 }, (_, index) => {
+  const direction = index % 2 ? -1 : 1;
+  const x = direction * (35 + ((index * 17) % 99));
+  const y = -(20 + ((index * 23) % 66));
+  const rotation = direction * (70 + ((index * 31) % 160));
+  return {
+    animationDelay: (index % 4) * 22,
+    animationName: {
+      "0%": {
+        opacity: 0,
+        transform: [{ translateX: 0 }, { translateY: 8 }, { rotate: "0deg" }],
+      },
+      "12%": { opacity: 1 },
+      "58%": {
+        opacity: 1,
+        transform: [
+          { translateX: x * 0.72 },
+          { translateY: y },
+          { rotate: `${rotation * 0.6}deg` },
+        ],
+      },
+      "100%": {
+        opacity: 0,
+        transform: [
+          { translateX: x },
+          { translateY: y + 68 },
+          { rotate: `${rotation}deg` },
+        ],
+      },
+    },
+    id: index,
+  };
+});
 
-/** 짧은 보정 저장에는 깜빡이지 않고, 오래 걸릴 때만 마무리 안에서 알린다. */
-function EpisodeSavingProgress() {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-    }, SAVE_PROGRESS_DELAY_MS);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, []);
-
-  if (!isVisible) {
-    return null;
-  }
-
-  return (
-    <StatusLine
-      label={episodeLabels.saving}
-      loading
-      testID="episode-closing-saving"
-    />
-  );
-}
-
-/**
- * 끝난 에피소드가 남기는 것: 사건의 결과, 다음 이야기, 그리고 갈 수 있는 곳.
- *
- * 입력창이 있던 자리에 그대로 들어선다. 사건이 끝났으므로 더 쓸 말이 없고,
- * 자리를 대신하는 것이 입력이 닫혔다는 가장 분명한 표시다. 장면은 위에 그대로
- * 남아 있어 결말이 어디서 나왔는지 다시 읽을 수 있다.
- *
- * 성공·타협·실패는 쓰지 않는다. 남는 결론은 몇 개를 틀렸느냐가 아니라 그
- * 자리에서 무엇을 얻어냈느냐이고, 결말 낱말은 점수판처럼 읽힌다.
- *
- * 다시 하기는 없다. 한 번 난 결말은 그 스토리의 사실로 남고, 실패도 다음 화의
- * 이야기가 된다. 마지막 화 뒤에는 예고 대신 완주 안내가 같은 자리에 오고
- * 갈 곳도 홈 하나뿐이다.
- *
- * 다시 열어 읽는 기록에는 이 카드 대신 끝 표시만 남는다. 그 자리에서 할 수
- * 있는 일이 없으므로 버튼도 안내 문구도 두지 않는다.
- */
+/** 결말은 그대로 두고, 종료 직후 한 번만 짧게 축하한다. */
 export function EpisodeClosing({
   ending,
-  isSettling = false,
-  isStartingNext = false,
-  nextUp,
-  onLeave,
-  onStartNext,
-  readOnly = false,
+  animate,
+  onReview,
 }: {
   ending: EpisodeEnding;
-  isSettling?: boolean;
-  isStartingNext?: boolean;
-  nextUp: EpisodeNextUp | undefined;
-  onLeave: () => void;
-  onStartNext: (episodeId: string) => void;
-  readOnly?: boolean;
+  animate: boolean;
+  onReview: () => void;
 }) {
-  const nextEpisodeId = nextUp?.episodeId ?? undefined;
-  const nextEpisodeNumber = nextUp?.number ?? undefined;
-  const startNext = useCallback(() => {
-    if (!(isSettling || isStartingNext) && nextEpisodeId !== undefined) {
-      onStartNext(nextEpisodeId);
+  const [requested] = useState(animate);
+  const [playAnimation, setPlayAnimation] = useState(false);
+  const { fontScale, height } = useWindowDimensions();
+  useEffect(() => {
+    let canStart = requested;
+    const listener = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      (reduced) => {
+        canStart = false;
+        if (reduced) {
+          setPlayAnimation(false);
+        }
+      }
+    );
+    if (requested) {
+      // Reanimated의 초기값은 앱 실행 때의 설정이다. 카드를 열 때 현재 값을 읽는다.
+      AccessibilityInfo.isReduceMotionEnabled().then(
+        (reduced) => {
+          if (canStart && !reduced) {
+            setPlayAnimation(true);
+          }
+        },
+        () => {
+          // 설정을 읽지 못했으면 정지된 완료 표시를 유지한다.
+        }
+      );
     }
-  }, [isSettling, isStartingNext, nextEpisodeId, onStartNext]);
-  const isActionPending = isSettling || isStartingNext;
-
-  if (readOnly) {
-    return <EpisodeEndingMark outcome={ending.outcome} />;
-  }
-
+    return () => {
+      canStart = false;
+      listener.remove();
+    };
+  }, [requested]);
+  const motion = playAnimation;
   return (
     <View
-      accessibilityLiveRegion="polite"
-      className="gap-3 rounded-2xl bg-surface px-5 py-4"
+      className="gap-4 overflow-hidden rounded-3xl border border-accent/15 bg-surface px-5 pt-5 pb-4"
+      style={{ maxHeight: height * 0.4 }}
       testID="episode-closing"
     >
-      <Text
-        accessibilityRole="header"
-        className="font-bold text-foreground text-lg leading-7"
-        testID="episode-closing-outcome"
+      <View className="absolute inset-0 bg-accent/5" pointerEvents="none" />
+      <ScrollView
+        className="shrink grow-0"
+        contentContainerClassName="items-center gap-2 py-1"
+        showsVerticalScrollIndicator={false}
       >
-        {ending.outcome}
-      </Text>
-
-      {nextUp ? (
-        <View className="gap-1 pt-1" testID="episode-closing-next">
-          {nextEpisodeNumber === undefined ? null : (
-            <Text className="font-semibold text-accent text-sm">
-              {episodeLabels.nextEyebrow}
-            </Text>
-          )}
-          <Text className="font-bold text-base text-foreground leading-6">
-            {nextEpisodeNumber === undefined
-              ? nextUp.title
-              : episodeLabels.title(nextEpisodeNumber, nextUp.title)}
+        <Animated.View
+          className="size-16 items-center justify-center"
+          style={
+            motion
+              ? {
+                  animationDuration: 280,
+                  animationName: arrive,
+                  animationTimingFunction: easeOut,
+                }
+              : undefined
+          }
+          testID="episode-completion-mark"
+        >
+          <View className="size-14 items-center justify-center rounded-full border-4 border-accent/15 bg-accent">
+            <Icon name="check" size="lg" tone="accentForeground" />
+          </View>
+          <View className="absolute top-0 -right-4">
+            <Icon name="learn" size="sm" tone="accent" />
+          </View>
+          <View className="absolute bottom-1 -left-4">
+            <Icon name="learn" size="xs" tone="accent" />
+          </View>
+        </Animated.View>
+        {ending.kind === "성공" ? (
+          <Text
+            className="font-semibold text-accent text-sm"
+            dynamicTypeRamp="footnote"
+            key={`success-${fontScale}`}
+          >
+            해냈어요!
           </Text>
-          <Text className="text-base text-muted leading-6">{nextUp.copy}</Text>
+        ) : null}
+        <Text
+          accessibilityRole="header"
+          className="text-center font-bold text-[22px] text-foreground leading-[30px]"
+          dynamicTypeRamp="title2"
+          key={`outcome-${fontScale}`}
+          testID="episode-closing-outcome"
+        >
+          {ending.outcome.replace(TRAILING_PERIOD, "")}
+        </Text>
+      </ScrollView>
+      {motion ? (
+        <View
+          accessibilityElementsHidden
+          className="absolute top-10 left-1/2"
+          importantForAccessibility="no-hide-descendants"
+          pointerEvents="none"
+          testID="episode-celebration-burst"
+        >
+          {particles.map(({ id, ...animation }) => (
+            <Animated.View
+              className={
+                id % 3
+                  ? "absolute h-2.5 w-1.5 rounded-sm bg-accent"
+                  : "absolute size-1.5 rounded-full bg-accent/50"
+              }
+              key={id}
+              style={{
+                ...animation,
+                animationDuration: 1050,
+                animationFillMode: "both",
+                animationTimingFunction: easeOut,
+              }}
+            />
+          ))}
         </View>
       ) : null}
-
-      {isSettling ? <EpisodeSavingProgress /> : null}
-
-      <View className="flex-row gap-2">
-        <Button
-          accessibilityLabel={episodeLabels.leave}
-          className="flex-1"
-          isDisabled={isActionPending}
-          onPress={onLeave}
-          variant={nextEpisodeId === undefined ? "primary" : "tertiary"}
-        >
-          {episodeLabels.leave}
-        </Button>
-        {nextEpisodeId === undefined ||
-        nextEpisodeNumber === undefined ? null : (
-          <Button
-            accessibilityLabel={episodeLabels.start(nextEpisodeNumber)}
-            className="flex-1"
-            isDisabled={isSettling}
-            isPending={isStartingNext}
-            onPress={startNext}
-          >
-            {episodeLabels.start(nextEpisodeNumber)}
-          </Button>
-        )}
-      </View>
+      <Button
+        accessibilityLabel="표현 돌아보기"
+        key={`review-${fontScale}`}
+        onPress={onReview}
+      >
+        표현 돌아보기
+      </Button>
     </View>
   );
 }

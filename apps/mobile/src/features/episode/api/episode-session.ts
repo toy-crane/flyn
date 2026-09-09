@@ -1,6 +1,9 @@
 import type { UIMessage } from "ai";
 
-import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
+import type {
+  EpisodeCorrection,
+  ExpressionResult,
+} from "@/features/episode/api/episode-correction";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
 import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { aiUrl } from "@/shared/ai/request-options";
@@ -31,10 +34,12 @@ export interface EpisodeSession {
    */
   ending?: EpisodeEnding;
   episode: PlayingEpisode;
+  expressionResults: ExpressionResult[];
   messages: UIMessage[];
   /** 결말 다음에 보여 줄 예고. 같은 이유로 대화가 아니라 여기 실려 온다. */
   nextUp?: EpisodeNextUp;
   readOnly: boolean;
+  story: { id: string; title: string };
 }
 
 /**
@@ -46,11 +51,13 @@ export interface EpisodeSession {
 export async function readEpisodeSession(
   accessToken: string,
   storyPlayId: string,
-  episodeId: string
+  episodeId: string,
+  signal?: AbortSignal
 ): Promise<EpisodeSession> {
   const path = `/ai/episode/${episodeId}?storyPlayId=${encodeURIComponent(storyPlayId)}`;
   const response = await fetch(aiUrl(path), {
     headers: { Authorization: `Bearer ${accessToken}` },
+    signal,
   });
 
   if (!response.ok) {

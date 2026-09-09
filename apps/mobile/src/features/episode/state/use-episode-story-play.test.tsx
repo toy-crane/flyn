@@ -2,12 +2,20 @@ import { afterEach, expect, jest, test } from "@jest/globals";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { UIMessage, UIMessageChunk } from "ai";
 import { simulateReadableStream } from "ai";
-
+import { checkEpisodeExpression } from "@/features/episode/api/episode-correction";
 import { createEpisodeTransport } from "@/features/episode/api/episode-transport";
 import { useEpisodeStoryPlay } from "./use-episode-story-play";
 
 jest.mock("@/features/episode/api/episode-transport", () => ({
   createEpisodeTransport: jest.fn(),
+}));
+jest.mock("@/features/episode/api/episode-correction", () => ({
+  checkEpisodeExpression: jest.fn(
+    async (_token, _play, _episode, messageId) => ({
+      messageId,
+      status: "natural",
+    })
+  ),
 }));
 
 const mockCreateEpisodeTransport = jest.mocked(createEpisodeTransport);
@@ -189,6 +197,12 @@ test("다시 연 화면은 서버가 실어 보낸 배울 표현으로 시작한
       fixed: "I think you gave me the wrong coffee.",
       messageId: "m1",
       original: "I think this is wrong coffee.",
+      review: {
+        example: "This is the wrong bag.",
+        exampleMeaning: "이건 다른 가방이에요.",
+        meaning: "다른 커피인 것 같아요.",
+        situation: "주문을 확인할 때",
+      },
     },
   ];
 
@@ -203,9 +217,56 @@ test("다시 연 화면은 서버가 실어 보낸 배울 표현으로 시작한
       noop,
       undefined,
       undefined,
-      saved
+      saved.map((correction) => ({
+        correction,
+        messageId: correction.messageId,
+        status: "corrected" as const,
+      }))
     )
   );
 
   expect(result.current.corrections.byMessageId.m1).toEqual(saved[0]);
+});
+
+test("끝난 기록에서도 완료 결과가 없는 메시지만 자동 확인하고 같은 화면에서 실패를 반복하지 않는다", async () => {
+  const transport = fakeTransport();
+  const check = jest.mocked(checkEpisodeExpression);
+  check.mockRejectedValueOnce(new Error("network"));
+  const messages: UIMessage[] = ["natural", "unclear", "unfinished"].map(
+    (id) => ({ id, parts: [{ text: id, type: "text" }], role: "user" })
+  );
+  const { result, rerender } = await renderHook(() =>
+    useEpisodeStoryPlay(
+      "token",
+      EPISODE_ID,
+      messages,
+      true,
+      STORY_ID,
+      STORY_PLAY_ID,
+      noop,
+      { kind: "성공", outcome: "커피를 받았다." },
+      undefined,
+      [
+        { messageId: "natural", status: "natural" },
+        { messageId: "unclear", status: "unclear" },
+      ]
+    )
+  );
+  await waitFor(() =>
+    expect(result.current.corrections.states.unfinished?.status).toBe("error")
+  );
+  expect(check).toHaveBeenCalledTimes(1);
+  expect(check).toHaveBeenCalledWith(
+    "token",
+    STORY_PLAY_ID,
+    EPISODE_ID,
+    "unfinished",
+    expect.any(AbortSignal)
+  );
+  await rerender(undefined);
+  expect(check).toHaveBeenCalledTimes(1);
+  expect(transport.sendMessages).not.toHaveBeenCalled();
+  expect(result.current.chat.messages).toEqual(messages);
+  expect(result.current.corrections.states.natural?.status).toBe("natural");
+  expect(result.current.corrections.states.unclear?.status).toBe("unclear");
 });
