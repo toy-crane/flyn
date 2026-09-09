@@ -4,6 +4,7 @@ import type {
   EpisodeCorrection,
   ExpressionResult,
 } from "@/features/episode/api/episode-correction";
+import type { SavedExpressionRef } from "@/features/episode/api/saved-expression";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
 import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { aiUrl } from "@/shared/ai/request-options";
@@ -39,6 +40,13 @@ export interface EpisodeSession {
   /** 결말 다음에 보여 줄 예고. 같은 이유로 대화가 아니라 여기 실려 온다. */
   nextUp?: EpisodeNextUp;
   readOnly: boolean;
+  /**
+   * 이 대화에서 담아 둔 자리. 책갈피가 같은 말풍선 곁으로 돌아온다.
+   *
+   * 담긴 문장과 뜻은 오지 않는다. 그것을 읽는 곳은 표현 노트이고, 대화 화면이
+   * 묻는 것은 이 자리를 이미 담았는가 하나다.
+   */
+  saved?: SavedExpressionRef[];
   story: { id: string; title: string };
 }
 

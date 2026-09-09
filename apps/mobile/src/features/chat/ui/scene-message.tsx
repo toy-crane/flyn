@@ -1,14 +1,33 @@
-import { memo } from "react";
+import { type ComponentType, memo, type ReactNode } from "react";
 import { Text, useWindowDimensions, View } from "react-native";
 
 import { MarkdownAnswer } from "./markdown-answer";
 import { MessageActions } from "./message-actions";
 import type { SceneSegment } from "./scene";
 
+/**
+ * 인물 말풍선 하나를 감싸 곁에 무엇을 더 놓는 자리.
+ *
+ * 무엇이 붙는지 채팅은 알지 못한다. 말풍선을 그려 넘겨줄 뿐이고, 그 옆과 아래에
+ * 무엇을 두는지는 이 자리를 채우는 쪽이 정한다.
+ */
+export type UtteranceAddon = ComponentType<{
+  at: number;
+  children: ReactNode;
+  messageId: string;
+}>;
+
 const SceneSegmentBody = memo(function SceneSegmentBodyContent({
+  at,
+  messageId,
   name,
   text,
-}: SceneSegment) {
+  UtteranceSlot,
+}: SceneSegment & {
+  at: number;
+  messageId: string;
+  UtteranceSlot: UtteranceAddon | undefined;
+}) {
   const { fontScale } = useWindowDimensions();
   if (name === null) {
     return (
@@ -21,14 +40,23 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
       </Text>
     );
   }
+  const bubble = (
+    <View className="max-w-[85%] shrink self-start rounded-2xl bg-surface px-4 py-3">
+      <MarkdownAnswer markdown={text} />
+    </View>
+  );
   return (
-    <View className="max-w-[85%] self-start" testID="chat-scene-utterance">
+    <View className="w-full items-start" testID="chat-scene-utterance">
       <Text className="mb-1 px-1 text-muted text-xs" key={fontScale}>
         {name}
       </Text>
-      <View className="rounded-2xl bg-surface px-4 py-3">
-        <MarkdownAnswer markdown={text} />
-      </View>
+      {UtteranceSlot ? (
+        <UtteranceSlot at={at} messageId={messageId}>
+          {bubble}
+        </UtteranceSlot>
+      ) : (
+        bubble
+      )}
     </View>
   );
 });
@@ -39,32 +67,50 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
  * 스파이크: 다시 받기와 복사는 장면 전체에 걸린다. 발화 하나 단위의 동작은
  * 아직 없다. 조각은 스트리밍 중에 뒤로만 늘어나므로 자리 번호가 그대로
  * 열쇠가 된다.
+ *
+ * 말풍선 곁에 무엇을 매다는 자리는 인물의 대사만 받는다. 지문은 세지 않으므로
+ * 넘기는 번호도 대사끼리의 순서다.
  */
 export function SceneMessage({
   areActionsDisabled,
   areActionsVisible = true,
   hasActions,
+  messageId,
   onCopy,
   onRegenerate,
   segments,
+  utteranceAddon,
 }: {
   areActionsDisabled: boolean;
   areActionsVisible?: boolean;
   hasActions: boolean;
+  messageId: string;
   onCopy: () => void;
   onRegenerate: () => void;
   segments: SceneSegment[];
+  utteranceAddon?: UtteranceAddon;
 }) {
+  let spoken = -1;
+
   return (
     <View className="w-full gap-2">
-      {segments.map((segment, index) => (
-        <SceneSegmentBody
-          // biome-ignore lint/suspicious/noArrayIndexKey: 조각은 뒤로만 늘어난다
-          key={index}
-          name={segment.name}
-          text={segment.text}
-        />
-      ))}
+      {segments.map((segment, index) => {
+        if (segment.name !== null) {
+          spoken += 1;
+        }
+
+        return (
+          <SceneSegmentBody
+            at={spoken}
+            // biome-ignore lint/suspicious/noArrayIndexKey: 조각은 뒤로만 늘어난다
+            key={index}
+            messageId={messageId}
+            name={segment.name}
+            text={segment.text}
+            UtteranceSlot={utteranceAddon}
+          />
+        );
+      })}
       {hasActions ? (
         <MessageActions
           isDisabled={areActionsDisabled}

@@ -1,5 +1,5 @@
 import type { UIMessage } from "ai";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
 
 import type {
@@ -16,6 +16,10 @@ import { StatusLine } from "@/shared/ui/status-line";
 import { correctionPresentation } from "./correction-presentation";
 import { fixedMarks, markedParts } from "./correction-text";
 import { correctionLabels } from "./episode-labels";
+import {
+  ExpressionBookmark,
+  ExpressionSaveFailure,
+} from "./expression-bookmark";
 
 /**
  * 강조할 자리를 짚은 문장.
@@ -137,73 +141,87 @@ export function CorrectionNote({
   const fold = useCallback(() => setIsOpen(false), []);
   const ask = useCallback(() => onAsk(correction), [correction, onAsk]);
   const appearance = correctionPresentation(correction.original);
-
-  if (!isOpen) {
-    return (
-      <Pressable
-        accessibilityLabel={`${appearance.title} 보기`}
-        accessibilityRole="button"
-        className={`mt-1 max-w-[85%] flex-row items-start gap-2 self-end rounded-2xl rounded-tl-md px-3.5 py-2.5 ${appearance.surface}`}
-        key={fontScale}
-        onPress={open}
-        testID="correction-line"
-      >
-        <View className="mt-1">
-          <Icon name="learn" size="sm" tone={appearance.tone} />
-        </View>
-        <View className="flex-1">
-          <MarkedSentence
-            className="text-foreground text-sm leading-5"
-            markClassName={`font-semibold ${appearance.text}`}
-            marks={fixedMarks(correction)}
-            testID="correction-line-fixed"
-            text={correction.fixed}
-          />
-        </View>
-        <View className="mt-0.5">
-          <Icon name="expand" size="sm" tone="muted" />
-        </View>
-      </Pressable>
-    );
-  }
+  const spot = useMemo(
+    () => ({ kind: "learning" as const, messageId: correction.messageId }),
+    [correction.messageId]
+  );
 
   return (
-    <View
-      className={`mt-1 max-w-[85%] self-end rounded-2xl rounded-tl-md px-3.5 py-3 ${appearance.surface}`}
-      key={fontScale}
-      testID="correction-card"
-    >
-      <View className="mb-2 flex-row items-center justify-between">
-        <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
-          <Icon name="learn" size="sm" tone={appearance.tone} />
-          <Text
-            className={`shrink font-semibold text-xs ${appearance.text}`}
-            selectable={false}
-          >
-            {correction.entries.length > 1
-              ? `${appearance.title} ${correction.entries.length}개`
-              : appearance.title}
-          </Text>
-        </View>
-        <Pressable
-          accessibilityLabel={`${appearance.title} 접기`}
-          accessibilityRole="button"
-          className="-my-2 -mr-2 size-11 items-center justify-center"
-          onPress={fold}
-          testID="correction-fold"
+    <View className="mt-1 w-full items-end">
+      {isOpen ? (
+        <View
+          className={`max-w-[85%] self-end rounded-2xl rounded-tl-md px-3.5 py-3 ${appearance.surface}`}
+          key={fontScale}
+          testID="correction-card"
         >
-          <Icon name="collapse" size="sm" tone="muted" />
-        </Pressable>
-      </View>
-      {correction.entries.map((entry, index) => (
-        <CorrectionRow
-          correction={correction}
-          entry={entry}
-          isFirst={index === 0}
-          key={`${entry.pattern}:${entry.original}:${entry.fixed}`}
-        />
-      ))}
-      <CorrectionActions onAsk={ask} />
+          <View className="mb-2 flex-row items-center justify-between gap-1">
+            <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
+              <Icon name="learn" size="sm" tone={appearance.tone} />
+              <Text
+                className={`shrink font-semibold text-xs ${appearance.text}`}
+                selectable={false}
+              >
+                {correction.entries.length > 1
+                  ? `${appearance.title} ${correction.entries.length}개`
+                  : appearance.title}
+              </Text>
+            </View>
+            {/*
+              펼친 카드의 제목 줄에도 같은 책갈피를 둔다. 접힌 한 줄과 늘 같은
+              상태를 보여 주므로, 어느 쪽에서 담아도 다른 쪽이 함께 채워진다.
+            */}
+            <ExpressionBookmark side="right" spot={spot} />
+            <Pressable
+              accessibilityLabel={`${appearance.title} 접기`}
+              accessibilityRole="button"
+              className="-my-2 -mr-2 size-11 items-center justify-center"
+              onPress={fold}
+              testID="correction-fold"
+            >
+              <Icon name="collapse" size="sm" tone="muted" />
+            </Pressable>
+          </View>
+          {correction.entries.map((entry, index) => (
+            <CorrectionRow
+              correction={correction}
+              entry={entry}
+              isFirst={index === 0}
+              key={`${entry.pattern}:${entry.original}:${entry.fixed}`}
+            />
+          ))}
+          <CorrectionActions onAsk={ask} />
+        </View>
+      ) : (
+        <View className="max-w-[92%] flex-row items-end self-end">
+          {/* 책갈피는 화면 가운데를 향한 쪽, 곧 오른쪽에 붙는 한 줄의 왼편에 선다. */}
+          <ExpressionBookmark side="left" spot={spot} />
+          <Pressable
+            accessibilityLabel={`${appearance.title} 보기`}
+            accessibilityRole="button"
+            className={`shrink flex-row items-start gap-2 rounded-2xl rounded-tl-md px-3.5 py-2.5 ${appearance.surface}`}
+            key={fontScale}
+            onPress={open}
+            testID="correction-line"
+          >
+            <View className="mt-1">
+              <Icon name="learn" size="sm" tone={appearance.tone} />
+            </View>
+            <View className="shrink">
+              <MarkedSentence
+                className="text-foreground text-sm leading-5"
+                markClassName={`font-semibold ${appearance.text}`}
+                marks={fixedMarks(correction)}
+                testID="correction-line-fixed"
+                text={correction.fixed}
+              />
+            </View>
+            <View className="mt-0.5">
+              <Icon name="expand" size="sm" tone="muted" />
+            </View>
+          </Pressable>
+        </View>
+      )}
+      <ExpressionSaveFailure align="end" spot={spot} />
     </View>
   );
 }

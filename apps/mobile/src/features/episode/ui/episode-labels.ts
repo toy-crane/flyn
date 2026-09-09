@@ -42,3 +42,21 @@ export const correctionLabels = {
   suggestionLabel: "이럴 때 쓰는 영어 표현",
   unclear: "표현의 뜻을 파악하기 어려워요.",
 } as const;
+
+/**
+ * 대화에서 표현을 담아 두는 자리가 쓰는 말.
+ *
+ * 담긴 것을 다시 보는 화면의 말은 여기 없다. 그 화면은 자기 기능이 소유한다.
+ */
+export const savedExpressionLabels = {
+  /** Not shown: the bookmark on a line that is not saved yet. */
+  save: "표현 저장",
+  /** Shown after a bookmark saves. A transient toast, so no period. */
+  saved: "표현을 저장했어요",
+  /** Shown in place of the line when saving did not go through. */
+  saveFailed: "표현을 저장하지 못했어요.",
+  /** Not shown: the refresh mark that saves again after a failure. */
+  saveRetry: "표현 저장 다시 시도",
+  /** Not shown: the bookmark on a line that is already saved. */
+  unsave: "저장 취소",
+} as const;

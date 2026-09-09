@@ -12,10 +12,12 @@ import type {
   EpisodeCorrection,
   ExpressionResult,
 } from "@/features/episode/api/episode-correction";
+import type { SavedExpressionRef } from "@/features/episode/api/saved-expression";
 import { useEpisodeAsks } from "@/features/episode/state/episode-asks";
 import { EpisodeCorrectionsProvider } from "@/features/episode/state/episode-corrections";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
 import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
+import { SavedExpressionsProvider } from "@/features/episode/state/saved-expressions";
 import { useEpisodeStoryPlay } from "@/features/episode/state/use-episode-story-play";
 import { EpisodeCorrectionNote } from "@/features/episode/ui/correction-note";
 import { EpisodeClosing } from "@/features/episode/ui/episode-closing";
@@ -24,6 +26,11 @@ import {
   episodeLabels,
 } from "@/features/episode/ui/episode-labels";
 import { EpisodeSituationBanner } from "@/features/episode/ui/episode-situation-banner";
+import { UtteranceExpressionSlot } from "@/features/episode/ui/expression-bookmark";
+import {
+  ExpressionToast,
+  useExpressionToast,
+} from "@/features/episode/ui/expression-toast";
 import { StatusLine } from "@/shared/ui/status-line";
 
 /**
@@ -56,6 +63,7 @@ export function EpisodeScreen({
   recordedEnding,
   recordedNextUp,
   storyPlayId,
+  savedExpressions,
   savedResults,
   situation,
   situationEmoji,
@@ -72,6 +80,8 @@ export function EpisodeScreen({
   recordedNextUp?: EpisodeNextUp;
   /** 이어가는 회차. 새 대화는 아직 없다. */
   storyPlayId?: string;
+  /** 이 화에서 이미 담아 둔 자리. 책갈피가 그 말풍선 곁으로 돌아온다. */
+  savedExpressions?: readonly SavedExpressionRef[];
   savedResults?: readonly ExpressionResult[];
   situation: string;
   situationEmoji: string;
@@ -80,18 +90,22 @@ export function EpisodeScreen({
 }) {
   const { session } = useAuthSession();
   const accessToken = session?.access_token;
-  const { chat, corrections, ending, nextUp, open } = useEpisodeStoryPlay(
-    accessToken,
-    episodeId,
-    initialMessages,
-    readOnly,
-    storyId,
-    storyPlayId,
-    onStoryPlayStarted,
-    recordedEnding,
-    recordedNextUp,
-    savedResults
-  );
+  const { announce, isVisible: isToastVisible } = useExpressionToast();
+  const { chat, corrections, ending, nextUp, open, saved } =
+    useEpisodeStoryPlay(
+      accessToken,
+      episodeId,
+      initialMessages,
+      readOnly,
+      storyId,
+      storyPlayId,
+      onStoryPlayStarted,
+      recordedEnding,
+      recordedNextUp,
+      savedResults,
+      savedExpressions,
+      announce
+    );
   const drafts = useLocalChatDrafts();
   const conversation = useConversation(chat, drafts, accessToken);
   const { openAsk } = useEpisodeAsks();
@@ -179,18 +193,22 @@ export function EpisodeScreen({
 
   return (
     <EpisodeCorrectionsProvider value={correctionsView}>
-      <ChatPanel
-        banner={
-          <EpisodeSituationBanner emoji={situationEmoji} text={situation} />
-        }
-        chat={conversationRun}
-        closing={closing}
-        hasMessageActions={false}
-        inputRef={inputRef}
-        key={panelKey}
-        messageAddon={EpisodeCorrectionNote}
-        placeholder={episodeLabels.placeholder}
-      />
+      <SavedExpressionsProvider value={saved}>
+        <ChatPanel
+          banner={
+            <EpisodeSituationBanner emoji={situationEmoji} text={situation} />
+          }
+          chat={conversationRun}
+          closing={closing}
+          hasMessageActions={false}
+          inputRef={inputRef}
+          key={panelKey}
+          messageAddon={EpisodeCorrectionNote}
+          placeholder={episodeLabels.placeholder}
+          toast={isToastVisible ? <ExpressionToast /> : undefined}
+          utteranceAddon={UtteranceExpressionSlot}
+        />
+      </SavedExpressionsProvider>
     </EpisodeCorrectionsProvider>
   );
 }

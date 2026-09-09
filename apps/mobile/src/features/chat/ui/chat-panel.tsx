@@ -59,7 +59,7 @@ import { COMPOSER_BACKDROP_FADE_HEIGHT } from "./composer-backdrop-layout";
 import { ComposerSurface } from "./composer-surface";
 import { LatestMessageButton } from "./latest-message-button";
 import { sceneCopyText, sceneOfMessage } from "./scene";
-import { SceneMessage } from "./scene-message";
+import { SceneMessage, type UtteranceAddon } from "./scene-message";
 import { useLateAnswer } from "./use-late-answer";
 import { UserMessage } from "./user-message";
 import { WaitingAnswer } from "./waiting-answer";
@@ -110,6 +110,7 @@ function PlainTextMessage({
   MessageAddon,
   onBeginEdit,
   onRegenerate,
+  utteranceAddon,
 }: {
   areActionsDisabled: boolean;
   areActionsVisible: boolean;
@@ -121,6 +122,7 @@ function PlainTextMessage({
   MessageAddon: ComponentType<{ message: UIMessage }> | undefined;
   onBeginEdit: (messageId: string) => void;
   onRegenerate: (messageId: string) => void;
+  utteranceAddon: UtteranceAddon | undefined;
 }) {
   // 장면 메시지는 화자 순서대로 자르고, 그 밖의 메시지는 지금까지처럼 텍스트
   // 하나로 읽는다. 복사도 같은 갈림을 따라서, 장면은 화자 이름이 살아 있는
@@ -173,9 +175,11 @@ function PlainTextMessage({
         areActionsDisabled={areActionsDisabled}
         areActionsVisible={areActionsVisible}
         hasActions={hasActions}
+        messageId={message.id}
         onCopy={copy}
         onRegenerate={regenerate}
         segments={scene}
+        utteranceAddon={utteranceAddon}
       />
     );
   }
@@ -450,7 +454,9 @@ export function ChatPanel({
   messageAddon,
   placeholder = "메시지를 입력하세요",
   source,
+  toast,
   topInset = 0,
+  utteranceAddon,
 }: {
   /**
    * What sits fixed just below the header, in view no matter how far the
@@ -492,7 +498,17 @@ export function ChatPanel({
   placeholder?: string;
   /** The read-only source a side conversation started from, above its list. */
   source?: ReactElement;
+  /** 입력창 바로 위에 잠시 뜨는 알림. 누를 것이 없고 대화를 가리지 않는다. */
+  toast?: ReactNode;
   topInset?: number;
+  /**
+   * 인물 말풍선 하나를 감싸는 자리. 화면이 그 곁에 둘 것이 있을 때만 넘긴다.
+   *
+   * `messageAddon`과 같은 이유로 그려진 노드가 아니라 컴포넌트다. 패널은 말풍선
+   * 하나마다 이것을 놓고 안을 들여다보지 않으므로, 곁에 붙은 것이 바뀌어도
+   * 목록이 그 행을 다시 만들지 않는다.
+   */
+  utteranceAddon?: UtteranceAddon;
 }) {
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
@@ -837,6 +853,7 @@ export function ChatPanel({
         message={item}
         onBeginEdit={beginEdit}
         onRegenerate={regenerateAnswer}
+        utteranceAddon={utteranceAddon}
       />
     ),
     [
@@ -849,6 +866,7 @@ export function ChatPanel({
       messageAddon,
       messageCount,
       regenerateAnswer,
+      utteranceAddon,
     ]
   );
 
@@ -963,6 +981,30 @@ export function ChatPanel({
           onMoveToLatest={moveToLatest}
         />
       </KeyboardStickyView>
+
+      {/*
+        방금 한 일을 알리는 짧은 문구가 입력창 바로 위에 뜬다. 누를 것이 없으므로
+        터치를 받지 않고, 떠 있는 동안에도 대화를 이어 갈 수 있다.
+      */}
+      {toast ? (
+        <KeyboardStickyView
+          offset={{
+            closed: 0,
+            opened: composerBottomPadding - KEYBOARD_INPUT_GAP,
+          }}
+          pointerEvents="none"
+          style={{
+            alignItems: "center",
+            bottom: composerHeight,
+            left: 0,
+            position: "absolute",
+            right: 0,
+          }}
+          testID="chat-toast-overlay"
+        >
+          {toast}
+        </KeyboardStickyView>
+      ) : null}
 
       {/*
         The composer floats over the list rather than taking a row of its own

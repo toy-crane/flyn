@@ -7,8 +7,10 @@ import {
   EpisodeCorrectionsProvider,
   type ExpressionState,
 } from "@/features/episode/state/episode-corrections";
+import { SavedExpressionsProvider } from "@/features/episode/state/saved-expressions";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { CorrectionNote, EpisodeCorrectionNote } from "./correction-note";
+import { savedExpressionLabels } from "./episode-labels";
 
 const originalWindow = Dimensions.get("window");
 afterEach(() => {
@@ -229,3 +231,40 @@ test.each([
     ).toBe(true);
   }
 );
+
+test("접힌 한 줄과 펼친 카드가 같은 책갈피를 보여 준다", async () => {
+  const toggle = jest.fn<(spot: unknown) => void>();
+  await renderWithHeroUI(
+    <SavedExpressionsProvider
+      value={{
+        states: { "m1:learning": { id: "s1", status: "saved" } },
+        toggle,
+      }}
+    >
+      <CorrectionNote correction={ONE_EXPRESSION} onAsk={jest.fn()} />
+    </SavedExpressionsProvider>
+  );
+
+  expect(screen.getByLabelText(savedExpressionLabels.unsave)).toBeVisible();
+
+  await userEvent.setup().press(screen.getByTestId("correction-line"));
+
+  expect(screen.getByTestId("correction-card")).toBeVisible();
+  expect(screen.getByLabelText(savedExpressionLabels.unsave)).toBeVisible();
+});
+
+test("담지 못한 배울 표현의 한 줄은 그 한 줄 아래에 남는다", async () => {
+  await renderWithHeroUI(
+    <SavedExpressionsProvider
+      value={{
+        states: { "m1:learning": { status: "error" } },
+        toggle: jest.fn(),
+      }}
+    >
+      <CorrectionNote correction={ONE_EXPRESSION} onAsk={jest.fn()} />
+    </SavedExpressionsProvider>
+  );
+
+  expect(screen.getByText(savedExpressionLabels.saveFailed)).toBeVisible();
+  expect(screen.getByLabelText(savedExpressionLabels.save)).toBeVisible();
+});
