@@ -97,7 +97,7 @@ SET LOCAL request.jwt.claims TO '{"sub":"11111111-1111-4111-8111-111111111111","
 
 SELECT lives_ok(
   $$insert into public.story_plays (story_id)
-    values ('10000000-0000-4000-8000-000000000001')$$,
+    values ((select id from public.stories where slug = 'mia-cafe'))$$,
   'a person starts a run by naming the story'
 );
 
@@ -109,7 +109,7 @@ SELECT is(
 -- 같은 스토리를 다시 시작한다. 앞의 회차를 지우거나 덮어쓰지 않는다.
 SELECT lives_ok(
   $$insert into public.story_plays (story_id)
-    values ('10000000-0000-4000-8000-000000000001')$$,
+    values ((select id from public.stories where slug = 'mia-cafe'))$$,
   'the same story starts again beside the run that is already there'
 );
 
@@ -122,7 +122,7 @@ SELECT throws_ok(
   $$insert into public.story_plays (user_id, story_id)
     values (
       '22222222-2222-4222-8222-222222222222',
-      '10000000-0000-4000-8000-000000000001'
+      (select id from public.stories where slug = 'mia-cafe')
     )$$,
   '42501', NULL, 'a person cannot start a run in somebody else''s name'
 );
@@ -138,7 +138,7 @@ SELECT
   '1c000000-0000-4000-8000-000000000001',
   '11111111-1111-4111-8111-111111111111',
   run.id,
-  '11000000-0000-4000-8000-000000000001'
+  (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)
 FROM public.story_plays run
 WHERE run.user_id = '11111111-1111-4111-8111-111111111111'
 ORDER BY run.started_at

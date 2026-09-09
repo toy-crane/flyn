@@ -16,12 +16,12 @@ VALUES
   (
     'a0000000-0000-4000-8000-000000000001',
     '11111111-1111-4111-8111-111111111111',
-    '10000000-0000-4000-8000-000000000001'
+    (select id from public.stories where slug = 'mia-cafe')
   ),
   (
     'b0000000-0000-4000-8000-000000000001',
     '22222222-2222-4222-8222-222222222222',
-    '10000000-0000-4000-8000-000000000001'
+    (select id from public.stories where slug = 'mia-cafe')
   );
 
 INSERT INTO public.episode_plays (
@@ -31,7 +31,7 @@ VALUES (
   'aa000000-0000-4000-8000-000000000001',
   '11111111-1111-4111-8111-111111111111',
   'a0000000-0000-4000-8000-000000000001',
-  '11000000-0000-4000-8000-000000000001',
+  (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
   '성공', '새 아이스 아메리카노를 받아냈다.', now()
 );
 
@@ -41,13 +41,13 @@ VALUES
     'aa000000-0000-4000-8000-000000000002',
     '11111111-1111-4111-8111-111111111111',
     'a0000000-0000-4000-8000-000000000001',
-    '11000000-0000-4000-8000-000000000002'
+    (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 2)
   ),
   (
     'bb000000-0000-4000-8000-000000000001',
     '22222222-2222-4222-8222-222222222222',
     'b0000000-0000-4000-8000-000000000001',
-    '11000000-0000-4000-8000-000000000001'
+    (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)
   );
 
 -- 끝난 플레이가 남긴 메시지 한 건. 읽기 전용 대화 기록의 자리다.

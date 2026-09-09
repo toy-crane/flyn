@@ -12,7 +12,7 @@ INSERT INTO public.story_plays (id, user_id, story_id)
 VALUES (
   '3a000000-0000-4000-8000-000000000001',
   '33333333-3333-4333-8333-333333333333',
-  '10000000-0000-4000-8000-000000000001'
+  (select id from public.stories where slug = 'mia-cafe')
 );
 
 SELECT has_column(
@@ -75,7 +75,7 @@ SELECT is(
   (
     select public.finish_episode(
       '3a000000-0000-4000-8000-000000000001'::uuid,
-      '11000000-0000-4000-8000-000000000001'::uuid,
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)::uuid,
       '성공',
       '새 아이스 아메리카노를 받아냈다.'
     )
@@ -88,7 +88,7 @@ SELECT is(
   (
     select ending_kind
     from public.episode_plays
-    where episode_id = '11000000-0000-4000-8000-000000000001'
+    where episode_id = (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)
   ),
   '성공',
   'the ending is stored against the episode id'
@@ -98,7 +98,7 @@ SELECT throws_ok(
   $$
     select public.finish_episode(
       '3a000000-0000-4000-8000-000000000001'::uuid,
-      '11000000-0000-4000-8000-000000000003'::uuid,
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 3)::uuid,
       '성공',
       '앞 화를 건너뛰었다.'
     )
@@ -112,7 +112,7 @@ SELECT is(
   (
     select public.finish_episode(
       '3a000000-0000-4000-8000-000000000001'::uuid,
-      '11000000-0000-4000-8000-000000000001'::uuid,
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)::uuid,
       '실패',
       '나중에 도착한 다른 결말.'
     )
@@ -125,7 +125,7 @@ SELECT is(
   (
     select ending_kind
     from public.episode_plays
-    where episode_id = '11000000-0000-4000-8000-000000000001'
+    where episode_id = (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)
   ),
   '성공',
   'a repeated ending never overwrites the first one'
