@@ -29,7 +29,7 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/workflow/build-prototype/SKILL.md",
-      "computedHash": "2bc070ffc28cc607edd0a35b142a434ec8e501c14ba8e0b31000f67ee2bec639"
+      "computedHash": "8770bac0b3f2f8cc3a2d8d9d2c250eda03d954016ea93d164b9d9af3346596ee"
     },
     "commit": {
       "source": "toy-crane/skills",
@@ -275,7 +275,7 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/workflow/shape-idea/SKILL.md",
-      "computedHash": "0855516f50356c9f7aaaad1b639bd93846fe30ac7911a64f95159fe9d2093a09"
+      "computedHash": "2a90c704cb92f4c5bdc01fce6d4afae0148e518a12ae3a81cebcadf5f034b1d5"
     },
     "split-into-tasks": {
       "source": "toy-crane/skills",
