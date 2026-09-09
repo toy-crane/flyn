@@ -624,7 +624,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
                 type: "data-expression-ready",
               });
             }
-            const { ending } = await streamSceneText(
+            await streamSceneText(
               result.textStream,
               tags,
               writer,
@@ -641,16 +641,15 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
                   script.id,
                   closed
                 );
+                // 종료 버튼을 누르는 순간 예고도 준비되어 있어야 한다.
+                // 결말 확정 뒤, data-ending보다 먼저 다음 화 정보를 보낸다.
+                writer.write({
+                  data: nextUpAfter(story, script.id),
+                  id: "next-up",
+                  type: "data-next-up",
+                });
               }
             );
-
-            if (ending) {
-              writer.write({
-                data: nextUpAfter(story, script.id),
-                id: "next-up",
-                type: "data-next-up",
-              });
-            }
           },
         });
       })

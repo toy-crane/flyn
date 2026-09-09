@@ -46,6 +46,7 @@ export interface NextEpisodeView {
 export interface NextUpData {
   copy: string;
   episodeId: string | null;
+  isCompleted?: boolean;
   number: number | null;
   title: string;
 }
@@ -71,6 +72,7 @@ export interface EpisodeSessionView {
   /** 결말 다음에 보여 줄 예고. 같은 이유로 대화가 아니라 여기 실려 온다. */
   nextUp: NextUpData | undefined;
   readOnly: boolean;
+  story: { id: string; title: string };
 }
 
 /**
@@ -491,6 +493,12 @@ export async function readEpisodeSession(
   const expressionResults = play.data
     ? await readExpressionResults(client, play.data.id, messages)
     : [];
+  const nextUp = ending ? nextUpAfter(story, episodeId) : undefined;
+  if (nextUp) {
+    nextUp.isCompleted = finished.some(
+      (row) => row.episode_id === nextUp.episodeId
+    );
+  }
 
   return {
     corrections: expressionResults.flatMap((result) =>
@@ -500,7 +508,8 @@ export async function readEpisodeSession(
     episode: nextEpisodeView(episode),
     expressionResults,
     messages,
-    nextUp: ending ? nextUpAfter(story, episodeId) : undefined,
+    nextUp,
     readOnly: Boolean(ending),
+    story: { id: story.id, title: story.title },
   };
 }

@@ -1372,8 +1372,8 @@ describe("POST /ai/episode", () => {
     });
   });
 
-  // 예고는 각본에 미리 쓴 글이라 결말과 같은 응답에 실려 온다.
-  test("sends the next episode's preview with the ending", async () => {
+  // 결말이 보인 즉시 표현 돌아보기를 열어도 다음 화 예고가 준비되어 있어야 한다.
+  test("종료 표시 전에 다음 화 예고를 보내 즉시 표현 돌아보기를 열 수 있다", async () => {
     const app = createApp({
       authMiddleware: signedInWith(createSeasonState()),
       model: createMockModel(["성공: 원하던 커피를 새로 받아냈다."]),
@@ -1385,6 +1385,9 @@ describe("POST /ai/episode", () => {
     const body = await response.text();
 
     expect(body).toContain('"type":"data-next-up"');
+    expect(body.indexOf('"type":"data-next-up"')).toBeLessThan(
+      body.indexOf('"type":"data-ending"')
+    );
     expect(body).toContain("계산이 꼬인 아침");
     expect(body).toContain('"number":2');
     expect(body).toContain(`"episodeId":"${episodeId(2)}"`);
@@ -2675,6 +2678,26 @@ describe("story content database contract", () => {
       outcome: "새 잔을 받아냈다.",
     });
     expect(session.nextUp.number).toBe(2);
+  });
+
+  test("끝난 다음 화는 다시 보기로 안내하고 스토리 문맥을 함께 반환한다", async () => {
+    const state = createSeasonState([
+      { ending_kind: "성공", ending_outcome: "커피를 받았다.", episode: 1 },
+      { ending_kind: "성공", ending_outcome: "계산을 마쳤다.", episode: 2 },
+    ]);
+    state.messages.push({
+      created_at: "2026-09-10T00:00:00Z",
+      id: "ended-message",
+      parts: [{ text: "Thank you.", type: "text" }],
+      play_id: playIdOf(episodeId(1)),
+      role: "user",
+    });
+    const app = createApp({ authMiddleware: signedInWith(state) });
+    const response = await app.request(episodeSessionPath(1));
+    expect(await response.json()).toMatchObject({
+      nextUp: { episodeId: episodeId(2), isCompleted: true },
+      story: { id: STORY_ID, title: STORY_ROW.title },
+    });
   });
 
   // 저장된 대화에 교정 part가 없으므로, 다시 연 화면이 배울 표현을 그리려면
