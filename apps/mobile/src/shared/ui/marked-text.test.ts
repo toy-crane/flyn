@@ -21,6 +21,29 @@ test("표현이 여럿이면 문장 하나에서 각각의 자리를 짚는다",
   expect(marked.map((part) => part.text).join("")).toBe(FIXED);
 });
 
+// 짚을 조각에 문장부호가 붙어 오면 그 부호까지 한 덩어리로 짚는다. 형광펜이
+// 배경색이라 부호만 밖에 남으면 그 자리가 눈에 띈다.
+test("조각에 붙어 온 문장부호는 함께 짚는다", () => {
+  expect(
+    markedParts("No worries, but I'm in a hurry.", ["No worries,"])
+  ).toEqual([
+    { at: 0, isMarked: true, text: "No worries," },
+    { at: 11, isMarked: false, text: " but I'm in a hurry." },
+  ]);
+});
+
+// 반대로 부호가 짚을 조각에 들어 있지 않으면 문장에 그대로 남는다. 어디까지가
+// 바뀐 자리인지는 조각이 정하고, 그리는 쪽이 늘리지 않는다.
+test("조각에 없는 문장부호는 짚지 않는다", () => {
+  expect(
+    markedParts("I ordered a hot Americano, but", ["a hot Americano"])
+  ).toEqual([
+    { at: 0, isMarked: false, text: "I ordered " },
+    { at: 10, isMarked: true, text: "a hot Americano" },
+    { at: 25, isMarked: false, text: ", but" },
+  ]);
+});
+
 // 강조 하나를 놓치는 편이 문장을 못 보여 주는 것보다 낫다.
 test("문장에 없는 조각은 강조하지 않고 문장을 그대로 보여 준다", () => {
   expect(markedParts("I want to change.", ["nothing like this"])).toEqual([
