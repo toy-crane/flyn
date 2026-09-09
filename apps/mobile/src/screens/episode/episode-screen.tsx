@@ -13,7 +13,7 @@ import { useEpisodeAsks } from "@/features/episode/state/episode-asks";
 import { EpisodeCorrectionsProvider } from "@/features/episode/state/episode-corrections";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
 import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
-import { useEpisodeRun } from "@/features/episode/state/use-episode-run";
+import { useEpisodeStoryPlay } from "@/features/episode/state/use-episode-story-play";
 import { EpisodeCorrectionNote } from "@/features/episode/ui/correction-note";
 import { EpisodeClosing } from "@/features/episode/ui/episode-closing";
 import { EpisodeEndingMark } from "@/features/episode/ui/episode-ending-mark";
@@ -46,34 +46,46 @@ export function EpisodeScreen({
   isStartingNext,
   onLeave,
   onOpenAsk,
+  onStoryPlayStarted,
   onStartNext,
   readOnly,
   recordedEnding,
   recordedNextUp,
+  storyPlayId,
   savedCorrections,
   situation,
   situationEmoji,
+  storyId,
 }: {
   episodeId: string;
   initialMessages: UIMessage[];
   isStartingNext: boolean;
   onLeave: () => void;
   onOpenAsk: (id: string) => void;
+  /** 새 대화의 회차가 서버에서 막 생겼다. */
+  onStoryPlayStarted: (storyPlayId: string) => void;
   onStartNext: (episodeId: string) => void;
   readOnly: boolean;
   recordedEnding?: EpisodeEnding;
   recordedNextUp?: EpisodeNextUp;
+  /** 이어가는 회차. 새 대화는 아직 없다. */
+  storyPlayId?: string;
   savedCorrections?: readonly EpisodeCorrection[];
   situation: string;
   situationEmoji: string;
+  /** 새 대화가 시작할 스토리. 이어가는 회차에는 필요 없다. */
+  storyId?: string;
 }) {
   const { session } = useAuthSession();
   const accessToken = session?.access_token;
-  const { chat, corrections, ending, nextUp, open } = useEpisodeRun(
+  const { chat, corrections, ending, nextUp, open } = useEpisodeStoryPlay(
     accessToken,
     episodeId,
     initialMessages,
     readOnly,
+    storyId,
+    storyPlayId,
+    onStoryPlayStarted,
     recordedEnding,
     recordedNextUp,
     savedCorrections

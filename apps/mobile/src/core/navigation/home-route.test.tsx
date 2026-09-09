@@ -1,12 +1,5 @@
 import { beforeEach, expect, jest, test } from "@jest/globals";
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from "@testing-library/react-native";
+import { render, screen, userEvent } from "@testing-library/react-native";
 import { router } from "expo-router";
 
 import HomeRoute from "../../../app/(tabs)/(home)/index";
@@ -52,66 +45,6 @@ jest.mock("expo-router", () => {
   };
 });
 
-jest.mock("@/features/auth/state/auth-session", () => ({
-  useAuthSession: () => ({
-    session: { access_token: "token-1", user: { id: "user-1" } },
-    status: "signedIn",
-  }),
-}));
-
-// 홈이 스토리를 읽는 경로다. 진짜 QueryClient를 띄우면 타이머가 남으므로 읽기
-// 자체를 세워 두고, 경로가 무엇을 넘기는지만 본다.
-jest.mock("@/features/story/query/story", () => ({
-  useHome: () => mockStoryQuery,
-}));
-
-jest.mock("@/screens/home/home-screen", () => {
-  const React = require("react") as typeof import("react");
-  const { Pressable } =
-    require("react-native") as typeof import("react-native");
-
-  return {
-    HomeScreen: ({
-      home,
-      onOpenEpisode,
-      onOpenStories,
-      onRetry,
-      isLoading,
-      isRetrying,
-    }: {
-      home: { tag?: string } | undefined;
-      isLoading: boolean;
-      isRetrying: boolean;
-      onOpenEpisode: (episodeId: string) => void;
-      onOpenStories: () => void;
-      onRetry: () => void;
-    }) => {
-      homeStory = home;
-      homeStatus = { isLoading, isRetrying };
-
-      return React.createElement(
-        React.Fragment,
-        null,
-        React.createElement(Pressable, {
-          accessibilityLabel: "Home content",
-          accessibilityRole: "button",
-          onPress: () => onOpenEpisode(EPISODE_ID),
-        }),
-        React.createElement(Pressable, {
-          accessibilityLabel: "Home stories",
-          accessibilityRole: "button",
-          onPress: onOpenStories,
-        }),
-        React.createElement(Pressable, {
-          accessibilityLabel: "Home retry",
-          accessibilityRole: "button",
-          onPress: onRetry,
-        })
-      );
-    },
-  };
-});
-
 jest.mock("@/screens/home/profile-avatar-button", () => {
   const React = require("react") as typeof import("react");
   const { Pressable } =
@@ -120,128 +53,34 @@ jest.mock("@/screens/home/profile-avatar-button", () => {
   return {
     ProfileAvatarButton: ({ onPress }: { onPress: () => void }) =>
       React.createElement(Pressable, {
-        accessibilityLabel: "Open settings",
+        accessibilityLabel: "설정 열기",
         accessibilityRole: "button",
         onPress,
       }),
   };
 });
 
-jest.mock("@/shared/ui/toolbar-icons", () => ({
-  toolbarIcon: (name: string) => name,
-}));
-
-const mockPush = jest.mocked(router.push);
-const mockRefetch = jest.fn(() => Promise.resolve());
-const EPISODE_ID = "11000000-0000-4000-8000-000000000001";
-let homeStory: { tag?: string } | undefined;
-let homeStatus: { isLoading: boolean; isRetrying: boolean } | undefined;
-let mockStoryQuery: {
-  data: { tag: string } | undefined;
-  isFetching: boolean;
-  isPending: boolean;
-  refetch: typeof mockRefetch;
-};
-
 beforeEach(() => {
-  mockPush.mockClear();
-  mockRefetch.mockClear();
-  mockStoryQuery = {
-    data: { tag: "story" },
-    isFetching: false,
-    isPending: false,
-    refetch: mockRefetch,
-  };
-  homeStory = undefined;
-  homeStatus = undefined;
+  jest.clearAllMocks();
 });
 
-test("새 대화와 빈 왼쪽 도구 모음을 없애고 오른쪽 프로필을 유지한다", async () => {
+/*
+  홈은 영어 학습이 들어올 자리로 남겨 두었다. 이어 하기 카드도, 진행을 읽는
+  조회도 여기 없다. 진행을 잇는 일은 대화 기록이 회차마다 맡는다.
+*/
+test("홈은 본문에 아무 진행도 그리지 않는다", async () => {
   await render(<HomeRoute />);
 
-  const rightToolbar = within(screen.getByTestId("home-toolbar-right"));
-
-  expect(screen.queryByRole("button", { name: "새 대화" })).toBeNull();
-  expect(screen.queryByTestId("home-toolbar-left")).toBeNull();
-  expect(
-    rightToolbar.getByRole("button", { name: "Open settings" })
-  ).toBeOnTheScreen();
+  expect(screen.getByTestId("home-scroll")).toBeOnTheScreen();
+  expect(screen.queryByTestId("home-continue-card")).toBeNull();
+  expect(screen.queryByTestId("story-progress")).toBeNull();
 });
 
-test("홈 본문의 시작하기는 에피소드를 연다", async () => {
+test("헤더의 프로필 버튼이 설정을 연다", async () => {
+  await render(<HomeRoute />);
   const user = userEvent.setup();
-  await render(<HomeRoute />);
 
-  await user.press(screen.getByRole("button", { name: "Home content" }));
+  await user.press(screen.getByLabelText("설정 열기"));
 
-  expect(mockPush).toHaveBeenCalledWith({
-    params: { episodeId: EPISODE_ID },
-    pathname: "/episode",
-  });
-});
-
-test("모두 완주한 홈은 스토리 탭으로 보낸다", async () => {
-  const user = userEvent.setup();
-  await render(<HomeRoute />);
-
-  await user.press(screen.getByRole("button", { name: "Home stories" }));
-
-  expect(mockPush).toHaveBeenCalledWith("/stories");
-});
-
-// 어떤 화를 보여 줄지는 화면이 아니라 계정의 진행이 정한다. 경로가 그것을
-// 읽어 넘기고, 읽지 못했을 때 다시 읽는 길도 경로가 쥔다.
-test("스토리 진행을 읽어 홈 본문에 넘기고 다시 읽는 길을 준다", async () => {
-  const user = userEvent.setup();
-  await render(<HomeRoute />);
-
-  expect(homeStory).toMatchObject({ tag: "story" });
-
-  await user.press(screen.getByRole("button", { name: "Home retry" }));
-
-  expect(mockRefetch).toHaveBeenCalledTimes(1);
-});
-
-test("실제 재조회가 pending으로 돌아가도 오류 카드의 진행 상태를 지킨다", async () => {
-  let finishRetry: (() => void) | undefined;
-  mockStoryQuery = {
-    ...mockStoryQuery,
-    data: undefined,
-    isPending: false,
-  };
-  mockRefetch.mockImplementationOnce(() => {
-    mockStoryQuery = {
-      ...mockStoryQuery,
-      isFetching: true,
-      isPending: true,
-    };
-
-    return new Promise<void>((resolve) => {
-      finishRetry = resolve;
-    });
-  });
-
-  const user = userEvent.setup();
-  await render(<HomeRoute />);
-  await user.press(screen.getByRole("button", { name: "Home retry" }));
-
-  await waitFor(() => {
-    expect(homeStatus).toEqual({ isLoading: false, isRetrying: true });
-  });
-
-  await act(() => {
-    mockStoryQuery = {
-      ...mockStoryQuery,
-      data: { tag: "retried story" },
-      isFetching: false,
-      isPending: false,
-    };
-    finishRetry?.();
-
-    return Promise.resolve();
-  });
-
-  await waitFor(() => {
-    expect(homeStatus).toEqual({ isLoading: false, isRetrying: false });
-  });
+  expect(router.push).toHaveBeenCalledWith("/settings");
 });

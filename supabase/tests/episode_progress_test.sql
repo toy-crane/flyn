@@ -1,12 +1,19 @@
--- 플레이 기록은 스토리·화 번호가 아니라 안정된 에피소드 id를 참조한다. 접근
--- 규칙과 결말 동작은 episode_plays_test.sql이 소유한다.
+-- 플레이 기록은 스토리·화 번호가 아니라 안정된 회차 id와 에피소드 id를
+-- 참조한다. 접근 규칙과 결말 동작은 episode_plays_test.sql이 소유한다.
 BEGIN;
-SELECT plan(11);
+SELECT plan(12);
 
 INSERT INTO auth.users (id, email)
 VALUES
   ('33333333-3333-4333-8333-333333333333', 'story-progress@example.test'),
   ('55555555-5555-4555-8555-555555555555', 'other-progress@example.test');
+
+INSERT INTO public.story_plays (id, user_id, story_id)
+VALUES (
+  '3a000000-0000-4000-8000-000000000001',
+  '33333333-3333-4333-8333-333333333333',
+  '10000000-0000-4000-8000-000000000001'
+);
 
 SELECT has_column(
   'public',
@@ -15,11 +22,18 @@ SELECT has_column(
   'a play references an episode id'
 );
 
+SELECT has_column(
+  'public',
+  'episode_plays',
+  'story_play_id',
+  'and the run it belongs to'
+);
+
 SELECT col_is_unique(
   'public',
   'episode_plays',
-  array['user_id', 'episode_id'],
-  'an account holds at most one play per episode'
+  array['story_play_id', 'episode_id'],
+  'a run holds at most one play per episode'
 );
 
 SELECT hasnt_column(
@@ -39,7 +53,7 @@ SELECT hasnt_column(
 SELECT function_privs_are(
   'public',
   'finish_episode',
-  array['uuid', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
+  array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
   'authenticated',
   array['EXECUTE'],
   'a signed-in account can finish an episode by id'
@@ -48,7 +62,7 @@ SELECT function_privs_are(
 SELECT function_returns(
   'public',
   'finish_episode',
-  array['uuid', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
+  array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
   'boolean',
   'finishing reports whether this request recorded the permanent ending'
 );
@@ -60,6 +74,7 @@ SET LOCAL request.jwt.claims TO
 SELECT is(
   (
     select public.finish_episode(
+      '3a000000-0000-4000-8000-000000000001'::uuid,
       '11000000-0000-4000-8000-000000000001'::uuid,
       '성공',
       '새 아이스 아메리카노를 받아냈다.'
@@ -82,6 +97,7 @@ SELECT is(
 SELECT throws_ok(
   $$
     select public.finish_episode(
+      '3a000000-0000-4000-8000-000000000001'::uuid,
       '11000000-0000-4000-8000-000000000003'::uuid,
       '성공',
       '앞 화를 건너뛰었다.'
@@ -89,12 +105,13 @@ SELECT throws_ok(
   $$,
   '22023',
   null,
-  'an episode cannot finish before every earlier episode in its story'
+  'an episode cannot finish before every earlier episode in its run'
 );
 
 SELECT is(
   (
     select public.finish_episode(
+      '3a000000-0000-4000-8000-000000000001'::uuid,
       '11000000-0000-4000-8000-000000000001'::uuid,
       '실패',
       '나중에 도착한 다른 결말.'

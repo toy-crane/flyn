@@ -16,12 +16,7 @@ import { logRequestAbort, logRequestFailure } from "../../shared/request-log";
 import { speakerModelText, streamSceneText } from "../../shared/scene-stream";
 import { type AuthedEnv, createUserGuard } from "../../shared/user-guard";
 import { askSystemPrompt, readAskedCorrection } from "./ask";
-import {
-  homeViewOf,
-  readAccountProgress,
-  storyDetailViewOf,
-  storyListViewOf,
-} from "./catalog";
+import { storyDetailViewOf, storyListViewOf } from "./catalog";
 import { judgeExpression } from "./correction";
 import { episodeSystemPrompt, episodeTags } from "./episode";
 import {
@@ -38,11 +33,18 @@ import {
 } from "./progress";
 import {
   type EpisodeClient,
+  type EpisodeScript,
   readStoryCatalog,
-  readStoryContent,
+  readStoryContentById,
   readStoryOfEpisode,
+  readStoryOfPlay,
   type StoryContent,
 } from "./story";
+import {
+  readRecentStories,
+  readStoryPlays,
+  startStoryPlay,
+} from "./story-plays";
 
 export interface EpisodeDependencies {
   authMiddleware?: MiddlewareHandler;
@@ -54,6 +56,32 @@ const CONFLICT_STATUS = 409;
 // biome-ignore lint/suspicious/useAwait: 장면 파서가 받는 비동기 스트림 형태가 필요하다
 async function* authoredScene(script: string): AsyncIterable<string> {
   yield script;
+}
+
+/**
+ * 화면으로 흘려보내지 않고 장면의 part만 만들어 내는 자리.
+ *
+ * 새 회차의 첫 장면은 두 번 만들어진다. 한 번은 사용자가 상세에서 들어왔을 때
+ * 화면으로 흐르고(그때는 아무것도 저장하지 않는다), 한 번은 사용자가 처음 말해
+ * 회차가 생길 때 그 회차의 대화 첫 줄로 저장된다. 첫 장면은 각본에 적힌 글이라
+ * 두 번 만들어도 같은 글이 나온다.
+ */
+const DISCARDING_WRITER = {
+  merge: () => undefined,
+  onError: () => "",
+  write: () => undefined,
+} as unknown as UIMessageStreamWriter;
+
+async function openingSceneParts(
+  script: EpisodeScript
+): Promise<UIMessage["parts"]> {
+  const { parts } = await streamSceneText(
+    authoredScene(script.opening),
+    episodeTags(script),
+    DISCARDING_WRITER
+  );
+
+  return parts;
 }
 
 interface SceneResponseOptions {
@@ -131,6 +159,16 @@ interface TurnRequest {
   keepThrough: string | null | undefined;
   /** 사람이 방금 쓴 말. 첫 장면을 여는 요청에는 없다. */
   message: UIMessage | undefined;
+  /** 새로 시작할 스토리. 이어가는 요청에는 없다. */
+  storyId: string | undefined;
+  /** 이어갈 회차. 새 대화를 시작하는 요청에는 없다. */
+  storyPlayId: string | undefined;
+}
+
+function optionalString(value: unknown): { ok: false } | { ok: true } {
+  return value === undefined || typeof value === "string"
+    ? { ok: true }
+    : { ok: false };
 }
 
 /**
@@ -146,10 +184,13 @@ async function readTurnRequest(
     episodeId?: unknown;
     keepThrough?: unknown;
     message?: unknown;
+    storyPlayId?: unknown;
+    storyId?: unknown;
   } | null;
   const refusal = { error: "Invalid request body." };
+  const strings = [asked?.episodeId, asked?.storyPlayId, asked?.storyId];
 
-  if (asked?.episodeId !== undefined && typeof asked.episodeId !== "string") {
+  if (strings.some((value) => !optionalString(value).ok)) {
     return refusal;
   }
 
@@ -162,9 +203,15 @@ async function readTurnRequest(
   }
 
   const shape = {
-    episodeId: asked?.episodeId,
-    keepThrough: asked?.keepThrough,
+    episodeId: asked?.episodeId as string | undefined,
+    keepThrough: asked?.keepThrough as string | null | undefined,
+    storyId: asked?.storyId as string | undefined,
+    storyPlayId: asked?.storyPlayId as string | undefined,
   };
+
+  if (shape.storyPlayId === undefined && shape.storyId === undefined) {
+    return { error: "A run or a story is required." };
+  }
 
   if (asked?.message === undefined) {
     return { ...shape, message: undefined };
@@ -183,41 +230,60 @@ async function readTurnRequest(
   return message?.role === "user" ? { ...shape, message } : refusal;
 }
 
+interface PlayableEpisode {
+  memories: ReturnType<typeof storyMemoriesOf>;
+  script: EpisodeScript;
+  story: StoryContent;
+  /** 이어가는 요청의 회차. 새로 시작하는 요청에는 아직 없다. */
+  storyPlayId: string | undefined;
+}
+
 /**
  * 이 요청이 지금 진행할 수 있는 화인지 가린다.
  *
- * 어느 스토리인지는 요청이 말하지 않는다. 화 하나만 오므로 그 화가 속한
- * 스토리부터 찾고, 진행과 기억을 그 스토리 안에서만 읽는다. 여러 스토리를
- * 번갈아 해도 서로 섞이지 않는 자리가 여기다.
+ * 이어가는 요청은 회차 하나를 들고 온다. 그 회차가 어느 스토리인지부터 찾고,
+ * 진행과 기억을 그 회차 안에서만 읽는다. 여러 회차를 번갈아 해도 서로 섞이지
+ * 않는 자리가 여기다.
+ *
+ * 새로 시작하는 요청은 스토리를 들고 온다. 회차는 아직 없고, 진행할 화는 언제나
+ * 1화다. 다시 플레이하는 단위가 스토리 전체이므로 중간 화에서 시작하는 길은
+ * 없다.
  */
 async function resolvePlayableEpisode(
   client: EpisodeClient,
-  requested: string | undefined
-): Promise<
-  | { error: string }
-  | {
-      memories: ReturnType<typeof storyMemoriesOf>;
-      script: StoryContent["episodes"][number];
-      story: StoryContent;
-    }
-> {
-  const story =
-    requested === undefined
-      ? await readStoryContent(client)
-      : await readStoryOfEpisode(client, requested);
+  asked: TurnRequest
+): Promise<PlayableEpisode | { error: string }> {
+  if (asked.storyPlayId === undefined) {
+    const story = await readStoryContentById(client, asked.storyId ?? "").catch(
+      () => undefined
+    );
+    const first = story?.episodes[0];
 
-  if (!story) {
-    return { error: "This episode is not part of any story." };
+    if (!(story && first)) {
+      return { error: "This story is unavailable." };
+    }
+
+    if (asked.episodeId !== undefined && asked.episodeId !== first.id) {
+      return { error: "A new conversation starts at the first episode." };
+    }
+
+    return { memories: [], script: first, story, storyPlayId: undefined };
   }
 
-  const finished = await readFinishedEpisodes(client, story);
+  const story = await readStoryOfPlay(client, asked.storyPlayId);
+
+  if (!story) {
+    return { error: "This conversation is unavailable." };
+  }
+
+  const finished = await readFinishedEpisodes(client, story, asked.storyPlayId);
   const script = currentEpisode(story, finished);
 
   if (!script) {
     return { error: "The story is already finished." };
   }
 
-  if (requested !== undefined && requested !== script.id) {
+  if (asked.episodeId !== undefined && asked.episodeId !== script.id) {
     return { error: "This episode is not the episode to play now." };
   }
 
@@ -225,7 +291,13 @@ async function resolvePlayableEpisode(
     memories: storyMemoriesOf(finished, story),
     script,
     story,
+    storyPlayId: asked.storyPlayId,
   };
+}
+
+/** 경로에서 온 회차 id. 없으면 요청이 어느 대화인지 말하지 않은 것이다. */
+function storyPlayIdOf(value: string | undefined): string | undefined {
+  return value === undefined || value === "" ? undefined : value;
 }
 
 export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
@@ -235,30 +307,21 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
 
   return (
     new Hono<AuthedEnv>()
-      .get("/home", requireUser, requireCurrentUser, async (c) => {
-        const client = c.var.supabaseContext.supabase;
-        const [catalog, progress] = await Promise.all([
-          readStoryCatalog(client),
-          readAccountProgress(client),
-        ]);
-
-        return c.json(homeViewOf(catalog, progress));
-      })
+      // 탐색. 전체 스토리를 콘텐츠 순서로 보여 준다. 진행은 담지 않는다.
       .get("/stories", requireUser, requireCurrentUser, async (c) => {
-        const client = c.var.supabaseContext.supabase;
-        const [catalog, progress] = await Promise.all([
-          readStoryCatalog(client),
-          readAccountProgress(client),
-        ]);
+        const catalog = await readStoryCatalog(c.var.supabaseContext.supabase);
 
-        return c.json(storyListViewOf(catalog, progress));
+        return c.json(storyListViewOf(catalog));
+      })
+      // 스토리 탭. 대화한 스토리를 최근순으로 보여 준다.
+      .get("/recent", requireUser, requireCurrentUser, async (c) => {
+        const client = c.var.supabaseContext.supabase;
+        const catalog = await readStoryCatalog(client);
+
+        return c.json(await readRecentStories(client, catalog));
       })
       .get("/stories/:storyId", requireUser, requireCurrentUser, async (c) => {
-        const client = c.var.supabaseContext.supabase;
-        const [catalog, progress] = await Promise.all([
-          readStoryCatalog(client),
-          readAccountProgress(client),
-        ]);
+        const catalog = await readStoryCatalog(c.var.supabaseContext.supabase);
         const entry = catalog.find(
           (story) => story.id === c.req.param("storyId")
         );
@@ -267,18 +330,48 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           return c.json({ error: "Story is unavailable." }, 404);
         }
 
-        return c.json(storyDetailViewOf(entry, progress));
+        return c.json(storyDetailViewOf(entry));
       })
+      // 대화 기록. 이 스토리의 회차를 시작한 순서의 역순으로 보여 준다.
+      .get(
+        "/stories/:storyId/plays",
+        requireUser,
+        requireCurrentUser,
+        async (c) => {
+          const client = c.var.supabaseContext.supabase;
+          const catalog = await readStoryCatalog(client);
+          const entry = catalog.find(
+            (story) => story.id === c.req.param("storyId")
+          );
+
+          if (!entry) {
+            return c.json({ error: "Story is unavailable." }, 404);
+          }
+
+          return c.json(await readStoryPlays(client, entry));
+        }
+      )
       .get("/:episodeId", requireUser, requireCurrentUser, async (c) => {
         const client = c.var.supabaseContext.supabase;
         const episodeId = c.req.param("episodeId");
+        const storyPlayId = storyPlayIdOf(c.req.query("storyPlayId"));
+
+        if (storyPlayId === undefined) {
+          return c.json({ error: "A conversation is required." }, 400);
+        }
+
         const story = await readStoryOfEpisode(client, episodeId);
 
         if (!story) {
           return c.json({ error: "Episode conversation is unavailable." }, 404);
         }
 
-        const session = await readEpisodeSession(client, story, episodeId);
+        const session = await readEpisodeSession(
+          client,
+          story,
+          storyPlayId,
+          episodeId
+        );
 
         if (!session) {
           return c.json({ error: "Episode conversation is unavailable." }, 404);
@@ -302,17 +395,24 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
         const body = (await c.req.json().catch(() => null)) as {
           episodeId?: unknown;
           messageId?: unknown;
+          storyPlayId?: unknown;
         } | null;
         if (
           typeof body?.episodeId !== "string" ||
-          typeof body.messageId !== "string"
+          typeof body.messageId !== "string" ||
+          typeof body.storyPlayId !== "string"
         ) {
           return c.json({ error: "Invalid request body." }, 400);
         }
         const client = c.var.supabaseContext.supabase;
         const story = await readStoryOfEpisode(client, body.episodeId);
         const session = story
-          ? await readEpisodeSession(client, story, body.episodeId)
+          ? await readEpisodeSession(
+              client,
+              story,
+              body.storyPlayId,
+              body.episodeId
+            )
           : undefined;
         if (!session) {
           return c.json({ error: "Message is unavailable." }, 404);
@@ -410,7 +510,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
         }
 
         const client = c.var.supabaseContext.supabase;
-        const resolved = await resolvePlayableEpisode(client, asked.episodeId);
+        const resolved = await resolvePlayableEpisode(client, asked);
 
         if ("error" in resolved) {
           return c.json({ error: resolved.error }, CONFLICT_STATUS);
@@ -418,14 +518,45 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
 
         const { memories, script, story } = resolved;
         const tags = episodeTags(script);
+
+        // 아직 회차가 없고 사용자가 말하지도 않았다. 첫 장면만 보여 주고 아무것도
+        // 남기지 않는다. 여기서 나가면 기록에 아무 줄도 생기지 않는다.
+        if (resolved.storyPlayId === undefined && !asked.message) {
+          return sceneResponse({
+            onEnd: () => Promise.resolve(),
+            originalMessages: [],
+            write: (writer) =>
+              streamSceneText(authoredScene(script.opening), tags, writer),
+          });
+        }
+
+        // 사용자가 처음 말했다. 이 순간이 회차가 생기는 순간이다.
+        const isNewStoryPlay = resolved.storyPlayId === undefined;
+        const storyPlayId =
+          resolved.storyPlayId ?? (await startStoryPlay(client, story.id));
         const play = await openEpisodePlay(
           client,
+          storyPlayId,
           script.id,
-          asked.keepThrough
+          isNewStoryPlay ? undefined : asked.keepThrough
         );
         const sent = asked.message;
         const saveScene = (message: UIMessage) =>
           saveSceneBestEffort(client, play, message, c.req.method, c.req.path);
+
+        if (isNewStoryPlay) {
+          // 앞선 요청이 화면에 흘려보낸 첫 장면을 이 회차의 첫 줄로 남긴다.
+          // `keepThrough`가 앱이 보고 있는 그 장면의 id라, 같은 이름으로 남기면
+          // 다시 받기가 가리키는 자리와 저장된 자리가 어긋나지 않는다.
+          const opening: UIMessage = {
+            id: asked.keepThrough ?? crypto.randomUUID(),
+            parts: await openingSceneParts(script),
+            role: "assistant",
+          };
+
+          await saveScene(opening);
+          play.messages.push(opening);
+        }
 
         if (sent) {
           // 저장은 최선 노력이라 실패해도 여기서 멈추지 않는다. 모델에는 어느
@@ -477,6 +608,15 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           originalMessages: [],
           responseMessageId: sceneId,
           write: async (writer) => {
+            if (isNewStoryPlay) {
+              // 앱은 이 회차가 생긴 것을 여기서 처음 안다. 다음 턴부터 이 id로
+              // 이어가고, 뒤로 가기도 이 회차의 기록으로 돌아간다.
+              writer.write({
+                data: { storyPlayId },
+                transient: true,
+                type: "data-story-play-started",
+              });
+            }
             // 사용자 메시지가 저장된 뒤 앱이 독립된 표현 확인 요청을 시작한다.
             // 장면 응답은 그 요청의 완료를 기다리지 않는다.
             const target = play.messages.at(-1);
@@ -498,7 +638,12 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
                   role: "assistant",
                 });
                 isSceneSaved = true;
-                await recordEpisodeEnding(client, script.id, closed);
+                await recordEpisodeEnding(
+                  client,
+                  storyPlayId,
+                  script.id,
+                  closed
+                );
               }
             );
 

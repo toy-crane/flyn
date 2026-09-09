@@ -6,6 +6,7 @@ import EpisodeRoute from "../../../app/episode";
 
 const EPISODE_ID = "11000000-0000-4000-8000-000000000002";
 const NEXT_EPISODE_ID = "11000000-0000-4000-8000-000000000003";
+const STORY_PLAY_ID = "1a000000-0000-4000-8000-000000000001";
 let headerOptions:
   | { headerBackButtonMenuEnabled?: boolean; title?: string }
   | undefined;
@@ -62,7 +63,10 @@ jest.mock("expo-router", () => {
       },
       Toolbar,
     },
-    useLocalSearchParams: () => ({ episodeId: EPISODE_ID }),
+    useLocalSearchParams: () => ({
+      episodeId: EPISODE_ID,
+      storyPlayId: STORY_PLAY_ID,
+    }),
   };
 });
 
@@ -82,6 +86,13 @@ jest.mock("@/features/episode/query/episode-session", () => ({
 }));
 
 jest.mock("@/features/story/query/story", () => ({
+  // 회차를 들고 온 화면은 저장된 대화를 읽는다. 상세는 새 대화에서만 쓰인다.
+  useStoryDetail: () => ({
+    data: undefined,
+    isError: false,
+    isPending: false,
+    refetch: jest.fn(),
+  }),
   useStoryRefresh: () => mockRefresh,
 }));
 
@@ -275,7 +286,7 @@ test("다음 에피소드로 갈 때 진행을 다시 읽고 새 ID로 바꾼다
 
   expect(mockRefresh).toHaveBeenCalledTimes(1);
   expect(mockReplace).toHaveBeenCalledWith({
-    params: { episodeId: NEXT_EPISODE_ID },
+    params: { episodeId: NEXT_EPISODE_ID, storyPlayId: STORY_PLAY_ID },
     pathname: "/episode",
   });
 });
@@ -345,7 +356,7 @@ test("다음 에피소드를 읽는 중 화면을 떠나면 늦은 화면 전환
   expect(mockReplace).not.toHaveBeenCalled();
 });
 
-test("마무리에서 홈으로 가기는 왔던 자리로 돌아간다", async () => {
+test("마무리의 돌아가기는 왔던 자리로 간다", async () => {
   const user = userEvent.setup();
   await renderWithHeroUI(<EpisodeRoute />);
 

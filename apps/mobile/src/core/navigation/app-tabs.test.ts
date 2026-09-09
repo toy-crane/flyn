@@ -1,8 +1,8 @@
 import { expect, test } from "@jest/globals";
 
-import { appTabs } from "./app-tabs";
+import { appTabs, isTabBarHidden } from "./app-tabs";
 
-test("두 네이티브 탭이 route group과 플랫폼별 기본·선택 아이콘을 선언한다", () => {
+test("세 네이티브 탭이 route group과 플랫폼별 기본·선택 아이콘을 선언한다", () => {
   expect(appTabs).toEqual([
     {
       androidIcon: { default: "home", selected: "home_filled" },
@@ -11,10 +11,27 @@ test("두 네이티브 탭이 route group과 플랫폼별 기본·선택 아이�
       routeName: "(home)",
     },
     {
+      androidIcon: { default: "grid_view", selected: "grid_view" },
+      iosIcon: { default: "square.grid.2x2", selected: "square.grid.2x2.fill" },
+      label: "탐색",
+      routeName: "(browse)",
+    },
+    {
       androidIcon: { default: "auto_stories", selected: "auto_stories" },
       iosIcon: { default: "book", selected: "book.fill" },
       label: "스토리",
       routeName: "(stories)",
     },
   ]);
+});
+
+test.each([
+  ["/", false],
+  ["/browse", false],
+  ["/stories", false],
+  ["/story/10000000-0000-4000-8000-000000000001", true],
+  ["/story/10000000-0000-4000-8000-000000000001/records", true],
+  ["/records/10000000-0000-4000-8000-000000000001", true],
+])("%s 경로의 탭 바 숨김 여부를 정한다", (pathname, expected) => {
+  expect(isTabBarHidden(pathname)).toBe(expected);
 });

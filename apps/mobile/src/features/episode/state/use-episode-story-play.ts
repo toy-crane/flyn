@@ -44,22 +44,30 @@ export interface EpisodeRun {
  * 결말과 예고는 진행 중일 때 장면과 같은 스트림으로 오지만, 끝난 화를 다시 열면
  * 서버가 세션에 실어 보낸 값으로 온다. 저장된 대화가 그 둘을 담지 않기 때문이다.
  */
-export function useEpisodeRun(
+export function useEpisodeStoryPlay(
   accessToken: string | undefined,
   episodeId: string,
   initialMessages: UIMessage[],
   readOnly: boolean,
+  storyId: string | undefined,
+  storyPlayId: string | undefined,
+  onStoryPlayStarted: (storyPlayId: string) => void,
   recordedEnding?: EpisodeEnding,
   recordedNextUp?: EpisodeNextUp,
   savedCorrections?: readonly EpisodeCorrection[]
 ): EpisodeRun {
   const currentToken = useRef(accessToken);
   const currentEpisodeId = useRef(episodeId);
+  const currentStoryId = useRef(storyId);
+  // 새 대화는 회차 없이 시작해 첫 응답에서 회차를 받는다. 그 뒤의 턴과 표현
+  // 확인은 이 ref가 가리키는 회차를 쓴다.
+  const currentStoryPlayId = useRef(storyPlayId);
   const corrections = useEpisodeCorrections(
     savedCorrections,
     (messageId, signal) =>
       checkEpisodeExpression(
         currentToken.current,
+        currentStoryPlayId.current ?? "",
         currentEpisodeId.current,
         messageId,
         signal
@@ -71,13 +79,23 @@ export function useEpisodeRun(
 
   currentToken.current = accessToken;
   currentEpisodeId.current = episodeId;
+  currentStoryId.current = storyId;
   currentCorrections.current = corrections;
+  const startedStoryPlay = useRef(onStoryPlayStarted);
+
+  startedStoryPlay.current = onStoryPlayStarted;
+
+  if (storyPlayId !== undefined) {
+    currentStoryPlayId.current = storyPlayId;
+  }
 
   const transport = useMemo(
     () =>
       createEpisodeTransport(
         () => currentToken.current,
-        () => currentEpisodeId.current
+        () => currentEpisodeId.current,
+        () => currentStoryPlayId.current,
+        () => currentStoryId.current
       ),
     []
   );
@@ -87,6 +105,16 @@ export function useEpisodeRun(
     generateId: () => randomUUID(),
     messages: initialMessages,
     onData: (part) => {
+      // 회차가 방금 생겼다. 다음 턴부터 이 회차를 이어가고, 뒤로 가기와 다음
+      // 화도 이 회차를 따라간다.
+      if (part.type === "data-story-play-started") {
+        const data = part.data as { storyPlayId?: unknown } | null;
+        if (typeof data?.storyPlayId === "string") {
+          currentStoryPlayId.current = data.storyPlayId;
+          startedStoryPlay.current(data.storyPlayId);
+        }
+        return;
+      }
       if (part.type !== "data-expression-ready") {
         return;
       }

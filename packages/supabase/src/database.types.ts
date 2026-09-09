@@ -124,6 +124,7 @@ export type Database = {
           memory_question: string | null
           memory_relationship: string | null
           started_at: string
+          story_play_id: string
           user_id: string
         }
         Insert: {
@@ -136,6 +137,7 @@ export type Database = {
           memory_question?: string | null
           memory_relationship?: string | null
           started_at?: string
+          story_play_id: string
           user_id?: string
         }
         Update: {
@@ -148,6 +150,7 @@ export type Database = {
           memory_question?: string | null
           memory_relationship?: string | null
           started_at?: string
+          story_play_id?: string
           user_id?: string
         }
         Relationships: [
@@ -157,6 +160,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "episodes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "episode_plays_story_play_id_user_id_fkey"
+            columns: ["story_play_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "story_plays"
+            referencedColumns: ["id", "user_id"]
           },
           {
             foreignKeyName: "episode_plays_user_id_fkey"
@@ -362,13 +372,55 @@ export type Database = {
         }
         Relationships: []
       }
+      story_plays: {
+        Row: {
+          id: string
+          last_user_message_at: string | null
+          started_at: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_user_message_at?: string | null
+          started_at?: string
+          story_id: string
+          user_id?: string
+        }
+        Update: {
+          id?: string
+          last_user_message_at?: string | null
+          started_at?: string
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_plays_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_plays_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       available_usernames: { Args: { candidates: string[] }; Returns: string[] }
-      episode_is_current: { Args: { target_episode: string }; Returns: boolean }
+      episode_is_current: {
+        Args: { target_episode: string; target_story_play: string }
+        Returns: boolean
+      }
       finish_episode: {
         Args: {
           episode_id: string
@@ -378,6 +430,7 @@ export type Database = {
           memory_question?: string
           memory_relationship?: string
           outcome: string
+          story_play_id: string
         }
         Returns: boolean
       }

@@ -55,7 +55,7 @@ jest.mock("@/features/episode/state/episode-asks", () => ({
  * what the real hook does on mount, so the stand-in reports the same moment:
  * a fresh run means the scene starts over.
  */
-const mockOpenedRuns =
+const mockOpenedStoryPlays =
   jest.fn<
     (
       token: string | undefined,
@@ -94,18 +94,18 @@ let mockCorrections: {
   retry: jest.Mock<(messageId: string) => void>;
 };
 
-jest.mock("@/features/episode/state/use-episode-run", () => {
+jest.mock("@/features/episode/state/use-episode-story-play", () => {
   const React = require("react") as typeof import("react");
 
   return {
-    useEpisodeRun: (
+    useEpisodeStoryPlay: (
       accessToken: string | undefined,
       episodeId: string,
       initialMessages: unknown[],
       readOnly: boolean
     ) => {
       React.useEffect(() => {
-        mockOpenedRuns(
+        mockOpenedStoryPlays(
           accessToken,
           episodeId,
           initialMessages.length,
@@ -132,9 +132,12 @@ const PLAYING = {
   initialMessages: [],
   isStartingNext: false,
   onOpenAsk: mockOpenAsk,
+  onStoryPlayStarted: jest.fn<(storyPlayId: string) => void>(),
   readOnly: false,
   situation: "다른 방법을 찾아 계산을 끝내 보세요",
   situationEmoji: "💳",
+  storyId: "10000000-0000-4000-8000-000000000001",
+  storyPlayId: "1a000000-0000-4000-8000-000000000001",
 };
 
 interface PanelProps {
@@ -221,7 +224,7 @@ beforeEach(() => {
     number: 3,
     title: "자리를 맡아 둔 사이에",
   };
-  mockOpenedRuns.mockClear();
+  mockOpenedStoryPlays.mockClear();
   mockNavigationDispatch.mockClear();
   preventedRemoval = undefined;
   isRemovalPrevented = false;
@@ -242,7 +245,7 @@ test("화면에 들어오면 그 자리에서 에피소드를 연다", async () 
     <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
   );
 
-  expect(mockOpenedRuns).toHaveBeenCalledWith(
+  expect(mockOpenedStoryPlays).toHaveBeenCalledWith(
     "token-1",
     PLAYING.episodeId,
     0,
@@ -348,7 +351,7 @@ test("결말이 오면 마무리가 입력 자리를 대신한다", async () => 
   );
   expect(screen.queryByText("성공")).not.toBeOnTheScreen();
 
-  await user.press(screen.getByRole("button", { name: "홈으로 가기" }));
+  await user.press(screen.getByRole("button", { name: "돌아가기" }));
 
   expect(leave).toHaveBeenCalledTimes(1);
 });
@@ -364,7 +367,7 @@ test("장면 응답 중에도 중지와 나가기 동작을 열어 둔다", asyn
     <EpisodeScreen {...PLAYING} onLeave={leave} onStartNext={startNext} />
   );
 
-  expect(screen.getByRole("button", { name: "홈으로 가기" })).toHaveProp(
+  expect(screen.getByRole("button", { name: "돌아가기" })).toHaveProp(
     "accessibilityState",
     { busy: false, disabled: false }
   );
@@ -373,7 +376,7 @@ test("장면 응답 중에도 중지와 나가기 동작을 열어 둔다", asyn
     { busy: false, disabled: false }
   );
 
-  await user.press(screen.getByRole("button", { name: "홈으로 가기" }));
+  await user.press(screen.getByRole("button", { name: "돌아가기" }));
   await user.press(screen.getByRole("button", { name: "3화 시작하기" }));
 
   expect(leave).toHaveBeenCalledTimes(1);
@@ -430,7 +433,7 @@ test("다음 화를 여는 동안 마무리의 두 길을 잠근다", async () =
     "accessibilityState",
     { busy: true, disabled: true }
   );
-  expect(screen.getByRole("button", { name: "홈으로 가기" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "돌아가기" })).toBeDisabled();
 });
 
 test("끝난 대화는 입력 없이 읽기 전용으로 연다", async () => {
@@ -452,7 +455,7 @@ test("끝난 대화는 입력 없이 읽기 전용으로 연다", async () => {
     />
   );
 
-  expect(mockOpenedRuns).toHaveBeenCalledWith(
+  expect(mockOpenedStoryPlays).toHaveBeenCalledWith(
     "token-1",
     PLAYING.episodeId,
     1,

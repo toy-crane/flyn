@@ -37,11 +37,19 @@ export interface EpisodeSession {
   readOnly: boolean;
 }
 
+/**
+ * 저장된 한 화를 읽는다.
+ *
+ * 회차를 함께 말한다. 같은 화를 여러 회차에서 플레이하므로 화 id만으로는 어느
+ * 대화를 여는지 정해지지 않는다.
+ */
 export async function readEpisodeSession(
   accessToken: string,
+  storyPlayId: string,
   episodeId: string
 ): Promise<EpisodeSession> {
-  const response = await fetch(aiUrl(`/ai/episode/${episodeId}`), {
+  const path = `/ai/episode/${episodeId}?storyPlayId=${encodeURIComponent(storyPlayId)}`;
+  const response = await fetch(aiUrl(path), {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 

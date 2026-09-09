@@ -215,6 +215,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline:3px solid
 .run-toggle strong { display:block; font-size:16px; margin-bottom:5px; }
 .run-toggle .date { font-size:12px; color:var(--muted) }
 .run-toggle .summary { display:block; margin-top:10px; font-size:13px; line-height:1.6; color:var(--muted) }
+.progress span.current { background:var(--accent-soft); border:1px solid var(--accent); }
 .run-toggle[aria-expanded=true] .chevron { transform:rotate(90deg) }
 .history-episodes { padding:0 18px 3px; border-top:1px solid var(--border); }
 .history-episodes .episode-copy strong { font-size:14px; }
@@ -456,7 +457,7 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
   };
   function scene() {if(episodeMode==='review'&&selected==='cafe'&&episodeNo===5&&outcome(story(),4,reviewNo)==='마지막 커피를 함께 마시며 인사했어요.')return ['👋','Mia에게 마지막 인사를 전해 보세요','Mia가 마지막 커피를 내밀며 잠깐 웃는다.','This one is on me. Thanks for making this café part of your day.','잠시 커피를 마시며 그동안 나눈 이야기를 떠올린다.','Thank you for all the coffee and conversations.','I wish you the best at the new cafe.','I’ll miss our little chats.','Thank you. Take care of yourself.'];return scenes[selected][episodeNo-1] || [scenes[selected][0][0],story().titles[episodeNo-1]+'에 대해 이야기해 보세요',story().actor+'와 마주 앉아 지난 일을 이야기한다.','Can we talk about what happened?', '상대의 이야기를 듣고 내 생각을 전해 본다.','I would like us to find a way that works for both of us.','That sounds good to me.','I understand. Let’s work this out together.','Thanks for talking it through with me.'];}
 
-  const progress = (n) => `<div class="progress" data-component="StoryProgress" role="progressbar" aria-label="에피소드 진행" aria-valuemin="0" aria-valuemax="5" aria-valuenow="${n}">${Array.from({length:5},(_,i)=>`<span class="${i<n?'filled':''}"></span>`).join('')}</div>`;
+  const progress = (finished,current=null) => `<div class="progress" data-component="StoryProgress" role="progressbar" aria-label="에피소드 진행" aria-valuemin="0" aria-valuemax="5" aria-valuenow="${finished}" aria-valuetext="${current?`5화 중 ${current}화 진행 중`:`5화 중 ${finished}화 완료`}">${Array.from({length:5},(_,i)=>`<span class="${i<finished?'filled':i+1===current?'current':''}"></span>`).join('')}</div>`;
   const button = (label,action,style='primary') => `<button class="button ${style}" data-component="Button" data-variant="${style}" data-action="${action}"><span data-component="Button.Label">${label}</span></button>`;
   const status = () => `<div class="statusbar"><span>9:41</span><span class="island"></span><span class="status-icons">${I('signal',true)}<span>⌁</span><span class="battery"></span></span></div>`;
   const nav = (title,back,subtitle='',trailing='') => `<header class="nav" data-component="NativeStack"><button class="circle" data-action="${back}" aria-label="뒤로 가기">${I('back')}</button><div class="nav-title">${title}${subtitle?`<small>${subtitle}</small>`:''}</div>${trailing}</header>`;
@@ -505,10 +506,11 @@ if (!location.hash || legacyPreview.has('compare') || legacyPreview.has('preview
     const cards=runs.map(r=>{
       const done=r.finished===5;
       const date=playStartedLabel(r);
-      const detail=done?(s.id==='cafe'?r.summary:s.outcomes[4]):`${s.titles[r.finished]}에서 대화 중이에요.`;
+      const current=done?null:r.finished+1;
+      const detail=done?`${r.finished}/5화 · 완료`:`${current}/5화 · ${s.titles[r.finished]}`;
       const headings=`<strong>${date}</strong>`;
       const episodes=s.titles.slice(0,r.finished).map((title,i)=>`<button class="episode-row" data-component="EpisodeRow" data-action="review:${r.no}:${i+1}" aria-label="${date}에 시작한 대화 ${i+1}화 ${title} 대화 보기"><span class="episode-number">${i+1}화</span><span class="episode-copy"><strong>${title}</strong><small>${outcome(s,i,r.no)}</small></span><span class="episode-row-action">${I('forward',true)}</span></button>`).join('');
-      return `<div class="history-card" data-component="new:StoryPlayHistoryCard"><button class="run-toggle" data-action="toggle-run:${r.no}" aria-expanded="${openedHistory===r.no}" aria-controls="run-episodes-${r.no}"><span class="run-content">${headings}${progress(r.finished)}<span class="summary">${detail}</span></span><span class="chevron">${I('forward',true)}</span></button>${openedHistory===r.no?`<div class="history-episodes" id="run-episodes-${r.no}">${episodes}${!done?`<div class="history-resume">${button('이어서 하기','resume-run:'+r.no,'outline')}</div>`:''}</div>`:''}</div>`;
+      return `<div class="history-card" data-component="new:StoryPlayHistoryCard"><button class="run-toggle" data-action="toggle-run:${r.no}" aria-expanded="${openedHistory===r.no}" aria-controls="run-episodes-${r.no}"><span class="run-content">${headings}${progress(r.finished,current)}<span class="summary">${detail}</span></span><span class="chevron">${I('forward',true)}</span></button>${openedHistory===r.no?`<div class="history-episodes" id="run-episodes-${r.no}">${episodes}${!done?`<div class="history-resume">${button('이어서 하기','resume-run:'+r.no,'outline')}</div>`:''}</div>`:''}</div>`;
     }).join('');
     return header+`<div class="content history-design"><div class="record-story" data-component="StoryCard">${cover(s)}<div><h1>${s.title}</h1><p>${s.intro}</p></div></div>${runs.length?`<div class="record-list">${cards}</div>`:`${contentState('아직 나눈 대화가 없어요','story-back','스토리로 돌아가기',true)}`}</div>${state==='시작 실패'?startAlert():''}`;
   }

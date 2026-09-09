@@ -68,12 +68,13 @@ export type ExpressionResult =
 
 export async function checkEpisodeExpression(
   accessToken: string | undefined,
+  storyPlayId: string,
   episodeId: string,
   messageId: string,
   signal: AbortSignal
 ): Promise<ExpressionResult> {
   const response = await fetch(aiUrl("/ai/episode/correction"), {
-    body: JSON.stringify({ episodeId, messageId }),
+    body: JSON.stringify({ episodeId, messageId, storyPlayId }),
     headers: {
       "Content-Type": "application/json",
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),

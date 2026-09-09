@@ -306,16 +306,23 @@ create trigger profiles_guard_username_change
   when (new.username is distinct from old.username)
   execute function public.guard_username_change();
 
--- 지금 이 계정이 플레이할 수 있는 화인지 답한다.
+-- 이 회차에서 지금 플레이할 수 있는 화인지 답한다.
 --
--- 한 행만 보고는 답할 수 없다. 같은 스토리의 앞선 화를 모두 훑어 결말이 없는
--- 화가 하나라도 있는지 봐야 하므로, 정책 표현식 하나로는 적을 수 없다.
+-- 한 행만 보고는 답할 수 없다. 같은 스토리의 앞선 화를 모두 훑어 이 회차에서
+-- 결말이 없는 화가 하나라도 있는지 봐야 하므로, 정책 표현식 하나로는 적을 수 없다.
 --
--- `security invoker`다. 이 함수가 읽는 두 테이블은 호출자가 이미 읽을 수 있고,
--- `public.episode_plays`에 걸리는 RLS는 자기 행만 남기므로 아래 `played.user_id`
--- 조건과 같은 결과를 준다. 소유자 권한이 필요 없으면 주지 않는다. 정책이 이
--- 함수를 부르는 것으로 재귀가 생기지도 않는다. `episode_plays`의 select 정책이
--- 자기 테이블을 읽지 않기 때문이다. 2026-08-28 로컬에서 확인했다.
+-- 회차를 함께 받는다. 같은 화를 여러 회차에서 플레이하므로 "앞선 화를 끝냈는가"의
+-- 답이 회차마다 다르고, 계정만으로 물으면 다른 회차의 진행이 이 회차의 문을 연다.
+-- 회차가 이 사람 것인지와 그 회차의 스토리가 이 화의 스토리인지도 여기서 함께
+-- 확인한다. 두 조건이 빠지면 남의 회차나 다른 스토리의 회차에 플레이를 매다는
+-- 문장이 열린다.
+--
+-- `security invoker`다. 이 함수가 읽는 테이블은 호출자가 이미 읽을 수 있고,
+-- `public.episode_plays`와 `public.story_plays`에 걸리는 RLS는 자기 행만 남기므로
+-- 아래 `run.user_id` 조건과 같은 결과를 준다. 소유자 권한이 필요 없으면 주지
+-- 않는다. 정책이 이 함수를 부르는 것으로 재귀가 생기지도 않는다.
+-- `episode_plays`의 select 정책이 자기 테이블을 읽지 않기 때문이다.
+-- 2026-08-28 로컬에서 확인했다.
 --
 -- `auth.uid()`를 인자로 받지 않고 안에서 읽는다. 이 함수는 `authenticated`에게
 -- EXECUTE가 열려 있어 앱을 거치지 않고도 호출되므로, 인자로 받으면 남의 진행을
@@ -323,7 +330,10 @@ create trigger profiles_guard_username_change
 --
 -- 없는 화도 false다. 지금 플레이할 화가 아니라는 답이 사실이고, 존재 여부는
 -- 외래키가 따로 막는다.
-create function public.episode_is_current(target_episode uuid)
+create function public.episode_is_current(
+  target_episode uuid,
+  target_story_play uuid
+)
 returns boolean
 language sql
 stable
@@ -333,12 +343,16 @@ as $$
   select exists (
     select 1
     from public.episodes target
+    join public.story_plays run
+      on run.id = episode_is_current.target_story_play
+      and run.user_id = (select auth.uid())
+      and run.story_id = target.story_id
     where target.id = episode_is_current.target_episode
       and not exists (
         select 1
         from public.episodes earlier
         left join public.episode_plays played
-          on played.user_id = (select auth.uid())
+          on played.story_play_id = run.id
           and played.episode_id = earlier.id
           and played.finished_at is not null
         where earlier.story_id = target.story_id
@@ -348,13 +362,59 @@ as $$
   );
 $$;
 
-comment on function public.episode_is_current(uuid) is
-  'Reports whether the caller has finished every earlier episode of the story this one belongs to.';
+comment on function public.episode_is_current(uuid, uuid) is
+  'Reports whether this run belongs to the caller and has finished every earlier episode of the story this one belongs to.';
 
-revoke all on function public.episode_is_current(uuid) from public;
+revoke all on function public.episode_is_current(uuid, uuid) from public;
 -- 정책 표현식은 정책을 만든 역할이 아니라 부르는 역할의 권한으로 평가한다.
 -- `public.episode_plays`의 insert 정책이 이 함수를 부르므로 EXECUTE가 필요하다.
-grant execute on function public.episode_is_current(uuid) to authenticated;
+grant execute on function public.episode_is_current(uuid, uuid) to authenticated;
+
+-- 회차의 `last_user_message_at`을 사용자 메시지가 앉은 시각으로 민다.
+--
+-- 스토리 탭의 최근순이 이 값을 읽는다. 애플리케이션이 쓰지 않고 트리거가 쓰는
+-- 이유는, 기록을 열어 보기만 해도 순서가 바뀌는 길을 아예 만들지 않기 위해서다.
+-- 쓰는 문장이 사용자 메시지 insert 하나뿐이면 조회는 순서에 닿을 수 없다.
+--
+-- `greatest`로 미는 것은 뒤로 돌아가지 않게 하기 위해서다. 다시 받기가 뒤를 잘라
+-- 내고 새 메시지를 넣어도 이 시각은 앞으로만 간다.
+--
+-- `security definer`다. `authenticated`에게는 `story_plays`의 update 권한이 없고,
+-- 앞으로도 주지 않는다. 그 열을 클라이언트가 쓸 수 있으면 순서가 조회와 무관하다는
+-- 규칙이 앱 밖에서 깨진다.
+create function public.touch_story_play()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.role <> 'user' then
+    return new;
+  end if;
+
+  update public.story_plays
+  set last_user_message_at = greatest(
+    coalesce(public.story_plays.last_user_message_at, new.created_at),
+    new.created_at
+  )
+  from public.episode_plays played
+  where played.id = new.play_id
+    and public.story_plays.id = played.story_play_id;
+
+  return new;
+end;
+$$;
+
+comment on function public.touch_story_play() is
+  'Moves the run''s last_user_message_at forward when a user message lands. The only writer of that column.';
+
+revoke all on function public.touch_story_play() from public;
+
+create trigger episode_messages_touch_story_play
+  after insert on public.episode_messages
+  for each row
+  execute function public.touch_story_play();
 
 -- 끝난 에피소드를 기록하는 유일한 길.
 --
@@ -366,6 +426,7 @@ grant execute on function public.episode_is_current(uuid) to authenticated;
 -- 같은 화의 결말이 다시 도착하면 false를 돌려준다. 한 번 난 결말은 그 스토리의
 -- 사실로 남으므로 나중에 온 판정이 앞의 사실을 바꾸거나 화면을 닫지 않는다.
 create function public.finish_episode(
+  story_play_id uuid,
   episode_id uuid,
   kind text,
   outcome text,
@@ -388,9 +449,14 @@ begin
       using errcode = '28000';
   end if;
 
-  if not public.episode_is_current(finish_episode.episode_id) then
-    raise exception 'Episode % is not the current episode in its story.',
-      finish_episode.episode_id
+  -- 회차가 이 사람 것인지도 이 한 줄이 함께 답한다. `security definer`라 RLS가
+  -- 걸리지 않으므로, 남의 회차를 닫는 요청을 막는 것이 여기다.
+  if not public.episode_is_current(
+    finish_episode.episode_id,
+    finish_episode.story_play_id
+  ) then
+    raise exception 'Episode % is not the current episode in run %.',
+      finish_episode.episode_id, finish_episode.story_play_id
       using errcode = '22023';
   end if;
 
@@ -398,6 +464,7 @@ begin
   -- 플레이를 만들면서 닫는다.
   insert into public.episode_plays (
     user_id,
+    story_play_id,
     episode_id,
     ending_kind,
     ending_outcome,
@@ -408,6 +475,7 @@ begin
   )
   values (
     player,
+    finish_episode.story_play_id,
     finish_episode.episode_id,
     finish_episode.kind,
     finish_episode.outcome,
@@ -416,7 +484,7 @@ begin
     finish_episode.memory_question,
     now()
   )
-  on conflict on constraint episode_plays_one_per_episode do update
+  on conflict on constraint episode_plays_one_per_story_play do update
   set ending_kind = excluded.ending_kind,
       ending_outcome = excluded.ending_outcome,
       memory_choice = excluded.memory_choice,
@@ -439,8 +507,8 @@ begin
 end;
 $$;
 
-comment on function public.finish_episode(uuid, text, text, text, text, text, text) is
-  'Records the ending and story memory of the caller''s current episode. Returns true only to the request that closed the play.';
+comment on function public.finish_episode(uuid, uuid, text, text, text, text, text, text) is
+  'Records the ending and story memory of the current episode in the caller''s run. Returns true only to the request that closed the play.';
 
-revoke all on function public.finish_episode(uuid, text, text, text, text, text, text) from public;
-grant execute on function public.finish_episode(uuid, text, text, text, text, text, text) to authenticated;
+revoke all on function public.finish_episode(uuid, uuid, text, text, text, text, text, text) from public;
+grant execute on function public.finish_episode(uuid, uuid, text, text, text, text, text, text) to authenticated;

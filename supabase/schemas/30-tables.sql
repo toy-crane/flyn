@@ -225,9 +225,58 @@ create table public.episodes (
   )
 );
 
--- 한 사람이 한 화를 플레이한 기록. 시작 시각과 결말과 이야기 기억이 여기 붙고,
--- 그 아래 오간 메시지가 대화 기록이 된다. 번호가 아니라 안정된 에피소드 id를
--- 참조하므로 스토리가 늘거나 순서를 고쳐도 지난 기록의 대상을 잃지 않는다.
+-- 한 사람이 한 스토리를 1화부터 진행하는 회차 하나.
+--
+-- 같은 스토리를 여러 번 진행할 수 있게 만드는 것이 이 테이블이다. 플레이,
+-- 메시지, 교정과 이야기 기억이 모두 회차 아래로 들어가므로, 두 회차에서 다른
+-- 선택을 해도 서로의 기억을 읽지 않는다.
+--
+-- 행은 사용자가 1화에서 처음 말할 때 생긴다. 첫 장면만 보고 나온 진입은 아무
+-- 행도 남기지 않으므로, 빈 회차를 숨기는 규칙 없이도 기록에 빈 줄이 생기지
+-- 않는다. 두 기기가 동시에 처음 말하면 회차도 둘로 갈린다. 서로 다른 대화를
+-- 한 회차로 합치면 그 회차의 이야기 기억이 두 흐름을 섞어 읽게 된다.
+create table public.story_plays (
+  id uuid primary key default gen_random_uuid(),
+  -- `episode_plays`와 같은 이유로 부르는 사람이 채운다. insert grant에서 빠져
+  -- 있어 남의 이름으로 회차를 여는 문장은 정책에 닿기 전에 권한에서 막힌다.
+  user_id uuid not null default auth.uid()
+    references public.profiles (id) on delete cascade,
+  story_id uuid not null references public.stories (id) on delete restrict,
+  started_at timestamptz not null default now(),
+  -- 이 회차에서 사용자가 마지막으로 말한 시각. 스토리 탭의 `최근 대화`가 이
+  -- 값으로 정렬한다.
+  --
+  -- 메시지를 세지 않고 시각만 밀어 올린다. 기록을 열어 보거나 첫 장면만 열어
+  -- 보는 것으로는 사용자 메시지가 생기지 않으므로, 조회가 순서를 바꿀 수 있는
+  -- 길이 없다. 트리거가 쓰고 클라이언트는 쓰지 못한다.
+  last_user_message_at timestamptz,
+  -- 플레이가 (story_play_id, user_id) 한 쌍으로 참조하기 위한 대상. 자식이 나르는
+  -- user_id가 회차의 주인과 어긋날 수 없게 만든다.
+  constraint story_plays_owned_id unique (id, user_id)
+);
+
+-- 스토리 탭이 "내가 대화한 스토리를 최근순으로"를 묻는다. 두 열이 그 순서대로
+-- 앉아 있으면 그 질문 하나가 이 색인만 탄다.
+create index story_plays_user_id_last_message_idx
+  on public.story_plays (user_id, last_user_message_at desc);
+
+-- 대화 기록 화면이 스토리 하나의 회차를 모아 읽고, 스토리를 지울 때 도는 조회도
+-- 함께 받는다.
+create index story_plays_story_id_idx on public.story_plays (story_id);
+
+comment on table public.story_plays is
+  'One account playing one story from episode 1. Created by the first user message, never by opening a scene.';
+
+comment on column public.story_plays.started_at is
+  'When this run began, which is when its first user message arrived. Shown as the record card title.';
+
+comment on column public.story_plays.last_user_message_at is
+  'When this run last received a user message. Written by a trigger, so reading a record cannot move it.';
+
+-- 한 사람이 한 회차에서 한 화를 플레이한 기록. 시작 시각과 결말과 이야기 기억이
+-- 여기 붙고, 그 아래 오간 메시지가 대화 기록이 된다. 번호가 아니라 안정된
+-- 에피소드 id를 참조하므로 스토리가 늘거나 순서를 고쳐도 지난 기록의 대상을
+-- 잃지 않는다.
 --
 -- 진행 중과 끝남은 `finished_at`이 가른다. 대화 쪽에 완료 표시를 따로 두지
 -- 않는다. 한 화의 결말은 한 번만 나고, `public.finish_episode`가 그 규칙을 지킨다.
@@ -241,6 +290,9 @@ create table public.episode_plays (
   -- 권한에서 막힌다. 정책은 그대로 두어 기본값이 바뀌어도 규칙이 남는다.
   user_id uuid not null default auth.uid()
     references public.profiles (id) on delete cascade,
+  -- 이 플레이가 속한 회차. 같은 화를 여러 회차에서 플레이할 수 있게 만드는
+  -- 자리이자, 이야기 기억을 회차 안에 가두는 자리다.
+  story_play_id uuid not null,
   episode_id uuid not null references public.episodes (id) on delete restrict,
   started_at timestamptz not null default now(),
   -- 결말의 종류. 화면에도 이 낱말이 그대로 보인다.
@@ -255,15 +307,21 @@ create table public.episode_plays (
   memory_relationship text,
   memory_question text,
   finished_at timestamptz,
-  -- 한 사람은 한 화를 한 번 플레이한다. 옛 결말 테이블의 기본키였던 짝이 여기
-  -- 그대로 남아 같은 규칙을 지킨다. 이름을 붙인 이유는 `public.finish_episode`가
-  -- `on conflict on constraint`로 이 제약을 가리키기 때문이다. 열 이름으로 쓰면
-  -- `episode_id`가 함수 파라미터와 컬럼 사이에서 모호해진다.
-  constraint episode_plays_one_per_episode unique (user_id, episode_id),
+  -- 한 회차 안에서 한 화는 한 번 플레이한다. 계정이 아니라 회차가 기준이라는
+  -- 것이 다시 플레이를 열어 주는 규칙이다. 이름을 붙인 이유는
+  -- `public.finish_episode`가 `on conflict on constraint`로 이 제약을 가리키기
+  -- 때문이다. 열 이름으로 쓰면 `episode_id`가 함수 파라미터와 컬럼 사이에서
+  -- 모호해진다.
+  constraint episode_plays_one_per_story_play unique (story_play_id, episode_id),
   -- 메시지가 (play_id, user_id) 한 쌍으로 참조하기 위한 대상. 자식이 나르는
   -- user_id가 플레이의 주인과 어긋날 수 없게 만든다. 그래서 메시지 정책은
   -- 조인 없이 자기 열만 보고 끝난다.
   constraint episode_plays_owned_id unique (id, user_id),
+  -- 회차와 같은 짝을 물려받는다. 플레이가 나르는 user_id가 회차의 주인과
+  -- 어긋날 수 없으므로, 정책은 남의 회차에 플레이를 매다는 문장을 조인 없이
+  -- 막는다.
+  foreign key (story_play_id, user_id)
+    references public.story_plays (id, user_id) on delete cascade,
   -- 결말은 셋이 함께 오거나 함께 없다. 종류만 있고 결과가 없는 반쪽 결말은
   -- 화면이 읽을 수 없다.
   constraint episode_plays_ending_whole check (
@@ -301,11 +359,19 @@ create table public.episode_plays (
 create index episode_plays_episode_id_idx
   on public.episode_plays (episode_id);
 
+-- `(story_play_id, user_id)` 외래키를 정확히 덮는 색인은 두지 않는다. 위
+-- `episode_plays_one_per_story_play`이 만드는 유니크 색인의 앞자리가 `story_play_id`라 회차의
+-- 플레이를 모아 읽는 조회도, 회차를 지울 때 도는 조회도 그것을 탄다.
+-- `episode_messages`의 같은 자리와 같은 판단이다.
+
 comment on table public.episode_plays is
-  'One account playing one episode: when it started, how it ended, and the story memory it left.';
+  'One account playing one episode inside one run: when it started, how it ended, and the story memory it left.';
 
 comment on column public.episode_plays.id is
   'Stable key the messages and corrections of this play hang from.';
+
+comment on column public.episode_plays.story_play_id is
+  'The run this play belongs to. Story memory never crosses it.';
 
 comment on column public.episode_plays.episode_id is
   'Stable episode reference. Numbers are only ordering inside a story.';

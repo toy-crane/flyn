@@ -37,13 +37,33 @@ beforeEach(() => {
   resetFakeSupabase({ session: createFakeSession() });
 });
 
-jest.mock("@/screens/stories/stories-screen", () => {
+jest.mock("@/screens/browse/browse-screen", () => {
   const React = require("react") as typeof import("react");
   const { View } = require("react-native") as typeof import("react-native");
 
   return {
-    StoriesScreen: () =>
-      React.createElement(View, { accessibilityLabel: "Stories placeholder" }),
+    BrowseScreen: () =>
+      React.createElement(View, { accessibilityLabel: "Browse placeholder" }),
+  };
+});
+
+jest.mock("@/screens/stories/recent-stories-screen", () => {
+  const React = require("react") as typeof import("react");
+  const { View } = require("react-native") as typeof import("react-native");
+
+  return {
+    RecentStoriesScreen: () =>
+      React.createElement(View, { accessibilityLabel: "Recent placeholder" }),
+  };
+});
+
+jest.mock("@/screens/stories/story-records-screen", () => {
+  const React = require("react") as typeof import("react");
+  const { View } = require("react-native") as typeof import("react-native");
+
+  return {
+    StoryRecordsScreen: () =>
+      React.createElement(View, { accessibilityLabel: "Records placeholder" }),
   };
 });
 
@@ -91,12 +111,12 @@ test("공개 경로 이동이 각 네이티브 탭의 화면을 표시한다", a
   await router;
 
   await act(() => {
-    expoRouter.navigate("/stories");
+    expoRouter.navigate("/browse");
   });
 
   await waitFor(() => {
-    expect(router.getPathname()).toBe("/stories");
-    expect(screen.getByLabelText("Stories placeholder")).toBeOnTheScreen();
+    expect(router.getPathname()).toBe("/browse");
+    expect(screen.getByLabelText("Browse placeholder")).toBeOnTheScreen();
   });
 
   await act(() => {
@@ -111,6 +131,48 @@ test("공개 경로 이동이 각 네이티브 탭의 화면을 표시한다", a
       "/story/10000000-0000-4000-8000-000000000001"
     );
     expect(screen.getByLabelText("Story detail placeholder")).toBeOnTheScreen();
+  });
+
+  // 탐색의 상세에서 여는 기록. 뒤로 가기가 상세로 돌아가도록 같은 스택에 있다.
+  await act(() => {
+    expoRouter.navigate({
+      params: { storyId: "10000000-0000-4000-8000-000000000001" },
+      pathname: "/story/[storyId]/records",
+    });
+  });
+
+  await waitFor(() => {
+    expect(router.getPathname()).toBe(
+      "/story/10000000-0000-4000-8000-000000000001/records"
+    );
+    expect(screen.getByLabelText("Records placeholder")).toBeOnTheScreen();
+  });
+
+  await act(() => {
+    expoRouter.navigate("/stories");
+  });
+
+  await waitFor(() => {
+    expect(router.getPathname()).toBe("/stories");
+    expect(screen.getByLabelText("Recent placeholder")).toBeOnTheScreen();
+  });
+
+  // 스토리 탭에서 여는 같은 기록 화면. 이쪽은 자기 스택의 경로라 뒤로 가기가
+  // 최근 대화로 돌아간다.
+  await act(() => {
+    expoRouter.navigate({
+      params: { storyId: "10000000-0000-4000-8000-000000000001" },
+      pathname: "/records/[storyId]",
+    });
+  });
+
+  await waitFor(() => {
+    expect(router.getPathname()).toBe(
+      "/records/10000000-0000-4000-8000-000000000001"
+    );
+    // 탐색 탭의 기록도 자기 스택에 남아 있어 같은 이름이 둘이다. 두 탭이 각자
+    // 자기 기록 화면을 갖는다는 사실이 그대로 드러나는 자리다.
+    expect(screen.getAllByLabelText("Records placeholder").length).toBe(2);
   });
 
   await act(() => {

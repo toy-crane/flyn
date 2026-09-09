@@ -89,11 +89,35 @@ alter table public.retired_usernames enable row level security;
 
 grant all on table public.retired_usernames to service_role;
 
--- 플레이 기록, 메시지, 교정의 접근 규칙.
+-- 회차, 플레이 기록, 메시지, 교정의 접근 규칙.
 --
--- 세 테이블이 같은 모양을 쓴다. 자기 행만 읽고, 자기 행에만 쓰고, 결말이 난
+-- 네 테이블이 같은 모양을 쓴다. 자기 행만 읽고, 자기 행에만 쓰고, 결말이 난
 -- 플레이는 더 이상 바뀌지 않는다. 어느 규칙이 어디 사는지는
 -- docs/decisions/supabase-write-rules.md가 정한다.
+alter table public.story_plays enable row level security;
+
+create policy story_plays_select_own on public.story_plays
+  for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+-- 회차를 여는 것은 사람이 한다. 어느 스토리인지 말고 지킬 규칙이 없다: 회차는
+-- 언제나 1화부터 시작하므로 앞선 화를 따질 것이 없고, 스토리의 존재는 외래키가
+-- 막는다.
+create policy story_plays_start_own on public.story_plays
+  for insert
+  to authenticated
+  with check ((select auth.uid()) = user_id);
+
+-- update와 delete 정책이 없다. 회차 삭제와 이름 변경은 제품에서 제외한 기능이고,
+-- `last_user_message_at`은 `public.touch_story_play`이 소유자 권한으로 쓴다.
+-- `user_id`는 `episode_plays`와 같은 이유로 insert grant에서 빠져 있다.
+-- `started_at`과 `last_user_message_at`도 없다. 시각을 클라이언트가 실어 보내면
+-- 최근 대화 순서를 앱 밖에서 고를 수 있게 된다.
+grant select on table public.story_plays to authenticated;
+grant insert (story_id) on table public.story_plays to authenticated;
+grant all on table public.story_plays to service_role;
+
 alter table public.episode_plays enable row level security;
 
 create policy episode_plays_select_own on public.episode_plays
@@ -101,14 +125,15 @@ create policy episode_plays_select_own on public.episode_plays
   to authenticated
   using ((select auth.uid()) = user_id);
 
--- 플레이를 여는 것은 사람이 한다. 지킬 규칙은 "지금 플레이할 화인가" 하나뿐인데,
--- 그 답은 같은 스토리의 앞선 화를 모두 봐야 나오므로 함수가 답한다.
+-- 플레이를 여는 것은 사람이 한다. 지킬 규칙은 "이 회차에서 지금 플레이할 화인가"
+-- 하나뿐인데, 그 답은 같은 스토리의 앞선 화를 이 회차 안에서 모두 봐야 나오므로
+-- 함수가 답한다. 그 함수가 회차의 주인과 스토리 일치도 함께 본다.
 create policy episode_plays_start_own on public.episode_plays
   for insert
   to authenticated
   with check (
     (select auth.uid()) = user_id
-    and public.episode_is_current(episode_id)
+    and public.episode_is_current(episode_id, story_play_id)
   );
 
 -- 결말을 쓰는 정책은 없다. `public.finish_episode`가 결말과 이야기 기억과 언어
@@ -117,7 +142,7 @@ create policy episode_plays_start_own on public.episode_plays
 -- `user_id`도 여기 없다. 그 열은 기본값이 채우므로, 남의 이름을 실어 보내는
 -- 문장은 정책을 만나기 전에 권한에서 막힌다.
 grant select on table public.episode_plays to authenticated;
-grant insert (episode_id) on table public.episode_plays to authenticated;
+grant insert (story_play_id, episode_id) on table public.episode_plays to authenticated;
 grant all on table public.episode_plays to service_role;
 
 alter table public.episode_messages enable row level security;
