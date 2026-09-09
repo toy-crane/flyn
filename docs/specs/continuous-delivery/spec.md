@@ -123,5 +123,5 @@ EAS Workflows
 - DB 기본 검사를 구현 중이다. 임시 프로젝트 ID와 전용 DB 포트를 사용해 기존 개발 DB와 분리한다. 로컬에서 전체 마이그레이션·seed, lint, pgTAP 271개, 생성 타입과 선언형 스키마 일치 검사를 통과하고 임시 DB를 정리했다. CLI의 agent 자동 감지가 JSON을 출력하므로 검증 명령은 text 출력을 명시한다.
 - `RUN_DATABASE_RUNTIME_TESTS=1 bun test scripts/ci/database-runtime.test.ts`로 실제 임시 DB를 사용하는 실패 사례 4개가 통과했다. SQL 오류, anon의 profiles SELECT 권한 확대, 생성 타입 불일치와 마이그레이션에 없는 선언형 테이블을 각각 차단했다. 일반 테스트에서는 이 Docker 검사를 건너뛰고 명시적으로 실행할 때만 DB를 생성한다. 변경 감지·마이그레이션 수정과 삭제 차단·필수 검사 분기는 빠른 테스트 8개로 확인했다.
 - 현재 브랜치에서 코드·타입·전체 테스트가 통과했다. 모바일 테스트는 최신 main 기준 72개 suite, 511개 case가 통과했다. 이 결과는 실제 iPhone 검증을 대신하지 않는다.
-- DB 기본 검사의 원격 CI 검증은 미완료다. `codex/db-validation` 푸시는 별도 푸시 요청이 필요하다는 권한 검사로 차단됐다. 거부를 우회하지 않고 로컬 검증과 커밋만 수행했다. 원격 실행과 필수 검사 연결에는 새 DB 브랜치에 대한 명시적 푸시 승인이 필요하다.
+- 2026-09-10: 사용자의 명시적 승인 후 `codex/db-validation`을 푸시하고 [Draft PR #49](https://github.com/toy-crane/flyn/pull/49)를 PR #48 위에 만들었다. 커밋 `5747f58`에서 공통 검사와 DB 필수 검사가 모두 통과했다. [DB 실행](https://github.com/toy-crane/flyn/actions/runs/34367200778)의 첫 시도는 pgTAP 271개 통과 후 이미지 저장소의 요청 제한으로 타입 생성 단계에서 실패했다. 코드 변경 없이 실패 작업을 한 번 재실행해 마이그레이션·seed·lint·pgTAP·생성 타입·스키마 검사를 모두 통과했다. main의 필수 검사 보호 설정은 아직 연결하지 않았다.
 - 위험한 데이터 변경의 보존 검사, fingerprint, 서버·EAS 배포와 실제 iPhone 검증은 아직 남아 있다. 전체 구현의 자동 코드 리뷰도 아직 실행하지 않았다. 이전 배포 코드는 `codex/internal-delivery-work`에 보존했고 공통 CI PR에 섞지 않았다.
