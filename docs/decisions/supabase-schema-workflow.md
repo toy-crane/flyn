@@ -12,6 +12,15 @@
 - 모바일과 향후 서버가 공유하는 TypeScript 데이터베이스 타입은 로컬 스키마에서 생성한다.
 - DB 관련 PR은 임시 로컬 Supabase에서 전체 마이그레이션·seed, DB lint, pgTAP, 생성 타입과 선언형 스키마의 일치를 검사한다. 무관한 변경은 DB 검사를 건너뛴다.
 
+## seed의 ID와 갱신 규칙
+
+- seed에 UUID를 직접 적지 않는다. UUID 기본 키는 선언형 스키마의 `default gen_random_uuid()`로 DB가 처음 삽입할 때 생성한다.
+- seed는 고유 제약이 있는 값으로 기존 행을 찾아 `ON CONFLICT ... DO UPDATE`로 내용을 갱신한다. 스토리는 `slug`, 에피소드는 `(story_id, number)`를 사용한다.
+- 다른 행을 참조할 때는 그 행의 고유값으로 ID를 조회한다. 에피소드의 `story_id`는 스토리의 `slug`로 조회하며 UUID를 복사해 넣지 않는다.
+- seed를 반복 실행해도 기존 ID와 외래키 연결을 보존한다. 배포한 `slug`나 화 번호를 바꿀 때는 별도 마이그레이션으로 기존 ID와 플레이 기록의 연결을 보존한다.
+- 앱과 DB 테스트는 seed의 고정 UUID에 의존하지 않는다. seed 반복 실행에 따른 행 수, ID와 연결 보존, 콘텐츠 갱신을 테스트한다.
+- Storage 버킷의 문자열 ID와 독립적인 테스트 fixture·mock의 고정 ID는 이 규칙의 대상이 아니다.
+
 ## 경계
 
 - Dashboard, SQL Editor 또는 로컬 Studio에서 직접 수행한 구조 변경을 정상적인 스키마 변경 경로로 취급하지 않는다. 동일한 의도는 선언형 스키마 파일에 먼저 반영해야 한다.
