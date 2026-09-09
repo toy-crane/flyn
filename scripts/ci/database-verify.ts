@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -16,6 +17,53 @@ import { spawn, TOML } from "bun";
 const PROJECT_ID = /^project_id\s*=.*$/m;
 const DB_PORT = /(\[db\][\s\S]*?\nport\s*=\s*)\d+/;
 const SHADOW_PORT = /(shadow_port\s*=\s*)\d+/;
+
+const MIGRATION_FILE = /^\d{14}_.+\.sql$/;
+const VERSION = /^\d{14}$/;
+
+async function verifyUpgrades(
+  source: string,
+  target: string,
+  upgrades: string[],
+  run: (args: string[]) => Promise<string>
+) {
+  const migrations = readdirSync(join(target, "migrations"))
+    .filter((name) => MIGRATION_FILE.test(name))
+    .sort();
+  for (const version of upgrades) {
+    if (!VERSION.test(version)) {
+      throw new Error("잘못된 보존 검사 버전입니다.");
+    }
+    const index = migrations.findIndex((name) =>
+      name.startsWith(`${version}_`)
+    );
+    const previous = migrations[index - 1]?.split("_")[0];
+    if (index < 1 || !previous) {
+      throw new Error(`이전 마이그레이션이 없습니다: ${version}`);
+    }
+    const testSource = join(source, "upgrade-tests", version);
+    const testTarget = join(target, "upgrade-tests", version);
+    mkdirSync(testTarget, { recursive: true });
+    for (const file of ["before.sql", "after.test.sql"]) {
+      cpSync(join(testSource, file), join(testTarget, file));
+    }
+    console.log(`데이터 보존 검사: ${previous} → ${version} 이후 마이그레이션`);
+    // biome-ignore lint/performance/noAwaitInLoops: Each case resets the same isolated database before applying its data.
+    await run([
+      "db",
+      "reset",
+      "--local",
+      "--yes",
+      "--version",
+      previous,
+      "--sql-paths",
+      `./upgrade-tests/${version}/before.sql`,
+    ]);
+    await run(["migration", "up", "--local"]);
+    await run(["test", "db", "--local", join(testTarget, "after.test.sql")]);
+    console.log(`데이터 보존 검사 통과: ${version}`);
+  }
+}
 
 async function freePort(): Promise<number> {
   const server = createServer();
@@ -31,7 +79,11 @@ async function freePort(): Promise<number> {
   return address.port;
 }
 
-export async function verifyDatabase(root = process.cwd()): Promise<void> {
+export async function verifyDatabase(
+  root = process.cwd(),
+  upgrades: string[] = [],
+  upgradeOnly = false
+): Promise<void> {
   const temporary = mkdtempSync(join(tmpdir(), "flyn-db-ci-"));
   const target = join(temporary, "supabase");
   const source = join(root, "supabase");
@@ -118,38 +170,41 @@ export async function verifyDatabase(root = process.cwd()): Promise<void> {
     }
     console.log(`격리된 DB 검증: ${id} (port ${dbPort})`);
     await run(["db", "start"]);
-    await run(["db", "reset", "--local", "--yes"]);
-    await run([
-      "db",
-      "lint",
-      "--local",
-      "--schema",
-      "public",
-      "--level",
-      "error",
-      "--fail-on",
-      "error",
-    ]);
-    await run(["test", "db"]);
-    const generated = await run(
-      ["gen", "types", "typescript", "--local"],
-      true
-    );
-    const committed = readFileSync(
-      join(root, "packages/supabase/src/database.types.ts"),
-      "utf8"
-    );
-    if (generated.trim() !== committed.trim()) {
-      throw new Error(
-        "DB 생성 타입이 커밋한 타입과 다릅니다. bun run db:types로 갱신하세요."
+    await verifyUpgrades(source, target, upgrades, run);
+    if (!upgradeOnly) {
+      await run(["db", "reset", "--local", "--yes"]);
+      await run([
+        "db",
+        "lint",
+        "--local",
+        "--schema",
+        "public",
+        "--level",
+        "error",
+        "--fail-on",
+        "error",
+      ]);
+      await run(["test", "db"]);
+      const generated = await run(
+        ["gen", "types", "typescript", "--local"],
+        true
       );
+      const committed = readFileSync(
+        join(root, "packages/supabase/src/database.types.ts"),
+        "utf8"
+      );
+      if (generated.trim() !== committed.trim()) {
+        throw new Error(
+          "DB 생성 타입이 커밋한 타입과 다릅니다. bun run db:types로 갱신하세요."
+        );
+      }
+      const diff = await run(["db", "diff", "--schema", "public"], true);
+      if (diff.trim()) {
+        console.error(diff);
+        throw new Error("선언형 스키마와 마이그레이션이 다릅니다.");
+      }
+      console.log("DB 마이그레이션·lint·pgTAP·타입·스키마 검증 통과");
     }
-    const diff = await run(["db", "diff", "--schema", "public"], true);
-    if (diff.trim()) {
-      console.error(diff);
-      throw new Error("선언형 스키마와 마이그레이션이 다릅니다.");
-    }
-    console.log("DB 마이그레이션·lint·pgTAP·타입·스키마 검증 통과");
   } catch (error) {
     verificationError = error;
   }

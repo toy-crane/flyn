@@ -20,7 +20,8 @@ const fixtureMigration = "supabase/migrations/20990101000000_ci_fixture.sql";
 
 async function rejectedFixture(
   change: (root: string) => void,
-  message: string
+  message: string,
+  commands = ["verify"]
 ) {
   const root = mkdtempSync(join(tmpdir(), "flyn-db-failure-"));
   try {
@@ -33,6 +34,7 @@ async function rejectedFixture(
       "templates",
       "seed.sql",
       "seed-story-covers.sql",
+      "upgrade-tests",
     ]) {
       cpSync(join(repository, "supabase", name), join(root, "supabase", name), {
         recursive: true,
@@ -46,7 +48,11 @@ async function rejectedFixture(
     symlinkSync(join(repository, "node_modules"), join(root, "node_modules"));
     change(root);
     const child = spawn(
-      [process.execPath, join(repository, "scripts/ci/database.ts"), "verify"],
+      [
+        process.execPath,
+        join(repository, "scripts/ci/database.ts"),
+        ...commands,
+      ],
       {
         cwd: root,
         stderr: "pipe",
@@ -71,6 +77,23 @@ runtimeTest(
     await rejectedFixture((root) => {
       writeFileSync(join(root, fixtureMigration), "this is not valid SQL;");
     }, "syntax error");
+  },
+  600_000
+);
+
+runtimeTest(
+  "업그레이드에서 대화 값을 잃으면 보존 검사가 차단한다",
+  async () => {
+    await rejectedFixture(
+      (root) => {
+        appendFileSync(
+          join(root, "supabase/migrations/20260908155308_story_plays.sql"),
+          '\nUPDATE public.episode_messages SET parts = \'[{"type":"text","text":"lost"}]\'::jsonb;\n'
+        );
+      },
+      "message IDs, play relationships and contents are unchanged",
+      ["upgrade", "20260908155308"]
+    );
   },
   600_000
 );

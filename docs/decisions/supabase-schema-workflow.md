@@ -20,6 +20,7 @@
 - 이미 원격 환경에 적용된 마이그레이션은 수정하지 않는다. 변경이 필요하면 앞으로 진행하는 새 마이그레이션을 추가한다.
 - 마이그레이션 안에 임의의 `COMMIT` 또는 `BEGIN`을 삽입하지 않는다.
 - 로컬 개발자의 마이그레이션 재생과 DB 테스트 책임은 유지한다. CI는 운영 데이터·자격 증명 없이 같은 검증을 재현한다. 기존 마이그레이션의 수정·삭제를 차단하고 위험한 데이터 변경에만 이전 데이터 보존 검사를 추가한다. 자동 diff의 사각지대는 명시적인 테스트와 검토로 보완한다. 자세한 범위는 [내부 테스트 자동 배포](../specs/continuous-delivery/spec.md)를 따른다.
+- 새 마이그레이션에는 `supabase/upgrade-tests/<version>/impact.json`으로 기존 데이터 영향과 이유를 기록한다. `preserve`에는 이전 스키마의 합성 데이터와 변환 후 pgTAP 검사를 요구한다. `none`은 이유를 검토하며 보존 검사용 초기화는 건너뛴다. 분류를 자동 배포 승인으로 취급하지 않는다. 작성·실행 방법은 [기존 데이터 보존 검사](../../supabase/upgrade-tests/README.md)를 따른다.
 - `supabase`와 `supabase-postgres-best-practices`는 여러 Supabase 작업이 함께 쓰는 분야 지식 Skill로 유지한다. `supabase-reviewer`의 검토 계약은 일반 Skill로 제공하지 않는다.
 
 ## 이유
