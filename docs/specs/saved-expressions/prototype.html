@@ -159,17 +159,21 @@
 
   .body { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 18px 0 12px; display: flex; flex-direction: column }
   .body::-webkit-scrollbar { display: none }
-  .list { background: var(--surface); border-radius: 19px; overflow: hidden }
-  .row-wrap { position: relative; overflow: hidden }
+  .list { display: flex; flex-direction: column; gap: 10px }
+  .row-wrap { position: relative; overflow: hidden; border-radius: 18px }
   .row-wrap .delete { position: absolute; top: 0; right: 0; bottom: 0; width: 88px; background: #e5484d; color: #fff; font-size: 16px; font-weight: 500; display: flex; align-items: center; justify-content: center }
-  .row { position: relative; background: var(--surface); padding: 14px 16px; border-bottom: 1px solid var(--line); transition: transform .18s ease; touch-action: pan-y; user-select: none; -webkit-user-select: none }
-  .row-wrap:last-child .row { border-bottom: 0 }
+  .row { position: relative; background: var(--surface); border-radius: 18px; padding: 14px 16px; transition: transform .18s ease; touch-action: pan-y; user-select: none; -webkit-user-select: none; display: flex; flex-direction: column; gap: 6px; text-align: left; width: 100% }
   .row-wrap.open .row { transform: translateX(-88px) }
   .row-wrap:not(.open) .delete { visibility: hidden }
-  .row .en { font-size: 17px; line-height: 25px; font-weight: 500; word-break: break-word }
-  .row .ko { font-size: 15px; line-height: 22px; color: var(--muted); margin-top: 2px; word-break: keep-all }
-  .row .orig { font-size: 13px; line-height: 19px; color: #9a9aa2; margin-top: 4px; word-break: break-word }
-  .row .meta { font-size: 13px; line-height: 18px; color: #8d8d95; margin-top: 8px; display: flex; align-items: center; gap: 8px }
+  .row .meta { font-size: 13px; line-height: 18px; color: #8d8d95; display: flex; align-items: center; gap: 8px }
+  .row .band { background: #f4f4f6; border-radius: 11px; padding: 8px 11px; margin: 1px 0 1px }
+  .row .mine { font-size: 15px; line-height: 22px; color: #8a8a92; word-break: break-word }
+  .row .mine u { text-decoration: underline }
+  .row .en { font-size: 17px; line-height: 25px; font-weight: 600; word-break: break-word }
+  .row .en b { color: var(--learn) }
+  .row.expression .en b { color: var(--expression) }
+  .row .why { font-size: 14px; line-height: 21px; color: var(--muted); word-break: keep-all }
+  .row .ko { font-size: 15px; line-height: 22px; color: var(--muted); word-break: keep-all }
   .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; background: #ececf0; color: #55555e }
   .pill.me { background: #dbe9ff; color: #1d5fb3 }
   .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--muted); padding-bottom: 72px }
@@ -313,10 +317,7 @@
       learn: { id: 'c2', kind: 'expression', title: '이럴 때 쓰는 영어 표현', original: '괜찮아요, 그런데 좀 급해서요.', originalMarks: [], fixed: "No worries, but I'm in a bit of a hurry.", fixedMarks: ['No worries', 'in a bit of a hurry'], why: "'괜찮아요'는 No worries, '좀 급해요'는 in a bit of a hurry라고 해요.", meaning: '괜찮아요, 그런데 좀 급해서요.' } },
     { type: 'utterance', id: 'u3', who: '미아', text: "Got it. I'll have it ready in two minutes. Sorry again for the mix-up.", meaning: '알겠어요. 2분 안에 준비할게요. 착오가 있어서 다시 한번 죄송해요.' }
   ];
-  let saved = [
-    { ref: 'u1', kind: 'line', english: 'Next in line, please! Oh, was there something wrong with your order?', meaning: '다음 분이요! 아, 주문에 문제가 있었나요?', speaker: '미아' },
-    { ref: 'c1', kind: 'correction', english: 'I ordered a hot americano, but this is an iced latte.', meaning: '뜨거운 아메리카노를 시켰는데 아이스 라테가 나왔어요.', original: 'I order hot americano but this is ice latte.' }
-  ];
+  let saved = [];
   const expanded = new Set();
   const failed = new Set();
   let toastTimer = null;
@@ -348,7 +349,10 @@
   function itemFor(ref) {
     for (const part of scene) {
       if (part.type === 'utterance' && part.id === ref) return { ref, kind: 'line', english: part.text, meaning: part.meaning, speaker: part.who };
-      if (part.type === 'reply' && part.learn.id === ref) return { ref, kind: part.learn.kind === 'learn' ? 'correction' : 'translation', english: part.learn.fixed, meaning: part.learn.meaning, original: part.learn.kind === 'learn' ? part.learn.original : undefined };
+      if (part.type === 'reply' && part.learn.id === ref) {
+        const l = part.learn;
+        return { ref, kind: l.kind, english: l.fixed, marks: l.fixedMarks, original: l.original, originalMarks: l.originalMarks, why: l.why };
+      }
     }
   }
   function toggleSave(ref) {
@@ -368,7 +372,13 @@
 
   function renderList() {
     const list = document.getElementById('expression-list');
-    list.innerHTML = saved.length ? `<div class="list">${saved.map(item => `<div class="row-wrap" data-row="${item.ref}"><button type="button" class="delete" data-delete="${item.ref}" aria-label="삭제" tabindex="-1">삭제</button><div class="row"><p class="en">${item.english}</p><p class="ko">${item.meaning}</p>${item.original ? `<p class="orig">내가 쓴 말 · ${item.original}</p>` : ''}<p class="meta"><span class="pill ${item.kind === 'line' ? '' : 'me'}">${item.kind === 'line' ? item.speaker : '내 표현'}</span>${SOURCE}</p></div></div>`).join('')}</div>` : '';
+    list.innerHTML = saved.length ? `<div class="list">${saved.map(item => {
+      const meta = `<p class="meta"><span class="pill ${item.kind === 'line' ? '' : 'me'}">${item.kind === 'line' ? item.speaker : '내 표현'}</span>${SOURCE}</p>`;
+      const inner = item.kind === 'line'
+        ? `${meta}<p class="en">${item.english}</p><p class="ko">${item.meaning}</p>`
+        : `${meta}<div class="band"><p class="mine">${umark(item.original, item.originalMarks)}</p></div><p class="en">${mark(item.english, item.marks)}</p><p class="why">${item.why}</p>`;
+      return `<div class="row-wrap" data-row="${item.ref}"><button type="button" class="delete" data-delete="${item.ref}" aria-label="삭제" tabindex="-1">삭제</button><div class="row ${item.kind}">${inner}</div></div>`;
+    }).join('')}</div>` : '';
     if (prototypeShell.getScreen() === 'expressions') {
       if (!saved.length && prototypeShell.getState() === 'Default') prototypeShell.setState('비어 있음');
       if (saved.length && prototypeShell.getState() === '비어 있음') prototypeShell.setState('Default');
@@ -395,5 +405,6 @@
   stateSelect.addEventListener('change', () => { if (prototypeShell.getScreen() === 'expressions' && stateSelect.value === 'Default') renderList(); });
   screenSelect.addEventListener('change', renderList);
   addEventListener('hashchange', () => setTimeout(renderList));
+  saved = ['c1', 'c2', 'u2'].map(itemFor);
   renderChat(); renderList();
 </script>
