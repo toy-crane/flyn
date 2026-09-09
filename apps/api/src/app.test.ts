@@ -322,6 +322,7 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
       let within: { column: string; values: unknown[] } | undefined;
       let after: { column: string; value: string } | undefined;
       let nested = false;
+      let nestedEpisode = false;
       let nestedPlays = false;
       let wantsCounts = false;
       const value = (row: Row, column: string) => row[column];
@@ -416,6 +417,24 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
               (episode) => episode.story_id === value(row, "id")
             ),
           }));
+        }
+
+        // 표현 노트는 담긴 행에서 에피소드를, 그 에피소드에서 스토리를 타고
+        // 제목과 화 번호를 읽는다.
+        if (nestedEpisode) {
+          return ordered.map((row) => {
+            const episode = TEST_EPISODES.find(
+              (candidate) => candidate.id === value(row, "episode_id")
+            );
+
+            return {
+              ...row,
+              episodes: {
+                number: episode?.number ?? 0,
+                stories: { title: STORY_ROW.title },
+              },
+            };
+          });
         }
 
         if (nestedPlays) {
@@ -689,6 +708,7 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
           },
           select: (projection?: string) => {
             nested = projection?.includes("episodes(") ?? false;
+            nestedEpisode = projection?.includes("episodes!inner(") ?? false;
             nestedPlays = projection?.includes("episode_plays(") ?? false;
             wantsCounts = projection?.includes("episode_messages(") ?? false;
 
@@ -2253,6 +2273,88 @@ describe("표현을 담아 두는 API", () => {
     });
 
     expect((await app.request(request(body))).status).toBe(400);
+  });
+
+  function note() {
+    return new Request(`http://localhost${EPISODE_PATH}/saved-expressions`);
+  }
+
+  test("표현 노트는 담은 것을 최근순으로, 종류마다 필요한 값과 함께 돌려준다", async () => {
+    const state = createSeasonState();
+    state.messages.push(scene());
+    state.messages.push(wrote("I think you gave me wrong coffee."));
+    state.corrections.push({
+      corrected: WRONG_COFFEE.fixed,
+      created_at: "2026-09-07T00:00:03.000Z",
+      fixed: "the wrong coffee",
+      message_id: "m1",
+      original: "wrong coffee",
+      pattern: "article-the-specific",
+      reason: "잘못 나온 그 하나를 짚어 말할 때는 the를 붙여요.",
+    });
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+
+    await app.request(utterance(0));
+    await app.request(learning());
+
+    const cards = await (await app.request(note())).json();
+
+    expect(cards).toEqual([
+      {
+        english: WRONG_COFFEE.fixed,
+        entries: [
+          {
+            fixed: "the wrong coffee",
+            original: "wrong coffee",
+            why: "잘못 나온 그 하나를 짚어 말할 때는 the를 붙여요.",
+          },
+        ],
+        episodeNumber: 1,
+        id: expect.any(String),
+        kind: "correction",
+        meaning: null,
+        original: "I think you gave me wrong coffee.",
+        speaker: null,
+        storyTitle: STORY_ROW.title,
+      },
+      {
+        english: "Next in line, please!",
+        entries: null,
+        episodeNumber: 1,
+        id: expect.any(String),
+        kind: "utterance",
+        meaning: expect.any(String),
+        original: null,
+        speaker: "Mia",
+        storyTitle: STORY_ROW.title,
+      },
+    ]);
+  });
+
+  test("원본을 잃은 항목도 표현 노트에는 남는다", async () => {
+    const state = createSeasonState();
+    state.messages.push(scene());
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+
+    await app.request(utterance(0));
+    // 다시 받기가 그 메시지를 지우면 담긴 행은 참조만 잃는다.
+    state.messages.length = 0;
+    for (const row of state.saved) {
+      row.message_id = null;
+    }
+
+    const cards = (await (await app.request(note())).json()) as {
+      english: string;
+    }[];
+
+    expect(cards).toHaveLength(1);
+    expect(cards[0]?.english).toBe("Next in line, please!");
   });
 });
 

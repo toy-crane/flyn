@@ -40,6 +40,7 @@ import {
   openEpisodePlay,
   readEpisodeSession,
   readFinishedEpisodes,
+  readSavedExpressions,
   recordEpisodeEnding,
   type SavedExpressionDraft,
   saveExpression,
@@ -463,6 +464,17 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
 
           return c.json(await readStoryPlays(client, entry));
         }
+      )
+      /*
+      표현 노트가 읽는 자리. 계정에 담긴 것이 최근순으로 온다.
+
+      회차도 메시지도 묻지 않는다. 다시 받기로 원본을 잃은 항목까지 여기 남아야
+      하고, 그것이 담기를 대화와 따로 두는 까닭이다.
+      `/:episodeId`보다 먼저 선다. 뒤에 두면 `saved-expressions`가 에피소드
+      id로 읽힌다.
+    */
+      .get("/saved-expressions", requireUser, requireCurrentUser, async (c) =>
+        c.json(await readSavedExpressions(c.var.supabaseContext.supabase))
       )
       .get("/:episodeId", requireUser, requireCurrentUser, async (c) => {
         const client = c.var.supabaseContext.supabase;

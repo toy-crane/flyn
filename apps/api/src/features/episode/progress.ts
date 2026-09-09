@@ -424,6 +424,91 @@ export async function readPlaySavedExpressions(
   );
 }
 
+/**
+ * 표현 노트가 보여 주는 카드 하나.
+ *
+ * 한 카드가 세 출처를 모두 그리므로 공통 값은 늘 오고, 종류마다 있는 값은 그
+ * 종류에서만 채워진다. 인물 대사는 한국어 뜻과 화자를, 영어 교정과 한국어
+ * 안내는 내가 쓴 원문과 고친 자리를 가진다.
+ */
+export interface SavedExpressionCard {
+  english: string;
+  entries: { fixed: string; original: string; why: string }[] | null;
+  episodeNumber: number;
+  id: string;
+  kind: SavedExpressionKind;
+  meaning: string | null;
+  original: string | null;
+  speaker: string | null;
+  storyTitle: string;
+}
+
+/** 담긴 행의 `entries`가 실제로 담고 있는 모양. */
+interface StoredEntry {
+  fixed: string;
+  original: string;
+  why: string;
+}
+
+function storedEntries(value: unknown): StoredEntry[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  return value.flatMap((entry) => {
+    const row = entry as Partial<StoredEntry> | null;
+
+    return typeof row?.fixed === "string" &&
+      typeof row.original === "string" &&
+      typeof row.why === "string"
+      ? [{ fixed: row.fixed, original: row.original, why: row.why }]
+      : [];
+  });
+}
+
+/**
+ * 계정에 담긴 표현을 최근 담은 것부터 읽는다.
+ *
+ * 메시지를 걸지 않는다. 원본을 잃은 항목도 여기서는 그대로 보여야 하고, 그것이
+ * 담기와 대화를 따로 두는 이유다. 스토리 제목과 화 번호는 에피소드를 타고
+ * 오므로 콘텐츠가 바뀌면 카드도 함께 바뀐다.
+ *
+ * 어느 계정의 것인지는 묻지 않는다. 정책이 내 행만 내려보낸다.
+ */
+export async function readSavedExpressions(
+  client: EpisodeClient
+): Promise<SavedExpressionCard[]> {
+  const { data, error } = await client
+    .from("saved_expressions")
+    .select(
+      "id, kind, english, meaning, speaker, original, entries, episodes!inner(number, stories!inner(title))"
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`Reading the expression note failed: ${error.message}`);
+  }
+
+  return data.map((row) => {
+    const episode = row.episodes as unknown as {
+      number: number;
+      stories: { title: string };
+    };
+
+    return {
+      english: row.english,
+      entries: storedEntries(row.entries),
+      episodeNumber: episode.number,
+      id: row.id,
+      kind: row.kind as SavedExpressionKind,
+      meaning: row.meaning,
+      original: row.original,
+      speaker: row.speaker,
+      storyTitle: episode.stories.title,
+    };
+  });
+}
+
 /** 담아 둘 표현 한 건. 값은 모두 서버가 저장된 행에서 만든다. */
 export interface SavedExpressionDraft {
   english: string;
