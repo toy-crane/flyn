@@ -166,17 +166,8 @@ body:has(.home-destination:not([hidden])) .sh-destination-note{display:block}
 .inline-retry svg{width:18px;height:18px}
 .check-spinner{display:inline-block;width:16px;height:16px;flex:none;border:1.8px solid currentColor;border-right-color:transparent;border-radius:50%;animation:check-spin .8s linear infinite}
 .ending-pending{display:flex;align-items:center;justify-content:center;gap:9px;min-height:60px;padding:12px 0;color:var(--muted);font-size:14px;line-height:22px;overflow-wrap:anywhere}
-.expression-issue{padding:16px 0;border-bottom:1px solid var(--border);min-width:0}
-.expression-issue:first-child{padding-top:0}
-.expression-issue .issue-original{color:var(--foreground);font-size:14px;line-height:22px;margin:0;overflow-wrap:anywhere}
-.expression-issue .expression-status{justify-content:flex-start}
-.expression-issue .expression-status>span:first-child{flex:0 1 auto}
 @keyframes check-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.check-spinner{animation:none}}
-.review-issues.after-cards{margin-top:28px}
-.issue-heading{font-size:14px;line-height:22px;font-weight:600;color:var(--muted);margin:0 0 8px;overflow-wrap:anywhere}
-.review-issues .expression-issue:first-of-type{padding-top:0}
-.review-issues .expression-issue:last-child{border-bottom:0}
 .review-loading{display:flex;justify-content:center;padding:64px 24px;color:var(--muted)}
 .review-loading .check-spinner{width:20px;height:20px}
 .story-unavailable .retry-button{display:inline-flex;align-items:center;justify-content:center;gap:8px}
@@ -268,7 +259,7 @@ function startCheck(c,{delay=CHECK_MS}={}){
     if(c.attempt!==attempt)return;
     timers.delete(timerKey(c));
     c.status=c.repeatFailure?'error':c.expression?'corrected':'natural';
-    repaint(c.n,c);
+    repaint(c.n);
   },delay));
 }
 function enterContext(n){
@@ -349,19 +340,13 @@ function renderEpisode({preserve=false}={}){
   if(preserve)body.scrollTop=oldScroll;else scrollEnd('#episode-body');
 }
 function ensureEnded(n){const e=episodes[n];if(!e.done){e.done=true;e.sent=e.sent||e.draft||e.initialDraft;}seedChecks(n);}
-function reviewIssue(c){return `<article class="expression-issue" data-component="EpisodeCorrectionNote" data-check-result="${c.id}"><p class="issue-original">${escapeHTML(c.original)}</p>${statusNote(c)}</article>`;}
-function renderReview({preserve=false,changedCheck=null}={}){
+function renderReview({preserve=false}={}){
   const e=episodes[reviewEpisode], body=$('[data-screen="review"] .body'), oldScroll=body.scrollTop;
   const opened=[...body.querySelectorAll('.learn-card details[open]')].map(d=>d.closest('.learn-card').dataset.expression);
-  const focusedCheck=document.activeElement?.closest('[data-check-result]')?.dataset.checkResult;
-  const oldAnchor=changedCheck?body.querySelector(`[data-check-result="${changedCheck.id}"]`):null;
-  const anchorTop=oldAnchor?.getBoundingClientRect().top,bodyRect=body.getBoundingClientRect();
-  const anchorVisible=oldAnchor&&anchorTop<bodyRect.bottom&&oldAnchor.getBoundingClientRect().bottom>bodyRect.top;
   $('#review-episode').textContent=`${reviewEpisode}화 · ${e.title}`;
   const query=queryFor(reviewEpisode);
   let list=seedChecks(reviewEpisode), content='';
   if(reviewMode==='표현 없음')list=[];
-  const issues=list.filter(c=>c.status!=='corrected'&&c.status!=='natural');
   const ready=list.filter(c=>c.status==='corrected');
   const extra=reviewMode==='표현이 많음'?longExpressions:[];
   const cardCount=ready.length+extra.length;
@@ -369,24 +354,15 @@ function renderReview({preserve=false,changedCheck=null}={}){
   $('#review-count').textContent=query.status==='ready'&&cardCount?`${cardCount}개`:'';
   if(query.status==='error'||query.retrying)content=`<div class="story-unavailable" data-component="StoryUnavailable"><svg class="offline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 2 20 20M8.36 8.36A6 6 0 0 0 6 20h12M9.7 4.3A7 7 0 0 1 20.8 10a5 5 0 0 1 .5 8.2"/></svg><h3>표현을 불러오지 못했어요.</h3><button class="retry-button" data-component="Button" data-variant="secondary" data-action="retry-expressions" ${query.retrying?'disabled aria-busy="true"':''}>${query.retrying?'<span class="check-spinner" aria-hidden="true"></span>':''}<span>다시 시도하기</span></button>${query.retrying?'<span class="sr-only" role="status">표현을 불러오고 있어요.</span>':''}</div>`;
   else if(query.status!=='ready')content='<div class="review-loading" data-component="LoadingSpinner" role="status" aria-label="표현을 불러오고 있어요."><span class="check-spinner" aria-hidden="true"></span><span class="sr-only">표현을 불러오고 있어요.</span></div>';
-  else if(!cardCount&&!issues.length)content=`<div class="empty-card" data-component="new:ExpressionEmpty">${icon('book')}<h3>이번 대화에는 안내한 표현이 없어요</h3></div>`;
-  else {
-    if(cardCount)content='<div class="learning">'+ready.map(c=>learnCard(c.expression)).join('')+extra.map(learnCard).join('')+'</div>';
-    const retryable=issues.filter(c=>c.status!=='unclear'),unclear=issues.filter(c=>c.status==='unclear');
-    if(retryable.length)content+=`<section class="review-issues ${cardCount?'after-cards':''}" aria-label="다시 확인할 문장">${cardCount?'<h2 class="issue-heading">다시 확인할 문장</h2>':''}${retryable.map(reviewIssue).join('')}</section>`;
-    if(unclear.length)content+=`<div class="review-issues ${cardCount||retryable.length?'after-cards':''}">${unclear.map(reviewIssue).join('')}</div>`;
-  }
+  else if(!cardCount)content=`<div class="empty-card" data-component="new:ExpressionEmpty">${icon('book')}<h3>이번 대화에는 안내한 표현이 없어요</h3></div>`;
+  else content='<div class="learning">'+ready.map(c=>learnCard(c.expression)).join('')+extra.map(learnCard).join('')+'</div>';
   $('#review-content').innerHTML=content;
   opened.forEach(id=>body.querySelector(`[data-expression="${id}"] details`)?.setAttribute('open',''));
   const last=reviewEpisode===5, nextNumber=Math.min(5,reviewEpisode+1), nextEpisode=episodes[nextNumber];
   $('#review-next').innerHTML=last?'<div class="next-label">우리 동네 카페</div><h3>마지막 이야기까지 함께했어요</h3>':'<div class="next-label">다음 · '+nextNumber+'화</div><h3>'+nextEpisode.title+'</h3><p>'+(reviewEpisode===1?'노트에는 왜 이 카페의 이름이 있을까요?':nextEpisode.situation)+'</p>';
   $('#review-primary').innerHTML=last?'대화 기록 보기':`${nextNumber}화 ${nextEpisode.done?'다시 보기':'시작하기'} ${icon('arrow')}`;
   $('#review-primary').dataset.action=last?'leave':'next-episode';
-  if(preserve){
-    body.scrollTop=oldScroll;
-    if(anchorVisible){const anchor=body.querySelector(`[data-check-result="${changedCheck.id}"]`)||body.querySelector(`[data-expression="${changedCheck.expression?.id}"]`);if(anchor)body.scrollTop+=anchor.getBoundingClientRect().top-anchorTop;}
-  }
-  if(focusedCheck){const c=list.find(c=>c.id===focusedCheck),target=body.querySelector(`[data-check-result="${focusedCheck}"]`)||body.querySelector(`[data-expression="${c?.expression?.id}"]`);if(target){target.tabIndex=-1;target.focus({preventScroll:true});}}
+  if(preserve)body.scrollTop=oldScroll;
 }
 function renderRecords(){
   const completed=Object.entries(episodes).filter(([n,e])=>e.done), final=episodes[5].done;
@@ -396,9 +372,9 @@ function renderRecords(){
   if(!final)html+='<button class="primary" data-action="resume" style="margin-top:14px" data-component="Button">이어서 하기</button>';
   $('#records-content').innerHTML=html;
 }
-function repaint(n,changedCheck=null){
+function repaint(n){
   if(current==='episode'&&activeEpisode===n)renderEpisode({preserve:true});
-  if(current==='review'&&reviewEpisode===n)renderReview({preserve:true,changedCheck});
+  if(current==='review'&&reviewEpisode===n)renderReview({preserve:true});
   syncChrome();
 }
 function go(slug,{preserveScroll=false,animate=true}={}){
@@ -466,7 +442,7 @@ document.addEventListener('click',event=>{
   if(action==='record-episode'){activeEpisode=Number(el.dataset.episode);go('episode');}
   if(action==='next-episode'){activeEpisode=Math.min(5,reviewEpisode+1);go('episode');}
   if(action==='retry-expressions'&&queryFor(reviewEpisode).status==='error'){loadReview(reviewEpisode,{retry:true});renderReview({preserve:true});syncChrome();}
-  if(action==='retry-check'){
+  if(action==='retry-check'&&current==='episode'){
     const n=Number(el.dataset.episode),c=seedChecks(n).find(c=>c.id===el.dataset.check);
     if(c&&c.status==='error'){startCheck(c);repaint(n);}
   }
