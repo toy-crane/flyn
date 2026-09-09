@@ -17,6 +17,8 @@ jobs:
     timeout-minutes: 20
     env:
       CI: "true"
+      # 검증용 PR 전용: 실제 계산의 환경 검증 우회 차단을 확인한다. 병합하지 않는다.
+      MOBILE_EXPO_STATIC_CONFIG: "1"
       NODE_ENV: production
       EXPO_NO_DOTENV: "1"
       EXPO_NO_TELEMETRY: "1"
