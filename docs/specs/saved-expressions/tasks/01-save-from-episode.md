@@ -42,10 +42,13 @@ One review pass after this task. 새로 만든 테이블과 그 정책, 권한, 
 
 ## Status
 
-pending
+in-progress
 
 ## Execution
 
-- Verification: —
+- Verification: `bun run db:test` 308개, `bun run test`(모바일 524개, API 131개,
+  스크립트 185개), `bun run check` 모두 통과했다. `agent-device` 확인은 아직이다.
 - Blocker: —
-- Revision: —
+- Revision: 저장 취소가 실패했을 때의 화면은 스펙에 없어서, 담긴 상태로 되돌리고
+  아무것도 알리지 않는 쪽을 골랐다. 실패 문구가 `표현을 저장하지 못했어요.`라
+  취소에 그대로 쓸 수 없고, 항목이 아직 남아 있다는 것이 화면에 보이는 사실이다.
