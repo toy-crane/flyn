@@ -54,6 +54,7 @@
 ## 모바일 화면 표현
 
 - [모바일 UI 렌더러 경계](mobile-ui-renderer-boundaries.md) — 모바일 화면의 주 렌더러, 네이티브 셸 소유권 또는 Liquid Glass 사용 범위를 선택할 때 읽는다.
+- [모바일 탭과 상세 화면 배치](mobile-tab-navigation.md) — 화면을 탭 안이나 바깥에 둘 기준, 상세 화면의 탭 표시 또는 진입 경로별 뒤로 가기를 변경할 때 읽는다.
 - [모바일 Uniwind 스타일 경계](mobile-uniwind-styling.md) — React Native UI의 `className`, inline `style`, 런타임 값 또는 외부 컴포넌트 스타일 경계를 변경할 때 읽는다.
 - [모바일 색상 시맨틱](mobile-color-semantics.md) — 모바일 색상 이름, 시맨틱 토큰, 화면 모드 또는 플랫폼별 색상 매핑을 변경할 때 읽는다.
 - [모바일 타이포그래피](mobile-typography.md) — 모바일 텍스트 역할, 시스템 폰트, monospace 사용, Dynamic Type 또는 렌더러별 타이포그래피 매핑을 변경할 때 읽는다.
