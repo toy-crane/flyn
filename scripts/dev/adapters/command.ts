@@ -11,6 +11,7 @@ export interface CommandResult {
 export interface CommandOptions {
   cwd?: string;
   env?: Record<string, string>;
+  input?: string;
 }
 
 export interface RunToLogOptions extends CommandOptions {
@@ -39,8 +40,9 @@ function collect(
     const child = spawn(command, args, {
       cwd: options.cwd,
       env: options.env ?? currentEnv(),
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: ["pipe", "pipe", "pipe"],
     });
+    child.stdin.end(options.input);
     let stdout = "";
     let stderr = "";
 

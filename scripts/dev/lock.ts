@@ -3,8 +3,8 @@ import { dirname, join } from "node:path";
 
 const OWNER_FILE = "owner.json";
 const RETRY_INTERVAL_MS = 100;
-// Long enough for the holder to finish a reclaim, which shuts down and erases
-// every device a removed worktree left behind.
+// Contenders wait for reclamation, which may boot a device to remove its app.
+// A live owner is never evicted when this wait expires.
 const DEFAULT_TIMEOUT_MS = 180_000;
 
 export interface LockOptions {

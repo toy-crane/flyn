@@ -260,10 +260,22 @@ export async function shutdownSimulator(udid: string): Promise<void> {
   }
 }
 
-/** Wipes app data and login state before the device goes back to the pool. */
-export async function eraseSimulator(udid: string): Promise<void> {
+/** Removes only this app; device accounts and settings survive the return. */
+export async function uninstallApp(
+  udid: string,
+  bundleId: string
+): Promise<void> {
+  await bootSimulator(udid);
+  const plist = await runOrThrow(["xcrun", "simctl", "listapps", udid]);
+  const apps = JSON.parse(
+    await runOrThrow(["plutil", "-convert", "json", "-o", "-", "-"], {
+      input: plist,
+    })
+  );
+  if (Object.hasOwn(apps, bundleId)) {
+    await runOrThrow(["xcrun", "simctl", "uninstall", udid, bundleId]);
+  }
   await shutdownSimulator(udid);
-  await runOrThrow(["xcrun", "simctl", "erase", udid]);
 }
 
 /**

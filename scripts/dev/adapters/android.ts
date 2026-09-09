@@ -1,10 +1,4 @@
-import {
-  existsSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -17,6 +11,7 @@ export const ANDROID_SYSTEM_IMAGE =
 export const ANDROID_DEVICE_PROFILE = "pixel_9_pro";
 export const ANDROID_DEVICE_NAME = "Pixel 9 Pro";
 
+const LINE_BREAK_PATTERN = /\r?\n/;
 const WHITESPACE_PATTERN = /\s+/;
 const EMULATOR_BASE_PORT = 5554;
 const BOOT_TIMEOUT_MS = 180_000;
@@ -470,28 +465,43 @@ export function writeAvdDisplayName(
   renameSync(temporaryPath, path);
 }
 
-/**
- * The offline form of `emulator -wipe-data`: the writable images and snapshots
- * are what hold app data and the signed-in session, and the emulator rebuilds
- * them from the system image on the next boot. Doing it with the device down
- * avoids a full boot-and-shutdown cycle just to erase it.
- */
-export function eraseAvdData(avdName: string, home: string = homedir()): void {
-  const directory = avdDirectory(avdName, home);
-
-  if (!existsSync(directory)) {
-    return;
+/** Removes only the project package, never the AVD's user data. */
+export async function uninstallApk(
+  sdk: AndroidSdk,
+  serial: string,
+  packageName: string
+): Promise<void> {
+  await waitForBoot(sdk, serial);
+  const packages = await runOrThrow([
+    sdk.adb,
+    "-s",
+    serial,
+    "shell",
+    "pm",
+    "list",
+    "packages",
+    packageName,
+  ]);
+  if (packages.split(LINE_BREAK_PATTERN).includes(`package:${packageName}`)) {
+    await runOrThrow([sdk.adb, "-s", serial, "uninstall", packageName]);
   }
+}
 
-  for (const entry of [
-    "userdata-qemu.img",
-    "userdata-qemu.img.qcow2",
-    "userdata.img",
-    "userdata.img.qcow2",
-    "cache.img",
-    "cache.img.qcow2",
-    "snapshots",
-  ]) {
-    rmSync(join(directory, entry), { force: true, recursive: true });
+/** A returned AVD can be shut down already; boot it on a free console pair. */
+export async function bootForRelease(
+  sdk: AndroidSdk,
+  avdName: string,
+  logPath: string
+): Promise<string> {
+  const serial = await findSerialForAvd(sdk, avdName);
+  if (serial) {
+    return serial;
   }
+  for (let port = 5554; port <= 5682; port += 2) {
+    // biome-ignore lint/performance/noAwaitInLoops: choose one free emulator port pair.
+    if ((await isPortFree(port)) && (await isPortFree(port + 1))) {
+      return startEmulator({ avdName, logPath, port, sdk });
+    }
+  }
+  throw new Error("기기를 반납하기 위한 Emulator 포트가 없습니다.");
 }

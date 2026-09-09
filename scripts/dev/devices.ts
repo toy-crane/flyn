@@ -1,6 +1,8 @@
 import type { Platform } from "./options";
 import type { RepositoryState } from "./state";
 
+export const DEVICE_POOL_LIMIT = 5;
+
 export type DeviceChoice =
   | { deviceId: string; reason: "leased" }
   | { deviceId: string; reason: "pooled" }
@@ -35,12 +37,18 @@ export function selectDevice({
     return { deviceId: free[0], reason: "pooled" };
   }
 
+  if (Object.keys(pool).length >= DEVICE_POOL_LIMIT) {
+    throw new Error(
+      `${platform} 기기 풀 ${DEVICE_POOL_LIMIT}개를 모두 배정했습니다. bun run dev:status로 확인하고 사용하지 않는 worktree에서 bun run dev:remove를 실행해 주세요.`
+    );
+  }
+
   return { reason: "create" };
 }
 
 /**
- * Records the lease. A device that comes from the pool was erased on its way
- * back, so anything the previous worktree installed is already gone and the
+ * Records the lease. A device that comes from the pool had the project app removed on its way
+ * back, so the previous worktree app is already gone and the
  * fingerprint has to be re-established by an install.
  */
 export function leaseDevice(

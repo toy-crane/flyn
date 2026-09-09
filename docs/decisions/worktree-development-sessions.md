@@ -9,9 +9,10 @@
 - 한 Git worktree에서 iOS와 Android를 함께 실행한다. 플랫폼 시작 명령은 누적된다. 이미 실행 중인 플랫폼은 다른 플랫폼을 시작해도 내려가지 않는다.
 - 여러 플랫폼을 적은 명령은 한 플랫폼이 실패해도 나머지를 계속 시작한다. 결과를 플랫폼별로 보고하고 실패가 하나라도 있으면 명령은 실패로 끝난다. 아무것도 실행 중이지 않으면 요청한 모든 플랫폼의 네이티브 준비를 마친 뒤에 API와 Metro를 띄운다.
 - `bun run dev:status`는 프로젝트 포트 대역 번호와 Supabase API 포트, 모든 worktree의 slot, 포트, 프로세스 생존, 붙은 플랫폼과 기기 배정(iOS 이름과 UDID, Android AVD 이름과 실행 중 serial), 풀의 대기 기기를 보여 준다.
-- 배정된 기기는 이름에 slot을 표시한다. iOS Simulator는 배정하는 동안 `<slug>-slot-<번호>`라는 이름을 쓰고 풀로 돌아갈 때 풀 이름(`<slug>-dev-<번호>`)으로 되돌린다. Android는 AVD 이름을 바꿀 수 없으므로 에뮬레이터가 꺼져 있을 때 표시 이름에 같은 표시를 쓰고 반납할 때 지운다. 기기 식별자, 설치된 앱과 앱 데이터는 바뀌지 않는다.
+- 배정된 기기는 이름에 slot을 표시한다. iOS Simulator는 배정하는 동안 `<slug>-slot-<번호>`라는 이름을 쓰고 풀로 돌아갈 때 풀 이름(`<slug>-dev-<번호>`)으로 되돌린다. Android는 AVD 이름을 바꿀 수 없으므로 에뮬레이터가 꺼져 있을 때 표시 이름에 같은 표시를 쓰고 반납할 때 지운다. 이름 변경 자체는 기기 식별자, 설치된 앱과 앱 데이터를 바꾸지 않는다.
 - worktree 하나는 slot 하나만 쓴다. Metro 프로세스 하나가 두 플랫폼의 번들을 함께 내보내고 API 프로세스도 하나만 둔다.
 - 기본 저장소 폴더와 추가 Git worktree를 같은 실행 단위로 취급한다. 실행 단위는 브랜치 이름이 아니라 정규화된 worktree 절대 경로로 식별한다.
+- 기기는 플랫폼별 최대 5개까지 필요할 때 만든다. 기존 배정을 우선하고, 없으면 풀의 빈 기기를 배정한다. 모두 배정 중이면 새 기기를 만들지 않고 `dev:status`와 `dev:remove`를 안내한다. 기기 수와 worktree slot 번호는 별개다.
 - worktree마다 고정 slot과 API·Metro 포트를 배정한다. 플랫폼별 기기는 저장소 공용 풀에서 하나씩 독점 배정하고, 일반 종료 뒤에도 이 상태를 유지해 다음 실행에서 재사용한다.
 - 네이티브 Development Build는 저장소 단위로 공유한다. 플랫폼과 Expo native fingerprint가 같은 worktree는 공용 빌드 결과를 설치해 재사용한다.
 - Android Development Build를 새로 만들 때는 worktree별 `GRADLE_USER_HOME`을 사용한다. Gradle wrapper, 의존성과 빌드 캐시가 다른 worktree의 절대 경로를 다시 쓰지 않는다. persistent Gradle daemon은 사용하지 않아 빌드가 끝난 뒤 해당 홈을 쓰는 JVM을 남기지 않는다.
@@ -49,7 +50,7 @@
 - `apps/mobile`과 `apps/api`의 개별 `dev`, `ios`, `android`, `start` 명령은 수동 진단에 사용할 수 있지만 worktree 간 포트와 기기 격리를 보장하지 않는다.
 - `bun run dev:status`는 아무것도 바꾸지 않는다. 죽은 프로세스와 사라진 기기는 표시만 하고, 회수는 다음 시작 명령의 몫이다.
 - `bun run dev:stop`은 실행 프로세스와 이 worktree에 배정된 두 플랫폼의 기기를 함께 중단한다. slot, 기기, 앱 데이터와 공용 빌드는 유지한다.
-- `bun run dev:remove`는 현재 worktree에 배정된 두 플랫폼의 기기를 초기화해 풀로 돌려놓고 slot을 반납한다. Git worktree, 풀의 기기와 저장소 공용 빌드는 삭제하지 않는다.
+- `bun run dev:remove`는 현재 worktree에 배정된 두 플랫폼의 기기에서 플린 앱만 삭제하고 종료한 뒤 풀로 돌려놓고 slot을 반납한다. 기기의 Apple·Google 계정과 설정은 보존한다. 앱 삭제가 실패하면 반납을 중단하고 재배정하지 않는다. Git worktree, 풀의 기기와 저장소 공용 빌드는 삭제하지 않는다.
 - Git worktree를 외부에서 먼저 삭제하면 다음 `bun run dev <ios|android>`가 남은 프로세스, slot과 기기 배정을 회수한다. Codex나 Claude Code 전용 삭제 hook과 상시 실행 daemon은 사용하지 않는다.
 - Metro 입력 변경은 다음 `bun run dev <ios|android>`에서 확인한다. 실행 중인 세션이 `bun.lock`이나 설정 파일을 계속 지켜보다가 스스로 다시 시작하지는 않는다.
 - 자동 초기화는 Metro 캐시에만 적용한다. 네이티브 모듈, config plugin, Expo SDK 또는 React Native 변경으로 Development Build가 달라지는지는 별도의 native fingerprint가 판단한다.
@@ -62,7 +63,7 @@
 
 브랜치 이름은 같은 폴더에서 바뀔 수 있고 detached HEAD에는 없으므로 실행 환경의 안정적인 식별자가 아니다. worktree 경로에 고정 slot과 독점 기기 배정을 연결하면 같은 bundle ID를 유지하면서도 여러 checkout을 동시에 실행할 수 있다.
 
-네이티브 빌드는 느리지만 앱 데이터와 로그인 상태는 worktree마다 달라야 한다. 따라서 플랫폼과 native fingerprint가 같은 빌드 결과만 저장소 전체에서 공유하고, 설치 대상 기기는 worktree마다 독점 배정한다. worktree가 사라지면 기기를 초기화해 풀로 돌려놓으므로 이전 로그인 상태는 다음 worktree로 넘어가지 않는다.
+네이티브 빌드는 느리지만 앱 데이터와 로그인 상태는 worktree마다 달라야 한다. 따라서 플랫폼과 native fingerprint가 같은 빌드 결과만 저장소 전체에서 공유하고, 설치 대상 기기는 worktree마다 독점 배정한다. worktree가 사라지면 플린 앱만 삭제하고 기기를 풀로 돌려놓는다. 플린의 로컬 세션은 앱 데이터와 함께 지우고, 기기에 로그인한 Apple·Google 계정은 다음 worktree에서도 재사용한다. iOS Keychain은 앱 삭제로 모두 지워지지 않지만 플린 세션 본문은 앱의 SQLite에 저장하므로 키만으로 이전 세션을 복원하지 못한다. 기기 전체 초기화는 자동 반납 경로에서 실행하지 않는다.
 
 Gradle의 기본 사용자 홈은 모든 checkout이 함께 쓴다. Gradle 빌드 캐시에는 입력 checkout의 절대 경로가 남을 수 있어서, 삭제한 worktree에서 만든 manifest 결과를 다른 worktree가 다시 쓰면 Android 패키징이 실패한다. Android 빌드 과정만 worktree별 Gradle 홈으로 나누면 경로가 섞이지 않고, 완성한 APK를 공유하는 기존 최적화도 유지한다. Gradle daemon의 기본 유휴 종료 시간은 3시간이므로 폴더만 지우면 JVM이 남는다. `GRADLE_OPTS`에 `-Dorg.gradle.daemon=false`를 더해 빌드마다 종료되는 프로세스만 사용한다.
 
@@ -111,7 +112,7 @@ fingerprint마다 새 캐시 폴더를 만드는 대신 worktree마다 하나의
 - 모바일과 관계없는 `bun.lock` 변경 때문에 Metro의 차가운 시작이 반복될 때
 - Expo가 worktree별 캐시 경계를 공식 지원하거나 공유 캐시의 모든 입력을 안정적으로 구분할 때
 - 다음 개발 세션까지 기다리지 않고 Git worktree 삭제 직후 자원을 반드시 회수해야 할 때
-- 살아 있는 worktree보다 작은 고정 기기 풀 크기를 강제해야 할 때
+- 플랫폼별 5개보다 많은 기기를 동시에 사용해야 하거나 일반 종료 때도 배정을 반납해야 할 때
 
 ## 계속 제외하는 대안
 
