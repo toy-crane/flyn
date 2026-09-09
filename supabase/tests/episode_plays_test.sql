@@ -14,9 +14,9 @@ VALUES
   ('22222222-2222-4222-8222-222222222222', 'story-b@example.test');
 
 -- 회차는 소유자 권한으로 미리 만들어 둔다. 클라이언트가 여는 길은
--- story_runs_test.sql이 따로 확인한다. 여기서 필요한 것은 뒤이은 플레이가
+-- story_plays_test.sql이 따로 확인한다. 여기서 필요한 것은 뒤이은 플레이가
 -- 가리킬 안정된 id다.
-INSERT INTO public.story_runs (id, user_id, story_id)
+INSERT INTO public.story_plays (id, user_id, story_id)
 VALUES
   -- 첫 계정이 미아 카페를 두 번 진행한다.
   (
@@ -44,7 +44,7 @@ SELECT col_is_pk(
 );
 
 SELECT col_is_unique(
-  'public', 'episode_plays', ARRAY['run_id', 'episode_id'],
+  'public', 'episode_plays', ARRAY['story_play_id', 'episode_id'],
   'a run holds at most one play per episode, so another run may play it again'
 );
 
@@ -95,7 +95,7 @@ SELECT ok(
     SELECT bool_and(
       has_column_privilege('authenticated', 'public.episode_plays', c, 'INSERT')
     )
-    FROM unnest(ARRAY['episode_id', 'run_id']) AS c
+    FROM unnest(ARRAY['episode_id', 'story_play_id']) AS c
   )
   AND NOT (
     SELECT bool_or(
@@ -193,7 +193,7 @@ SET LOCAL request.jwt.claims TO '{"sub":"11111111-1111-4111-8111-111111111111","
 
 -- 플레이를 여는 길. 결말은 아직 없다.
 SELECT lives_ok(
-  $$insert into public.episode_plays (run_id, episode_id)
+  $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1a000000-0000-4000-8000-000000000001',
       '11000000-0000-4000-8000-000000000001'
@@ -203,13 +203,13 @@ SELECT lives_ok(
 
 SELECT is(
   (SELECT finished_at FROM public.episode_plays
-   WHERE run_id = '1a000000-0000-4000-8000-000000000001'
+   WHERE story_play_id = '1a000000-0000-4000-8000-000000000001'
      AND episode_id = '11000000-0000-4000-8000-000000000001'),
   NULL, 'an opened play carries no ending yet'
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_plays (run_id, episode_id)
+  $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1a000000-0000-4000-8000-000000000001',
       '11000000-0000-4000-8000-000000000003'
@@ -220,7 +220,7 @@ SELECT throws_ok(
 
 -- 회차의 스토리와 다른 스토리의 화는 그 회차에 매달 수 없다.
 SELECT throws_ok(
-  $$insert into public.episode_plays (run_id, episode_id)
+  $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1a000000-0000-4000-8000-000000000001',
       '12000000-0000-4000-8000-000000000001'
@@ -231,7 +231,7 @@ SELECT throws_ok(
 
 -- 남의 회차는 정책이 막는다. 그 회차는 읽히지도 않으므로 함수가 false를 답한다.
 SELECT throws_ok(
-  $$insert into public.episode_plays (run_id, episode_id)
+  $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1b000000-0000-4000-8000-000000000001',
       '11000000-0000-4000-8000-000000000001'
@@ -241,7 +241,7 @@ SELECT throws_ok(
 
 -- 열 단위 grant가 막으므로 정책까지 가지도 않는다.
 SELECT throws_ok(
-  $$insert into public.episode_plays (user_id, run_id, episode_id)
+  $$insert into public.episode_plays (user_id, story_play_id, episode_id)
     values (
       '22222222-2222-4222-8222-222222222222',
       '1a000000-0000-4000-8000-000000000001',
@@ -270,14 +270,14 @@ SELECT is(
 
 SELECT is(
   (SELECT ending_kind FROM public.episode_plays
-   WHERE run_id = '1a000000-0000-4000-8000-000000000001'
+   WHERE story_play_id = '1a000000-0000-4000-8000-000000000001'
      AND episode_id = '11000000-0000-4000-8000-000000000001'),
   '성공', 'the ending is stored as it was judged'
 );
 
 SELECT isnt(
   (SELECT finished_at FROM public.episode_plays
-   WHERE run_id = '1a000000-0000-4000-8000-000000000001'
+   WHERE story_play_id = '1a000000-0000-4000-8000-000000000001'
      AND episode_id = '11000000-0000-4000-8000-000000000001'),
   NULL, 'and the play is closed from that moment'
 );
@@ -314,7 +314,7 @@ SELECT is(
 
 SELECT is(
   (SELECT ending_kind FROM public.episode_plays
-   WHERE run_id = '1a000000-0000-4000-8000-000000000001'
+   WHERE story_play_id = '1a000000-0000-4000-8000-000000000001'
      AND episode_id = '11000000-0000-4000-8000-000000000001'),
   '성공', 'and it does not overwrite the ending that already happened'
 );
@@ -362,7 +362,7 @@ SELECT lives_ok(
 
 SELECT is(
   (SELECT memory_choice FROM public.episode_plays
-   WHERE run_id = '1a000000-0000-4000-8000-000000000001'
+   WHERE story_play_id = '1a000000-0000-4000-8000-000000000001'
      AND episode_id = '11000000-0000-4000-8000-000000000002'),
   '카드가 막히자 더 싼 음료로 바꿨다.',
   'the story memory is stored with the ending'
@@ -376,7 +376,7 @@ SELECT is(
 
 -- 같은 화를 다른 회차에서 다시 연다. 회차가 기준이 되면서 열리는 문이다.
 SELECT lives_ok(
-  $$insert into public.episode_plays (run_id, episode_id)
+  $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1a000000-0000-4000-8000-000000000002',
       '11000000-0000-4000-8000-000000000001'
@@ -385,7 +385,7 @@ SELECT lives_ok(
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_plays (run_id, episode_id)
+  $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1a000000-0000-4000-8000-000000000002',
       '11000000-0000-4000-8000-000000000002'
@@ -409,7 +409,7 @@ SELECT results_eq(
   $$select ending_kind, memory_choice
     from public.episode_plays
     where episode_id = '11000000-0000-4000-8000-000000000001'
-    order by run_id$$,
+    order by story_play_id$$,
   $$values
     ('성공'::text, '바꿔 달라고 다시 말했다.'::text),
     ('실패'::text, '아무 말도 못 하고 나왔다.'::text)$$,
@@ -417,7 +417,7 @@ SELECT results_eq(
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_plays (run_id, episode_id)
+  $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1a000000-0000-4000-8000-000000000002',
       '11000000-0000-4000-8000-000000000001'
@@ -482,7 +482,7 @@ SELECT is(
 
 -- 앞의 네 화가 끝났으므로 첫 회차의 5화는 이제 열 수 있다.
 SELECT lives_ok(
-  $$insert into public.episode_plays (run_id, episode_id)
+  $$insert into public.episode_plays (story_play_id, episode_id)
     values (
       '1a000000-0000-4000-8000-000000000001',
       '11000000-0000-4000-8000-000000000005'
@@ -520,7 +520,7 @@ RESET ROLE;
 
 SELECT is(
   (SELECT ending_kind FROM public.episode_plays
-   WHERE run_id = '1a000000-0000-4000-8000-000000000001'
+   WHERE story_play_id = '1a000000-0000-4000-8000-000000000001'
      AND episode_id = '11000000-0000-4000-8000-000000000001'),
   '성공', 'the first account''s ending is untouched by the second'
 );

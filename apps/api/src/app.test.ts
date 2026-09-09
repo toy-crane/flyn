@@ -25,7 +25,7 @@ function createUserAuthMiddleware(): MiddlewareHandler {
 
 const STORY_ID = "10000000-0000-4000-8000-000000000001";
 /** 테스트가 이어가는 회차. 새로 시작하는 요청만 이 값을 싣지 않는다. */
-const RUN_ID = "1a000000-0000-4000-8000-000000000001";
+const STORY_PLAY_ID = "1a000000-0000-4000-8000-000000000001";
 /** 새 회차가 생길 때 가짜 데이터베이스가 붙이는 id. */
 const NEW_RUN_ID = "1a000000-0000-4000-8000-00000000000f";
 const EPISODE_IDS = [1, 2, 3, 4, 5].map(
@@ -176,8 +176,8 @@ interface CorrectionRow {
   reason: string;
 }
 
-/** 회차 한 줄, `story_runs`가 들고 있는 모양대로. */
-interface RunRow {
+/** 회차 한 줄, `story_plays`가 들고 있는 모양대로. */
+interface StoryPlayRow {
   id: string;
   last_user_message_at: string | null;
   started_at: string;
@@ -193,14 +193,14 @@ interface SeasonState {
   recordAccepted?: boolean;
   recordError?: string;
   recorded: Record<string, unknown>[];
-  runs: RunRow[];
+  runs: StoryPlayRow[];
   saveError?: string;
 }
 
 /** 이미 진행 중인 회차 하나. 이어가는 테스트가 기본으로 쓴다. */
-function startedRun(): RunRow {
+function startedStoryPlay(): StoryPlayRow {
   return {
-    id: RUN_ID,
+    id: STORY_PLAY_ID,
     last_user_message_at: "2026-08-29T00:05:00.000Z",
     started_at: "2026-08-29T00:00:00.000Z",
     story_id: STORY_ID,
@@ -213,7 +213,7 @@ function createSeasonState(finished: FinishedRow[] = []): SeasonState {
     finished,
     messages: [],
     recorded: [],
-    runs: [startedRun()],
+    runs: [startedStoryPlay()],
   };
 }
 
@@ -254,7 +254,7 @@ type Row = Record<string, unknown>;
 function signedInWith(state: SeasonState): MiddlewareHandler {
   const openedPlays = new Set<string>();
   /** 이번 요청이 연 플레이가 어느 회차에 붙었는지. */
-  const openedRuns = new Map<string, string>();
+  const openedStoryPlays = new Map<string, string>();
 
   function finishedRows(): Row[] {
     return state.finished.map(({ episode, ...row }) => {
@@ -265,10 +265,10 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
         episode_id: identifier,
         finished_at: `2026-08-29T00:0${episode}:00.000Z`,
         id: playIdOf(identifier),
+        started_at: `2026-08-29T00:0${episode}:00.000Z`,
         // 진행은 회차 안에서만 읽힌다. 가짜도 그 열을 달아 주어야 회차로 거르는
         // 조회가 실제와 같은 답을 낸다.
-        run_id: state.runs.at(0)?.id ?? RUN_ID,
-        started_at: `2026-08-29T00:0${episode}:00.000Z`,
+        story_play_id: state.runs.at(0)?.id ?? STORY_PLAY_ID,
       };
     });
   }
@@ -287,8 +287,9 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
         episode_id: id.slice("play-".length),
         finished_at: null,
         id,
-        run_id: openedRuns.get(id) ?? state.runs.at(0)?.id ?? RUN_ID,
         started_at: "2026-08-29T00:10:00.000Z",
+        story_play_id:
+          openedStoryPlays.get(id) ?? state.runs.at(0)?.id ?? STORY_PLAY_ID,
       }));
 
     return [...finished, ...open];
@@ -323,7 +324,7 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
           return TEST_EPISODES as unknown as Row[];
         }
 
-        if (table === "story_runs") {
+        if (table === "story_plays") {
           return state.runs as unknown as Row[];
         }
 
@@ -399,7 +400,9 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
           return ordered.map((run) => ({
             ...run,
             episode_plays: playRows()
-              .filter((play) => value(play, "run_id") === value(run, "id"))
+              .filter(
+                (play) => value(play, "story_play_id") === value(run, "id")
+              )
               .map((play) => ({
                 ...play,
                 episode_messages: [
@@ -558,8 +561,8 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
               return writeResult(null);
             }
 
-            if (table === "story_runs") {
-              const run: RunRow = {
+            if (table === "story_plays") {
+              const run: StoryPlayRow = {
                 id: NEW_RUN_ID,
                 last_user_message_at: null,
                 started_at: nextCreatedAt(),
@@ -573,12 +576,16 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
 
             const identifier = String(added[0]?.episode_id);
             const id = playIdOf(identifier);
-            const run = String(added[0]?.run_id);
+            const run = String(added[0]?.story_play_id);
 
             openedPlays.add(id);
-            openedRuns.set(id, run);
+            openedStoryPlays.set(id, run);
 
-            return writeResult({ episode_id: identifier, id, run_id: run });
+            return writeResult({
+              episode_id: identifier,
+              id,
+              story_play_id: run,
+            });
           },
           maybeSingle: () =>
             Promise.resolve({ data: rows()[0] ?? null, error: null }),
@@ -745,21 +752,21 @@ function createEpisodeRequest(
     keepThrough?: string | null;
     message?: unknown;
     messages?: unknown[];
-    runId?: string | null;
+    storyPlayId?: string | null;
     seenPatterns?: string[];
     storyId?: string;
   },
   token?: string
 ): Request {
-  const { messages, runId, ...rest } = body;
+  const { messages, storyPlayId, ...rest } = body;
   const sent =
     messages === undefined ? rest : { ...rest, message: messages.at(-1) };
-  // 이어가는 요청이 기본이다. `runId: null`은 회차를 싣지 않는다는 뜻이라, 새
+  // 이어가는 요청이 기본이다. `storyPlayId: null`은 회차를 싣지 않는다는 뜻이라, 새
   // 대화를 시작하는 테스트가 그렇게 적는다.
   const payload =
-    runId === null || rest.storyId !== undefined
+    storyPlayId === null || rest.storyId !== undefined
       ? sent
-      : { ...sent, runId: runId ?? RUN_ID };
+      : { ...sent, storyPlayId: storyPlayId ?? STORY_PLAY_ID };
 
   return new Request(`http://localhost${EPISODE_PATH}`, {
     body: JSON.stringify(payload),
@@ -778,8 +785,11 @@ function createRecentRequest(token?: string): Request {
 }
 
 /** 저장된 대화 한 화를 회차와 함께 읽는 요청. */
-function episodeSessionPath(number: number, runId: string = RUN_ID): string {
-  return `${EPISODE_PATH}/${episodeId(number)}?runId=${runId}`;
+function episodeSessionPath(
+  number: number,
+  storyPlayId: string = STORY_PLAY_ID
+): string {
+  return `${EPISODE_PATH}/${episodeId(number)}?storyPlayId=${storyPlayId}`;
 }
 
 function createUserMessage(text: string) {
@@ -1172,7 +1182,7 @@ describe("POST /ai/episode", () => {
         memory_question: undefined,
         memory_relationship: undefined,
         outcome: "원하던 커피를 새로 받아냈다.",
-        run_id: RUN_ID,
+        story_play_id: STORY_PLAY_ID,
       },
     ]);
   });
@@ -1207,7 +1217,7 @@ describe("POST /ai/episode", () => {
         memory_question: "내일도 이 카페에 들를지.",
         memory_relationship: "Mia가 실수를 인정했다.",
         outcome: "원하던 커피를 새로 받아냈다.",
-        run_id: RUN_ID,
+        story_play_id: STORY_PLAY_ID,
       },
     ]);
     expect(body).toContain("Here is your iced americano.");
@@ -1474,7 +1484,7 @@ test("표현만 다시 확인하면 문제없음을 명시하고 대화는 바�
       body: JSON.stringify({
         episodeId: episodeId(1),
         messageId: "natural-message",
-        runId: RUN_ID,
+        storyPlayId: STORY_PLAY_ID,
       }),
       headers: { "content-type": "application/json" },
       method: "POST",
@@ -1517,7 +1527,11 @@ describe("메시지별 표현 확인 API", () => {
   }
   function request(messageId = "m1", identifier = episodeId(1)) {
     return new Request(`http://localhost${EPISODE_PATH}/correction`, {
-      body: JSON.stringify({ episodeId: identifier, messageId, runId: RUN_ID }),
+      body: JSON.stringify({
+        episodeId: identifier,
+        messageId,
+        storyPlayId: STORY_PLAY_ID,
+      }),
       headers: { "content-type": "application/json" },
       method: "POST",
     });
@@ -2042,9 +2056,9 @@ interface RecentViewBody {
   }[];
 }
 
-interface RunsViewBody {
+interface StoryPlaysViewBody {
   intro: string;
-  runs: {
+  plays: {
     episodes: {
       episodeId: string;
       hasTranscript: boolean;
@@ -2054,7 +2068,7 @@ interface RunsViewBody {
     }[];
     finished: number;
     next: { episodeId: string; number: number; title: string } | null;
-    runId: string;
+    storyPlayId: string;
     startedAt: string;
   }[];
   storyId: string;
@@ -2126,7 +2140,7 @@ describe("GET /ai/episode/recent", () => {
     const state = createEmptyState();
 
     state.runs.push({
-      id: RUN_ID,
+      id: STORY_PLAY_ID,
       last_user_message_at: null,
       started_at: "2026-08-29T00:00:00.000Z",
       story_id: STORY_ID,
@@ -2141,14 +2155,14 @@ describe("GET /ai/episode/recent", () => {
   });
 });
 
-describe("GET /ai/episode/stories/:storyId/runs", () => {
+describe("GET /ai/episode/stories/:storyId/plays", () => {
   test("answers 404 for a story that does not exist", async () => {
     const app = createApp({
       authMiddleware: signedInWith(createSeasonState()),
     });
 
     const response = await app.request(
-      `${EPISODE_PATH}/stories/10000000-0000-4000-8000-000000000009/runs`
+      `${EPISODE_PATH}/stories/10000000-0000-4000-8000-000000000009/plays`
     );
 
     expect(response.status).toBe(404);
@@ -2159,12 +2173,12 @@ describe("GET /ai/episode/stories/:storyId/runs", () => {
     const app = createApp({ authMiddleware: signedInWith(createEmptyState()) });
 
     const response = await app.request(
-      `${EPISODE_PATH}/stories/${STORY_ID}/runs`
+      `${EPISODE_PATH}/stories/${STORY_ID}/plays`
     );
-    const view = (await response.json()) as RunsViewBody;
+    const view = (await response.json()) as StoryPlaysViewBody;
 
     expect(response.status).toBe(200);
-    expect(view.runs).toEqual([]);
+    expect(view.plays).toEqual([]);
     expect(view.title).toBe("Mia의 카페");
     expect(view.total).toBe(5);
   });
@@ -2184,18 +2198,18 @@ describe("GET /ai/episode/stories/:storyId/runs", () => {
     });
 
     const response = await app.request(
-      `${EPISODE_PATH}/stories/${STORY_ID}/runs`
+      `${EPISODE_PATH}/stories/${STORY_ID}/plays`
     );
-    const view = (await response.json()) as RunsViewBody;
-    const [run] = view.runs;
+    const view = (await response.json()) as StoryPlaysViewBody;
+    const [storyPlay] = view.plays;
 
-    expect(run).toMatchObject({
+    expect(storyPlay).toMatchObject({
       finished: 1,
       next: { episodeId: episodeId(2), number: 2, title: "계산이 꼬인 아침" },
-      runId: RUN_ID,
       startedAt: "2026-08-29T00:00:00.000Z",
+      storyPlayId: STORY_PLAY_ID,
     });
-    expect(run?.episodes).toEqual([
+    expect(storyPlay?.episodes).toEqual([
       {
         episodeId: episodeId(1),
         hasTranscript: false,
@@ -2213,11 +2227,11 @@ describe("GET /ai/episode/stories/:storyId/runs", () => {
     });
 
     const response = await app.request(
-      `${EPISODE_PATH}/stories/${STORY_ID}/runs`
+      `${EPISODE_PATH}/stories/${STORY_ID}/plays`
     );
-    const view = (await response.json()) as RunsViewBody;
+    const view = (await response.json()) as StoryPlaysViewBody;
 
-    expect(view.runs[0]).toMatchObject({ finished: 5, next: null });
+    expect(view.plays[0]).toMatchObject({ finished: 5, next: null });
   });
 
   // 결말 낱말은 서버 안에서만 쓴다. 기록으로 나가는 값에 실리지 않는다.
@@ -2235,7 +2249,7 @@ describe("GET /ai/episode/stories/:storyId/runs", () => {
     });
 
     const response = await app.request(
-      `${EPISODE_PATH}/stories/${STORY_ID}/runs`
+      `${EPISODE_PATH}/stories/${STORY_ID}/plays`
     );
 
     expect(await response.text()).not.toContain("성공");
@@ -2256,11 +2270,11 @@ describe("GET /ai/episode/stories/:storyId/runs", () => {
     const app = createApp({ authMiddleware: signedInWith(state) });
 
     const response = await app.request(
-      `${EPISODE_PATH}/stories/${STORY_ID}/runs`
+      `${EPISODE_PATH}/stories/${STORY_ID}/plays`
     );
-    const view = (await response.json()) as RunsViewBody;
+    const view = (await response.json()) as StoryPlaysViewBody;
 
-    expect(view.runs[0]).toMatchObject({
+    expect(view.plays[0]).toMatchObject({
       episodes: [],
       finished: 0,
       next: { number: 1 },
@@ -2429,7 +2443,7 @@ describe("story content database contract", () => {
     });
 
     const response = await app.request(
-      `${EPISODE_PATH}/not-a-uuid?runId=${RUN_ID}`
+      `${EPISODE_PATH}/not-a-uuid?storyPlayId=${STORY_PLAY_ID}`
     );
 
     expect(response.status).toBe(404);
@@ -2650,15 +2664,15 @@ describe("story content database contract", () => {
 
     const app = createApp({ authMiddleware: signedInWith(state) });
     const response = await app.request(
-      `${EPISODE_PATH}/stories/${STORY_ID}/runs`
+      `${EPISODE_PATH}/stories/${STORY_ID}/plays`
     );
     const view = (await response.json()) as {
-      runs: { episodes: { hasTranscript: boolean }[] }[];
+      plays: { episodes: { hasTranscript: boolean }[] }[];
     };
-    const [run] = view.runs;
+    const [storyPlay] = view.plays;
 
-    expect(run?.episodes[0]?.hasTranscript).toBeTrue();
-    expect(run?.episodes[1]?.hasTranscript).toBeFalse();
+    expect(storyPlay?.episodes[0]?.hasTranscript).toBeTrue();
+    expect(storyPlay?.episodes[1]?.hasTranscript).toBeFalse();
   });
 
   test("keeps playing when an active-scene save fails", async () => {
@@ -2999,7 +3013,7 @@ describe("새 대화 시작", () => {
       },
     ]);
     // 앱은 이 회차가 생긴 것을 응답에서 처음 안다.
-    expect(body).toContain('"type":"data-run-started"');
+    expect(body).toContain('"type":"data-story-play-started"');
     expect(body).toContain(NEW_RUN_ID);
   });
 
@@ -3029,7 +3043,10 @@ describe("새 대화 시작", () => {
     const app = createApp({ authMiddleware: signedInWith(createEmptyState()) });
 
     const response = await app.request(
-      createEpisodeRequest({ messages: [createUserMessage("Hi")], runId: null })
+      createEpisodeRequest({
+        messages: [createUserMessage("Hi")],
+        storyPlayId: null,
+      })
     );
 
     expect(response.status).toBe(400);

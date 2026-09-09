@@ -51,7 +51,7 @@ export interface RecentStory {
 }
 
 /** 회차 카드를 펼치면 보이는 끝낸 화 한 줄. */
-export interface StoryRunEpisode {
+export interface StoryPlayEpisode {
   episodeId: string;
   /** 다시 열어 읽을 대화가 남아 있다. 없으면 누를 수 없다. */
   hasTranscript: boolean;
@@ -62,8 +62,8 @@ export interface StoryRunEpisode {
 }
 
 /** 대화 기록의 회차 카드 하나. */
-export interface StoryRun {
-  episodes: StoryRunEpisode[];
+export interface StoryPlay {
+  episodes: StoryPlayEpisode[];
   /** 끝낸 화 수. 분절 진행 바가 이만큼 찬다. */
   finished: number;
   /** 이어갈 화. 이 회차를 완주했으면 없다. */
@@ -72,17 +72,17 @@ export interface StoryRun {
     number: number;
     title: string;
   } | null;
-  runId: string;
   /** 카드 제목이 되는 시작 시각. */
   startedAt: string;
+  storyPlayId: string;
 }
 
 /** 대화 기록 화면 한 장. */
-export interface StoryRuns {
+export interface StoryPlays {
   coverEmoji: string;
   coverImagePath: string | null;
   intro: string;
-  runs: StoryRun[];
+  plays: StoryPlay[];
   storyId: string;
   title: string;
   total: number;
@@ -127,12 +127,12 @@ export function readRecentStories(accessToken: string): Promise<RecentStory[]> {
   ).then((view) => view.stories);
 }
 
-export function readStoryRuns(
+export function readStoryPlays(
   accessToken: string,
   storyId: string
-): Promise<StoryRuns> {
+): Promise<StoryPlays> {
   return read(
-    `${STORIES_API_PATH}/${storyId}/runs`,
+    `${STORIES_API_PATH}/${storyId}/plays`,
     accessToken,
     "the conversations"
   );

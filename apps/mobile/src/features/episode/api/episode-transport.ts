@@ -35,15 +35,16 @@ export const EPISODE_API_PATH = "/ai/episode";
 export function createEpisodeTransport(
   getAccessToken: () => string | undefined,
   getEpisodeId: () => string | undefined,
-  getRunId: () => string | undefined,
+  getStoryPlayId: () => string | undefined,
   getStoryId: () => string | undefined
 ): DefaultChatTransport<UIMessage> {
   return new DefaultChatTransport<UIMessage>({
     ...aiRequestOptions(EPISODE_API_PATH, getAccessToken),
     prepareSendMessagesRequest: ({ messages, trigger }) => {
       const episodeId = getEpisodeId();
-      const runId = getRunId();
-      const where = runId === undefined ? { storyId: getStoryId() } : { runId };
+      const storyPlayId = getStoryPlayId();
+      const where =
+        storyPlayId === undefined ? { storyId: getStoryId() } : { storyPlayId };
 
       if (trigger === "regenerate-message") {
         return {

@@ -318,7 +318,7 @@ create trigger profiles_guard_username_change
 -- 문장이 열린다.
 --
 -- `security invoker`다. 이 함수가 읽는 테이블은 호출자가 이미 읽을 수 있고,
--- `public.episode_plays`와 `public.story_runs`에 걸리는 RLS는 자기 행만 남기므로
+-- `public.episode_plays`와 `public.story_plays`에 걸리는 RLS는 자기 행만 남기므로
 -- 아래 `run.user_id` 조건과 같은 결과를 준다. 소유자 권한이 필요 없으면 주지
 -- 않는다. 정책이 이 함수를 부르는 것으로 재귀가 생기지도 않는다.
 -- `episode_plays`의 select 정책이 자기 테이블을 읽지 않기 때문이다.
@@ -332,7 +332,7 @@ create trigger profiles_guard_username_change
 -- 외래키가 따로 막는다.
 create function public.episode_is_current(
   target_episode uuid,
-  target_run uuid
+  target_story_play uuid
 )
 returns boolean
 language sql
@@ -343,8 +343,8 @@ as $$
   select exists (
     select 1
     from public.episodes target
-    join public.story_runs run
-      on run.id = episode_is_current.target_run
+    join public.story_plays run
+      on run.id = episode_is_current.target_story_play
       and run.user_id = (select auth.uid())
       and run.story_id = target.story_id
     where target.id = episode_is_current.target_episode
@@ -352,7 +352,7 @@ as $$
         select 1
         from public.episodes earlier
         left join public.episode_plays played
-          on played.run_id = run.id
+          on played.story_play_id = run.id
           and played.episode_id = earlier.id
           and played.finished_at is not null
         where earlier.story_id = target.story_id
@@ -379,10 +379,10 @@ grant execute on function public.episode_is_current(uuid, uuid) to authenticated
 -- `greatest`로 미는 것은 뒤로 돌아가지 않게 하기 위해서다. 다시 받기가 뒤를 잘라
 -- 내고 새 메시지를 넣어도 이 시각은 앞으로만 간다.
 --
--- `security definer`다. `authenticated`에게는 `story_runs`의 update 권한이 없고,
+-- `security definer`다. `authenticated`에게는 `story_plays`의 update 권한이 없고,
 -- 앞으로도 주지 않는다. 그 열을 클라이언트가 쓸 수 있으면 순서가 조회와 무관하다는
 -- 규칙이 앱 밖에서 깨진다.
-create function public.touch_story_run()
+create function public.touch_story_play()
 returns trigger
 language plpgsql
 security definer
@@ -393,28 +393,28 @@ begin
     return new;
   end if;
 
-  update public.story_runs
+  update public.story_plays
   set last_user_message_at = greatest(
-    coalesce(public.story_runs.last_user_message_at, new.created_at),
+    coalesce(public.story_plays.last_user_message_at, new.created_at),
     new.created_at
   )
   from public.episode_plays played
   where played.id = new.play_id
-    and public.story_runs.id = played.run_id;
+    and public.story_plays.id = played.story_play_id;
 
   return new;
 end;
 $$;
 
-comment on function public.touch_story_run() is
+comment on function public.touch_story_play() is
   'Moves the run''s last_user_message_at forward when a user message lands. The only writer of that column.';
 
-revoke all on function public.touch_story_run() from public;
+revoke all on function public.touch_story_play() from public;
 
-create trigger episode_messages_touch_run
+create trigger episode_messages_touch_story_play
   after insert on public.episode_messages
   for each row
-  execute function public.touch_story_run();
+  execute function public.touch_story_play();
 
 -- 끝난 에피소드를 기록하는 유일한 길.
 --
@@ -426,7 +426,7 @@ create trigger episode_messages_touch_run
 -- 같은 화의 결말이 다시 도착하면 false를 돌려준다. 한 번 난 결말은 그 스토리의
 -- 사실로 남으므로 나중에 온 판정이 앞의 사실을 바꾸거나 화면을 닫지 않는다.
 create function public.finish_episode(
-  run_id uuid,
+  story_play_id uuid,
   episode_id uuid,
   kind text,
   outcome text,
@@ -453,10 +453,10 @@ begin
   -- 걸리지 않으므로, 남의 회차를 닫는 요청을 막는 것이 여기다.
   if not public.episode_is_current(
     finish_episode.episode_id,
-    finish_episode.run_id
+    finish_episode.story_play_id
   ) then
     raise exception 'Episode % is not the current episode in run %.',
-      finish_episode.episode_id, finish_episode.run_id
+      finish_episode.episode_id, finish_episode.story_play_id
       using errcode = '22023';
   end if;
 
@@ -464,7 +464,7 @@ begin
   -- 플레이를 만들면서 닫는다.
   insert into public.episode_plays (
     user_id,
-    run_id,
+    story_play_id,
     episode_id,
     ending_kind,
     ending_outcome,
@@ -475,7 +475,7 @@ begin
   )
   values (
     player,
-    finish_episode.run_id,
+    finish_episode.story_play_id,
     finish_episode.episode_id,
     finish_episode.kind,
     finish_episode.outcome,
@@ -484,7 +484,7 @@ begin
     finish_episode.memory_question,
     now()
   )
-  on conflict on constraint episode_plays_one_per_run do update
+  on conflict on constraint episode_plays_one_per_story_play do update
   set ending_kind = excluded.ending_kind,
       ending_outcome = excluded.ending_outcome,
       memory_choice = excluded.memory_choice,

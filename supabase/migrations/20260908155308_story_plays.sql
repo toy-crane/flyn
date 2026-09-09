@@ -15,7 +15,7 @@ DROP FUNCTION public.episode_is_current(target_episode uuid);
 
 CREATE FUNCTION public.episode_is_current (
   target_episode uuid,
-  target_run     uuid
+  target_story_play     uuid
 )
   RETURNS boolean
   LANGUAGE sql
@@ -25,8 +25,8 @@ CREATE FUNCTION public.episode_is_current (
   select exists (
     select 1
     from public.episodes target
-    join public.story_runs run
-      on run.id = episode_is_current.target_run
+    join public.story_plays run
+      on run.id = episode_is_current.target_story_play
       and run.user_id = (select auth.uid())
       and run.story_id = target.story_id
     where target.id = episode_is_current.target_episode
@@ -34,7 +34,7 @@ CREATE FUNCTION public.episode_is_current (
         select 1
         from public.episodes earlier
         left join public.episode_plays played
-          on played.run_id = run.id
+          on played.story_play_id = run.id
           and played.episode_id = earlier.id
           and played.finished_at is not null
         where earlier.story_id = target.story_id
@@ -51,7 +51,7 @@ REVOKE ALL ON FUNCTION public.episode_is_current(uuid, uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.episode_is_current(uuid, uuid) TO authenticated;
 
 CREATE FUNCTION public.finish_episode (
-  run_id              uuid,
+  story_play_id              uuid,
   episode_id          uuid,
   kind                text,
   outcome             text,
@@ -78,10 +78,10 @@ begin
   -- 걸리지 않으므로, 남의 회차를 닫는 요청을 막는 것이 여기다.
   if not public.episode_is_current(
     finish_episode.episode_id,
-    finish_episode.run_id
+    finish_episode.story_play_id
   ) then
     raise exception 'Episode % is not the current episode in run %.',
-      finish_episode.episode_id, finish_episode.run_id
+      finish_episode.episode_id, finish_episode.story_play_id
       using errcode = '22023';
   end if;
 
@@ -89,7 +89,7 @@ begin
   -- 플레이를 만들면서 닫는다.
   insert into public.episode_plays (
     user_id,
-    run_id,
+    story_play_id,
     episode_id,
     ending_kind,
     ending_outcome,
@@ -100,7 +100,7 @@ begin
   )
   values (
     player,
-    finish_episode.run_id,
+    finish_episode.story_play_id,
     finish_episode.episode_id,
     finish_episode.kind,
     finish_episode.outcome,
@@ -109,7 +109,7 @@ begin
     finish_episode.memory_question,
     now()
   )
-  on conflict on constraint episode_plays_one_per_run do update
+  on conflict on constraint episode_plays_one_per_story_play do update
   set ending_kind = excluded.ending_kind,
       ending_outcome = excluded.ending_outcome,
       memory_choice = excluded.memory_choice,
@@ -138,7 +138,7 @@ REVOKE ALL ON FUNCTION public.finish_episode(uuid, uuid, text, text, text, text,
 
 GRANT ALL ON FUNCTION public.finish_episode(uuid, uuid, text, text, text, text, text, text) TO authenticated;
 
-CREATE FUNCTION public.touch_story_run()
+CREATE FUNCTION public.touch_story_play()
   RETURNS TRIGGER
   LANGUAGE plpgsql
   SECURITY DEFINER
@@ -149,38 +149,38 @@ begin
     return new;
   end if;
 
-  update public.story_runs
+  update public.story_plays
   set last_user_message_at = greatest(
-    coalesce(public.story_runs.last_user_message_at, new.created_at),
+    coalesce(public.story_plays.last_user_message_at, new.created_at),
     new.created_at
   )
   from public.episode_plays played
   where played.id = new.play_id
-    and public.story_runs.id = played.run_id;
+    and public.story_plays.id = played.story_play_id;
 
   return new;
 end;
 $function$;
 
-COMMENT ON FUNCTION public.touch_story_run() IS 'Moves the run''s last_user_message_at forward when a user message lands. The only writer of that column.';
+COMMENT ON FUNCTION public.touch_story_play() IS 'Moves the run''s last_user_message_at forward when a user message lands. The only writer of that column.';
 
-REVOKE ALL ON FUNCTION public.touch_story_run() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.touch_story_play() FROM PUBLIC;
 
-CREATE TRIGGER episode_messages_touch_run
+CREATE TRIGGER episode_messages_touch_story_play
   AFTER INSERT ON public.episode_messages
   FOR EACH ROW
-  EXECUTE FUNCTION public.touch_story_run();
+  EXECUTE FUNCTION public.touch_story_play();
 
 COMMENT ON TABLE public.episode_plays IS 'One account playing one episode inside one run: when it started, how it ended, and the story memory it left.';
 
 -- 이미 있는 행에 회차를 달아야 하므로 널을 허용한 채로 먼저 붙인다. 아래에서
 -- 기존 기록을 회차로 묶어 채운 뒤 NOT NULL로 조인다.
 ALTER TABLE public.episode_plays
-  ADD COLUMN run_id uuid;
+  ADD COLUMN story_play_id uuid;
 
-COMMENT ON COLUMN public.episode_plays.run_id IS 'The run this play belongs to. Story memory never crosses it.';
+COMMENT ON COLUMN public.episode_plays.story_play_id IS 'The run this play belongs to. Story memory never crosses it.';
 
-CREATE TABLE public.story_runs (
+CREATE TABLE public.story_plays (
   id                   uuid                     DEFAULT gen_random_uuid() NOT NULL,
   user_id              uuid                     DEFAULT auth.uid() NOT NULL,
   story_id             uuid                     NOT NULL,
@@ -188,45 +188,45 @@ CREATE TABLE public.story_runs (
   last_user_message_at timestamp with time zone
 );
 
-COMMENT ON TABLE public.story_runs IS 'One account playing one story from episode 1. Created by the first user message, never by opening a scene.';
+COMMENT ON TABLE public.story_plays IS 'One account playing one story from episode 1. Created by the first user message, never by opening a scene.';
 
-COMMENT ON COLUMN public.story_runs.started_at IS 'When this run began, which is when its first user message arrived. Shown as the record card title.';
+COMMENT ON COLUMN public.story_plays.started_at IS 'When this run began, which is when its first user message arrived. Shown as the record card title.';
 
-COMMENT ON COLUMN public.story_runs.last_user_message_at IS 'When this run last received a user message. Written by a trigger, so reading a record cannot move it.';
+COMMENT ON COLUMN public.story_plays.last_user_message_at IS 'When this run last received a user message. Written by a trigger, so reading a record cannot move it.';
 
-ALTER TABLE public.story_runs
+ALTER TABLE public.story_plays
   ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE public.story_runs
-  ADD CONSTRAINT story_runs_owned_id UNIQUE (id, user_id);
+ALTER TABLE public.story_plays
+  ADD CONSTRAINT story_plays_owned_id UNIQUE (id, user_id);
 
-ALTER TABLE public.story_runs
-  ADD CONSTRAINT story_runs_pkey PRIMARY KEY (id);
+ALTER TABLE public.story_plays
+  ADD CONSTRAINT story_plays_pkey PRIMARY KEY (id);
 
-ALTER TABLE public.story_runs
-  ADD CONSTRAINT story_runs_story_id_fkey FOREIGN KEY (story_id) REFERENCES public.stories(id) ON DELETE RESTRICT;
+ALTER TABLE public.story_plays
+  ADD CONSTRAINT story_plays_story_id_fkey FOREIGN KEY (story_id) REFERENCES public.stories(id) ON DELETE RESTRICT;
 
-ALTER TABLE public.story_runs
-  ADD CONSTRAINT story_runs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.story_plays
+  ADD CONSTRAINT story_plays_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 
-GRANT MAINTAIN, REFERENCES, TRIGGER, TRUNCATE ON public.story_runs TO anon;
+GRANT MAINTAIN, REFERENCES, TRIGGER, TRUNCATE ON public.story_plays TO anon;
 
-GRANT INSERT (story_id) ON public.story_runs TO authenticated;
+GRANT INSERT (story_id) ON public.story_plays TO authenticated;
 
-GRANT MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE ON public.story_runs TO authenticated;
+GRANT MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE ON public.story_plays TO authenticated;
 
-GRANT ALL ON public.story_runs TO service_role;
+GRANT ALL ON public.story_plays TO service_role;
 
-CREATE INDEX story_runs_user_id_last_message_idx ON public.story_runs (user_id, last_user_message_at DESC);
+CREATE INDEX story_plays_user_id_last_message_idx ON public.story_plays (user_id, last_user_message_at DESC);
 
-CREATE INDEX story_runs_story_id_idx ON public.story_runs (story_id);
+CREATE INDEX story_plays_story_id_idx ON public.story_plays (story_id);
 
-CREATE POLICY story_runs_select_own ON public.story_runs
+CREATE POLICY story_plays_select_own ON public.story_plays
   FOR SELECT
   TO authenticated
   USING ((( SELECT auth.uid() AS uid) = user_id));
 
-CREATE POLICY story_runs_start_own ON public.story_runs
+CREATE POLICY story_plays_start_own ON public.story_plays
   FOR INSERT
   TO authenticated
   WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
@@ -245,47 +245,47 @@ CREATE POLICY story_runs_start_own ON public.story_runs
 -- 회차를 받되 `last_user_message_at`이 NULL로 남아 대화 기록과 최근 대화에
 -- 나오지 않는다. 사용자가 말하지 않은 진입을 기록으로 세우지 않는 수락 기준 4·9와
 -- 같은 판단이다. 원격에 그런 묶음이 몇 개인지는 이 자리에서 확인하지 않았다.
--- docs/follow-ups/runs-backfilled-without-a-user-message.md를 본다.
-INSERT INTO public.story_runs (user_id, story_id, started_at)
+-- docs/follow-ups/story-plays-backfilled-without-a-user-message.md를 본다.
+INSERT INTO public.story_plays (user_id, story_id, started_at)
 SELECT played.user_id, episode.story_id, min(played.started_at)
 FROM public.episode_plays played
 JOIN public.episodes episode ON episode.id = played.episode_id
 GROUP BY played.user_id, episode.story_id;
 
 UPDATE public.episode_plays played
-SET run_id = run.id
-FROM public.episodes episode, public.story_runs run
+SET story_play_id = run.id
+FROM public.episodes episode, public.story_plays run
 WHERE episode.id = played.episode_id
   AND run.user_id = played.user_id
   AND run.story_id = episode.story_id;
 
 -- 옮긴 회차의 최근 대화 시각은 그 회차에 남은 사용자 메시지에서 읽는다. 앞으로는
--- `public.touch_story_run`이 같은 값을 민다.
-UPDATE public.story_runs run
+-- `public.touch_story_play`이 같은 값을 민다.
+UPDATE public.story_plays run
 SET last_user_message_at = latest.at
 FROM (
-  SELECT played.run_id, max(message.created_at) AS at
+  SELECT played.story_play_id, max(message.created_at) AS at
   FROM public.episode_messages message
   JOIN public.episode_plays played ON played.id = message.play_id
   WHERE message.role = 'user'
-  GROUP BY played.run_id
+  GROUP BY played.story_play_id
 ) latest
-WHERE latest.run_id = run.id;
+WHERE latest.story_play_id = run.id;
 
 ALTER TABLE public.episode_plays
-  ALTER COLUMN run_id SET NOT NULL;
+  ALTER COLUMN story_play_id SET NOT NULL;
 
 ALTER TABLE public.episode_plays
-  ADD CONSTRAINT episode_plays_one_per_run UNIQUE (run_id, episode_id);
+  ADD CONSTRAINT episode_plays_one_per_story_play UNIQUE (story_play_id, episode_id);
 
 ALTER TABLE public.episode_plays
-  ADD CONSTRAINT episode_plays_run_id_user_id_fkey FOREIGN KEY (run_id, user_id) REFERENCES public.story_runs(id, user_id) ON DELETE CASCADE;
+  ADD CONSTRAINT episode_plays_story_play_id_user_id_fkey FOREIGN KEY (story_play_id, user_id) REFERENCES public.story_plays(id, user_id) ON DELETE CASCADE;
 
 REVOKE INSERT (episode_id) ON public.episode_plays FROM authenticated;
 
-GRANT INSERT (episode_id, run_id) ON public.episode_plays TO authenticated;
+GRANT INSERT (episode_id, story_play_id) ON public.episode_plays TO authenticated;
 
 CREATE POLICY episode_plays_start_own ON public.episode_plays
   FOR INSERT
   TO authenticated
-  WITH CHECK (((( SELECT auth.uid() AS uid) = user_id) AND public.episode_is_current(episode_id, run_id)));
+  WITH CHECK (((( SELECT auth.uid() AS uid) = user_id) AND public.episode_is_current(episode_id, story_play_id)));

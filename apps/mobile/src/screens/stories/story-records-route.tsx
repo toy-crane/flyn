@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import { Platform } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
-import { useStoryRuns } from "@/features/story/query/story";
+import { useStoryPlays } from "@/features/story/query/story";
 import { useStartConversation } from "@/features/story/state/use-start-conversation";
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { NewConversationAction } from "@/screens/stories/new-conversation-action";
@@ -25,16 +25,20 @@ export function StoryRecordsRoute() {
   const { session } = useAuthSession();
   const params = useLocalSearchParams<{ storyId?: string | string[] }>();
   const storyId = firstParam(params.storyId);
-  const runs = useStoryRuns(session?.user.id, session?.access_token, storyId);
-  const { isRetrying, retry } = useVisibleRetry(runs.refetch);
+  const storyPlays = useStoryPlays(
+    session?.user.id,
+    session?.access_token,
+    storyId
+  );
+  const { isRetrying, retry } = useVisibleRetry(storyPlays.refetch);
   const { onStart } = useStartConversation(
     session?.user.id,
     session?.access_token,
     storyId
   );
-  const openEpisode = useCallback((runId: string, episodeId: string) => {
+  const openEpisode = useCallback((storyPlayId: string, episodeId: string) => {
     router.push({
-      params: { episodeId, runId },
+      params: { episodeId, storyPlayId },
       pathname: "/episode",
     });
   }, []);
@@ -42,12 +46,12 @@ export function StoryRecordsRoute() {
   return (
     <>
       <StoryRecordsScreen
-        isLoading={runs.isPending && !isRetrying}
+        isLoading={storyPlays.isPending && !isRetrying}
         isRetrying={isRetrying}
         onOpenEpisode={openEpisode}
         onResume={openEpisode}
         onRetry={retry}
-        runs={runs.data}
+        storyPlays={storyPlays.data}
       />
       <Stack.Toolbar placement="right">
         {Platform.OS === "ios" ? (

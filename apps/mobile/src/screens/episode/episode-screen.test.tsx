@@ -55,7 +55,7 @@ jest.mock("@/features/episode/state/episode-asks", () => ({
  * what the real hook does on mount, so the stand-in reports the same moment:
  * a fresh run means the scene starts over.
  */
-const mockOpenedRuns =
+const mockOpenedStoryPlays =
   jest.fn<
     (
       token: string | undefined,
@@ -94,18 +94,18 @@ let mockCorrections: {
   retry: jest.Mock<(messageId: string) => void>;
 };
 
-jest.mock("@/features/episode/state/use-episode-run", () => {
+jest.mock("@/features/episode/state/use-episode-story-play", () => {
   const React = require("react") as typeof import("react");
 
   return {
-    useEpisodeRun: (
+    useEpisodeStoryPlay: (
       accessToken: string | undefined,
       episodeId: string,
       initialMessages: unknown[],
       readOnly: boolean
     ) => {
       React.useEffect(() => {
-        mockOpenedRuns(
+        mockOpenedStoryPlays(
           accessToken,
           episodeId,
           initialMessages.length,
@@ -132,12 +132,12 @@ const PLAYING = {
   initialMessages: [],
   isStartingNext: false,
   onOpenAsk: mockOpenAsk,
-  onRunStarted: jest.fn<(runId: string) => void>(),
+  onStoryPlayStarted: jest.fn<(storyPlayId: string) => void>(),
   readOnly: false,
-  runId: "1a000000-0000-4000-8000-000000000001",
   situation: "다른 방법을 찾아 계산을 끝내 보세요",
   situationEmoji: "💳",
   storyId: "10000000-0000-4000-8000-000000000001",
+  storyPlayId: "1a000000-0000-4000-8000-000000000001",
 };
 
 interface PanelProps {
@@ -224,7 +224,7 @@ beforeEach(() => {
     number: 3,
     title: "자리를 맡아 둔 사이에",
   };
-  mockOpenedRuns.mockClear();
+  mockOpenedStoryPlays.mockClear();
   mockNavigationDispatch.mockClear();
   preventedRemoval = undefined;
   isRemovalPrevented = false;
@@ -245,7 +245,7 @@ test("화면에 들어오면 그 자리에서 에피소드를 연다", async () 
     <EpisodeScreen {...PLAYING} onLeave={jest.fn()} onStartNext={jest.fn()} />
   );
 
-  expect(mockOpenedRuns).toHaveBeenCalledWith(
+  expect(mockOpenedStoryPlays).toHaveBeenCalledWith(
     "token-1",
     PLAYING.episodeId,
     0,
@@ -455,7 +455,7 @@ test("끝난 대화는 입력 없이 읽기 전용으로 연다", async () => {
     />
   );
 
-  expect(mockOpenedRuns).toHaveBeenCalledWith(
+  expect(mockOpenedStoryPlays).toHaveBeenCalledWith(
     "token-1",
     PLAYING.episodeId,
     1,

@@ -2,31 +2,31 @@ import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 import type {
-  StoryRun,
-  StoryRunEpisode,
-  StoryRuns,
+  StoryPlay,
+  StoryPlayEpisode,
+  StoryPlays,
 } from "@/features/story/api/story";
-import { formatRunStart } from "@/features/story/ui/run-time";
 import { StoryCover } from "@/features/story/ui/story-cover";
 import { storyLabels } from "@/features/story/ui/story-labels";
+import { formatStoryPlayStart } from "@/features/story/ui/story-play-time";
 import { StoryProgress } from "@/features/story/ui/story-progress";
 import { StoryEmpty, StoryUnavailable } from "@/features/story/ui/story-status";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 
 /** 펼친 카드 안의 끝낸 화 한 줄. */
-function RunEpisodeRow({
+function StoryPlayEpisodeRow({
   episode,
   onOpenEpisode,
-  runId,
+  storyPlayId,
 }: {
-  episode: StoryRunEpisode;
-  onOpenEpisode: (runId: string, episodeId: string) => void;
-  runId: string;
+  episode: StoryPlayEpisode;
+  onOpenEpisode: (storyPlayId: string, episodeId: string) => void;
+  storyPlayId: string;
 }) {
   const open = useCallback(() => {
-    onOpenEpisode(runId, episode.episodeId);
-  }, [episode.episodeId, onOpenEpisode, runId]);
+    onOpenEpisode(storyPlayId, episode.episodeId);
+  }, [episode.episodeId, onOpenEpisode, storyPlayId]);
   const body = (
     <>
       <Text className="w-9 font-bold text-muted text-sm leading-6">
@@ -59,7 +59,7 @@ function RunEpisodeRow({
       accessibilityRole="button"
       className="flex-row gap-3 py-3"
       onPress={open}
-      testID={`run-episode-${episode.number}`}
+      testID={`story-play-episode-${episode.number}`}
     >
       {body}
     </Pressable>
@@ -73,35 +73,35 @@ function RunEpisodeRow({
  * 같은 대표 표시도 두지 않는다. 미완료 회차가 여럿이어도 각각 이어갈 수 있으므로
  * 하나를 앞세울 이유가 없다.
  */
-function RunCard({
+function StoryPlayCard({
   onOpenEpisode,
   onResume,
-  run,
+  storyPlay,
   total,
 }: {
-  onOpenEpisode: (runId: string, episodeId: string) => void;
-  onResume: (runId: string, episodeId: string) => void;
-  run: StoryRun;
+  onOpenEpisode: (storyPlayId: string, episodeId: string) => void;
+  onResume: (storyPlayId: string, episodeId: string) => void;
+  storyPlay: StoryPlay;
   total: number;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const startedAt = formatRunStart(run.startedAt);
-  const { next } = run;
+  const startedAt = formatStoryPlayStart(storyPlay.startedAt);
+  const { next } = storyPlay;
   const toggle = useCallback(() => {
     setIsOpen((open) => !open);
   }, []);
   const resume = useCallback(() => {
     if (next) {
-      onResume(run.runId, next.episodeId);
+      onResume(storyPlay.storyPlayId, next.episodeId);
     }
-  }, [next, onResume, run.runId]);
-  const canExpand = run.episodes.length > 0 || next !== null;
-  const progress = storyLabels.runProgress(run.finished, total, next);
+  }, [next, onResume, storyPlay.storyPlayId]);
+  const canExpand = storyPlay.episodes.length > 0 || next !== null;
+  const progress = storyLabels.runProgress(storyPlay.finished, total, next);
 
   return (
     <View
       className="gap-3 rounded-2xl bg-surface p-4"
-      testID={`run-card-${run.runId}`}
+      testID={`story-play-card-${storyPlay.storyPlayId}`}
     >
       {canExpand ? (
         <Pressable
@@ -110,7 +110,7 @@ function RunCard({
           accessibilityState={{ expanded: isOpen }}
           className="flex-row items-center gap-3"
           onPress={toggle}
-          testID={`run-toggle-${run.runId}`}
+          testID={`story-play-toggle-${storyPlay.storyPlayId}`}
         >
           <View className="flex-1 gap-2">
             <Text className="font-bold text-base text-foreground">
@@ -118,7 +118,7 @@ function RunCard({
             </Text>
             <StoryProgress
               current={next?.number}
-              finished={run.finished}
+              finished={storyPlay.finished}
               total={total}
             />
             <Text className="text-muted text-sm leading-5">{progress}</Text>
@@ -130,22 +130,22 @@ function RunCard({
           <Text className="font-bold text-base text-foreground">
             {startedAt}
           </Text>
-          <StoryProgress finished={run.finished} total={total} />
+          <StoryProgress finished={storyPlay.finished} total={total} />
           <Text className="text-muted text-sm leading-5">{progress}</Text>
         </View>
       )}
 
-      {isOpen && run.episodes.length > 0 ? (
+      {isOpen && storyPlay.episodes.length > 0 ? (
         <View
           className="border-border border-t pt-1"
-          testID={`run-episodes-${run.runId}`}
+          testID={`story-play-episodes-${storyPlay.storyPlayId}`}
         >
-          {run.episodes.map((episode) => (
-            <RunEpisodeRow
+          {storyPlay.episodes.map((episode) => (
+            <StoryPlayEpisodeRow
               episode={episode}
               key={episode.episodeId}
               onOpenEpisode={onOpenEpisode}
-              runId={run.runId}
+              storyPlayId={storyPlay.storyPlayId}
             />
           ))}
         </View>
@@ -155,7 +155,7 @@ function RunCard({
         <Button
           accessibilityLabel={storyLabels.resumeRun(startedAt)}
           onPress={resume}
-          testID={`run-resume-${run.runId}`}
+          testID={`story-play-resume-${storyPlay.storyPlayId}`}
           variant="outline"
         >
           {storyLabels.resume}
@@ -165,18 +165,21 @@ function RunCard({
   );
 }
 
-function StoryHeader({ runs }: { runs: StoryRuns }) {
+function StoryHeader({ storyPlays }: { storyPlays: StoryPlays }) {
   return (
     <View className="flex-row items-center gap-3.5 px-1">
-      <StoryCover emoji={runs.coverEmoji} imagePath={runs.coverImagePath} />
+      <StoryCover
+        emoji={storyPlays.coverEmoji}
+        imagePath={storyPlays.coverImagePath}
+      />
       <View className="flex-1 gap-1">
         <Text
           accessibilityRole="header"
           className="font-extrabold text-foreground text-xl leading-7"
         >
-          {runs.title}
+          {storyPlays.title}
         </Text>
-        <Text className="text-muted text-sm leading-5">{runs.intro}</Text>
+        <Text className="text-muted text-sm leading-5">{storyPlays.intro}</Text>
       </View>
     </View>
   );
@@ -194,16 +197,16 @@ export function StoryRecordsScreen({
   onOpenEpisode,
   onResume,
   onRetry,
-  runs,
+  storyPlays,
 }: {
   isLoading: boolean;
   isRetrying: boolean;
-  onOpenEpisode: (runId: string, episodeId: string) => void;
-  onResume: (runId: string, episodeId: string) => void;
+  onOpenEpisode: (storyPlayId: string, episodeId: string) => void;
+  onResume: (storyPlayId: string, episodeId: string) => void;
   onRetry: () => void;
-  runs: StoryRuns | undefined;
+  storyPlays: StoryPlays | undefined;
 }) {
-  const hasRuns = runs !== undefined && runs.runs.length > 0;
+  const hasStoryPlays = storyPlays !== undefined && storyPlays.plays.length > 0;
 
   return (
     <ScrollView
@@ -212,25 +215,25 @@ export function StoryRecordsScreen({
       contentInsetAdjustmentBehavior="automatic"
       testID="story-records-scroll"
     >
-      {runs ? <StoryHeader runs={runs} /> : null}
-      {hasRuns
-        ? runs.runs.map((run) => (
-            <RunCard
-              key={run.runId}
+      {storyPlays ? <StoryHeader storyPlays={storyPlays} /> : null}
+      {hasStoryPlays
+        ? storyPlays.plays.map((storyPlay) => (
+            <StoryPlayCard
+              key={storyPlay.storyPlayId}
               onOpenEpisode={onOpenEpisode}
               onResume={onResume}
-              run={run}
-              total={runs.total}
+              storyPlay={storyPlay}
+              total={storyPlays.total}
             />
           ))
         : null}
-      {runs && !hasRuns ? (
+      {storyPlays && !hasStoryPlays ? (
         <StoryEmpty
           testID="story-records-empty"
           title={storyLabels.recordsEmptyTitle}
         />
       ) : null}
-      {runs || isLoading ? null : (
+      {storyPlays || isLoading ? null : (
         <StoryUnavailable
           isRetrying={isRetrying}
           onRetry={onRetry}

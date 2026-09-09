@@ -8,7 +8,7 @@
  * 연도는 넣지 않는다. 카드가 하는 일은 여러 회차를 서로 구분하는 것이고, 같은
  * 스토리를 해가 바뀌도록 여러 번 진행하는 일은 아직 없다.
  */
-export function formatRunStart(startedAt: string): string {
+export function formatStoryPlayStart(startedAt: string): string {
   const at = new Date(startedAt);
 
   if (Number.isNaN(at.getTime())) {

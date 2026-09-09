@@ -4,7 +4,7 @@ import type { UIMessage, UIMessageChunk } from "ai";
 import { simulateReadableStream } from "ai";
 
 import { createEpisodeTransport } from "@/features/episode/api/episode-transport";
-import { useEpisodeRun } from "./use-episode-run";
+import { useEpisodeStoryPlay } from "./use-episode-story-play";
 
 jest.mock("@/features/episode/api/episode-transport", () => ({
   createEpisodeTransport: jest.fn(),
@@ -12,11 +12,11 @@ jest.mock("@/features/episode/api/episode-transport", () => ({
 
 const mockCreateEpisodeTransport = jest.mocked(createEpisodeTransport);
 const EPISODE_ID = "11000000-0000-4000-8000-000000000001";
-const RUN_ID = "1a000000-0000-4000-8000-000000000001";
+const STORY_PLAY_ID = "1a000000-0000-4000-8000-000000000001";
 const STORY_ID = "10000000-0000-4000-8000-000000000001";
 
 /** 새 회차가 생겼을 때 화면이 받는 알림. 이어가는 대화에서는 오지 않는다. */
-const noop = jest.fn<(runId: string) => void>();
+const noop = jest.fn<(storyPlayId: string) => void>();
 
 function openingStream(): ReadableStream<UIMessageChunk> {
   return simulateReadableStream({
@@ -57,7 +57,15 @@ test("저장된 장면이 없으면 첫 장면을 한 번 요청한다", async (
   const transport = fakeTransport();
 
   const { result } = await renderHook(() =>
-    useEpisodeRun("token", EPISODE_ID, [], false, STORY_ID, RUN_ID, noop)
+    useEpisodeStoryPlay(
+      "token",
+      EPISODE_ID,
+      [],
+      false,
+      STORY_ID,
+      STORY_PLAY_ID,
+      noop
+    )
   );
 
   await waitFor(() => {
@@ -82,7 +90,15 @@ test("저장된 진행 장면이 있으면 그 자리에서 시작하고 새로 
     },
   ];
   const { result } = await renderHook(() =>
-    useEpisodeRun("token", EPISODE_ID, messages, false, STORY_ID, RUN_ID, noop)
+    useEpisodeStoryPlay(
+      "token",
+      EPISODE_ID,
+      messages,
+      false,
+      STORY_ID,
+      STORY_PLAY_ID,
+      noop
+    )
   );
 
   expect(result.current.chat.messages).toEqual(messages);
@@ -99,7 +115,15 @@ test("끝난 대화는 직접 열기를 불러도 서버에 새 요청을 보내
     },
   ];
   const { result } = await renderHook(() =>
-    useEpisodeRun("token", EPISODE_ID, messages, true, STORY_ID, RUN_ID, noop)
+    useEpisodeStoryPlay(
+      "token",
+      EPISODE_ID,
+      messages,
+      true,
+      STORY_ID,
+      STORY_PLAY_ID,
+      noop
+    )
   );
 
   await act(() => {
@@ -120,13 +144,13 @@ test("끝난 화를 다시 열면 서버가 실어 보낸 결말로 마무리를
     },
   ];
   const { result } = await renderHook(() =>
-    useEpisodeRun(
+    useEpisodeStoryPlay(
       "token",
       EPISODE_ID,
       messages,
       true,
       STORY_ID,
-      RUN_ID,
+      STORY_PLAY_ID,
       noop,
       { kind: "성공", outcome: "새 잔을 받아냈다." },
       { copy: "다음 이야기", episodeId: "next", number: 2, title: "2화" }
@@ -169,13 +193,13 @@ test("다시 연 화면은 서버가 실어 보낸 배울 표현으로 시작한
   ];
 
   const { result } = await renderHook(() =>
-    useEpisodeRun(
+    useEpisodeStoryPlay(
       "token",
       EPISODE_ID,
       messages,
       false,
       STORY_ID,
-      RUN_ID,
+      STORY_PLAY_ID,
       noop,
       undefined,
       undefined,

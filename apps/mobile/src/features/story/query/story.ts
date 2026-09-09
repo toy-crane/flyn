@@ -5,9 +5,9 @@ import {
   readRecentStories,
   readStories,
   readStoryDetail,
-  readStoryRuns,
+  readStoryPlays,
   type StoryDetail,
-  type StoryRuns,
+  type StoryPlays,
 } from "@/features/story/api/story";
 
 /**
@@ -72,18 +72,18 @@ export function useRecentStories(
 }
 
 /** 스토리 하나의 대화 기록. 회차 카드가 여기서 온다. */
-export function useStoryRuns(
+export function useStoryPlays(
   userId: string | undefined,
   accessToken: string | undefined,
   storyId: string | undefined
 ) {
-  return useQuery<StoryRuns>({
+  return useQuery<StoryPlays>({
     enabled:
       userId !== undefined &&
       accessToken !== undefined &&
       storyId !== undefined,
-    queryFn: () => readStoryRuns(accessToken ?? "", storyId ?? ""),
-    queryKey: [...storyQueryKey(userId ?? ""), "runs", storyId ?? ""],
+    queryFn: () => readStoryPlays(accessToken ?? "", storyId ?? ""),
+    queryKey: [...storyQueryKey(userId ?? ""), "plays", storyId ?? ""],
     retry: 1,
   });
 }

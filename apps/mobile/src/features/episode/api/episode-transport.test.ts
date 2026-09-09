@@ -10,7 +10,7 @@ jest.mock("@/shared/ai/request-options", () => ({
 }));
 
 const EPISODE_ID = "11000000-0000-4000-8000-000000000001";
-const RUN_ID = "1a000000-0000-4000-8000-000000000001";
+const STORY_PLAY_ID = "1a000000-0000-4000-8000-000000000001";
 const STORY_ID = "10000000-0000-4000-8000-000000000001";
 
 function conversation(): UIMessage[] {
@@ -30,19 +30,19 @@ function conversation(): UIMessage[] {
 
 /** 전송이 실제로 실어 보내는 몸통. */
 /**
- * `runId`를 `null`로 주면 아직 회차가 없는 새 대화다. 생략과 구분해야 해서
+ * `storyPlayId`를 `null`로 주면 아직 회차가 없는 새 대화다. 생략과 구분해야 해서
  * `undefined`가 아니라 `null`을 쓴다. 기본값은 생략을 이어가기로 읽는다.
  */
 function bodyOf(
   messages: UIMessage[],
   trigger: "regenerate-message" | "submit-message",
-  run: string | null = RUN_ID
+  storyPlay: string | null = STORY_PLAY_ID
 ): Record<string, unknown> {
-  const runId = run ?? undefined;
+  const storyPlayId = storyPlay ?? undefined;
   const transport = createEpisodeTransport(
     () => "token",
     () => EPISODE_ID,
-    () => runId,
+    () => storyPlayId,
     () => STORY_ID
   );
   const prepare = (
@@ -124,7 +124,7 @@ test("다시 받기는 남길 자리만 말하고 새 말은 싣지 않는다", 
 test("이어가는 요청은 회차를 싣고 스토리는 싣지 않는다", () => {
   const body = bodyOf(conversation(), "submit-message");
 
-  expect(body.runId).toBe(RUN_ID);
+  expect(body.storyPlayId).toBe(STORY_PLAY_ID);
   expect(body.storyId).toBeUndefined();
 });
 
@@ -134,12 +134,12 @@ test("새 대화는 스토리만 싣는다", () => {
   const body = bodyOf(conversation(), "submit-message", null);
 
   expect(body.storyId).toBe(STORY_ID);
-  expect(body.runId).toBeUndefined();
+  expect(body.storyPlayId).toBeUndefined();
 });
 
 test("다시 받기도 같은 회차 안에서 일어난다", () => {
   const body = bodyOf(conversation(), "regenerate-message");
 
-  expect(body.runId).toBe(RUN_ID);
+  expect(body.storyPlayId).toBe(STORY_PLAY_ID);
   expect(body.keepThrough).toBe("message-2");
 });

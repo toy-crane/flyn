@@ -30,27 +30,27 @@ export default function EpisodeRoute() {
   const { session } = useAuthSession();
   const params = useLocalSearchParams<{
     episodeId?: string | string[];
-    runId?: string | string[];
+    storyPlayId?: string | string[];
     storyId?: string | string[];
   }>();
   const episodeId = firstParam(params.episodeId);
-  const paramRunId = firstParam(params.runId);
+  const paramStoryPlayId = firstParam(params.storyPlayId);
   const paramStoryId = firstParam(params.storyId);
   // 서버가 방금 만든 회차. 다음 화로 넘어갈 때 이 값을 들고 간다.
-  const [startedRunId, setStartedRunId] = useState<string>();
-  const runId = paramRunId ?? startedRunId;
+  const [startedStoryPlayId, setStartedStoryPlayId] = useState<string>();
+  const storyPlayId = paramStoryPlayId ?? startedStoryPlayId;
 
   const episode = useEpisodeSession(
     session?.user.id,
     session?.access_token,
-    paramRunId,
+    paramStoryPlayId,
     episodeId
   );
   // 새 대화는 저장된 것이 없다. 화면이 그릴 제목과 상황 설명은 상세에서 온다.
   const detail = useStoryDetail(
     session?.user.id,
     session?.access_token,
-    paramRunId === undefined ? paramStoryId : undefined
+    paramStoryPlayId === undefined ? paramStoryId : undefined
   );
   const refreshStory = useStoryRefresh(session?.user.id);
   const [startingNextEpisodeId, setStartingNextEpisodeId] = useState<string>();
@@ -59,12 +59,12 @@ export default function EpisodeRoute() {
     startingNextEpisodeId !== undefined && startingNextEpisodeId !== episodeId;
   const isRoutePending = isStartingNext;
   const { isRetrying, retry: retryEpisode } = useVisibleRetry(
-    paramRunId === undefined ? detail.refetch : episode.refetch
+    paramStoryPlayId === undefined ? detail.refetch : episode.refetch
   );
 
   /** 이 화면이 그리는 한 화. 이어가는 회차와 새 대화가 같은 모양으로 온다. */
   const playing = useMemo(() => {
-    if (paramRunId !== undefined) {
+    if (paramStoryPlayId !== undefined) {
       return episode.data;
     }
 
@@ -82,12 +82,13 @@ export default function EpisodeRoute() {
       nextUp: undefined,
       readOnly: false,
     };
-  }, [detail.data, episode.data, paramRunId]);
+  }, [detail.data, episode.data, paramStoryPlayId]);
 
   const storyId = paramStoryId ?? detail.data?.storyId;
   const isPending =
-    paramRunId === undefined ? detail.isPending : episode.isPending;
-  const isError = paramRunId === undefined ? detail.isError : episode.isError;
+    paramStoryPlayId === undefined ? detail.isPending : episode.isPending;
+  const isError =
+    paramStoryPlayId === undefined ? detail.isError : episode.isError;
 
   useEffect(
     () => () => {
@@ -134,7 +135,7 @@ export default function EpisodeRoute() {
         // `replace`라 뒤로 가기는 다음 화가 아니라 처음 들어온 상세나 대화
         // 기록으로 돌아간다. 같은 회차의 몇 화를 지나도 그 복귀 경로가 남는다.
         router.replace({
-          params: { episodeId: nextEpisodeId, runId: runId ?? "" },
+          params: { episodeId: nextEpisodeId, storyPlayId: storyPlayId ?? "" },
           pathname: "/episode",
         });
       } catch {
@@ -144,7 +145,7 @@ export default function EpisodeRoute() {
         }
       }
     },
-    [episodeId, refreshStory, runId]
+    [episodeId, refreshStory, storyPlayId]
   );
 
   return (
@@ -175,12 +176,11 @@ export default function EpisodeRoute() {
           key={playing.episode.episodeId}
           onLeave={leaveEpisode}
           onOpenAsk={openAsk}
-          onRunStarted={setStartedRunId}
           onStartNext={startNextEpisode}
+          onStoryPlayStarted={setStartedStoryPlayId}
           readOnly={playing.readOnly}
           recordedEnding={playing.ending}
           recordedNextUp={playing.nextUp}
-          runId={runId}
           // 끝난 화의 읽기 전용 복습에는 배울 표현을 붙이지 않는다. 행은 이미
           // 쌓이고, 복습에서 그것을 어떻게 보여 줄지는 보관함을 만드는 단위가
           // 정한다.
@@ -188,6 +188,7 @@ export default function EpisodeRoute() {
           situation={playing.episode.situation}
           situationEmoji={playing.episode.situationEmoji}
           storyId={storyId}
+          storyPlayId={storyPlayId}
         />
       ) : null}
       {!playing && isPending && !(isError || isRetrying) ? (

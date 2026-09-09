@@ -7,8 +7,8 @@
 - 조회 경로는 화면 하나에 하나씩 둔다. 탐색의 스토리 목록은
   `GET /ai/episode/stories`, 스토리 탭의 최근 대화는 `GET /ai/episode/recent`,
   스토리 상세는 `GET /ai/episode/stories/:storyId`, 그 스토리의 대화 기록은
-  `GET /ai/episode/stories/:storyId/runs`가 답한다. 진행 중이거나 끝난 에피소드의
-  대화는 `GET /ai/episode/:episodeId?runId=`가 답한다. 회차를 받는 자리에서는
+  `GET /ai/episode/stories/:storyId/plays`가 답한다. 진행 중이거나 끝난 에피소드의
+  대화는 `GET /ai/episode/:episodeId?storyPlayId=`가 답한다. 회차를 받는 자리에서는
   에피소드 ID만으로 회차를 추정하지 않고, 회차가 없으면 400으로 거절한다.
 - 앱은 모든 요청에 안정된 에피소드 ID를 보낸다. 서버는 해당 계정과 회차의 끝낸 기록으로
   지금 플레이할 에피소드를 직접 고르고, 앱이 보낸 ID가 다르면 거절한다. 화

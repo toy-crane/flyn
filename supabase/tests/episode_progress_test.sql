@@ -8,7 +8,7 @@ VALUES
   ('33333333-3333-4333-8333-333333333333', 'story-progress@example.test'),
   ('55555555-5555-4555-8555-555555555555', 'other-progress@example.test');
 
-INSERT INTO public.story_runs (id, user_id, story_id)
+INSERT INTO public.story_plays (id, user_id, story_id)
 VALUES (
   '3a000000-0000-4000-8000-000000000001',
   '33333333-3333-4333-8333-333333333333',
@@ -25,14 +25,14 @@ SELECT has_column(
 SELECT has_column(
   'public',
   'episode_plays',
-  'run_id',
+  'story_play_id',
   'and the run it belongs to'
 );
 
 SELECT col_is_unique(
   'public',
   'episode_plays',
-  array['run_id', 'episode_id'],
+  array['story_play_id', 'episode_id'],
   'a run holds at most one play per episode'
 );
 

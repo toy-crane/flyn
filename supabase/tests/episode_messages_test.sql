@@ -8,10 +8,10 @@ VALUES
   ('11111111-1111-4111-8111-111111111111', 'messages-a@example.test'),
   ('22222222-2222-4222-8222-222222222222', 'messages-b@example.test');
 
--- 준비는 소유자 권한으로 한다. 회차와 플레이를 여는 규칙은 story_runs_test.sql과
+-- 준비는 소유자 권한으로 한다. 회차와 플레이를 여는 규칙은 story_plays_test.sql과
 -- episode_plays_test.sql이 확인하므로, 여기서는 그 아래 매달리는 행만 본다.
 -- id를 직접 적어 두면 뒤의 문장이 어느 플레이를 가리키는지 읽힌다.
-INSERT INTO public.story_runs (id, user_id, story_id)
+INSERT INTO public.story_plays (id, user_id, story_id)
 VALUES
   (
     'a0000000-0000-4000-8000-000000000001',
@@ -25,7 +25,7 @@ VALUES
   );
 
 INSERT INTO public.episode_plays (
-  id, user_id, run_id, episode_id, ending_kind, ending_outcome, finished_at
+  id, user_id, story_play_id, episode_id, ending_kind, ending_outcome, finished_at
 )
 VALUES (
   'aa000000-0000-4000-8000-000000000001',
@@ -35,7 +35,7 @@ VALUES (
   '성공', '새 아이스 아메리카노를 받아냈다.', now()
 );
 
-INSERT INTO public.episode_plays (id, user_id, run_id, episode_id)
+INSERT INTO public.episode_plays (id, user_id, story_play_id, episode_id)
 VALUES
   (
     'aa000000-0000-4000-8000-000000000002',

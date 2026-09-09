@@ -235,7 +235,7 @@ create table public.episodes (
 -- 행도 남기지 않으므로, 빈 회차를 숨기는 규칙 없이도 기록에 빈 줄이 생기지
 -- 않는다. 두 기기가 동시에 처음 말하면 회차도 둘로 갈린다. 서로 다른 대화를
 -- 한 회차로 합치면 그 회차의 이야기 기억이 두 흐름을 섞어 읽게 된다.
-create table public.story_runs (
+create table public.story_plays (
   id uuid primary key default gen_random_uuid(),
   -- `episode_plays`와 같은 이유로 부르는 사람이 채운다. insert grant에서 빠져
   -- 있어 남의 이름으로 회차를 여는 문장은 정책에 닿기 전에 권한에서 막힌다.
@@ -250,27 +250,27 @@ create table public.story_runs (
   -- 보는 것으로는 사용자 메시지가 생기지 않으므로, 조회가 순서를 바꿀 수 있는
   -- 길이 없다. 트리거가 쓰고 클라이언트는 쓰지 못한다.
   last_user_message_at timestamptz,
-  -- 플레이가 (run_id, user_id) 한 쌍으로 참조하기 위한 대상. 자식이 나르는
+  -- 플레이가 (story_play_id, user_id) 한 쌍으로 참조하기 위한 대상. 자식이 나르는
   -- user_id가 회차의 주인과 어긋날 수 없게 만든다.
-  constraint story_runs_owned_id unique (id, user_id)
+  constraint story_plays_owned_id unique (id, user_id)
 );
 
 -- 스토리 탭이 "내가 대화한 스토리를 최근순으로"를 묻는다. 두 열이 그 순서대로
 -- 앉아 있으면 그 질문 하나가 이 색인만 탄다.
-create index story_runs_user_id_last_message_idx
-  on public.story_runs (user_id, last_user_message_at desc);
+create index story_plays_user_id_last_message_idx
+  on public.story_plays (user_id, last_user_message_at desc);
 
 -- 대화 기록 화면이 스토리 하나의 회차를 모아 읽고, 스토리를 지울 때 도는 조회도
 -- 함께 받는다.
-create index story_runs_story_id_idx on public.story_runs (story_id);
+create index story_plays_story_id_idx on public.story_plays (story_id);
 
-comment on table public.story_runs is
+comment on table public.story_plays is
   'One account playing one story from episode 1. Created by the first user message, never by opening a scene.';
 
-comment on column public.story_runs.started_at is
+comment on column public.story_plays.started_at is
   'When this run began, which is when its first user message arrived. Shown as the record card title.';
 
-comment on column public.story_runs.last_user_message_at is
+comment on column public.story_plays.last_user_message_at is
   'When this run last received a user message. Written by a trigger, so reading a record cannot move it.';
 
 -- 한 사람이 한 회차에서 한 화를 플레이한 기록. 시작 시각과 결말과 이야기 기억이
@@ -292,7 +292,7 @@ create table public.episode_plays (
     references public.profiles (id) on delete cascade,
   -- 이 플레이가 속한 회차. 같은 화를 여러 회차에서 플레이할 수 있게 만드는
   -- 자리이자, 이야기 기억을 회차 안에 가두는 자리다.
-  run_id uuid not null,
+  story_play_id uuid not null,
   episode_id uuid not null references public.episodes (id) on delete restrict,
   started_at timestamptz not null default now(),
   -- 결말의 종류. 화면에도 이 낱말이 그대로 보인다.
@@ -312,7 +312,7 @@ create table public.episode_plays (
   -- `public.finish_episode`가 `on conflict on constraint`로 이 제약을 가리키기
   -- 때문이다. 열 이름으로 쓰면 `episode_id`가 함수 파라미터와 컬럼 사이에서
   -- 모호해진다.
-  constraint episode_plays_one_per_run unique (run_id, episode_id),
+  constraint episode_plays_one_per_story_play unique (story_play_id, episode_id),
   -- 메시지가 (play_id, user_id) 한 쌍으로 참조하기 위한 대상. 자식이 나르는
   -- user_id가 플레이의 주인과 어긋날 수 없게 만든다. 그래서 메시지 정책은
   -- 조인 없이 자기 열만 보고 끝난다.
@@ -320,8 +320,8 @@ create table public.episode_plays (
   -- 회차와 같은 짝을 물려받는다. 플레이가 나르는 user_id가 회차의 주인과
   -- 어긋날 수 없으므로, 정책은 남의 회차에 플레이를 매다는 문장을 조인 없이
   -- 막는다.
-  foreign key (run_id, user_id)
-    references public.story_runs (id, user_id) on delete cascade,
+  foreign key (story_play_id, user_id)
+    references public.story_plays (id, user_id) on delete cascade,
   -- 결말은 셋이 함께 오거나 함께 없다. 종류만 있고 결과가 없는 반쪽 결말은
   -- 화면이 읽을 수 없다.
   constraint episode_plays_ending_whole check (
@@ -359,8 +359,8 @@ create table public.episode_plays (
 create index episode_plays_episode_id_idx
   on public.episode_plays (episode_id);
 
--- `(run_id, user_id)` 외래키를 정확히 덮는 색인은 두지 않는다. 위
--- `episode_plays_one_per_run`이 만드는 유니크 색인의 앞자리가 `run_id`라 회차의
+-- `(story_play_id, user_id)` 외래키를 정확히 덮는 색인은 두지 않는다. 위
+-- `episode_plays_one_per_story_play`이 만드는 유니크 색인의 앞자리가 `story_play_id`라 회차의
 -- 플레이를 모아 읽는 조회도, 회차를 지울 때 도는 조회도 그것을 탄다.
 -- `episode_messages`의 같은 자리와 같은 판단이다.
 
@@ -370,7 +370,7 @@ comment on table public.episode_plays is
 comment on column public.episode_plays.id is
   'Stable key the messages and corrections of this play hang from.';
 
-comment on column public.episode_plays.run_id is
+comment on column public.episode_plays.story_play_id is
   'The run this play belongs to. Story memory never crosses it.';
 
 comment on column public.episode_plays.episode_id is

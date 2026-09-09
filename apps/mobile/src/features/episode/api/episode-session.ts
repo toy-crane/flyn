@@ -45,10 +45,10 @@ export interface EpisodeSession {
  */
 export async function readEpisodeSession(
   accessToken: string,
-  runId: string,
+  storyPlayId: string,
   episodeId: string
 ): Promise<EpisodeSession> {
-  const path = `/ai/episode/${episodeId}?runId=${encodeURIComponent(runId)}`;
+  const path = `/ai/episode/${episodeId}?storyPlayId=${encodeURIComponent(storyPlayId)}`;
   const response = await fetch(aiUrl(path), {
     headers: { Authorization: `Bearer ${accessToken}` },
   });

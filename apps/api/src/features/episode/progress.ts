@@ -81,7 +81,7 @@ export interface EpisodeSessionView {
 export async function readFinishedEpisodes(
   client: EpisodeClient,
   story: StoryContent,
-  runId: string
+  storyPlayId: string
 ): Promise<FinishedEpisodeRow[]> {
   const ids = story.episodes.map((episode) => episode.id);
 
@@ -94,7 +94,7 @@ export async function readFinishedEpisodes(
     .select(
       "episode_id, ending_kind, ending_outcome, memory_choice, memory_relationship, memory_question"
     )
-    .eq("run_id", runId)
+    .eq("story_play_id", storyPlayId)
     .not("finished_at", "is", null)
     .in("episode_id", ids);
 
@@ -133,7 +133,7 @@ export async function readFinishedEpisodes(
 
 export async function recordEpisodeEnding(
   client: EpisodeClient,
-  runId: string,
+  storyPlayId: string,
   episodeId: string,
   outcome: SceneOutcome
 ): Promise<void> {
@@ -150,7 +150,7 @@ export async function recordEpisodeEnding(
     memory_question: usableNote(notes[EPISODE_NOTES.question]),
     memory_relationship: usableNote(notes[EPISODE_NOTES.relationship]),
     outcome: outcome.ending.outcome,
-    run_id: runId,
+    story_play_id: storyPlayId,
   });
 
   if (error) {
@@ -196,13 +196,13 @@ interface StoredMessage {
  */
 async function openPlay(
   client: EpisodeClient,
-  runId: string,
+  storyPlayId: string,
   episodeId: string
 ): Promise<string> {
   const found = await client
     .from("episode_plays")
     .select("id")
-    .eq("run_id", runId)
+    .eq("story_play_id", storyPlayId)
     .eq("episode_id", episodeId)
     .maybeSingle();
 
@@ -218,7 +218,7 @@ async function openPlay(
 
   const opened = await client
     .from("episode_plays")
-    .insert({ episode_id: episodeId, run_id: runId })
+    .insert({ episode_id: episodeId, story_play_id: storyPlayId })
     .select("id")
     .maybeSingle();
 
@@ -229,7 +229,7 @@ async function openPlay(
   const raced = await client
     .from("episode_plays")
     .select("id")
-    .eq("run_id", runId)
+    .eq("story_play_id", storyPlayId)
     .eq("episode_id", episodeId)
     .maybeSingle();
 
@@ -289,11 +289,11 @@ async function readPlayMessages(
  */
 export async function openEpisodePlay(
   client: EpisodeClient,
-  runId: string,
+  storyPlayId: string,
   episodeId: string,
   keepThrough?: string | null
 ): Promise<EpisodePlay> {
-  const playId = await openPlay(client, runId, episodeId);
+  const playId = await openPlay(client, storyPlayId, episodeId);
   const stored = await readStoredMessages(client, playId);
   const kept = keptThrough(stored, keepThrough);
 
@@ -566,7 +566,7 @@ function nextEpisodeView(episode: EpisodeScript): NextEpisodeView {
 export async function readEpisodeSession(
   client: EpisodeClient,
   story: StoryContent,
-  runId: string,
+  storyPlayId: string,
   episodeId: string
 ): Promise<EpisodeSessionView | undefined> {
   const episode = story.episodes.find(
@@ -577,7 +577,7 @@ export async function readEpisodeSession(
     return;
   }
 
-  const finished = await readFinishedEpisodes(client, story, runId);
+  const finished = await readFinishedEpisodes(client, story, storyPlayId);
   const ending = finished.find((row) => row.episode_id === episodeId);
   const current = currentEpisode(story, finished);
 
@@ -588,7 +588,7 @@ export async function readEpisodeSession(
   const play = await client
     .from("episode_plays")
     .select("id")
-    .eq("run_id", runId)
+    .eq("story_play_id", storyPlayId)
     .eq("episode_id", episodeId)
     .maybeSingle();
 

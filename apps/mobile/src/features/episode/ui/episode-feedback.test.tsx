@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { Pressable, Text } from "react-native";
 
 import { EpisodeCorrectionsProvider } from "@/features/episode/state/episode-corrections";
-import { useEpisodeRun } from "@/features/episode/state/use-episode-run";
+import { useEpisodeStoryPlay } from "@/features/episode/state/use-episode-story-play";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { EpisodeCorrectionNote } from "./correction-note";
 
@@ -52,7 +52,7 @@ test("응답이 멈추면 확인 실패로 바꾸고 시간 초과 뒤의 늦은
 });
 
 function Harness() {
-  const { chat, corrections } = useEpisodeRun(
+  const { chat, corrections } = useEpisodeStoryPlay(
     "token",
     "episode",
     [

@@ -6,7 +6,7 @@ import type { EpisodeClient, StoryCatalogEntry } from "./story";
  * 대화 본문은 읽지 않는다. 카드는 어느 화를 끝냈고 무엇을 얻어냈는지까지만
  * 보여 주고, 그 화의 대화는 사용자가 펼칠 때 따로 읽는다.
  */
-interface RunRow {
+interface StoryPlayRow {
   id: string;
   plays: {
     episode_id: string;
@@ -18,7 +18,7 @@ interface RunRow {
 }
 
 /** 회차 카드가 펼쳐 보여 주는 끝낸 화 한 줄. */
-export interface StoryRunEpisodeView {
+export interface StoryPlayEpisodeView {
   episodeId: string;
   /**
    * 다시 열어 읽을 대화가 남아 있다.
@@ -34,9 +34,9 @@ export interface StoryRunEpisodeView {
 }
 
 /** 대화 기록의 회차 카드 하나. */
-export interface StoryRunView {
+export interface StoryPlayView {
   /** 이 회차에서 끝낸 화. 카드를 펼치면 이 목록이 보인다. */
-  episodes: StoryRunEpisodeView[];
+  episodes: StoryPlayEpisodeView[];
   /** 끝낸 화 수. 분절 진행 바가 이만큼 찬다. */
   finished: number;
   /** 이어갈 화. 이 회차를 완주했으면 없다. */
@@ -45,17 +45,17 @@ export interface StoryRunView {
     number: number;
     title: string;
   } | null;
-  runId: string;
   /** 카드 제목이 되는 시작 날짜와 시간. 이어하기로 바뀌지 않는다. */
   startedAt: string;
+  storyPlayId: string;
 }
 
 /** 대화 기록 화면 한 장. 위의 스토리 소개와 아래의 회차 카드. */
-export interface StoryRunsView {
+export interface StoryPlaysView {
   coverEmoji: string;
   coverImagePath: string | null;
   intro: string;
-  runs: StoryRunView[];
+  plays: StoryPlayView[];
   storyId: string;
   title: string;
   /** 스토리의 화 수. 진행 바를 이만큼 나눈다. */
@@ -87,34 +87,34 @@ export interface RecentStoriesView {
  * `user_id`는 싣지 않는다. 데이터베이스의 기본값이 채우고, 열 권한이 그 열을
  * 막는다.
  */
-export async function startStoryRun(
+export async function startStoryPlay(
   client: EpisodeClient,
   storyId: string
 ): Promise<string> {
   const { data, error } = await client
-    .from("story_runs")
+    .from("story_plays")
     .insert({ story_id: storyId })
     .select("id")
     .single();
 
   if (error) {
     throw new Error(
-      `Starting a run of story ${storyId} failed: ${error.message}`
+      `Starting a storyPlay of story ${storyId} failed: ${error.message}`
     );
   }
 
   return data.id;
 }
 
-async function readRunRows(
+async function readStoryPlayRows(
   client: EpisodeClient,
   storyId: string
-): Promise<RunRow[]> {
+): Promise<StoryPlayRow[]> {
   // 사용자가 한 번도 말하지 않은 회차는 기록이 아니다. 첫 장면만 보고 나온
   // 진입은 애초에 회차를 만들지 않지만, 첫 메시지를 남기지 못한 채 만들어진
   // 회차가 빈 카드로 보이지 않게 여기서도 거른다.
   const { data, error } = await client
-    .from("story_runs")
+    .from("story_plays")
     .select(
       "id, started_at, episode_plays(episode_id, finished_at, ending_outcome, episode_messages(count))"
     )
@@ -124,27 +124,30 @@ async function readRunRows(
 
   if (error) {
     throw new Error(
-      `Reading runs of story ${storyId} failed: ${error.message}`
+      `Reading storyPlays of story ${storyId} failed: ${error.message}`
     );
   }
 
   // 대화 본문은 세기만 하고 한 건도 읽지 않는다. 카드가 알아야 하는 것은 그 화에
   // 다시 열 대화가 남았는지뿐이다.
-  return data.map((run) => ({
-    id: run.id,
-    plays: run.episode_plays.map((play) => ({
+  return data.map((storyPlay) => ({
+    id: storyPlay.id,
+    plays: storyPlay.episode_plays.map((play) => ({
       ending_outcome: play.ending_outcome,
       episode_id: play.episode_id,
       finished_at: play.finished_at,
       messages: play.episode_messages[0]?.count ?? 0,
     })),
-    started_at: run.started_at,
+    started_at: storyPlay.started_at,
   }));
 }
 
-function runViewOf(run: RunRow, entry: StoryCatalogEntry): StoryRunView {
+function storyPlayViewOf(
+  storyPlay: StoryPlayRow,
+  entry: StoryCatalogEntry
+): StoryPlayView {
   const endings = new Map(
-    run.plays.flatMap((play) =>
+    storyPlay.plays.flatMap((play) =>
       play.finished_at && play.ending_outcome
         ? [
             [
@@ -155,8 +158,8 @@ function runViewOf(run: RunRow, entry: StoryCatalogEntry): StoryRunView {
         : []
     )
   );
-  const episodes: StoryRunEpisodeView[] = [];
-  let next: StoryRunView["next"] = null;
+  const episodes: StoryPlayEpisodeView[] = [];
+  let next: StoryPlayView["next"] = null;
 
   for (const episode of entry.episodes) {
     const ending = endings.get(episode.id);
@@ -183,8 +186,8 @@ function runViewOf(run: RunRow, entry: StoryCatalogEntry): StoryRunView {
     episodes,
     finished: episodes.length,
     next,
-    runId: run.id,
-    startedAt: run.started_at,
+    startedAt: storyPlay.started_at,
+    storyPlayId: storyPlay.id,
   };
 }
 
@@ -195,17 +198,17 @@ function runViewOf(run: RunRow, entry: StoryCatalogEntry): StoryRunView {
  * 미완료 회차를 각각 이어갈 수 있으므로 화면이 고를 일이 아니라 사용자가 고를
  * 일이다.
  */
-export async function readStoryRuns(
+export async function readStoryPlays(
   client: EpisodeClient,
   entry: StoryCatalogEntry
-): Promise<StoryRunsView> {
-  const runs = await readRunRows(client, entry.id);
+): Promise<StoryPlaysView> {
+  const storyPlays = await readStoryPlayRows(client, entry.id);
 
   return {
     coverEmoji: entry.coverEmoji,
     coverImagePath: entry.coverImagePath,
     intro: entry.intro,
-    runs: runs.map((run) => runViewOf(run, entry)),
+    plays: storyPlays.map((storyPlay) => storyPlayViewOf(storyPlay, entry)),
     storyId: entry.id,
     title: entry.title,
     total: entry.episodes.length,
@@ -227,7 +230,7 @@ export async function readRecentStories(
   catalog: readonly StoryCatalogEntry[]
 ): Promise<RecentStoriesView> {
   const { data, error } = await client
-    .from("story_runs")
+    .from("story_plays")
     .select("story_id, last_user_message_at")
     .not("last_user_message_at", "is", null)
     .order("last_user_message_at", { ascending: false });

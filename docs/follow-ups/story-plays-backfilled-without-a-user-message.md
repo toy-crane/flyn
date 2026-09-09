@@ -2,12 +2,12 @@
 
 ## 증상
 
-`20260908155308_story_runs.sql`의 백필은 (사람, 스토리) 짝마다 회차를 하나 만든다.
+`20260908155308_story_plays.sql`의 백필은 (사람, 스토리) 짝마다 회차를 하나 만든다.
 그 회차의 `last_user_message_at`은 남은 사용자 메시지에서 읽는다. 사용자 메시지가
 하나도 없는 짝은 그 값이 NULL로 남고, 대화 기록과 최근 대화가 둘 다 그 값을
 not null로 거르므로 회차가 목록에 서지 않는다.
 
-플레이와 메시지 행은 그대로 남는다. 그 스토리를 다시 시작하면 `startStoryRun`이
+플레이와 메시지 행은 그대로 남는다. 그 스토리를 다시 시작하면 `startStoryPlay`이
 새 회차를 만들고 1화가 그 아래로 들어가므로, 옛 회차는 아무 데서도 닿지 않는
 행으로 남는다.
 
@@ -20,7 +20,7 @@ not null로 거르므로 회차가 목록에 서지 않는다.
   없어도 `openEpisodePlay`를 먼저 부르고, `play.messages.length === 0`이면
   `onEnd: saveScene`으로 첫 장면을 assistant 메시지로 저장한다. 첫 장면만 보고
   나온 진입이 assistant 메시지만 가진 플레이를 남긴다.
-- `apps/api/src/features/episode/runs.ts`의 `readRunRows`와 `readRecentStories`가
+- `apps/api/src/features/episode/story-plays.ts`의 `readStoryPlayRows`와 `readRecentStories`가
   `.not("last_user_message_at", "is", null)`로 거른다.
 - 2026-09-09에 로컬에서 센 것은 "메시지 행이 하나도 없는 플레이"였다. 역할을
   가리지 않는 세기라 첫 장면만 있는 플레이는 그 0에 걸리지 않았다.
@@ -55,7 +55,7 @@ from (
 ) t;
 ```
 
-push 뒤에는 `select count(*) from public.story_runs where last_user_message_at is null`이
+push 뒤에는 `select count(*) from public.story_plays where last_user_message_at is null`이
 같은 수를 내야 한다. 0이면 이 문서는 닫는다. 0이 아니면 남은 플레이를 지울지
 그대로 둘지 정하고, 그 판단을 결정 계약에 남긴다.
 

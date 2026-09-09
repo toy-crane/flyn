@@ -7,22 +7,22 @@ import {
 
 export function episodeSessionQueryKey(
   userId: string,
-  runId: string,
+  storyPlayId: string,
   episodeId: string
 ) {
-  return ["episode", userId, runId, episodeId] as const;
+  return ["episode", userId, storyPlayId, episodeId] as const;
 }
 
 export function episodeSessionQueryOptions(
   userId: string,
   accessToken: string,
-  runId: string,
+  storyPlayId: string,
   episodeId: string
 ) {
   return queryOptions<EpisodeSession>({
     gcTime: 0,
-    queryFn: () => readEpisodeSession(accessToken, runId, episodeId),
-    queryKey: episodeSessionQueryKey(userId, runId, episodeId),
+    queryFn: () => readEpisodeSession(accessToken, storyPlayId, episodeId),
+    queryKey: episodeSessionQueryKey(userId, storyPlayId, episodeId),
     retry: 1,
   });
 }
@@ -36,20 +36,20 @@ export function episodeSessionQueryOptions(
 export function useEpisodeSession(
   userId: string | undefined,
   accessToken: string | undefined,
-  runId: string | undefined,
+  storyPlayId: string | undefined,
   episodeId: string | undefined
 ) {
   return useQuery({
     ...episodeSessionQueryOptions(
       userId ?? "",
       accessToken ?? "",
-      runId ?? "",
+      storyPlayId ?? "",
       episodeId ?? ""
     ),
     enabled:
       userId !== undefined &&
       accessToken !== undefined &&
-      runId !== undefined &&
+      storyPlayId !== undefined &&
       episodeId !== undefined,
   });
 }

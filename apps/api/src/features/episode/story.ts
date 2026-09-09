@@ -154,22 +154,22 @@ export async function readStoryOfEpisode(
  * 이어가는 요청은 회차 하나만 들고 온다. 행 권한이 남의 회차를 감추므로, 읽히지
  * 않으면 이어갈 수 없다는 답이 그대로 나온다.
  */
-export async function readStoryOfRun(
+export async function readStoryOfPlay(
   client: EpisodeClient,
-  runId: string
+  storyPlayId: string
 ): Promise<StoryContent | undefined> {
-  if (!EPISODE_ID.test(runId)) {
+  if (!EPISODE_ID.test(storyPlayId)) {
     return;
   }
 
   const { data, error } = await client
-    .from("story_runs")
+    .from("story_plays")
     .select("story_id")
-    .eq("id", runId)
+    .eq("id", storyPlayId)
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Reading run ${runId} failed: ${error.message}`);
+    throw new Error(`Reading run ${storyPlayId} failed: ${error.message}`);
   }
 
   return data ? await readStoryContentById(client, data.story_id) : undefined;

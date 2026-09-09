@@ -6,7 +6,7 @@ import EpisodeRoute from "../../../app/episode";
 
 const EPISODE_ID = "11000000-0000-4000-8000-000000000002";
 const NEXT_EPISODE_ID = "11000000-0000-4000-8000-000000000003";
-const RUN_ID = "1a000000-0000-4000-8000-000000000001";
+const STORY_PLAY_ID = "1a000000-0000-4000-8000-000000000001";
 let headerOptions:
   | { headerBackButtonMenuEnabled?: boolean; title?: string }
   | undefined;
@@ -63,7 +63,10 @@ jest.mock("expo-router", () => {
       },
       Toolbar,
     },
-    useLocalSearchParams: () => ({ episodeId: EPISODE_ID, runId: RUN_ID }),
+    useLocalSearchParams: () => ({
+      episodeId: EPISODE_ID,
+      storyPlayId: STORY_PLAY_ID,
+    }),
   };
 });
 
@@ -283,7 +286,7 @@ test("다음 에피소드로 갈 때 진행을 다시 읽고 새 ID로 바꾼다
 
   expect(mockRefresh).toHaveBeenCalledTimes(1);
   expect(mockReplace).toHaveBeenCalledWith({
-    params: { episodeId: NEXT_EPISODE_ID, runId: RUN_ID },
+    params: { episodeId: NEXT_EPISODE_ID, storyPlayId: STORY_PLAY_ID },
     pathname: "/episode",
   });
 });
