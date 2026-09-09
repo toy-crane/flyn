@@ -16,7 +16,8 @@ concurrency:
 jobs:
   validate:
     name: Validate (${{ matrix.command }})
-    runs-on: ubuntu-24.04
+    # Existing iOS adapter tests exercise macOS plutil with a mocked simctl.
+    runs-on: ${{ matrix.command == 'test' && 'macos-14' || 'ubuntu-24.04' }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -37,7 +38,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: "22.14.0"
+          # Expo config imports .ts files; use Node's default type stripping.
+          node-version: "22.23.2"
       - name: Set up Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
