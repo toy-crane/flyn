@@ -41,7 +41,7 @@
   Self-contained by design: no build, no framework, no network.
 -->
 <meta charset="utf-8">
-<title>Flyn · 저장한 표현</title>
+<title>Flyn · 표현 노트</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   /* ── project tokens: apps/mobile/global.css의 밝은 화면 값. 폰트는 시스템 스택으로 대체 ── */
@@ -203,18 +203,18 @@
     <div class="composer"><input type="text" placeholder="영어나 한국어로 적어 주세요." aria-label="메시지"><button type="button" aria-label="보내기" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4m-7 7 7-7 7 7"/></svg></button></div>
   </section>
 
-  <section class="screen" data-screen="expressions" data-title="저장한 표현" data-states="비어 있음,불러오기 실패">
-    <h1 class="large-title">저장한 표현</h1>
+  <section class="screen" data-screen="expressions" data-title="표현 노트" data-states="비어 있음,불러오기 실패">
+    <h1 class="large-title">표현 노트</h1>
     <div class="body">
       <div id="expression-list" data-when="Default"></div>
       <div class="empty" data-when="비어 있음"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg><p>아직 저장한 표현이 없어요.</p></div>
-      <div class="empty" data-when="불러오기 실패"><p>저장한 표현을 불러오지 못했어요.</p><button class="retry" type="button" data-retry>다시 시도</button></div>
+      <div class="empty" data-when="불러오기 실패"><p>표현 노트를 불러오지 못했어요.</p><button class="retry" type="button" data-retry>다시 시도</button></div>
     </div>
     <div class="tabs-wrap"><nav class="tabbar" aria-label="탭">
       <a class="tab" href="#home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-8 9 8M5 8v13h5v-7h4v7h5V8"/></svg><span>홈</span></a>
       <a class="tab" href="#browse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>탐색</span></a>
       <a class="tab" href="#stories"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 5C9 2 5 2 2 4v16c3-2 7-2 10 1 3-3 7-3 10-1V4c-3-2-7-2-10 1Z"/><path d="M12 5v16"/></svg><span>스토리</span></a>
-      <a class="tab active" href="#expressions"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg><span>표현</span></a>
+      <a class="tab active" href="#expressions"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg><span>노트</span></a>
     </nav></div>
   </section>
 </main>
@@ -297,7 +297,7 @@
 </script>
 
 <script>
-  // ── 제품 데이터: 카페 1화 장면 하나와 저장한 표현 ──
+  // ── 제품 데이터: 카페 1화 장면 하나와 표현 노트 ──
   const ICON = {
     bookmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>',
     bookmarkFilled: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>',
