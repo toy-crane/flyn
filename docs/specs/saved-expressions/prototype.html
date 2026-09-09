@@ -124,23 +124,23 @@
   .chat { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 16px 2px 12px; display: flex; flex-direction: column; gap: 10px }
   .chat::-webkit-scrollbar { display: none }
   .narration { font-size: 15px; line-height: 23px; color: var(--muted); padding: 0 4px; word-break: keep-all }
-  .utterance { max-width: 92%; align-self: flex-start; position: relative }
+  .utterance { max-width: 96%; align-self: flex-start; position: relative }
   .utterance .who { display: block; font-size: 12px; line-height: 16px; color: var(--muted); padding: 0 4px; margin-bottom: 4px }
   .utterance .bubble { background: var(--surface); border-radius: 18px; padding: 12px 16px; font-size: 17px; line-height: 26px }
-  .utterance .bubble-row { display: flex; align-items: flex-end; gap: 4px }
-  .utterance .bubble-row .bookmark { margin: 0 0 4px }
+  .utterance .bubble-row { display: flex; align-items: flex-end; gap: 0 }
+  .utterance .bubble-row .bookmark { margin: 0 -6px 4px -2px }
   .snackbar { position: absolute; left: 50%; bottom: 78px; transform: translateX(-50%); z-index: 8; background: #1c1c21ee; color: #fff; font-size: 15px; line-height: 20px; padding: 11px 8px 11px 18px; border-radius: 24px; box-shadow: 0 8px 22px #00000030; display: flex; align-items: center; gap: 6px; white-space: nowrap }
   .snackbar a { color: #8ec3ff; font-weight: 600; text-decoration: none; padding: 6px 10px; border-radius: 16px }
   .reply { margin-left: auto; max-width: 86%; background: #e0edff; border-radius: 18px; padding: 12px 16px; font-size: 17px; line-height: 26px }
-  .learn-slot { margin-left: auto; max-width: 92%; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-top: -4px }
-  .note-row { display: flex; align-items: center; gap: 6px; justify-content: flex-end; max-width: 100% }
-  .note-row .bookmark { margin: 0 0 0 -4px }
+  .learn-slot { margin-left: auto; max-width: 96%; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-top: -4px }
+  .note-row { display: flex; align-items: center; gap: 0; justify-content: flex-end; max-width: 100% }
+  .note-row .bookmark { margin: 0 -2px 0 -6px }
   .note { display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 12px; border-radius: 14px; font-size: 14px; line-height: 20px; text-align: left; max-width: 100% }
   .note.learn { background: var(--learn-surface) } .note.learn b { color: var(--learn); font-weight: 600 }
   .note.expression { background: var(--expression-surface) } .note.expression b { color: var(--expression); font-weight: 600 }
   .note .spark { width: 15px; height: 15px } .note.learn .spark { color: var(--learn) } .note.expression .spark { color: var(--expression) }
   .note .chev { width: 16px; height: 16px; color: #8a8a92 }
-  .bookmark { width: 32px; height: 32px; margin: -6px -8px -6px -2px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #8a8a92; border-radius: 16px }
+  .bookmark { width: 26px; height: 26px; margin: -4px -6px -4px 0; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #8a8a92; border-radius: 16px }
   .bookmark svg { width: 18px; height: 18px }
   .bookmark[aria-pressed="true"] { color: var(--accent) }
   .card { background: var(--learn-surface); border-radius: 16px; padding: 14px 14px 12px; width: 100%; font-size: 14px; line-height: 20px; text-align: left }
