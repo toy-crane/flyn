@@ -121,4 +121,7 @@ EAS Workflows
 - Bun 1.3.6, `CI=true`, `TURBO_FORCE=true`에서 `bun run check`, `bun run check-types`, `bun run test`가 모두 통과했다. 모바일 테스트는 72개 suite, 512개 case가 통과했다. 기존 테스트의 React act 경고는 남아 있으며 실제 앱 오류로 확인한 것은 아니다. `actionlint` 1.7.7과 `git diff --check`도 통과했다.
 - 공통 검증은 [PR #48](https://github.com/toy-crane/flyn/pull/48)에서 실제 실패 차단과 수정 후 전체 통과를 확인했다. Node 22.23.2와 Bun 1.3.6을 고정하고, macOS plutil을 사용하는 기존 테스트는 macOS runner에서 실행한다. main의 필수 검사 보호 설정은 아직 남아 있다.
 - DB 기본 검사를 구현 중이다. 임시 프로젝트 ID와 전용 DB 포트를 사용해 기존 개발 DB와 분리한다. 로컬에서 전체 마이그레이션·seed, lint, pgTAP 271개, 생성 타입과 선언형 스키마 일치 검사를 통과하고 임시 DB를 정리했다. CLI의 agent 자동 감지가 JSON을 출력하므로 검증 명령은 text 출력을 명시한다.
-- DB 오류별 실패 사례와 원격 CI 검증, 위험한 데이터 변경의 보존 검사, fingerprint, 서버·EAS 배포와 실제 iPhone 검증은 아직 남아 있다. 전체 구현의 자동 코드 리뷰도 아직 실행하지 않았다. 이전 배포 코드는 `codex/internal-delivery-work`에 보존했고 공통 CI PR에 섞지 않았다.
+- `RUN_DATABASE_RUNTIME_TESTS=1 bun test scripts/ci/database-runtime.test.ts`로 실제 임시 DB를 사용하는 실패 사례 4개가 통과했다. SQL 오류, anon의 profiles SELECT 권한 확대, 생성 타입 불일치와 마이그레이션에 없는 선언형 테이블을 각각 차단했다. 일반 테스트에서는 이 Docker 검사를 건너뛰고 명시적으로 실행할 때만 DB를 생성한다. 변경 감지·마이그레이션 수정과 삭제 차단·필수 검사 분기는 빠른 테스트 8개로 확인했다.
+- 현재 브랜치에서 코드·타입·전체 테스트가 통과했다. 모바일 테스트는 최신 main 기준 72개 suite, 511개 case가 통과했다. 이 결과는 실제 iPhone 검증을 대신하지 않는다.
+- DB 기본 검사의 원격 CI 검증은 미완료다. `codex/db-validation` 푸시는 별도 푸시 요청이 필요하다는 권한 검사로 차단됐다. 거부를 우회하지 않고 로컬 검증과 커밋만 수행했다. 원격 실행과 필수 검사 연결에는 새 DB 브랜치에 대한 명시적 푸시 승인이 필요하다.
+- 위험한 데이터 변경의 보존 검사, fingerprint, 서버·EAS 배포와 실제 iPhone 검증은 아직 남아 있다. 전체 구현의 자동 코드 리뷰도 아직 실행하지 않았다. 이전 배포 코드는 `codex/internal-delivery-work`에 보존했고 공통 CI PR에 섞지 않았다.

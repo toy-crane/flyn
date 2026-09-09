@@ -85,6 +85,20 @@ export async function verifyDatabase(root = process.cwd()): Promise<void> {
     config = config
       .replace(DB_PORT, `$1${dbPort}`)
       .replace(SHADOW_PORT, `$1${shadowPort}`);
+    const isolated = TOML.parse(config) as {
+      project_id: string;
+      db: { port: number; shadow_port: number };
+    };
+    if (
+      isolated.project_id !== id ||
+      isolated.db.port !== dbPort ||
+      isolated.db.shadow_port !== shadowPort ||
+      dbPort === shadowPort
+    ) {
+      throw new Error(
+        "임시 프로젝트 ID와 포트를 확인하지 못해 DB를 시작하지 않습니다."
+      );
+    }
     writeFileSync(join(target, "config.toml"), config);
     for (const directory of ["migrations", "schemas", "tests", "templates"]) {
       cpSync(join(source, directory), join(target, directory), {
