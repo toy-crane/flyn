@@ -11,6 +11,7 @@ import { storyLabels } from "@/features/story/ui/story-labels";
 import { formatStoryPlayStart } from "@/features/story/ui/story-play-time";
 import { StoryProgress } from "@/features/story/ui/story-progress";
 import { StoryEmpty, StoryUnavailable } from "@/features/story/ui/story-status";
+import { useStoryContentHeight } from "@/features/story/ui/use-story-content-height";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 
@@ -207,31 +208,49 @@ export function StoryRecordsScreen({
   storyPlays: StoryPlays | undefined;
 }) {
   const hasStoryPlays = storyPlays !== undefined && storyPlays.plays.length > 0;
+  const contentHeight = useStoryContentHeight();
 
   return (
     <ScrollView
-      className="bg-background"
-      contentContainerClassName="gap-4 px-5 pt-5 pb-12"
+      {...contentHeight}
+      className="flex-1 bg-background"
+      contentContainerClassName="px-5 pt-5 pb-12"
       contentInsetAdjustmentBehavior="automatic"
       testID="story-records-scroll"
     >
-      {storyPlays ? <StoryHeader storyPlays={storyPlays} /> : null}
-      {hasStoryPlays
-        ? storyPlays.plays.map((storyPlay) => (
-            <StoryPlayCard
-              key={storyPlay.storyPlayId}
-              onOpenEpisode={onOpenEpisode}
-              onResume={onResume}
-              storyPlay={storyPlay}
-              total={storyPlays.total}
-            />
-          ))
-        : null}
-      {storyPlays && !hasStoryPlays ? (
-        <StoryEmpty
-          testID="story-records-empty"
-          title={storyLabels.recordsEmptyTitle}
-        />
+      {storyPlays ? (
+        <>
+          <View className="border-border border-b pb-6">
+            <StoryHeader storyPlays={storyPlays} />
+          </View>
+          <View className="grow pt-6">
+            <Text
+              accessibilityRole="header"
+              className="mb-3 px-1 font-medium text-muted text-sm leading-5"
+              dynamicTypeRamp="subheadline"
+            >
+              {storyLabels.recentHeading}
+            </Text>
+            {hasStoryPlays ? (
+              <View className="gap-4">
+                {storyPlays.plays.map((storyPlay) => (
+                  <StoryPlayCard
+                    key={storyPlay.storyPlayId}
+                    onOpenEpisode={onOpenEpisode}
+                    onResume={onResume}
+                    storyPlay={storyPlay}
+                    total={storyPlays.total}
+                  />
+                ))}
+              </View>
+            ) : (
+              <StoryEmpty
+                testID="story-records-empty"
+                title={storyLabels.recordsEmptyTitle}
+              />
+            )}
+          </View>
+        </>
       ) : null}
       {storyPlays || isLoading ? null : (
         <StoryUnavailable

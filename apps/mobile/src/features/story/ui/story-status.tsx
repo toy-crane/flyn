@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Text, View } from "react-native";
+import { Text, useWindowDimensions, View } from "react-native";
 
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { Button } from "@/shared/ui/button";
@@ -86,12 +86,26 @@ export function StoryEmpty({
   testID: string;
   title: string;
 }) {
+  const { fontScale } = useWindowDimensions();
+
   return (
-    <StoryStatus
-      action={action}
-      icon="noConversation"
+    <View
+      className="grow items-center justify-center gap-4 px-6 py-9"
       testID={testID}
-      title={title}
-    />
+    >
+      <Icon name="noConversation" size="lg" tone="muted" />
+      <Text
+        className="text-center font-normal text-[17px] text-muted leading-[26px]"
+        dynamicTypeRamp="body"
+      >
+        {title}
+      </Text>
+      {/* 글자 크기가 바뀌면 버튼의 이전 측정값도 버리고 다시 배치한다. */}
+      {action ? (
+        <View className="mt-2 max-w-full" key={fontScale}>
+          {action}
+        </View>
+      ) : null}
+    </View>
   );
 }

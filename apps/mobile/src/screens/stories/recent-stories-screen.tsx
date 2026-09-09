@@ -5,6 +5,7 @@ import type { RecentStory } from "@/features/story/api/story";
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { StoryRow } from "@/features/story/ui/story-row";
 import { StoryEmpty, StoryUnavailable } from "@/features/story/ui/story-status";
+import { useStoryContentHeight } from "@/features/story/ui/use-story-content-height";
 import { Button } from "@/shared/ui/button";
 
 function RecentRow({
@@ -59,10 +60,12 @@ export function RecentStoriesScreen({
   stories: RecentStory[] | undefined;
 }) {
   const hasStories = stories !== undefined && stories.length > 0;
+  const contentHeight = useStoryContentHeight();
 
   return (
     <ScrollView
-      className="bg-background"
+      {...contentHeight}
+      className="flex-1 bg-background"
       contentContainerClassName="gap-3 px-5 pt-5 pb-12"
       contentInsetAdjustmentBehavior="automatic"
       testID="recent-scroll"
@@ -93,7 +96,7 @@ export function RecentStoriesScreen({
             <Button
               accessibilityLabel={storyLabels.recentEmptyAction}
               onPress={onBrowse}
-              variant="secondary"
+              variant="primary"
             >
               {storyLabels.recentEmptyAction}
             </Button>
