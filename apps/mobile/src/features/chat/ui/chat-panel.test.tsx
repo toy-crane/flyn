@@ -14,8 +14,9 @@ import {
   AccessibilityInfo,
   AppState,
   type AppStateStatus,
+  // 아래 jest.mock 공장들이 저마다 `View`를 require하므로 이름을 비켜 준다.
+  View as SlotView,
   StyleSheet,
-  View,
 } from "react-native";
 import { KeyboardController } from "react-native-keyboard-controller";
 
@@ -464,7 +465,7 @@ describe("ChatPanel", () => {
       role: "assistant",
     };
     const Slot = ({ children }: { children: ReactNode }) => (
-      <View testID="utterance-slot">{children}</View>
+      <SlotView testID="utterance-slot">{children}</SlotView>
     );
 
     const { rerender } = await renderWithHeroUI(
