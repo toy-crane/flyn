@@ -129,8 +129,7 @@
   .utterance .bubble { background: var(--surface); border-radius: 18px; padding: 12px 16px; font-size: 17px; line-height: 26px }
   .utterance .bubble-row { display: flex; align-items: flex-end; gap: 0 }
   .utterance .bubble-row .bookmark { margin: 0 -6px 4px -2px }
-  .snackbar { position: absolute; left: 50%; bottom: 78px; transform: translateX(-50%); z-index: 8; background: #1c1c21ee; color: #fff; font-size: 15px; line-height: 20px; padding: 11px 8px 11px 18px; border-radius: 24px; box-shadow: 0 8px 22px #00000030; display: flex; align-items: center; gap: 6px; white-space: nowrap }
-  .snackbar a { color: #8ec3ff; font-weight: 600; text-decoration: none; padding: 6px 10px; border-radius: 16px }
+  .toast { position: absolute; left: 50%; bottom: 78px; transform: translateX(-50%); z-index: 8; background: #1c1c21ee; color: #fff; font-size: 15px; line-height: 20px; padding: 11px 18px; border-radius: 24px; box-shadow: 0 8px 22px #00000030; white-space: nowrap }
   .reply { margin-left: auto; max-width: 86%; background: #e0edff; border-radius: 18px; padding: 12px 16px; font-size: 17px; line-height: 26px }
   .learn-slot { margin-left: auto; max-width: 96%; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-top: -4px }
   .note-row { display: flex; align-items: flex-end; gap: 0; justify-content: flex-end; max-width: 100% }
@@ -320,7 +319,7 @@
   ];
   const expanded = new Set();
   const failed = new Set();
-  let snackbarTimer = null;
+  let toastTimer = null;
   const isSaved = ref => saved.some(item => item.ref === ref);
   const mark = (text, marks) => marks.reduce((out, m) => out.replace(m, `<b>${m}</b>`), text);
   const umark = (text, marks) => marks.reduce((out, m) => out.replace(m, `<u>${m}</u>`), text);
@@ -356,15 +355,15 @@
     failed.delete(ref);
     if (isSaved(ref)) { saved = saved.filter(item => item.ref !== ref); }
     else if (prototypeShell.getScreen() === 'episode' && prototypeShell.getState() === '저장 실패') { failed.add(ref); }
-    else { saved = [itemFor(ref), ...saved]; showSnackbar(); }
+    else { saved = [itemFor(ref), ...saved]; showToast(); }
     renderChat(); renderList();
   }
-  function showSnackbar() {
+  function showToast() {
     const screen = document.querySelector('[data-screen="episode"]');
-    screen.querySelector('.snackbar')?.remove();
-    screen.insertAdjacentHTML('beforeend', '<div class="snackbar" role="status">표현을 저장했어요<a href="#expressions">보기</a></div>');
-    clearTimeout(snackbarTimer);
-    snackbarTimer = setTimeout(() => screen.querySelector('.snackbar')?.remove(), 2500);
+    screen.querySelector('.toast')?.remove();
+    screen.insertAdjacentHTML('beforeend', '<div class="toast" role="status">표현을 저장했어요</div>');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => screen.querySelector('.toast')?.remove(), 2500);
   }
 
   function renderList() {
