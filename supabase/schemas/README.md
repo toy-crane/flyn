@@ -28,19 +28,15 @@
 
 ## 새 테이블을 추가할 때: 권한
 
-필요한 `GRANT`만 적고 RLS를 켜세요. `REVOKE`는 쓰지 않습니다.
+필요한 `GRANT`를 적고 RLS를 켜세요. 원격에는 전체 CRUD 기본 권한이 남을 수 있습니다.
+열 단위로 INSERT 또는 UPDATE를 제한한다면 해당 역할의 테이블 전체 권한을 먼저
+회수하세요. `REFERENCES`·`TRIGGER`·`TRUNCATE`·`MAINTAIN`은 그대로 둡니다.
 
-이 데이터베이스는 `public`의 새 테이블을 Data API 역할에 자동으로 열지 않습니다.
-새 테이블은 `anon`과 `authenticated`에 `REFERENCES`·`TRIGGER`·`TRUNCATE`·`MAINTAIN`만
-주고 PostgREST가 부를 수 있는 권한은 주지 않습니다. 그래서 적어 둔 `GRANT`가 그
-테이블에 닿을 수 있는 전부입니다. 남는 네 권한은 PostgREST에 경로가 없어 그대로
-둡니다.
-
-**함수는 다릅니다.** `create function`은 지금도 `PUBLIC`에 `EXECUTE`를 주고
-`anon`과 `authenticated`가 이를 물려받습니다. 그러니 새 함수마다 이렇게 적으세요.
+**함수는 PUBLIC뿐 아니라 API 역할에 직접 EXECUTE가 부여될 수 있습니다.**
+새 함수마다 기본 실행 권한을 회수한 뒤 필요한 역할만 허용하세요.
 
 ```sql
-revoke all on function public.<name>(<args>) from public;
+revoke all on function public.<name>(<args>) from public, anon, authenticated, service_role;
 grant execute on function public.<name>(<args>) to authenticated;  -- 부를 역할만
 ```
 
