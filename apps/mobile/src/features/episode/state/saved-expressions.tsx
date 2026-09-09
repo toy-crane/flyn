@@ -82,7 +82,8 @@ export function useEpisodeSavedExpressions(
   saved: readonly SavedExpressionRef[] | undefined,
   save: SaveExpression,
   erase: EraseExpression,
-  onSaved: () => void
+  /** 계정에 담긴 것이 바뀌었을 때. 담았으면 참, 도로 놓았으면 거짓이다. */
+  onChanged: (isSaved: boolean) => void
 ): SavedExpressionStore {
   const [states, setStates] = useState<Record<string, SavedExpressionState>>(
     () =>
@@ -96,11 +97,11 @@ export function useEpisodeSavedExpressions(
   const current = useRef(states);
   const saver = useRef(save);
   const eraser = useRef(erase);
-  const announce = useRef(onSaved);
+  const announce = useRef(onChanged);
 
   saver.current = save;
   eraser.current = erase;
-  announce.current = onSaved;
+  announce.current = onChanged;
 
   const running = useRef(new Map<string, AbortController>());
   const publish = useCallback((next: Record<string, SavedExpressionState>) => {
@@ -146,7 +147,15 @@ export function useEpisodeSavedExpressions(
       if (state?.status === "saved") {
         settle(key, { id: state.id, status: "erasing" });
         eraser.current(state.id, controller.signal).then(
-          () => finish(undefined),
+          () => {
+            const kept = running.current.get(key) === controller;
+
+            finish(undefined);
+
+            if (kept) {
+              announce.current(false);
+            }
+          },
           () => finish({ id: state.id, status: "saved" })
         );
 
@@ -161,7 +170,7 @@ export function useEpisodeSavedExpressions(
           finish({ id: ref.id, status: "saved" });
 
           if (kept) {
-            announce.current();
+            announce.current(true);
           }
         },
         () => finish({ status: "error" })

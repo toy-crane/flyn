@@ -13,11 +13,29 @@ export function expressionNoteQueryKey(userId: string) {
 }
 
 /**
+ * 대화에서 담거나 도로 놓은 뒤 노트를 서버에서 다시 읽게 한다.
+ *
+ * 탭 화면은 앱이 열릴 때 한 번 배치되고 그대로 붙어 있어서, 대화에서 담은 것이
+ * 탭을 옮기는 것만으로는 목록에 오지 않는다. 그래서 바꾸는 쪽이 알린다.
+ *
+ * 계정을 가리지 않고 뿌리째 무효로 만든다. 지금 로그인한 계정의 것만 화면에
+ * 붙어 있으므로 실제로 다시 읽는 것은 그 하나다.
+ */
+export function useExpressionNoteRefresh() {
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ["expression-note"] }),
+    [queryClient]
+  );
+}
+
+/**
  * 표현 노트의 목록.
  *
  * 기본 1분 대신 곧바로 낡은 것으로 본다. 이 목록을 바꾸는 일은 모두 대화에서
- * 일어나는데 그쪽은 쿼리를 거치지 않아 무효로 만들 자리가 없다. 방금 담은 것이
- * 노트에 없으면 담기가 실패한 것처럼 보인다.
+ * 일어나는데 그쪽은 쿼리를 거치지 않는다. 방금 담은 것이 노트에 없으면 담기가
+ * 실패한 것처럼 보인다.
  */
 export function useExpressionNote(
   userId: string | undefined,

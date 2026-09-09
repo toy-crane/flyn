@@ -67,8 +67,8 @@ export function useEpisodeStoryPlay(
   recordedNextUp?: EpisodeNextUp,
   savedResults?: readonly ExpressionResult[],
   savedExpressions?: readonly SavedExpressionRef[],
-  /** 담았을 때 화면이 알리는 방법. 알릴 것이 없는 자리는 넘기지 않는다. */
-  onExpressionSaved: () => void = () => undefined
+  /** 담긴 것이 바뀌었을 때 화면이 할 일. 할 것이 없는 자리는 넘기지 않는다. */
+  onExpressionChanged: (isSaved: boolean) => void = () => undefined
 ): EpisodeRun {
   const currentToken = useRef(accessToken);
   const currentEpisodeId = useRef(episodeId);
@@ -113,7 +113,7 @@ export function useEpisodeStoryPlay(
         signal
       ),
     (id, signal) => eraseSavedExpression(currentToken.current, id, signal),
-    onExpressionSaved
+    onExpressionChanged
   );
   // 대화는 한 번만 만들어지므로 그때의 함수가 그대로 붙잡힌다. 지금 상태를
   // 읽는 자리는 ref 하나로 남겨 둔다.

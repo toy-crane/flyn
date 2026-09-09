@@ -30,7 +30,7 @@ function fakeSaving(
     Promise.resolve(savedRef("saved-1"))
 ) {
   return {
-    announce: jest.fn<() => void>(),
+    announce: jest.fn<(isSaved: boolean) => void>(),
     erase: jest.fn<(id: string) => Promise<void>>(() => Promise.resolve()),
     save: jest.fn<() => Promise<SavedExpressionRef>>(save),
   };
@@ -68,7 +68,7 @@ test("담으면 그 자리만 채워지고 한 번 알린다", async () => {
     status: "saved",
   });
   expect(result.current.states["m1:learning"]).toBeUndefined();
-  expect(calls.announce).toHaveBeenCalledTimes(1);
+  expect(calls.announce).toHaveBeenCalledWith(true);
 });
 
 test("담는 동안 다시 눌러도 두 번 담지 않는다", async () => {
@@ -97,7 +97,7 @@ test("담는 동안 다시 눌러도 두 번 담지 않는다", async () => {
     id: "saved-1",
     status: "saved",
   });
-  expect(calls.announce).toHaveBeenCalledTimes(1);
+  expect(calls.announce).toHaveBeenCalledWith(true);
 });
 
 test("담지 못하면 그 자리에 실패로 남고 다시 누르면 다시 담는다", async () => {
@@ -122,7 +122,7 @@ test("담지 못하면 그 자리에 실패로 남고 다시 누르면 다시 �
   });
 });
 
-test("담긴 것을 다시 누르면 도로 놓이고 알리지 않는다", async () => {
+test("담긴 것을 다시 누르면 도로 놓이고 그 사실만 알린다", async () => {
   const calls = fakeSaving();
   const result = await mountStore(calls, [savedRef("saved-1")]);
 
@@ -137,7 +137,8 @@ test("담긴 것을 다시 누르면 도로 놓이고 알리지 않는다", asyn
 
   expect(result.current.states["s1:0"]).toBeUndefined();
   expect(calls.erase).toHaveBeenCalledWith("saved-1", expect.anything());
-  expect(calls.announce).not.toHaveBeenCalled();
+  // 목록은 이때도 바뀌므로 알린다. 토스트를 띄울지는 받는 쪽이 정한다.
+  expect(calls.announce).toHaveBeenCalledWith(false);
 });
 
 test("도로 놓지 못하면 담긴 상태로 돌아간다", async () => {

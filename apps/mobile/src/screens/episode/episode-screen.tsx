@@ -31,6 +31,7 @@ import {
   ExpressionToast,
   useExpressionToast,
 } from "@/features/episode/ui/expression-toast";
+import { useExpressionNoteRefresh } from "@/features/note/query/expression-note";
 import { StatusLine } from "@/shared/ui/status-line";
 
 /**
@@ -91,6 +92,22 @@ export function EpisodeScreen({
   const { session } = useAuthSession();
   const accessToken = session?.access_token;
   const { announce, isVisible: isToastVisible } = useExpressionToast();
+  const refreshNote = useExpressionNoteRefresh();
+  /*
+    담은 것과 도로 놓은 것이 표현 노트에도 닿아야 한다. 노트 탭은 앱이 열릴 때
+    한 번 배치되고 그대로 붙어 있어서, 여기서 알리지 않으면 앱을 다시 켤 때까지
+    낡은 목록을 보여 준다. 알림은 담았을 때만 뜬다.
+  */
+  const changed = useCallback(
+    (isSaved: boolean) => {
+      if (isSaved) {
+        announce();
+      }
+
+      refreshNote();
+    },
+    [announce, refreshNote]
+  );
   const { chat, corrections, ending, nextUp, open, saved } =
     useEpisodeStoryPlay(
       accessToken,
@@ -104,7 +121,7 @@ export function EpisodeScreen({
       recordedNextUp,
       savedResults,
       savedExpressions,
-      announce
+      changed
     );
   const drafts = useLocalChatDrafts();
   const conversation = useConversation(chat, drafts, accessToken);
