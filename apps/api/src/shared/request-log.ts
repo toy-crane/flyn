@@ -1,3 +1,5 @@
+import console from "node:console";
+
 /**
  * The only way this server writes a failure down.
  *
