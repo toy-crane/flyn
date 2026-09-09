@@ -10,6 +10,7 @@ export const RECENT_API_PATH = "/ai/episode/recent";
  * 없고, 진행과 결과는 대화 기록이 회차마다 따로 보여 준다.
  */
 export interface StoryCard {
+  coverBlurhash: string | null;
   coverEmoji: string;
   coverImagePath: string | null;
   hook: string;
@@ -43,6 +44,7 @@ export interface StoryDetail extends StoryCard {
 
 /** 스토리 탭의 최근 대화 한 줄. */
 export interface RecentStory {
+  coverBlurhash: string | null;
   coverEmoji: string;
   coverImagePath: string | null;
   hook: string;
@@ -79,6 +81,7 @@ export interface StoryPlay {
 
 /** 대화 기록 화면 한 장. */
 export interface StoryPlays {
+  coverBlurhash: string | null;
   coverEmoji: string;
   coverImagePath: string | null;
   intro: string;

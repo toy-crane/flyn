@@ -334,6 +334,7 @@ export type Database = {
         Row: {
           completion_copy: string
           completion_title: string
+          cover_blurhash: string | null
           cover_emoji: string
           cover_image_path: string | null
           hook: string
@@ -347,6 +348,7 @@ export type Database = {
         Insert: {
           completion_copy: string
           completion_title: string
+          cover_blurhash?: string | null
           cover_emoji: string
           cover_image_path?: string | null
           hook: string
@@ -360,6 +362,7 @@ export type Database = {
         Update: {
           completion_copy?: string
           completion_title?: string
+          cover_blurhash?: string | null
           cover_emoji?: string
           cover_image_path?: string | null
           hook?: string

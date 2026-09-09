@@ -52,6 +52,7 @@ export interface StoryPlayView {
 
 /** 대화 기록 화면 한 장. 위의 스토리 소개와 아래의 회차 카드. */
 export interface StoryPlaysView {
+  coverBlurhash: string | null;
   coverEmoji: string;
   coverImagePath: string | null;
   intro: string;
@@ -64,6 +65,7 @@ export interface StoryPlaysView {
 
 /** 스토리 탭의 최근 대화 한 줄. 진행 바는 두지 않는다. */
 export interface RecentStoryView {
+  coverBlurhash: string | null;
   coverEmoji: string;
   coverImagePath: string | null;
   hook: string;
@@ -205,6 +207,7 @@ export async function readStoryPlays(
   const storyPlays = await readStoryPlayRows(client, entry.id);
 
   return {
+    coverBlurhash: entry.coverBlurhash,
     coverEmoji: entry.coverEmoji,
     coverImagePath: entry.coverImagePath,
     intro: entry.intro,
@@ -252,6 +255,7 @@ export async function readRecentStories(
 
     seen.add(row.story_id);
     stories.push({
+      coverBlurhash: entry.coverBlurhash,
       coverEmoji: entry.coverEmoji,
       coverImagePath: entry.coverImagePath,
       hook: entry.hook,

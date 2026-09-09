@@ -1,6 +1,11 @@
 -- 공식 콘텐츠가 코드 없이도 같은 순서로 다시 만들어지는지 확인한다.
 BEGIN;
-SELECT plan(14);
+SELECT plan(15);
+
+SELECT ok(
+  (select count(*) = 5 and bool_and(cover_blurhash is not null and length(cover_blurhash) = 28 and cover_image_path ~ '-[a-f0-9]{64}[.]png$') from public.stories),
+  '기존 표지 다섯 개에 미리보기와 내용별 파일 경로가 있다'
+);
 
 SELECT has_column(
   'public',
@@ -12,7 +17,7 @@ SELECT has_column(
 -- 다섯 편이 정해진 순서로 서고, 표지 그림의 자리도 함께 실린다.
 SELECT results_eq(
   $$
-    select position, slug, title, cover_emoji, cover_image_path
+    select position, slug, title, cover_emoji, regexp_replace(cover_image_path, '-[a-f0-9]{64}[.]png$', '.png')
     from public.stories
     order by position
   $$,

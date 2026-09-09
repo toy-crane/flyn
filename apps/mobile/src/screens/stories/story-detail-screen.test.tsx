@@ -13,6 +13,7 @@ function episodeId(number: number): string {
 
 function story(): StoryDetail {
   return {
+    coverBlurhash: null,
     coverEmoji: "☕",
     coverImagePath: null,
     episodes: [
@@ -106,4 +107,10 @@ test("불러오지 못하면 다시 시도할 수 있고 하단 버튼은 두지
   expect(screen.getByTestId("story-detail-unavailable")).toBeVisible();
   expect(screen.getByText("다시 시도하기")).toBeVisible();
   expect(screen.queryByTestId("story-start")).toBeNull();
+});
+
+test("표지가 없어도 이모지를 표시하지 않고 대화를 시작할 수 있다", async () => {
+  await renderDetail();
+  expect(screen.queryByText("☕", { includeHiddenElements: true })).toBeNull();
+  expect(screen.getByText("대화 시작하기")).toBeVisible();
 });

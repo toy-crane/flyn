@@ -39,5 +39,5 @@ BlurHash와 ThumbHash는 모두 Expo가 지원한다. 이번 표준은 공식 �
 ## 보존할 근거
 
 - 2026-09-09 [Expo Image 공식 문서](https://docs.expo.dev/versions/latest/sdk/image/)의 `placeholder`, `placeholderContentFit`, `transition`과 서버 BlurHash 생성 안내를 확인했다. `placeholderContentFit` 기본값은 `scale-down`이므로 원본의 `contentFit`과 맞춰 크기 차이에 따른 깜빡임을 피한다.
-- 작업 폴더 밖에서 npm 배포본을 읽었다. 프로젝트의 `expo 57.0.19`는 `bundledNativeModules.json`에서 `expo-image ~57.0.4`를 지정한다. `expo-image 57.0.4`의 타입과 소스에도 위 API가 있다. 현재 앱에는 아직 이 패키지가 없다. 실제 기기의 전환 품질은 구현 후 확인해야 한다.
+- 작업 폴더 밖에서 npm 배포본을 읽었다. 프로젝트의 `expo 57.0.19`는 `bundledNativeModules.json`에서 `expo-image ~57.0.4`를 지정한다. `expo-image 57.0.4`의 타입과 소스에도 위 API가 있다. `expo-image 57.0.4`를 앱에 설치했다. iOS Simulator와 Android Emulator에서 지연 요청, 실패와 미리보기에서 원본으로 이어지는 전환을 확인했다. 검증 범위는 [스토리 표지 명세](../specs/story-cover-image-loading/spec.md)에 기록한다.
 - Expo 공식 `expo/skills` 저장소와 프로젝트에 있는 `expo-native-ui` 안내를 확인했다. 공식 문서는 작업할 때 원문을 다시 읽고 설치 버전과 맞춘다. 문서 사본은 저장하지 않는다.

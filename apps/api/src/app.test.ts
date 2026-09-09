@@ -45,6 +45,7 @@ function episodeId(number: number): string {
 const STORY_ROW = {
   completion_copy: "다섯 번의 사건을 영어로 지나왔어요.",
   completion_title: "첫 이야기를 끝냈어요",
+  cover_blurhash: "LAME]I7y8w{e009uBC,t1j%f_1My",
   cover_emoji: "☕",
   cover_image_path: null,
   hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
@@ -2049,6 +2050,7 @@ describe("POST /ai/episode/ask", () => {
 interface RecentViewBody {
   stories: {
     coverEmoji: string;
+    coverBlurhash: string | null;
     coverImagePath: string | null;
     hook: string;
     storyId: string;
@@ -2107,6 +2109,7 @@ describe("GET /ai/episode/recent", () => {
 
     expect(view.stories).toEqual([
       {
+        coverBlurhash: "LAME]I7y8w{e009uBC,t1j%f_1My",
         coverEmoji: "☕",
         coverImagePath: null,
         hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
@@ -2301,6 +2304,7 @@ describe("GET /ai/episode/stories", () => {
     const view = (await response.json()) as {
       stories: {
         coverEmoji: string;
+        coverBlurhash: string | null;
         coverImagePath: string | null;
         hook: string;
         storyId: string;
@@ -2312,6 +2316,7 @@ describe("GET /ai/episode/stories", () => {
     expect(response.status).toBe(200);
     expect(view.stories).toEqual([
       {
+        coverBlurhash: "LAME]I7y8w{e009uBC,t1j%f_1My",
         coverEmoji: "☕",
         coverImagePath: null,
         hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
@@ -3063,4 +3068,25 @@ describe("새 대화 시작", () => {
 
     expect(response.status).toBe(409);
   });
+});
+
+test("모든 스토리 조회 화면에 원본 표지와 같은 BlurHash를 전달한다", async () => {
+  const app = createApp({ authMiddleware: signedInWith(createSeasonState()) });
+  await Promise.all(
+    [
+      "stories",
+      `stories/${STORY_ID}`,
+      "recent",
+      `stories/${STORY_ID}/plays`,
+    ].map(async (path) => {
+      const response = await app.request(`${EPISODE_PATH}/${path}`);
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as {
+        coverBlurhash?: string;
+        stories?: { coverBlurhash: string }[];
+      };
+      const story = body.stories ? body.stories[0] : body;
+      expect(story?.coverBlurhash).toBe("LAME]I7y8w{e009uBC,t1j%f_1My");
+    })
+  );
 });

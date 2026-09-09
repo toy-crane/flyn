@@ -13,7 +13,7 @@ import { Icon } from "@/shared/ui/icon";
  * 없고, 회차별 진행은 대화 기록이 카드마다 따로 보여 준다.
  */
 export function StoryRow({
-  coverEmoji,
+  coverBlurhash,
   coverImagePath,
   hasBorder,
   hook,
@@ -21,7 +21,7 @@ export function StoryRow({
   testID,
   title,
 }: {
-  coverEmoji: string;
+  coverBlurhash: string | null;
   coverImagePath: string | null;
   hasBorder: boolean;
   hook: string;
@@ -40,7 +40,7 @@ export function StoryRow({
         onPress={onPress}
         testID={testID}
       >
-        <StoryCover emoji={coverEmoji} imagePath={coverImagePath} />
+        <StoryCover blurhash={coverBlurhash} imagePath={coverImagePath} />
         <View className="flex-1 gap-1">
           <Text
             className="font-bold text-base text-foreground"

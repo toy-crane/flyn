@@ -53,6 +53,7 @@ export interface StoryCatalogEpisode {
  */
 export interface StoryCatalogEntry {
   completion: { copy: string; title: string };
+  coverBlurhash: string | null;
   coverEmoji: string;
   coverImagePath: string | null;
   episodes: StoryCatalogEpisode[];
@@ -77,7 +78,7 @@ export async function readStoryCatalog(
   const { data, error } = await client
     .from("stories")
     .select(
-      "id, position, slug, title, hook, intro, cover_emoji, cover_image_path, completion_title, completion_copy, episodes(id, number, title, preview, situation, situation_emoji)"
+      "id, position, slug, title, hook, intro, cover_emoji, cover_image_path, cover_blurhash, completion_title, completion_copy, episodes(id, number, title, preview, situation, situation_emoji)"
     )
     .order("position")
     .order("number", { referencedTable: "episodes" });
@@ -91,6 +92,7 @@ export async function readStoryCatalog(
       copy: story.completion_copy,
       title: story.completion_title,
     },
+    coverBlurhash: story.cover_blurhash,
     coverEmoji: story.cover_emoji,
     coverImagePath: story.cover_image_path,
     episodes: story.episodes.map((episode) => ({

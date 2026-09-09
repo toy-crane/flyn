@@ -50,7 +50,10 @@ function StoryDetailBody({ story }: { story: StoryDetail }) {
   return (
     <>
       <View className="flex-row items-center gap-3.5 px-1">
-        <StoryCover emoji={story.coverEmoji} imagePath={story.coverImagePath} />
+        <StoryCover
+          blurhash={story.coverBlurhash}
+          imagePath={story.coverImagePath}
+        />
         <View className="flex-1 gap-1">
           <Text
             accessibilityRole="header"
