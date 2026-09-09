@@ -49,3 +49,34 @@ test("필수 검사는 실패·취소·건너뛰기를 성공으로 처리하지
     expect(child.exitCode === 0).toBe(result === "success");
   }
 });
+
+test("DB 변경 없음만 건너뛰기를 허용하고 실행 실패는 차단한다", () => {
+  const workflow = YAML.parse(
+    readFileSync(
+      new URL("../../.github/workflows/database.yml", import.meta.url),
+      "utf8"
+    )
+  ) as ValidationWorkflow;
+  const command = workflow.jobs.required.steps[0]?.run;
+  if (!command) {
+    throw new Error("DB 필수 검사 명령이 없습니다.");
+  }
+  for (const [plan, needed, result, passes] of [
+    ["success", "false", "skipped", true],
+    ["success", "true", "success", true],
+    ["success", "true", "failure", false],
+    ["success", "true", "skipped", false],
+    ["failure", "false", "skipped", false],
+    ["success", "", "skipped", false],
+  ] as const) {
+    const child = spawnSync(["bash", "-e", "-c", command], {
+      env: {
+        DATABASE_NEEDED: needed,
+        DATABASE_RESULT: result,
+        PATH: process.env.PATH,
+        PLAN_RESULT: plan,
+      },
+    });
+    expect(child.exitCode === 0).toBe(passes);
+  }
+});
