@@ -69,8 +69,7 @@ export interface EpisodeDependencies {
 const CONFLICT_STATUS = 409;
 
 /** 경로 조각으로 오는 id의 모양. 데이터베이스가 받는 것과 같은 형태다. */
-const UUID =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // biome-ignore lint/suspicious/useAwait: 장면 파서가 받는 비동기 스트림 형태가 필요하다
 async function* authoredScene(script: string): AsyncIterable<string> {

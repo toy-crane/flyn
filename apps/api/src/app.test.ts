@@ -2213,9 +2213,12 @@ describe("표현을 담아 두는 API", () => {
     });
 
     const response = await app.request(
-      new Request(`http://localhost${EPISODE_PATH}/saved-expressions/not-a-uuid`, {
-        method: "DELETE",
-      })
+      new Request(
+        `http://localhost${EPISODE_PATH}/saved-expressions/not-a-uuid`,
+        {
+          method: "DELETE",
+        }
+      )
     );
 
     expect(response.status).toBe(400);

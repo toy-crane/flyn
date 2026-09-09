@@ -680,7 +680,7 @@ export function ChatPanel({
     cancelScrollMotion();
     const generation = motionGeneration.current;
     const list = listRef.current;
-    // biome-ignore lint/suspicious/noUnnecessaryConditions: 네이티브 ref는 화면을 닫는 동안 null이 될 수 있다
+    // 네이티브 ref는 화면을 닫는 동안 null이 된다.
     if (!list) {
       return;
     }

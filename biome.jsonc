@@ -1,8 +1,26 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": ["ultracite/biome/core", "ultracite/biome/react"],
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/react"
+  ],
+  // Expo가 만들어 두는 네이티브 폴더. `apps/mobile/.gitignore`가 이미 빼 두지만
+  // Biome은 하위 폴더의 ignore 파일을 읽지 않아 여기서 다시 뺀다. CocoaPods가
+  // `ios/Pods` 안에 심는 심볼릭 링크를 따라 들어가면 Biome 2.5가 스택을 넘겨
+  // 죽고, 그 죽음이 종료 코드 0으로 도착해 검사가 통과한 것처럼 보인다.
   "files": {
-    "includes": ["!!apps/mobile/ios", "!!apps/mobile/android"]
+    "includes": ["**", "!!**/ios", "!!**/android"]
+  },
+  "linter": {
+    "rules": {
+      "suspicious": {
+        // Biome 2.5의 타입 추론은 모듈 경계를 넘지 못해서, 다른 파일이 정한
+        // 타입을 읽어야 하는 이 규칙이 틀린 답을 낸다. `session: Session | null`
+        // 인 값에 쓴 `session?.user.id`를 불필요한 옵셔널 체이닝이라 부르고,
+        // 그 고침을 받아들이면 로그아웃한 순간 앱이 죽는다. 타입은 tsc가 본다.
+        "noUnnecessaryConditions": "off"
+      }
+    }
   },
   "overrides": [
     {
