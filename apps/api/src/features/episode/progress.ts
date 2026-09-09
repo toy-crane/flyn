@@ -573,11 +573,12 @@ async function readSavedExpression(
   client: EpisodeClient,
   draft: SavedExpressionDraft
 ): Promise<SavedExpressionRef | undefined> {
+  // 유니크 색인의 열쇠와 같은 조건만 건다. 종류는 열쇠에 없으므로 여기서도 묻지
+  // 않는다. 물으면 충돌을 낸 그 행을 못 찾고 없는 것으로 보게 된다.
   let query = client
     .from("saved_expressions")
     .select("id, kind, message_id, utterance_at")
-    .eq("message_id", draft.messageId)
-    .eq("kind", draft.kind);
+    .eq("message_id", draft.messageId);
 
   query =
     draft.utteranceAt === null

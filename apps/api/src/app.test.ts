@@ -561,10 +561,13 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
 
             if (table === "saved_expressions") {
               const row = added[0] as unknown as SavedRow;
+              // 진짜 유니크 색인은 `(message_id, coalesce(utterance_at, -1))`이고
+              // 종류를 열쇠에 넣지 않는다. 한 메시지가 교정과 안내를 둘 다 낳지
+              // 못하게 막는 것이 그 규칙이므로 여기서도 종류를 묻지 않는다.
               const taken = state.saved.some(
                 (kept) =>
+                  kept.message_id !== null &&
                   kept.message_id === row.message_id &&
-                  kept.kind === row.kind &&
                   kept.utterance_at === row.utterance_at
               );
 
@@ -2060,6 +2063,41 @@ describe("표현을 담아 두는 API", () => {
       id: string;
     };
     const again = await app.request(utterance(0));
+
+    expect(again.status).toBe(200);
+    expect(await again.json()).toMatchObject({ id: first.id });
+    expect(state.saved).toHaveLength(1);
+  });
+
+  // 유니크 색인의 열쇠에 종류가 없다. 한 메시지가 교정과 안내를 둘 다 낳지
+  // 못한다는 규칙이고, 그러니 종류가 다른 요청도 이미 있는 항목으로 끝나야 한다.
+  test("같은 메시지는 종류가 달라도 항목을 하나만 갖는다", async () => {
+    const state = createSeasonState();
+    state.messages.push(wrote("괜찮아요, 그런데 좀 급해서요."));
+    state.corrections.push({
+      corrected: "No worries, but I'm in a bit of a hurry.",
+      created_at: "2026-09-07T00:00:03.000Z",
+      fixed: "No worries",
+      message_id: "m1",
+      original: "괜찮아요",
+      pattern: "expression-no-worries",
+      reason: "'괜찮아요'는 No worries라고 해요.",
+    });
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+
+    const first = (await (await app.request(learning())).json()) as {
+      id: string;
+      kind: string;
+    };
+
+    expect(first.kind).toBe("guidance");
+
+    // 같은 메시지의 원문이 영어로 바뀐 것처럼 굴어 다른 종류를 요청한다.
+    state.messages[0] = wrote("I am in a hurry.");
+    const again = await app.request(learning());
 
     expect(again.status).toBe(200);
     expect(await again.json()).toMatchObject({ id: first.id });
