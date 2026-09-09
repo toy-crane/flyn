@@ -34,7 +34,7 @@
 
 Apple과 Google 지침은 모든 CTA에 투명 배경이나 플로팅을 요구하지 않는다. 이 표현은 앱에서 선택한 기본값이다. 공식 지침의 행동 위계와 가독성 원칙을 유지하면서 온보딩과 일관된 표현을 사용한다.
 
-## 근거
+## 보존할 근거
 
 - [온보딩 공통 배치](../../apps/mobile/src/features/auth/ui/auth-layout.tsx)
 - [공통 Button](../../apps/mobile/src/shared/ui/button.tsx)

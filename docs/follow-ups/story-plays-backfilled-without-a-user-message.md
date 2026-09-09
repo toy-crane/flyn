@@ -61,5 +61,6 @@ push 뒤에는 `select count(*) from public.story_plays where last_user_message_
 
 ## 관련
 
-- [스토리 재플레이 명세](../specs/story-replay/spec.md)의 "사용자가 말하지 않은 옛 진입"
+- [AI 에피소드 프로토콜](../decisions/ai-episode-protocol.md)
+- [모바일 스토리 탐색](../decisions/mobile-story-browsing.md)
 - [Supabase 스키마 작업 흐름](../decisions/supabase-schema-workflow.md)
