@@ -9,12 +9,13 @@ import {
 } from "@testing-library/react-native";
 import type { UIMessage } from "ai";
 import { setStringAsync } from "expo-clipboard";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
   AccessibilityInfo,
   AppState,
   type AppStateStatus,
   StyleSheet,
+  View,
 } from "react-native";
 import { KeyboardController } from "react-native-keyboard-controller";
 
@@ -449,6 +450,40 @@ describe("ChatPanel", () => {
     expect(
       screen.queryByTestId("chat-message-assistant")
     ).not.toBeOnTheScreen();
+  });
+
+  // 흐르는 동안 담으려 하면 계정에 아직 없는 자리를 가리켜 실패한다. 서버가 그
+  // 메시지를 다 흘린 뒤에 저장하기 때문이다.
+  test("아직 도착하는 중인 답변에는 담아 둘 자리를 두지 않는다", async () => {
+    const scene: UIMessage = {
+      id: "assistant-1",
+      parts: [
+        { data: { name: "만복" }, id: "speaker-1", type: "data-speaker" },
+        { text: "어서 와.", type: "text" },
+      ],
+      role: "assistant",
+    };
+    const Slot = ({ children }: { children: ReactNode }) => (
+      <View testID="utterance-slot">{children}</View>
+    );
+
+    const { rerender } = await renderWithHeroUI(
+      <ChatPanel
+        chat={chatSession({ isBusy: true, messages: [scene] })}
+        utteranceAddon={Slot}
+      />
+    );
+
+    expect(screen.queryByTestId("utterance-slot")).not.toBeOnTheScreen();
+
+    await rerender(
+      <ChatPanel
+        chat={chatSession({ isBusy: false, messages: [scene] })}
+        utteranceAddon={Slot}
+      />
+    );
+
+    expect(screen.getByTestId("utterance-slot")).toBeOnTheScreen();
   });
 
   test("장면 복사는 화자 이름이 살아 있는 각본으로 넣는다", async () => {

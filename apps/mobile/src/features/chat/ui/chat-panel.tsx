@@ -853,7 +853,14 @@ export function ChatPanel({
         message={item}
         onBeginEdit={beginEdit}
         onRegenerate={regenerateAnswer}
-        utteranceAddon={utteranceAddon}
+        /*
+          아직 도착하는 중인 답변에는 담아 둘 자리를 두지 않는다. 그 메시지는
+          서버가 다 흘린 뒤에 저장하므로, 흐르는 동안 누르면 계정에 없는 자리를
+          가리켜 실패한다. 다 오면 그때 함께 나타난다.
+        */
+        utteranceAddon={
+          isBusy && index === messageCount - 1 ? undefined : utteranceAddon
+        }
       />
     ),
     [
