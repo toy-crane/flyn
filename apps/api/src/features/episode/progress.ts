@@ -2,7 +2,7 @@ import type { UIMessage } from "ai";
 
 import type { SceneOutcome } from "../../shared/scene-stream";
 import type { EpisodeCorrection } from "./correction";
-import { EPISODE_NOTES, type StoryMemory } from "./episode";
+import { EPISODE_NOTES, type StoryMemory } from "./episode.js";
 import type { EpisodeClient, EpisodeScript, StoryContent } from "./story";
 
 /** 기록 한 줄이 데이터베이스에서 허용되는 길이. */

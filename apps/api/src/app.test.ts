@@ -6,9 +6,14 @@ import { withSupabase } from "@supabase/server/adapters/hono";
 import { MockLanguageModelV4, simulateReadableStream } from "ai/test";
 import type { MiddlewareHandler } from "hono";
 
-import { createApp } from "./app";
+import deployedApp, { createApp } from "./app";
 
 const EPISODE_PATH = "/ai/episode";
+
+test("Vercel 진입점이 health 요청에 응답한다", async () => {
+  const response = await deployedApp.request("/health");
+  expect(response.status).toBe(200);
+});
 
 /**
  * A real Supabase project is not reachable from a unit test, so the URL is the

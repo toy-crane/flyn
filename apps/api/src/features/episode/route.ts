@@ -11,14 +11,20 @@ import {
 } from "ai";
 import { Hono, type MiddlewareHandler } from "hono";
 
-import { resolveModelId } from "../../shared/model-id";
-import { logRequestAbort, logRequestFailure } from "../../shared/request-log";
-import { speakerModelText, streamSceneText } from "../../shared/scene-stream";
-import { type AuthedEnv, createUserGuard } from "../../shared/user-guard";
-import { askSystemPrompt, readAskedCorrection } from "./ask";
-import { storyDetailViewOf, storyListViewOf } from "./catalog";
-import { judgeExpression } from "./correction";
-import { episodeSystemPrompt, episodeTags } from "./episode";
+import { resolveModelId } from "../../shared/model-id.js";
+import {
+  logRequestAbort,
+  logRequestFailure,
+} from "../../shared/request-log.js";
+import {
+  speakerModelText,
+  streamSceneText,
+} from "../../shared/scene-stream.js";
+import { type AuthedEnv, createUserGuard } from "../../shared/user-guard.js";
+import { askSystemPrompt, readAskedCorrection } from "./ask.js";
+import { storyDetailViewOf, storyListViewOf } from "./catalog.js";
+import { judgeExpression } from "./correction.js";
+import { episodeSystemPrompt, episodeTags } from "./episode.js";
 import {
   appendEpisodeCorrection,
   appendEpisodeMessage,
@@ -30,7 +36,7 @@ import {
   readFinishedEpisodes,
   recordEpisodeEnding,
   storyMemoriesOf,
-} from "./progress";
+} from "./progress.js";
 import {
   type EpisodeClient,
   type EpisodeScript,
@@ -39,12 +45,12 @@ import {
   readStoryOfEpisode,
   readStoryOfPlay,
   type StoryContent,
-} from "./story";
+} from "./story.js";
 import {
   readRecentStories,
   readStoryPlays,
   startStoryPlay,
-} from "./story-plays";
+} from "./story-plays.js";
 
 export interface EpisodeDependencies {
   authMiddleware?: MiddlewareHandler;

@@ -5,9 +5,9 @@ import { HTTPException } from "hono/http-exception";
 import {
   createEpisodeRoutes,
   type EpisodeDependencies,
-} from "./features/episode/route";
-import { healthRoutes } from "./features/health/route";
-import { logRequestFailure } from "./shared/request-log";
+} from "./features/episode/route.js";
+import { healthRoutes } from "./features/health/route.js";
+import { logRequestFailure } from "./shared/request-log.js";
 
 export type AppDependencies = EpisodeDependencies;
 
@@ -37,3 +37,6 @@ export function createApp(dependencies: AppDependencies = {}) {
 
   return app;
 }
+
+// Vercel은 Hono를 직접 가져오는 이 파일을 배포 진입점으로 사용한다.
+export default createApp();
