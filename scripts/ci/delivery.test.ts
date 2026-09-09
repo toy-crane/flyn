@@ -104,6 +104,8 @@ test("공유 의존성이 바뀌면 이를 사용하는 Edge Function과 API와 
 
 test.each([
   "supabase/seed.sql",
+  "supabase/seed-story-covers.sql",
+  "supabase/story-covers/example.png",
   "supabase/config.toml",
   "supabase/templates/email-otp.html",
 ])("%s 변경은 자동 덮어쓰기가 아니라 별도 확인 대상으로 표시한다", (path) => {

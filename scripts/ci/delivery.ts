@@ -52,6 +52,8 @@ function plan(args: string[]) {
         (path) =>
           path === "supabase/config.toml" ||
           path === "supabase/seed.sql" ||
+          path === "supabase/seed-story-covers.sql" ||
+          path.startsWith("supabase/story-covers/") ||
           path.startsWith("supabase/templates/") ||
           path.startsWith("supabase/seeds/")
       );
