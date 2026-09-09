@@ -181,12 +181,6 @@
       "skillPath": "skills/expo/expo-smoke-test/SKILL.md",
       "computedHash": "f8a9a8a160f7233885d711fadf4f3501ccda19b808da5ae7e8827b2fce703371"
     },
-    "expo-tailwind-setup": {
-      "source": "expo/skills",
-      "sourceType": "github",
-      "skillPath": "plugins/expo/skills/expo-tailwind-setup/SKILL.md",
-      "computedHash": "fe7cb21735243b2701a3a1e35be6fbfd7cff6a146447200d4b14d225b619a46d"
-    },
     "expo-ui": {
       "source": "expo/skills",
       "sourceType": "github",
