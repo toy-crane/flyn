@@ -62,6 +62,29 @@ describe("selectDevice", () => {
     ).toEqual({ reason: "create" });
   });
 
+  test("다섯 기기를 모두 배정하면 생성을 막고 반납 방법을 안내한다", () => {
+    const state = stateWithWorktrees([MAIN]);
+    for (let index = 1; index <= 5; index += 1) {
+      state.devicePool.ios[`device-${index}`] = {
+        installedFingerprint: null,
+        leasedTo: `/other-${index}`,
+      };
+    }
+    expect(() =>
+      selectDevice({ platform: "ios", state, worktreePath: MAIN })
+    ).toThrow("bun run dev:remove");
+    state.devicePool.ios["device-3"] = {
+      installedFingerprint: null,
+      leasedTo: null,
+    };
+    expect(
+      selectDevice({ platform: "ios", state, worktreePath: MAIN })
+    ).toEqual({ deviceId: "device-3", reason: "pooled" });
+    expect(
+      selectDevice({ platform: "android", state, worktreePath: MAIN })
+    ).toEqual({ reason: "create" });
+  });
+
   test("같은 기기를 두 worktree에 동시에 주지 않는다", () => {
     const state = stateWithWorktrees([MAIN, FEATURE]);
 

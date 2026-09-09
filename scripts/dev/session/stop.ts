@@ -111,7 +111,7 @@ export async function removeSession({
     await stopOwnProcesses(worktreePath, state);
 
     // No separate shutdown here: every assigned device goes through
-    // `eraseToPool` below, which shuts it down before wiping it.
+    // `returnToPool` below, which removes the app before shutting it down.
     const released: string[] = [];
 
     for (const platform of PLATFORMS) {
@@ -121,9 +121,23 @@ export async function removeSession({
         continue;
       }
 
-      // biome-ignore lint/performance/noAwaitInLoops: erasing devices in parallel makes the tools contend for the same daemons.
-      await driverFor(context, platform).eraseToPool(deviceId);
+      // App removal can succeed before shutdown fails. Persist an unknown
+      // install state first so a later start reinstalls instead of trusting it.
+      const device = state.devicePool[platform][deviceId];
+      if (device) {
+        device.installedFingerprint = null;
+      }
+      writeState(context.paths.statePath, state);
+
+      // biome-ignore lint/performance/noAwaitInLoops: returning devices in parallel makes the tools contend for the same daemons.
+      await driverFor(context, platform).returnToPool(deviceId);
       releaseDevice(state, platform, deviceId);
+      delete record.devices[platform];
+      record.activePlatforms = record.activePlatforms.filter(
+        (entry) => entry !== platform
+      );
+      // Persist each return: a later platform failure must not retain a stale install fingerprint.
+      writeState(context.paths.statePath, state);
       released.push(`${platform} ${deviceId}`);
     }
 

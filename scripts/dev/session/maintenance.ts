@@ -70,7 +70,7 @@ async function enumerateDevices(
   return found;
 }
 
-async function eraseReleased(
+async function returnReleased(
   context: SessionContext,
   released: ReleasedDevice[],
   io: SessionIo
@@ -79,12 +79,15 @@ async function eraseReleased(
     const driver = driverFor(context, platform);
 
     try {
-      // biome-ignore lint/performance/noAwaitInLoops: erasing devices in parallel makes the tools contend for the same daemons.
-      await driver.eraseToPool(deviceId);
-      io.log(`  기기를 초기화해 풀로 돌려놓았습니다: ${platform} ${deviceId}`);
-    } catch (error) {
+      // biome-ignore lint/performance/noAwaitInLoops: returning devices in parallel makes the tools contend for the same daemons.
+      await driver.returnToPool(deviceId);
       io.log(
-        `  기기를 초기화하지 못했습니다: ${platform} ${deviceId} (${error instanceof Error ? error.message : String(error)})`
+        `  플린 앱을 삭제하고 기기를 풀로 돌려놓았습니다: ${platform} ${deviceId}`
+      );
+    } catch (error) {
+      throw new Error(
+        `기기의 앱을 삭제하지 못해 반납을 중단했습니다: ${platform} ${deviceId} (${error instanceof Error ? error.message : String(error)})`,
+        { cause: error }
       );
     }
   }
@@ -128,7 +131,7 @@ export async function fitStateToReality(
     });
   }
 
-  await eraseReleased(context, result.releasedDevices, io);
+  await returnReleased(context, result.releasedDevices, io);
 
   return result.next;
 }

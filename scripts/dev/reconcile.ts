@@ -42,7 +42,7 @@ export interface ReconcileResult {
   next: RepositoryState;
   /** Worktrees that left the repository. Their logs and slots are gone too. */
   reclaimed: ReclaimedWorktree[];
-  /** Devices to shut down and erase before they go back into the pool. */
+  /** Devices whose project app must be removed before they go back into the pool. */
   releasedDevices: ReleasedDevice[];
   /** Live worktrees whose session half-died; the survivors must be stopped. */
   stranded: StrandedSession[];
@@ -125,7 +125,7 @@ function releaseWorktreeDevices(
 
     if (device) {
       // The fingerprint is cleared with the lease on purpose: the next
-      // worktree gets an erased device, so nothing is installed on it yet.
+      // worktree gets a device without the project app, so nothing is installed on it yet.
       device.installedFingerprint = null;
       device.leasedTo = null;
     }
@@ -175,7 +175,7 @@ export function reconcile(
   const stranded: StrandedSession[] = [];
 
   // Devices the machine no longer has go first, so nothing downstream tries to
-  // shut down or erase a simulator that was deleted outside this tool.
+  // clean a simulator that was deleted outside this tool.
   pruneMissingDevices(next, facts);
 
   for (const [worktreePath, record] of Object.entries(next.worktrees)) {

@@ -1,11 +1,12 @@
 import { existsSync } from "node:fs";
+import { join } from "node:path";
 
 import {
   type AndroidSdk,
   androidEnv,
+  bootForRelease,
   createAvd,
   emulatorPort,
-  eraseAvdData,
   findSerialForAvd,
   forceStop,
   installApk,
@@ -16,6 +17,7 @@ import {
   reversePort,
   shutdownEmulator,
   startEmulator,
+  uninstallApk,
   writeAvdDisplayName,
 } from "../adapters/android";
 import { androidApkPath } from "../adapters/expo";
@@ -23,7 +25,6 @@ import {
   approveUrlSchemes,
   bootSimulator,
   createSimulator,
-  eraseSimulator,
   installApp,
   installedAppPath,
   isSimulatorBooted,
@@ -34,6 +35,7 @@ import {
   renameSimulator,
   shutdownSimulator,
   terminateApp,
+  uninstallApp,
 } from "../adapters/ios";
 import {
   androidDisplayName,
@@ -71,8 +73,6 @@ export interface PlatformDriver {
   buildTarget: (handle: DeviceHandle) => string;
   createDevice: (name: string) => Promise<string>;
   ensureBooted: (input: BootInput) => Promise<DeviceHandle>;
-  /** Shuts the device down and wipes it before it goes back to the pool. */
-  eraseToPool: (deviceId: string) => Promise<void>;
   existingDeviceIds: () => Promise<Set<string>>;
   /**
    * Display names already in use. On iOS these are not the pool's identifiers,
@@ -90,6 +90,8 @@ export interface PlatformDriver {
   /** Where the finished build sits after `expo run:<platform>`. */
   producedArtifact: (handle: DeviceHandle) => Promise<string | undefined>;
   relaunchUrl: (handle: DeviceHandle, url: string) => Promise<void>;
+  /** Removes the project app and shuts the device down before it goes back to the pool. */
+  returnToPool: (deviceId: string) => Promise<void>;
   shutdown: (deviceId: string) => Promise<void>;
 }
 
@@ -133,7 +135,7 @@ async function applySimulatorSlotName(
   }
 }
 
-/** Same rule on the way back: the pool name is best effort after the erase. */
+/** Same rule on the way back: the pool name is best effort after app removal. */
 async function restorePoolName(deviceId: string, slug: string): Promise<void> {
   try {
     const step = planPoolRename(
@@ -184,11 +186,6 @@ function createIosDriver(
 
       return { deviceId, target: deviceId };
     },
-    eraseToPool: async (deviceId) => {
-      await eraseSimulator(deviceId);
-      // The slot name goes with the lease; a pool device is anonymous again.
-      await restorePoolName(deviceId, slug);
-    },
     existingDeviceIds: async () =>
       new Set((await listSimulators()).map((device) => device.udid)),
     existingDeviceNames: async () =>
@@ -206,6 +203,11 @@ function createIosDriver(
       // URL it last used, and a running app turns the deep link into a dialog.
       await terminateApp(handle.target, bundleIdentifier);
       await openIosUrl(handle.target, url);
+    },
+    returnToPool: async (deviceId) => {
+      await uninstallApp(deviceId, bundleIdentifier);
+      // The slot name goes with the lease; a pool device is anonymous again.
+      await restorePoolName(deviceId, slug);
     },
     shutdown: shutdownSimulator,
   };
@@ -246,17 +248,6 @@ function createAndroidDriver(
 
       return { deviceId, target };
     },
-    eraseToPool: async (deviceId) => {
-      const serial = await findSerialForAvd(sdk, deviceId);
-
-      if (serial) {
-        await shutdownEmulator(sdk, serial);
-      }
-
-      eraseAvdData(deviceId);
-      // The label goes with the lease, same as the iOS slot name.
-      writeAvdDisplayName(deviceId, undefined);
-    },
     existingDeviceIds: async () => new Set(await listAvds(sdk)),
     // An AVD is addressed by its name, so the ids are the names.
     existingDeviceNames: async () => new Set(await listAvds(sdk)),
@@ -277,6 +268,18 @@ function createAndroidDriver(
       // launch can quietly load another worktree's bundle.
       await forceStop(sdk, handle.target, androidPackage);
       await openAndroidUrl(sdk, handle.target, url, androidPackage);
+    },
+    returnToPool: async (deviceId) => {
+      const serial = await bootForRelease(
+        sdk,
+        deviceId,
+        join(gradleUserHome, "..", "device-release.log")
+      );
+      await uninstallApk(sdk, serial, androidPackage);
+      await shutdownEmulator(sdk, serial);
+
+      // The label goes with the lease, same as the iOS slot name.
+      writeAvdDisplayName(deviceId, undefined);
     },
     shutdown: async (deviceId) => {
       const serial = await findSerialForAvd(sdk, deviceId);
