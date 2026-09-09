@@ -4,9 +4,9 @@ import { ScrollView, Text, View } from "react-native";
 import type { RecentStory } from "@/features/story/api/story";
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { StoryRow } from "@/features/story/ui/story-row";
-import { StoryEmpty, StoryUnavailable } from "@/features/story/ui/story-status";
-import { useStoryContentHeight } from "@/features/story/ui/use-story-content-height";
 import { Button } from "@/shared/ui/button";
+import { ScreenEmpty, ScreenUnavailable } from "@/shared/ui/screen-status";
+import { useScreenContentHeight } from "@/shared/ui/use-screen-content-height";
 
 function RecentRow({
   hasBorder,
@@ -60,7 +60,7 @@ export function RecentStoriesScreen({
   stories: RecentStory[] | undefined;
 }) {
   const hasStories = stories !== undefined && stories.length > 0;
-  const contentHeight = useStoryContentHeight();
+  const contentHeight = useScreenContentHeight();
 
   return (
     <ScrollView
@@ -91,7 +91,7 @@ export function RecentStoriesScreen({
         </>
       ) : null}
       {stories && !hasStories ? (
-        <StoryEmpty
+        <ScreenEmpty
           action={
             <Button
               accessibilityLabel={storyLabels.recentEmptyAction}
@@ -106,10 +106,11 @@ export function RecentStoriesScreen({
         />
       ) : null}
       {stories || isLoading ? null : (
-        <StoryUnavailable
+        <ScreenUnavailable
           isRetrying={isRetrying}
           onRetry={onRetry}
           testID="recent-unavailable"
+          title={storyLabels.unavailable}
         />
       )}
     </ScrollView>

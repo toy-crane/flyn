@@ -10,10 +10,10 @@ import { StoryCover } from "@/features/story/ui/story-cover";
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { formatStoryPlayStart } from "@/features/story/ui/story-play-time";
 import { StoryProgress } from "@/features/story/ui/story-progress";
-import { StoryEmpty, StoryUnavailable } from "@/features/story/ui/story-status";
-import { useStoryContentHeight } from "@/features/story/ui/use-story-content-height";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
+import { ScreenEmpty, ScreenUnavailable } from "@/shared/ui/screen-status";
+import { useScreenContentHeight } from "@/shared/ui/use-screen-content-height";
 
 /** 펼친 카드 안의 끝낸 화 한 줄. */
 function StoryPlayEpisodeRow({
@@ -208,7 +208,7 @@ export function StoryRecordsScreen({
   storyPlays: StoryPlays | undefined;
 }) {
   const hasStoryPlays = storyPlays !== undefined && storyPlays.plays.length > 0;
-  const contentHeight = useStoryContentHeight();
+  const contentHeight = useScreenContentHeight();
 
   return (
     <ScrollView
@@ -244,7 +244,7 @@ export function StoryRecordsScreen({
                 ))}
               </View>
             ) : (
-              <StoryEmpty
+              <ScreenEmpty
                 testID="story-records-empty"
                 title={storyLabels.recordsEmptyTitle}
               />
@@ -253,10 +253,11 @@ export function StoryRecordsScreen({
         </>
       ) : null}
       {storyPlays || isLoading ? null : (
-        <StoryUnavailable
+        <ScreenUnavailable
           isRetrying={isRetrying}
           onRetry={onRetry}
           testID="story-records-unavailable"
+          title={storyLabels.unavailable}
         />
       )}
     </ScrollView>
