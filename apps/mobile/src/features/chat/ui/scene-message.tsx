@@ -41,7 +41,7 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
     );
   }
   const bubble = (
-    <View className="max-w-[85%] shrink self-start rounded-2xl bg-surface px-4 py-3">
+    <View className="max-w-[85%] shrink rounded-2xl bg-surface px-4 py-3">
       <MarkdownAnswer markdown={text} />
     </View>
   );
