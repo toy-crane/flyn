@@ -12,48 +12,15 @@ import {
 } from "@/features/episode/state/episode-corrections";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
+import { MarkedSentence } from "@/shared/ui/marked-text";
 import { StatusLine } from "@/shared/ui/status-line";
 import { correctionPresentation } from "./correction-presentation";
-import { fixedMarks, markedParts } from "./correction-text";
+import { fixedMarks } from "./correction-text";
 import { correctionLabels } from "./episode-labels";
 import {
   ExpressionBookmark,
   ExpressionSaveFailure,
 } from "./expression-bookmark";
-
-/**
- * 강조할 자리를 짚은 문장.
- *
- * 강조는 굵기가 아니라 색으로 준다. 고친 문장에서 어디가 달라졌는지가 교정
- * 채널의 보라로 바로 읽히고, 문장은 그대로 한 줄로 이어진다.
- */
-function MarkedSentence({
-  className,
-  marks,
-  markClassName,
-  testID,
-  text,
-}: {
-  className: string;
-  markClassName: string;
-  marks: readonly string[];
-  testID?: string;
-  text: string;
-}) {
-  return (
-    <Text className={className} selectable={false} testID={testID}>
-      {markedParts(text, marks).map((part) =>
-        part.isMarked ? (
-          <Text className={markClassName} key={part.at}>
-            {part.text}
-          </Text>
-        ) : (
-          part.text
-        )
-      )}
-    </Text>
-  );
-}
 
 /**
  * 카드 안의 표현 하나. 원문의 어긋난 자리, 고친 문장, 이유 한 줄.
