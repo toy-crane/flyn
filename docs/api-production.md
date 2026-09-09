@@ -21,6 +21,16 @@ vercel deploy --prod --yes --scope odd-inc --regions icn1
 
 ## 운영 환경 변수
 
+### GitHub 배포 인증
+
+- 2026-09-10: `toy-crane/flyn` 저장소의 `VERCEL_TOKEN` Secret을 등록했다.
+- 토큰은 `flyn-api` 프로젝트에 한정하며 다른 프로젝트용 토큰으로 재사용하지 않는다.
+- 만료는 2027-03-09 08:03 KST다. 만료 전에 새 프로젝트 한정 토큰으로 교체한다.
+- 해당 토큰으로 Flyn API 프로젝트 조회가 성공함을 확인했다. 배포 실행 권한의 실제 검증은 아직 남아 있다.
+- CLI의 토큰 생성 명령은 팀 범위를 넘기지 못해 HTTP 400으로 끝났다. 공식 API에 `teamId`와 `projectId`를 함께 명시해 생성했다. 토큰 값은 메모리에서 GitHub Secret으로 전달했으며 파일이나 로그에 남기지 않았다.
+
+### 함수 실행 환경
+
 - `SUPABASE_URL`: 운영 `flyn` 프로젝트 주소
 - `SUPABASE_JWKS_URL`: 같은 프로젝트의 `/auth/v1/.well-known/jwks.json`
 - `SUPABASE_PUBLISHABLE_KEY`: 같은 프로젝트의 공개 키
