@@ -155,7 +155,7 @@
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-native-ui/SKILL.md",
-      "computedHash": "3bebacbb5882f72f89322391b2b82f643cea15c0e2b3e27c39659969a6addd75"
+      "computedHash": "83511d97875ca9b022796c980a1c631579040dfd36119751a7b6499734c5d7cf"
     },
     "expo-project-structure": {
       "source": "expo/skills",
@@ -167,7 +167,7 @@
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-router/SKILL.md",
-      "computedHash": "b5baa66d0024536b1410136b05e83d749fb5a1c8b72326b5096193c03523361c"
+      "computedHash": "9dfdcd75e5f473b468aa3decc0ba1ac7af6641a0a777611ef7173cc4232ddb7c"
     },
     "expo-skill-feedback": {
       "source": "expo/skills",
@@ -203,7 +203,7 @@
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-web-to-native/SKILL.md",
-      "computedHash": "91c5a9827989c25d997893216741fcbc5681260848dbc40ca890f03bb68ba451"
+      "computedHash": "1535f5a384a7b2c1d23829149bc6d9852154eef3f96f2bff81f6dcc96d58e260"
     },
     "heroui-native": {
       "source": "heroui-inc/heroui",
@@ -221,7 +221,7 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/workflow/implement/SKILL.md",
-      "computedHash": "1f5a74fcb302a84ab12266faa3772d8da15bcb2973385f4da1e61350ecfac58d"
+      "computedHash": "7f19d2a0d837968964f8927f63feb61d8858a798002a84bfbff0e911acf4caf6"
     },
     "maintain-project-context": {
       "source": "toy-crane/skills",
