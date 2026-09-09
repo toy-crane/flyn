@@ -124,26 +124,23 @@
   .chat { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 16px 2px 12px; display: flex; flex-direction: column; gap: 10px }
   .chat::-webkit-scrollbar { display: none }
   .narration { font-size: 15px; line-height: 23px; color: var(--muted); padding: 0 4px; word-break: keep-all }
-  .utterance { max-width: 88%; align-self: flex-start; position: relative }
-  .utterance .who { display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; color: var(--muted); padding: 0 4px; margin-bottom: 4px }
-  .utterance .who svg { width: 13px; height: 13px; color: var(--accent) }
-  .utterance .bubble { background: var(--surface); border-radius: 18px; padding: 12px 16px; font-size: 17px; line-height: 26px; user-select: none; -webkit-user-select: none }
-  .utterance.held .bubble { box-shadow: 0 8px 26px #00000022; transform: scale(1.02); transform-origin: left top }
-  .utterance:not([data-saved="true"]) .who svg { display: none }
-  .menu { position: absolute; left: 4px; top: calc(100% + 6px); z-index: 6; background: #ffffffee; backdrop-filter: blur(16px); border-radius: 14px; box-shadow: 0 10px 30px #0000002a; min-width: 170px; overflow: hidden }
-  .menu button { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; font-size: 16px; text-align: left }
-  .menu button svg { width: 18px; height: 18px; color: #3a3a42 }
-  .dim { position: absolute; inset: 0; background: #00000033; z-index: 4; border-radius: 18px }
+  .utterance { max-width: 92%; align-self: flex-start; position: relative }
+  .utterance .who { display: block; font-size: 12px; line-height: 16px; color: var(--muted); padding: 0 4px; margin-bottom: 4px }
+  .utterance .bubble { background: var(--surface); border-radius: 18px; padding: 12px 16px; font-size: 17px; line-height: 26px }
+  .utterance .bubble-row { display: flex; align-items: flex-end; gap: 4px }
+  .utterance .bubble-row .bookmark { margin: 0 0 4px }
+  .snackbar { position: absolute; left: 50%; bottom: 78px; transform: translateX(-50%); z-index: 8; background: #1c1c21ee; color: #fff; font-size: 15px; line-height: 20px; padding: 11px 8px 11px 18px; border-radius: 24px; box-shadow: 0 8px 22px #00000030; display: flex; align-items: center; gap: 6px; white-space: nowrap }
+  .snackbar a { color: #8ec3ff; font-weight: 600; text-decoration: none; padding: 6px 10px; border-radius: 16px }
   .reply { margin-left: auto; max-width: 86%; background: #e0edff; border-radius: 18px; padding: 12px 16px; font-size: 17px; line-height: 26px }
   .learn-slot { margin-left: auto; max-width: 92%; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-top: -4px }
   .note-row { display: flex; align-items: center; gap: 6px; justify-content: flex-end; max-width: 100% }
-  .note-row .bookmark { margin: 0 -4px 0 0 }
+  .note-row .bookmark { margin: 0 0 0 -4px }
   .note { display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 12px; border-radius: 14px; font-size: 14px; line-height: 20px; text-align: left; max-width: 100% }
   .note.learn { background: var(--learn-surface) } .note.learn b { color: var(--learn); font-weight: 600 }
   .note.expression { background: var(--expression-surface) } .note.expression b { color: var(--expression); font-weight: 600 }
   .note .spark { width: 15px; height: 15px } .note.learn .spark { color: var(--learn) } .note.expression .spark { color: var(--expression) }
   .note .chev { width: 16px; height: 16px; color: #8a8a92 }
-  .bookmark { width: 32px; height: 32px; margin: -6px -8px -6px -2px; display: flex; align-items: center; justify-content: center; color: #8a8a92; border-radius: 16px }
+  .bookmark { width: 32px; height: 32px; margin: -6px -8px -6px -2px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #8a8a92; border-radius: 16px }
   .bookmark svg { width: 18px; height: 18px }
   .bookmark[aria-pressed="true"] { color: var(--accent) }
   .card { background: var(--learn-surface); border-radius: 16px; padding: 14px 14px 12px; width: 100%; font-size: 14px; line-height: 20px; text-align: left }
@@ -323,7 +320,7 @@
   ];
   const expanded = new Set();
   const failed = new Set();
-  let openMenu = null;
+  let snackbarTimer = null;
   const isSaved = ref => saved.some(item => item.ref === ref);
   const mark = (text, marks) => marks.reduce((out, m) => out.replace(m, `<b>${m}</b>`), text);
   const umark = (text, marks) => marks.reduce((out, m) => out.replace(m, `<u>${m}</u>`), text);
@@ -335,7 +332,7 @@
   function learnSlot(learn) {
     const open = expanded.has(learn.id);
     const fail = failed.has(learn.id) ? `<p class="status-line">표현을 저장하지 못했어요. ${ICON.refresh}</p>` : '';
-    if (!open) return `<div class="learn-slot"><div class="note-row"><button type="button" class="note ${learn.kind}" data-expand="${learn.id}" aria-label="${learn.title} 보기">${ICON.spark}<span>${mark(learn.fixed, learn.fixedMarks)}</span>${ICON.down}</button>${bookmarkButton(learn.id)}</div>${fail}</div>`;
+    if (!open) return `<div class="learn-slot"><div class="note-row"><button type="button" class="note ${learn.kind}" data-expand="${learn.id}" aria-label="${learn.title} 보기">${ICON.spark}<span>${mark(learn.fixed, learn.fixedMarks)}</span>${ICON.down}</button></div>${fail}</div>`.replace('<div class="note-row">', '<div class="note-row">' + bookmarkButton(learn.id));
     return `<div class="learn-slot"><div class="card ${learn.kind}"><div class="head"><h3>${learn.title}</h3>${bookmarkButton(learn.id)}<button type="button" class="bookmark" data-expand="${learn.id}" aria-label="${learn.title} 접기">${ICON.up}</button></div><p class="orig">${umark(learn.original, learn.originalMarks)}</p><p class="fixed">${mark(learn.fixed, learn.fixedMarks)}</p><p class="why">${learn.why}</p><button type="button" class="ask">AI에게 물어보기</button></div>${fail}</div>`;
   }
   function renderChat() {
@@ -343,11 +340,10 @@
     chat.innerHTML = scene.map(part => {
       if (part.type === 'narration') return `<p class="narration">${part.text}</p>`;
       if (part.type === 'utterance') {
-        const menu = openMenu === part.id ? `<div class="menu" role="menu"><button type="button" role="menuitem" data-toggle="${part.id}">${isSaved(part.id) ? '저장 취소' : '표현 저장'}${isSaved(part.id) ? ICON.bookmarkFilled : ICON.bookmark}</button></div>` : '';
-        return `<div class="utterance ${openMenu === part.id ? 'held' : ''}" data-utterance="${part.id}" data-saved="${isSaved(part.id)}"><span class="who">${part.who}${ICON.bookmarkFilled}</span><div class="bubble">${part.text}</div>${menu}${failed.has(part.id) ? `<p class="status-line" style="margin-top:6px">표현을 저장하지 못했어요. ${ICON.refresh}</p>` : ''}</div>`;
+        return `<div class="utterance" data-utterance="${part.id}" data-saved="${isSaved(part.id)}"><span class="who">${part.who}</span><div class="bubble-row"><div class="bubble">${part.text}</div>${bookmarkButton(part.id)}</div>${failed.has(part.id) ? `<p class="status-line" style="margin-top:6px">표현을 저장하지 못했어요. ${ICON.refresh}</p>` : ''}</div>`;
       }
       return `<div class="reply">${part.text}</div>${learnSlot(part.learn)}`;
-    }).join('') + (openMenu ? '<div class="dim" data-dismiss></div>' : '');
+    }).join('');
   }
 
   function itemFor(ref) {
@@ -360,8 +356,15 @@
     failed.delete(ref);
     if (isSaved(ref)) { saved = saved.filter(item => item.ref !== ref); }
     else if (prototypeShell.getScreen() === 'episode' && prototypeShell.getState() === '저장 실패') { failed.add(ref); }
-    else { saved = [itemFor(ref), ...saved]; }
+    else { saved = [itemFor(ref), ...saved]; showSnackbar(); }
     renderChat(); renderList();
+  }
+  function showSnackbar() {
+    const screen = document.querySelector('[data-screen="episode"]');
+    screen.querySelector('.snackbar')?.remove();
+    screen.insertAdjacentHTML('beforeend', '<div class="snackbar" role="status">표현을 저장했어요<a href="#expressions">보기</a></div>');
+    clearTimeout(snackbarTimer);
+    snackbarTimer = setTimeout(() => screen.querySelector('.snackbar')?.remove(), 2500);
   }
 
   function renderList() {
@@ -373,16 +376,6 @@
     }
   }
 
-  // 길게 누르기: 인물 대사에만 붙는다.
-  let holdTimer = null;
-  stage.addEventListener('pointerdown', e => {
-    const u = e.target.closest('[data-utterance]');
-    if (!u || e.target.closest('.menu')) return;
-    holdTimer = setTimeout(() => { openMenu = u.dataset.utterance; renderChat(); }, 420);
-  });
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach(type => stage.addEventListener(type, () => clearTimeout(holdTimer)));
-  stage.addEventListener('contextmenu', e => { const u = e.target.closest('[data-utterance]'); if (u) { e.preventDefault(); openMenu = u.dataset.utterance; renderChat(); } });
-
   // 목록 행 밀기: 왼쪽으로 밀면 삭제가 드러난다.
   let swipe = null;
   stage.addEventListener('pointerdown', e => { const row = e.target.closest('.row-wrap'); if (row && !e.target.closest('.delete')) swipe = { row, x: e.clientX }; });
@@ -391,8 +384,6 @@
 
   stage.addEventListener('click', e => {
     const t = e.target;
-    if (t.closest('[data-dismiss]')) { openMenu = null; renderChat(); return; }
-    const toggle = t.closest('[data-toggle]'); if (toggle) { openMenu = null; toggleSave(toggle.dataset.toggle); return; }
     const bm = t.closest('[data-bookmark]'); if (bm) { toggleSave(bm.dataset.bookmark); return; }
     const ex = t.closest('[data-expand]'); if (ex) { const id = ex.dataset.expand; expanded.has(id) ? expanded.delete(id) : expanded.add(id); renderChat(); return; }
     const del = t.closest('[data-delete]'); if (del) { saved = saved.filter(item => item.ref !== del.dataset.delete); renderChat(); renderList(); return; }
