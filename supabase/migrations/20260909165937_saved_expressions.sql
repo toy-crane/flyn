@@ -95,7 +95,7 @@ CREATE INDEX saved_expressions_user_id_created_at_idx ON public.saved_expression
 
 CREATE INDEX saved_expressions_episode_id_idx ON public.saved_expressions (episode_id);
 
-CREATE UNIQUE INDEX saved_expressions_one_per_source_idx ON public.saved_expressions (message_id, kind, COALESCE(utterance_at::integer, '-1'::integer))
+CREATE UNIQUE INDEX saved_expressions_one_per_source_idx ON public.saved_expressions (message_id, COALESCE(utterance_at::integer, '-1'::integer))
   WHERE message_id IS NOT NULL;
 
 CREATE POLICY saved_expressions_erase_own ON public.saved_expressions
@@ -113,7 +113,9 @@ CREATE POLICY saved_expressions_save_own ON public.saved_expressions
         CASE
             WHEN (saved_expressions.kind = 'utterance'::text) THEN 'assistant'::text
             ELSE 'user'::text
-        END))))));
+        END)))) AND ((kind = 'utterance'::text) OR (EXISTS ( SELECT 1
+   FROM public.episode_corrections judged
+  WHERE (judged.message_id = saved_expressions.message_id))))));
 
 CREATE POLICY saved_expressions_select_own ON public.saved_expressions
   FOR SELECT

@@ -599,13 +599,17 @@ create table public.saved_expressions (
 );
 
 -- 같은 자리를 두 번 담지 못하게 한다. 인물 대사는 메시지 안의 대사 자리까지
--- 봐야 갈리고, 교정과 안내는 메시지 하나에 종류마다 하나뿐이다.
+-- 봐야 갈리고, 사용자가 쓴 말에는 배울 표현이 하나뿐이라 메시지 하나가 곧 자리다.
+--
+-- 열쇠에 `kind`를 넣지 않는다. 넣으면 같은 메시지에 영어 교정과 한국어 안내가
+-- 둘 다 생길 수 있는데, 그 둘은 같은 판정의 다른 이름이라 한 메시지에 함께 설 수
+-- 없다. 자리는 종류가 아니라 메시지와 대사 번호가 정한다.
 --
 -- 참조가 끊긴 행은 여기서 빠진다. 원본을 잃은 항목끼리는 같은 자리를 가리키지
 -- 않으므로 서로 부딪힐 이유가 없다. `message_id`가 앞자리라 그 메시지가 지워질 때
 -- 참조를 끊으러 도는 조회도 이 색인을 탄다.
 create unique index saved_expressions_one_per_source_idx
-  on public.saved_expressions (message_id, kind, coalesce(utterance_at, -1))
+  on public.saved_expressions (message_id, coalesce(utterance_at, -1))
   where message_id is not null;
 
 -- 표현 노트가 "내가 담은 것을 최근순으로"를 묻는다. 두 열이 그 순서대로 앉아

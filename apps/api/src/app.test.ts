@@ -566,10 +566,14 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
                 };
               }
 
+              // 열이 uuid라 가짜도 같은 모양을 낸다. 취소 경로가 경로 조각의
+              // 모양을 확인하므로, 짧은 문자열은 실제와 다른 답을 만든다.
               const stored: SavedRow = {
                 ...row,
                 created_at: nextCreatedAt(),
-                id: `saved-${state.saved.length + 1}`,
+                id: `5a4ed000-0000-4000-8000-${(state.saved.length + 1)
+                  .toString()
+                  .padStart(12, "0")}`,
               };
 
               state.saved.push(stored);
@@ -2198,6 +2202,23 @@ describe("표현을 담아 두는 API", () => {
 
     expect(response.status).toBe(204);
     expect(state.saved).toEqual([]);
+  });
+
+  test("모양이 어긋난 id로 취소하면 받지 않는다", async () => {
+    const state = createSeasonState();
+    state.messages.push(scene());
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+
+    const response = await app.request(
+      new Request(`http://localhost${EPISODE_PATH}/saved-expressions/not-a-uuid`, {
+        method: "DELETE",
+      })
+    );
+
+    expect(response.status).toBe(400);
   });
 
   test("한국어 뜻을 만들지 못하면 담지 않는다", async () => {

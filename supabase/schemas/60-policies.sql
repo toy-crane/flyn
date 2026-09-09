@@ -241,15 +241,25 @@ create policy saved_expressions_select_own on public.saved_expressions
   to authenticated
   using ((select auth.uid()) = user_id);
 
--- 담는 것은 사람이 한다. 지킬 규칙은 셋이다. 자기 것이어야 하고, 그 종류가 담을
+-- 담는 것은 사람이 한다. 지킬 규칙은 넷이다. 자기 것이어야 하고, 그 종류가 담을
 -- 수 있는 역할의 메시지여야 하고, 적어 낸 화가 그 메시지가 실제로 오간 화여야
--- 한다. 셋째가 없으면 표현 노트의 출처 표시를 앱 밖에서 고를 수 있다.
+-- 하고, 배울 표현은 실제로 판정을 받은 메시지에서만 나와야 한다. 셋째가 없으면
+-- 표현 노트의 출처 표시를 앱 밖에서 고를 수 있고, 넷째가 없으면 아무 말에나
+-- 지어낸 교정을 붙일 수 있다.
 --
 -- 인물 대사는 캐릭터가 말한 것이고 영어 교정과 한국어 안내는 사용자가 쓴 것에
 -- 붙으므로, 담을 수 있는 역할이 종류마다 다르다. 지문과 내 말풍선에 저장을 두지
 -- 않는다는 화면의 규칙과 달리, 여기서 막는 것은 역할까지다. 지문인지 대사인지는
--- 같은 메시지 안의 자리라 정책이 볼 수 없고, 아래 `utterance_at`이 가리키는 자리를
+-- 같은 메시지 안의 자리라 정책이 볼 수 없고, `utterance_at`이 가리키는 자리를
 -- 서버가 읽어 영어 문장을 만든다.
+--
+-- 담기는 글 자체는 서버를 믿는다. `english`, `meaning`, `speaker`, `original`,
+-- `entries`가 그렇다. 인물 대사의 화자와 문장은 `episode_messages.parts` 안에
+-- 있으므로 정책이 대조할 수는 있지만, 한국어 뜻은 담는 순간 모델이 만드는 값이라
+-- 데이터베이스에 견줄 원본이 없다. 다섯 열 중 하나만 규칙이 걸리면 나머지가
+-- 지켜진다는 인상만 남으므로 다섯을 함께 서버에 맡긴다. 이 열들을 고쳐서 얻는
+-- 것은 자기 표현 노트에 자기가 지어낸 글을 넣는 것뿐이고, 남의 행에는 닿지
+-- 않는다. 모델을 부르지 않고도 문장을 확정할 수 있게 되면 다시 본다.
 --
 -- 플레이가 끝났는지는 보지 않는다. 결말이 얼리는 것은 대화이고, 끝난 화를 읽기
 -- 전용으로 다시 열어 마음에 드는 대사를 담는 것은 이 기능이 하려는 일 그 자체다.
@@ -268,6 +278,14 @@ create policy saved_expressions_save_own on public.saved_expressions
         and written.role = (
           case when kind = 'utterance' then 'assistant' else 'user' end
         )
+    )
+    and (
+      kind = 'utterance'
+      or exists (
+        select 1
+        from public.episode_corrections judged
+        where judged.message_id = saved_expressions.message_id
+      )
     )
   );
 

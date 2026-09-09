@@ -68,6 +68,10 @@ export interface EpisodeDependencies {
 
 const CONFLICT_STATUS = 409;
 
+/** 경로 조각으로 오는 id의 모양. 데이터베이스가 받는 것과 같은 형태다. */
+const UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // biome-ignore lint/suspicious/useAwait: 장면 파서가 받는 비동기 스트림 형태가 필요하다
 async function* authoredScene(script: string): AsyncIterable<string> {
   yield script;
@@ -644,16 +648,26 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           return c.json(await saveExpression(client, draft));
         }
       )
-      /* 담아 둔 것을 도로 놓는 자리. 책갈피를 다시 누르는 취소가 여기로 온다. */
+      /*
+      담아 둔 것을 도로 놓는 자리. 책갈피를 다시 누르는 취소가 여기로 온다.
+
+      남의 항목을 가리키는 정상 id에도 204를 돌려준다. 정책이 그 행에 닿지 못해
+      아무것도 지워지지 않고, 없다고 알리면 남의 id가 있는지를 확인해 줄 수 있다.
+      모양이 어긋난 id는 다른 이야기라, 데이터베이스까지 내려보내 500으로 만드는
+      대신 여기서 400으로 돌려준다.
+    */
       .delete(
         "/saved-expressions/:id",
         requireUser,
         requireCurrentUser,
         async (c) => {
-          await eraseSavedExpression(
-            c.var.supabaseContext.supabase,
-            c.req.param("id")
-          );
+          const id = c.req.param("id");
+
+          if (!UUID.test(id)) {
+            return c.json({ error: "Invalid saved expression id." }, 400);
+          }
+
+          await eraseSavedExpression(c.var.supabaseContext.supabase, id);
 
           return c.body(null, 204);
         }

@@ -1,7 +1,7 @@
 -- 손으로 담아 둔 표현의 접근 규칙을 확인한다. 자기 것만 읽고 지우며, 종류마다
 -- 담을 수 있는 메시지의 역할이 다르고, 원본이 사라져도 항목은 남는다.
 BEGIN;
-SELECT plan(37);
+SELECT plan(38);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -77,6 +77,27 @@ VALUES (
   '11111111-1111-4111-8111-111111111111',
   'assistant',
   '[{"type":"data-speaker","data":{"name":"미아"}},{"type":"text","text":"Here you go."}]'::jsonb
+);
+
+-- 판정을 받지 않은 사용자 메시지 하나. 배울 표현이 없는 자리를 보는 데 쓴다.
+INSERT INTO public.episode_messages (id, play_id, user_id, role, parts)
+VALUES (
+  'cc000000-0000-4000-8000-000000000004',
+  'aa000000-0000-4000-8000-000000000001',
+  '11111111-1111-4111-8111-111111111111',
+  'user',
+  '[{"type":"text","text":"Thank you."}]'::jsonb
+);
+
+-- 위 사용자 메시지가 실제로 받은 교정. 배울 표현은 이 행에서 나온다.
+INSERT INTO public.episode_corrections (
+  message_id, user_id, original, fixed, corrected, pattern, reason
+)
+VALUES (
+  'cc000000-0000-4000-8000-000000000002',
+  '11111111-1111-4111-8111-111111111111',
+  'order', 'ordered', 'I ordered a hot americano, but this is an iced latte.',
+  'past-tense', '지난 일은 ordered로 써요.'
 );
 
 -- 다른 계정의 장면 하나.
@@ -280,11 +301,13 @@ SELECT lives_ok(
   'a correction on my own message is saved'
 );
 
+-- 영어 교정과 한국어 안내는 같은 판정의 다른 이름이라 한 메시지에 함께 설 수
+-- 없다. 자리는 종류가 아니라 메시지가 정한다.
 SELECT throws_ok(
   $$insert into public.saved_expressions
       (kind, episode_id, message_id, english, original, entries)
     values (
-      'correction', '11000000-0000-4000-8000-000000000001',
+      'guidance', '11000000-0000-4000-8000-000000000001',
       'cc000000-0000-4000-8000-000000000002',
       'I ordered a hot americano, but this is an iced latte.',
       'I order hot americano but this is ice latte.',
@@ -292,7 +315,23 @@ SELECT throws_ok(
     )$$,
   '23505',
   NULL,
-  'and the same message cannot give the same kind twice'
+  'and one message gives one learning note, whichever kind it is'
+);
+
+-- 배울 표현은 실제로 판정을 받은 메시지에서만 나온다. 아무 말에나 지어낸 교정을
+-- 붙이는 문장은 여기서 막힌다.
+SELECT throws_ok(
+  $$insert into public.saved_expressions
+      (kind, episode_id, message_id, english, original, entries)
+    values (
+      'correction', '11000000-0000-4000-8000-000000000001',
+      'cc000000-0000-4000-8000-000000000004',
+      'Thanks a lot.', 'Thank you.',
+      '[{"original":"Thank you","fixed":"Thanks a lot","why":"지어낸 이유."}]'::jsonb
+    )$$,
+  '42501',
+  NULL,
+  'a message that was never judged has no learning note to save'
 );
 
 -- 종류마다 담을 수 있는 역할이 다르다.
