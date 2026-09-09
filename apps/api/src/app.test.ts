@@ -171,17 +171,6 @@ function nextCreatedAt(): string {
  * other half — the server now saves message rows itself, so what lands there is
  * what a reopened episode shows.
  */
-/** One stored correction, the way `episode_corrections` holds it. */
-interface CorrectionRow {
-  corrected: string;
-  created_at: string;
-  fixed: string;
-  message_id: string;
-  original: string;
-  pattern: string;
-  reason: string;
-}
-
 /** 회차 한 줄, `story_plays`가 들고 있는 모양대로. */
 interface StoryPlayRow {
   id: string;
@@ -193,7 +182,7 @@ interface StoryPlayRow {
 interface SeasonState {
   /** 교정을 남기는 문장만 실패시킨다. 장면 저장은 그대로 성공한다. */
   correctionSaveError?: string;
-  corrections: CorrectionRow[];
+  expressionResults: Record<string, unknown>[];
   finished: FinishedRow[];
   messages: MessageRow[];
   recordAccepted?: boolean;
@@ -215,7 +204,7 @@ function startedStoryPlay(): StoryPlayRow {
 
 function createSeasonState(finished: FinishedRow[] = []): SeasonState {
   return {
-    corrections: [],
+    expressionResults: [],
     finished,
     messages: [],
     recorded: [],
@@ -344,22 +333,14 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
           ) as unknown as Row[];
         }
 
-        if (table === "episode_corrections") {
-          // 교정은 플레이를 직접 참조하지 않고 메시지에 매달린다. 조회가 `!inner`로
-          // 그 메시지를 걸어 플레이를 가리므로, 조인 결과를 평평하게 펴서 같은
-          // 이름의 필터가 그대로 걸리게 한다.
+        if (table === "episode_expression_results") {
           const play = new Map(
             state.messages.map((message) => [message.id, message.play_id])
           );
-
-          return [...state.corrections]
-            .sort((left, right) =>
-              left.created_at.localeCompare(right.created_at)
-            )
-            .map((row) => ({
-              ...row,
-              "episode_messages.play_id": play.get(row.message_id),
-            })) as unknown as Row[];
+          return state.expressionResults.map((row) => ({
+            ...row,
+            "episode_messages.play_id": play.get(String(row.message_id)),
+          }));
         }
 
         return [];
@@ -506,27 +487,25 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
           insert: (payload: Row | Row[]) => {
             const added = Array.isArray(payload) ? payload : [payload];
 
-            if (table === "episode_corrections") {
+            if (table === "episode_expression_results") {
               if (state.correctionSaveError) {
+                return { error: { message: state.correctionSaveError } };
+              }
+              if (
+                added.some((row) =>
+                  state.expressionResults.some(
+                    (saved) => saved.message_id === row.message_id
+                  )
+                )
+              ) {
                 return {
-                  error: { message: state.correctionSaveError },
-                  select: () => ({
-                    maybeSingle: () =>
-                      Promise.resolve({ data: null, error: null }),
-                  }),
+                  error: {
+                    code: "23505",
+                    message: "duplicate expression result",
+                  },
                 };
               }
-
-              state.corrections.push(
-                ...added.map(
-                  (row) =>
-                    ({
-                      created_at: nextCreatedAt(),
-                      ...row,
-                    }) as unknown as CorrectionRow
-                )
-              );
-
+              state.expressionResults.push(...added);
               return writeResult(null);
             }
 
@@ -683,6 +662,12 @@ interface CorrectionAnswer {
     why: string;
   }[];
   fixed: string;
+  review?: {
+    situation: string;
+    meaning: string;
+    example: string;
+    exampleMeaning: string;
+  } | null;
   status?: "corrected" | "natural" | "unclear";
 }
 
@@ -718,7 +703,23 @@ function createMockModel(
 
   return new MockLanguageModelV4({
     doGenerate: {
-      content: [{ text: JSON.stringify(correction), type: "text" }],
+      content: [
+        {
+          text: JSON.stringify({
+            review:
+              correction.status === "corrected"
+                ? {
+                    example: "I ordered a tea.",
+                    exampleMeaning: "차를 주문했어요.",
+                    meaning: "주문한 커피가 아니에요.",
+                    situation: "주문한 것을 다시 말할 때",
+                  }
+                : null,
+            ...correction,
+          }),
+          type: "text",
+        },
+      ],
       finishReason: { raw: undefined, unified: "stop" },
       usage: {
         inputTokens: {
@@ -1542,6 +1543,33 @@ describe("메시지별 표현 확인 API", () => {
       method: "POST",
     });
   }
+  test("돌아보기의 상황과 뜻, 다른 예문을 같은 표현 확인 응답에 담는다", async () => {
+    const state = createSeasonState();
+    state.messages.push(stored("I think this is wrong coffee."));
+    const review = {
+      example: "I think this is the wrong bag.",
+      exampleMeaning: "이건 다른 가방인 것 같아요.",
+      meaning: "이건 다른 커피인 것 같아요.",
+      situation: "주문과 다른 것이 나왔을 때",
+    };
+    const answer = { ...WRONG_COFFEE, review, status: "corrected" as const };
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([], answer),
+    });
+    const response = await app.request(request());
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as { correction: unknown };
+    expect(result).toMatchObject({
+      correction: { review },
+      status: "corrected",
+    });
+    const session = (await (
+      await app.request(`http://localhost${episodeSessionPath(1)}`)
+    ).json()) as { expressionResults: unknown[]; corrections: unknown[] };
+    expect(session.expressionResults).toEqual([result]);
+    expect(session.corrections).toEqual([result.correction]);
+  });
   test("같은 실수는 메시지마다 교정하고 다시 읽으면 저장된 결과를 반환한다", async () => {
     const state = createSeasonState();
     state.messages.push(
@@ -1560,7 +1588,7 @@ describe("메시지별 표현 확인 API", () => {
         status: "corrected",
       });
     }
-    expect(state.corrections.map((row) => row.message_id)).toEqual([
+    expect(state.expressionResults.map((row) => row.message_id)).toEqual([
       "m1",
       "m2",
     ]);
@@ -1569,6 +1597,67 @@ describe("메시지별 표현 확인 API", () => {
     expect(JSON.stringify(state.messages)).not.toContain(
       "article-the-specific"
     );
+  });
+  test.each(["natural", "unclear"] as const)(
+    "%s 판정은 다시 열고 재요청해도 저장된 결과를 사용한다",
+    async (status) => {
+      const state = createSeasonState();
+      const original = status === "natural" ? "Thank you." : "asdjkl";
+      state.messages.push(stored(original));
+      const model = createMockModel([], {
+        entries: [],
+        fixed: status === "natural" ? original : "",
+        status,
+      });
+      const app = createApp({ authMiddleware: signedInWith(state), model });
+      expect(await (await app.request(request())).json()).toEqual({
+        messageId: "m1",
+        status,
+      });
+      expect(
+        await (await app.request(episodeSessionPath(1))).json()
+      ).toMatchObject({
+        corrections: [],
+        expressionResults: [{ messageId: "m1", status }],
+      });
+      expect(await (await app.request(request())).json()).toEqual({
+        messageId: "m1",
+        status,
+      });
+      expect(model.doGenerateCalls).toHaveLength(1);
+    }
+  );
+  test("겹친 요청은 먼저 저장된 판정과 원문을 그대로 반환한다", async () => {
+    const state = createSeasonState();
+    const original = "I think this is wrong coffee.";
+    state.messages.push(stored(original));
+    const started = Promise.withResolvers<void>();
+    const finish = Promise.withResolvers<void>();
+    const slow = createMockModel([], {
+      entries: [],
+      fixed: original,
+      status: "natural",
+    });
+    const generate = slow.doGenerate;
+    slow.doGenerate = async (options) => {
+      started.resolve();
+      await finish.promise;
+      return generate(options);
+    };
+    const first = createApp({
+      authMiddleware: signedInWith(state),
+      model: slow,
+    }).request(request());
+    await started.promise;
+    const secondApp = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([], { ...WRONG_COFFEE, status: "corrected" }),
+    });
+    const winner = await (await secondApp.request(request())).json();
+    finish.resolve();
+    expect(await (await first).json()).toEqual(winner);
+    expect(state.expressionResults).toHaveLength(1);
+    expect(state.messages).toHaveLength(1);
   });
   test("한 문장에서 같은 규칙의 다른 자리도 빠짐없이 남긴다", async () => {
     const state = createSeasonState();
@@ -1598,7 +1687,8 @@ describe("메시지별 표현 확인 API", () => {
     expect(await (await app.request(request())).json()).toMatchObject({
       correction: { entries },
     });
-    expect(state.corrections).toHaveLength(2);
+    expect(state.expressionResults).toHaveLength(1);
+    expect(state.expressionResults[0]?.entries).toEqual(entries);
   });
   test("한국어의 뜻과 핵심 표현 설명을 저장하고 다시 열어도 유지한다", async () => {
     const state = createSeasonState();
@@ -1656,7 +1746,7 @@ describe("메시지별 표현 확인 API", () => {
       const response = await app.request(request());
       expect(response.status).toBe(500);
       expect(await response.json()).not.toHaveProperty("status", "natural");
-      expect(state.corrections).toHaveLength(0);
+      expect(state.expressionResults).toHaveLength(0);
     }
   );
   test("한국어를 문제없는 영어로 판정한 결과는 거절한다", async () => {
@@ -1698,18 +1788,19 @@ describe("메시지별 표현 확인 API", () => {
     expect(state.recorded).toHaveLength(0);
     expect(model.doStreamCalls).toHaveLength(0);
   });
-  test("저장 실패는 교정 결과를 숨기거나 장면을 새로 만들지 않는다", async () => {
+  test("저장에 실패한 결과는 완료로 응답하지 않고 재시도할 수 있다", async () => {
     const state = createSeasonState();
     state.messages.push(stored("I think this is wrong coffee."));
     state.correctionSaveError = "connection refused";
     const model = createMockModel([], { ...WRONG_COFFEE, status: "corrected" });
     const app = createApp({ authMiddleware: signedInWith(state), model });
-    expect(await (await app.request(request())).json()).toMatchObject({
-      status: "corrected",
-    });
-    expect(state.corrections).toHaveLength(0);
+    expect((await app.request(request())).status).toBe(500);
+    expect(state.expressionResults).toHaveLength(0);
     expect(state.messages).toHaveLength(1);
     expect(model.doStreamCalls).toHaveLength(0);
+    state.correctionSaveError = undefined;
+    expect((await app.request(request())).status).toBe(200);
+    expect(state.expressionResults).toHaveLength(1);
   });
   test("없거나 다른 에피소드에 속한 메시지와 캐릭터 대사는 판정하지 않는다", async () => {
     const state = createSeasonState();
@@ -2599,26 +2690,29 @@ describe("story content database contract", () => {
       play_id: play,
       role: "user",
     });
-    state.corrections.push(
-      {
-        corrected: "I think you gave me the wrong coffee.",
-        created_at: "2026-08-29T00:00:01.000Z",
-        fixed: "the wrong coffee",
-        message_id: "m1",
-        original: "wrong coffee",
-        pattern: "article-the-specific",
-        reason: "the를 붙여요.",
-      },
-      {
-        corrected: "I think you gave me the wrong coffee.",
-        created_at: "2026-08-29T00:00:02.000Z",
-        fixed: "gave me",
-        message_id: "m1",
-        original: "is",
-        pattern: "give-someone-something",
-        reason: "누가 무엇을 줬다고 말할 때 give를 써요.",
-      }
-    );
+    state.expressionResults.push({
+      entries: [
+        {
+          fixed: "the wrong coffee",
+          original: "wrong coffee",
+          pattern: "article-the-specific",
+          why: "the를 붙여요.",
+        },
+        {
+          fixed: "gave me",
+          original: "is",
+          pattern: "give-someone-something",
+          why: "누가 무엇을 줬다고 말할 때 give를 써요.",
+        },
+      ],
+      example: "I ordered a tea.",
+      example_meaning: "차를 주문했어요.",
+      fixed: "I think you gave me the wrong coffee.",
+      meaning: "주문한 커피가 아니에요.",
+      message_id: "m1",
+      situation: "주문한 것을 다시 말할 때",
+      status: "corrected",
+    });
 
     const app = createApp({ authMiddleware: signedInWith(state) });
     const response = await app.request(episodeSessionPath(1));

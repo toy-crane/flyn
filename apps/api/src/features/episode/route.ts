@@ -25,8 +25,8 @@ import { askSystemPrompt, readAskedCorrection } from "./ask.js";
 import { storyDetailViewOf, storyListViewOf } from "./catalog.js";
 import { judgeExpression } from "./correction.js";
 import { episodeSystemPrompt, episodeTags } from "./episode.js";
+import { saveExpressionResult } from "./expression-results.js";
 import {
-  appendEpisodeCorrection,
   appendEpisodeMessage,
   currentEpisode,
   type EpisodePlay,
@@ -431,15 +431,11 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
         if (!message) {
           return c.json({ error: "Message is unavailable." }, 404);
         }
-        const saved = session.corrections.find(
-          (correction) => correction.messageId === message.id
+        const saved = session.expressionResults.find(
+          (candidate) => candidate.messageId === message.id
         );
         if (saved) {
-          return c.json({
-            correction: saved,
-            messageId: message.id,
-            status: "corrected",
-          });
+          return c.json(saved);
         }
         const result = await judgeExpression({
           context: await convertToModelMessages(session.messages.slice(0, at), {
@@ -456,14 +452,9 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
             AbortSignal.timeout(30_000),
           ]),
         });
-        if (result.status === "corrected") {
-          try {
-            await appendEpisodeCorrection(client, result.correction);
-          } catch (error) {
-            logRequestFailure(c.req.method, c.req.path, error);
-          }
-        }
-        return c.json(result);
+        return c.json(
+          await saveExpressionResult(client, result, textOfMessage(message))
+        );
       })
       /*
       배울 표현 하나를 두고 한국어로 묻는 자리.

@@ -34,43 +34,43 @@ export type Database = {
   }
   public: {
     Tables: {
-      episode_corrections: {
+      episode_expression_results: {
         Row: {
-          corrected: string
-          created_at: string
-          fixed: string
-          id: string
+          entries: Json | null
+          example: string | null
+          example_meaning: string | null
+          fixed: string | null
+          meaning: string | null
           message_id: string
-          original: string
-          pattern: string
-          reason: string
+          situation: string | null
+          status: string
           user_id: string
         }
         Insert: {
-          corrected: string
-          created_at?: string
-          fixed: string
-          id?: string
+          entries?: Json | null
+          example?: string | null
+          example_meaning?: string | null
+          fixed?: string | null
+          meaning?: string | null
           message_id: string
-          original: string
-          pattern: string
-          reason: string
+          situation?: string | null
+          status: string
           user_id?: string
         }
         Update: {
-          corrected?: string
-          created_at?: string
-          fixed?: string
-          id?: string
+          entries?: Json | null
+          example?: string | null
+          example_meaning?: string | null
+          fixed?: string | null
+          meaning?: string | null
           message_id?: string
-          original?: string
-          pattern?: string
-          reason?: string
+          situation?: string | null
+          status?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "episode_corrections_message_id_user_id_fkey"
+            foreignKeyName: "episode_expression_results_message_id_user_id_fkey"
             columns: ["message_id", "user_id"]
             isOneToOne: false
             referencedRelation: "episode_messages"
