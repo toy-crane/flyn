@@ -438,6 +438,7 @@ SELECT is(
   (
     SELECT count(*) FROM public.saved_expressions
     WHERE message_id IS NULL AND kind = 'utterance' AND utterance_at = 0
+      AND user_id = '11111111-1111-4111-8111-111111111111'
   ),
   2::bigint,
   'orphaned rows do not collide with each other'
@@ -447,6 +448,7 @@ SELECT is(
   (
     SELECT count(*) FROM public.saved_expressions
     WHERE episode_id = '11000000-0000-4000-8000-000000000001'
+      AND user_id = '11111111-1111-4111-8111-111111111111'
   ),
   3::bigint,
   'an orphaned item still names the episode it came from'
@@ -468,7 +470,11 @@ SELECT lives_ok(
 RESET ROLE;
 
 SELECT is(
-  (SELECT count(*) FROM public.saved_expressions), 4::bigint,
+  (
+    SELECT count(*) FROM public.saved_expressions
+    WHERE user_id = '11111111-1111-4111-8111-111111111111'
+  ),
+  4::bigint,
   'and removes nothing'
 );
 
@@ -504,7 +510,11 @@ RESET ROLE;
 DELETE FROM auth.users WHERE id = '11111111-1111-4111-8111-111111111111';
 
 SELECT is(
-  (SELECT count(*) FROM public.saved_expressions), 0::bigint,
+  (
+    SELECT count(*) FROM public.saved_expressions
+    WHERE user_id = '11111111-1111-4111-8111-111111111111'
+  ),
+  0::bigint,
   'deleting the account takes its saved expressions with it'
 );
 
