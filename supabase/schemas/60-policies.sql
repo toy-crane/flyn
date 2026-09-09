@@ -5,16 +5,13 @@
 -- statement reaches. Both are declared here so one file answers "who can touch
 -- this table".
 --
--- Only the GRANTs are written out. This database does not hand new tables in
--- `public` to `anon` or `authenticated`: a table created here arrives with
--- REFERENCES, TRIGGER, TRUNCATE and MAINTAIN for them and nothing the Data API
--- can call, so the GRANTs below are the whole of the reachable surface rather
--- than an addition to a permissive default. Those four have no route through
--- PostgREST, which exposes select, insert, update, delete and rpc only.
+-- Supabase defaults can include table-wide CRUD grants. RLS still protects
+-- rows, but a table-wide INSERT/UPDATE grant defeats column-scoped grants.
+-- Revoke only those table-wide writes before declaring allowed columns below.
+-- REFERENCES, TRIGGER, TRUNCATE and MAINTAIN are not Data API operations.
 --
 -- Functions are the exception and are revoked one by one in 50-functions.sql:
--- Postgres still grants EXECUTE to PUBLIC on every new function, which `anon`
--- and `authenticated` inherit.
+-- Revoke both PUBLIC and direct API-role grants before restoring allowed calls.
 
 -- 공식 스토리와 각본. 로그인한 사람은 읽을 수 있지만, 저장소에서 배포한
 -- 콘텐츠를 앱이 바꾸지는 못한다.
@@ -73,6 +70,7 @@ create policy profiles_update_own on public.profiles
 -- them could clear its own lock and rename as often as it liked. The trigger sets
 -- both, and it runs as owner.
 grant select on table public.profiles to authenticated;
+revoke update on table public.profiles from authenticated;
 grant update (avatar_chosen_by_user, avatar_path, avatar_url, display_name, username)
   on table public.profiles to authenticated;
 
@@ -115,6 +113,7 @@ create policy story_plays_start_own on public.story_plays
 -- `started_at`과 `last_user_message_at`도 없다. 시각을 클라이언트가 실어 보내면
 -- 최근 대화 순서를 앱 밖에서 고를 수 있게 된다.
 grant select on table public.story_plays to authenticated;
+revoke insert on table public.story_plays from authenticated;
 grant insert (story_id) on table public.story_plays to authenticated;
 grant all on table public.story_plays to service_role;
 
@@ -142,6 +141,7 @@ create policy episode_plays_start_own on public.episode_plays
 -- `user_id`도 여기 없다. 그 열은 기본값이 채우므로, 남의 이름을 실어 보내는
 -- 문장은 정책을 만나기 전에 권한에서 막힌다.
 grant select on table public.episode_plays to authenticated;
+revoke insert on table public.episode_plays from authenticated;
 grant insert (story_play_id, episode_id) on table public.episode_plays to authenticated;
 grant all on table public.episode_plays to service_role;
 
@@ -187,6 +187,7 @@ create policy episode_messages_erase_open_play on public.episode_messages
 -- `episode_plays`와 같은 이유로 insert grant에서 빠져 있다. `created_at`도 없다.
 -- 자리를 정하는 것은 데이터베이스가 채우는 시각이라 실어 보낼 값이 아니다.
 grant select, delete on table public.episode_messages to authenticated;
+revoke insert on table public.episode_messages from authenticated;
 grant insert (id, play_id, role, parts)
   on table public.episode_messages to authenticated;
 grant all on table public.episode_messages to service_role;
@@ -221,6 +222,7 @@ create policy episode_corrections_write_own_message on public.episode_correction
 -- delete 정책이 없다. 교정은 그것이 붙은 메시지를 따라 사라진다. `user_id`는
 -- 앞의 두 테이블과 같은 이유로 insert grant에서 빠져 있다.
 grant select on table public.episode_corrections to authenticated;
+revoke insert on table public.episode_corrections from authenticated;
 grant insert (message_id, original, fixed, corrected, pattern, reason)
   on table public.episode_corrections to authenticated;
 grant all on table public.episode_corrections to service_role;

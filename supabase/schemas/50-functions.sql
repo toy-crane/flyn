@@ -5,13 +5,10 @@
 -- search_path can be pointed at an attacker's table, so the empty path is what
 -- makes the fully qualified names load-bearing rather than a style choice.
 --
--- Every function below is revoked from `public` and then granted back to the
--- roles that should call it. Unlike a table, a function is not covered by this
--- database's blocked defaults: `create function` still grants EXECUTE to PUBLIC,
--- and `anon` and `authenticated` inherit it. Without the revoke, a
--- `security definer` function here is a Data API endpoint anyone holding the
--- publishable key can call. `from public` is the whole revoke — naming the
--- inheriting roles as well would change nothing.
+-- Revoke both PUBLIC and direct API-role grants before restoring the callers
+-- listed below. Hosted Supabase can grant EXECUTE directly to each API role;
+-- revoking PUBLIC alone does not remove those grants. Trigger-only helpers
+-- remain callable by their owner, not by a client RPC.
 
 -- Creates the profile row for a new Supabase user.
 --
@@ -39,7 +36,7 @@ comment on function public.handle_new_user() is
 
 -- Only the trigger calls this. The Data API roles must not reach it, and
 -- `create function` grants EXECUTE to PUBLIC by default, so revoke it.
-revoke all on function public.handle_new_user() from public;
+revoke all on function public.handle_new_user() from public, anon, authenticated, service_role;
 
 create trigger on_auth_user_created
   after insert on auth.users
@@ -66,7 +63,7 @@ $$;
 comment on function public.set_updated_at() is
   'Sets updated_at on a row that changed. Paired with a WHEN clause that skips no-op updates.';
 
-revoke all on function public.set_updated_at() from public;
+revoke all on function public.set_updated_at() from public, anon, authenticated, service_role;
 
 -- The `when` clause is what keeps `updated_at` honest: an update that writes the
 -- same values never fires, so the column records real changes rather than write
@@ -101,7 +98,7 @@ comment on function public.username_change_interval() is
 -- period it returns is not a secret, but leaving the inherited PUBLIC grant in
 -- place would make it an `/rpc/` endpoint nothing calls, and then the granted
 -- surface would no longer be the whole surface.
-revoke all on function public.username_change_interval() from public;
+revoke all on function public.username_change_interval() from public, anon, authenticated, service_role;
 
 -- True while an account id belongs to somebody else's rename and is still held back.
 --
@@ -127,7 +124,7 @@ $$;
 comment on function public.is_protected_username(text, uuid) is
   'True while another account''s previous id is still protected. Reads retired_usernames as owner.';
 
-revoke all on function public.is_protected_username(text, uuid) from public;
+revoke all on function public.is_protected_username(text, uuid) from public, anon, authenticated, service_role;
 
 -- Answers "can I have this account id?" without widening who may read profiles.
 --
@@ -172,7 +169,7 @@ $$;
 comment on function public.username_status(text) is
   'One of available, taken, reserved, invalid for a candidate account id. Exposes no profile rows.';
 
-revoke all on function public.username_status(text) from public;
+revoke all on function public.username_status(text) from public, anon, authenticated, service_role;
 grant execute on function public.username_status(text) to authenticated;
 
 -- Keeps only the ids from `candidates` that a person could actually take.
@@ -219,7 +216,7 @@ $$;
 comment on function public.available_usernames(text[]) is
   'Filters a caller''s candidate account ids down to the free ones, in the order given. At most 10 per call.';
 
-revoke all on function public.available_usernames(text[]) from public;
+revoke all on function public.available_usernames(text[]) from public, anon, authenticated, service_role;
 grant execute on function public.available_usernames(text[]) to authenticated;
 
 -- Decides every rename: whether it may happen, and what it costs.
@@ -293,7 +290,7 @@ $$;
 comment on function public.guard_username_change() is
   'Enforces the account id lock, protects the previous id, and stamps the next allowed change.';
 
-revoke all on function public.guard_username_change() from public;
+revoke all on function public.guard_username_change() from public, anon, authenticated, service_role;
 
 -- The `when` clause covers every write that moves the id, including the null ->
 -- value one at onboarding, because the protection has to hold for a new account
@@ -365,7 +362,7 @@ $$;
 comment on function public.episode_is_current(uuid, uuid) is
   'Reports whether this run belongs to the caller and has finished every earlier episode of the story this one belongs to.';
 
-revoke all on function public.episode_is_current(uuid, uuid) from public;
+revoke all on function public.episode_is_current(uuid, uuid) from public, anon, authenticated, service_role;
 -- 정책 표현식은 정책을 만든 역할이 아니라 부르는 역할의 권한으로 평가한다.
 -- `public.episode_plays`의 insert 정책이 이 함수를 부르므로 EXECUTE가 필요하다.
 grant execute on function public.episode_is_current(uuid, uuid) to authenticated;
@@ -409,7 +406,7 @@ $$;
 comment on function public.touch_story_play() is
   'Moves the run''s last_user_message_at forward when a user message lands. The only writer of that column.';
 
-revoke all on function public.touch_story_play() from public;
+revoke all on function public.touch_story_play() from public, anon, authenticated, service_role;
 
 create trigger episode_messages_touch_story_play
   after insert on public.episode_messages
@@ -510,5 +507,5 @@ $$;
 comment on function public.finish_episode(uuid, uuid, text, text, text, text, text, text) is
   'Records the ending and story memory of the current episode in the caller''s run. Returns true only to the request that closed the play.';
 
-revoke all on function public.finish_episode(uuid, uuid, text, text, text, text, text, text) from public;
+revoke all on function public.finish_episode(uuid, uuid, text, text, text, text, text, text) from public, anon, authenticated, service_role;
 grant execute on function public.finish_episode(uuid, uuid, text, text, text, text, text, text) to authenticated;

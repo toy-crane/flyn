@@ -42,3 +42,20 @@
 
 `supabase/config.toml` 전체를 운영에 push하지 않는다. 로컬 URL,
 `email_sent = 200`, `enable_confirmations = false`는 로컬 전용 값이다.
+
+## 권한 보완 마이그레이션 준비
+
+`20260909053318_restrict_client_write_and_function_grants.sql`을 추가했다.
+운영에는 아직 적용하지 않았다. 함수 호출 허용 목록과 열 단위 쓰기 제한만 보완하며,
+기본 ACL, RLS와 나머지 테이블 권한은 변경하지 않는다.
+
+- 넓은 권한을 재현한 별도 로컬 DB에서 새 테스트 40개 중 34개가 수정 전 실패했다.
+- 새 마이그레이션 적용 후 40개 모두 통과했다.
+- 전체 재생 후 DB 테스트 310개와 public 스키마 lint가 통과했다.
+
+검증 중 CLI 2.113.0의 `db reset --db-url`에 별도 로컬 DB 주소를 지정했지만,
+결과는 `target: local`이었고 기존 `supabase_db_flyn`이 재생성됐다.
+기존 로컬 DB를 보존하려던 의도와 달리 초기화가 일어났다. 초기화 전 사용자 수는
+확인하지 못했으며, 이후 사용자 수는 0명이다. 확인한 Docker 볼륨·DB 디렉터리와
+저장소에서 복구용 백업은 찾지 못했다. 운영 DB에는 reset이나 권한 보완을 실행하지 않았다.
+이 CLI에서 `--db-url`만으로 reset 대상을 격리한다고 가정하지 않는다.
