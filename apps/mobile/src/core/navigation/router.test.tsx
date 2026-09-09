@@ -12,8 +12,7 @@ import {
   resetFakeSupabase,
 } from "@/shared/test/fake-supabase";
 
-// Home now talks to the AI API, so it is stubbed here like every other screen:
-// these tests are about which route renders, not about what the screen does.
+// 실제 라우터로 이동과 복귀를 확인한다. 본문 내용은 각 화면 테스트가 확인한다.
 jest.mock("@/screens/home/home-screen", () => {
   const React = require("react") as typeof import("react");
   const { View } = require("react-native") as typeof import("react-native");
@@ -102,9 +101,28 @@ test("/에서 Home 탭의 첫 화면을 표시한다", async () => {
   expect(router.getPathname()).toBe("/");
 });
 
+test("공통 대화 기록을 탐색에서 열고 닫으면 탐색으로 돌아간다", async () => {
+  const rendered = renderRouter("./app", { initialUrl: "/browse" });
+  await rendered;
+  await waitFor(() => {
+    expect(screen.getByLabelText("Browse placeholder")).toBeOnTheScreen();
+  });
+  await act(() => {
+    expoRouter.push({
+      params: { storyId: "10000000-0000-4000-8000-000000000001" },
+      pathname: "/records/[storyId]",
+    });
+  });
+  await waitFor(() => {
+    expect(screen.getByLabelText("Records placeholder")).toBeOnTheScreen();
+  });
+  await act(() => expoRouter.back());
+  await waitFor(() => expect(rendered.getPathname()).toBe("/browse"));
+});
+
 // The avatar button moved into HomeScreen's own toolbar, so the press-to-open
 // wiring is covered in home-screen.test; this layer keeps proving the
-// /settings route itself renders as a sheet over the tabs (공개 경로 테스트).
+// /settings route itself renders above the tabs (공개 경로 테스트).
 
 test("공개 경로 이동이 각 네이티브 탭의 화면을 표시한다", async () => {
   const router = renderRouter("./app", { initialUrl: "/" });
@@ -133,7 +151,7 @@ test("공개 경로 이동이 각 네이티브 탭의 화면을 표시한다", a
     expect(screen.getByLabelText("Story detail placeholder")).toBeOnTheScreen();
   });
 
-  // 탐색의 상세에서 여는 기록. 뒤로 가기가 상세로 돌아가도록 같은 스택에 있다.
+  // 기존 상세 경로에서도 기록을 열 수 있다.
   await act(() => {
     expoRouter.navigate({
       params: { storyId: "10000000-0000-4000-8000-000000000001" },
@@ -157,8 +175,7 @@ test("공개 경로 이동이 각 네이티브 탭의 화면을 표시한다", a
     expect(screen.getByLabelText("Recent placeholder")).toBeOnTheScreen();
   });
 
-  // 스토리 탭에서 여는 같은 기록 화면. 이쪽은 자기 스택의 경로라 뒤로 가기가
-  // 최근 대화로 돌아간다.
+  // 스토리 목록에서 사용하던 기록 URL도 유지한다.
   await act(() => {
     expoRouter.navigate({
       params: { storyId: "10000000-0000-4000-8000-000000000001" },
@@ -170,9 +187,7 @@ test("공개 경로 이동이 각 네이티브 탭의 화면을 표시한다", a
     expect(router.getPathname()).toBe(
       "/records/10000000-0000-4000-8000-000000000001"
     );
-    // 탐색 탭의 기록도 자기 스택에 남아 있어 같은 이름이 둘이다. 두 탭이 각자
-    // 자기 기록 화면을 갖는다는 사실이 그대로 드러나는 자리다.
-    expect(screen.getAllByLabelText("Records placeholder").length).toBe(2);
+    expect(screen.getByLabelText("Records placeholder")).toBeOnTheScreen();
   });
 
   await act(() => {
@@ -184,3 +199,63 @@ test("공개 경로 이동이 각 네이티브 탭의 화면을 표시한다", a
     expect(screen.getByLabelText("Settings placeholder")).toBeOnTheScreen();
   });
 });
+
+const storyId = "10000000-0000-4000-8000-000000000001";
+
+test.each([
+  { entry: "/browse", records: false },
+  { entry: "/browse", records: true },
+  { entry: "/stories", records: true },
+] as const)(
+  "$entry에서 기록=$records 경로로 대화를 열고 다음 화를 거쳐도 들어온 순서로 돌아간다",
+  async ({ entry, records }) => {
+    const rendered = renderRouter("./app", { initialUrl: entry });
+    await rendered;
+    await waitFor(() => expect(rendered.getPathname()).toBe(entry));
+    const returnPaths: string[] = [entry];
+
+    if (entry === "/browse") {
+      await act(() => {
+        expoRouter.push({ params: { storyId }, pathname: "/story/[storyId]" });
+      });
+      const detail = `/story/${storyId}`;
+      await waitFor(() => expect(rendered.getPathname()).toBe(detail));
+      expect(rendered.getSegments()).not.toContain("(tabs)");
+      returnPaths.unshift(detail);
+    }
+
+    if (records) {
+      const pathname =
+        entry === "/browse" ? "/story/[storyId]/records" : "/records/[storyId]";
+      await act(() => expoRouter.push({ params: { storyId }, pathname }));
+      const recordPath =
+        entry === "/browse"
+          ? `/story/${storyId}/records`
+          : `/records/${storyId}`;
+      await waitFor(() => expect(rendered.getPathname()).toBe(recordPath));
+      expect(rendered.getSegments()).not.toContain("(tabs)");
+      returnPaths.unshift(recordPath);
+    }
+
+    await act(() => expoRouter.push("/episode"));
+    await waitFor(() => expect(rendered.getPathname()).toBe("/episode"));
+    await act(() => {
+      expoRouter.replace({
+        params: { episodeId: "next-episode" },
+        pathname: "/episode",
+      });
+    });
+    await waitFor(() =>
+      expect(rendered.getSearchParams()).toMatchObject({
+        episodeId: "next-episode",
+      })
+    );
+
+    for (const expected of returnPaths) {
+      // biome-ignore lint/performance/noAwaitInLoops: 뒤로 가기는 앞선 화면 전환이 끝난 뒤 실행한다.
+      await act(() => expoRouter.back());
+      await waitFor(() => expect(rendered.getPathname()).toBe(expected));
+    }
+    expect(rendered.getSegments()).toContain("(tabs)");
+  }
+);

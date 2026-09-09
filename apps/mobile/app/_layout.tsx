@@ -13,6 +13,10 @@ import {
   getSettingsScreenOptions,
   settingsScreens,
 } from "@/core/navigation/settings-screens";
+import {
+  getStoryScreenOptions,
+  storyScreens,
+} from "@/core/navigation/story-screens";
 import { QueryProvider } from "@/core/providers/query-provider";
 import { AppThemeBridge, useAppTheme } from "@/core/theme/app-theme-bridge";
 import { AuthSessionProvider } from "@/features/auth/state/auth-session";
@@ -25,10 +29,11 @@ const heroUIConfig = {
 } as const;
 
 function ThemedRootLayout() {
-  const { background, scheme } = useAppTheme();
+  const { background, foreground, scheme } = useAppTheme();
   const { area, checkingPhase, isRetryingProfile, problem, retryProfile } =
     useProtectedArea();
   const settingsScreenOptions = getSettingsScreenOptions(background);
+  const storyScreenOptions = getStoryScreenOptions({ background, foreground });
   useEffect(() => {
     if (area === "misconfigured" || area === "profileUnavailable") {
       hideSplashScreen();
@@ -71,6 +76,14 @@ function ThemedRootLayout() {
       >
         <Stack.Protected guard={area === "app"}>
           <Stack.Screen name="(tabs)" />
+          {/* 상세와 기록은 탭 전체를 덮고, 뒤로 가면 들어온 화면으로 돌아간다. */}
+          {storyScreens.map((storyScreen) => (
+            <Stack.Screen
+              key={storyScreen.name}
+              name={storyScreen.name}
+              options={{ ...storyScreenOptions, title: storyScreen.title }}
+            />
+          ))}
           {/*
             An episode is pushed here so the native push covers the tab bar.
             The scene needs the whole screen. It brings its own stack,
