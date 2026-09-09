@@ -416,3 +416,11 @@ test("인물 말풍선 곁에 담아 둘 자리를 함께 넘긴다", async () =
   // 아직 담은 것이 없으므로 알릴 것도 없다.
   expect(panel?.toast).toBeUndefined();
 });
+
+test("회차가 생기기 전에는 담아 둘 자리를 두지 않는다", async () => {
+  await renderWithHeroUI(
+    <EpisodeScreen {...PLAYING} storyPlayId={undefined} />
+  );
+
+  expect(panel?.utteranceAddon).toBeUndefined();
+});
