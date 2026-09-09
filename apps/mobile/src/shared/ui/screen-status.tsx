@@ -30,7 +30,7 @@ function ScreenStatus({
   return (
     <View
       className={`items-center gap-3 px-6 ${
-        isCentered ? "grow justify-center pb-9" : "py-12"
+        isCentered ? "grow justify-center py-9" : "py-12"
       }`}
       testID={testID}
     >

@@ -24,7 +24,7 @@ function ExpressionSource({ expression }: { expression: SavedExpression }) {
   const isUtterance = expression.kind === "utterance";
 
   return (
-    <View className="flex-row items-center gap-2">
+    <View className="flex-row items-start gap-2">
       <Text
         className={`shrink-0 overflow-hidden rounded-[10px] px-2 py-0.5 font-semibold text-xs ${
           isUtterance
