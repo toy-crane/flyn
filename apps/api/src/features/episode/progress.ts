@@ -4,6 +4,10 @@ import type { SceneOutcome } from "../../shared/scene-stream";
 import type { EpisodeCorrection, ExpressionResult } from "./correction";
 import { EPISODE_NOTES, type StoryMemory } from "./episode.js";
 import { readExpressionResults } from "./expression-results.js";
+import type {
+  SavedExpressionKind,
+  SavedExpressionRef,
+} from "./saved-expression";
 import type { EpisodeClient, EpisodeScript, StoryContent } from "./story";
 
 /** 기록 한 줄이 데이터베이스에서 허용되는 길이. */
@@ -11,6 +15,9 @@ const MEMORY_LINE_LIMIT = 300;
 
 /** 대화에 남을 수 있는 두 역할. 데이터베이스도 이 둘만 받는다. */
 const STORED_ROLES = new Set(["assistant", "user"]);
+
+/** 같은 자리를 두 번 담았을 때 Postgres가 돌려주는 코드. */
+const UNIQUE_VIOLATION = "23505";
 
 function usableNote(text: string | undefined): string | undefined {
   const trimmed = text?.trim();
@@ -73,6 +80,14 @@ export interface EpisodeSessionView {
   nextUp: NextUpData | undefined;
   readOnly: boolean;
   story: { id: string; title: string };
+  /**
+   * 이 대화에서 담아 둔 표현. 어느 자리에 책갈피가 채워져 있는지만 담는다.
+   *
+   * 표현 노트가 읽는 항목 전부가 아니라 이 화의 이름표만 온다. 대화 화면이
+   * 물어보는 것은 "이 말풍선을 이미 담았는가" 하나뿐이라, 문장과 뜻까지 실어
+   * 나르면 대화를 열 때마다 쓰지 않을 글이 함께 온다.
+   */
+  saved: SavedExpressionRef[];
 }
 
 /**
@@ -372,6 +387,152 @@ export async function appendEpisodeMessage(
   }
 }
 
+/**
+ * 이 대화에서 담아 둔 표현의 이름표를 읽는다.
+ *
+ * 교정과 같은 이유로 플레이를 직접 참조하지 않고 메시지에 매달리므로,
+ * `!inner`가 그 메시지를 함께 걸어 이 플레이의 것만 남긴다. 원본을 잃은 항목은
+ * 매달릴 메시지가 없어 여기 오지 않는다. 그 항목이 사는 곳은 표현 노트다.
+ */
+export async function readPlaySavedExpressions(
+  client: EpisodeClient,
+  playId: string
+): Promise<SavedExpressionRef[]> {
+  const { data, error } = await client
+    .from("saved_expressions")
+    .select(
+      "id, kind, message_id, utterance_at, created_at, episode_messages!inner(play_id)"
+    )
+    .eq("episode_messages.play_id", playId)
+    .order("created_at");
+
+  if (error) {
+    throw new Error(`Reading saved expressions failed: ${error.message}`);
+  }
+
+  return data.flatMap((row) =>
+    row.message_id
+      ? [
+          {
+            id: row.id,
+            kind: row.kind as SavedExpressionKind,
+            messageId: row.message_id,
+            utteranceAt: row.utterance_at,
+          },
+        ]
+      : []
+  );
+}
+
+/** 담아 둘 표현 한 건. 값은 모두 서버가 저장된 행에서 만든다. */
+export interface SavedExpressionDraft {
+  english: string;
+  entries: { fixed: string; original: string; why: string }[] | null;
+  episodeId: string;
+  kind: SavedExpressionKind;
+  meaning: string | null;
+  messageId: string;
+  original: string | null;
+  speaker: string | null;
+  utteranceAt: number | null;
+}
+
+/**
+ * 표현 하나를 담는다.
+ *
+ * 같은 자리를 두 번 담으면 데이터베이스의 유니크 색인이 막는다. 화면은 이미
+ * 담은 상태를 보여 주고 있으므로, 그 충돌은 오류가 아니라 이미 있는 항목을
+ * 돌려주는 것으로 끝낸다.
+ */
+export async function saveExpression(
+  client: EpisodeClient,
+  draft: SavedExpressionDraft
+): Promise<SavedExpressionRef> {
+  const { data, error } = await client
+    .from("saved_expressions")
+    .insert({
+      english: draft.english,
+      entries: draft.entries,
+      episode_id: draft.episodeId,
+      kind: draft.kind,
+      meaning: draft.meaning,
+      message_id: draft.messageId,
+      original: draft.original,
+      speaker: draft.speaker,
+      utterance_at: draft.utteranceAt,
+    })
+    .select("id, kind, message_id, utterance_at")
+    .single();
+
+  if (error) {
+    if (error.code === UNIQUE_VIOLATION) {
+      const found = await readSavedExpression(client, draft);
+
+      if (found) {
+        return found;
+      }
+    }
+
+    throw new Error(`Saving an expression failed: ${error.message}`);
+  }
+
+  return {
+    id: data.id,
+    kind: data.kind as SavedExpressionKind,
+    messageId: draft.messageId,
+    utteranceAt: data.utterance_at,
+  };
+}
+
+async function readSavedExpression(
+  client: EpisodeClient,
+  draft: SavedExpressionDraft
+): Promise<SavedExpressionRef | undefined> {
+  let query = client
+    .from("saved_expressions")
+    .select("id, kind, message_id, utterance_at")
+    .eq("message_id", draft.messageId)
+    .eq("kind", draft.kind);
+
+  query =
+    draft.utteranceAt === null
+      ? query.is("utterance_at", null)
+      : query.eq("utterance_at", draft.utteranceAt);
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error || !data?.message_id) {
+    return;
+  }
+
+  return {
+    id: data.id,
+    kind: data.kind as SavedExpressionKind,
+    messageId: data.message_id,
+    utteranceAt: data.utterance_at,
+  };
+}
+
+/**
+ * 담아 둔 표현 하나를 지운다.
+ *
+ * 책갈피를 다시 누르는 취소와 표현 노트에서 미는 삭제가 같은 문장이다. 남의
+ * 항목을 가리키는 요청은 정책이 걸러 아무 행도 지우지 않고 끝난다.
+ */
+export async function eraseSavedExpression(
+  client: EpisodeClient,
+  id: string
+): Promise<void> {
+  const { error } = await client
+    .from("saved_expressions")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(`Erasing a saved expression failed: ${error.message}`);
+  }
+}
+
 export function storyMemoriesOf(
   finished: readonly FinishedEpisodeRow[],
   story: StoryContent
@@ -499,6 +660,9 @@ export async function readEpisodeSession(
       (row) => row.episode_id === nextUp.episodeId
     );
   }
+  const saved = play.data
+    ? await readPlaySavedExpressions(client, play.data.id)
+    : [];
 
   return {
     corrections: expressionResults.flatMap((result) =>
@@ -511,5 +675,6 @@ export async function readEpisodeSession(
     nextUp,
     readOnly: Boolean(ending),
     story: { id: story.id, title: story.title },
+    saved,
   };
 }

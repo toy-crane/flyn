@@ -4,6 +4,7 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   type LanguageModel,
+  type ModelMessage,
   safeValidateUIMessages,
   streamText,
   type UIMessage,
@@ -23,20 +24,28 @@ import {
 import { type AuthedEnv, createUserGuard } from "../../shared/user-guard.js";
 import { askSystemPrompt, readAskedCorrection } from "./ask.js";
 import { storyDetailViewOf, storyListViewOf } from "./catalog.js";
-import { judgeExpression } from "./correction.js";
+import {
+  type EpisodeCorrection,
+  isKoreanText,
+  judgeExpression,
+} from "./correction.js";
 import { episodeSystemPrompt, episodeTags } from "./episode.js";
 import { saveExpressionResult } from "./expression-results.js";
 import {
   appendEpisodeMessage,
   currentEpisode,
   type EpisodePlay,
+  eraseSavedExpression,
   nextUpAfter,
   openEpisodePlay,
   readEpisodeSession,
   readFinishedEpisodes,
   recordEpisodeEnding,
+  type SavedExpressionDraft,
+  saveExpression,
   storyMemoriesOf,
 } from "./progress.js";
+import { sceneUtterances, writeKoreanMeaning } from "./saved-expression.js";
 import {
   type EpisodeClient,
   type EpisodeScript,
@@ -156,6 +165,101 @@ function textOfMessage(message: UIMessage): string {
     .filter((part) => part.type === "text")
     .map((part) => part.text)
     .join("");
+}
+
+/**
+ * 담아 둘 인물 대사 하나를 저장된 장면에서 만든다.
+ *
+ * 한국어 뜻을 만들지 못하면 던진다. 뜻이 없는 항목을 남기느니 실패로 돌려보내
+ * 다시 누르게 한다.
+ */
+async function utteranceDraft({
+  context,
+  episodeId,
+  message,
+  model,
+  signal,
+  utteranceAt,
+}: {
+  context: () => ModelMessage[] | Promise<ModelMessage[]>;
+  episodeId: string;
+  message: UIMessage;
+  model: LanguageModel;
+  signal: AbortSignal;
+  utteranceAt: number;
+}): Promise<SavedExpressionDraft | undefined> {
+  if (message.role !== "assistant") {
+    return;
+  }
+
+  const utterance = sceneUtterances(message.parts).find(
+    (candidate) => candidate.at === utteranceAt
+  );
+
+  if (!utterance) {
+    return;
+  }
+
+  return {
+    english: utterance.text.trim(),
+    entries: null,
+    episodeId,
+    kind: "utterance",
+    meaning: await writeKoreanMeaning({
+      context: await context(),
+      model,
+      signal,
+      speaker: utterance.speaker,
+      text: utterance.text,
+    }),
+    messageId: message.id,
+    original: null,
+    speaker: utterance.speaker,
+    utteranceAt,
+  };
+}
+
+/**
+ * 담아 둘 배울 표현 하나를 이미 저장된 교정에서 만든다.
+ *
+ * 새로 만들 값이 없다. 고친 문장도, 어긋난 자리도, 이유도 판정하던 때에 이미
+ * 행으로 남았으므로 그대로 옮긴다. 영어 교정인지 한국어 안내인지는 사용자가 쓴
+ * 문장을 보고 가르며, 그 판정은 교정을 만들 때 쓰는 것과 같은 하나다.
+ */
+function learningDraft({
+  corrections,
+  episodeId,
+  message,
+}: {
+  corrections: readonly EpisodeCorrection[];
+  episodeId: string;
+  message: UIMessage;
+}): SavedExpressionDraft | undefined {
+  const correction = corrections.find(
+    (candidate) => candidate.messageId === message.id
+  );
+
+  if (message.role !== "user" || !correction) {
+    return;
+  }
+
+  const original = correction.original || textOfMessage(message);
+
+  return {
+    english: correction.fixed,
+    entries: correction.entries.map((entry) => ({
+      fixed: entry.fixed,
+      original: entry.original,
+      why: entry.why,
+    })),
+    episodeId,
+    kind: isKoreanText(original) ? "guidance" : "correction",
+    meaning: null,
+    messageId: message.id,
+    original,
+    speaker: null,
+    utteranceAt: null,
+  };
 }
 
 /** 앱이 한 턴에 보내는 것. 지난 장면은 여기 없다. */
@@ -456,6 +560,104 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           await saveExpressionResult(client, result, textOfMessage(message))
         );
       })
+      /*
+      대화에서 마음에 드는 영어 문장을 담아 두는 자리.
+
+      앱은 어느 메시지의 어느 자리인지만 보낸다. 화면에 보이는 영어와 화자, 내가
+      쓴 원문은 저장된 행에서 서버가 다시 읽는다. 표현 노트의 출처 표시를 앱이
+      실어 보낸 글로 채우면 그 표시가 대화와 어긋날 수 있다.
+
+      인물 대사는 여기서 한국어 뜻을 한 번 만든다. 영어 교정과 한국어 안내는 그
+      한 줄이 이미 데이터베이스에 있으므로 모델을 부르지 않는다.
+    */
+      .post(
+        "/saved-expressions",
+        requireUser,
+        requireCurrentUser,
+        async (c) => {
+          const body = (await c.req.json().catch(() => null)) as {
+            episodeId?: unknown;
+            kind?: unknown;
+            messageId?: unknown;
+            storyPlayId?: unknown;
+            utteranceAt?: unknown;
+          } | null;
+          const wantsUtterance = body?.kind === "utterance";
+          if (
+            typeof body?.episodeId !== "string" ||
+            typeof body.messageId !== "string" ||
+            typeof body.storyPlayId !== "string" ||
+            (body.kind !== "utterance" && body.kind !== "learning") ||
+            (wantsUtterance &&
+              (typeof body.utteranceAt !== "number" ||
+                !Number.isInteger(body.utteranceAt) ||
+                body.utteranceAt < 0))
+          ) {
+            return c.json({ error: "Invalid request body." }, 400);
+          }
+          const client = c.var.supabaseContext.supabase;
+          const story = await readStoryOfEpisode(client, body.episodeId);
+          const session = story
+            ? await readEpisodeSession(
+                client,
+                story,
+                body.storyPlayId,
+                body.episodeId
+              )
+            : undefined;
+          if (!session) {
+            return c.json({ error: "Message is unavailable." }, 404);
+          }
+          const at = session.messages.findIndex(
+            (candidate) => candidate.id === body.messageId
+          );
+          const message = session.messages[at];
+          if (!message) {
+            return c.json({ error: "Message is unavailable." }, 404);
+          }
+          const draft = wantsUtterance
+            ? await utteranceDraft({
+                context: () =>
+                  convertToModelMessages(session.messages.slice(0, at + 1), {
+                    convertDataPart: (part) =>
+                      part.type === "data-speaker"
+                        ? { text: speakerModelText(part.data), type: "text" }
+                        : undefined,
+                  }),
+                episodeId: body.episodeId,
+                message,
+                model: dependencies.model ?? resolveModelId(),
+                signal: AbortSignal.any([
+                  c.req.raw.signal,
+                  AbortSignal.timeout(30_000),
+                ]),
+                utteranceAt: body.utteranceAt as number,
+              })
+            : learningDraft({
+                corrections: session.corrections,
+                episodeId: body.episodeId,
+                message,
+              });
+          if (!draft) {
+            return c.json({ error: "Expression is unavailable." }, 404);
+          }
+          return c.json(await saveExpression(client, draft));
+        }
+      )
+      /* 담아 둔 것을 도로 놓는 자리. 책갈피를 다시 누르는 취소가 여기로 온다. */
+      .delete(
+        "/saved-expressions/:id",
+        requireUser,
+        requireCurrentUser,
+        async (c) => {
+          await eraseSavedExpression(
+            c.var.supabaseContext.supabase,
+            c.req.param("id")
+          );
+
+          return c.body(null, 204);
+        }
+      )
       /*
       배울 표현 하나를 두고 한국어로 묻는 자리.
 
