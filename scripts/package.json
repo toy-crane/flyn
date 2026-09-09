@@ -6,7 +6,7 @@
     "check": "ultracite check . && bun story-covers/seed.ts --check",
     "check-types": "tsc --noEmit",
     "fix": "ultracite fix .",
-    "test": "bun test setup auth dev story-covers",
+    "test": "bun test setup auth dev story-covers ci",
     "test:integration": "bun test integration"
   },
   "dependencies": {

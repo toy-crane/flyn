@@ -12,5 +12,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["auth", "dev", "integration", "setup", "story-covers"]
+  "include": ["auth", "ci", "dev", "integration", "setup", "story-covers"]
 }
