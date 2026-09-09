@@ -1,6 +1,6 @@
 import { expect, test } from "@jest/globals";
 
-import { appTabs, isTabBarHidden } from "./app-tabs";
+import { appTabs } from "./app-tabs";
 
 test("세 네이티브 탭이 route group과 플랫폼별 기본·선택 아이콘을 선언한다", () => {
   expect(appTabs).toEqual([
@@ -23,15 +23,4 @@ test("세 네이티브 탭이 route group과 플랫폼별 기본·선택 아이�
       routeName: "(stories)",
     },
   ]);
-});
-
-test.each([
-  ["/", false],
-  ["/browse", false],
-  ["/stories", false],
-  ["/story/10000000-0000-4000-8000-000000000001", true],
-  ["/story/10000000-0000-4000-8000-000000000001/records", true],
-  ["/records/10000000-0000-4000-8000-000000000001", true],
-])("%s 경로의 탭 바 숨김 여부를 정한다", (pathname, expected) => {
-  expect(isTabBarHidden(pathname)).toBe(expected);
 });

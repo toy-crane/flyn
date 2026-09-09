@@ -14,13 +14,7 @@ function firstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-/**
- * 대화 기록 화면의 라우트 본체.
- *
- * 탐색 탭과 스토리 탭이 각자의 스택에 같은 화면을 둔다. 뒤로 가기가 들어온
- * 화면으로 돌아가야 해서 경로는 둘이지만, 하는 일은 같으므로 여기 한 번만 적고
- * 두 경로 파일이 이것을 그린다.
- */
+/** 상세와 스토리 목록에서 여는 기록. 복귀 경로는 상위 Stack의 이력이 정한다. */
 export function StoryRecordsRoute() {
   const { session } = useAuthSession();
   const params = useLocalSearchParams<{ storyId?: string | string[] }>();
