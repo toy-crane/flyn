@@ -10,8 +10,8 @@ UPDATE public.stories SET title = 'temporary title';
 UPDATE public.episodes SET title = 'temporary title';
 
 -- Re-run the actual seed, not a copy of its upsert logic.
-\ir ../seed.sql
-\ir ../seed.sql
+\ir seed.sql
+\ir seed.sql
 
 SELECT is((SELECT count(*) FROM public.stories), 5::bigint, 'repeated seed keeps five stories');
 SELECT is((SELECT count(*) FROM public.episodes), 25::bigint, 'repeated seed keeps twenty-five episodes');
