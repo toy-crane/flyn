@@ -141,3 +141,4 @@ EAS Workflows
 - 2026-09-10: PR #50은 공통 검사·fingerprint 계산·DB 검사를 통과해 main에 병합했다(`49ca009`). DB 검사의 이미지 요청 제한은 실패 작업 재실행으로 해소했다. 실제 라벨 게시 검증은 후속 PR에서 수행한다.
 - EAS 프로젝트에 `toy-crane/flyn`과 기준 경로 `/apps/mobile`을 연결했다. `internal` 채널이 같은 이름의 브랜치를 가리키고 아직 Update가 없음을 다시 읽어 확인했다. 별도 push 자동 배포 트리거는 만들지 않았다.
 - 앱에 `expo-updates`, fingerprint runtime 정책과 Update URL을 추가했다. production 빌드는 운영 환경과 `internal` 채널을 사용하며 기존 앱 ID와 Apple Team을 유지한다. 실제 Expo 설정 읽기 테스트와 iOS production export가 통과했다. Bun 1.3.6으로 코드·타입 검사와 API 111개, scripts 220개, 모바일 511개 테스트가 통과했다. 새 TestFlight 바이너리 설치와 OTA 수신은 아직 확인하지 않았다.
+- EAS CLI 23.2.0의 `eas config --platform ios --profile production --json`으로 실제 운영 환경의 프로필을 검증했다. `resourceClass: medium`, `channel: internal`, `environment: production`이 정상적으로 해석됐다. 자원 이름이 잘못됐다는 PR #53 리뷰 지적은 이 결과로 재현되지 않아 값을 변경하지 않았다. 클라우드 빌드는 아직 시작하지 않았다.
