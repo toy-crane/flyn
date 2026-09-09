@@ -6,10 +6,18 @@ import { spotKey } from "@/features/episode/api/saved-expression";
 import { useSavedExpressions } from "@/features/episode/state/saved-expressions";
 import { Icon } from "@/shared/ui/icon";
 import { LoadingSpinner } from "@/shared/ui/loading-spinner";
+import { useProgressMetrics } from "@/shared/ui/progress-metrics";
 import { StatusLine } from "@/shared/ui/status-line";
 import { savedExpressionLabels } from "./episode-labels";
 
-/** 아이콘과 진행 표시가 함께 서는 자리. 둘이 바뀌어도 기준점이 움직이지 않는다. */
+/**
+ * 아이콘과 진행 표시가 함께 서는 자리. 둘이 바뀌어도 기준점이 움직이지 않는다.
+ *
+ * 기본 글자에서는 16이고, 글자가 커지면 진행 표시를 따라 함께 커진다. 시스템
+ * 진행 표시는 글자 크기를 따라 자라는데 자리만 붙박아 두면 큰 접근성 글자에서
+ * 표시가 자리를 뚫고 나온다. 아이콘도 같은 비율로 키워 두 상태의 표시 영역이
+ * 언제나 같게 둔다. 보조 문구 옆의 표시가 쓰는 방식과 같다.
+ */
 const MARK_SIZE = 16;
 /**
  * 보이는 아이콘은 작게 두고 누를 수 있는 영역은 44를 지킨다.
@@ -18,8 +26,9 @@ const MARK_SIZE = 16;
  * 영역만큼 좁아지지 않게 한다.
  */
 const TOUCH_SIZE = 44;
-const INSET = -((TOUCH_SIZE - MARK_SIZE) / 2 - 3);
-const BOTTOM_INSET = -((TOUCH_SIZE - MARK_SIZE) / 2 - 5);
+/** 아이콘 옆에 남기는 가로와 세로 여백. 음수 여백에서 그만큼 덜 걷어낸다. */
+const SIDE_GAP = 3;
+const BOTTOM_GAP = 5;
 
 /**
  * 말풍선과 한 줄 옆에 서는 책갈피.
@@ -44,6 +53,10 @@ export function ExpressionBookmark({
   const press = useCallback(() => toggle(spot), [spot, toggle]);
   const isSaved = state?.status === "saved" || state?.status === "erasing";
   const isBusy = state?.status === "saving" || state?.status === "erasing";
+  const { indicator } = useProgressMetrics("supporting");
+  const mark = Math.max(MARK_SIZE, indicator);
+  const touch = Math.max(TOUCH_SIZE, mark);
+  const folded = (touch - mark) / 2;
 
   return (
     <Pressable
@@ -56,33 +69,42 @@ export function ExpressionBookmark({
       onPress={press}
       style={{
         alignItems: "center",
-        height: TOUCH_SIZE,
+        height: touch,
         justifyContent: "center",
-        marginBottom: BOTTOM_INSET,
-        marginLeft: side === "right" ? INSET : -((TOUCH_SIZE - MARK_SIZE) / 2),
-        marginRight: side === "right" ? -((TOUCH_SIZE - MARK_SIZE) / 2) : INSET,
-        marginTop: -((TOUCH_SIZE - MARK_SIZE) / 2),
-        width: TOUCH_SIZE,
+        marginBottom: -(folded - BOTTOM_GAP),
+        marginLeft: side === "right" ? -(folded - SIDE_GAP) : -folded,
+        marginRight: side === "right" ? -folded : -(folded - SIDE_GAP),
+        marginTop: -folded,
+        width: touch,
+        /*
+          음수 여백이 걷어낸 만큼은 옆 컨트롤의 자리와 겹친다. 나중에 그려지는
+          쪽이 그 겹침을 가져가므로, 접힌 한 줄에서는 오른쪽 11pt를 눌러도 담기지
+          않고 카드가 펼쳐졌다. 이 자리를 위로 올려 책갈피가 자기 44pt를 온전히
+          받는다.
+        */
+        zIndex: 1,
       }}
       testID="expression-bookmark"
     >
       <View
         style={{
           alignItems: "center",
-          height: MARK_SIZE,
+          height: mark,
           justifyContent: "center",
-          width: MARK_SIZE,
+          width: mark,
         }}
       >
         {isBusy ? (
           <LoadingSpinner sizeRole="supporting" />
         ) : (
-          <Icon
-            filled={isSaved}
-            name="bookmark"
-            size="sm"
-            tone={isSaved ? "accent" : "muted"}
-          />
+          <View style={{ transform: [{ scale: mark / MARK_SIZE }] }}>
+            <Icon
+              filled={isSaved}
+              name="bookmark"
+              size="sm"
+              tone={isSaved ? "accent" : "muted"}
+            />
+          </View>
         )}
       </View>
     </Pressable>

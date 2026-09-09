@@ -983,8 +983,13 @@ export function ChatPanel({
       </KeyboardStickyView>
 
       {/*
-        방금 한 일을 알리는 짧은 문구가 입력창 바로 위에 뜬다. 누를 것이 없으므로
-        터치를 받지 않고, 떠 있는 동안에도 대화를 이어 갈 수 있다.
+        방금 한 일을 알리는 짧은 문구가 입력창 위에 뜬다. 누를 것이 없으므로 터치를
+        받지 않고, 떠 있는 동안에도 대화를 이어 갈 수 있다.
+
+        최신 메시지 버튼이 쓰는 띠 위에 선다. 지나간 말풍선을 담으려면 목록을 위로
+        올려야 하고, 그때는 그 버튼도 함께 서 있다. 같은 자리에 두면 방금 담았다는
+        안내가 돌아갈 길을 덮는다. 버튼이 없을 때도 이 자리를 그대로 써서 문구가
+        뜨는 높이가 상황에 따라 달라지지 않게 한다.
       */}
       {toast ? (
         <KeyboardStickyView
@@ -995,7 +1000,7 @@ export function ChatPanel({
           pointerEvents="none"
           style={{
             alignItems: "center",
-            bottom: composerHeight,
+            bottom: composerHeight + LATEST_OVERLAY_HEIGHT,
             left: 0,
             position: "absolute",
             right: 0,
