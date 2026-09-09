@@ -520,3 +520,130 @@ comment on table public.language_levels is
 
 comment on column public.language_levels.level is
   'One Korean line describing the level, written by the model that closed the scene.';
+
+-- 사용자가 대화에서 손으로 담아 둔 영어 문장 하나. 화면에서는 표현 노트로 부른다.
+--
+-- 세 출처가 한 테이블을 나눠 쓴다. 표현 노트가 셋을 같은 목록에 같은 카드로
+-- 그리므로 공통 열은 한 벌이어야 하고, 인물 대사에만 있는 화자나 교정에만 있는
+-- 이유는 그 종류에서만 찬다.
+--
+-- 항목은 원본과 별개로 남는다. 교정은 메시지를 따라 지워지지만 저장은 사용자가
+-- 직접 한 행동이라, 다시 받기로 사라지면 잃어버린 것이 된다. 그래서 메시지가
+-- 지워지면 참조만 끊고 행은 남긴다.
+create table public.saved_expressions (
+  id uuid primary key default gen_random_uuid(),
+  -- 앞의 테이블들과 같은 이유로 부르는 사람이 채운다. insert grant에서 빠져 있어
+  -- 남의 이름으로 담는 문장은 정책에 닿기 전에 권한에서 막힌다.
+  user_id uuid not null default auth.uid()
+    references public.profiles (id) on delete cascade,
+  -- 무엇에서 담았는지. 카드의 모양과 어느 열이 차는지를 이 값이 가른다. 화면에
+  -- 그대로 보이지 않으므로 영어 키를 쓴다.
+  kind text not null,
+  -- 이 표현이 나온 화. 카드가 스토리 제목과 화 번호를 여기서 읽는다. 플레이가
+  -- 아니라 각본을 가리키므로 회차를 지워도 출처 표시가 남는다.
+  episode_id uuid not null references public.episodes (id) on delete restrict,
+  -- 담을 때 곁에 있던 메시지. 다시 받기나 수정으로 그 메시지가 사라지면 여기만
+  -- 비고 항목은 남는다. 단일 열 참조라 주인을 나르는 `user_id`는 건드리지 않는다.
+  message_id uuid references public.episode_messages (id) on delete set null,
+  -- 장면 안에서 몇 번째 대사인지. 한 장면에 대사가 여럿이면 각각 따로 담기므로
+  -- 메시지 id만으로는 어느 대사인지 가리키지 못한다. 인물 대사만 쓴다.
+  utterance_at smallint,
+  -- 담은 영어 문장. 인물 대사는 그 대사, 영어 교정은 모든 수정을 반영한 고친
+  -- 문장, 한국어 안내는 안내한 영어 문장이다.
+  english text not null,
+  -- 인물 대사가 더하는 둘. 뜻은 담을 때 한 번 만들고 다시 만들지 않는다.
+  meaning text,
+  speaker text,
+  -- 교정과 안내가 더하는 둘. `original`은 사용자가 쓴 문장 전체이고, `entries`는
+  -- 그 안에서 어긋난 자리와 고친 자리와 이유를 짝지은 배열이다. 배열째 두는 것은
+  -- 한 메시지의 교정이 여럿이어도 담기는 것은 문장 하나이기 때문이다.
+  original text,
+  entries jsonb,
+  created_at timestamptz not null default now(),
+  constraint saved_expressions_kind_known check (
+    kind in ('utterance', 'correction', 'guidance')
+  ),
+  -- 인물 대사의 세 값은 함께 오거나 함께 없다. 화자만 있고 뜻이 없는 반쪽 항목은
+  -- 카드가 읽을 수 없다.
+  constraint saved_expressions_utterance_whole check (
+    (kind = 'utterance') = (meaning is not null)
+    and (kind = 'utterance') = (speaker is not null)
+    and (kind = 'utterance') = (utterance_at is not null)
+  ),
+  -- 교정과 안내의 두 값도 마찬가지다.
+  constraint saved_expressions_learning_whole check (
+    (kind <> 'utterance') = (original is not null)
+    and (kind <> 'utterance') = (entries is not null)
+  ),
+  constraint saved_expressions_utterance_at_usable check (
+    utterance_at is null or utterance_at between 0 and 100
+  ),
+  constraint saved_expressions_english_usable check (
+    length(btrim(english)) between 1 and 1000
+  ),
+  constraint saved_expressions_meaning_usable check (
+    meaning is null or length(btrim(meaning)) between 1 and 1000
+  ),
+  constraint saved_expressions_speaker_usable check (
+    speaker is null or length(btrim(speaker)) between 1 and 60
+  ),
+  constraint saved_expressions_original_usable check (
+    original is null or length(btrim(original)) between 1 and 1000
+  ),
+  constraint saved_expressions_entries_array check (
+    entries is null or jsonb_typeof(entries) = 'array'
+  ),
+  constraint saved_expressions_entries_size check (
+    entries is null or octet_length(entries::text) <= 8192
+  )
+);
+
+-- 같은 자리를 두 번 담지 못하게 한다. 인물 대사는 메시지 안의 대사 자리까지
+-- 봐야 갈리고, 교정과 안내는 메시지 하나에 종류마다 하나뿐이다.
+--
+-- 참조가 끊긴 행은 여기서 빠진다. 원본을 잃은 항목끼리는 같은 자리를 가리키지
+-- 않으므로 서로 부딪힐 이유가 없다. `message_id`가 앞자리라 그 메시지가 지워질 때
+-- 참조를 끊으러 도는 조회도 이 색인을 탄다.
+create unique index saved_expressions_one_per_source_idx
+  on public.saved_expressions (message_id, kind, coalesce(utterance_at, -1))
+  where message_id is not null;
+
+-- 표현 노트가 "내가 담은 것을 최근순으로"를 묻는다. 두 열이 그 순서대로 앉아
+-- 있으면 그 질문 하나가 이 색인만 탄다.
+create index saved_expressions_user_id_created_at_idx
+  on public.saved_expressions (user_id, created_at desc);
+
+-- 한 화를 다시 열 때 그 화에서 담은 것을 모아 읽고, 각본을 지울 때 도는 조회도
+-- 함께 받는다.
+create index saved_expressions_episode_id_idx
+  on public.saved_expressions (episode_id);
+
+comment on table public.saved_expressions is
+  'One English sentence the person saved by hand. Shown in the app as 표현 노트.';
+
+comment on column public.saved_expressions.kind is
+  'Where it was saved from: utterance, correction or guidance. Decides which columns are filled.';
+
+comment on column public.saved_expressions.episode_id is
+  'The script this came from. Survives deleting the run, so the card keeps its story and number.';
+
+comment on column public.saved_expressions.message_id is
+  'The message it sat next to. Null once that message is gone; the row stays.';
+
+comment on column public.saved_expressions.utterance_at is
+  'Which utterance inside the scene, for character lines only.';
+
+comment on column public.saved_expressions.english is
+  'The saved English sentence.';
+
+comment on column public.saved_expressions.meaning is
+  'One Korean line saying what the character said. Made once when saved, for character lines only.';
+
+comment on column public.saved_expressions.speaker is
+  'Who said it, for character lines only.';
+
+comment on column public.saved_expressions.original is
+  'What the person wrote, for corrections and guidance only.';
+
+comment on column public.saved_expressions.entries is
+  'Which parts were off, what replaced them and why, as one JSON array. Corrections and guidance only.';
