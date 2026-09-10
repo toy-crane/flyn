@@ -3,6 +3,19 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "bun";
+import { pullFailureSummary } from "./vercel-runtime";
+
+test("pull 오류 원인만 남기고 토큰과 다른 출력은 숨긴다", () => {
+  expect(
+    pullFailureSummary(
+      "secret fixture-token\nError: Not authorized: fixture-token\nprivate env=value",
+      "fixture-token"
+    )
+  ).toBe("Error: Not authorized: [redacted]");
+  expect(pullFailureSummary("private env=value", "fixture-token")).toBe(
+    "오류 요약 없음"
+  );
+});
 
 test("실제 CLI 프로세스 경계에서 잠금 설치와 prebuilt 배포 및 비밀값 분리를 확인한다", () => {
   const root = mkdtempSync(join(tmpdir(), "flyn-vercel-cli-"));
