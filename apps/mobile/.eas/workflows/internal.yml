@@ -55,10 +55,29 @@ jobs:
       wait_for_in_progress: true
       fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
 
+  check_existing:
+    type: custom
+    after: [get_build]
+    if: ${{ after.get_build.outputs.build_id }}
+    environment: production
+    env:
+      EXPO_NO_DOTENV: "1"
+      FLYN_BUILD_ID: ${{ after.get_build.outputs.build_id }}
+    outputs:
+      action: ${{ steps.choose.outputs.action }}
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - run: cd /tmp && env -u EXPO_TOKEN npm install --global eas-cli@24.0.0
+      - id: choose
+        run: |
+          ACTION=$(bun ../../scripts/ci/testflight-action.ts "$FLYN_BUILD_ID")
+          set-output action "$ACTION"
+
   build_ios:
     type: build
-    needs: [get_build]
-    if: ${{ !needs.get_build.outputs.build_id }}
+    after: [get_build, check_existing]
+    if: ${{ !after.get_build.outputs.build_id || after.check_existing.outputs.action == 'build' }}
     environment: production
     env:
       EXPO_NO_DOTENV: "1"
@@ -92,10 +111,21 @@ jobs:
       - run: cd /tmp && env -u EXPO_TOKEN npm install --global eas-cli@24.0.0
       - run: bun ../../scripts/ci/verify-testflight.ts "$FLYN_BUILD_ID"
 
-  verify_existing:
+  submit_existing:
+    name: Submit compatible build to Flyn Internal
+    type: submit
+    needs: [get_build, check_existing]
+    if: ${{ needs.check_existing.outputs.action == 'submit' }}
+    environment: production
+    env:
+      EXPO_NO_DOTENV: "1"
+    params:
+      build_id: ${{ needs.get_build.outputs.build_id }}
+      profile: production
+
+  verify_submitted:
     type: custom
-    needs: [get_build]
-    if: ${{ needs.get_build.outputs.build_id }}
+    needs: [get_build, submit_existing]
     environment: production
     env:
       EXPO_NO_DOTENV: "1"
@@ -108,7 +138,19 @@ jobs:
 
   update_ios:
     type: update
-    needs: [verify_existing]
+    needs: [check_existing]
+    if: ${{ needs.check_existing.outputs.action == 'update' }}
+    environment: production
+    env:
+      EXPO_NO_DOTENV: "1"
+    params:
+      platform: ios
+      channel: internal
+      message: ${{ inputs.release_sha }} (${{ inputs.request_id }})
+
+  update_submitted:
+    type: update
+    needs: [verify_submitted]
     environment: production
     env:
       EXPO_NO_DOTENV: "1"

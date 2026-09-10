@@ -1,6 +1,6 @@
 import { sleep, spawn } from "bun";
 
-interface TestFlightStatus {
+export interface TestFlightStatus {
   ios?: {
     ascAppIdentifier?: string;
     testFlightBuilds?: {

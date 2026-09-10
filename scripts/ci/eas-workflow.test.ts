@@ -12,8 +12,16 @@ test("EAS는 같은 운영 환경에서 호환 빌드를 찾고 설치 가능 �
     on: Record<string, unknown>;
     defaults: { tools: { node: string; bun: string } };
     jobs: Record<
-      "get_build" | "build_ios" | "update_ios" | "submit_ios" | "verify_new",
+      | "get_build"
+      | "check_existing"
+      | "build_ios"
+      | "update_ios"
+      | "update_submitted"
+      | "submit_existing"
+      | "submit_ios"
+      | "verify_new",
       {
+        after?: string[];
         type?: string;
         environment: string;
         needs?: string[];
@@ -37,10 +45,17 @@ test("EAS는 같은 운영 환경에서 호환 빌드를 찾고 설치 가능 �
     simulator: false,
     wait_for_in_progress: true,
   });
+  expect(workflow.jobs.check_existing.after).toEqual(["get_build"]);
+  expect(workflow.jobs.build_ios.after).toEqual([
+    "get_build",
+    "check_existing",
+  ]);
   expect(workflow.jobs.build_ios.if).toContain(
-    "!needs.get_build.outputs.build_id"
+    "after.check_existing.outputs.action == 'build'"
   );
-  expect(workflow.jobs.update_ios.needs).toContain("verify_existing");
+  expect(workflow.jobs.submit_existing.if).toContain("action == 'submit'");
+  expect(workflow.jobs.update_ios.if).toContain("action == 'update'");
+  expect(workflow.jobs.update_submitted.needs).toContain("verify_submitted");
   expect(workflow.jobs.update_ios.params).toMatchObject({
     channel: "internal",
     platform: "ios",
