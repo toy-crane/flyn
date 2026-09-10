@@ -4,10 +4,7 @@ import {
   SupabaseDatabaseDelivery,
 } from "./database-delivery";
 
-const migration = {
-  hash: "a".repeat(64),
-  version: "20260909123219",
-};
+const version = "20260909123219";
 const request = {
   remoteId: null,
   requestId: "test-request",
@@ -15,33 +12,10 @@ const request = {
   sha: "b".repeat(40),
 };
 
-test("검토한 SQL 해시가 없으면 운영 마이그레이션을 적용하지 않는다", async () => {
-  const commands: string[][] = [];
-  const delivery = new SupabaseDatabaseDelivery({
-    approved: {},
-    migrations: [migration],
-    receiptId: "https://github.com/toy-crane/flyn/actions/runs/123",
-    run: (args) => {
-      commands.push(args);
-      return Promise.resolve(
-        JSON.stringify({
-          migrations: [{ local: migration.version, remote: "" }],
-        })
-      );
-    },
-    sha: request.sha,
-  });
-  await expect(delivery.start(request)).rejects.toThrow("검토한 SQL");
-  expect(commands).toEqual([
-    ["migration", "list", "--linked", "--output-format", "json"],
-  ]);
-});
-
 test("빈 로컬 이력을 원격 DB 배포 완료로 해석하지 않는다", () => {
   expect(
     () =>
       new SupabaseDatabaseDelivery({
-        approved: {},
         migrations: [],
         receiptId: "https://github.com/toy-crane/flyn/actions/runs/123",
         run: () => Promise.resolve("{}"),
@@ -63,8 +37,7 @@ for (const history of [
 ]) {
   test(`불완전한 원격 이력을 배포 완료로 기록하지 않는다: ${JSON.stringify(history)}`, async () => {
     const delivery = new SupabaseDatabaseDelivery({
-      approved: { [migration.version]: migration.hash },
-      migrations: [migration],
+      migrations: [version],
       receiptId: "fixture",
       run: () => Promise.resolve(JSON.stringify(history)),
       sha: request.sha,
@@ -73,33 +46,57 @@ for (const history of [
   });
 }
 
-test("CLI 성공만으로 완료 처리하지 않고 미적용 이력을 대기로 남긴다", async () => {
+test("미적용 마이그레이션이 있으면 별도 조건 없이 적용한다", async () => {
   let pushes = 0;
   const delivery = new SupabaseDatabaseDelivery({
-    approved: { [migration.version]: migration.hash },
-    migrations: [migration],
+    migrations: [version],
     receiptId: "fixture",
     run: (args) => {
       if (args[0] === "db") {
         pushes += 1;
       }
       return Promise.resolve(
-        JSON.stringify({
-          migrations: [{ local: migration.version, remote: "" }],
-        })
+        JSON.stringify({ migrations: [{ local: version, remote: "" }] })
       );
     },
     sha: request.sha,
   });
+  // The protected environment already gated this run, so nothing in the
+  // repository has to authorize the SQL a second time.
   expect((await delivery.start(request)).status).toBe("pending");
   expect((await delivery.inspect(request)).status).toBe("pending");
   expect(pushes).toBe(1);
 });
 
+test("적용을 마치면 성공으로 보고하고 다시 밀지 않는다", async () => {
+  let pushes = 0;
+  const delivery = new SupabaseDatabaseDelivery({
+    migrations: [version],
+    receiptId: "https://github.com/toy-crane/flyn/actions/runs/123",
+    run: (args) => {
+      if (args[0] === "db") {
+        pushes += 1;
+      }
+      return Promise.resolve(
+        JSON.stringify({
+          migrations: [{ local: version, remote: pushes > 0 ? version : "" }],
+        })
+      );
+    },
+    sha: request.sha,
+  });
+  expect(await delivery.start(request)).toEqual({
+    remoteId: "https://github.com/toy-crane/flyn/actions/runs/123",
+    status: "success",
+  });
+  expect(pushes).toBe(1);
+  expect((await delivery.start(request)).status).toBe("success");
+  expect(pushes).toBe(1);
+});
+
 test("적용하지 않은 마이그레이션은 진행 중 요청으로 보고하지 않는다", async () => {
   const delivery = new SupabaseDatabaseDelivery({
-    approved: {},
-    migrations: [{ hash: "a".repeat(64), version: "20260101000000" }],
+    migrations: ["20260101000000"],
     receiptId: "https://github.com/toy-crane/flyn/actions/runs/1",
     run: () =>
       Promise.resolve(
