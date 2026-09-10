@@ -159,8 +159,14 @@ test("배포 workflow는 main push와 수동 실행에 공통 직렬 대기를 �
     on: Record<string, unknown>;
     concurrency: Record<string, unknown>;
     jobs: {
+      plan: {
+        outputs: Record<string, string>;
+        steps: { env?: Record<string, string>; run?: string }[];
+      };
       database: {
+        environment: { name: string };
         if: string;
+        needs: string;
         "timeout-minutes": number;
         steps: { name?: string; env?: Record<string, string>; run?: string }[];
       };
@@ -174,7 +180,22 @@ test("배포 workflow는 main push와 수동 실행에 공통 직렬 대기를 �
     queue: "max",
   });
   expect(workflow.jobs.database.if).toContain("refs/heads/main");
+  expect(workflow.jobs.database.needs).toBe("plan");
+  expect(workflow.jobs.database.environment.name).toContain(
+    "needs.plan.outputs.database_environment"
+  );
   expect(workflow.jobs.database["timeout-minutes"]).toBe(45);
+  expect(Object.keys(workflow.jobs.plan.outputs).sort()).toEqual([
+    "database_environment",
+    "edge_environment",
+  ]);
+  const review = workflow.jobs.plan.steps.find(
+    (step) => step.run === "bun scripts/ci/plan-production-review.ts"
+  );
+  expect(Object.keys(review?.env ?? {}).sort()).toEqual([
+    "DEPLOYMENT_STATE_SIGNING_KEY",
+    "GH_TOKEN",
+  ]);
   const { steps } = workflow.jobs.database;
   const gate = steps.findIndex(
     (step) => step.run === "bun scripts/ci/release-checks.ts"

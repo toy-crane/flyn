@@ -18,13 +18,17 @@ test("Edge는 DB 다음 API 전에 실행하며 PAT는 설치 단계에 전달�
   ) as {
     jobs: {
       edge: {
-        needs: string;
+        needs: string[];
+        environment: { name: string };
         steps: { run?: string; env?: Record<string, string> }[];
       };
       api: { needs: string };
     };
   };
-  expect(workflow.jobs.edge.needs).toBe("database");
+  expect(workflow.jobs.edge.needs).toEqual(["plan", "database"]);
+  expect(workflow.jobs.edge.environment.name).toContain(
+    "needs.plan.outputs.edge_environment"
+  );
   expect(workflow.jobs.api.needs).toBe("edge");
   const install = workflow.jobs.edge.steps.find((step) =>
     step.run?.includes("bun install")

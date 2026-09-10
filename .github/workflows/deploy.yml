@@ -16,8 +16,36 @@ concurrency:
   queue: max
 
 jobs:
-  database:
+  plan:
     if: ${{ github.ref == 'refs/heads/main' && github.repository == 'toy-crane/flyn' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      checks: read
+    outputs:
+      database_environment: ${{ steps.review.outputs.database_environment }}
+      edge_environment: ${{ steps.review.outputs.edge_environment }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.0"
+      - id: review
+        name: Choose protected environments for production changes
+        env:
+          DEPLOYMENT_STATE_SIGNING_KEY: ${{ secrets.DEPLOYMENT_STATE_SIGNING_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: bun scripts/ci/plan-production-review.ts
+
+  database:
+    needs: plan
+    if: ${{ github.ref == 'refs/heads/main' && github.repository == 'toy-crane/flyn' }}
+    environment:
+      name: ${{ needs.plan.outputs.database_environment }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
@@ -56,8 +84,10 @@ jobs:
         run: echo 'Database stage verified. Edge and API follow in the same run.' >> "$GITHUB_STEP_SUMMARY"
 
   edge:
-    needs: database
+    needs: [plan, database]
     if: ${{ github.ref == 'refs/heads/main' && github.repository == 'toy-crane/flyn' }}
+    environment:
+      name: ${{ needs.plan.outputs.edge_environment }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
