@@ -18,6 +18,9 @@
 - 새 빌드 전에 EAS Update 설정이 필요하고, 테스터가 그 빌드를 설치해야 후속 OTA를 받을 수 있다. OTA와 TestFlight는 같은 배포 채널이 아니다.
 - Vercel·Supabase·EAS의 독립적인 자동 실행이 전체 순서를 우회하거나 같은 대상을 중복 배포하지 않게 한다.
 - 배포 대상 판정은 공유 패키지·루트 의존성과 실패 후 남은 변경을 포함한다. 문서만 바뀌면 배포하지 않는다.
+- `deployment-state`의 상태 본문은 GitHub Secret의 HMAC 키로 서명한다. 서명이 없거나 본문과 맞지 않으면 어떤 성공 기록도 신뢰하지 않는다.
+- 새 DB 마이그레이션이나 Edge Function 운영 설정이 있으면 `flyn-production-review` 환경에서 별도 승인을 받아야 한다. 같은 PR에 SQL 해시를 넣어도 이 승인을 대신하지 못한다. 그 외 변경은 `flyn-production-automatic` 환경에서 계속 자동 배포한다.
+- `supabase/config.toml`에서는 `[functions.*]` 설정만 Edge 배포 대상으로 본다. 승인한 함수 설정은 함수 소스와 함께 배포하고 원격 설정·소스를 확인한 뒤 성공 기준을 전진시킨다. 로컬 포트와 Studio 설정은 운영 Edge 배포를 막지 않는다.
 - 공개 출시, Android 스토어 배포, 강제 업데이트, 원격 CI E2E와 외부 알림 채널은 별도 결정이다. 공개 출시 전에는 내부·일반 사용자 업데이트 채널을 분리한다.
 
 ## 이유
