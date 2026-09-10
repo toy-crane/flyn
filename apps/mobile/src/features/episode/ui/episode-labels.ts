@@ -51,8 +51,8 @@ export const correctionLabels = {
 export const savedExpressionLabels = {
   /** Not shown: the bookmark on a line that is not saved yet. */
   save: "표현 저장",
-  /** Shown after a bookmark saves. A transient toast, so no period. */
-  saved: "표현을 저장했어요",
+  /** Shown after a bookmark saves. */
+  saved: "표현을 저장했어요.",
   /** Shown in place of the line when saving did not go through. */
   saveFailed: "표현을 저장하지 못했어요.",
   /** Not shown: the refresh mark that saves again after a failure. */

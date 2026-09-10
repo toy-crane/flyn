@@ -17,17 +17,6 @@
   "files": {
     "experimentalScannerIgnores": ["ios", "android"]
   },
-  "linter": {
-    "rules": {
-      "suspicious": {
-        // Biome 2.5의 타입 추론은 모듈 경계를 넘지 못해서, 다른 파일이 정한
-        // 타입을 읽어야 하는 이 규칙이 틀린 답을 낸다. `session: Session | null`
-        // 인 값에 쓴 `session?.user.id`를 불필요한 옵셔널 체이닝이라 부르고,
-        // 그 고침을 받아들이면 로그아웃한 순간 앱이 죽는다. 타입은 tsc가 본다.
-        "noUnnecessaryConditions": "off"
-      }
-    }
-  },
   "overrides": [
     {
       // Biome parses only the frontmatter of an .astro file, so anything the
