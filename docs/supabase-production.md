@@ -6,6 +6,7 @@
 - 사용자가 계정 전체 권한의 classic PAT 사용을 승인하고 직접 발급해 `SUPABASE_ACCESS_TOKEN` Secret에 등록했다. 2026-09-10 01:21:05 UTC 등록 시각을 확인했다. 기존 로컬 CLI 토큰을 복사하지 않았으며 새 토큰의 값과 정확한 만료일은 읽지 않았다.
 - 계정의 실제 토큰 생성 화면에는 이름과 만료만 있으며 프로젝트·권한 제한 선택이 없었다. 토큰 권한과 무관하게 자동화의 작업 대상은 Flyn 프로젝트로 제한한다.
 - `Deployment access` 수동 workflow는 `main`에서 새 Secret으로 Flyn 연결과 `db push --linked --dry-run`을 검사한다. PR에는 운영 비밀값을 제공하지 않는다. 이 검사는 마이그레이션·seed·Auth 설정을 적용하지 않으며 실제 배포 성공을 증명하지 않는다.
+- [실제 GitHub 실행 34425985225](https://github.com/toy-crane/flyn/actions/runs/34425985225)이 커밋 `3efd17ccb7d1a2b4733d390cb2d02a5136792ac4`에서 통과했다. 새 Secret으로 프로젝트 연결과 DB 이력 조회를 확인했다. 미적용 항목은 `20260909123219_story_cover_blurhash.sql` 하나이며 적용하지 않았다.
 
 ## 프로젝트
 
