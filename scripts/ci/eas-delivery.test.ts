@@ -1,20 +1,28 @@
 import { expect, test } from "bun:test";
 import { serve } from "bun";
 import type { DeliveryRequest } from "./delivery-execution";
-import { EasDelivery } from "./eas-delivery";
+import { EasDelivery, easRequestId } from "./eas-delivery";
 
 const request: DeliveryRequest = {
   remoteId: null,
-  requestId: "11111111-1111-4111-8111-111111111111",
+  requestId: "https://github.com/toy-crane/flyn/actions/runs/1",
   service: "mobile",
   sha: "a".repeat(40),
 };
 const id = "22222222-2222-4222-8222-222222222222";
 const identity = {
   key: "identity",
-  outputs: { release_sha: request.sha, request_id: request.requestId },
+  outputs: { release_sha: request.sha, request_id: easRequestId(request.sha) },
   status: "success",
 };
+
+test("EAS 요청 ID는 커밋에서 만들어 재실행에도 같다", () => {
+  expect(easRequestId(request.sha)).toBe(
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+  );
+  expect(easRequestId("b".repeat(40))).not.toBe(easRequestId(request.sha));
+  expect(() => easRequestId("nope")).toThrow("커밋");
+});
 
 test("EAS 요청 응답을 잃어도 같은 커밋과 요청의 완료된 Update를 조회하고 재발행하지 않는다", async () => {
   let posts = 0;
@@ -26,7 +34,10 @@ test("EAS 요청 응답을 잃어도 같은 커밋과 요청의 완료된 Update
           appId: "7d2f7888-8fc8-4ecb-b430-9fee421c68cc",
           fileName: "internal.yml",
           gitRef: request.sha,
-          inputs: { release_sha: request.sha, request_id: request.requestId },
+          inputs: {
+            release_sha: request.sha,
+            request_id: easRequestId(request.sha),
+          },
         });
         return new Response("lost", { status: 503 });
       }
@@ -171,12 +182,7 @@ test("Apple 처리 확인 없는 EAS 성공과 다른 요청의 실행은 완료
       "success"
     );
     expect(
-      (
-        await remote.inspect({
-          ...request,
-          requestId: "33333333-3333-4333-8333-333333333333",
-        })
-      ).status
+      (await remote.inspect({ ...request, sha: "b".repeat(40) })).status
     ).toBe("pending");
     run = { ...run, status: "in-progress" };
     expect(await remote.inspect({ ...request, remoteId: id })).toEqual({

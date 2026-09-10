@@ -5,26 +5,23 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
-  writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, spawnSync, TOML } from "bun";
-import type { DeliveryRequest } from "./delivery-execution";
 import { SupabaseEdgeDelivery } from "./edge-delivery";
 
 const PROJECT = "owtajtnfleiobyfocdjy";
 const NAME = /^[a-z][a-z0-9-]*$/;
 
-export function edgeMarker(request: DeliveryRequest) {
-  return `// Flyn delivery ${JSON.stringify({ requestId: request.requestId, sha: request.sha })}\n`;
-}
-
+/**
+ * The deployed source is the identity. Two commits with identical functions are
+ * the same deployment, so a redundant redeploy never happens.
+ */
 export function matchesEdgeSources(
   downloaded: string,
   expectedRoot: string,
-  names: string[],
-  request: DeliveryRequest
+  names: string[]
 ) {
   for (const name of names) {
     if (
@@ -49,13 +46,7 @@ export function matchesEdgeSources(
     if (!existsSync(expected)) {
       return false;
     }
-    const prefix = names.some((name) => relative === `${name}/index.ts`)
-      ? edgeMarker(request)
-      : "";
-    if (
-      readFileSync(path, "utf8") !==
-      prefix + readFileSync(expected, "utf8")
-    ) {
+    if (readFileSync(path, "utf8") !== readFileSync(expected, "utf8")) {
       return false;
     }
   }
@@ -150,7 +141,7 @@ export function loadEdgeRuntime(
     });
   }
   const delivery = new SupabaseEdgeDelivery({
-    deploy: async (request) => {
+    deploy: async () => {
       const temp = mkdtempSync(join(tmpdir(), "flyn-edge-upload-"));
       try {
         cpSync(functionsPath, join(temp, "supabase/functions"), {
@@ -160,10 +151,6 @@ export function loadEdgeRuntime(
           join(root, "supabase/config.toml"),
           join(temp, "supabase/config.toml")
         );
-        for (const name of names) {
-          const path = join(temp, "supabase/functions", name, "index.ts");
-          writeFileSync(path, edgeMarker(request) + readFileSync(path, "utf8"));
-        }
         await run(
           ["functions", "deploy", ...names, "--use-api", "--workdir", temp],
           temp
@@ -172,7 +159,7 @@ export function loadEdgeRuntime(
         rmSync(temp, { force: true, recursive: true });
       }
     },
-    inspect: async (request) => {
+    inspect: async () => {
       const before = await versions();
       if (before.some((version) => version === null)) {
         return null;
@@ -188,7 +175,7 @@ export function loadEdgeRuntime(
           );
         }
         const downloaded = join(temp, "supabase/functions");
-        if (!matchesEdgeSources(downloaded, functionsPath, names, request)) {
+        if (!matchesEdgeSources(downloaded, functionsPath, names)) {
           return null;
         }
         const after = await versions();

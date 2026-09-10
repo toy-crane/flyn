@@ -60,6 +60,7 @@ if(args[1]==="download") {
     );
     const module = new URL("./edge-runtime.ts", import.meta.url).pathname;
     const script = `import {spawnSync} from "bun";
+import {writeFileSync} from "node:fs";
 import {loadEdgeRuntime} from ${JSON.stringify(module)};
 for (const args of [["init","-q"],["add","."],["-c","user.name=Fixture","-c","user.email=fixture@example.test","-c","commit.gpgsign=false","commit","-qm","fixture"]]) { if(spawnSync(["git",...args]).exitCode!==0) process.exit(5); }
 const sha=spawnSync(["git","rev-parse","HEAD"]).stdout.toString().trim();
@@ -68,8 +69,9 @@ const request={service:"edge",sha,requestId:"fixture-request",remoteId:null};
 try { await runtime.start(request); process.exit(2); } catch(error) { if(!error.message.includes("deploy 실패")) throw error; }
 const observed=await runtime.inspect(request);
 if(observed.status!=="success") throw new Error("inspect failed");
-const wrong=await runtime.inspect({...request,requestId:"different-request"});
-if(wrong.status!=="pending") throw new Error("wrong request accepted");`;
+writeFileSync(".remote/delete-account/index.ts","export default {drifted:true};");
+const drifted=await runtime.inspect(request);
+if(drifted.status!=="pending") throw new Error("drifted remote source accepted");`;
     const child = spawn([process.execPath, "-e", script], {
       cwd: root,
       env: {

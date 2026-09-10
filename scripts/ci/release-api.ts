@@ -1,27 +1,29 @@
 import { spawnSync } from "bun";
-import { executeDelivery } from "./delivery-execution";
-import { GitHubDeliveryJournal } from "./delivery-journal";
-import { requireEdgeReady } from "./edge-readiness";
-import { requireReleaseChecks } from "./release-checks";
+import { deliverService } from "./delivery-execution";
+import { releaseRequest } from "./release-request";
 import { createVercelRuntime } from "./vercel-runtime";
 
 const SHA = /^[a-f0-9]{40}$/;
 
-export function apiChanged(base: string | null, sha: string) {
-  if (!base) {
+/**
+ * Compares this commit with the one Vercel currently serves. A stage that
+ * already shipped is not shipped again when a later stage failed.
+ */
+export function apiChanged(live: string | null, sha: string) {
+  if (!live) {
     return true;
   }
   if (
-    !(SHA.test(base) && SHA.test(sha)) ||
-    spawnSync(["git", "merge-base", "--is-ancestor", base, sha]).exitCode !== 0
+    !(SHA.test(live) && SHA.test(sha)) ||
+    spawnSync(["git", "merge-base", "--is-ancestor", live, sha]).exitCode !== 0
   ) {
-    throw new Error("API 성공 커밋보다 이전 버전은 배포하지 않습니다.");
+    throw new Error("운영 API 커밋보다 이전 버전은 배포하지 않습니다.");
   }
   const diff = spawnSync([
     "git",
     "diff",
     "--quiet",
-    base,
+    live,
     sha,
     "--",
     "apps/api",
@@ -38,92 +40,42 @@ export function apiChanged(base: string | null, sha: string) {
   return diff.exitCode === 1;
 }
 
-export function requireApiDatabase(base: string | null, sha: string) {
-  if (!(base && SHA.test(base) && SHA.test(sha))) {
-    throw new Error("DB 성공 기록이 필요합니다.");
+async function main() {
+  const { receiptId, sha } = releaseRequest("API");
+  const vercelToken = process.env.VERCEL_TOKEN;
+  if (!vercelToken) {
+    throw new Error("API 배포에는 Vercel 토큰이 필요합니다.");
   }
-  if (
-    spawnSync(["git", "merge-base", "--is-ancestor", base, sha]).exitCode !==
-      0 ||
-    spawnSync([
-      "git",
-      "diff",
-      "--quiet",
-      base,
-      sha,
-      "--",
-      "supabase/migrations",
-    ]).exitCode !== 0
-  ) {
-    throw new Error("이 커밋의 DB 변경을 먼저 배포해야 합니다.");
-  }
-}
-
-export function apiReleaseEnvironment() {
-  const {
-    DEPLOYMENT_STATE_SIGNING_KEY: signingKey,
-    GITHUB_SHA: sha,
-    GH_TOKEN: token,
-    VERCEL_TOKEN: vercelToken,
-  } = process.env;
-  if (
-    process.env.GITHUB_ACTIONS !== "true" ||
-    process.env.GITHUB_REPOSITORY !== "toy-crane/flyn" ||
-    process.env.GITHUB_REF !== "refs/heads/main" ||
-    !sha ||
-    !SHA.test(sha) ||
-    !token ||
-    !vercelToken ||
-    !signingKey
-  ) {
-    throw new Error("Flyn main의 GitHub 실행에서만 API를 배포합니다.");
-  }
-  return { sha, signingKey, token, vercelToken };
-}
-
-if (import.meta.main) {
-  const { sha, signingKey, token, vercelToken } = apiReleaseEnvironment();
   if (
     spawnSync(["git", "rev-parse", "HEAD"]).stdout.toString().trim() !== sha ||
     spawnSync(["git", "status", "--porcelain"]).stdout.toString().trim()
   ) {
     throw new Error("API 체크아웃이 배포 커밋과 다릅니다.");
   }
-  await requireReleaseChecks(sha, token);
-  const journal = new GitHubDeliveryJournal(token, signingKey);
-  const snapshot = await journal.read();
-  requireApiDatabase(snapshot.state.success.database, sha);
-  requireEdgeReady(snapshot.state.success.edge, sha);
-  if (
-    snapshot.state.pending &&
-    (snapshot.state.pending.service !== "api" ||
-      snapshot.state.pending.sha !== sha)
-  ) {
-    if (
-      snapshot.state.pending.service === "mobile" &&
-      snapshot.state.pending.sha === sha &&
-      !apiChanged(snapshot.state.success.api, sha)
-    ) {
-      console.log(
-        "API 변경 없음. 기존 모바일 배포는 다음 단계에서 확인합니다."
-      );
-      process.exit(0);
-    }
-    throw new Error("기존 서비스 배포를 먼저 확인해야 합니다.");
-  }
   const runtime = createVercelRuntime(vercelToken);
-  await executeDelivery(sha, {
-    journal,
-    plan: async (state) => {
-      if (!apiChanged(state.success.api, sha)) {
-        return [];
-      }
-      await runtime.prepare();
-      return ["api"];
-    },
-    remote: runtime.delivery,
-  });
+  const live = await runtime.delivery.liveCommit();
+  if (live && !apiChanged(live, sha)) {
+    console.log(`운영 API가 이미 같은 내용입니다: ${live.slice(0, 8)}`);
+    return;
+  }
+  const request = {
+    remoteId: null,
+    requestId: receiptId,
+    service: "api" as const,
+    sha,
+  };
+  const found = await runtime.delivery.inspect(request);
+  if (found.status !== "success") {
+    await runtime.prepare();
+  }
+  const result = await deliverService(request, runtime.delivery);
   console.log(
-    `API 단계 확인 완료: ${sha}. 다음 단계에서 EAS 배포를 확인합니다.`
+    result === "already"
+      ? `운영 API가 이미 이 커밋입니다: ${sha}`
+      : `API 단계 확인 완료: ${sha}. 다음 단계에서 EAS 배포를 확인합니다.`
   );
+}
+
+if (import.meta.main) {
+  await main();
 }
