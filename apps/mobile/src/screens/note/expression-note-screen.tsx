@@ -1,7 +1,7 @@
 import { ScrollView } from "react-native";
 
 import type { SavedExpression } from "@/features/note/api/expression-note";
-import { ExpressionCard } from "@/features/note/ui/expression-card";
+import { NoteExpressionCard } from "@/features/note/ui/expression-card";
 import { noteLabels } from "@/features/note/ui/note-labels";
 import { ScreenEmpty, ScreenUnavailable } from "@/shared/ui/screen-status";
 import { useScreenContentHeight } from "@/shared/ui/use-screen-content-height";
@@ -41,7 +41,7 @@ export function ExpressionNoteScreen({
     >
       {hasExpressions
         ? expressions.map((expression) => (
-            <ExpressionCard
+            <NoteExpressionCard
               expression={expression}
               key={expression.id}
               onErase={onErase}

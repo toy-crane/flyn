@@ -45,3 +45,8 @@ completed
 - Review: `supabase-reviewer` 한 번 완료. CHANGES_REQUESTED에 P3 세 건. 두 건을 고쳤다. backfill UPDATE에 `s.user_id = r.user_id`를 더해 문장이 계정 경계를 스스로 들게 했고(정책과 복합 외래키의 보증은 `authenticated` 경로에만 걸리는데 마이그레이션은 그 문을 지나지 않는다), 보존 검사에 둘째 계정과 옛 안내 항목을 더해 계정 경계와 안내 갈래를 실제로 재게 했다. 셋째 건은 제약 재검증과 backfill이 한 트랜잭션에서 ACCESS EXCLUSIVE를 함께 쥔다는 것인데, 리뷰어도 지금 규모에서는 위험이 낮다고 보았고 `NOT VALID`로 나누는 길은 선언형 원본이 표현하지 못해 다음 `db diff`가 재검증을 다시 뱉는다. `impact.json`이 그 트레이드오프를 기록한 채 둔다.
 - Blocker: —
 - Revision: `learningDraft`와 `textOfMessage`를 `route.ts`에서 `saved-expression.ts`로 옮겼다. 저장 경로가 뜻을 옮겨 담는 것을 공개 경계에서 확인하려면 그 자리가 필요했다. 동작은 뜻을 싣는 것 하나만 달라졌다.
+- Revision: 작업 05를 하다가 `apps/api`의 통합 검사 둘이 아직 교정 항목의
+  `meaning`을 `null`로 기대하는 것을 찾았다. 이 작업이 저장 경로를 바꾸면서 함께
+  고쳤어야 하는데, 그때 API 스위트를 돌리지 않아 넘어갔다. 두 기대값을 표현
+  돌아보기가 만들어 둔 뜻으로 바꿨고, 이제 `bun run test`가 세 패키지 모두
+  통과한다. 기기에서도 교정을 새로 담으면 카드의 한국어 줄에 그 뜻이 선다.
