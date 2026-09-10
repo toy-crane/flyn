@@ -13,15 +13,15 @@
 
 ## Acceptance criteria
 
-- [ ] 1화에서 탐색으로 돌아오면 방금 만든 스토리에 표지가 보이고, 상세와 대화
+- [x] 1화에서 탐색으로 돌아오면 방금 만든 스토리에 표지가 보이고, 상세와 대화
       기록에서도 같은 표지가 보인다.
-- [ ] 표지는 단색 배경에 카드의 인물 중 순서 1번 한 명의 상반신 일러스트이고, 글자,
+- [x] 표지는 단색 배경에 카드의 인물 중 순서 1번 한 명의 상반신 일러스트이고, 글자,
       로고, 배경 풍경이 없다.
-- [ ] 표지 생성만 실패시키면 스토리와 1화는 그대로 만들어지고 표지 자리는 빈 색
+- [x] 표지 생성만 실패시키면 스토리와 1화는 그대로 만들어지고 표지 자리는 빈 색
       상자다.
-- [ ] 표지가 각본보다 늦게 끝나도 `대화 시작하기`의 대기가 표지 때문에 늘지 않고,
+- [x] 표지가 각본보다 늦게 끝나도 `대화 시작하기`의 대기가 표지 때문에 늘지 않고,
       표지는 준비된 뒤 목록을 다시 열면 보인다.
-- [ ] 카드를 고쳐 새 카드가 나와도, 같은 스토리를 다시 플레이해도 표지를 새로 만들지
+- [x] 카드를 고쳐 새 카드가 나와도, 같은 스토리를 다시 플레이해도 표지를 새로 만들지
       않는다. 스토리당 표지는 한 장이다.
 
 ## Constraints
@@ -60,13 +60,32 @@ verification pass. Use `superseded` only after an approved replacement of a
 task with recorded completion history. Preserve its Execution evidence and name
 the replacement and reason under Revision; it is then terminal for that approved
 breakdown and outside the current delivery map. -->
-in-progress
+completed
 
 ## Execution
 
 <!-- Append concise evidence and preserve earlier entries when status changes.
 Execution Blocker is the current impediment for an active task, not a declared
 task dependency. In a superseded task, preserved entries are historical. -->
-- Verification: —
+- Verification: DB 검사 463개, API 검사 181개, 모바일 검사 567개가 지나간다.
+  임시 스택이 아니라 실제 로컬 스택에서 도는 통합 검사 5개가 표지 파일과
+  스토리 행이 같은 파일을 가리키는 것, 남의 폴더와 공식 표지 자리에 올리지
+  못하는 것, 표지가 한 번만 붙는 것을 확인한다. iOS 시뮬레이터에서 스토리를
+  만들어 탐색, 상세, 대화 기록에 같은 표지가 보이는 것을 보았고, 그림은 단색
+  배경에 상반신 하나이며 글자와 로고와 풍경이 없다.
+- Verification: `AI_GATEWAY_IMAGE_MODEL`에 없는 모델 이름을 넣어 표지 생성만
+  실패시켰다. 스토리와 1화는 그대로 만들어지고(`도서관의 소음`) 표지 자리는 빈
+  색 상자였다. 카드를 고쳐 새 카드를 받아도, 만든 스토리를 다시 플레이해도
+  표지 파일 수와 스토리의 표지 경로가 그대로였다.
 - Blocker: —
-- Revision: —
+- Revision: 표지 그림의 장소는 카드가 든다. 표지는 각본과 나란히 시작하므로
+  각본이 쓴 값을 기다릴 수 없다. 카드에 `setting` 한 줄을 더하고 화면에는
+  그리지 않는다. 스타일 문구는 공식 표지를 보고 적은 것으로 시작했고, 문구와
+  결과 비교는 `apps/api/src/features/episode/story-cover.ts`에 남겼다.
+  `supabase-reviewer`가 계정 삭제 범위를 짚어 만든 표지 폴더를 삭제 대상에
+  넣고 쓰기 정책에 삭제 울타리를 더했다. 함수의 경로 검사도 저장소 정책과 같은
+  모양으로 좁혔다. 표지가 각본보다 늦게 끝나는 갈래는 기기에서 재현하지
+  못했다. 네 번 모두 표지가 먼저 끝났다. 그 갈래는 응답을 보낸 뒤 표지를 다는
+  경로 검사로 확인한다. 각본이 실패했을 때 이미 올라간 표지 파일이 남는 것은
+  [후속 기록](../../../follow-ups/made-cover-file-outlives-a-failed-save.md)으로
+  옮겼다.
