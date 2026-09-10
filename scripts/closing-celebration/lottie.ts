@@ -1,9 +1,9 @@
 /**
  * 결말 축하의 Lottie 문서를 만든다.
  *
- * 마크(파란 원, 체크, 고리)와 조각(세 색의 폭죽)은 After Effects 없이 여기서
+ * 마크(파란 원과 체크)와 효과(고리와 세 색의 조각)는 After Effects 없이 여기서
  * 좌표와 박자를 적어 JSON으로 낸다. 박자는 스펙의 시안 `closing.html`이
- * CSS로 보여 준 값 그대로다. 색은 파일에 밝은 화면의 값을 박아 두지만, 앱이
+ * CSS로 보여 준 값 그대로다. 색은 파일에 밝은 화면의 값을 넣어 두지만, 앱이
  * 실행 시점에 레이어 이름으로 강조색과 채널 색을 다시 입힌다. 그래서 레이어
  * 이름이 곧 앱과의 약속이고, Android가 keypath를 `.`으로 나누므로 이름에
  * `.`을 두지 않는다.
@@ -47,7 +47,7 @@ function shape(
   return { ty, ...fields };
 }
 
-export interface Layer {
+interface Layer {
   ao: 0;
   bm: 0;
   ddd: 0;
@@ -96,15 +96,15 @@ function bezier(x1: number, y1: number, x2: number, y2: number): Easing {
 }
 
 const EASE_OUT = bezier(0, 0, 0.58, 1);
-/** 시안의 `cubic-bezier(.2,.75,.25,1.4)`. 넘침은 키프레임에 박아 두고 접선은 1 안에 둔다. */
-const POP = bezier(0.2, 0.75, 0.25, 1);
+/** 시안의 `cubic-bezier(.2,.75,.25,1.4)`. 넘침은 키프레임에 넣어 두고 접선은 1 안에 둔다. */
+const POP_EASING = bezier(0.2, 0.75, 0.25, 1);
 const SETTLE = bezier(0.4, 0, 0.2, 1);
 const CONFETTI = bezier(0.14, 0.6, 0.32, 1);
 
 const still = (value: unknown): Property => ({ a: 0, k: value });
 
 /**
- * 값이 바뀌는 순간들을 키프레임으로 엮는다. 다음 값을 `e`로 되풀이하지 않는다.
+ * 값이 바뀌는 순간들을 키프레임으로 만든다. 다음 값을 `e`로 되풀이하지 않는다.
  * lottie-ios 4와 lottie-android 6은 다음 키프레임의 `s`를 끝값으로 읽고,
  * iOS는 파일을 메인 스레드에서 Codable로 읽으므로 노드 수가 곧 멈춤 시간이다.
  */
@@ -215,7 +215,7 @@ function layer(
     },
     nm: name,
     op: options.op,
-    ...(options.parent === undefined ? {} : { parent: options.parent }),
+    parent: options.parent,
     shapes,
     sr: 1,
     st: 0,
@@ -243,25 +243,32 @@ function compose(
   };
 }
 
-/** 마크 상자. 원 64에 5짜리 후광이 붙고 튀는 순간 114%까지 커지므로 88로 잡는다. */
-export const MARK_SIZE = 88;
-const MARK_CENTER = MARK_SIZE / 2;
+/** 시안 `.disc`의 지름. 고리도 같은 지름에서 시작한다. */
 const DISC_DIAMETER = 64;
 const HALO_WIDTH = 5;
+/** 마크 상자. 원 64에 5짜리 후광이 붙고 튀는 순간 114%까지 커지므로 88로 잡는다. */
+const MARK_SIZE = 88;
+const MARK_CENTER = MARK_SIZE / 2;
 const MARK_DURATION = 1000;
+/** 원이 튀는 때. 시안의 `pop-hero 520ms ... 40ms`다. */
+const POP = { duration: 520, start: 40 };
+/** 체크가 그려지는 때. 시안의 `draw 360ms ... 260ms`다. */
+const DRAW = { duration: 360, start: 260 };
+/** 고리가 퍼지는 때. 시안의 `ring 620ms ... 360ms`다. */
+const RING = { duration: 620, start: 360 };
 
 /**
- * 파란 원이 튀어나오고(40ms부터 520ms) 안에서 체크가 그려지며(260ms부터
- * 360ms) 고리가 한 번 퍼진다(360ms부터 620ms). 마지막 프레임은 고리가 사라진
- * 정지 상태라 동작 줄이기와 기록 재방문이 같은 그림을 쓴다.
+ * 파란 원이 튀어나오고(40ms부터 520ms) 안에서 체크가 그려진다(260ms부터
+ * 360ms). 마지막 프레임은 정지 상태라 동작 줄이기와 기록 재방문이 같은 그림을
+ * 쓴다. 고리는 원의 두 배 가까이 커져 이 상자를 넘으므로 조각 파일에 둔다.
  */
-export function buildClosingMark({ ring }: { ring: boolean }): LottieDocument {
+export function buildClosingMark(): LottieDocument {
   const end = frame(MARK_DURATION);
   // 마지막 프레임에서도 레이어가 살아 있도록 레이어의 끝은 문서의 끝 너머에 둔다.
   const layerEnd = end + 1;
-  const popStart = frame(40);
-  const popPeak = frame(40 + 520 * 0.6);
-  const popEnd = frame(40 + 520);
+  const popStart = frame(POP.start);
+  const popPeak = frame(POP.start + POP.duration * 0.6);
+  const popEnd = frame(POP.start + POP.duration);
   const disc = layer(
     "Disc",
     1,
@@ -276,16 +283,16 @@ export function buildClosingMark({ ring }: { ring: boolean }): LottieDocument {
       ip: popStart,
       ks: {
         o: animate([
-          { at: popStart, easing: POP, value: [0] },
+          { at: popStart, easing: POP_EASING, value: [0] },
           { at: popPeak, value: [100] },
         ]),
         r: animate([
-          { at: popStart, easing: POP, value: [-10] },
+          { at: popStart, easing: POP_EASING, value: [-10] },
           { at: popPeak, easing: SETTLE, value: [3] },
           { at: popEnd, value: [0] },
         ]),
         s: animate([
-          { at: popStart, easing: POP, value: [40, 40, 100] },
+          { at: popStart, easing: POP_EASING, value: [40, 40, 100] },
           { at: popPeak, easing: SETTLE, value: [114, 114, 100] },
           { at: popEnd, value: [100, 100, 100] },
         ]),
@@ -300,7 +307,7 @@ export function buildClosingMark({ ring }: { ring: boolean }): LottieDocument {
     Number(((x - 12) * scale).toFixed(2)),
     Number(((y - 12) * scale).toFixed(2)),
   ];
-  const drawStart = frame(260);
+  const drawStart = frame(DRAW.start);
   const check = layer(
     "Check",
     2,
@@ -326,7 +333,7 @@ export function buildClosingMark({ ring }: { ring: boolean }): LottieDocument {
         shape("tm", {
           e: animate([
             { at: drawStart, easing: SETTLE, value: [0] },
-            { at: frame(260 + 360), value: [100] },
+            { at: frame(DRAW.start + DRAW.duration), value: [100] },
           ]),
           m: 1,
           nm: "Trim",
@@ -339,48 +346,30 @@ export function buildClosingMark({ ring }: { ring: boolean }): LottieDocument {
     {
       ip: drawStart,
       op: layerEnd,
-      // 원이 튀는 동안 체크도 같이 커지도록 원 레이어에 매단다.
+      // 원이 튀는 동안 체크도 같이 커지도록 원 레이어의 자식으로 둔다.
       parent: 1,
       position: [0, 0],
     }
   );
-  const ringStart = frame(360);
-  const ringLayer = layer(
-    "Ring",
-    3,
-    [group("Ring", [ellipse(DISC_DIAMETER), stroke(colors.accent, 2)])],
-    {
-      ip: ringStart,
-      ks: {
-        o: animate([
-          { at: ringStart, value: [50] },
-          { at: frame(360 + 620), value: [0] },
-        ]),
-        s: animate([
-          { at: ringStart, value: [90, 90, 100] },
-          { at: frame(360 + 620), value: [190, 190, 100] },
-        ]),
-      },
-      op: layerEnd,
-      position: [MARK_CENTER, MARK_CENTER],
-    }
-  );
-  return compose(
-    ring ? "closing-mark" : "closing-mark-quiet",
-    [MARK_SIZE, MARK_SIZE],
-    end,
-    ring ? [ringLayer, check, disc] : [check, disc]
-  );
+  return compose("closing-mark", [MARK_SIZE, MARK_SIZE], end, [check, disc]);
 }
 
-/** 조각이 퍼지는 상자. 시안의 가장 먼 조각(±149, -105에서 +54)이 들어간다. */
-export const BURST_SIZE: [number, number] = [320, 200];
-/** 상자 안에서 조각이 터져 나오는 자리. 카드 위에서 46pt 아래, 가로 가운데다. */
-export const BURST_ORIGIN: [number, number] = [160, 120];
+/**
+ * 효과 상자. 시안의 가장 먼 조각(±149, -105에서 +54)과 원의 두 배 가까운
+ * 고리가 들어가고, 출발점을 세로 가운데에 두어 앱이 상자 높이의 절반으로 자리를
+ * 잡는다.
+ */
+const BURST_SIZE: [number, number] = [320, 240];
+/** 조각이 터져 나오는 자리. 시안은 카드 위에서 46pt 아래, 가로 가운데다. */
+const BURST_ORIGIN: [number, number] = [BURST_SIZE[0] / 2, BURST_SIZE[1] / 2];
+/**
+ * 고리의 중심은 마크의 중심이다. 시안에서 마크 중심은 카드 위에서 60pt(안쪽 여백
+ * 20, 제목 영역 여백 4, 마크 상자 절반 36)라 조각 출발점보다 14pt 아래다.
+ */
+const RING_CENTER: [number, number] = [BURST_ORIGIN[0], BURST_ORIGIN[1] + 14];
 const BURST_DELAY = 320;
 const BURST_DURATION = 1150;
 const BURST_STAGGER = 30;
-
 type Channel = "accent" | "expression" | "learn";
 const CHANNEL_LAYERS: { channel: Channel; name: string }[] = [
   { channel: "accent", name: "Accent" },
@@ -413,10 +402,36 @@ const pieceShapes: readonly Shape[] = [
   }),
 ];
 
+/** 원 둘레로 한 번 퍼지는 고리. 360ms부터 620ms 동안 0.9배에서 1.9배로 커지며 사라진다. */
+function ringLayer(index: number, op: number): Layer {
+  const start = frame(RING.start);
+  const end = frame(RING.start + RING.duration);
+  return layer(
+    "Ring",
+    index,
+    [group("Ring", [ellipse(DISC_DIAMETER), stroke(colors.accent, 2)])],
+    {
+      ip: start,
+      ks: {
+        o: animate([
+          { at: start, value: [50] },
+          { at: end, value: [0] },
+        ]),
+        s: animate([
+          { at: start, value: [90, 90, 100] },
+          { at: end, value: [190, 190, 100] },
+        ]),
+      },
+      op,
+      position: RING_CENTER,
+    }
+  );
+}
+
 /**
- * 시안의 `burst()`. 성공은 세 색 26조각이 넓게, 타협은 파랑과 청록 10조각이
- * 0.6배로 퍼진다. 조각마다 320ms 뒤 30ms씩 엇갈려 1150ms 동안 날아오르고
- * 떨어지며 사라진다.
+ * 시안의 `burst()`. 성공은 고리와 함께 세 색 26조각이 넓게, 목표를 이루지 못한
+ * 결말은 고리 없이 파랑과 청록 10조각이 0.6배로 퍼진다. 조각마다 320ms 뒤
+ * 30ms씩 엇갈려 1150ms 동안 날아오르고 떨어지며 사라진다.
  */
 export function buildClosingBurst({ half }: { half: boolean }): LottieDocument {
   const count = half ? 10 : 26;
@@ -476,6 +491,6 @@ export function buildClosingBurst({ half }: { half: boolean }): LottieDocument {
     half ? "closing-burst-half" : "closing-burst",
     BURST_SIZE,
     end,
-    layers
+    half ? layers : [ringLayer(layers.length + 1, end + 1), ...layers]
   );
 }

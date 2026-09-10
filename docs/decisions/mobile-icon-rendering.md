@@ -58,5 +58,7 @@
 - 설치된 Expo Router의 `Stack.Toolbar.Button`은 아이콘을 iOS 심벌 이름 또는 Android 이미지 자산으로 받는다. Android 구현은 이미지 소스가 없으면 경고를 남기고 `null`을 반환한다. 그래서 아이콘을 빠뜨린 버튼은 화면에도 접근성 트리에도 나타나지 않는다.
 - Expo Router 문서의 [Stack.Toolbar](https://docs.expo.dev/router/advanced/stack-toolbar/)는 Android 아이콘의 권장 출처로 `@expo/material-symbols`를 지목하고, 두 플랫폼을 한 곳에서 쓰는 방법으로 `process.env.EXPO_OS` 분기를 안내한다. Metro가 이 값을 빌드 시점에 문자열로 바꾸고 맞지 않는 가지를 걷어낸다.
 - `@expo/material-symbols@0.1.1`은 네이티브 코드와 config plugin이 없는 자산 패키지이고, `xml`은 Expo 기본 Metro 설정의 `assetExts`에 이미 들어 있다.
-- `lottie-react-native@7.3.8`의 `colorFilters`는 iOS에서 `<keypath>.**.Color`에 `ColorValueProvider`를, Android에서 `<keypath>.**`를 `.`으로 나눈 `KeyPath`에 `SimpleColorFilter`(`SRC_ATOP`)를 건다. 두 쪽 모두 채우기와 선의 색을 바꾸고 불투명도는 그대로 두지만, Android의 필터는 투명색으로 레이어를 숨기지 못한다. 그래서 고리 없는 마크는 색이 아니라 별도 파일로 만든다.
+- `lottie-react-native@7.3.8`의 `colorFilters`는 iOS에서 `<keypath>.**.Color`에 `ColorValueProvider`를, Android에서 `<keypath>.**`를 `.`으로 나눈 `KeyPath`에 `SimpleColorFilter`(`SRC_ATOP`)를 건다. 두 쪽 모두 채우기와 선의 색을 바꾸고 불투명도는 그대로 두지만, Android의 필터는 투명색으로 레이어를 숨기지 못한다. 그래서 성공에만 있는 고리는 색으로 끄지 않고 성공용 효과 파일에만 넣는다.
+- lottie-android는 도형 객체를 앞에서부터 읽다가 `ty`를 만나면 나머지 키만 그 도형의 파서에 넘긴다. `ty` 앞의 키는 버려져 도형이 빈 채로 그려지고 실패 이벤트도 오지 않는다. 생성기가 `ty`를 맨 앞에 두고, 파일 이름의 `.gen.`으로 Biome의 키 정렬에서 뺀다(ultracite 기본 설정이 `**/*.gen.*`을 생성 파일로 본다).
+- Reanimated 4.5의 CSS 애니메이션은 Android에서 뷰가 그려진 뒤 두세 프레임 지나 붙는다. 지연을 기다리는 문구가 그동안 기본 스타일로 비쳐서 카드의 문구와 버튼은 마운트 순간에 첫 값을 잡는 `entering`으로 만든다.
 - Expo SDK 57 문서에는 `lottie-react-native` 페이지가 없다(2026-09-10에 `/versions/v57.0.0/sdk/lottie/`, `/versions/latest/sdk/lottie/`가 404). SDK가 묶어 주는 버전은 설치된 `expo/bundledNativeModules.json`의 `~7.3.8`로 확인했고, [모바일 Expo 의존성 호환](mobile-expo-dependency-compatibility.md)의 검사도 같은 파일을 기준으로 삼는다.

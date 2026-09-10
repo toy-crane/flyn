@@ -1,7 +1,8 @@
 /**
- * 결말 축하의 Lottie 파일을 앱에 써 넣는다. `--check`는 쓰지 않고, 앱에 있는
- * 파일이 지금 생성한 내용과 같은지만 본다. 파일은 Biome이 다시 줄 바꿈하므로
- * 글자가 아니라 내용으로 비교한다.
+ * 결말 축하의 Lottie 파일을 앱에 써 넣는다. 파일 이름의 `.gen.`은 Biome이 손대지
+ * 않는 생성 파일 표시다. 키를 정렬하면 도형의 `ty`가 뒤로 밀려 Android가 도형을
+ * 비운다. `--check`는 쓰지 않고, 앱에 있는 파일이 지금 생성한 내용과 같은지만
+ * 본다.
  */
 
 import { resolve } from "node:path";
@@ -15,27 +16,30 @@ const directory = resolve(
 );
 const check = process.argv.includes("--check");
 const documents = {
-  "closing-burst-half.json": buildClosingBurst({ half: true }),
-  "closing-burst.json": buildClosingBurst({ half: false }),
-  "closing-mark-quiet.json": buildClosingMark({ ring: false }),
-  "closing-mark.json": buildClosingMark({ ring: true }),
+  "closing-burst-half.gen.json": buildClosingBurst({ half: true }),
+  "closing-burst.gen.json": buildClosingBurst({ half: false }),
+  "closing-mark.gen.json": buildClosingMark(),
 };
 
-for (const [filename, document] of Object.entries(documents)) {
-  const target = resolve(directory, filename);
-  const expected = JSON.stringify(document);
-  if (check) {
-    // biome-ignore lint/performance/noAwaitInLoops: 파일 넷을 순서대로 견주고 첫 차이에서 멈춘다.
-    const current = await file(target)
-      .json()
-      .then((parsed: unknown) => JSON.stringify(parsed))
-      .catch(() => null);
-    if (current !== expected) {
-      throw new Error(`${filename}: bun run celebration:lottie가 필요합니다.`);
+const results = await Promise.all(
+  Object.entries(documents).map(async ([filename, document]) => {
+    const target = resolve(directory, filename);
+    const expected = `${JSON.stringify(document, null, 2)}\n`;
+    if (!check) {
+      await write(target, expected);
+      return null;
     }
-  } else {
-    await write(target, `${JSON.stringify(document, null, 2)}\n`);
-  }
+    const current = await file(target)
+      .text()
+      .catch(() => null);
+    return current === expected ? null : filename;
+  })
+);
+const stale = results.filter((filename) => filename !== null);
+if (stale.length > 0) {
+  throw new Error(
+    `${stale.join(", ")}: bun run celebration:lottie가 필요합니다.`
+  );
 }
 console.log(
   `결말 축하 Lottie 파일 ${Object.keys(documents).length}개를 ${check ? "확인" : "생성"}했습니다.`

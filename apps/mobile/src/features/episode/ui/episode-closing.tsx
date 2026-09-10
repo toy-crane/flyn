@@ -1,9 +1,10 @@
 import { ImpactFeedbackStyle, impactAsync } from "expo-haptics";
 import { useThemeColor } from "heroui-native/hooks";
 import LottieView from "lottie-react-native";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AccessibilityInfo,
+  processColor,
   ScrollView,
   Text,
   useWindowDimensions,
@@ -14,14 +15,14 @@ import Animated, {
   FadeIn,
   FadeInUp,
   Keyframe,
+  ReduceMotion,
 } from "react-native-reanimated";
 import { useCSSVariable } from "uniwind";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
 import { Button } from "@/shared/ui/button";
-import closingBurst from "./celebration/closing-burst.json";
-import closingBurstHalf from "./celebration/closing-burst-half.json";
-import closingMark from "./celebration/closing-mark.json";
-import closingMarkQuiet from "./celebration/closing-mark-quiet.json";
+import closingBurst from "./celebration/closing-burst.gen.json";
+import closingBurstHalf from "./celebration/closing-burst-half.gen.json";
+import closingMark from "./celebration/closing-mark.gen.json";
 
 const easeOut = Easing.bezier(0.23, 1, 0.32, 1);
 const TRAILING_PERIOD = /[.]$/;
@@ -33,8 +34,12 @@ const TRAILING_PERIOD = /[.]$/;
 // CSS 애니메이션이 아니라 entering을 쓰는 이유: Android는 CSS 애니메이션이
 // 붙은 뷰의 스타일을 두세 프레임 늦게 적용해서, 지연을 기다리는 문구가 그동안
 // 그대로 비쳤다. entering은 마운트 순간에 첫 값을 잡는다.
+//
+// 동작 줄이기는 이 컴포넌트가 지금 값을 읽어 정한다. Reanimated의 기본값은 앱
+// 실행 때의 설정이라, 그 뒤에 껐다면 문구만 연출 없이 튀어나온다.
 const rise = FadeInUp.duration(260)
   .easing(easeOut)
+  .reduceMotion(ReduceMotion.Never)
   .withInitialValues({ opacity: 0, transform: [{ translateY: 12 }] });
 const popText = new Keyframe({
   0: { opacity: 0, transform: [{ scale: 0.6 }] },
@@ -50,37 +55,50 @@ const popText = new Keyframe({
   },
 })
   .duration(340)
-  .delay(440);
+  .delay(440)
+  .reduceMotion(ReduceMotion.Never);
 const slideUp = FadeInUp.duration(380)
   .delay(540)
   .easing(easeOut)
+  .reduceMotion(ReduceMotion.Never)
   .withInitialValues({ opacity: 0, transform: [{ translateY: 14 }] });
 const settle = FadeIn.duration(500)
   .delay(300)
   .easing(Easing.out(Easing.ease))
+  .reduceMotion(ReduceMotion.Never)
   .withInitialValues({ opacity: 0.55 });
 /** 동작 줄이기 설정을 읽는 동안 카드를 감춘다. 일반 View라 첫 프레임부터 적용된다. */
 const hidden = { opacity: 0 } as const;
 
-/** 시안의 `.mark`는 72pt다. 파일은 튀는 순간의 후광까지 담느라 88이라 위아래 8pt를 접는다. */
+/** 시안의 `.mark`는 72pt다. 파일은 튀는 순간의 후광까지 담아 더 크므로 위아래를 접는다. */
 const MARK_BOX = 72;
-/**
- * 조각이 터져 나오는 자리. 시안은 카드 위에서 46pt 아래, 가로 가운데이고,
- * 생성기(`scripts/closing-celebration`)는 그 자리를 상자 위에서 120pt에 둔다.
- */
+const markStyle = { height: closingMark.h, width: closingMark.w } as const;
+/** 조각이 터져 나오는 자리. 시안은 카드 위에서 46pt 아래, 가로 가운데다. */
 const BURST_TOP = 46;
-const BURST_ORIGIN_Y = 120;
 /**
- * iOS는 Core Animation 엔진이 색을 입힐 때마다 레이어를 다시 짓고, 그동안 멈춘
- * 메인 스레드 뒤로 마크의 시계가 먼저 가서 튀는 장면을 건너뛴다. 메인 스레드
- * 엔진은 프레임마다 그리기만 하므로 짓는 비용이 없다. Android의 SOFTWARE는
- * 비트맵 렌더링이라 기본값을 둔다.
+ * iOS는 Core Animation 엔진으로 그리면 색을 입힐 때마다 레이어를 다시 만들고, 그
+ * 사이 멈춘 메인 스레드 뒤로 마크의 시계가 먼저 가서 튀는 장면을 건너뛴다. 메인
+ * 스레드 엔진은 프레임마다 그리기만 한다. 파일을 읽을 때 한 번은 여전히 Core
+ * Animation 엔진으로 만들었다가 버리지만, 그때는 아직 재생 전이다. Android의
+ * SOFTWARE는 비트맵 렌더링이라 기본값을 둔다.
  */
 const RENDER_MODE = process.env.EXPO_OS === "ios" ? "SOFTWARE" : "AUTOMATIC";
 
 /** 파일을 못 읽으면 자리가 조용히 비어 버린다. 이유만이라도 남긴다. */
 function warnAnimationFailure(error: string) {
   console.warn(`결말 축하 Lottie를 그리지 못했습니다: ${error}`);
+}
+
+/**
+ * 레이어 이름에 입힐 색. 값을 읽지 못한 색은 빼서 Android가 없는 색을 정수로
+ * 읽다 멈추지 않게 한다. 빠진 레이어는 파일에 든 밝은 화면의 색으로 남는다.
+ */
+function colorFilters(entries: [keypath: string, color: unknown][]) {
+  return entries.flatMap(([keypath, color]) =>
+    typeof color === "string" && typeof processColor(color) === "number"
+      ? [{ color, keypath }]
+      : []
+  );
 }
 
 /**
@@ -101,6 +119,10 @@ export function EpisodeClosing({
 }) {
   const [requested] = useState(animate);
   const [motion, setMotion] = useState<Motion>(requested ? "pending" : "still");
+  // 다 재생한 뒤에는 autoPlay를 내린다. Android는 색 같은 prop이 바뀔 때마다
+  // autoPlay가 켜져 있으면 멈춘 애니메이션을 처음부터 다시 돌린다.
+  const [finished, setFinished] = useState(false);
+  const finish = useCallback(() => setFinished(true), []);
   const { fontScale, height } = useWindowDimensions();
   useEffect(() => {
     if (!requested) {
@@ -142,9 +164,16 @@ export function EpisodeClosing({
   }, [motion]);
   const isSuccess = ending.kind === "성공";
   const playing = motion === "play";
+  const pending = motion === "pending";
   return (
-    <View style={motion === "pending" ? hidden : undefined}>
-      {/* motion이 바뀌면 카드를 새로 만들어 entering이 그 순간부터 돈다. */}
+    <View
+      accessibilityElementsHidden={pending}
+      importantForAccessibility={pending ? "no-hide-descendants" : "auto"}
+      pointerEvents={pending ? "none" : "auto"}
+      style={pending ? hidden : undefined}
+    >
+      {/* motion이 바뀌면 카드를 새로 만들어 entering이 그 순간부터 돌고, 마크는
+          정지한 마지막 프레임으로 다시 그려진다. */}
       <Animated.View
         className="gap-4 overflow-hidden rounded-3xl border border-accent/15 bg-surface px-5 pt-5 pb-4"
         entering={playing ? rise : undefined}
@@ -153,15 +182,21 @@ export function EpisodeClosing({
         testID="episode-closing"
       >
         <View className="absolute inset-0 bg-accent/5" pointerEvents="none" />
-        {/* 마크보다 먼저 만들어 iOS가 조각 파일을 읽는 동안 마크의 시계가 먼저
+        {/* 마크보다 먼저 만들어 iOS가 효과 파일을 읽는 동안 마크의 시계가 먼저
             가지 않게 한다. 형제 순서상 마크와 글 뒤에 깔려 그 뒤에서 터진다. */}
-        {playing ? <CelebrationBurst half={!isSuccess} /> : null}
+        {playing ? (
+          <CelebrationBurst
+            half={!isSuccess}
+            onFinish={finish}
+            playing={!finished}
+          />
+        ) : null}
         <ScrollView
           className="shrink grow-0"
           contentContainerClassName="items-center gap-2 py-1"
           showsVerticalScrollIndicator={false}
         >
-          <CompletionMark motion={motion} quiet={!isSuccess} />
+          <CompletionMark finished={finished} motion={motion} />
           {isSuccess ? (
             <Animated.View entering={playing ? popText : undefined}>
               <Text
@@ -200,51 +235,90 @@ export function EpisodeClosing({
 }
 
 /**
- * 파란 원이 튀어나오고 안에서 체크가 그려지며 고리가 한 번 퍼지는 마크.
- * 목표를 이루지 못한 결말은 고리 없이 조용히 나타난다. 파일의 색은 실행 시점의
- * 강조색으로 바꿔 입혀 밝은 화면과 어두운 화면을 따른다.
+ * 파란 원이 튀어나오고 안에서 체크가 그려지는 마크. 파일의 색은 실행 시점의
+ * 강조색으로 바꿔 입혀 밝은 화면과 어두운 화면을 따른다. 정지 상태는 마지막
+ * 프레임이다. 고리는 효과 파일이 그린다.
  */
-function CompletionMark({ motion, quiet }: { motion: Motion; quiet: boolean }) {
+function CompletionMark({
+  finished,
+  motion,
+}: {
+  finished: boolean;
+  motion: Motion;
+}) {
   const [accent, accentForeground] = useThemeColor([
     "accent",
     "accent-foreground",
   ]);
-  const source = quiet ? closingMarkQuiet : closingMark;
-  const inset = (source.h - MARK_BOX) / 2;
+  const filters = useMemo(
+    () =>
+      colorFilters([
+        ["Disc", accent],
+        ["Check", accentForeground],
+      ]),
+    [accent, accentForeground]
+  );
+  const inset = (closingMark.h - MARK_BOX) / 2;
   return (
     <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ height: source.h, marginVertical: -inset, width: source.w }}
+      style={{ ...markStyle, marginVertical: -inset }}
+      testID="episode-completion-mark"
     >
       {motion === "pending" ? null : (
-        <LottieView
-          autoPlay={motion === "play"}
-          colorFilters={[
-            { color: accent, keypath: "Disc" },
-            { color: accentForeground, keypath: "Check" },
-            { color: accent, keypath: "Ring" },
-          ]}
-          // 재생에서 정지로 바뀌면 새로 그려 마지막 프레임을 보여 준다.
-          key={motion}
-          loop={false}
-          onAnimationFailure={warnAnimationFailure}
-          progress={motion === "still" ? 1 : 0}
-          renderMode={RENDER_MODE}
-          source={source}
-          style={{ height: source.h, width: source.w }}
-          testID="episode-completion-mark"
-        />
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <LottieView
+            autoPlay={motion === "play" && !finished}
+            colorFilters={filters}
+            loop={false}
+            onAnimationFailure={warnAnimationFailure}
+            progress={motion === "still" ? 1 : 0}
+            renderMode={RENDER_MODE}
+            source={closingMark}
+            style={markStyle}
+            testID="episode-completion-mark-lottie"
+          />
+        </View>
       )}
     </View>
   );
 }
 
-/** 마크 뒤에서 터지는 파랑, 보라, 청록 조각. 타협 결말은 절반이다. */
-function CelebrationBurst({ half }: { half: boolean }) {
+const burstStyle = { height: closingBurst.h, width: closingBurst.w } as const;
+const burstHalfStyle = {
+  height: closingBurstHalf.h,
+  width: closingBurstHalf.w,
+} as const;
+
+/**
+ * 마크 뒤에서 퍼지는 고리와 파랑, 보라, 청록 조각. 목표를 이루지 못한 결말은
+ * 고리 없이 조각이 절반이다. 출발점이 상자의 세로 가운데라 상자 높이의 절반만큼
+ * 올려 시안의 자리에 맞춘다.
+ */
+function CelebrationBurst({
+  half,
+  onFinish,
+  playing,
+}: {
+  half: boolean;
+  onFinish: () => void;
+  playing: boolean;
+}) {
   const accent = useThemeColor("accent");
-  const learn = String(useCSSVariable("--learn"));
-  const expression = String(useCSSVariable("--expression"));
+  const learn = useCSSVariable("--learn");
+  const expression = useCSSVariable("--expression");
+  const filters = useMemo(
+    () =>
+      colorFilters([
+        ["Ring", accent],
+        ["Accent", accent],
+        ["Learn", learn],
+        ["Expression", expression],
+      ]),
+    [accent, learn, expression]
+  );
   const source = half ? closingBurstHalf : closingBurst;
   return (
     <View
@@ -252,20 +326,17 @@ function CelebrationBurst({ half }: { half: boolean }) {
       className="absolute inset-x-0 items-center"
       importantForAccessibility="no-hide-descendants"
       pointerEvents="none"
-      style={{ top: BURST_TOP - BURST_ORIGIN_Y }}
+      style={{ top: BURST_TOP - source.h / 2 }}
     >
       <LottieView
-        autoPlay
-        colorFilters={[
-          { color: accent, keypath: "Accent" },
-          { color: learn, keypath: "Learn" },
-          { color: expression, keypath: "Expression" },
-        ]}
+        autoPlay={playing}
+        colorFilters={filters}
         loop={false}
         onAnimationFailure={warnAnimationFailure}
+        onAnimationFinish={onFinish}
         renderMode={RENDER_MODE}
         source={source}
-        style={{ height: source.h, width: source.w }}
+        style={half ? burstHalfStyle : burstStyle}
         testID="episode-celebration-burst"
       />
     </View>
