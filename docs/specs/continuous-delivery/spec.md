@@ -116,6 +116,7 @@ EAS Workflows
 
 ## 현재 구현 증거
 
+- 2026-09-10: DB 단계의 main 수동 workflow를 추가했다. 같은 SHA의 GitHub 필수 검사 두 개를 확인하고, 공통 production concurrency에서 상태 기록과 DB 실행을 연결한다. 미리 검사해 거절된 SQL은 요청 기록을 남기지 않는다. 검토한 BlurHash SQL 해시만 허용했다. Supabase 전용 검토는 actionable finding 없이 PASS_WITH_GAPS이며 운영 잠금·이전 앱 기기 검증은 남았다. 전체 구현 최종 리뷰가 아니다. 연결 테스트를 포함한 빠른 CI 테스트 64개와 타입·lint 검사가 통과했고 실제 GitHub API에서 현재 main의 검사 결과를 확인했다. workflow 원격 실행은 아직 남아 있다.
 - 2026-09-10: Supabase DB 실행 연결 모듈을 추가했다. 대상 SHA와 체크아웃, Flyn 프로젝트 연결, 로컬·원격 이력 순서를 확인한다. 적용 전에는 검토한 SQL의 SHA-256 목록과 비교하고, 적용 뒤에는 실제 이력을 다시 읽는다. 응답 유실 뒤 조회에서는 미적용 상태를 실패나 성공으로 단정하지 않고 pending으로 남기며 재요청하지 않는다. 승인 목록과 전체 GitHub 실행 연결은 아직 추가하지 않아 운영 자동 적용은 열리지 않았다.
 - DB 실행 경계 테스트 7개와 전체 CI 빠른 테스트 55개, scripts 타입·lint 검사가 통과했다. `RUN_DATABASE_DELIVERY_TESTS=1`에서는 별도 임시 DB에 실제 SQL을 적용한 뒤 응답 유실을 재현했다. 조회 복구와 재시도 모두 성공했고 push는 1회였다. 임시 DB를 정리하고 잔여 컨테이너 0개를 확인했다. 새 연결 모듈의 운영 읽기 전용 inspect는 pending을 반환했다. 운영 SQL 적용이나 전체 배포 완료를 뜻하지 않는다.
 - 2026-09-10: PR #58을 필수 검사 통과 후 rebase 병합했다. 배포 실행 기록과 main 수동 전용 운영 연결 검사가 main에 들어갔다. 실제 GitHub 실행 `34425985225`에서 사용자가 등록한 Supabase PAT와 DB 비밀번호로 연결·마이그레이션 dry-run이 통과했다. BlurHash 마이그레이션 1개가 미적용이며 운영 데이터는 바꾸지 않았다. 실제 서비스 배포 연결, EAS Workflow와 iPhone·OTA 검증은 남아 있다.

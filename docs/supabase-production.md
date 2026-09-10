@@ -8,7 +8,14 @@
 - `Deployment access` 수동 workflow는 `main`에서 새 Secret으로 Flyn 연결과 `db push --linked --dry-run`을 검사한다. PR에는 운영 비밀값을 제공하지 않는다. 이 검사는 마이그레이션·seed·Auth 설정을 적용하지 않으며 실제 배포 성공을 증명하지 않는다.
 - [실제 GitHub 실행 34425985225](https://github.com/toy-crane/flyn/actions/runs/34425985225)이 커밋 `3efd17ccb7d1a2b4733d390cb2d02a5136792ac4`에서 통과했다. 새 Secret으로 프로젝트 연결과 DB 이력 조회를 확인했다. 미적용 항목은 `20260909123219_story_cover_blurhash.sql` 하나이며 적용하지 않았다.
 
-## 프로젝트
+## DB 배포 실행
+
+- `.github/workflows/deploy.yml`은 현재 DB 단계만 수동 실행한다. 전체 자동 배포와 API·EAS 연결 완료를 뜻하지 않는다.
+- 같은 SHA의 필수 검사 두 개가 성공해야 시작한다. `deployment-state` 브랜치에 요청과 확인 결과를 기록하며, 없는 기록을 성공 이력으로 추정하지 않는다.
+- `supabase/deployment-approvals.json`은 검토한 미적용 SQL의 버전과 SHA-256을 연결한다. SQL이 바뀌면 기존 해시로 배포할 수 없다. 위험한 변경의 별도 승인을 이 목록이나 `impact.json`으로 대신하지 않는다.
+- 첫 허용 항목은 nullable text 열 추가인 `20260909123219`다. 전용 Supabase 검토에서 actionable finding이 없었고 기존 앱의 NULL 처리를 확인했다. 운영 잠금 시간과 실제 이전 앱 동작은 별도 검증 대상이다. seed·Storage·Auth 변경은 포함하지 않는다.
+
+## 프로젝트 정보
 
 - 조직: ODD (`doeklaqqvlojxjhvemzg`)
 - 프로젝트: `flyn` (`owtajtnfleiobyfocdjy`)
