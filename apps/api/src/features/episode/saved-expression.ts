@@ -7,6 +7,8 @@ import {
 } from "ai";
 
 import type { SceneSpeakerData } from "../../shared/scene-stream";
+import { type EpisodeCorrection, isKoreanText } from "./correction";
+import type { SavedExpressionDraft } from "./progress";
 
 /** 담을 수 있는 출처. 화면에 그대로 보이지 않으므로 영어 키를 쓴다. */
 export type SavedExpressionKind = "utterance" | "correction" | "guidance";
@@ -158,4 +160,58 @@ export async function writeKoreanMeaning({
   }
 
   return meaning;
+}
+
+/** 메시지에 든 글자만 이어 붙인다. 사용자가 쓴 말을 그대로 읽는 자리에 쓴다. */
+export function textOfMessage(message: UIMessage): string {
+  return message.parts
+    .filter((part) => part.type === "text")
+    .map((part) => part.text)
+    .join("");
+}
+
+/**
+ * 담아 둘 배울 표현 하나를 이미 저장된 교정에서 만든다.
+ *
+ * 새로 만들 값이 없다. 고친 문장도, 어긋난 자리도, 이유도, 그 문장의 한국어
+ * 뜻도 판정하던 때에 이미 행으로 남았으므로 그대로 옮긴다. 뜻을 여기서 다시
+ * 만들지 않으므로 담을 때 모델을 부르는 곳은 인물 대사 하나뿐이다.
+ *
+ * 영어 교정인지 한국어 안내인지는 사용자가 쓴 문장을 보고 가르며, 그 판정은
+ * 교정을 만들 때 쓰는 것과 같은 하나다.
+ */
+export function learningDraft({
+  corrections,
+  episodeId,
+  message,
+}: {
+  corrections: readonly EpisodeCorrection[];
+  episodeId: string;
+  message: UIMessage;
+}): SavedExpressionDraft | undefined {
+  const correction = corrections.find(
+    (candidate) => candidate.messageId === message.id
+  );
+
+  if (message.role !== "user" || !correction) {
+    return;
+  }
+
+  const original = correction.original || textOfMessage(message);
+
+  return {
+    english: correction.fixed,
+    entries: correction.entries.map((entry) => ({
+      fixed: entry.fixed,
+      original: entry.original,
+      why: entry.why,
+    })),
+    episodeId,
+    kind: isKoreanText(original) ? "guidance" : "correction",
+    meaning: correction.review.meaning,
+    messageId: message.id,
+    original,
+    speaker: null,
+    utteranceAt: null,
+  };
 }

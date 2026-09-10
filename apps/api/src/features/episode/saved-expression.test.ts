@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import type { UIMessage } from "ai";
 
-import { sceneUtterances } from "./saved-expression";
+import type { EpisodeCorrection } from "./correction";
+import { learningDraft, sceneUtterances } from "./saved-expression";
 
 /**
  * 앱의 `sceneOfMessage` 테스트와 같은 조각을 쓴다. 자리 번호를 앱이 세고 서버가
@@ -60,5 +61,65 @@ describe("sceneUtterances", () => {
     expect(
       sceneUtterances(sceneParts([{ text: "안녕하세요.", type: "text" }]))
     ).toEqual([]);
+  });
+});
+
+/** 판정하던 때에 이미 행으로 남은 교정 하나. 담을 때 새로 만드는 값은 없다. */
+function storedCorrection(messageId: string): EpisodeCorrection {
+  return {
+    entries: [
+      {
+        fixed: "ordered",
+        original: "order",
+        pattern: "past-tense",
+        why: "지난 일은 ordered로 써요.",
+      },
+    ],
+    fixed: "I ordered a hot americano, but this is an iced latte.",
+    messageId,
+    original: "I order hot americano but this is ice latte.",
+    review: {
+      example: "I ordered a tea, but this is a coffee.",
+      exampleMeaning: "저는 차를 시켰는데 이건 커피예요.",
+      meaning: "저는 뜨거운 아메리카노를 시켰는데 이건 아이스 라테예요.",
+      situation: "받은 음료가 주문과 다를 때",
+    },
+  };
+}
+
+function userMessage(id: string, text: string): UIMessage {
+  return { id, parts: [{ text, type: "text" }], role: "user" };
+}
+
+describe("learningDraft", () => {
+  test("표현 돌아보기가 이미 만든 뜻을 항목에 옮겨 담는다", () => {
+    const message = userMessage(
+      "msg-1",
+      "I order hot americano but this is ice latte."
+    );
+
+    expect(
+      learningDraft({
+        corrections: [storedCorrection("msg-1")],
+        episodeId: "episode-1",
+        message,
+      })
+    ).toEqual({
+      english: "I ordered a hot americano, but this is an iced latte.",
+      entries: [
+        {
+          fixed: "ordered",
+          original: "order",
+          why: "지난 일은 ordered로 써요.",
+        },
+      ],
+      episodeId: "episode-1",
+      kind: "correction",
+      meaning: "저는 뜨거운 아메리카노를 시켰는데 이건 아이스 라테예요.",
+      messageId: "msg-1",
+      original: "I order hot americano but this is ice latte.",
+      speaker: null,
+      utteranceAt: null,
+    });
   });
 });

@@ -674,8 +674,10 @@ create table public.saved_expressions (
   -- 담은 영어 문장. 인물 대사는 그 대사, 영어 교정은 모든 수정을 반영한 고친
   -- 문장, 한국어 안내는 안내한 영어 문장이다.
   english text not null,
-  -- 인물 대사가 더하는 둘. 뜻은 담을 때 한 번 만들고 다시 만들지 않는다.
+  -- 한국어 뜻. 인물 대사는 담을 때 한 번 만들고, 교정과 안내는 표현 돌아보기가
+  -- 이미 만들어 둔 뜻을 옮겨 받는다. 어느 쪽도 다시 만들지 않는다.
   meaning text,
+  -- 인물 대사가 더하는 하나.
   speaker text,
   -- 교정과 안내가 더하는 둘. `original`은 사용자가 쓴 문장 전체이고, `entries`는
   -- 그 안에서 어긋난 자리와 고친 자리와 이유를 짝지은 배열이다. 배열째 두는 것은
@@ -686,10 +688,15 @@ create table public.saved_expressions (
   constraint saved_expressions_kind_known check (
     kind in ('utterance', 'correction', 'guidance')
   ),
-  -- 인물 대사의 세 값은 함께 오거나 함께 없다. 화자만 있고 뜻이 없는 반쪽 항목은
+  -- 인물 대사는 화자와 자리와 뜻을 함께 갖는다. 화자만 있고 뜻이 없는 반쪽 항목은
   -- 카드가 읽을 수 없다.
+  --
+  -- 뜻은 인물 대사만의 것이 아니다. 교정과 안내도 표현 돌아보기가 그 메시지에
+  -- 대해 이미 만들어 둔 고친 문장의 뜻을 담을 때 옮겨 받는다. 새로 만드는 값이
+  -- 아니라 옮겨 오는 값이므로, 옮길 것이 없으면 비어 있어도 항목은 성립한다.
+  -- 그래서 뜻은 인물 대사에만 필수이고 나머지 종류에는 선택이다.
   constraint saved_expressions_utterance_whole check (
-    (kind = 'utterance') = (meaning is not null)
+    (kind <> 'utterance' or meaning is not null)
     and (kind = 'utterance') = (speaker is not null)
     and (kind = 'utterance') = (utterance_at is not null)
   ),
@@ -764,7 +771,7 @@ comment on column public.saved_expressions.english is
   'The saved English sentence.';
 
 comment on column public.saved_expressions.meaning is
-  'One Korean line saying what the character said. Made once when saved, for character lines only.';
+  'One Korean line saying what the sentence means. Required for character lines, copied from the review for corrections and guidance.';
 
 comment on column public.saved_expressions.speaker is
   'Who said it, for character lines only.';
