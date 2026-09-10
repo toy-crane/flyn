@@ -25,6 +25,8 @@
   [모바일 채팅 스크롤](mobile-chat-scrolling.md),
   [모바일 채팅 메시지 동작](mobile-chat-message-actions.md)을 따른다.
   전송, 중지, 복사, 수정, 다시 받기와 오류 재시도는 유지한다.
+- 답변의 말투, 글 모양과 답하는 범위는
+  [AI에게 물어보기 답변 규칙](../specs/ask-ai-answer-rules/spec.md)이 소유한다.
 
 ## 경계
 
