@@ -110,12 +110,17 @@ completed
 <!-- Append concise evidence and preserve earlier entries when status changes.
 Execution Blocker is the current impediment for an active task, not a declared
 task dependency. In a superseded task, preserved entries are historical. -->
-- Verification: DB 검사 437개, API 검사 165개, 모바일 검사 563개가 지나간다.
+- Verification: DB 검사 437개, API 검사 165개, 모바일 검사 567개가 지나간다.
   `bun scripts/ci/database.ts upgrade 20260910071055`의 데이터 보존 검사도
   지나간다. iOS 시뮬레이터에서 탐색의 칩과 + 버튼, `내 스토리` 빈 상태, 만들기
-  대화 세 턴, 스토리 카드, `2화는 빼 줘`로 화 수가 줄어드는 것, `대화 시작하기`
-  뒤 1화 첫 장면, 뒤로 가면 탐색에 만든 스토리가 맨 위에 서는 것을 한 세션으로
-  지나갔다. 다른 계정으로는 그 스토리가 목록에 없고 상세가 404다.
+  대화, 스토리 카드, `대화 시작하기` 뒤 1화 첫 장면, 뒤로 가면 탐색에 만든
+  스토리가 맨 위에 서는 것을 지나갔다. 다른 계정으로는 그 스토리가 목록에 없고
+  상세가 404다.
+- Verification: `2화는 빼 줘`는 접근성 트리로 확인했다. 새 카드의 화가 셋에서
+  둘로 줄고, 남은 `접수가 안 돼요`와 `진료가 끝난 뒤`의 제목과 상황 설명이
+  이전 카드와 같으며, `대화 시작하기`는 트리 전체에서 하나뿐으로 새 카드에만
+  붙는다. 진행 표시도 같은 방법으로 보았다. 누른 뒤 버튼이 `만드는 중`과
+  회전 표시로 바뀌고 접근성 상태가 `enabled=false`가 된다.
 - Blocker: —
 - Revision: 검토 지점을 `supabase-reviewer` 한 번으로 지났다. 화가 없는 요청이
   스토리 행만 남기던 것, 화 수 상한과 화당 인물 수와 인물 자리 겹침을 함수가
@@ -124,4 +129,13 @@ task dependency. In a superseded task, preserved entries are historical. -->
   `deployment-approvals.json` 항목, 배포 뒤 실제 권한 상태는 배포 시점에 본다.
   칩은 사용자가 HeroUI 기본 패턴으로 정해 가로 스크롤 기준을 뺐고, 큰 접근성
   글자 크기는 [후속 기록](../../../follow-ups/browse-text-clips-at-large-accessibility-sizes.md)으로
-  옮겼다.
+  옮겼다. 기본 패턴으로 돌아오며 칩이 목록 항목으로 읽히는 것도
+  [따로 기록](../../../follow-ups/browse-filter-chips-read-as-list-items.md)했다.
+- Revision: 기기에서 다시 확인하다가 `만드는 중`이 화면에 나오지 않는 것을
+  찾아 고쳤다. 대화 목록은 메시지가 바뀔 때만 줄을 다시 그리므로, 카드
+  컴포넌트를 상태가 바뀔 때마다 새로 만들어 넘기면 이미 그려진 카드에 닿지
+  않았다. 카드 컴포넌트를 하나로 고정하고 진행 상태를 context로 내려보낸다.
+  실패 알림, 두 번 눌림, 진행 표시, 저장 성공에 검사를 더했다. 1화에서 뒤로
+  갔을 때 만들기 화면이 한 번 남아 있던 것은 이후 세 번의 실행에서 재현되지
+  않아 [후속 기록](../../../follow-ups/back-from-a-made-episode-landed-on-the-creation-screen.md)으로
+  남겼다.
