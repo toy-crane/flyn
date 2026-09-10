@@ -25,7 +25,8 @@ test("실제 CLI 프로세스 경계에서 잠금 설치와 prebuilt 배포 및 
       `#!${process.execPath}
 import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 const args = process.argv.slice(2);
-if (process.env.GH_TOKEN || process.env.SUPABASE_ACCESS_TOKEN || process.env.SUPABASE_DB_PASSWORD) process.exit(2);
+if (process.env.VERCEL_TOKEN || process.env.GH_TOKEN || process.env.SUPABASE_ACCESS_TOKEN || process.env.SUPABASE_DB_PASSWORD) process.exit(2);
+if (args[args.indexOf("--token") + 1] !== "fixture-not-a-secret") process.exit(4);
 appendFileSync("calls.jsonl", JSON.stringify(args.map((value, index) => args[index - 1] === "--token" ? "redacted" : value)) + "\\n");
 if (args[0] === "pull") {
  mkdirSync(".vercel");
@@ -53,6 +54,7 @@ try { await runtime.delivery.start({service:"api",sha:"${"a".repeat(40)}",reques
           PATH: `${root}:${process.env.PATH}`,
           SUPABASE_ACCESS_TOKEN: "must-not-inherit",
           SUPABASE_DB_PASSWORD: "must-not-inherit",
+          VERCEL_TOKEN: "must-not-inherit",
         },
       }
     );
