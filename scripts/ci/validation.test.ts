@@ -27,7 +27,7 @@ function ci() {
       "utf8"
     )
   ) as {
-    concurrency: { group: string; "cancel-in-progress": string; queue: string };
+    concurrency: { group: string; "cancel-in-progress": string };
     jobs: Record<string, Job | undefined>;
     on: Record<string, unknown>;
   };
@@ -152,14 +152,16 @@ test("검사 결과를 별도 API로 조회하는 코드가 남아 있지 않다
   }
 });
 
-test("PR은 진행 중 실행을 취소하고 운영 실행은 대기열에서 기다린다", () => {
+test("PR은 진행 중 실행을 취소하고 운영 실행은 취소하지 않는다", () => {
   const { concurrency } = ci();
   expect(concurrency.group).toContain("ci-pull-");
   expect(concurrency.group).toContain("flyn-production-deployment");
   expect(concurrency["cancel-in-progress"]).toContain(
     "github.event_name == 'pull_request'"
   );
-  expect(concurrency.queue).toBe("max");
+  // GitHub rejects the whole file when `queue` joins an expression group, so
+  // the production group relies on cancel-in-progress being false instead.
+  expect(concurrency).not.toHaveProperty("queue");
 });
 
 test("문서만 바꾼 커밋은 검사와 배포를 모두 건너뛴다", () => {

@@ -9,12 +9,13 @@ on:
 permissions:
   contents: read
 
-# Pull requests replace their own pending run. Production runs queue instead, so
-# an active database write is never cut off.
+# Pull requests replace their own pending run. Production runs never cancel, so
+# an active database write is never cut off. GitHub rejects this file when the
+# `queue` key joins an expression group, so a waiting production run can still
+# be replaced by a newer one while it is pending.
 concurrency:
   group: ${{ github.event_name == 'pull_request' && format('ci-pull-{0}', github.event.pull_request.number) || 'flyn-production-deployment' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-  queue: max
 
 jobs:
   changes:
