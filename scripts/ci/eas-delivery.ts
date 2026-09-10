@@ -29,6 +29,20 @@ interface Options {
   token: string;
 }
 
+const terminalJobStatuses = new Set([
+  "canceled",
+  "failure",
+  "skipped",
+  "success",
+]);
+
+function hasRunningJob(run: Run) {
+  return run.jobs.some(
+    (job) =>
+      !terminalJobStatuses.has(job.status.toLowerCase().replaceAll("_", "-"))
+  );
+}
+
 export class EasDelivery {
   private readonly options: Options;
   constructor(options: Options) {
@@ -190,7 +204,7 @@ export class EasDelivery {
     ) {
       // biome-ignore lint/performance/noAwaitInLoops: 원격 실행의 실제 완료를 기다린다.
       const run = await this.run(id, request);
-      if (["failure", "canceled"].includes(run.status)) {
+      if (["failure", "canceled"].includes(run.status) && !hasRunningJob(run)) {
         return { remoteId: id, status: "failure" };
       }
       if (run.status === "success") {
