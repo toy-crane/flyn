@@ -4,11 +4,12 @@ import { Icon, type IconName, type IconTone } from "./icon";
 import { LoadingSpinner } from "./loading-spinner";
 import { type ProgressRole, useProgressMetrics } from "./progress-metrics";
 
+/** 이 줄이 그리는 역할만 담는다. 문구 없이 홀로 서는 역할은 여기 오지 않는다. */
 const TEXT_STYLE = {
   control: "text-base leading-6",
   screen: "text-sm leading-5",
   supporting: "text-xs leading-4",
-};
+} satisfies Partial<Record<ProgressRole, string>>;
 const TEXT_TONE = {
   danger: "text-danger-soft-foreground",
   muted: "text-muted",
@@ -28,7 +29,7 @@ export function StatusLine({
   label: string;
   loading?: boolean;
   icon?: IconName;
-  sizeRole?: ProgressRole;
+  sizeRole?: keyof typeof TEXT_STYLE;
   tone?: keyof typeof TEXT_TONE;
   retry?: { label: string; onPress: () => void; testID?: string };
   testID?: string;

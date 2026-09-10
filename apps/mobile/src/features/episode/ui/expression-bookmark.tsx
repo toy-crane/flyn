@@ -56,9 +56,9 @@ export function ExpressionBookmark({
       testID="expression-bookmark"
     >
       {isBusy ? (
-        // 컨트롤 안의 진행 표시라 글자 크기를 따라 자라지 않는다. 버튼이 28px로
-        // 붙박여 있어서 아이콘과 진행 표시가 같은 자리에 그대로 들어선다.
-        <LoadingSpinner sizeRole="control" />
+        // 이 줄의 아이콘과 같은 16px로 돈다. 버튼이 28px로 붙박여 있어서 글자
+        // 크기를 따라 자라지 않고, 아이콘이 있던 자리에 그대로 들어선다.
+        <LoadingSpinner sizeRole="compactControl" />
       ) : (
         <Icon
           filled={isSaved}
@@ -72,11 +72,19 @@ export function ExpressionBookmark({
 }
 
 /** 아이콘 줄에서 그 메시지의 글을 그대로 클립보드에 넣는 버튼. */
-function ExpressionCopy({ label, text }: { label: string; text: string }) {
+function ExpressionCopy({
+  isDisabled = false,
+  label,
+  text,
+}: {
+  isDisabled?: boolean;
+  label: string;
+  text: string;
+}) {
   const copy = useCallback(() => copyToClipboard(text), [text]);
 
   return (
-    <MessageActionButton label={label} onPress={copy}>
+    <MessageActionButton isDisabled={isDisabled} label={label} onPress={copy}>
       <Icon name="copy" size="sm" tone="muted" />
     </MessageActionButton>
   );
@@ -153,7 +161,15 @@ export function UtteranceExpressionSlot({
     <View className="w-full items-start">
       {children}
       <MessageActionRow testID="utterance-actions">
-        <ExpressionCopy label={episodeLabels.copyUtterance} text={text} />
+        {/*
+          흐르는 동안은 복사도 함께 기다린다. 넘어온 글이 아직 자라는 중이라
+          지금 누르면 문장의 앞부분만 담긴다.
+        */}
+        <ExpressionCopy
+          isDisabled={isArriving}
+          label={episodeLabels.copyUtterance}
+          text={text}
+        />
         <ExpressionBookmark isWaitingForMessage={isArriving} spot={spot} />
       </MessageActionRow>
       <ExpressionSaveFailure align="start" spot={spot} />

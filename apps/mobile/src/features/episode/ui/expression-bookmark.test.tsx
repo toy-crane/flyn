@@ -66,17 +66,25 @@ test("담긴 자리는 취소를 권하고 담긴 것으로 읽힌다", async ()
   ).toMatchObject({ selected: true });
 });
 
-// 장면이 흐르는 동안은 그 메시지가 아직 계정에 없다. 자리를 비우면 책갈피가
-// 나타났다 사라지는 것처럼 보이므로, 흐리게 두고 누르지 못하게 한다.
-test("장면이 도착하는 중이면 자리는 지키되 누를 수 없다", async () => {
+// 장면이 흐르는 동안은 그 메시지가 아직 계정에 없고 넘어온 글도 자라는 중이다.
+// 자리를 비우면 줄이 나타났다 사라지는 것처럼 보이므로, 흐리게 두고 둘 다
+// 누르지 못하게 한다.
+test("장면이 도착하는 중이면 줄은 자리를 지키되 누를 수 없다", async () => {
+  mockSetStringAsync.mockClear();
   const { toggle, view } = renderSlot(undefined, true);
   await view;
 
   const bookmark = screen.getByTestId("expression-bookmark");
+  const copy = screen.getByLabelText(episodeLabels.copyUtterance);
 
   expect(bookmark.props.accessibilityState).toMatchObject({ disabled: true });
+  expect(copy.props.accessibilityState).toMatchObject({ disabled: true });
+
   await userEvent.press(bookmark);
+  await userEvent.press(copy);
+
   expect(toggle).not.toHaveBeenCalled();
+  expect(mockSetStringAsync).not.toHaveBeenCalled();
 });
 
 test("장면이 다 오면 같은 자리에서 담을 수 있다", async () => {
