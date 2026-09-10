@@ -17,6 +17,10 @@ test("모바일 배포는 API 성공 뒤 실행하고 로컬 호출은 원격 �
     };
   };
   expect(workflow.jobs.mobile.needs).toBe("api");
+  const install = workflow.jobs.mobile.steps.find((item) =>
+    item.run?.includes("eas-cli@24.0.0")
+  );
+  expect(install?.run).toContain("cd /tmp");
   const step = workflow.jobs.mobile.steps.find(
     (item) => item.run === "bun scripts/ci/release-mobile.ts"
   );
