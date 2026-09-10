@@ -9,7 +9,12 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import Animated, { cubicBezier } from "react-native-reanimated";
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeInUp,
+  Keyframe,
+} from "react-native-reanimated";
 import { useCSSVariable } from "uniwind";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
 import { Button } from "@/shared/ui/button";
@@ -18,54 +23,44 @@ import closingBurstHalf from "./celebration/closing-burst-half.json";
 import closingMark from "./celebration/closing-mark.json";
 import closingMarkQuiet from "./celebration/closing-mark-quiet.json";
 
-const easeOut = cubicBezier(0.23, 1, 0.32, 1);
+const easeOut = Easing.bezier(0.23, 1, 0.32, 1);
 const TRAILING_PERIOD = /[.]$/;
 
 // 시안 closing.html의 박자. 카드가 올라오고, 마크가 튀고(Lottie 안 40ms),
 // 체크가 그려지고, 고리가 퍼지고, 조각이 터지고, `해냈어요!`가 팝하고, 결과
 // 문장이 올라온다. 지연은 모두 카드가 보이는 순간부터 센다.
-const rise = {
-  animationDuration: 260,
-  animationFillMode: "both",
-  animationName: {
-    from: { opacity: 0, transform: [{ translateY: 12 }] },
-    to: { opacity: 1, transform: [{ translateY: 0 }] },
+//
+// CSS 애니메이션이 아니라 entering을 쓰는 이유: Android는 CSS 애니메이션이
+// 붙은 뷰의 스타일을 두세 프레임 늦게 적용해서, 지연을 기다리는 문구가 그동안
+// 그대로 비쳤다. entering은 마운트 순간에 첫 값을 잡는다.
+const rise = FadeInUp.duration(260)
+  .easing(easeOut)
+  .withInitialValues({ opacity: 0, transform: [{ translateY: 12 }] });
+const popText = new Keyframe({
+  0: { opacity: 0, transform: [{ scale: 0.6 }] },
+  70: {
+    easing: Easing.bezier(0.2, 0.75, 0.25, 1),
+    opacity: 1,
+    transform: [{ scale: 1.08 }],
   },
-  animationTimingFunction: easeOut,
-} as const;
-const popText = {
-  animationDelay: 440,
-  animationDuration: 340,
-  animationFillMode: "both",
-  animationName: {
-    "0%": { opacity: 0, transform: [{ scale: 0.6 }] },
-    "70%": { opacity: 1, transform: [{ scale: 1.08 }] },
-    "100%": { opacity: 1, transform: [{ scale: 1 }] },
+  100: {
+    easing: Easing.bezier(0.4, 0, 0.2, 1),
+    opacity: 1,
+    transform: [{ scale: 1 }],
   },
-  animationTimingFunction: cubicBezier(0.2, 0.75, 0.25, 1),
-} as const;
-const slideUp = {
-  animationDelay: 540,
-  animationDuration: 380,
-  animationFillMode: "both",
-  animationName: {
-    from: { opacity: 0, transform: [{ translateY: 14 }] },
-    to: { opacity: 1, transform: [{ translateY: 0 }] },
-  },
-  animationTimingFunction: easeOut,
-} as const;
-const settle = {
-  animationDelay: 300,
-  animationDuration: 500,
-  animationFillMode: "both",
-  animationName: { from: { opacity: 0.55 }, to: { opacity: 1 } },
-  animationTimingFunction: "ease-out",
-} as const;
-// Android는 CSS 애니메이션을 한두 프레임 늦게 등록해서, 지연을 기다리는 요소가
-// 그동안 기본 스타일로 보인다. 기본 스타일을 시작 상태로 맞춰 두면 그 틈이
-// 사라지고, 애니메이션이 끝난 뒤에는 fill mode가 끝 상태를 지킨다.
+})
+  .duration(340)
+  .delay(440);
+const slideUp = FadeInUp.duration(380)
+  .delay(540)
+  .easing(easeOut)
+  .withInitialValues({ opacity: 0, transform: [{ translateY: 14 }] });
+const settle = FadeIn.duration(500)
+  .delay(300)
+  .easing(Easing.out(Easing.ease))
+  .withInitialValues({ opacity: 0.55 });
+/** 동작 줄이기 설정을 읽는 동안 카드를 감춘다. 일반 View라 첫 프레임부터 적용된다. */
 const hidden = { opacity: 0 } as const;
-const dimmed = { opacity: 0.55 } as const;
 
 /** 시안의 `.mark`는 72pt다. 파일은 튀는 순간의 후광까지 담느라 88이라 위아래 8pt를 접는다. */
 const MARK_BOX = 72;
@@ -148,58 +143,59 @@ export function EpisodeClosing({
   const isSuccess = ending.kind === "성공";
   const playing = motion === "play";
   return (
-    <Animated.View
-      className="gap-4 overflow-hidden rounded-3xl border border-accent/15 bg-surface px-5 pt-5 pb-4"
-      style={[
-        { maxHeight: height * 0.4 },
-        motion === "pending" ? hidden : undefined,
-        playing ? [hidden, rise] : undefined,
-      ]}
-      testID="episode-closing"
-    >
-      <View className="absolute inset-0 bg-accent/5" pointerEvents="none" />
-      {/* 마크보다 먼저 만들어 iOS가 조각 파일을 읽는 동안 마크의 시계가 먼저
-          가지 않게 한다. 형제 순서상 마크와 글 뒤에 깔려 그 뒤에서 터진다. */}
-      {playing ? <CelebrationBurst half={!isSuccess} /> : null}
-      <ScrollView
-        className="shrink grow-0"
-        contentContainerClassName="items-center gap-2 py-1"
-        showsVerticalScrollIndicator={false}
+    <View style={motion === "pending" ? hidden : undefined}>
+      {/* motion이 바뀌면 카드를 새로 만들어 entering이 그 순간부터 돈다. */}
+      <Animated.View
+        className="gap-4 overflow-hidden rounded-3xl border border-accent/15 bg-surface px-5 pt-5 pb-4"
+        entering={playing ? rise : undefined}
+        key={motion}
+        style={{ maxHeight: height * 0.4 }}
+        testID="episode-closing"
       >
-        <CompletionMark motion={motion} quiet={!isSuccess} />
-        {isSuccess ? (
-          <Animated.View style={playing ? [hidden, popText] : undefined}>
+        <View className="absolute inset-0 bg-accent/5" pointerEvents="none" />
+        {/* 마크보다 먼저 만들어 iOS가 조각 파일을 읽는 동안 마크의 시계가 먼저
+            가지 않게 한다. 형제 순서상 마크와 글 뒤에 깔려 그 뒤에서 터진다. */}
+        {playing ? <CelebrationBurst half={!isSuccess} /> : null}
+        <ScrollView
+          className="shrink grow-0"
+          contentContainerClassName="items-center gap-2 py-1"
+          showsVerticalScrollIndicator={false}
+        >
+          <CompletionMark motion={motion} quiet={!isSuccess} />
+          {isSuccess ? (
+            <Animated.View entering={playing ? popText : undefined}>
+              <Text
+                className="font-semibold text-accent text-sm"
+                dynamicTypeRamp="footnote"
+                key={`success-${fontScale}`}
+              >
+                해냈어요!
+              </Text>
+            </Animated.View>
+          ) : null}
+          <Animated.View entering={playing ? slideUp : undefined}>
             <Text
-              className="font-semibold text-accent text-sm"
-              dynamicTypeRamp="footnote"
-              key={`success-${fontScale}`}
+              accessibilityRole="header"
+              className="text-center font-bold text-[22px] text-foreground leading-[30px]"
+              dynamicTypeRamp="title2"
+              key={`outcome-${fontScale}`}
+              testID="episode-closing-outcome"
             >
-              해냈어요!
+              {ending.outcome.replace(TRAILING_PERIOD, "")}
             </Text>
           </Animated.View>
-        ) : null}
-        <Animated.View style={playing ? [hidden, slideUp] : undefined}>
-          <Text
-            accessibilityRole="header"
-            className="text-center font-bold text-[22px] text-foreground leading-[30px]"
-            dynamicTypeRamp="title2"
-            key={`outcome-${fontScale}`}
-            testID="episode-closing-outcome"
+        </ScrollView>
+        <Animated.View entering={playing ? settle : undefined}>
+          <Button
+            accessibilityLabel="표현 돌아보기"
+            key={`review-${fontScale}`}
+            onPress={onReview}
           >
-            {ending.outcome.replace(TRAILING_PERIOD, "")}
-          </Text>
+            표현 돌아보기
+          </Button>
         </Animated.View>
-      </ScrollView>
-      <Animated.View style={playing ? [dimmed, settle] : undefined}>
-        <Button
-          accessibilityLabel="표현 돌아보기"
-          key={`review-${fontScale}`}
-          onPress={onReview}
-        >
-          표현 돌아보기
-        </Button>
       </Animated.View>
-    </Animated.View>
+    </View>
   );
 }
 
