@@ -17,13 +17,13 @@ const SPOT: SavedExpressionSpot = {
   utteranceAt: 1,
 };
 
-function renderSlot(state?: SavedExpressionState) {
+function renderSlot(state?: SavedExpressionState, isArriving = false) {
   const toggle = jest.fn<(spot: SavedExpressionSpot) => void>();
   const view = renderWithHeroUI(
     <SavedExpressionsProvider
       value={{ states: state ? { "s1:1": state } : {}, toggle }}
     >
-      <UtteranceExpressionSlot at={1} messageId="s1">
+      <UtteranceExpressionSlot at={1} isArriving={isArriving} messageId="s1">
         <Text>Next in line, please!</Text>
       </UtteranceExpressionSlot>
     </SavedExpressionsProvider>
@@ -50,6 +50,28 @@ test("담긴 자리는 취소를 권하고 담긴 것으로 읽힌다", async ()
   expect(
     screen.getByLabelText(savedExpressionLabels.unsave).props.accessibilityState
   ).toMatchObject({ selected: true });
+});
+
+// 장면이 흐르는 동안은 그 메시지가 아직 계정에 없다. 자리를 비우면 책갈피가
+// 나타났다 사라지는 것처럼 보이므로, 흐리게 두고 누르지 못하게 한다.
+test("장면이 도착하는 중이면 자리는 지키되 누를 수 없다", async () => {
+  const { toggle, view } = renderSlot(undefined, true);
+  await view;
+
+  const bookmark = screen.getByTestId("expression-bookmark");
+
+  expect(bookmark.props.accessibilityState).toMatchObject({ disabled: true });
+  await userEvent.press(bookmark);
+  expect(toggle).not.toHaveBeenCalled();
+});
+
+test("장면이 다 오면 같은 자리에서 담을 수 있다", async () => {
+  const { toggle, view } = renderSlot();
+  await view;
+
+  await userEvent.press(screen.getByTestId("expression-bookmark"));
+
+  expect(toggle).toHaveBeenCalledWith(SPOT);
 });
 
 test("담는 동안에는 다시 눌리지 않는다", async () => {

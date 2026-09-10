@@ -29,6 +29,8 @@ const TOUCH_SIZE = 44;
 /** 아이콘 옆에 남기는 가로와 세로 여백. 음수 여백에서 그만큼 덜 걷어낸다. */
 const SIDE_GAP = 3;
 const BOTTOM_GAP = 5;
+/** 아직 담을 수 없는 자리. 앱의 다른 비활성 컨트롤과 같은 흐리기를 쓴다. */
+const WAITING_OPACITY = 0.4;
 
 /**
  * 말풍선과 한 줄 옆에 서는 책갈피.
@@ -41,9 +43,18 @@ const BOTTOM_GAP = 5;
  * 말풍선이 함께 다시 그려지지 않는다.
  */
 export function ExpressionBookmark({
+  isWaitingForMessage = false,
   side,
   spot,
 }: {
+  /**
+   * 매달린 메시지가 아직 계정에 없다. 자리는 지키되 누를 수는 없다.
+   *
+   * 장면이 흐르는 동안이 그렇다. 말풍선은 다 그려져 있는데 서버는 장면이 끝나야
+   * 그 메시지를 저장하므로, 이때 누르면 없는 자리를 가리켜 실패한다. 자리까지
+   * 비우면 책갈피가 나타났다 사라지는 것처럼 보여서, 흐릿하게 두고 기다린다.
+   */
+  isWaitingForMessage?: boolean;
   /** 말풍선의 어느 쪽에 서는지. 바깥 여백을 그 반대쪽으로 접는다. */
   side: "left" | "right";
   spot: SavedExpressionSpot;
@@ -64,8 +75,12 @@ export function ExpressionBookmark({
         isSaved ? savedExpressionLabels.unsave : savedExpressionLabels.save
       }
       accessibilityRole="button"
-      accessibilityState={{ busy: isBusy, disabled: isBusy, selected: isSaved }}
-      disabled={isBusy}
+      accessibilityState={{
+        busy: isBusy,
+        disabled: isBusy || isWaitingForMessage,
+        selected: isSaved,
+      }}
+      disabled={isBusy || isWaitingForMessage}
       onPress={press}
       style={{
         alignItems: "center",
@@ -75,6 +90,7 @@ export function ExpressionBookmark({
         marginLeft: side === "right" ? -(folded - SIDE_GAP) : -folded,
         marginRight: side === "right" ? -folded : -(folded - SIDE_GAP),
         marginTop: -folded,
+        opacity: isWaitingForMessage ? WAITING_OPACITY : 1,
         width: touch,
         /*
           음수 여백이 걷어낸 만큼은 옆 컨트롤의 자리와 겹친다. 나중에 그려지는
@@ -163,10 +179,12 @@ export function ExpressionSaveFailure({
 export function UtteranceExpressionSlot({
   at,
   children,
+  isArriving,
   messageId,
 }: {
   at: number;
   children: ReactNode;
+  isArriving: boolean;
   messageId: string;
 }) {
   const spot = useMemo(
@@ -178,7 +196,11 @@ export function UtteranceExpressionSlot({
     <View className="w-full items-start">
       <View className="w-full flex-row items-end">
         {children}
-        <ExpressionBookmark side="right" spot={spot} />
+        <ExpressionBookmark
+          isWaitingForMessage={isArriving}
+          side="right"
+          spot={spot}
+        />
       </View>
       <ExpressionSaveFailure align="start" spot={spot} />
     </View>

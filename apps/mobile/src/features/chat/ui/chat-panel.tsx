@@ -104,6 +104,7 @@ function PlainTextMessage({
   areActionsVisible,
   canOpenMenu,
   hasActions,
+  isArriving,
   isDoomed,
   isWaiting,
   message,
@@ -116,6 +117,7 @@ function PlainTextMessage({
   areActionsVisible: boolean;
   canOpenMenu: boolean;
   hasActions: boolean;
+  isArriving: boolean;
   isDoomed: boolean;
   isWaiting: boolean;
   message: UIMessage;
@@ -175,6 +177,7 @@ function PlainTextMessage({
         areActionsDisabled={areActionsDisabled}
         areActionsVisible={areActionsVisible}
         hasActions={hasActions}
+        isArriving={isArriving}
         messageId={message.id}
         onCopy={copy}
         onRegenerate={regenerate}
@@ -847,20 +850,19 @@ export function ChatPanel({
         areActionsVisible={!(isBusy && index === messageCount - 1)}
         canOpenMenu={hasMessageActions && !(isBusy || isEditing)}
         hasActions={hasMessageActions}
+        /*
+          아직 도착하는 중인 답변. 그 메시지는 서버가 다 흘린 뒤에 저장하므로,
+          흐르는 동안 담으려 하면 계정에 없는 자리를 가리켜 실패한다. 곁에 무엇을
+          매다는 자리가 이것을 받아 그동안 무엇을 할지 정한다.
+        */
+        isArriving={isBusy && index === messageCount - 1}
         isDoomed={doomedFromIndex >= 0 && index >= doomedFromIndex}
         isWaiting={isAnswerLate && index === messageCount - 1}
         MessageAddon={messageAddon}
         message={item}
         onBeginEdit={beginEdit}
         onRegenerate={regenerateAnswer}
-        /*
-          아직 도착하는 중인 답변에는 담아 둘 자리를 두지 않는다. 그 메시지는
-          서버가 다 흘린 뒤에 저장하므로, 흐르는 동안 누르면 계정에 없는 자리를
-          가리켜 실패한다. 다 오면 그때 함께 나타난다.
-        */
-        utteranceAddon={
-          isBusy && index === messageCount - 1 ? undefined : utteranceAddon
-        }
+        utteranceAddon={utteranceAddon}
       />
     ),
     [

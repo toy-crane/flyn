@@ -14,17 +14,21 @@ import type { SceneSegment } from "./scene";
 export type UtteranceAddon = ComponentType<{
   at: number;
   children: ReactNode;
+  /** 이 장면이 아직 도착하는 중인지. 붙는 것이 그동안 무엇을 할지 정한다. */
+  isArriving: boolean;
   messageId: string;
 }>;
 
 const SceneSegmentBody = memo(function SceneSegmentBodyContent({
   at,
+  isArriving,
   messageId,
   name,
   text,
   UtteranceSlot,
 }: SceneSegment & {
   at: number;
+  isArriving: boolean;
   messageId: string;
   UtteranceSlot: UtteranceAddon | undefined;
 }) {
@@ -51,7 +55,7 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
         {name}
       </Text>
       {UtteranceSlot ? (
-        <UtteranceSlot at={at} messageId={messageId}>
+        <UtteranceSlot at={at} isArriving={isArriving} messageId={messageId}>
           {bubble}
         </UtteranceSlot>
       ) : (
@@ -75,6 +79,7 @@ export function SceneMessage({
   areActionsDisabled,
   areActionsVisible = true,
   hasActions,
+  isArriving = false,
   messageId,
   onCopy,
   onRegenerate,
@@ -84,6 +89,8 @@ export function SceneMessage({
   areActionsDisabled: boolean;
   areActionsVisible?: boolean;
   hasActions: boolean;
+  /** 이 장면이 아직 흐르는 중이다. 마지막 답변에만 참이 된다. */
+  isArriving?: boolean;
   messageId: string;
   onCopy: () => void;
   onRegenerate: () => void;
@@ -102,6 +109,7 @@ export function SceneMessage({
         return (
           <SceneSegmentBody
             at={spoken}
+            isArriving={isArriving}
             // biome-ignore lint/suspicious/noArrayIndexKey: 조각은 뒤로만 늘어난다
             key={index}
             messageId={messageId}

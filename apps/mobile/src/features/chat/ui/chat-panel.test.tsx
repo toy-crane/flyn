@@ -453,9 +453,10 @@ describe("ChatPanel", () => {
     ).not.toBeOnTheScreen();
   });
 
-  // 흐르는 동안 담으려 하면 계정에 아직 없는 자리를 가리켜 실패한다. 서버가 그
-  // 메시지를 다 흘린 뒤에 저장하기 때문이다.
-  test("아직 도착하는 중인 답변에는 담아 둘 자리를 두지 않는다", async () => {
+  // 서버가 그 메시지를 다 흘린 뒤에 저장하므로, 흐르는 동안 담으려 하면 계정에
+  // 아직 없는 자리를 가리킨다. 곁에 매다는 쪽이 그동안 무엇을 할지 정할 수 있게
+  // 도착 중이라는 것만 넘긴다.
+  test("아직 도착하는 중인 답변이라고 곁의 자리에 알린다", async () => {
     const scene: UIMessage = {
       id: "assistant-1",
       parts: [
@@ -464,8 +465,16 @@ describe("ChatPanel", () => {
       ],
       role: "assistant",
     };
-    const Slot = ({ children }: { children: ReactNode }) => (
-      <SlotView testID="utterance-slot">{children}</SlotView>
+    const Slot = ({
+      children,
+      isArriving,
+    }: {
+      children: ReactNode;
+      isArriving: boolean;
+    }) => (
+      <SlotView testID={isArriving ? "slot-arriving" : "slot-ready"}>
+        {children}
+      </SlotView>
     );
 
     const { rerender } = await renderWithHeroUI(
@@ -475,7 +484,7 @@ describe("ChatPanel", () => {
       />
     );
 
-    expect(screen.queryByTestId("utterance-slot")).not.toBeOnTheScreen();
+    expect(screen.getByTestId("slot-arriving")).toBeOnTheScreen();
 
     await rerender(
       <ChatPanel
@@ -484,7 +493,7 @@ describe("ChatPanel", () => {
       />
     );
 
-    expect(screen.getByTestId("utterance-slot")).toBeOnTheScreen();
+    expect(screen.getByTestId("slot-ready")).toBeOnTheScreen();
   });
 
   test("장면 복사는 화자 이름이 살아 있는 각본으로 넣는다", async () => {
