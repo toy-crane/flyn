@@ -144,6 +144,7 @@ export default function EpisodeRoute() {
       />
       {playing ? (
         <EpisodeScreen
+          cast={playing.episode.cast}
           episodeId={playing.episode.episodeId}
           initialMessages={playing.messages}
           key={`${paramStoryPlayId ?? paramStoryId}:${playing.episode.episodeId}`}

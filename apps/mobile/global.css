@@ -8,6 +8,11 @@
   교정 채널의 색. HeroUI의 시맨틱 집합에는 이 뜻을 가진 역할이 없어서 앱이
   직접 등재한다. 사용자 말풍선과 강조 요소가 쓰는 파랑과 나란히 두어도 다른
   채널이라는 것이 바로 보여야 하므로 보라 계열을 쓴다.
+
+  장면 서술과 인물 이름표도 같은 이유로 여기 등재한다. `scene`은 도입의 서술에서
+  첫 줄을 뺀 나머지 줄의 색이다. 본문보다 한 단계 옅되 읽기에 충분한 대비를
+  유지한다. `cast-1`부터 `cast-4`는 인물의 스토리 안 순서를 받는 이름표 색이고,
+  파랑·보라·청록을 피해 서로 구분되는 계열에서 고른다.
 */
 @theme inline {
   --color-expression: var(--expression);
@@ -15,6 +20,11 @@
   --color-learn: var(--learn);
   --color-learn-foreground: var(--learn-foreground);
   --color-learn-surface: var(--learn-surface);
+  --color-scene: var(--scene);
+  --color-cast-1: var(--cast-1);
+  --color-cast-2: var(--cast-2);
+  --color-cast-3: var(--cast-3);
+  --color-cast-4: var(--cast-4);
 }
 
 @layer theme {
@@ -29,6 +39,11 @@
       --learn: oklch(0.54 0.19 300);
       --learn-foreground: oklch(0.9911 0 0);
       --learn-surface: oklch(0.945 0.022 300);
+      --scene: #3c3c43;
+      --cast-1: #b4552f;
+      --cast-2: #2f6f4e;
+      --cast-3: #8a5a10;
+      --cast-4: #a8386a;
     }
   }
 
@@ -43,6 +58,11 @@
       --learn: oklch(0.78 0.15 300);
       --learn-foreground: oklch(0.21 0.03 300);
       --learn-surface: oklch(0.27 0.045 300);
+      --scene: #c7c7cc;
+      --cast-1: #f0997b;
+      --cast-2: #97c459;
+      --cast-3: #e0b063;
+      --cast-4: #ee93b1;
     }
   }
 }

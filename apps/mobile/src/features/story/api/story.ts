@@ -22,6 +22,12 @@ export interface StoryCard {
 
 /** 스토리 상세의 에피소드 목록 한 줄. 모든 화가 같은 모양이다. */
 export interface StoryEpisode {
+  /**
+   * 이 화에 서는 인물의 이름과 스토리 안 순서.
+   *
+   * 상세는 쓰지 않는다. 새 회차의 1화가 이름표 색을 고르는 데 쓴다.
+   */
+  cast?: { name: string; position: number }[];
   episodeId: string;
   number: number;
   /** 결말을 드러내지 않는 상황 설명. 모든 화가 공개한다. */

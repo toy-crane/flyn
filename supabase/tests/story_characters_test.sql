@@ -1,6 +1,6 @@
 -- 인물이 스토리에 살고, 화는 그 스토리의 인물만 가리키는지 확인한다.
 BEGIN;
-SELECT plan(20);
+SELECT plan(23);
 
 -- 두 상한은 범위 check와 고유 제약이 함께 있어야 성립하는데, 고유 쪽은 문장이
 -- 아니라 COMMIT에서 확인한다. 이 테스트는 ROLLBACK으로 닫으므로 그대로 두면
@@ -94,6 +94,49 @@ SELECT is(
    where stage ~ '(^|\n)- [A-Z][A-Za-z]*: '),
   0::bigint,
   '무대 글에 인물 항목이 남아 있지 않다'
+);
+
+-- 지문을 없앴으므로 무대가 지문으로 전하라고 시키지 않는다.
+SELECT is(
+  (select count(*) from public.episodes where stage like '%지문%'),
+  0::bigint,
+  '무대 글에 지문으로 전하라는 지시가 남아 있지 않다'
+);
+
+-- 도입은 한국어 장면 서술로 시작해 그 뒤로는 대사만 이어진다. 이름 없는 줄이
+-- 먼저 서고, 첫 대사가 나온 뒤로는 이름 없는 줄이 다시 나오지 않는다.
+SELECT is(
+  (select count(*) from public.episodes e
+   where exists (
+     select 1
+     from unnest(string_to_array(e.opening, E'\n')) with ordinality as line(text, at)
+     join lateral (
+       select min(spoken.at) as first_spoken
+       from unnest(string_to_array(e.opening, E'\n')) with ordinality as spoken(text, at)
+       where spoken.text ~ '^[A-Z][A-Za-z]*: '
+     ) as said on true
+     where line.text !~ '^[A-Z][A-Za-z]*: '
+       and said.first_spoken is not null
+       and line.at > said.first_spoken
+   )),
+  0::bigint,
+  '도입은 첫 대사 뒤로 이름 없는 줄을 두지 않는다'
+);
+
+SELECT is(
+  (select count(*) from public.episodes e
+   where (
+     select count(*)
+     from unnest(string_to_array(e.opening, E'\n')) as line(text)
+     where line.text !~ '^[A-Z][A-Za-z]*: '
+   ) between 1 and 3
+   and (
+     select count(*)
+     from unnest(string_to_array(e.opening, E'\n')) as line(text)
+     where line.text ~ '^[A-Z][A-Za-z]*: '
+   ) >= 1),
+  25::bigint,
+  '스물다섯 화의 도입이 장면 서술 세 줄 이하와 대사로 이루어진다'
 );
 
 -- 한 스토리 안에서 이름은 겹치지 않는다.

@@ -50,6 +50,13 @@ export interface StoryContent {
 
 /** 목록과 상세가 한 스토리에서 읽는 화 한 줄. 각본 본문은 담지 않는다. */
 export interface StoryCatalogEpisode {
+  /**
+   * 이 화에 서는 인물의 이름과 스토리 안 순서.
+   *
+   * 새 회차의 1화는 아직 저장된 대화가 없어 세션을 읽지 못한다. 그 화면이
+   * 이름표 색을 고르는 데 필요한 값을 여기서 가져간다.
+   */
+  cast: readonly StoryCharacter[];
   id: string;
   number: number;
   preview: string;
@@ -101,6 +108,8 @@ export async function readStoryCatalog(
     throw new Error(`Reading the story catalog failed: ${error.message}`);
   }
 
+  const cast = await readCatalogCast(client);
+
   return data.map((story) => ({
     completion: {
       copy: story.completion_copy,
@@ -110,6 +119,7 @@ export async function readStoryCatalog(
     coverEmoji: story.cover_emoji,
     coverImagePath: story.cover_image_path,
     episodes: story.episodes.map((episode) => ({
+      cast: cast.get(episode.id) ?? [],
       id: episode.id,
       number: episode.number,
       preview: episode.preview,
@@ -192,6 +202,84 @@ export async function readStoryOfPlay(
 }
 
 /**
+ * 인물 연결을 화 id로 묶는다. 목록의 차례는 화가 정한 `at`이다.
+ *
+ * 인물은 스토리가 소유하고 화는 그중 누구인지만 가리키므로, 두 줄기를 받아
+ * 여기서 잇는다. 앱은 이 순서를 스스로 알 수 없다.
+ */
+function castOfLinks(
+  people: readonly {
+    id: string;
+    name: string;
+    persona: string;
+    position: number;
+  }[],
+  links: readonly { at: number; character_id: string; episode_id: string }[]
+): Map<string, StoryCharacter[]> {
+  const byId = new Map(
+    people.map((person) => [
+      person.id,
+      {
+        name: person.name,
+        persona: person.persona,
+        position: person.position,
+      } satisfies StoryCharacter,
+    ])
+  );
+  const cast = new Map<string, StoryCharacter[]>();
+
+  for (const link of links) {
+    const person = byId.get(link.character_id);
+
+    if (!person) {
+      continue;
+    }
+
+    const standing = cast.get(link.episode_id);
+
+    if (standing) {
+      standing.push(person);
+    } else {
+      cast.set(link.episode_id, [person]);
+    }
+  }
+
+  return cast;
+}
+
+/**
+ * 공식 콘텐츠 전체의 인물 연결을 한 번에 읽는다.
+ *
+ * 목록과 상세가 같은 조회 하나를 쓴다. 스토리당 인물이 넷을 넘지 못하고 화당
+ * 셋을 넘지 못하므로 이 조회가 콘텐츠 크기에 비례해 커지지 않는다.
+ */
+async function readCatalogCast(
+  client: EpisodeClient
+): Promise<Map<string, StoryCharacter[]>> {
+  const [people, links] = await Promise.all([
+    client.from("characters").select("id, name, position, persona"),
+    client
+      .from("episode_characters")
+      .select("episode_id, character_id, at")
+      .order("at"),
+  ]);
+
+  if (people.error) {
+    throw new Error(
+      `Reading the official cast failed: ${people.error.message}`
+    );
+  }
+
+  if (links.error) {
+    throw new Error(
+      `Reading the official cast links failed: ${links.error.message}`
+    );
+  }
+
+  return castOfLinks(people.data, links.data);
+}
+
+/**
  * 인물 행이 아직 없는 화를 이전 화자 목록으로 세운다.
  *
  * 콘텐츠는 스키마와 API보다 늦게 운영에 올라간다. 그 사이 `characters`가 비어
@@ -248,35 +336,7 @@ async function readStoryCast(
     );
   }
 
-  const byId = new Map(
-    people.data.map((person) => [
-      person.id,
-      {
-        name: person.name,
-        persona: person.persona,
-        position: person.position,
-      } satisfies StoryCharacter,
-    ])
-  );
-  const cast = new Map<string, StoryCharacter[]>();
-
-  for (const link of links.data) {
-    const person = byId.get(link.character_id);
-
-    if (!person) {
-      continue;
-    }
-
-    const standing = cast.get(link.episode_id);
-
-    if (standing) {
-      standing.push(person);
-    } else {
-      cast.set(link.episode_id, [person]);
-    }
-  }
-
-  return cast;
+  return castOfLinks(people.data, links.data);
 }
 
 /**
