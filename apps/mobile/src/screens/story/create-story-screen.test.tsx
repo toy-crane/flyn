@@ -84,15 +84,30 @@ jest.mock("@/shared/navigation/use-screen-arrival", () => ({
 /*
   패널은 메시지마다 곁들일 것을 그린다. 여기서는 그 자리만 흉내 내어, 화면이
   넘긴 카드가 실제로 어떻게 그려지는지 그대로 본다.
+
+  줄은 메시지가 바뀔 때만 다시 그린다. 진짜 패널도 그렇다. 목록은 메시지와
+  패널이 따로 알려 주는 것만 보고 줄을 다시 그리므로, 곁들일 것을 새로 만들어
+  넘기는 것만으로는 이미 그려진 줄에 닿지 않는다.
 */
 jest.mock("@/features/chat/ui/chat-panel", () => {
   const React = require("react") as typeof import("react");
   const { View } = require("react-native") as typeof import("react-native");
 
+  const Row = React.memo(
+    ({
+      addon: Addon,
+      message,
+    }: {
+      addon: (props: { message: UIMessage }) => React.ReactNode;
+      message: UIMessage;
+    }) => React.createElement(Addon, { message }),
+    () => true
+  );
+
   return {
     ChatPanel: ({
       chat,
-      messageAddon: Addon,
+      messageAddon,
     }: {
       chat: { messages: UIMessage[] };
       messageAddon?: (props: { message: UIMessage }) => React.ReactNode;
@@ -100,9 +115,13 @@ jest.mock("@/features/chat/ui/chat-panel", () => {
       React.createElement(
         View,
         { testID: "create-panel" },
-        Addon
+        messageAddon
           ? chat.messages.map((message) =>
-              React.createElement(Addon, { key: message.id, message })
+              React.createElement(Row, {
+                addon: messageAddon,
+                key: message.id,
+                message,
+              })
             )
           : null
       ),

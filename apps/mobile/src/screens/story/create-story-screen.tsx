@@ -2,7 +2,14 @@ import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { randomUUID } from "expo-crypto";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Alert, Platform, type TextInput } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
@@ -36,35 +43,43 @@ const OPENING: UIMessage = {
 };
 
 /**
- * 메시지 하나 곁에 붙는 스토리 카드.
+ * 카드가 자기 버튼에 대해 알아야 하는 것.
  *
- * 패널은 글 조각만 그린다. 카드가 흐르는 조각은 이 자리가 아니면 화면에 나오지
- * 않는다. 만들기 화면이 무엇을 넘길지 정해 이 컴포넌트를 만든다.
+ * 패널이 아니라 이 통로로 간다. 목록은 메시지가 바뀔 때만 줄을 다시 그리므로,
+ * 곁들일 것을 새로 만들어 넘겨도 이미 그려진 카드에는 닿지 않는다. 진행 중이
+ * 화면에 나타나지 않던 이유가 이것이었다.
  */
-function createOutlineAddon({
-  isStarting,
-  onStart,
-  startableMessageId,
-}: {
+const OutlineStart = createContext<{
   isStarting: boolean;
   onStart: () => void;
   startableMessageId: string | undefined;
-}) {
-  return function OutlineAddon({ message }: { message: UIMessage }) {
-    const outline = outlineOfMessage(message);
+}>({
+  isStarting: false,
+  onStart: () => undefined,
+  startableMessageId: undefined,
+});
 
-    if (!outline) {
-      return null;
-    }
+/**
+ * 메시지 하나 곁에 붙는 스토리 카드.
+ *
+ * 패널은 글 조각만 그린다. 카드가 흐르는 조각은 이 자리가 아니면 화면에 나오지
+ * 않는다. 이 컴포넌트는 한 번 만들어 두고 바꾸지 않는다.
+ */
+function OutlineAddon({ message }: { message: UIMessage }) {
+  const { isStarting, onStart, startableMessageId } = useContext(OutlineStart);
+  const outline = outlineOfMessage(message);
 
-    return (
-      <StoryOutlineTurn
-        isStarting={isStarting}
-        onStart={message.id === startableMessageId ? onStart : undefined}
-        outline={outline}
-      />
-    );
-  };
+  if (!outline) {
+    return null;
+  }
+
+  return (
+    <StoryOutlineTurn
+      isStarting={isStarting}
+      onStart={message.id === startableMessageId ? onStart : undefined}
+      outline={outline}
+    />
+  );
 }
 
 /**
@@ -137,24 +152,25 @@ export function CreateStoryScreen({
     `대화 시작하기`는 가장 최근 카드에만 붙는다. 지난 카드는 대화에 남되 버튼이
     없어, 어느 카드로 만드는지가 흐려지지 않는다.
   */
-  const OutlineAddon = useMemo(
-    () =>
-      createOutlineAddon({
-        isStarting,
-        onStart: start,
-        startableMessageId: newest?.messageId,
-      }),
+  const startState = useMemo(
+    () => ({
+      isStarting,
+      onStart: start,
+      startableMessageId: newest?.messageId,
+    }),
     [isStarting, newest?.messageId, start]
   );
 
   return (
-    <ChatPanel
-      chat={conversation}
-      hasMessageActions={false}
-      inputRef={inputRef}
-      messageAddon={OutlineAddon}
-      placeholder={storyLabels.createPlaceholder}
-      topInset={Platform.OS === "ios" ? headerHeight : 0}
-    />
+    <OutlineStart value={startState}>
+      <ChatPanel
+        chat={conversation}
+        hasMessageActions={false}
+        inputRef={inputRef}
+        messageAddon={OutlineAddon}
+        placeholder={storyLabels.createPlaceholder}
+        topInset={Platform.OS === "ios" ? headerHeight : 0}
+      />
+    </OutlineStart>
   );
 }
