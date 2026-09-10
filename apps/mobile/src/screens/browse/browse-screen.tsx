@@ -1,6 +1,6 @@
 import { TagGroup } from "heroui-native/tag-group";
 import { useCallback, useMemo, useState } from "react";
-import { ScrollView, useWindowDimensions, View } from "react-native";
+import { ScrollView, Text, useWindowDimensions, View } from "react-native";
 
 import type { StoryCard } from "@/features/story/api/story";
 import { storyLabels } from "@/features/story/ui/story-labels";
@@ -13,7 +13,7 @@ import { useScreenContentHeight } from "@/shared/ui/use-screen-content-height";
 const ALL = "all";
 const MINE = "mine";
 
-/** HeroUI가 보통 크기 칩의 이름에 쓰는 글자 크기와 줄 높이 비율. */
+/** 칩 이름의 글자 크기와 줄 높이 비율. HeroUI의 보통 크기 칩과 같다. */
 const CHIP_TEXT_SIZE = 14;
 const CHIP_LEADING = 1.5;
 
@@ -117,24 +117,41 @@ export function BrowseScreen({
             testID="browse-filters"
           >
             {/*
-              칩은 누를 수 있는 자리다. 밝히지 않으면 화면 읽기 기능이 그냥
-              글자로 읽어 목록을 거를 수 있다는 것을 알리지 못한다.
+              HeroUI의 칩을 그대로 쓰되 이 화면이 셋을 더 준다. 모두 그 컴포넌트가
+              열어 둔 자리이고 HeroUI 원본은 손대지 않는다.
 
-              `accessibilityRole`이 아니라 `role`을 넘긴다. HeroUI가 칩에
+              `flex-nowrap`: 칩 줄이 접히지 않게 한다. HeroUI의 목록은 기본으로
+              줄을 바꾸는데, 가로로 미는 자리 안에서 접히면 둘째 칩이 보이지 않는
+              두 번째 줄로 내려간다. 넘치는 것은 옆으로 미는 것이 이 자리의 규칙이다.
+
+              `role`: 칩을 누를 수 있는 자리로 읽히게 한다. HeroUI가 칩에
               `role="listitem"`을 먼저 붙이는데, 둘이 함께 있으면 React Native가
-              `role`을 따르므로 그 자리를 여기서 덮어야 한다. 고른 상태는 HeroUI가
-              이미 밝히고 있어 다시 쓰지 않는다.
+              `role`을 따르므로 여기서 덮는다. 고른 상태는 HeroUI가 이미 밝힌다.
+
+              이름을 직접 그리는 것: 칩 이름의 줄 높이를 글자 배율에 맞춰 키우기
+              위해서다. 글자로만 넘기면 HeroUI가 고정 줄 높이를 붙여 큰 글자
+              크기에서 이름의 위아래가 잘린다.
             */}
-            <TagGroup.List className="gap-2">
+            <TagGroup.List className="flex-nowrap gap-2">
               <TagGroup.Item id={ALL} role="button">
-                <TagGroup.ItemLabel style={labelStyle}>
-                  {storyLabels.allStories}
-                </TagGroup.ItemLabel>
+                {() => (
+                  <Text
+                    className="font-medium text-[14px] text-foreground"
+                    style={labelStyle}
+                  >
+                    {storyLabels.allStories}
+                  </Text>
+                )}
               </TagGroup.Item>
               <TagGroup.Item id={MINE} role="button">
-                <TagGroup.ItemLabel style={labelStyle}>
-                  {storyLabels.myStories}
-                </TagGroup.ItemLabel>
+                {() => (
+                  <Text
+                    className="font-medium text-[14px] text-foreground"
+                    style={labelStyle}
+                  >
+                    {storyLabels.myStories}
+                  </Text>
+                )}
               </TagGroup.Item>
             </TagGroup.List>
           </ScrollView>
