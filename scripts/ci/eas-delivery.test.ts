@@ -36,10 +36,14 @@ test("EAS 요청 응답을 잃어도 같은 커밋과 요청의 완료된 Update
           id,
           jobs: [
             identity,
-            { key: "verify_existing", status: "success" },
             {
               key: "get_build",
               outputs: { build_id: "existing" },
+              status: "success",
+            },
+            {
+              key: "check_existing",
+              outputs: { action: "update" },
               status: "success",
             },
             {
@@ -71,6 +75,49 @@ test("EAS 요청 응답을 잃어도 같은 커밋과 요청의 완료된 Update
       status: "success",
     });
     expect(posts).toBe(1);
+  } finally {
+    server.stop(true);
+  }
+});
+
+test("호환 빌드를 새로 제출한 뒤 설치 가능 확인과 Update가 모두 끝나야 완료한다", async () => {
+  const run = {
+    gitCommitHash: request.sha,
+    id,
+    jobs: [
+      identity,
+      {
+        key: "get_build",
+        outputs: { build_id: "existing" },
+        status: "success",
+      },
+      {
+        key: "check_existing",
+        outputs: { action: "submit" },
+        status: "success",
+      },
+      { key: "submit_existing", status: "success", submissionId: "submission" },
+      { key: "verify_submitted", status: "success" },
+      {
+        key: "update_submitted",
+        outputs: { first_update_group_id: "group" },
+        status: "success",
+      },
+    ],
+    status: "success",
+  };
+  const server = serve({ fetch: () => Response.json({ data: run }), port: 0 });
+  try {
+    const remote = new EasDelivery({
+      listRuns: () => Promise.resolve([]),
+      maxPolls: 1,
+      origin: server.url.origin,
+      token: "fixture",
+    });
+    expect(await remote.inspect({ ...request, remoteId: id })).toEqual({
+      remoteId: id,
+      status: "success",
+    });
   } finally {
     server.stop(true);
   }

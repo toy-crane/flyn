@@ -151,15 +151,26 @@ export class EasDelivery {
     const build = succeeded("build_ios");
     const submit = succeeded("submit_ios");
     const update = succeeded("update_ios");
+    const existing = succeeded("check_existing")?.outputs?.action;
     const built = Boolean(
       build?.buildId && submit?.submissionId && succeeded("verify_new")
     );
     const updated = Boolean(
-      succeeded("get_build")?.outputs?.build_id &&
-        succeeded("verify_existing") &&
+      existing === "update" &&
+        succeeded("get_build")?.outputs?.build_id &&
         update?.outputs?.first_update_group_id
     );
-    if (!this.identity(run, request) || built === updated) {
+    const submitted = Boolean(
+      existing === "submit" &&
+        succeeded("get_build")?.outputs?.build_id &&
+        succeeded("submit_existing")?.submissionId &&
+        succeeded("verify_submitted") &&
+        succeeded("update_submitted")?.outputs?.first_update_group_id
+    );
+    if (
+      !this.identity(run, request) ||
+      [built, updated, submitted].filter(Boolean).length !== 1
+    ) {
       throw new Error(
         "EAS 완료 결과에서 빌드 제출 또는 Update 증거를 확인하지 못했습니다."
       );
