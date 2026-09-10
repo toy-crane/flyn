@@ -149,7 +149,7 @@ test("조회 재시도를 겹치지 않고 오류와 다음 화 이동을 유지
       })
     );
   });
-  await screen.findByText("1개");
+  await screen.findByText("라테를 주문했어요.");
   await user.press(screen.getByRole("button", { name: "2화 시작하기" }));
   expect(router.dismissTo).toHaveBeenCalledWith({
     params: { episodeId: "two", storyPlayId: "play" },
@@ -183,5 +183,5 @@ test("다른 화로 바뀐 뒤 지난 화의 응답이 도착해도 카드를 �
     finishOld?.(Response.json({ expressionResults: [card] }));
   });
   expect(screen.queryByText("라테를 주문했어요.")).toBeNull();
-  expect(screen.queryByText("1개")).toBeNull();
+  expect(screen.queryByText("기억해 둘 표현")).toBeNull();
 });
