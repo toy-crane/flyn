@@ -78,6 +78,11 @@ const BURST_ORIGIN_Y = 120;
  */
 const RENDER_MODE = process.env.EXPO_OS === "ios" ? "SOFTWARE" : "AUTOMATIC";
 
+/** 파일을 못 읽으면 자리가 조용히 비어 버린다. 이유만이라도 남긴다. */
+function warnAnimationFailure(error: string) {
+  console.warn(`결말 축하 Lottie를 그리지 못했습니다: ${error}`);
+}
+
 /**
  * 결말이 났는지에 따라 연출이 다르다. `pending`은 동작 줄이기 설정을 아직 읽지
  * 못한 첫 순간이고, `play`는 한 번 재생, `still`은 마지막 프레임에 멈춘 상태다.
@@ -222,6 +227,7 @@ function CompletionMark({ motion, quiet }: { motion: Motion; quiet: boolean }) {
           // 재생에서 정지로 바뀌면 새로 그려 마지막 프레임을 보여 준다.
           key={motion}
           loop={false}
+          onAnimationFailure={warnAnimationFailure}
           progress={motion === "still" ? 1 : 0}
           renderMode={RENDER_MODE}
           source={source}
@@ -255,6 +261,7 @@ function CelebrationBurst({ half }: { half: boolean }) {
           { color: expression, keypath: "Expression" },
         ]}
         loop={false}
+        onAnimationFailure={warnAnimationFailure}
         renderMode={RENDER_MODE}
         source={source}
         style={{ height: source.h, width: source.w }}

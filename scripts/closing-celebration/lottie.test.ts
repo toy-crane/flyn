@@ -26,6 +26,30 @@ describe("결말 마크", () => {
     }
   });
 
+  test("lottie-android가 앞에서부터 읽으므로 모든 도형은 ty로 시작한다", () => {
+    const shapes: Record<string, unknown>[] = [];
+    const collect = (items: Record<string, unknown>[]) => {
+      for (const item of items) {
+        shapes.push(item);
+        if (Array.isArray(item.it)) {
+          collect(item.it as Record<string, unknown>[]);
+        }
+      }
+    };
+    for (const document of [
+      buildClosingMark({ ring: true }),
+      buildClosingBurst({ half: false }),
+    ]) {
+      for (const layer of document.layers) {
+        collect(layer.shapes);
+      }
+    }
+    expect(shapes.length).toBeGreaterThan(30);
+    for (const item of shapes) {
+      expect(Object.keys(item)[0]).toBe("ty");
+    }
+  });
+
   test("Android가 keypath를 점으로 나누므로 레이어 이름에 점이 없다", () => {
     const names = [
       ...buildClosingMark({ ring: true }).layers,

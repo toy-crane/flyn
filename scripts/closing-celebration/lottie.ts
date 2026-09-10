@@ -35,6 +35,15 @@ interface Shape {
   [key: string]: unknown;
 }
 
+/**
+ * lottie-android는 도형 객체를 앞에서부터 읽다가 `ty`를 만나면 나머지만 그 도형의
+ * 파서에 넘긴다. `ty`보다 앞에 적힌 키는 버려져 도형이 빈 채로 그려지므로 `ty`를
+ * 늘 맨 앞에 둔다. 저장소의 린트가 객체 키를 정렬해도 spread 앞의 키는 그대로다.
+ */
+function shape(ty: string, fields: Omit<Shape, "ty">): Shape {
+  return { ty, ...fields };
+}
+
 export interface Layer {
   ao: 0;
   bm: 0;
@@ -127,18 +136,17 @@ const colors = {
 } satisfies Record<string, Color>;
 
 function fill(color: Color, opacity = 100): Shape {
-  return {
+  return shape("fl", {
     bm: 0,
     c: still([...color, 1]),
     nm: "Fill",
     o: still(opacity),
     r: 1,
-    ty: "fl",
-  };
+  });
 }
 
 function stroke(color: Color, width: number): Shape {
-  return {
+  return shape("st", {
     bm: 0,
     c: still([...color, 1]),
     lc: 2,
@@ -146,19 +154,17 @@ function stroke(color: Color, width: number): Shape {
     ml: 4,
     nm: "Stroke",
     o: still(100),
-    ty: "st",
     w: still(width),
-  };
+  });
 }
 
 function ellipse(diameter: number): Shape {
-  return {
+  return shape("el", {
     d: 1,
     nm: "Ellipse",
     p: still([0, 0]),
     s: still([diameter, diameter]),
-    ty: "el",
-  };
+  });
 }
 
 const identity = () => ({
@@ -172,11 +178,10 @@ const identity = () => ({
 });
 
 function group(name: string, items: Shape[], transform = identity()): Shape {
-  return {
-    it: [...items, { ...transform, nm: "Transform", ty: "tr" }],
+  return shape("gr", {
+    it: [...items, shape("tr", { ...transform, nm: "Transform" })],
     nm: name,
-    ty: "gr",
-  };
+  });
 }
 
 function layer(
@@ -298,7 +303,7 @@ export function buildClosingMark({ ring }: { ring: boolean }): LottieDocument {
     2,
     [
       group("Check", [
-        {
+        shape("sh", {
           ks: still({
             c: false,
             i: [
@@ -314,9 +319,8 @@ export function buildClosingMark({ ring }: { ring: boolean }): LottieDocument {
             v: [point(5, 12.5), point(9.5, 17), point(19, 7)],
           }),
           nm: "Path",
-          ty: "sh",
-        },
-        {
+        }),
+        shape("tm", {
           e: animate([
             { at: drawStart, easing: SETTLE, value: [0] },
             { at: frame(260 + 360), value: [100] },
@@ -325,8 +329,7 @@ export function buildClosingMark({ ring }: { ring: boolean }): LottieDocument {
           nm: "Trim",
           o: still(0),
           s: still(0),
-          ty: "tm",
-        },
+        }),
         stroke(colors.accentForeground, 3 * scale),
       ]),
     ],
@@ -385,16 +388,15 @@ const FULL_CHANNELS: readonly Channel[] = ["accent", "learn", "expression"];
 const HALF_CHANNELS: readonly Channel[] = ["expression", "accent"];
 
 const pieceShapes: readonly Shape[] = [
-  {
+  shape("rc", {
     d: 1,
     nm: "Rect",
     p: still([0, 0]),
     r: still(2),
     s: still([6, 10]),
-    ty: "rc",
-  },
+  }),
   ellipse(6),
-  {
+  shape("sr", {
     d: 1,
     ir: still(1.7),
     is: still(0),
@@ -405,8 +407,7 @@ const pieceShapes: readonly Shape[] = [
     pt: still(4),
     r: still(0),
     sy: 1,
-    ty: "sr",
-  },
+  }),
 ];
 
 /**
