@@ -66,6 +66,8 @@ const STORY_ROW = {
 
 /** 부른 사람이 만든 스토리. 자리와 열쇠가 없고 주인이 있다. */
 const MADE_STORY_ID = "10000000-0000-4000-8000-0000000000f1";
+/** 저장이 끝난 뒤 앱이 바로 여는 1화. */
+const MADE_EPISODE_ID = "11000000-0000-4000-8000-0000000000f1";
 
 const MADE_STORY_ROW = {
   completion_copy: "호텔부터 미팅까지 영어로 지나왔어요.",
@@ -265,6 +267,8 @@ interface SeasonState {
    * 기본으로 두면 공식 목록만 세는 다른 테스트가 함께 흔들린다.
    */
   madeStories?: Record<string, unknown>[];
+  /** `create_story`가 받은 저장 요청. 무엇을 저장하려 했는지를 여기서 본다. */
+  madeStoryRequests?: Record<string, unknown>[];
   messages: MessageRow[];
   recordAccepted?: boolean;
   recordError?: string;
@@ -808,6 +812,20 @@ function signedInWith(
       return builder;
     },
     rpc: (name: string, args: Record<string, unknown>) => {
+      if (name === "create_story") {
+        state.madeStoryRequests?.push(args);
+
+        return Promise.resolve({
+          data: [
+            {
+              first_episode_id: MADE_EPISODE_ID,
+              story_id: MADE_STORY_ID,
+            },
+          ],
+          error: null,
+        });
+      }
+
       if (name !== "finish_episode") {
         throw new Error(`Unexpected rpc call: ${name}`);
       }
@@ -879,6 +897,74 @@ interface CorrectionAnswer {
 }
 
 const NO_CORRECTION: CorrectionAnswer = { entries: [], fixed: "" };
+
+/** 확정한 개요 하나. `대화 시작하기`가 이 모양을 보낸다. */
+const MADE_OUTLINE = {
+  characters: [
+    { name: "Lena", position: 1, role: "호텔 프런트 직원." },
+    { name: "Markus", position: 2, role: "거래처 담당자." },
+  ],
+  episodes: [
+    {
+      cast: ["Lena"],
+      number: 1,
+      preview: "밤늦게 도착했는데 제 예약이 없대요.",
+      title: "예약이 없는 호텔",
+    },
+  ],
+  hook: "다음 달 베를린 출장인데, 혼자 해내야 해요",
+  title: "베를린 출장 일주일",
+};
+
+/** 형식을 지킨 각본 하나. 모델이 돌려주는 값을 대신한다. */
+const WRITTEN_STORY = {
+  characters: [{ name: "Lena", persona: "30대 호텔 직원이다.", position: 1 }],
+  completionCopy: "호텔부터 미팅까지 영어로 지나왔어요.",
+  completionTitle: "출장을 마쳤어요",
+  coverEmoji: "🧳",
+  episodes: [
+    {
+      castNames: ["Lena"],
+      endingCompromise: "임시 방법을 받았을 때",
+      endingFailure: "방을 받지 못했을 때",
+      endingSuccess: "방을 배정받았을 때",
+      number: 1,
+      opening:
+        "밤 열한 시, 호텔 프런트 앞에 도착했다.\nLena: I cannot find a reservation under your name.",
+      preview: "밤늦게 도착했는데 제 예약이 없대요.",
+      situation: "예약을 찾아 방을 받아 보세요",
+      situationEmoji: "🏨",
+      stage: "상황:\n- 사용자가 말을 해야 이 일이 풀린다.",
+      title: "예약이 없는 호텔",
+    },
+  ],
+  intro: "첫 해외 출장으로 떠난 베를린에서 보내는 일주일.",
+};
+
+/** 각본을 한 번에 돌려주는 모델. 저장 경로만 시험한다. */
+function createWritingModel(answer: unknown = WRITTEN_STORY) {
+  return new MockLanguageModelV4({
+    doGenerate: () =>
+      Promise.resolve({
+        content: [{ text: JSON.stringify(answer), type: "text" as const }],
+        finishReason: { raw: undefined, unified: "stop" as const },
+        usage: {
+          inputTokens: {
+            cacheRead: undefined,
+            cacheWrite: undefined,
+            noCache: undefined,
+            total: undefined,
+          },
+          outputTokens: {
+            reasoning: undefined,
+            text: undefined,
+            total: undefined,
+          },
+        },
+        warnings: [],
+      }),
+  });
+}
 
 function createMockModel(
   text: string[],
@@ -4067,4 +4153,181 @@ test("모든 스토리 조회 화면에 원본 표지와 같은 BlurHash를 전�
       expect(story?.coverBlurhash).toBe("LAME]I7y8w{e009uBC,t1j%f_1My");
     })
   );
+});
+
+describe("POST /ai/episode/stories", () => {
+  function savingApp(model = createWritingModel()) {
+    const state = createSeasonState();
+
+    state.madeStoryRequests = [];
+
+    return {
+      app: createApp({ authMiddleware: signedInWith(state), model }),
+      state,
+    };
+  }
+
+  test("각본을 만들어 저장하고 앱이 열 1화를 가리킨다", async () => {
+    const { app, state } = savingApp();
+    const response = await app.request(`${EPISODE_PATH}/stories`, {
+      body: JSON.stringify({ outline: MADE_OUTLINE }),
+      method: "POST",
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      episodeId: MADE_EPISODE_ID,
+      storyId: MADE_STORY_ID,
+    });
+    expect(state.madeStoryRequests).toHaveLength(1);
+  });
+
+  /*
+    사용자가 카드에서 본 것과 저장되는 것이 같아야 한다. 각본을 쓴 모델이
+    제목이나 화 번호를 흘려도 그 자리는 카드가 채운다.
+  */
+  test("저장 요청은 카드의 제목과 화 목록을 그대로 싣는다", async () => {
+    const { app, state } = savingApp();
+
+    await app.request(`${EPISODE_PATH}/stories`, {
+      body: JSON.stringify({ outline: MADE_OUTLINE }),
+      method: "POST",
+    });
+
+    const [request] = state.madeStoryRequests ?? [];
+    const story = request?.story as {
+      characters: { name: string; position: number }[];
+      episodes: { castNames: string[]; number: number; title: string }[];
+      title: string;
+    };
+
+    expect(story.title).toBe("베를린 출장 일주일");
+    expect(story.characters.map((person) => person.name)).toEqual([
+      "Lena",
+      "Markus",
+    ]);
+    expect(story.episodes).toEqual([
+      expect.objectContaining({
+        castNames: ["Lena"],
+        number: 1,
+        title: "예약이 없는 호텔",
+      }),
+    ]);
+  });
+
+  /*
+    화 수와 인물 수는 데이터베이스가 거절하는 규칙이다. 각본을 만드는 데 십수
+    초를 쓰기 전에 요청을 받은 자리에서 거른다.
+  */
+  test("규칙을 넘는 개요는 각본을 만들기 전에 돌려보낸다", async () => {
+    const { app, state } = savingApp();
+    const tooMany = {
+      ...MADE_OUTLINE,
+      episodes: [1, 2, 3, 4, 5, 6].map((number) => ({
+        cast: ["Lena"],
+        number,
+        preview: "무슨 일이 벌어져요.",
+        title: `${number}화`,
+      })),
+    };
+    const response = await app.request(`${EPISODE_PATH}/stories`, {
+      body: JSON.stringify({ outline: tooMany }),
+      method: "POST",
+    });
+
+    expect(response.status).toBe(400);
+    expect(state.madeStoryRequests).toHaveLength(0);
+  });
+
+  test("카드에 없는 이름이 화에 서면 돌려보낸다", async () => {
+    const { app, state } = savingApp();
+    const response = await app.request(`${EPISODE_PATH}/stories`, {
+      body: JSON.stringify({
+        outline: {
+          ...MADE_OUTLINE,
+          episodes: [
+            {
+              cast: ["Nobody"],
+              number: 1,
+              preview: "누군지 모를 사람이 말해요.",
+              title: "낯선 사람",
+            },
+          ],
+        },
+      }),
+      method: "POST",
+    });
+
+    expect(response.status).toBe(400);
+    expect(state.madeStoryRequests).toHaveLength(0);
+  });
+
+  /*
+    형식을 어긴 각본은 저장하지 않는다. 한 번 저장한 각본은 고칠 길이 없으므로,
+    장면 서술이 길거나 아무도 말하지 않는 도입은 여기서 막는다.
+  */
+  test("장면 서술이 너무 긴 각본은 저장하지 않는다", async () => {
+    const { app, state } = savingApp(
+      createWritingModel({
+        ...WRITTEN_STORY,
+        episodes: [
+          {
+            ...WRITTEN_STORY.episodes[0],
+            opening: "한 줄.\n두 줄.\n세 줄.\n네 줄.\nLena: Hello.",
+          },
+        ],
+      })
+    );
+    const response = await app.request(`${EPISODE_PATH}/stories`, {
+      body: JSON.stringify({ outline: MADE_OUTLINE }),
+      method: "POST",
+    });
+
+    expect(response.status).toBe(502);
+    expect(state.madeStoryRequests).toHaveLength(0);
+  });
+});
+
+describe("POST /ai/episode/create", () => {
+  test("대화 기록이 없으면 요청을 받지 않는다", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(createSeasonState()),
+      model: createMockModel(["무엇을 만들까요?"]),
+    });
+    const response = await app.request(`${EPISODE_PATH}/create`, {
+      body: JSON.stringify({ messages: [] }),
+      method: "POST",
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  /*
+    이 경로는 아무것도 저장하지 않는다. 화면을 나가면 대화와 카드가 사라진다는
+    약속이 그 사실에서 나온다.
+  */
+  test("대화를 남기지 않는다", async () => {
+    const state = createSeasonState();
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel(["호텔에서 예약이 없는 장면은 어떨까요?"]),
+    });
+    const response = await app.request(`${EPISODE_PATH}/create`, {
+      body: JSON.stringify({
+        messages: [
+          {
+            id: "u1",
+            parts: [{ text: "다음 달에 출장을 가요.", type: "text" }],
+            role: "user",
+          },
+        ],
+      }),
+      method: "POST",
+    });
+
+    expect(response.status).toBe(200);
+    await response.text();
+    expect(state.messages).toHaveLength(0);
+    expect(state.runs.flatMap((run) => run.id)).toEqual([STORY_PLAY_ID]);
+  });
 });
