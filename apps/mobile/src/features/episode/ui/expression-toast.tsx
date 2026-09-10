@@ -1,7 +1,8 @@
 import { ImpactFeedbackStyle, impactAsync } from "expo-haptics";
-import { useToast } from "heroui-native/toast";
+import { Toast, useToast } from "heroui-native/toast";
 import { useCallback } from "react";
 
+import { Icon } from "@/shared/ui/icon";
 import { savedExpressionLabels } from "./episode-labels";
 
 /** 읽고 사라지기에 충분한 시간. 대화를 오래 가리지 않는다. */
@@ -21,6 +22,9 @@ const TOAST_ID = "saved-expression";
  * 결과가 다른 탭에 생겨 그 자리에서는 보이지 않으므로 알린다. 누를 동작은 두지
  * 않는다. 표현 노트로 보내면 대화 흐름이 끊기고, 되돌리기는 방금 누른 책갈피를
  * 다시 누르는 것과 역할이 겹친다.
+ *
+ * 글자 폭에 맞춘 알약 하나로 서고 방금 누른 책갈피와 같은 아이콘을 단다. 전폭
+ * 카드에 짧은 한 줄만 담으면 빈자리가 대화를 그만큼 더 가린다.
  */
 export function useExpressionToast() {
   const { toast } = useToast();
@@ -31,11 +35,28 @@ export function useExpressionToast() {
       // 햅틱을 지원하지 않는 기기에서도 문구는 그대로 뜬다.
       impactAsync(ImpactFeedbackStyle.Light).catch(() => undefined);
       toast.show({
+        component: (props) => (
+          <Toast
+            {...props}
+            accessibilityLiveRegion="polite"
+            className="flex-row items-center gap-2 self-center rounded-full px-4 py-2.5"
+            testID="expression-toast"
+          >
+            <Icon
+              filled={isSaved}
+              name="bookmark"
+              size="sm"
+              tone={isSaved ? "accent" : "muted"}
+            />
+            <Toast.Title className="font-normal text-base leading-5">
+              {isSaved
+                ? savedExpressionLabels.saved
+                : savedExpressionLabels.unsaved}
+            </Toast.Title>
+          </Toast>
+        ),
         duration: TOAST_MS,
         id: TOAST_ID,
-        label: isSaved
-          ? savedExpressionLabels.saved
-          : savedExpressionLabels.unsaved,
       });
     },
     [toast]
