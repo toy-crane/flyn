@@ -7,7 +7,7 @@ import {
 } from "ai";
 
 import type { SceneSpeakerData } from "../../shared/scene-stream";
-import { type EpisodeCorrection, isKoreanText } from "./correction";
+import { type EpisodeCorrection, isKoreanText } from "./correction.js";
 import type { SavedExpressionDraft } from "./progress";
 
 /** 담을 수 있는 출처. 화면에 그대로 보이지 않으므로 영어 키를 쓴다. */
