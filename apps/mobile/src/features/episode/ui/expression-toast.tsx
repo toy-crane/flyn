@@ -1,20 +1,10 @@
 import { ImpactFeedbackStyle, impactAsync } from "expo-haptics";
-import { Toast, useToast } from "heroui-native/toast";
+import type { ReactNode } from "react";
 import { useCallback } from "react";
 
 import { Icon } from "@/shared/ui/icon";
+import { useScreenToast } from "@/shared/ui/screen-toast";
 import { savedExpressionLabels } from "./episode-labels";
-
-/** 읽고 사라지기에 충분한 시간. 대화를 오래 가리지 않는다. */
-const TOAST_MS = 2500;
-/**
- * 담기와 취소가 같은 한 자리를 나눠 쓴다.
- *
- * 토스트는 같은 id로 다시 띄우면 앞의 것을 갈아치운다. 연달아 담고 취소해도
- * 문구 하나만 서 있고, 서 있던 시간을 새로 센다. 대화 위에 같은 줄이 여러 개
- * 쌓이면 방금 무엇을 했는지가 오히려 흐려진다.
- */
-const TOAST_ID = "saved-expression";
 
 /**
  * 담고 도로 놓을 때마다 문구를 잠시 띄우고 가벼운 햅틱을 함께 준다.
@@ -25,40 +15,37 @@ const TOAST_ID = "saved-expression";
  *
  * 글자 폭에 맞춘 알약 하나로 서고 방금 누른 책갈피와 같은 아이콘을 단다. 전폭
  * 카드에 짧은 한 줄만 담으면 빈자리가 대화를 그만큼 더 가린다.
+ *
+ * 자리는 그 화면의 위쪽 띠 바로 밑이다. 대화에서는 상황 줄, 표현 돌아보기에서는
+ * 헤더 밑이며, 화면이 `toast`를 그 자리에 놓는다.
  */
-export function useExpressionToast() {
-  const { toast } = useToast();
+export function useExpressionToast(): {
+  announce: (isSaved: boolean) => void;
+  toast: ReactNode;
+} {
+  const { show, toast } = useScreenToast();
 
-  return useCallback(
+  const announce = useCallback(
     /** 담았으면 참, 도로 놓았으면 거짓. 두 문구가 같은 자리에 뜬다. */
     (isSaved: boolean) => {
       // 햅틱을 지원하지 않는 기기에서도 문구는 그대로 뜬다.
       impactAsync(ImpactFeedbackStyle.Light).catch(() => undefined);
-      toast.show({
-        component: (props) => (
-          <Toast
-            {...props}
-            accessibilityLiveRegion="polite"
-            className="flex-row items-center gap-2 self-center rounded-full px-4 py-2.5"
-            testID="expression-toast"
-          >
-            <Icon
-              filled={isSaved}
-              name="bookmark"
-              size="sm"
-              tone={isSaved ? "accent" : "muted"}
-            />
-            <Toast.Title className="font-normal text-base leading-5">
-              {isSaved
-                ? savedExpressionLabels.saved
-                : savedExpressionLabels.unsaved}
-            </Toast.Title>
-          </Toast>
+      show({
+        icon: (
+          <Icon
+            filled={isSaved}
+            name="bookmark"
+            size="sm"
+            tone={isSaved ? "accent" : "muted"}
+          />
         ),
-        duration: TOAST_MS,
-        id: TOAST_ID,
+        text: isSaved
+          ? savedExpressionLabels.saved
+          : savedExpressionLabels.unsaved,
       });
     },
-    [toast]
+    [show]
   );
+
+  return { announce, toast };
 }

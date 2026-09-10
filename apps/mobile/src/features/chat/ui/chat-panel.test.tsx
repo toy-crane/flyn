@@ -2186,10 +2186,12 @@ describe("상황 줄 배너", () => {
       />
     );
     const banner = screen.getByTestId("chat-banner");
+    // 띠는 흐름 안에 서서 자기 높이만큼 목록을 아래로 민다. 높이를 재기는
+    // 하지만 그것은 토스트가 띠 밑에서 나오게 하려는 것이고, 자리를 차지하는
+    // 방식과는 상관이 없다.
     expect(StyleSheet.flatten(banner.props.style)?.position).not.toBe(
       "absolute"
     );
-    expect(banner.props.onLayout).toBeUndefined();
     expect(
       StyleSheet.flatten(
         screen.getByTestId("chat-list").props.contentContainerStyle
@@ -2211,6 +2213,69 @@ describe("상황 줄 배너", () => {
 
     expect(screen.getByTestId("panel-banner")).toBeOnTheScreen();
     expect(screen.getByTestId("panel-closing")).toBeOnTheScreen();
+  });
+});
+
+describe("토스트 자리", () => {
+  test("알릴 것이 없으면 그 자리를 두지 않는다", async () => {
+    await renderWithHeroUI(<ChatPanel chat={chatSession()} />);
+
+    expect(screen.queryByTestId("chat-toast")).not.toBeOnTheScreen();
+  });
+
+  // 토스트는 상황 줄 밑에서 나온다. 헤더와 상황 줄을 덮지 않고, 대화 위에 떠서
+  // 말풍선을 밀지도 않는다.
+  test("토스트는 헤더와 상황 줄 아래에 뜨고 대화를 밀지 않는다", async () => {
+    const { Text, View } =
+      require("react-native") as typeof import("react-native");
+    await renderWithHeroUI(
+      <ChatPanel
+        banner={<Text>상황</Text>}
+        chat={chatSession()}
+        toast={<View testID="panel-toast" />}
+        topInset={116}
+      />
+    );
+
+    const layer = screen.getByTestId("chat-toast");
+    const style = StyleSheet.flatten(layer.props.style);
+
+    expect(style.position).toBe("absolute");
+    // 배너를 아직 재지 않은 첫 프레임에도 헤더 아래에서 시작한다.
+    expect(style.top).toBe(116);
+    // 목록보다 먼저 그려지는 자리라 순서를 밝혀야 말풍선 뒤로 깔리지 않는다.
+    expect(style.zIndex).toBeGreaterThan(0);
+    expect(style.elevation).toBeGreaterThan(0);
+    expect(within(layer).getByTestId("panel-toast")).toBeOnTheScreen();
+    // 목록의 시작점은 그대로다. 토스트가 자리를 차지했다면 여기가 밀린다.
+    expect(
+      StyleSheet.flatten(
+        screen.getByTestId("chat-list").props.contentContainerStyle
+      ).paddingTop
+    ).toBe(12);
+  });
+
+  test("상황 줄이 두 줄이 되면 토스트도 그만큼 내려온다", async () => {
+    const { Text, View } =
+      require("react-native") as typeof import("react-native");
+    await renderWithHeroUI(
+      <ChatPanel
+        banner={<Text>상황</Text>}
+        chat={chatSession()}
+        toast={<View testID="panel-toast" />}
+        topInset={116}
+      />
+    );
+
+    await act(() => {
+      fireEvent(screen.getByTestId("chat-banner"), "layout", {
+        nativeEvent: { layout: { height: 64, width: 393, x: 0, y: 0 } },
+      });
+    });
+
+    expect(
+      StyleSheet.flatten(screen.getByTestId("chat-toast").props.style).top
+    ).toBe(180);
   });
 });
 

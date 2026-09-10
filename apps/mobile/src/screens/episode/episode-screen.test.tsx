@@ -1,6 +1,6 @@
 import { beforeEach, expect, jest, test } from "@jest/globals";
 import type { Session } from "@supabase/supabase-js";
-import { screen, userEvent } from "@testing-library/react-native";
+import { act, screen, userEvent } from "@testing-library/react-native";
 import type { UIMessage } from "ai";
 import { usePreventRemove } from "expo-router/react-navigation";
 import type { ComponentType, ReactNode } from "react";
@@ -103,6 +103,10 @@ let mockCorrections: {
   retry: jest.Mock<(messageId: string) => void>;
 };
 
+/** 화면이 담기와 취소를 알려 오는 자리. 테스트가 그것을 대신 부른다. */
+type SavedChanged = (isSaved: boolean) => void;
+let mockSavedChanged: SavedChanged | undefined;
+
 /** 담아 둔 표현의 상태도 같은 스탠드인이 함께 돌려준다. */
 let mockSaved: {
   retain: jest.Mock<(messageIds: Set<string>) => void>;
@@ -118,8 +122,11 @@ jest.mock("@/features/episode/state/use-episode-story-play", () => {
       accessToken: string | undefined,
       episodeId: string,
       initialMessages: unknown[],
-      readOnly: boolean
+      readOnly: boolean,
+      ..._rest: unknown[]
     ) => {
+      // 담고 도로 놓았다고 알리는 자리. 화면이 마지막 인자로 넘긴다.
+      mockSavedChanged = _rest.at(-1) as SavedChanged;
       React.useEffect(() => {
         mockOpenedStoryPlays(
           accessToken,
@@ -199,6 +206,7 @@ jest.mock("@/features/chat/ui/chat-panel", () => {
         View,
         { accessibilityLabel: "episode panel" },
         props.banner,
+        props.toast,
         props.closing,
         Addon
           ? React.createElement(Addon, { message: CORRECTED_MESSAGE })
@@ -415,6 +423,24 @@ test("인물 말풍선 곁에 담아 둘 자리를 함께 넘긴다", async () =
   expect(panel?.utteranceAddon).toBeDefined();
   // 아직 담은 것이 없으므로 알릴 것도 없다.
   expect(panel?.toast).toBeUndefined();
+});
+
+test("담으면 상황 줄 밑에 뜰 문구를 대화판에 넘긴다", async () => {
+  await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
+
+  await act(() => {
+    mockSavedChanged?.(true);
+  });
+
+  expect(panel?.toast).toBeDefined();
+  expect(screen.getByText("표현을 저장했어요.")).toBeOnTheScreen();
+
+  await act(() => {
+    mockSavedChanged?.(false);
+  });
+
+  expect(screen.getByText("저장을 취소했어요.")).toBeOnTheScreen();
+  expect(screen.queryByText("표현을 저장했어요.")).toBeNull();
 });
 
 test("회차가 생기기 전에는 담아 둘 자리를 두지 않는다", async () => {
