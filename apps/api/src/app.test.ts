@@ -4348,7 +4348,16 @@ describe("POST /ai/episode/stories", () => {
     돌아왔을 때 표지가 이미 거기 있으려면 그래야 한다.
   */
   test("표지가 먼저 끝나면 1화를 열어 주기 전에 단다", async () => {
-    const { app, state } = savingApp();
+    /*
+      늦은 갈래로 새면 여기서 바로 터진다. 이 검사가 보려는 것은 표지가 먼저
+      끝났을 때 응답을 보내기 전에 단다는 것이지, 마침 그 순서로 끝났다는 것이
+      아니다.
+    */
+    const { app, state } = savingApp(createWritingModel(), {
+      waitUntil: () => {
+        throw new Error("표지가 먼저 끝났는데 늦은 갈래로 갔다");
+      },
+    });
     const response = await app.request(`${EPISODE_PATH}/stories`, {
       body: JSON.stringify({ outline: MADE_OUTLINE }),
       method: "POST",
