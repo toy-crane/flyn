@@ -21,7 +21,6 @@ interface Easing {
 }
 
 interface Keyframe {
-  e?: Vector;
   i?: Easing["i"];
   o?: Easing["o"];
   s: Vector;
@@ -93,9 +92,9 @@ const CONFETTI = bezier(0.14, 0.6, 0.32, 1);
 const still = (value: unknown): Property => ({ a: 0, k: value });
 
 /**
- * 값이 바뀌는 순간들을 키프레임으로 엮는다. 마지막 키프레임에는 값만 남기고,
- * 그 앞의 키프레임에는 다음 값을 `e`로도 적어 옛 렌더러까지 같은 보간을 하게
- * 한다.
+ * 값이 바뀌는 순간들을 키프레임으로 엮는다. 다음 값을 `e`로 되풀이하지 않는다.
+ * lottie-ios 4와 lottie-android 6은 다음 키프레임의 `s`를 끝값으로 읽고,
+ * iOS는 파일을 메인 스레드에서 Codable로 읽으므로 노드 수가 곧 멈춤 시간이다.
  */
 function animate(
   steps: { at: number; easing?: Easing; value: Vector }[]
@@ -103,12 +102,11 @@ function animate(
   return {
     a: 1,
     k: steps.map((step, index) => {
-      const next = steps[index + 1];
-      if (next === undefined) {
+      if (index === steps.length - 1) {
         return { s: step.value, t: step.at };
       }
       const easing = step.easing ?? EASE_OUT;
-      return { ...easing, e: next.value, s: step.value, t: step.at };
+      return { ...easing, s: step.value, t: step.at };
     }),
   };
 }
@@ -447,10 +445,9 @@ export function buildClosingBurst({ half }: { half: boolean }): LottieDocument {
           { at: at(0.55), easing: CONFETTI, value: [dx * 0.8, dy] },
           { at: at(1), value: [dx, dy + 80] },
         ]),
+        // 회전은 두 점이면 같은 곡선에 가깝다. 키프레임 수가 iOS의 읽기 시간이다.
         r: animate([
           { at: start, easing: CONFETTI, value: [0] },
-          { at: at(0.1), easing: CONFETTI, value: [turn * 0.2] },
-          { at: at(0.55), easing: CONFETTI, value: [turn * 0.6] },
           { at: at(1), value: [turn] },
         ]),
         s: animate([

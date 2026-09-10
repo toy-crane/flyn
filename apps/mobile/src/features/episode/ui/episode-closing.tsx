@@ -70,6 +70,13 @@ const MARK_BOX = 72;
  */
 const BURST_TOP = 46;
 const BURST_ORIGIN_Y = 120;
+/**
+ * iOS는 Core Animation 엔진이 색을 입힐 때마다 레이어를 다시 짓고, 그동안 멈춘
+ * 메인 스레드 뒤로 마크의 시계가 먼저 가서 튀는 장면을 건너뛴다. 메인 스레드
+ * 엔진은 프레임마다 그리기만 하므로 짓는 비용이 없다. Android의 SOFTWARE는
+ * 비트맵 렌더링이라 기본값을 둔다.
+ */
+const RENDER_MODE = process.env.EXPO_OS === "ios" ? "SOFTWARE" : "AUTOMATIC";
 
 /**
  * 결말이 났는지에 따라 연출이 다르다. `pending`은 동작 줄이기 설정을 아직 읽지
@@ -141,6 +148,9 @@ export function EpisodeClosing({
       testID="episode-closing"
     >
       <View className="absolute inset-0 bg-accent/5" pointerEvents="none" />
+      {/* 마크보다 먼저 만들어 iOS가 조각 파일을 읽는 동안 마크의 시계가 먼저
+          가지 않게 한다. 형제 순서상 마크와 글 뒤에 깔려 그 뒤에서 터진다. */}
+      {playing ? <CelebrationBurst half={!isSuccess} /> : null}
       <ScrollView
         className="shrink grow-0"
         contentContainerClassName="items-center gap-2 py-1"
@@ -170,7 +180,6 @@ export function EpisodeClosing({
           </Text>
         </Animated.View>
       </ScrollView>
-      {playing ? <CelebrationBurst half={!isSuccess} /> : null}
       <Animated.View style={playing ? settle : undefined}>
         <Button
           accessibilityLabel="표현 돌아보기"
@@ -214,6 +223,7 @@ function CompletionMark({ motion, quiet }: { motion: Motion; quiet: boolean }) {
           key={motion}
           loop={false}
           progress={motion === "still" ? 1 : 0}
+          renderMode={RENDER_MODE}
           source={source}
           style={{ height: source.h, width: source.w }}
           testID="episode-completion-mark"
@@ -245,6 +255,7 @@ function CelebrationBurst({ half }: { half: boolean }) {
           { color: expression, keypath: "Expression" },
         ]}
         loop={false}
+        renderMode={RENDER_MODE}
         source={source}
         style={{ height: source.h, width: source.w }}
         testID="episode-celebration-burst"
