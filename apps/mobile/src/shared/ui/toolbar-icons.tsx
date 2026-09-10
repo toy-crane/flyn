@@ -1,4 +1,5 @@
 import AccountCircle from "@expo/material-symbols/account_circle.xml";
+import Add from "@expo/material-symbols/add.xml";
 import ArrowBack from "@expo/material-symbols/arrow_back.xml";
 import Check from "@expo/material-symbols/check.xml";
 import Close from "@expo/material-symbols/close.xml";
@@ -20,6 +21,8 @@ import Home from "@expo/material-symbols/home.xml";
  * it with its own colour.
  */
 export const toolbarIcons = {
+  /** 새로 만드는 자리. 탐색의 우측 상단에 서서 스토리 만들기를 연다. */
+  add: { android: Add, ios: "plus" },
   back: { android: ArrowBack, ios: "chevron.backward" },
   close: { android: Close, ios: "xmark" },
   home: { android: Home, ios: "house" },
