@@ -11,6 +11,8 @@
 - Android 툴바 아이콘은 `@expo/material-symbols`가 아이콘마다 내주는 XML 벡터 드로어블을 쓴다. 배율별 PNG를 저장소에 두지 않는다.
 - 툴바 아이콘의 플랫폼 분기는 `Platform.OS`가 아니라 `process.env.EXPO_OS`로 쓴다.
 - 브랜드 로고나 제품 고유 그래픽은 프로젝트가 소유하는 이미지 또는 SVG 파일로 제공한다.
+- 결말 축하의 마크와 조각은 아이콘이 아니라 프로젝트가 소유하는 Lottie 애니메이션 파일이다. `scripts/closing-celebration`의 생성기가 만들고 `src/features/episode/ui/celebration/`에 두며, `lottie-react-native`가 그린다. 앱의 시스템 아이콘과 이모지는 축하 그래픽으로 쓰지 않는다.
+- Lottie 파일의 색은 밝은 화면의 값을 박아 두고, 앱이 `colorFilters`로 레이어 이름에 실행 시점의 시맨틱 색을 입힌다. 레이어 이름이 앱과 파일 사이의 약속이며 이름에 `.`을 두지 않는다.
 
 ## 경계
 
@@ -56,3 +58,5 @@
 - 설치된 Expo Router의 `Stack.Toolbar.Button`은 아이콘을 iOS 심벌 이름 또는 Android 이미지 자산으로 받는다. Android 구현은 이미지 소스가 없으면 경고를 남기고 `null`을 반환한다. 그래서 아이콘을 빠뜨린 버튼은 화면에도 접근성 트리에도 나타나지 않는다.
 - Expo Router 문서의 [Stack.Toolbar](https://docs.expo.dev/router/advanced/stack-toolbar/)는 Android 아이콘의 권장 출처로 `@expo/material-symbols`를 지목하고, 두 플랫폼을 한 곳에서 쓰는 방법으로 `process.env.EXPO_OS` 분기를 안내한다. Metro가 이 값을 빌드 시점에 문자열로 바꾸고 맞지 않는 가지를 걷어낸다.
 - `@expo/material-symbols@0.1.1`은 네이티브 코드와 config plugin이 없는 자산 패키지이고, `xml`은 Expo 기본 Metro 설정의 `assetExts`에 이미 들어 있다.
+- `lottie-react-native@7.3.8`의 `colorFilters`는 iOS에서 `<keypath>.**.Color`에 `ColorValueProvider`를, Android에서 `<keypath>.**`를 `.`으로 나눈 `KeyPath`에 `SimpleColorFilter`(`SRC_ATOP`)를 건다. 두 쪽 모두 채우기와 선의 색을 바꾸고 불투명도는 그대로 두지만, Android의 필터는 투명색으로 레이어를 숨기지 못한다. 그래서 고리 없는 마크는 색이 아니라 별도 파일로 만든다.
+- Expo SDK 57 문서에는 `lottie-react-native` 페이지가 없다(2026-09-10에 `/versions/v57.0.0/sdk/lottie/`, `/versions/latest/sdk/lottie/`가 404). SDK가 묶어 주는 버전은 설치된 `expo/bundledNativeModules.json`의 `~7.3.8`로 확인했고, [모바일 Expo 의존성 호환](mobile-expo-dependency-compatibility.md)의 검사도 같은 파일을 기준으로 삼는다.
