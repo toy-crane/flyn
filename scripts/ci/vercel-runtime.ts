@@ -27,6 +27,7 @@ export function createVercelRuntime(token: string) {
       VERCEL_PROJECT_ID: vercelProject,
     };
     env.GH_TOKEN = undefined;
+    env.VERCEL_TOKEN = undefined;
     env.SUPABASE_ACCESS_TOKEN = undefined;
     env.SUPABASE_DB_PASSWORD = undefined;
     const child = spawn(
