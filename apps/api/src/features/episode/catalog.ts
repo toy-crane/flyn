@@ -12,6 +12,13 @@ export interface StoryCardView {
   coverEmoji: string;
   coverImagePath: string | null;
   hook: string;
+  /**
+   * 부른 사람이 만든 스토리인지. 탐색의 `내 스토리` 필터가 이 값으로 거른다.
+   *
+   * 거르는 일을 앱이 맡는 것은 목록이 한 번의 조회로 오기 때문이다. 칩을 바꿀
+   * 때마다 다시 묻지 않는다.
+   */
+  mine: boolean;
   storyId: string;
   title: string;
   /** 스토리의 화 수. */
@@ -64,13 +71,20 @@ function storyCardOf(entry: StoryCatalogEntry): StoryCardView {
     coverEmoji: entry.coverEmoji,
     coverImagePath: entry.coverImagePath,
     hook: entry.hook,
+    mine: entry.mine,
     storyId: entry.id,
     title: entry.title,
     total: entry.episodes.length,
   };
 }
 
-/** 탐색 탭이 보여 주는 모든 공식 스토리. 순서는 콘텐츠가 정한다. */
+/**
+ * 탐색 탭이 보여 주는 모든 스토리.
+ *
+ * 부른 사람이 만든 스토리가 위에 만든 순서의 역순으로 서고, 공식 스토리가 그
+ * 아래에 콘텐츠가 정한 자리 순서로 이어진다. 그 순서는 읽는 조회가 정하므로
+ * 여기서 다시 세우지 않는다.
+ */
 export function storyListViewOf(
   catalog: readonly StoryCatalogEntry[]
 ): StoryListView {

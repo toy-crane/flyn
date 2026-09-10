@@ -126,8 +126,20 @@ create index retired_usernames_protected_until_idx
 -- 자기 완결 단위가 된다.
 create table public.stories (
   id uuid primary key default gen_random_uuid(),
-  position smallint not null unique,
-  slug text not null unique,
+  -- 이 스토리를 만든 사람. 공식 콘텐츠는 비어 있고, 사용자가 만든 스토리에만
+  -- 이름이 들어간다. 탐색에서 무엇이 보이는지를 이 한 열이 가른다.
+  --
+  -- 사람이 지워지면 그 사람이 만든 스토리도 함께 지운다. 공식 스토리는 주인이
+  -- 없어 이 연쇄에 걸리지 않는다.
+  owner_id uuid references public.profiles (id) on delete cascade,
+  -- 만든 순서. 탐색의 `내 스토리`가 최근에 만든 것부터 보여 준다. 공식
+  -- 스토리에는 `position`이 그 일을 하므로 이 값을 쓰지 않는다.
+  created_at timestamptz not null default now(),
+  -- 공식 콘텐츠 안의 자리. 사용자가 만든 스토리에는 없다.
+  position smallint unique,
+  -- seed가 공식 콘텐츠를 다시 올릴 때 같은 행을 찾는 열쇠. 사용자가 만든
+  -- 스토리에는 없으므로 seed의 문장이 그 행에 닿지 못한다.
+  slug text unique,
   title text not null,
   -- 목록 행에 쓰는 한 줄 소개. 사용자에게 벌어진 사건을 1인칭 한국어로 쓴다.
   hook text not null,
@@ -147,6 +159,12 @@ create table public.stories (
   constraint stories_position_usable check (position between 1 and 10000),
   constraint stories_slug_usable check (
     slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+  ),
+  -- 공식 콘텐츠는 자리와 열쇠를 함께 갖고, 사용자가 만든 스토리는 둘 다 갖지
+  -- 않는다. 한쪽만 가진 행을 막아야 seed가 절반만 찾아내는 일이 생기지 않는다.
+  constraint stories_authorship_usable check (
+    (owner_id is null) = (slug is not null)
+    and (owner_id is null) = (position is not null)
   ),
   constraint stories_title_usable check (
     length(btrim(title)) between 1 and 120
@@ -178,6 +196,13 @@ create table public.stories (
 
 -- 한 스토리에 사는 등장인물. 화가 바뀌어도 같은 것만 여기 있다.
 --
+-- 탐색이 "내가 만든 스토리를 최근에 만든 것부터"를 묻고, 정책도 행마다 같은
+-- 열을 확인한다. 두 열이 그 순서대로 앉아 있으면 그 질문이 이 색인만 탄다.
+-- 공식 스토리는 `owner_id`가 비어 있어 이 색인에 거의 자리를 차지하지 않는다.
+create index stories_owner_id_created_at_idx
+  on public.stories (owner_id, created_at desc)
+  where owner_id is not null;
+
 -- 인물을 스토리가 소유하면 같은 사람을 화마다 다시 설명하지 않는다. 화가 이
 -- 행을 가리키므로 1화의 Mia와 2화의 Mia가 같은 사람이라는 것이 글자 일치가
 -- 아니라 관계로 남는다. 그 화에서의 사정은 여기가 아니라 화의 `stage`가 쓴다.
@@ -187,7 +212,16 @@ create table public.stories (
 -- 막힌다. 한 모델이 여러 인물을 연기하므로 넷을 넘으면 인물이 흐려진다.
 create table public.characters (
   id uuid primary key default gen_random_uuid(),
-  story_id uuid not null references public.stories (id) on delete restrict,
+  -- 스토리가 인물을 소유하므로 스토리가 사라지면 인물도 사라진다. 계정을
+  -- 지우면 그 사람이 만든 스토리가 지워지는데, 여기가 `restrict`면 그 연쇄가
+  -- 막혀 계정 삭제가 절반만 지운 채 실패한다.
+  --
+  -- 공식 스토리를 실수로 지우는 것을 막는 일은 스토리를 바깥에서 가리키는
+  -- 회차와 저장한 표현이 맡는다. 그 둘은 행이 생긴 뒤에만 막으므로, 아무도
+  -- 플레이하지 않은 스토리는 `delete from public.stories` 한 문장에 인물과
+  -- 각본까지 함께 사라진다. 그 문장을 쓸 수 있는 것은 소유자와 `service_role`
+  -- 뿐이고 앱에는 그 길이 없다.
+  story_id uuid not null references public.stories (id) on delete cascade,
   name text not null,
   position smallint not null,
   persona text not null,
@@ -210,7 +244,8 @@ create table public.characters (
 -- 사람이 쓴 각본 한 편. 번호는 스토리 안의 순서이고, 참조에는 안정된 id를 쓴다.
 create table public.episodes (
   id uuid primary key default gen_random_uuid(),
-  story_id uuid not null references public.stories (id) on delete restrict,
+  -- `characters.story_id`와 같은 이유로 함께 지운다. 각본은 스토리의 일부다.
+  story_id uuid not null references public.stories (id) on delete cascade,
   number smallint not null,
   title text not null,
   preview text not null,
@@ -283,9 +318,11 @@ create table public.episode_characters (
   constraint episode_characters_episode_fkey
     foreign key (episode_id, story_id)
     references public.episodes (id, story_id) on delete cascade,
+  -- 인물이 사라지면 그 인물이 서 있던 자리도 사라진다. 인물을 바꿔 다시 올릴
+  -- 때는 이름이 같은 행을 갱신하므로 이 연쇄를 타지 않는다.
   constraint episode_characters_character_fkey
     foreign key (character_id, story_id)
-    references public.characters (id, story_id) on delete restrict,
+    references public.characters (id, story_id) on delete cascade,
   constraint episode_characters_at_usable check (at between 1 and 3)
 );
 
@@ -315,7 +352,15 @@ create table public.story_plays (
   -- 있어 남의 이름으로 회차를 여는 문장은 정책에 닿기 전에 권한에서 막힌다.
   user_id uuid not null default auth.uid()
     references public.profiles (id) on delete cascade,
-  story_id uuid not null references public.stories (id) on delete restrict,
+  -- 회차는 스토리를 바깥에서 가리킨다. 회차가 남아 있는 스토리를 지우는 문장은
+  -- 여기서 막혀야 하고, 공식 콘텐츠를 지키는 일이 그 막음이다.
+  --
+  -- 다만 확인을 문장이 끝날 때로 미룬다. 계정을 지우면 그 사람의 회차와 그
+  -- 사람이 만든 스토리가 같은 문장 안에서 함께 사라지는데, 지우는 차례는 정해져
+  -- 있지 않다. 스토리가 먼저 지워지는 차례에서 바로 확인하면 아직 남아 있는
+  -- 회차 때문에 계정 삭제가 통째로 막힌다. 문장이 끝날 때는 둘 다 사라져 있다.
+  story_id uuid not null references public.stories (id)
+    on delete no action deferrable initially deferred,
   started_at timestamptz not null default now(),
   -- 이 회차에서 사용자가 마지막으로 말한 시각. 스토리 탭의 `최근 대화`가 이
   -- 값으로 정렬한다.
@@ -367,7 +412,9 @@ create table public.episode_plays (
   -- 이 플레이가 속한 회차. 같은 화를 여러 회차에서 플레이할 수 있게 만드는
   -- 자리이자, 이야기 기억을 회차 안에 가두는 자리다.
   story_play_id uuid not null,
-  episode_id uuid not null references public.episodes (id) on delete restrict,
+  -- `story_plays.story_id`와 같은 이유로 확인을 문장 끝으로 미룬다.
+  episode_id uuid not null references public.episodes (id)
+    on delete no action deferrable initially deferred,
   started_at timestamptz not null default now(),
   -- 결말의 종류. 화면에도 이 낱말이 그대로 보인다.
   ending_kind text,
@@ -615,7 +662,9 @@ create table public.saved_expressions (
   kind text not null,
   -- 이 표현이 나온 화. 카드가 스토리 제목과 화 번호를 여기서 읽는다. 플레이가
   -- 아니라 각본을 가리키므로 회차를 지워도 출처 표시가 남는다.
-  episode_id uuid not null references public.episodes (id) on delete restrict,
+  -- `story_plays.story_id`와 같은 이유로 확인을 문장 끝으로 미룬다.
+  episode_id uuid not null references public.episodes (id)
+    on delete no action deferrable initially deferred,
   -- 담을 때 곁에 있던 메시지. 다시 받기나 수정으로 그 메시지가 사라지면 여기만
   -- 비고 항목은 남는다. 단일 열 참조라 주인을 나르는 `user_id`는 건드리지 않는다.
   message_id uuid references public.episode_messages (id) on delete set null,

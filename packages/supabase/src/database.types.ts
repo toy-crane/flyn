@@ -472,11 +472,13 @@ export type Database = {
           cover_blurhash: string | null
           cover_emoji: string
           cover_image_path: string | null
+          created_at: string
           hook: string
           id: string
           intro: string
-          position: number
-          slug: string
+          owner_id: string | null
+          position: number | null
+          slug: string | null
           target_language: string
           title: string
         }
@@ -486,11 +488,13 @@ export type Database = {
           cover_blurhash?: string | null
           cover_emoji: string
           cover_image_path?: string | null
+          created_at?: string
           hook: string
           id?: string
           intro: string
-          position: number
-          slug: string
+          owner_id?: string | null
+          position?: number | null
+          slug?: string | null
           target_language: string
           title: string
         }
@@ -500,15 +504,25 @@ export type Database = {
           cover_blurhash?: string | null
           cover_emoji?: string
           cover_image_path?: string | null
+          created_at?: string
           hook?: string
           id?: string
           intro?: string
-          position?: number
-          slug?: string
+          owner_id?: string | null
+          position?: number | null
+          slug?: string | null
           target_language?: string
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "stories_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       story_plays: {
         Row: {
@@ -555,6 +569,13 @@ export type Database = {
     }
     Functions: {
       available_usernames: { Args: { candidates: string[] }; Returns: string[] }
+      create_story: {
+        Args: { story: Json }
+        Returns: {
+          first_episode_id: string
+          story_id: string
+        }[]
+      }
       episode_is_current: {
         Args: { target_episode: string; target_story_play: string }
         Returns: boolean

@@ -165,15 +165,15 @@ SELECT ok(
 SELECT policies_are(
   'public',
   'stories',
-  array['stories_select_authenticated'],
-  'stories carries only the signed-in read policy'
+  array['stories_select_official_or_own'],
+  'stories carries only the read policy that keeps a made story to its maker'
 );
 
 SELECT policies_are(
   'public',
   'episodes',
-  array['episodes_select_authenticated'],
-  'episodes carries only the signed-in read policy'
+  array['episodes_select_visible_story'],
+  'episodes carries only the read policy that follows its story'
 );
 
 -- Only the privileges PostgREST can act on are pinned. The REFERENCES, TRIGGER,

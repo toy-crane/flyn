@@ -218,15 +218,15 @@ SELECT ok(
 SELECT policies_are(
   'public',
   'characters',
-  array['characters_select_authenticated'],
-  'characters는 로그인 읽기 정책 하나만 가진다'
+  array['characters_select_visible_story'],
+  'characters는 자기 스토리를 따라가는 읽기 정책 하나만 가진다'
 );
 
 SELECT policies_are(
   'public',
   'episode_characters',
-  array['episode_characters_select_authenticated'],
-  'episode_characters는 로그인 읽기 정책 하나만 가진다'
+  array['episode_characters_select_visible_story'],
+  'episode_characters는 자기 스토리를 따라가는 읽기 정책 하나만 가진다'
 );
 
 -- PostgREST가 쓸 수 있는 권한만 고정한다. 새 테이블이 달고 오는 REFERENCES,

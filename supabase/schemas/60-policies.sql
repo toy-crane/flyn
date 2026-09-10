@@ -13,45 +13,63 @@
 -- Functions are the exception and are revoked one by one in 50-functions.sql:
 -- Revoke both PUBLIC and direct API-role grants before restoring allowed calls.
 
--- 공식 스토리와 각본. 로그인한 사람은 읽을 수 있지만, 저장소에서 배포한
--- 콘텐츠를 앱이 바꾸지는 못한다.
+-- 스토리와 각본. 로그인한 사람은 공식 콘텐츠와 자기가 만든 스토리를 읽을 수
+-- 있지만, 어느 쪽도 앱이 바꾸지는 못한다.
+--
+-- 만든 스토리를 저장하는 것은 `create_story`다. 그 함수가 네 테이블을 한
+-- 문장으로 채우고 주인이 부르는 사람인지도 스스로 확인하므로, 여기에 insert
+-- 정책과 권한을 두지 않는다. 절반만 저장된 스토리가 생길 길이 그래서 없다.
 alter table public.stories enable row level security;
 
-create policy stories_select_authenticated on public.stories
+-- 주인이 없는 행은 공식 콘텐츠라 누구나 읽고, 주인이 있는 행은 그 사람만
+-- 읽는다. 탐색이 남의 스토리를 비추지 않는다는 약속이 이 한 줄에 있다. API는
+-- 사용자 자신의 클라이언트로 데이터베이스를 부르므로 이 정책이 마지막 관문이다.
+create policy stories_select_official_or_own on public.stories
   for select
   to authenticated
-  using (true);
+  using (owner_id is null or owner_id = (select auth.uid()));
 
 grant select on table public.stories to authenticated;
 grant all on table public.stories to service_role;
 
 alter table public.characters enable row level security;
 
-create policy characters_select_authenticated on public.characters
+-- 자식은 자기 부모가 보이는지만 묻는다. 그 물음이 위의 정책을 다시 타므로
+-- 소유 규칙이 한 곳에만 적혀 있고, 규칙이 바뀌어도 네 군데가 어긋나지 않는다.
+create policy characters_select_visible_story on public.characters
   for select
   to authenticated
-  using (true);
+  using (
+    exists (select 1 from public.stories where stories.id = characters.story_id)
+  );
 
 grant select on table public.characters to authenticated;
 grant all on table public.characters to service_role;
 
 alter table public.episodes enable row level security;
 
-create policy episodes_select_authenticated on public.episodes
+create policy episodes_select_visible_story on public.episodes
   for select
   to authenticated
-  using (true);
+  using (
+    exists (select 1 from public.stories where stories.id = episodes.story_id)
+  );
 
 grant select on table public.episodes to authenticated;
 grant all on table public.episodes to service_role;
 
 alter table public.episode_characters enable row level security;
 
-create policy episode_characters_select_authenticated
+create policy episode_characters_select_visible_story
   on public.episode_characters
   for select
   to authenticated
-  using (true);
+  using (
+    exists (
+      select 1 from public.stories
+      where stories.id = episode_characters.story_id
+    )
+  );
 
 grant select on table public.episode_characters to authenticated;
 grant all on table public.episode_characters to service_role;
@@ -122,7 +140,14 @@ create policy story_plays_select_own on public.story_plays
 
 -- 회차를 여는 것은 사람이 한다. 어느 스토리인지 말고 지킬 규칙이 없다: 회차는
 -- 언제나 1화부터 시작하므로 앞선 화를 따질 것이 없고, 스토리의 존재는 외래키가
--- 막는다.
+-- 막는다. 그 외래키는 이제 문장이 아니라 거래가 끝날 때 확인하므로, 없는
+-- 스토리를 가리키는 행은 그때 막힌다. 앱은 요청 하나가 거래 하나라 보이는
+-- 결과가 같다.
+--
+-- 외래키 확인은 RLS를 타지 않는다. 남의 만든 스토리 id를 알아낸 사람은 그것을
+-- 가리키는 회차를 열 수 있고, 그러면 그 주인의 계정 삭제가 참조 검사에 걸린다.
+-- id는 uuid라 맞힐 길이 사실상 없고, 이 참조가 `restrict`이던 때에도 결과는
+-- 같았다. 콘텐츠가 새는 길은 아니다.
 create policy story_plays_start_own on public.story_plays
   for insert
   to authenticated
