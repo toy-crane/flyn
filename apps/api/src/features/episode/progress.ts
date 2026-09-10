@@ -79,7 +79,6 @@ export interface EpisodeSessionView {
   /** 결말 다음에 보여 줄 예고. 같은 이유로 대화가 아니라 여기 실려 온다. */
   nextUp: NextUpData | undefined;
   readOnly: boolean;
-  story: { id: string; title: string };
   /**
    * 이 대화에서 담아 둔 표현. 어느 자리에 책갈피가 채워져 있는지만 담는다.
    *
@@ -88,6 +87,7 @@ export interface EpisodeSessionView {
    * 나르면 대화를 열 때마다 쓰지 않을 글이 함께 온다.
    */
   saved: SavedExpressionRef[];
+  story: { id: string; title: string };
 }
 
 /**
@@ -760,7 +760,7 @@ export async function readEpisodeSession(
     messages,
     nextUp,
     readOnly: Boolean(ending),
-    story: { id: story.id, title: story.title },
     saved,
+    story: { id: story.id, title: story.title },
   };
 }
