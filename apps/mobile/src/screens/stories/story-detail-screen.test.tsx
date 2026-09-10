@@ -34,6 +34,7 @@ function story(): StoryDetail {
     ],
     hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
     intro: "매일 들르는 동네 카페에서 벌어지는 다섯 번의 사건.",
+    mine: false,
     storyId: STORY_ID,
     title: "Mia의 카페",
     total: 5,

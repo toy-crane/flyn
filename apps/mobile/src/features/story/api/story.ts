@@ -14,6 +14,13 @@ export interface StoryCard {
   coverEmoji: string;
   coverImagePath: string | null;
   hook: string;
+  /**
+   * 내가 만든 스토리인지. 탐색의 `내 스토리` 칩이 이 값으로 목록을 거른다.
+   *
+   * 서버는 남의 만든 스토리를 아예 내려보내지 않으므로, 여기 참으로 오는 것은
+   * 언제나 내 것이다. 목록이 한 번의 조회로 오니 칩을 바꿀 때 다시 묻지 않는다.
+   */
+  mine: boolean;
   storyId: string;
   title: string;
   /** 스토리의 화 수. */

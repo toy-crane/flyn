@@ -1,8 +1,9 @@
 import { getTabStackScreenOptions } from "@/core/navigation/tab-stack";
 import { storyLabels } from "@/features/story/ui/story-labels";
 
-/** URL은 유지하고, 세 화면의 이동 이력은 탭 바깥의 Stack이 소유한다. */
+/** URL은 유지하고, 네 화면의 이동 이력은 탭 바깥의 Stack이 소유한다. */
 export const storyScreens = [
+  { name: "story/create", title: storyLabels.createTitle },
   { name: "story/[storyId]/index", title: "" },
   { name: "story/[storyId]/records", title: storyLabels.records },
   { name: "records/[storyId]", title: storyLabels.records },
