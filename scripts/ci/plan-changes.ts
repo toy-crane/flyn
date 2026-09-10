@@ -9,6 +9,7 @@ import {
   repoRoot,
   requireCleanCheckout,
 } from "./changes";
+import { edgeFunctionConfigurationChanged } from "./edge-readiness";
 
 const SHA = /^[a-f0-9]{40}$/;
 
@@ -21,9 +22,17 @@ const everything: ChangePlan = {
   validate: true,
 };
 
+function git(...args: string[]) {
+  const result = spawnSync(["git", ...args], { cwd: repoRoot });
+  if (result.exitCode !== 0) {
+    throw new Error("변경 판정에 필요한 Git 정보를 읽지 못했습니다.");
+  }
+  return result.stdout.toString().trim();
+}
+
 /**
  * The dedicated database plan also blocks rewritten migration history and
- * requires an impact note, so it runs whenever a base commit exists.
+ * requires an impact note, so it always runs against some earlier commit.
  */
 function databaseCheck(base: string, sha: string) {
   const result = spawnSync(
@@ -63,20 +72,27 @@ async function main() {
   }
   requireCleanCheckout();
   const base = await resolveBase();
-  let plan = everything;
-  let check = true;
-  if (base) {
-    plan = planChanges({
-      affected: affectedPackages(base, sha),
-      paths: changedPaths(base, sha),
-    });
-    check = databaseCheck(base, sha);
-  }
+  // Without a delivered base every service is a target, but the database
+  // checks still need something to compare against, so fall back to the
+  // parent commit rather than dropping the migration history guard.
+  const checkBase = base ?? git("rev-parse", "--verify", `${sha}^`);
+  const plan = base
+    ? planChanges({
+        affected: affectedPackages(base, sha),
+        edgeConfiguration: edgeFunctionConfigurationChanged(
+          base,
+          sha,
+          repoRoot
+        ),
+        paths: changedPaths(base, sha),
+      })
+    : everything;
   const deploy = plan.api || plan.database || plan.edge || plan.mobile;
   const lines = [
     `base=${base ?? ""}`,
+    `check_base=${checkBase}`,
     `validate=${plan.validate}`,
-    `db_check=${check}`,
+    `db_check=${databaseCheck(checkBase, sha)}`,
     `database=${plan.database}`,
     `edge=${plan.edge}`,
     `api=${plan.api}`,
@@ -86,8 +102,8 @@ async function main() {
   appendFileSync(output, `${lines.join("\n")}\n`);
   console.log(
     base
-      ? `기준 커밋 ${base.slice(0, 8)} 대비 판정: ${lines.slice(1).join(", ")}`
-      : `기준 커밋이 없어 전체를 대상으로 잡습니다: ${lines.slice(1).join(", ")}`
+      ? `기준 커밋 ${base.slice(0, 8)} 대비 판정: ${lines.slice(2).join(", ")}`
+      : `기준 커밋이 없어 전체를 대상으로 잡습니다: ${lines.slice(2).join(", ")}`
   );
 }
 

@@ -1,0 +1,29 @@
+# CI 변경 판정과 배포 조회에 남은 다듬을 점
+
+`docs/specs/ci-workflow-simplification/spec.md` 구현의 코드 리뷰에서 나왔다. 승인된 완료 조건을 깨지 않아 이번 작업에서 고치지 않았다.
+
+## 1. 수동 실행으로 성공한 배포가 기준 커밋이 되지 않는다
+
+`scripts/ci/base-commit.ts`의 조회 주소가 `event=push`로 걸러서, `workflow_dispatch`로 실행해 성공한 `main` 배포는 다음 판정의 기준 커밋이 되지 않는다.
+
+**재현할 상황**: 커밋 A에서 수동으로 `ci.yml`을 실행해 모바일까지 성공한다. 다음 push 커밋 B의 판정은 A를 건너뛰고 더 이전 커밋 Z를 기준으로 삼는다. `apps/mobile` 변경이 다시 잡히고, EAS는 커밋 B의 실행을 찾지 못해 새 워크플로를 띄운다. 이미 전달한 작업을 한 번 더 하게 된다.
+
+**확인한 근거**: 조회 주소에 `event=push`가 있고, `branch=main` 조건이 PR 실행을 이미 걸러내므로 이 필터를 빼도 다른 이벤트가 섞이지 않는다.
+
+**다음 단계**: `event=push`를 빼고, 수동 실행 성공도 기준 커밋으로 삼는다.
+
+## 2. 끝나지 않은 EAS 실행을 60번까지 다시 조회한다
+
+`scripts/ci/delivery-execution.ts`의 대기 반복이 `maxWaits`만큼 돈다. `EasDelivery.wait`는 `inspect`를 다시 부르고, `inspect`는 실행 목록 전체를 다시 읽는다.
+
+**재현할 상황**: EAS 실행이 `action-required`가 되면 `inspect`가 바로 대기를 반환한다. 그 뒤 60번을 더 조회하고 나서야 실패로 끝난다. 첫 조회에서 끝낼 수 있는 일에 100회에 가까운 API 왕복이 든다.
+
+**다음 단계**: 서비스가 사람의 조치를 기다린다고 알려 주면 반복하지 않고 바로 실패로 보고한다.
+
+## 3. API 배포 잡이 Vercel을 두 번 조회한다
+
+`scripts/ci/release-api.ts`가 빌드 여부를 정하려고 `inspect`를 부르고, 이어지는 `deliverService`가 첫 단계로 다시 `inspect`를 부른다.
+
+**재현할 상황**: 기존 배포가 없는 커밋에서 운영 도메인 조회와 배포 목록 조회가 각각 두 번씩 일어난다. 성공 경로에서는 HTTP 확인도 두 번 돈다.
+
+**다음 단계**: 첫 조회 결과를 `deliverService`에 넘겨 재사용한다.

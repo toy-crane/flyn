@@ -41,6 +41,11 @@ export async function lastSuccessfulSha(options: Options) {
     redirect: "error",
     signal: AbortSignal.timeout(30_000),
   });
+  if (response.status === 404) {
+    // GitHub does not know this workflow yet, which is the same situation as
+    // having no successful run: there is nothing delivered to compare against.
+    return null;
+  }
   if (!response.ok) {
     throw new Error(`이전 성공 실행 조회 실패 (${response.status})`);
   }

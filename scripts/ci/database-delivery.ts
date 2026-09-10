@@ -175,9 +175,14 @@ export class SupabaseDatabaseDelivery {
 
   async inspect(request: DeliveryRequest): Promise<DeliveryObservation> {
     const pending = await this.pending(request);
+    if (pending.length > 0) {
+      // Unapplied migrations mean nothing has started, not work in flight.
+      // A receipt here would make the caller wait for a push it never made.
+      return { remoteId: request.remoteId, status: "pending" };
+    }
     return {
       remoteId: request.remoteId ?? this.options.receiptId,
-      status: pending.length === 0 ? "success" : "pending",
+      status: "success",
     };
   }
 

@@ -1,5 +1,11 @@
 import { expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync, YAML } from "bun";
@@ -166,21 +172,28 @@ test("문서만 바꾼 커밋은 검사와 배포를 모두 건너뛴다", () =>
     expect(
       spawnSync(["git", "clone", "--quiet", "--local", root, clone]).exitCode
     ).toBe(0);
-    const git = (...args: string[]) =>
-      spawnSync(["git", ...args], { cwd: clone })
-        .stdout.toString()
-        .trim();
+    const git = (...args: string[]) => {
+      const result = spawnSync(["git", ...args], { cwd: clone });
+      if (result.exitCode !== 0) {
+        throw new Error(result.stderr.toString());
+      }
+      return result.stdout.toString().trim();
+    };
+    git("config", "user.name", "Fixture");
+    git("config", "user.email", "fixture@example.test");
+    git("config", "commit.gpgsign", "false");
+    const base = git("rev-parse", "HEAD");
+    writeFileSync(join(clone, "docs/plan-changes-fixture.md"), "docs only\n");
+    git("add", "docs/plan-changes-fixture.md");
+    git("commit", "-qm", "docs fixture");
     const head = git("rev-parse", "HEAD");
-    const base = git("rev-parse", "HEAD^");
-    const changed = git("diff", "--name-only", base, head)
-      .split("\n")
-      .filter(Boolean);
-    // Guard the fixture: this only proves the docs path when the range is docs.
-    expect(changed.length).toBeGreaterThan(0);
-    expect(changed.every((path) => path.startsWith("docs/"))).toBe(true);
+    expect(git("diff", "--name-only", base, head)).toBe(
+      "docs/plan-changes-fixture.md"
+    );
     expect(
       planChanges({
         affected: affectedPackages(base, head, clone),
+        edgeConfiguration: false,
         paths: changedPaths(base, head, clone),
       })
     ).toEqual({

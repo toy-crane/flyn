@@ -27,6 +27,7 @@ jobs:
     outputs:
       api: ${{ steps.plan.outputs.api }}
       base: ${{ steps.plan.outputs.base }}
+      check_base: ${{ steps.plan.outputs.check_base }}
       database: ${{ steps.plan.outputs.database }}
       db_check: ${{ steps.plan.outputs.db_check }}
       deploy: ${{ steps.plan.outputs.deploy }}
@@ -125,7 +126,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Replay migrations, test permissions, compare types and schema
         env:
-          BASE_SHA: ${{ needs.changes.outputs.base }}
+          BASE_SHA: ${{ needs.changes.outputs.check_base }}
           HEAD_SHA: ${{ github.sha }}
         run: bun scripts/ci/database.ts verify "$BASE_SHA" "$HEAD_SHA"
 

@@ -4,12 +4,12 @@ import { lastSuccessfulSha } from "./base-commit";
 const first = "1".repeat(40);
 const second = "2".repeat(40);
 
-function respond(runs: unknown[], ok = true) {
+function respond(runs: unknown[], status = 200) {
   return () =>
     Promise.resolve({
       json: () => Promise.resolve({ workflow_runs: runs }),
-      ok,
-      status: ok ? 200 : 500,
+      ok: status === 200,
+      status,
     } as Response);
 }
 
@@ -73,8 +73,14 @@ test("체크아웃에 없는 커밋은 기준으로 삼지 않는다", async () 
 
 test("조회 실패는 조용히 넘어가지 않는다", async () => {
   await expect(
-    lastSuccessfulSha({ ...options, fetch: respond([], false) })
+    lastSuccessfulSha({ ...options, fetch: respond([], 500) })
   ).rejects.toThrow();
+});
+
+test("아직 없는 워크플로는 기준 커밋이 없는 것으로 본다", async () => {
+  await expect(
+    lastSuccessfulSha({ ...options, fetch: respond([], 404) })
+  ).resolves.toBeNull();
 });
 
 test("형식이 다른 커밋은 거절한다", async () => {

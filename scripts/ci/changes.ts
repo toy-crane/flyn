@@ -20,6 +20,8 @@ const infrastructureFiles = [
 export interface ChangeInputs {
   /** Package names reported by `turbo query affected`. */
   affected: string[];
+  /** True when `[functions.*]` in supabase/config.toml differs. */
+  edgeConfiguration: boolean;
   /** Paths changed between the base commit and this commit. */
   paths: string[];
 }
@@ -40,14 +42,19 @@ function documentation(path: string) {
   );
 }
 
-export function planChanges({ affected, paths }: ChangeInputs): ChangePlan {
+export function planChanges({
+  affected,
+  edgeConfiguration,
+  paths,
+}: ChangeInputs): ChangePlan {
   const code = paths.filter((path) => !documentation(path));
   const database = code.some((path) => path.startsWith("supabase/migrations/"));
-  // Edge functions resolve their imports through Deno, never through workspace packages.
-  const edge = code.some(
-    (path) =>
-      path.startsWith("supabase/functions/") || path === "supabase/config.toml"
-  );
+  // Edge functions resolve their imports through Deno, never through workspace
+  // packages. Local Supabase settings never reach production, so only the
+  // `[functions.*]` section of config.toml counts.
+  const edge =
+    edgeConfiguration ||
+    code.some((path) => path.startsWith("supabase/functions/"));
   const infrastructure = code.some(
     (path) =>
       infrastructurePrefixes.some((prefix) => path.startsWith(prefix)) ||

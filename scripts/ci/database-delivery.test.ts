@@ -95,3 +95,27 @@ test("CLI 성공만으로 완료 처리하지 않고 미적용 이력을 대기�
   expect((await delivery.inspect(request)).status).toBe("pending");
   expect(pushes).toBe(1);
 });
+
+test("적용하지 않은 마이그레이션은 진행 중 요청으로 보고하지 않는다", async () => {
+  const delivery = new SupabaseDatabaseDelivery({
+    approved: {},
+    migrations: [{ hash: "a".repeat(64), version: "20260101000000" }],
+    receiptId: "https://github.com/toy-crane/flyn/actions/runs/1",
+    run: () =>
+      Promise.resolve(
+        JSON.stringify({
+          migrations: [{ local: "20260101000000", remote: "" }],
+        })
+      ),
+    sha: "a".repeat(40),
+  });
+  // A null remoteId is what tells the caller to start the push.
+  expect(
+    await delivery.inspect({
+      remoteId: null,
+      requestId: "receipt",
+      service: "database",
+      sha: "a".repeat(40),
+    })
+  ).toEqual({ remoteId: null, status: "pending" });
+});
