@@ -26,13 +26,13 @@ const SPOT: SavedExpressionSpot = {
   utteranceAt: 1,
 };
 
-function renderSlot(
+function slot(
+  toggle: (spot: SavedExpressionSpot) => void,
   state?: SavedExpressionState,
   isArriving = false,
   canSave = true
 ) {
-  const toggle = jest.fn<(spot: SavedExpressionSpot) => void>();
-  const view = renderWithHeroUI(
+  return (
     <SavedExpressionsProvider
       value={{ states: state ? { "s1:1": state } : {}, toggle }}
     >
@@ -47,8 +47,24 @@ function renderSlot(
       </UtteranceExpressionSlot>
     </SavedExpressionsProvider>
   );
+}
 
-  return { toggle, view };
+function renderSlot(
+  state?: SavedExpressionState,
+  isArriving = false,
+  canSave = true
+) {
+  const toggle = jest.fn<(spot: SavedExpressionSpot) => void>();
+
+  return {
+    /** 같은 자리를 그대로 두고 회차만 생긴 다음 프레임. */
+    rerender: (
+      view: Awaited<ReturnType<typeof renderWithHeroUI>>,
+      nextCanSave: boolean
+    ) => view.rerender(slot(toggle, state, isArriving, nextCanSave)),
+    toggle,
+    view: renderWithHeroUI(slot(toggle, state, isArriving, canSave)),
+  };
 }
 
 test("담지 않은 자리는 담기를 권하고 누르면 그 자리를 담는다", async () => {
@@ -90,17 +106,35 @@ test("장면이 도착하는 중이면 줄은 자리만 지키고 아무것도 �
   expect(row.props.importantForAccessibility).toBe("no-hide-descendants");
 });
 
-test("회차가 없으면 복사만 서고 회차가 생기면 책갈피가 합류한다", async () => {
-  const { view } = renderSlot(undefined, false, false);
-  await view;
+test("회차가 없으면 복사만 서고 회차가 생기면 책갈피가 같은 떠오름으로 합류한다", async () => {
+  const { rerender, view } = renderSlot(undefined, false, false);
+  const rendered = await view;
 
   expect(screen.getByLabelText(episodeLabels.copyUtterance)).toBeTruthy();
   expect(screen.queryByTestId("expression-bookmark")).toBeNull();
 
-  const withPlay = renderSlot(undefined, false, true);
-  await withPlay.view;
+  await rerender(rendered, true);
 
   expect(screen.getByTestId("expression-bookmark")).toBeTruthy();
+  // 줄은 이미 서 있으므로 줄이 아니라 이 아이콘 하나가 떠오른다.
+  expect(
+    screen.getByTestId("expression-bookmark-join", {
+      includeHiddenElements: true,
+    }).props.entering
+  ).toBeDefined();
+});
+
+test("처음부터 책갈피가 있는 줄에서는 아이콘이 따로 떠오르지 않는다", async () => {
+  const { view } = renderSlot();
+
+  await view;
+
+  // 2화의 첫 장면과 대화 기록이 이 경우다. 떠오름은 줄이 통째로 맡는다.
+  expect(
+    screen.getByTestId("expression-bookmark-join", {
+      includeHiddenElements: true,
+    }).props.entering
+  ).toBeUndefined();
 });
 
 test("장면이 다 오면 같은 자리에서 담을 수 있다", async () => {

@@ -1,7 +1,14 @@
 import { type UseChatHelpers, useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { randomUUID } from "expo-crypto";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import type { ExpressionResult } from "@/features/episode/api/episode-correction";
 import { checkEpisodeExpression } from "@/features/episode/api/episode-correction";
@@ -115,9 +122,14 @@ export function useEpisodeStoryPlay(
     [states, toggle]
   );
 
-  // 서버가 아는 자리를 위 층의 저장소에 가져다 놓는다. 표현 돌아보기도 같은
-  // 것을 하므로, 어느 쪽에서 담았든 다른 쪽이 채워진 책갈피를 본다.
-  useEffect(() => {
+  /*
+    서버가 아는 자리를 위 층의 저장소에 가져다 놓는다. 표현 돌아보기도 같은
+    것을 하므로, 어느 쪽에서 담았든 다른 쪽이 채워진 책갈피를 본다.
+
+    그리기 전에 넣는다. 끝난 화를 다시 열면 담아 둔 자리가 여럿인데, 그리고 나서
+    채우면 빈 책갈피가 한 프레임 비쳤다가 채워진다.
+  */
+  useLayoutEffect(() => {
     hydrate({ episodeId, saved: savedExpressions, storyPlayId });
   }, [episodeId, hydrate, savedExpressions, storyPlayId]);
   // 대화는 한 번만 만들어지므로 그때의 함수가 그대로 붙잡힌다. 지금 상태를

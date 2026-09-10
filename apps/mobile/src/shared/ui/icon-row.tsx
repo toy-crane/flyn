@@ -28,6 +28,10 @@ import { Icon } from "@/shared/ui/icon";
  *
  * 세로는 40pt다. 그려진 상자가 28pt이므로 위아래로 6pt씩 넓힌다. 가로로는
  * 넓히지 않는다. 옆 버튼에게서 손가락을 더 빼앗는다.
+ *
+ * 겹침은 클래스가 아니라 `style`에 이름을 가진 값으로 둔다. 8pt는 아이콘 폭과
+ * 버튼 폭에서 나오는 계산이고, 그 계산을 `icon-row.test.tsx`가 이 값으로
+ * 확인한다. 클래스 문자열로 옮기면 검사가 그 관계를 잃는다.
  */
 const BUTTON_OVERLAP = -2;
 const VERTICAL_HIT_SLOP = 6;
@@ -255,6 +259,7 @@ export function IconRow({
       }
       importantForAccessibility={isVisible ? "auto" : "no-hide-descendants"}
       pointerEvents={isVisible ? "auto" : "none"}
+      // 자리는 지키되 아무것도 그리지 않는다는 이 상태를 검사가 값으로 잰다.
       style={{ opacity: isVisible ? 1 : 0 }}
       testID={testID}
     >
@@ -273,5 +278,48 @@ export function IconRow({
         {children}
       </Animated.View>
     </View>
+  );
+}
+
+/**
+ * 이미 서 있는 줄에 뒤늦게 합류하는 아이콘 하나.
+ *
+ * 줄 전체가 떠오를 때는 줄이 그 움직임을 맡으므로 여기서는 아무것도 하지 않는다.
+ * 처음부터 있던 아이콘도 마찬가지다. 없다가 생긴 아이콘만 같은 떠오름으로
+ * 자리를 잡는다. 새 스토리 1화에서 첫 메시지를 보내 회차가 생기고 책갈피가
+ * 복사 옆에 합류하는 순간이 이 자리다.
+ */
+export function IconRowJoin({
+  children,
+  isPresent,
+  riseIndex = 0,
+  testID,
+}: {
+  children: ReactNode;
+  /** 이 아이콘이 지금 줄에 서는지. 거짓이면 아무것도 그리지 않는다. */
+  isPresent: boolean;
+  /** 몇 번째로 떠오르는지. 한 장면의 대사가 여럿이면 그 자리를 그대로 쓴다. */
+  riseIndex?: number;
+  testID?: string;
+}) {
+  const isReduced = useReducedMotion();
+  const wasAbsent = useRef(!isPresent);
+  const shouldRise = isPresent && wasAbsent.current && !isReduced;
+
+  useEffect(() => {
+    wasAbsent.current = !isPresent;
+  }, [isPresent]);
+
+  if (!isPresent) {
+    return null;
+  }
+
+  return (
+    <Animated.View
+      entering={shouldRise ? riseAfter(riseIndex) : undefined}
+      testID={testID}
+    >
+      {children}
+    </Animated.View>
   );
 }

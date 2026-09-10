@@ -9,6 +9,7 @@ import {
   IconRow,
   IconRowButton,
   IconRowCopyButton,
+  IconRowJoin,
 } from "@/shared/ui/icon-row";
 import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { StatusLine } from "@/shared/ui/status-line";
@@ -146,7 +147,13 @@ export function UtteranceExpressionSlot({
         testID="utterance-actions"
       >
         <IconRowCopyButton label={episodeLabels.copyUtterance} text={text} />
-        {canSave ? <ExpressionBookmark spot={spot} /> : null}
+        <IconRowJoin
+          isPresent={canSave}
+          riseIndex={at}
+          testID="expression-bookmark-join"
+        >
+          <ExpressionBookmark spot={spot} />
+        </IconRowJoin>
       </IconRow>
       <ExpressionSaveFailure align="start" spot={spot} />
     </View>
