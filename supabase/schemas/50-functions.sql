@@ -688,3 +688,54 @@ comment on function public.create_story(jsonb) is
 
 revoke all on function public.create_story(jsonb) from public, anon, authenticated, service_role;
 grant execute on function public.create_story(jsonb) to authenticated;
+
+/*
+  만든 스토리에 표지를 단다.
+
+  `authenticated`에게는 `stories`의 update 권한이 없다. 표지는 서버가 그림을
+  만들어 붙이는 것이라 클라이언트가 임의의 열을 고치는 길을 여는 대신, 이 함수
+  하나만 연다. 여기서 바뀌는 열은 표지 경로와 해시 둘뿐이다.
+
+  스토리당 한 장이다. `cover_image_path is null`이 그 조건이고, 이미 표지가
+  있으면 아무것도 하지 않는다. 카드를 고쳐 새 카드가 나오거나 같은 스토리를
+  다시 플레이해도 표지가 새로 덮이지 않는 이유가 이것이다.
+
+  자기 스토리에만, 자기 폴더의 파일로만 붙는다. 남의 스토리도, 공식 스토리도
+  아니고, 남이 올린 파일을 자기 표지로 삼을 수도 없다. 조건에 맞지 않으면
+  오류가 아니라 아무 줄도 바꾸지 않는다. 붙지 않은 표지는 빈 색 상자로 남고,
+  그것이 표지 실패와 같은 결과다.
+
+  경로는 저장소 정책이 허락하는 모양 그대로만 받는다. `made/<사용자 id>/`로
+  시작하는지만 보면 `made/<사용자 id>/../../avatars/<남의 id>/사진.jpg`처럼
+  정책이 만들 수 없는 경로도 지나간다. 두 버킷 모두 공개라 그 주소는 실제로
+  열린다. 해시 이름까지 맞춰 두 판정 지점이 같은 규칙을 말하게 한다.
+*/
+create or replace function public.set_story_cover(
+  story_id uuid,
+  cover_path text,
+  cover_blurhash text
+)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  update public.stories
+  set cover_image_path = set_story_cover.cover_path,
+      cover_blurhash = set_story_cover.cover_blurhash
+  where stories.id = set_story_cover.story_id
+    and stories.owner_id = (select auth.uid())
+    and stories.cover_image_path is null
+    and set_story_cover.cover_path ~ (
+      '^made/' || (select auth.uid())::text || '/[0-9a-f]{64}\.png$'
+    )
+    -- 해시 이름은 길이가 정해져 있지만, 미리보기 해시는 클라이언트가 보내는
+    -- 값이다. 열에 제약이 없으므로 여기서 막는다.
+    and char_length(set_story_cover.cover_blurhash) between 6 and 128;
+$$;
+
+comment on function public.set_story_cover(uuid, text, text) is
+  'Attaches one cover to a story the caller made, once, from that caller''s own folder.';
+
+revoke all on function public.set_story_cover(uuid, text, text) from public, anon, authenticated, service_role;
+grant execute on function public.set_story_cover(uuid, text, text) to authenticated;

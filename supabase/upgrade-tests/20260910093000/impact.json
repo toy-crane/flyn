@@ -1,0 +1,4 @@
+{
+  "impact": "none",
+  "reason": "storage.objects에 넣기 정책 하나를 더한다. 이미 올라간 파일과 기존 정책을 바꾸지 않는다."
+}

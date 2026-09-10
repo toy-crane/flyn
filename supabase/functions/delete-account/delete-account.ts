@@ -1,5 +1,8 @@
 const AVATAR_BUCKET = "avatars";
-const AVATAR_PAGE_SIZE = 100;
+/** 만든 스토리의 표지가 사는 곳. 한 사람 몫이 이 폴더 하나에 모인다. */
+const COVER_BUCKET = "story-covers";
+const MADE_COVER_FOLDER = "made";
+const STORAGE_PAGE_SIZE = 100;
 
 export interface AccountDeletionError {
   code?: string;
@@ -12,7 +15,7 @@ interface StorageEntry {
   name: string;
 }
 
-interface AvatarFolder {
+interface StorageFolder {
   list: (
     folder: string,
     options?: { limit?: number },
@@ -42,19 +45,19 @@ export interface AccountDeletionAdmin {
     };
   };
   storage: {
-    from: (bucket: string) => AvatarFolder;
+    from: (bucket: string) => StorageFolder;
   };
 }
 
-async function deleteAvatarFolder(
-  avatars: AvatarFolder,
+async function deleteStorageFolder(
+  bucket: StorageFolder,
   folder: string,
 ): Promise<void> {
   let hasMoreEntries = true;
 
   while (hasMoreEntries) {
-    const { data, error: listError } = await avatars.list(folder, {
-      limit: AVATAR_PAGE_SIZE,
+    const { data, error: listError } = await bucket.list(folder, {
+      limit: STORAGE_PAGE_SIZE,
     });
 
     if (listError) {
@@ -65,7 +68,7 @@ async function deleteAvatarFolder(
     const nestedFolders = entries.filter(({ id }) => id === null);
 
     for (const entry of nestedFolders) {
-      await deleteAvatarFolder(avatars, `${folder}/${entry.name}`);
+      await deleteStorageFolder(bucket, `${folder}/${entry.name}`);
     }
 
     const paths = entries
@@ -73,14 +76,14 @@ async function deleteAvatarFolder(
       .map(({ name }) => `${folder}/${name}`);
 
     if (paths.length > 0) {
-      const { error: removeError } = await avatars.remove(paths);
+      const { error: removeError } = await bucket.remove(paths);
 
       if (removeError) {
         throw removeError;
       }
     }
 
-    hasMoreEntries = entries.length === AVATAR_PAGE_SIZE;
+    hasMoreEntries = entries.length === STORAGE_PAGE_SIZE;
   }
 }
 
@@ -102,9 +105,16 @@ export async function deleteCurrentAccount(
     throw markError;
   }
 
-  const avatars = admin.storage.from(AVATAR_BUCKET);
-
-  await deleteAvatarFolder(avatars, userId);
+  await deleteStorageFolder(admin.storage.from(AVATAR_BUCKET), userId);
+  /*
+    만든 스토리의 표지도 이 계정의 것이다. 스토리 행은 프로필을 지울 때 함께
+    사라지지만 저장소의 파일은 그 연쇄를 따르지 않는다. 주인이 사라진 뒤에는
+    누구 것이었는지 되짚을 길도 없으므로 여기서 지운다.
+  */
+  await deleteStorageFolder(
+    admin.storage.from(COVER_BUCKET),
+    `${MADE_COVER_FOLDER}/${userId}`,
+  );
 
   const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
 

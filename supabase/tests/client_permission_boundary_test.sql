@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(45);
+SELECT plan(48);
 
 -- Effective privileges include table-wide and direct role grants, not only
 -- the explicit column grants written in the schema.
@@ -39,7 +39,8 @@ FROM (VALUES
   ('public.episode_is_current(uuid,uuid)', true, false),
   ('public.touch_story_play()', false, false),
   ('public.finish_episode(uuid,uuid,text,text,text,text,text,text)', true, false),
-  ('public.create_story(jsonb)', true, false)
+  ('public.create_story(jsonb)', true, false),
+  ('public.set_story_cover(uuid,text,text)', true, false)
 ) AS functions(signature, client_callable, service_callable)
 CROSS JOIN (VALUES ('anon'), ('authenticated'), ('service_role')) AS roles(role_name);
 

@@ -69,6 +69,9 @@ Deno.test("현재 사용자의 프로필 사진을 지운 뒤 인증 계정을 �
     ["from", "avatars"],
     ["list", "user-1"],
     ["remove", ["user-1/profile.jpg"]],
+    ["from", "story-covers"],
+    ["list", "made/user-1"],
+    ["remove", ["made/user-1/profile.jpg"]],
     ["deleteUser", "user-1"],
   ]);
 });
@@ -188,7 +191,11 @@ Deno.test("중첩 폴더에 남은 프로필 사진도 실제 파일까지 지�
 
   await deleteCurrentAccount(admin, "user-1");
 
-  assertEquals(removed, [["user-1/old/profile.jpg"]]);
+  // 표지 폴더도 같은 방법으로 훑는다. 이 가짜는 두 버킷에 같은 목록을 준다.
+  assertEquals(removed, [
+    ["user-1/old/profile.jpg"],
+    ["made/user-1/profile.jpg"],
+  ]);
 });
 
 Deno.test("삭제 시작 표시가 실패하면 사진이나 인증 계정을 지우지 않는다", async () => {
