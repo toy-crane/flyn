@@ -84,6 +84,8 @@ export function outlineOfMessage(message: UIMessage): StoryOutline | undefined {
     characters: outline.characters,
     episodes: outline.episodes,
     hook: outline.hook,
+    // 카드에 보이지 않지만 표지 그림이 쓴다. 서버까지 그대로 넘긴다.
+    setting: outline.setting,
     title: outline.title,
   };
 }

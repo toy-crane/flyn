@@ -4,6 +4,7 @@ import { inspect } from "node:util";
 import { APICallError, type LanguageModelV4StreamPart } from "@ai-sdk/provider";
 import { withSupabase } from "@supabase/server/adapters/hono";
 import { MockLanguageModelV4, simulateReadableStream } from "ai/test";
+import { encode as encodePng } from "fast-png";
 import type { MiddlewareHandler } from "hono";
 
 import deployedApp, { createApp } from "./app";
@@ -261,6 +262,8 @@ interface SeasonState {
   correctionSaveError?: string;
   expressionResults: Record<string, unknown>[];
   finished: FinishedRow[];
+  /** `set_story_cover`가 받은 표지 요청. */
+  madeCoverRequests?: Record<string, unknown>[];
   /**
    * 부른 사람이 만든 스토리. 이것을 부르는 테스트에만 보인다.
    *
@@ -276,6 +279,8 @@ interface SeasonState {
   runs: StoryPlayRow[];
   saved: SavedRow[];
   saveError?: string;
+  /** 표지 파일이 올라간 자리. */
+  uploadedCovers?: { bytes: Uint8Array; path: string }[];
 }
 
 /** 이미 진행 중인 회차 하나. 이어가는 테스트가 기본으로 쓴다. */
@@ -826,6 +831,12 @@ function signedInWith(
         });
       }
 
+      if (name === "set_story_cover") {
+        state.madeCoverRequests?.push(args);
+
+        return Promise.resolve({ data: null, error: null });
+      }
+
       if (name !== "finish_episode") {
         throw new Error(`Unexpected rpc call: ${name}`);
       }
@@ -836,6 +847,15 @@ function signedInWith(
         data: state.recordAccepted ?? true,
         error: state.recordError ? { message: state.recordError } : null,
       });
+    },
+    storage: {
+      from: () => ({
+        upload: (path: string, bytes: Uint8Array) => {
+          state.uploadedCovers?.push({ bytes, path });
+
+          return Promise.resolve({ error: null });
+        },
+      }),
     },
   };
 
@@ -899,6 +919,9 @@ interface CorrectionAnswer {
 const NO_CORRECTION: CorrectionAnswer = { entries: [], fixed: "" };
 
 /** 확정한 개요 하나. `대화 시작하기`가 이 모양을 보낸다. */
+/** 만든 표지가 사는 자리. 부른 사람의 폴더 안이고 이름은 내용의 해시다. */
+const MADE_COVER_PATH = /^made\/user-1\/[0-9a-f]{64}\.png$/;
+
 const MADE_OUTLINE = {
   characters: [
     { name: "Lena", position: 1, role: "호텔 프런트 직원." },
@@ -913,6 +936,7 @@ const MADE_OUTLINE = {
     },
   ],
   hook: "다음 달 베를린 출장인데, 혼자 해내야 해요",
+  setting: "베를린의 호텔 프런트",
   title: "베를린 출장 일주일",
 };
 
@@ -4156,13 +4180,44 @@ test("모든 스토리 조회 화면에 원본 표지와 같은 BlurHash를 전�
 });
 
 describe("POST /ai/episode/stories", () => {
-  function savingApp(model = createWritingModel()) {
+  /** 한 가지 색으로 채운 진짜 PNG. 표지 모델이 돌려주는 그림을 대신한다. */
+  function drawnPng(): Uint8Array {
+    const side = 8;
+    const data = new Uint8Array(side * side * 3);
+
+    for (let at = 0; at < data.length; at += 3) {
+      data[at + 2] = 255;
+    }
+
+    return encodePng({
+      channels: 3,
+      data,
+      depth: 8,
+      height: side,
+      width: side,
+    });
+  }
+
+  function savingApp(
+    model = createWritingModel(),
+    cover: {
+      drawCover?: (prompt: string) => Promise<Uint8Array>;
+      waitUntil?: (work: Promise<unknown>) => void;
+    } = {}
+  ) {
     const state = createSeasonState();
 
     state.madeStoryRequests = [];
+    state.madeCoverRequests = [];
+    state.uploadedCovers = [];
 
     return {
-      app: createApp({ authMiddleware: signedInWith(state), model }),
+      app: createApp({
+        authMiddleware: signedInWith(state),
+        drawCover: cover.drawCover ?? (() => Promise.resolve(drawnPng())),
+        model,
+        waitUntil: cover.waitUntil,
+      }),
       state,
     };
   }
@@ -4285,6 +4340,127 @@ describe("POST /ai/episode/stories", () => {
 
     expect(response.status).toBe(502);
     expect(state.madeStoryRequests).toHaveLength(0);
+  });
+
+  /*
+    표지는 각본과 나란히 만든다. 각본이 십수 초, 표지가 십 초쯤이라 보통은
+    표지가 먼저 끝나고, 그때는 1화를 열어 주기 전에 달아 둔다. 탐색으로
+    돌아왔을 때 표지가 이미 거기 있으려면 그래야 한다.
+  */
+  test("표지가 먼저 끝나면 1화를 열어 주기 전에 단다", async () => {
+    const { app, state } = savingApp();
+    const response = await app.request(`${EPISODE_PATH}/stories`, {
+      body: JSON.stringify({ outline: MADE_OUTLINE }),
+      method: "POST",
+    });
+
+    expect(response.status).toBe(200);
+    expect(state.uploadedCovers).toHaveLength(1);
+    expect(state.uploadedCovers?.[0]?.path).toMatch(MADE_COVER_PATH);
+    expect(state.madeCoverRequests).toHaveLength(1);
+    expect(state.madeCoverRequests?.[0]).toEqual({
+      cover_blurhash: expect.any(String),
+      cover_path: state.uploadedCovers?.[0]?.path,
+      story_id: MADE_STORY_ID,
+    });
+  });
+
+  /*
+    표지가 늦어도 기다리지 않는다. 각본이 끝나면 1화를 열어 주고, 표지는 그
+    뒤에 조용히 붙는다.
+  */
+  test("표지가 늦으면 1화를 먼저 열고 표지는 나중에 단다", async () => {
+    let finishDrawing: ((bytes: Uint8Array) => void) | undefined;
+    const drawn = new Promise<Uint8Array>((resolve) => {
+      finishDrawing = resolve;
+    });
+    const late: Promise<unknown>[] = [];
+    const { app, state } = savingApp(createWritingModel(), {
+      drawCover: () => drawn,
+      waitUntil: (work) => {
+        late.push(work);
+      },
+    });
+    const response = await app.request(`${EPISODE_PATH}/stories`, {
+      body: JSON.stringify({ outline: MADE_OUTLINE }),
+      method: "POST",
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      episodeId: MADE_EPISODE_ID,
+      storyId: MADE_STORY_ID,
+    });
+    expect(state.madeCoverRequests).toHaveLength(0);
+
+    finishDrawing?.(drawnPng());
+    await Promise.all(late);
+
+    expect(state.madeCoverRequests).toHaveLength(1);
+    expect(state.uploadedCovers).toHaveLength(1);
+  });
+
+  // 그림이 실패해도 스토리는 그대로 만들어진다. 표지 자리는 빈 색 상자로 남는다.
+  test("표지 만들기가 실패해도 스토리와 1화는 그대로다", async () => {
+    const { app, state } = savingApp(createWritingModel(), {
+      drawCover: () => Promise.reject(new Error("safety filter")),
+    });
+    const response = await app.request(`${EPISODE_PATH}/stories`, {
+      body: JSON.stringify({ outline: MADE_OUTLINE }),
+      method: "POST",
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      episodeId: MADE_EPISODE_ID,
+      storyId: MADE_STORY_ID,
+    });
+    expect(state.madeStoryRequests).toHaveLength(1);
+    expect(state.madeCoverRequests).toHaveLength(0);
+  });
+
+  // 저장이 실패하면 붙일 스토리가 없다. 표지도 달지 않는다.
+  test("각본이 실패하면 표지를 달지 않는다", async () => {
+    const { app, state } = savingApp(
+      createWritingModel({
+        ...WRITTEN_STORY,
+        episodes: [
+          {
+            ...WRITTEN_STORY.episodes[0],
+            opening: "한 줄.\n두 줄.\n세 줄.\n네 줄.\nLena: Hello.",
+          },
+        ],
+      })
+    );
+    const response = await app.request(`${EPISODE_PATH}/stories`, {
+      body: JSON.stringify({ outline: MADE_OUTLINE }),
+      method: "POST",
+    });
+
+    expect(response.status).toBe(502);
+    expect(state.madeCoverRequests).toHaveLength(0);
+  });
+
+  test("그림 문구에 사용자가 적은 이름이 들어가지 않는다", async () => {
+    const prompts: string[] = [];
+    const { app } = savingApp(createWritingModel(), {
+      drawCover: (prompt) => {
+        prompts.push(prompt);
+
+        return Promise.resolve(drawnPng());
+      },
+    });
+
+    await app.request(`${EPISODE_PATH}/stories`, {
+      body: JSON.stringify({ outline: MADE_OUTLINE }),
+      method: "POST",
+    });
+
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]).toContain("호텔 프런트 직원.");
+    expect(prompts[0]).toContain("베를린의 호텔 프런트");
+    expect(prompts[0]).not.toContain("Lena");
+    expect(prompts[0]).not.toContain("베를린 출장 일주일");
   });
 });
 

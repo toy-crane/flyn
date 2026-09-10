@@ -15,7 +15,10 @@
     "@repo/supabase": "workspace:*",
     "@supabase/server": "1.4.1",
     "@supabase/supabase-js": "2.112.2",
+    "@vercel/functions": "3.9.7",
     "ai": "7.0.58",
+    "blurhash": "2.0.5",
+    "fast-png": "6.2.0",
     "hono": "4.13.1"
   },
   "devDependencies": {

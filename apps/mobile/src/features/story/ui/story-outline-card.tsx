@@ -23,6 +23,8 @@ export interface StoryOutline {
   characters: OutlineCharacter[];
   episodes: OutlineEpisode[];
   hook: string;
+  /** 이야기가 벌어지는 곳 한 줄. 카드에 그리지 않고 표지 그림이 쓴다. */
+  setting?: string;
   title: string;
 }
 
