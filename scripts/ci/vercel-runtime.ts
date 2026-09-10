@@ -1,10 +1,20 @@
 import { readFileSync, writeFileSync } from "node:fs";
+import { stripVTControlCharacters } from "node:util";
 import { spawn } from "bun";
 import {
   VercelApiDelivery,
   vercelProject,
   vercelTeam,
 } from "./vercel-delivery";
+
+export function pullFailureSummary(stderr: string, token: string) {
+  const line = stripVTControlCharacters(stderr)
+    .split("\n")
+    .find((value) => value.startsWith("Error:"));
+  return line
+    ? line.replaceAll(token, "[redacted]").slice(0, 500)
+    : "오류 요약 없음";
+}
 
 export function createVercelRuntime(token: string) {
   if (!token) {
@@ -23,14 +33,14 @@ export function createVercelRuntime(token: string) {
       ["vercel", ...args, "--scope", "odd-inc", "--token", token],
       { env, stderr: "pipe", stdout: "pipe" }
     );
-    const [, , code] = await Promise.all([
+    const [, stderr, code] = await Promise.all([
       new Response(child.stdout).text(),
       new Response(child.stderr).text(),
       child.exited,
     ]);
     if (code !== 0) {
       throw new Error(
-        `Vercel ${args[0]} 실패. 원격 배포를 다시 확인해야 합니다.`
+        `Vercel ${args[0]} 실패. 원격 배포를 다시 확인해야 합니다.${args[0] === "pull" ? ` ${pullFailureSummary(stderr, token)}` : ""}`
       );
     }
   }
