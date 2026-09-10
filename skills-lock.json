@@ -229,6 +229,12 @@
       "skillPath": "skills/git/merge/SKILL.md",
       "computedHash": "a50bb9ea05c7c4d7b8ea1da8a57993a536d3a1c952e8693e822a177968ca83b4"
     },
+    "motion-design": {
+      "source": "lottiefiles/motion-design-skill",
+      "sourceType": "github",
+      "skillPath": "skills/motion-design/SKILL.md",
+      "computedHash": "9fcf9130cc46ee8fd1d8e09a9263347a9d76efbcbfa46591cc4cefaf19bbb453"
+    },
     "pr": {
       "source": "toy-crane/skills",
       "sourceType": "github",

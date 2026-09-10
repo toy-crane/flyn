@@ -3,10 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "check": "ultracite check . && bun story-covers/seed.ts --check",
+    "check": "ultracite check . && bun story-covers/seed.ts --check && bun closing-celebration/generate.ts --check",
     "check-types": "tsc --noEmit",
     "fix": "ultracite fix .",
-    "test": "bun test setup auth dev story-covers ci",
+    "test": "bun test setup auth dev story-covers ci closing-celebration",
     "test:integration": "bun test integration"
   },
   "dependencies": {

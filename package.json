@@ -11,6 +11,7 @@
     "agent-device:doctor": "agent-device doctor",
     "auth:otp": "bun scripts/auth/read-local-email-otp.ts",
     "build": "turbo run build",
+    "celebration:lottie": "bun scripts/closing-celebration/generate.ts",
     "check": "turbo run check",
     "check-types": "turbo run check-types",
     "covers:prepare": "bun scripts/story-covers/seed.ts",

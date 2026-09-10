@@ -218,6 +218,21 @@ jest.mock("react-native-enriched-markdown", () => {
   };
 });
 
+// Lottie is a native view, so it draws nothing under Jest. The stand-in keeps
+// every prop on a plain View: the closing-card tests read which file plays,
+// whether it plays or sits on its last frame, and which layers get recolored.
+// Real playback and the color override belong to device checks.
+jest.mock("lottie-react-native", () => {
+  const React = require("react") as typeof import("react");
+  const { View } = require("react-native") as typeof import("react-native");
+
+  return {
+    __esModule: true,
+    default: (props: Record<string, unknown>) =>
+      React.createElement(View, props as React.ComponentProps<typeof View>),
+  };
+});
+
 // The library ships its own stand-in for the native side, which is what lets a
 // screen using KeyboardStickyView render without a device keyboard.
 jest.mock("react-native-keyboard-controller", () =>

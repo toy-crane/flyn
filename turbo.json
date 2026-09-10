@@ -16,6 +16,17 @@
     "check": {
       "dependsOn": ["transit"]
     },
+    // scripts의 check는 다른 패키지에 있는 생성 파일이 생성기와 같은지 견준다.
+    // 그 파일이 입력에 없으면 손으로 고쳐도 지난 통과를 그대로 재생한다.
+    "@repo/scripts#check": {
+      "dependsOn": ["transit"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../apps/mobile/src/features/episode/ui/celebration/*.gen.json",
+        "../supabase/story-covers/**",
+        "../supabase/seed-story-covers.sql"
+      ]
+    },
     "@repo/mobile#check": {
       "cache": false,
       "dependsOn": ["transit"]
