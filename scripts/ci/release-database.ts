@@ -2,6 +2,7 @@ import { spawnSync } from "bun";
 import { loadDatabaseDelivery } from "./database-delivery";
 import { executeDelivery } from "./delivery-execution";
 import { GitHubDeliveryJournal } from "./delivery-journal";
+import { requireApiDatabase } from "./release-api";
 import { requireReleaseChecks } from "./release-checks";
 
 const SHA = /^[a-f0-9]{40}$/;
@@ -32,6 +33,25 @@ async function main() {
   });
   const journal = new GitHubDeliveryJournal(token);
   const initial = await journal.read();
+  if (
+    initial.state.pending?.service === "api" &&
+    initial.state.pending.sha === sha
+  ) {
+    requireApiDatabase(initial.state.success.database, sha);
+    const observed = await database.inspect({
+      remoteId: null,
+      requestId: `resume-${runId}`,
+      service: "database",
+      sha,
+    });
+    if (observed.status !== "success") {
+      throw new Error("API 재확인 전에 DB 적용 이력이 필요합니다.");
+    }
+    console.log(
+      "DB 적용을 확인했습니다. 기존 API 요청을 다음 단계에서 조회합니다."
+    );
+    return;
+  }
   if (initial.state.pending && initial.state.pending.service !== "database") {
     throw new Error("기존 서비스 배포를 먼저 확인해야 합니다.");
   }
