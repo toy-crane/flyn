@@ -27,10 +27,7 @@ import {
 } from "@/features/episode/ui/episode-labels";
 import { EpisodeSituationBanner } from "@/features/episode/ui/episode-situation-banner";
 import { UtteranceExpressionSlot } from "@/features/episode/ui/expression-bookmark";
-import {
-  ExpressionToast,
-  useExpressionToast,
-} from "@/features/episode/ui/expression-toast";
+import { useExpressionToast } from "@/features/episode/ui/expression-toast";
 import { useExpressionNoteRefresh } from "@/features/note/query/expression-note";
 import { StatusLine } from "@/shared/ui/status-line";
 
@@ -91,19 +88,16 @@ export function EpisodeScreen({
 }) {
   const { session } = useAuthSession();
   const accessToken = session?.access_token;
-  const { announce, isVisible: isToastVisible } = useExpressionToast();
+  const announce = useExpressionToast();
   const refreshNote = useExpressionNoteRefresh();
   /*
     담은 것과 도로 놓은 것이 표현 노트에도 닿아야 한다. 노트 탭은 앱이 열릴 때
     한 번 배치되고 그대로 붙어 있어서, 여기서 알리지 않으면 앱을 다시 켤 때까지
-    낡은 목록을 보여 준다. 알림은 담았을 때만 뜬다.
+    낡은 목록을 보여 준다.
   */
   const changed = useCallback(
     (isSaved: boolean) => {
-      if (isSaved) {
-        announce();
-      }
-
+      announce(isSaved);
       refreshNote();
     },
     [announce, refreshNote]
@@ -222,7 +216,6 @@ export function EpisodeScreen({
           key={panelKey}
           messageAddon={EpisodeCorrectionNote}
           placeholder={episodeLabels.placeholder}
-          toast={isToastVisible ? <ExpressionToast /> : undefined}
           /*
             회차가 생기기 전의 첫 장면에는 책갈피를 두지 않는다.
 

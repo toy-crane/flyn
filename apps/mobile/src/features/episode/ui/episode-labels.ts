@@ -63,4 +63,6 @@ export const savedExpressionLabels = {
   saveRetry: "표현 저장 다시 시도",
   /** Not shown: the bookmark on a line that is already saved. */
   unsave: "저장 취소",
+  /** Shown after a saved bookmark empties. */
+  unsaved: "저장을 취소했어요.",
 } as const;

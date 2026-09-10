@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { render } from "@testing-library/react-native";
 import { HeroUINativeProviderRaw } from "heroui-native/provider-raw";
+import { ToastProvider } from "heroui-native/toast";
 import type { ReactElement } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -37,7 +38,18 @@ function withProviders(element: ReactElement, safeAreaBottomInset: number) {
     <QueryProvider>
       <SafeAreaProvider initialMetrics={safeAreaMetrics}>
         <HeroUINativeProviderRaw config={{ animation: "disable-all" }}>
-          {element}
+          {/*
+            The raw provider leaves the toast system out, so a screen that
+            announces something finds the same provider it finds at runtime
+            rather than throwing. The overlay window is off: it is a native
+            view the test renderer has no use for.
+          */}
+          <ToastProvider
+            defaultProps={{ animation: "disable-all", placement: "top" }}
+            disableFullWindowOverlay
+          >
+            {element}
+          </ToastProvider>
         </HeroUINativeProviderRaw>
       </SafeAreaProvider>
     </QueryProvider>
