@@ -73,6 +73,14 @@ const KEYBOARD_INPUT_GAP = 8;
 const LATEST_OVERLAY_HEIGHT = 60;
 const USER_SCROLL_THRESHOLD = 24;
 const MESSAGE_TOP_SPACING = 12;
+/**
+ * 토스트가 목록 위에 서는 높이.
+ *
+ * iOS는 `zIndex`, Android는 `elevation`이 그림자와 함께 순서를 정한다. 둘 다
+ * 주어야 어느 쪽에서도 알약이 말풍선 뒤로 깔리지 않는다. 입력창과는 화면의
+ * 반대편이라 다투지 않는다.
+ */
+const TOAST_ELEVATION = 2;
 // 닫힘 신호나 스크롤 완료 신호가 빠져도 입력과 읽기를 계속할 수 있다.
 const SCROLL_MOTION_TIMEOUT_MS = 4000;
 // 서버 메시지가 아직 없을 때만 목록의 답변 자리를 확보한다.
@@ -473,6 +481,7 @@ export function ChatPanel({
   messageAddon,
   placeholder = "메시지를 입력하세요",
   source,
+  toast,
   topInset = 0,
   utteranceAddon,
 }: {
@@ -524,6 +533,13 @@ export function ChatPanel({
   placeholder?: string;
   /** The read-only source a side conversation started from, above its list. */
   source?: ReactElement;
+  /**
+   * 위쪽 띠 바로 밑에서 잠시 떴다 사라지는 문구. 화면이 만들어 넘긴다.
+   *
+   * 띠 아래 자리의 맨 위에 떠서 대화를 밀지 않고, 헤더와 띠도 덮지 않는다.
+   * 자리 규칙은 `docs/decisions/mobile-toast-placement.md`가 소유한다.
+   */
+  toast?: ReactNode;
   topInset?: number;
   /**
    * 인물 말풍선 하나를 감싸는 자리. 화면이 그 곁에 둘 것이 있을 때만 넘긴다.
@@ -560,6 +576,11 @@ export function ChatPanel({
   const canSend = chat.draft.trim().length > 0 && !chat.isBusy;
   const composerBottomPadding = Math.max(insets.bottom, 12);
   const hasBanner = banner !== undefined && banner !== null;
+  // 토스트가 띠 바로 밑에서 나오려면 띠가 실제로 차지한 높이를 알아야 한다.
+  const [bannerHeight, setBannerHeight] = useState(0);
+  const updateBannerHeight = useCallback((event: LayoutChangeEvent) => {
+    setBannerHeight(event.nativeEvent.layout.height);
+  }, []);
   const lastMessage = chat.messages.at(-1);
   const doomedFromIndex = chat.editingMessageId
     ? chat.messages.findIndex((message) => message.id === chat.editingMessageId)
@@ -911,10 +932,38 @@ export function ChatPanel({
       testID="chat-panel"
     >
       {hasBanner ? (
-        <View pointerEvents="none" testID="chat-banner">
+        <View
+          onLayout={updateBannerHeight}
+          pointerEvents="none"
+          testID="chat-banner"
+        >
           {banner}
         </View>
       ) : null}
+      {/*
+        토스트가 사는 자리. 띠의 아래 끝에 맞춰 두면 알약이 띠 밑에서 나와 대화
+        위에 뜨고, 헤더와 띠는 덮이지 않는다. 띠 높이는 글자 크기에 따라 달라져
+        상수로 둘 수 없으므로 그린 뒤에 잰다.
+
+        `zIndex`를 주는 이유는 이 자리가 목록보다 먼저 그려지기 때문이다. 주지
+        않으면 알약이 말풍선 뒤로 깔려 위쪽 테두리만 비어져 나온다.
+      */}
+      {toast === undefined ? null : (
+        <View
+          pointerEvents="none"
+          style={{
+            elevation: TOAST_ELEVATION,
+            left: 0,
+            position: "absolute",
+            right: 0,
+            top: topInset + bannerHeight,
+            zIndex: TOAST_ELEVATION,
+          }}
+          testID="chat-toast"
+        >
+          {toast}
+        </View>
+      )}
       <KeyboardAwareLegendList
         anchoredEndSpace={
           anchorIndex === undefined

@@ -92,7 +92,7 @@ export function EpisodeScreen({
 }) {
   const { session } = useAuthSession();
   const accessToken = session?.access_token;
-  const announce = useExpressionToast();
+  const { announce, toast } = useExpressionToast();
   const refreshNote = useExpressionNoteRefresh();
   /*
     담은 것과 도로 놓은 것이 표현 노트에도 닿아야 한다. 노트 탭은 앱이 열릴 때
@@ -230,6 +230,7 @@ export function EpisodeScreen({
           key={panelKey}
           messageAddon={EpisodeCorrectionNote}
           placeholder={episodeLabels.placeholder}
+          toast={toast}
           /*
             회차가 생기기 전의 첫 장면에는 책갈피를 두지 않는다.
 
