@@ -50,6 +50,7 @@ import { sceneUtterances, writeKoreanMeaning } from "./saved-expression.js";
 import {
   type EpisodeClient,
   type EpisodeScript,
+  readStoryCast,
   readStoryCatalog,
   readStoryContentById,
   readStoryOfEpisode,
@@ -444,7 +445,15 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           return c.json({ error: "Story is unavailable." }, 404);
         }
 
-        return c.json(storyDetailViewOf(entry));
+        // 새 회차의 1화는 저장된 대화가 없어 세션을 읽지 못한다. 그 화면이
+        // 이름표 색을 고르는 데 쓸 인물을 상세가 실어 보낸다.
+        const cast = await readStoryCast(
+          c.var.supabaseContext.supabase,
+          entry.id,
+          entry.slug
+        );
+
+        return c.json(storyDetailViewOf(entry, cast));
       })
       // 대화 기록. 이 스토리의 회차를 시작한 순서의 역순으로 보여 준다.
       .get(

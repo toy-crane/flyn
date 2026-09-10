@@ -1,4 +1,4 @@
-import type { StoryCatalogEntry } from "./story";
+import type { StoryCatalogEntry, StoryCharacter } from "./story";
 
 /**
  * 탐색이 보여 주는 스토리 한 장.
@@ -83,11 +83,20 @@ export function storyListViewOf(
  * 모든 화의 제목과 상황 설명을 공개한다. 무엇을 플레이할지 판단할 수 있어야 하고,
  * 결말은 상황 설명에 들어 있지 않다.
  */
-export function storyDetailViewOf(entry: StoryCatalogEntry): StoryDetailView {
+export function storyDetailViewOf(
+  entry: StoryCatalogEntry,
+  /**
+   * 이 스토리의 화마다 서는 인물. 상세를 여는 경로가 따로 읽어 넘긴다.
+   *
+   * 목록은 이 값을 쓰지 않으므로 목록을 그리는 조회에 얹지 않는다. 스토리
+   * 하나만 읽으면 콘텐츠가 늘어도 이 조회가 함께 커지지 않는다.
+   */
+  cast: ReadonlyMap<string, readonly StoryCharacter[]>
+): StoryDetailView {
   return {
     ...storyCardOf(entry),
     episodes: entry.episodes.map((episode) => ({
-      cast: episode.cast.map((person) => ({
+      cast: (cast.get(episode.id) ?? []).map((person) => ({
         name: person.name,
         position: person.position,
       })),
