@@ -1,5 +1,6 @@
 import { expect, jest, test } from "@jest/globals";
 import { screen, userEvent } from "@testing-library/react-native";
+import { setStringAsync } from "expo-clipboard";
 import { Text } from "react-native";
 
 import type { SavedExpressionSpot } from "@/features/episode/api/saved-expression";
@@ -8,8 +9,16 @@ import {
   SavedExpressionsProvider,
 } from "@/features/episode/state/saved-expressions";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
-import { savedExpressionLabels } from "./episode-labels";
+import { episodeLabels, savedExpressionLabels } from "./episode-labels";
 import { UtteranceExpressionSlot } from "./expression-bookmark";
+
+jest.mock("expo-clipboard", () => ({
+  setStringAsync: jest.fn(() => Promise.resolve(true)),
+}));
+
+const mockSetStringAsync = jest.mocked(setStringAsync);
+
+const LINE = "Next in line, please!";
 
 const SPOT: SavedExpressionSpot = {
   kind: "utterance",
@@ -23,8 +32,13 @@ function renderSlot(state?: SavedExpressionState, isArriving = false) {
     <SavedExpressionsProvider
       value={{ states: state ? { "s1:1": state } : {}, toggle }}
     >
-      <UtteranceExpressionSlot at={1} isArriving={isArriving} messageId="s1">
-        <Text>Next in line, please!</Text>
+      <UtteranceExpressionSlot
+        at={1}
+        isArriving={isArriving}
+        messageId="s1"
+        text={LINE}
+      >
+        <Text>{LINE}</Text>
       </UtteranceExpressionSlot>
     </SavedExpressionsProvider>
   );
@@ -100,4 +114,16 @@ test("담지 못하면 그 자리에 한 줄이 남고 다시 시도할 수 있�
   await userEvent.press(screen.getByLabelText(savedExpressionLabels.saveRetry));
 
   expect(toggle).toHaveBeenCalledWith(SPOT);
+});
+
+// 말풍선 아래 줄은 담기와 복사를 나란히 둔다. 장면 전체가 아니라 그 대사
+// 하나만 담기므로, 여러 대사가 흐른 장면에서도 누른 자리의 글이 나간다.
+test("대사 복사는 그 말풍선의 글만 클립보드에 넣는다", async () => {
+  mockSetStringAsync.mockClear();
+  const { view } = renderSlot();
+  await view;
+
+  await userEvent.press(screen.getByLabelText(episodeLabels.copyUtterance));
+
+  expect(mockSetStringAsync).toHaveBeenCalledWith(LINE);
 });

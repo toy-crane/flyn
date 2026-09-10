@@ -12,6 +12,10 @@ export const episodeLabels = {
   conversationLoading: "대화를 불러오고 있어요",
   /** Shown when one episode's saved conversation could not be read. */
   conversationUnavailable: "대화를 불러오지 못했어요.",
+  /** Not shown: the icon row under a learning expression. */
+  copyExpression: "표현 복사",
+  /** Not shown: the icon row under one character's line. */
+  copyUtterance: "대사 복사",
   /** 에피소드에서 두 언어를 모두 입력할 수 있음을 알린다. */
   placeholder: "영어나 한국어로 적어 주세요.",
   /** Shown when the story could not be read, as the way to ask again. */

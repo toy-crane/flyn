@@ -1,5 +1,6 @@
 import { afterEach, expect, jest, test } from "@jest/globals";
 import { screen, userEvent } from "@testing-library/react-native";
+import { setStringAsync } from "expo-clipboard";
 import { Dimensions } from "react-native";
 
 import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
@@ -10,7 +11,13 @@ import {
 import { SavedExpressionsProvider } from "@/features/episode/state/saved-expressions";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { CorrectionNote, EpisodeCorrectionNote } from "./correction-note";
-import { savedExpressionLabels } from "./episode-labels";
+import { episodeLabels, savedExpressionLabels } from "./episode-labels";
+
+jest.mock("expo-clipboard", () => ({
+  setStringAsync: jest.fn(() => Promise.resolve(true)),
+}));
+
+const mockSetStringAsync = jest.mocked(setStringAsync);
 
 const originalWindow = Dimensions.get("window");
 afterEach(() => {
@@ -232,7 +239,7 @@ test.each([
   }
 );
 
-test("접힌 한 줄과 펼친 카드가 같은 책갈피를 보여 준다", async () => {
+test("접든 펼치든 아이콘 줄은 그 아래 같은 자리에 선다", async () => {
   const toggle = jest.fn<(spot: unknown) => void>();
   await renderWithHeroUI(
     <SavedExpressionsProvider
@@ -245,12 +252,33 @@ test("접힌 한 줄과 펼친 카드가 같은 책갈피를 보여 준다", asy
     </SavedExpressionsProvider>
   );
 
+  expect(screen.getByTestId("learning-actions")).toBeVisible();
   expect(screen.getByLabelText(savedExpressionLabels.unsave)).toBeVisible();
 
   await userEvent.setup().press(screen.getByTestId("correction-line"));
 
   expect(screen.getByTestId("correction-card")).toBeVisible();
-  expect(screen.getByLabelText(savedExpressionLabels.unsave)).toBeVisible();
+  expect(screen.getByTestId("learning-actions")).toBeVisible();
+  expect(screen.getAllByLabelText(savedExpressionLabels.unsave)).toHaveLength(
+    1
+  );
+});
+
+// 카드는 조각마다 고친 자리를 따로 보여 주지만, 담기와 복사는 모든 수정을
+// 반영한 문장 하나를 다룬다.
+test("표현 복사는 모든 수정을 반영한 문장을 클립보드에 넣는다", async () => {
+  mockSetStringAsync.mockClear();
+  await renderWithHeroUI(
+    <SavedExpressionsProvider value={{ states: {}, toggle: jest.fn() }}>
+      <CorrectionNote correction={TWO_EXPRESSIONS} onAsk={jest.fn()} />
+    </SavedExpressionsProvider>
+  );
+
+  await userEvent
+    .setup()
+    .press(screen.getByLabelText(episodeLabels.copyExpression));
+
+  expect(mockSetStringAsync).toHaveBeenCalledWith(TWO_EXPRESSIONS.fixed);
 });
 
 test("담지 못한 배울 표현의 한 줄은 그 한 줄 아래에 남는다", async () => {

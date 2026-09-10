@@ -1,39 +1,21 @@
 import { type ReactNode, useCallback, useMemo } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
+import {
+  copyToClipboard,
+  MessageActionButton,
+  MessageActionRow,
+} from "@/features/chat/ui/message-actions";
 import type { SavedExpressionSpot } from "@/features/episode/api/saved-expression";
 import { spotKey } from "@/features/episode/api/saved-expression";
 import { useSavedExpressions } from "@/features/episode/state/saved-expressions";
 import { Icon } from "@/shared/ui/icon";
 import { LoadingSpinner } from "@/shared/ui/loading-spinner";
-import { useProgressMetrics } from "@/shared/ui/progress-metrics";
 import { StatusLine } from "@/shared/ui/status-line";
-import { savedExpressionLabels } from "./episode-labels";
+import { episodeLabels, savedExpressionLabels } from "./episode-labels";
 
 /**
- * 아이콘과 진행 표시가 함께 서는 자리. 둘이 바뀌어도 기준점이 움직이지 않는다.
- *
- * 기본 글자에서는 16이고, 글자가 커지면 진행 표시를 따라 함께 커진다. 시스템
- * 진행 표시는 글자 크기를 따라 자라는데 자리만 붙박아 두면 큰 접근성 글자에서
- * 표시가 자리를 뚫고 나온다. 아이콘도 같은 비율로 키워 두 상태의 표시 영역이
- * 언제나 같게 둔다. 보조 문구 옆의 표시가 쓰는 방식과 같다.
- */
-const MARK_SIZE = 16;
-/**
- * 보이는 아이콘은 작게 두고 누를 수 있는 영역은 44를 지킨다.
- *
- * 음수 여백이 그 차이를 도로 걷어내, 좁은 화면에서 말풍선이 아이콘의 터치
- * 영역만큼 좁아지지 않게 한다.
- */
-const TOUCH_SIZE = 44;
-/** 아이콘 옆에 남기는 가로와 세로 여백. 음수 여백에서 그만큼 덜 걷어낸다. */
-const SIDE_GAP = 3;
-const BOTTOM_GAP = 5;
-/** 아직 담을 수 없는 자리. 앱의 다른 비활성 컨트롤과 같은 흐리기를 쓴다. */
-const WAITING_OPACITY = 0.4;
-
-/**
- * 말풍선과 한 줄 옆에 서는 책갈피.
+ * 메시지 아래 아이콘 줄에 서는 책갈피.
  *
  * 탭하면 담기고 다시 탭하면 도로 놓인다. 담기 전에는 회색 외곽선, 담은 뒤에는
  * 채워진 강조색이다. 담는 동안에는 같은 자리에 진행 표시를 두고 다시 눌리지
@@ -44,7 +26,6 @@ const WAITING_OPACITY = 0.4;
  */
 export function ExpressionBookmark({
   isWaitingForMessage = false,
-  side,
   spot,
 }: {
   /**
@@ -55,8 +36,6 @@ export function ExpressionBookmark({
    * 비우면 책갈피가 나타났다 사라지는 것처럼 보여서, 흐릿하게 두고 기다린다.
    */
   isWaitingForMessage?: boolean;
-  /** 말풍선의 어느 쪽에 서는지. 바깥 여백을 그 반대쪽으로 접는다. */
-  side: "left" | "right";
   spot: SavedExpressionSpot;
 }) {
   const { states, toggle } = useSavedExpressions();
@@ -64,66 +43,42 @@ export function ExpressionBookmark({
   const press = useCallback(() => toggle(spot), [spot, toggle]);
   const isSaved = state?.status === "saved" || state?.status === "erasing";
   const isBusy = state?.status === "saving" || state?.status === "erasing";
-  const { indicator } = useProgressMetrics("supporting");
-  const mark = Math.max(MARK_SIZE, indicator);
-  const touch = Math.max(TOUCH_SIZE, mark);
-  const folded = (touch - mark) / 2;
 
   return (
-    <Pressable
-      accessibilityLabel={
+    <MessageActionButton
+      isBusy={isBusy}
+      isDisabled={isWaitingForMessage}
+      isSelected={isSaved}
+      label={
         isSaved ? savedExpressionLabels.unsave : savedExpressionLabels.save
       }
-      accessibilityRole="button"
-      accessibilityState={{
-        busy: isBusy,
-        disabled: isBusy || isWaitingForMessage,
-        selected: isSaved,
-      }}
-      disabled={isBusy || isWaitingForMessage}
       onPress={press}
-      style={{
-        alignItems: "center",
-        height: touch,
-        justifyContent: "center",
-        marginBottom: -(folded - BOTTOM_GAP),
-        marginLeft: side === "right" ? -(folded - SIDE_GAP) : -folded,
-        marginRight: side === "right" ? -folded : -(folded - SIDE_GAP),
-        marginTop: -folded,
-        opacity: isWaitingForMessage ? WAITING_OPACITY : 1,
-        width: touch,
-        /*
-          음수 여백이 걷어낸 만큼은 옆 컨트롤의 자리와 겹친다. 나중에 그려지는
-          쪽이 그 겹침을 가져가므로, 접힌 한 줄에서는 오른쪽 11pt를 눌러도 담기지
-          않고 카드가 펼쳐졌다. 이 자리를 위로 올려 책갈피가 자기 44pt를 온전히
-          받는다.
-        */
-        zIndex: 1,
-      }}
       testID="expression-bookmark"
     >
-      <View
-        style={{
-          alignItems: "center",
-          height: mark,
-          justifyContent: "center",
-          width: mark,
-        }}
-      >
-        {isBusy ? (
-          <LoadingSpinner sizeRole="supporting" />
-        ) : (
-          <View style={{ transform: [{ scale: mark / MARK_SIZE }] }}>
-            <Icon
-              filled={isSaved}
-              name="bookmark"
-              size="sm"
-              tone={isSaved ? "accent" : "muted"}
-            />
-          </View>
-        )}
-      </View>
-    </Pressable>
+      {isBusy ? (
+        // 컨트롤 안의 진행 표시라 글자 크기를 따라 자라지 않는다. 버튼이 28px로
+        // 붙박여 있어서 아이콘과 진행 표시가 같은 자리에 그대로 들어선다.
+        <LoadingSpinner sizeRole="control" />
+      ) : (
+        <Icon
+          filled={isSaved}
+          name="bookmark"
+          size="sm"
+          tone={isSaved ? "accent" : "muted"}
+        />
+      )}
+    </MessageActionButton>
+  );
+}
+
+/** 아이콘 줄에서 그 메시지의 글을 그대로 클립보드에 넣는 버튼. */
+function ExpressionCopy({ label, text }: { label: string; text: string }) {
+  const copy = useCallback(() => copyToClipboard(text), [text]);
+
+  return (
+    <MessageActionButton label={label} onPress={copy}>
+      <Icon name="copy" size="sm" tone="muted" />
+    </MessageActionButton>
   );
 }
 
@@ -170,22 +125,24 @@ export function ExpressionSaveFailure({
 }
 
 /**
- * 인물 말풍선 하나를 감싸 책갈피와 실패 줄을 붙이는 자리.
+ * 인물 말풍선 하나를 감싸 아이콘 줄과 실패 줄을 붙이는 자리.
  *
- * 책갈피는 말풍선 오른쪽 옆, 곧 화면 가운데를 향한 쪽에 서고 세로는 말풍선 아래
- * 끝에 맞는다. 실패 줄은 말풍선의 정렬을 따라 그 아래 왼쪽에 붙는다. 기존 교정
- * 실패 줄이 사용자 말풍선 아래 오른쪽에 붙는 것과 같은 규칙이다.
+ * 줄은 말풍선 아래 왼쪽, 곧 말풍선이 붙은 쪽에 선다. 채팅 앱이 메시지에 걸리는
+ * 동작을 두는 자리이고, `AI에게 물어보기`의 답변 아래 줄과 같은 모양이다.
+ * 실패 줄은 그 아래에 같은 정렬로 붙는다.
  */
 export function UtteranceExpressionSlot({
   at,
   children,
   isArriving,
   messageId,
+  text,
 }: {
   at: number;
   children: ReactNode;
   isArriving: boolean;
   messageId: string;
+  text: string;
 }) {
   const spot = useMemo(
     () => ({ kind: "utterance" as const, messageId, utteranceAt: at }),
@@ -194,15 +151,33 @@ export function UtteranceExpressionSlot({
 
   return (
     <View className="w-full items-start">
-      <View className="w-full flex-row items-end">
-        {children}
-        <ExpressionBookmark
-          isWaitingForMessage={isArriving}
-          side="right"
-          spot={spot}
-        />
-      </View>
+      {children}
+      <MessageActionRow testID="utterance-actions">
+        <ExpressionCopy label={episodeLabels.copyUtterance} text={text} />
+        <ExpressionBookmark isWaitingForMessage={isArriving} spot={spot} />
+      </MessageActionRow>
       <ExpressionSaveFailure align="start" spot={spot} />
     </View>
+  );
+}
+
+/**
+ * 배울 표현 아래에 서는 아이콘 줄.
+ *
+ * 접힌 한 줄이든 펼친 카드든 그 아래 같은 자리에 선다. 오른쪽에 붙는 표현을
+ * 따라 줄도 오른쪽 끝에 맞춘다. 복사는 모든 수정을 반영한 고친 문장을 담는다.
+ */
+export function LearningExpressionActions({
+  spot,
+  text,
+}: {
+  spot: SavedExpressionSpot;
+  text: string;
+}) {
+  return (
+    <MessageActionRow align="end" testID="learning-actions">
+      <ExpressionCopy label={episodeLabels.copyExpression} text={text} />
+      <ExpressionBookmark spot={spot} />
+    </MessageActionRow>
   );
 }

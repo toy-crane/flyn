@@ -8,7 +8,6 @@ import type {
   LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
 import type { UIMessage } from "ai";
-import { setStringAsync } from "expo-clipboard";
 import {
   type ComponentType,
   type ReactElement,
@@ -58,6 +57,7 @@ import { ComposerBackdrop } from "./composer-backdrop";
 import { COMPOSER_BACKDROP_FADE_HEIGHT } from "./composer-backdrop-layout";
 import { ComposerSurface } from "./composer-surface";
 import { LatestMessageButton } from "./latest-message-button";
+import { copyToClipboard } from "./message-actions";
 import { sceneCopyText, sceneOfMessage } from "./scene";
 import { SceneMessage, type UtteranceAddon } from "./scene-message";
 import { useLateAnswer } from "./use-late-answer";
@@ -89,13 +89,6 @@ function textOfMessage(message: UIMessage): string {
     .filter((part) => part.type === "text")
     .map((part) => part.text)
     .join("");
-}
-
-function copyText(text: string) {
-  setStringAsync(text).catch(() => {
-    // Nothing is announced on success either, so a refused clipboard leaves
-    // the same screen behind and the person can try again.
-  });
 }
 
 /** 메시지 본문과 동작. 이동은 목록에서만 처리한다. */
@@ -134,7 +127,7 @@ function PlainTextMessage({
     [message]
   );
   const text = scene ? sceneCopyText(scene) : textOfMessage(message);
-  const copy = useCallback(() => copyText(text), [text]);
+  const copy = useCallback(() => copyToClipboard(text), [text]);
   const regenerate = useCallback(
     () => onRegenerate(message.id),
     [message.id, onRegenerate]

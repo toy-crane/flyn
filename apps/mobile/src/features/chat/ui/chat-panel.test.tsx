@@ -468,11 +468,16 @@ describe("ChatPanel", () => {
     const Slot = ({
       children,
       isArriving,
+      text,
     }: {
       children: ReactNode;
       isArriving: boolean;
+      text: string;
     }) => (
-      <SlotView testID={isArriving ? "slot-arriving" : "slot-ready"}>
+      <SlotView
+        accessibilityLabel={text}
+        testID={isArriving ? "slot-arriving" : "slot-ready"}
+      >
         {children}
       </SlotView>
     );
@@ -493,7 +498,11 @@ describe("ChatPanel", () => {
       />
     );
 
-    expect(screen.getByTestId("slot-ready")).toBeOnTheScreen();
+    // 곁에 서는 것이 대사 하나를 다루므로, 장면 전체가 아니라 그 말풍선의 글이
+    // 그대로 넘어간다.
+    expect(screen.getByTestId("slot-ready").props.accessibilityLabel).toBe(
+      "어서 와."
+    );
   });
 
   test("장면 복사는 화자 이름이 살아 있는 각본으로 넣는다", async () => {

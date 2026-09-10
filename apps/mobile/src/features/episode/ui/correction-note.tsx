@@ -18,8 +18,8 @@ import { correctionPresentation } from "./correction-presentation";
 import { fixedMarks } from "./correction-text";
 import { correctionLabels } from "./episode-labels";
 import {
-  ExpressionBookmark,
   ExpressionSaveFailure,
+  LearningExpressionActions,
 } from "./expression-bookmark";
 
 /**
@@ -133,11 +133,6 @@ export function CorrectionNote({
                   : appearance.title}
               </Text>
             </View>
-            {/*
-              펼친 카드의 제목 줄에도 같은 책갈피를 둔다. 접힌 한 줄과 늘 같은
-              상태를 보여 주므로, 어느 쪽에서 담아도 다른 쪽이 함께 채워진다.
-            */}
-            <ExpressionBookmark side="right" spot={spot} />
             <Pressable
               accessibilityLabel={`${appearance.title} 접기`}
               accessibilityRole="button"
@@ -159,35 +154,36 @@ export function CorrectionNote({
           <CorrectionActions onAsk={ask} />
         </View>
       ) : (
-        <View className="max-w-[92%] flex-row items-end self-end">
-          {/* 책갈피는 화면 가운데를 향한 쪽, 곧 오른쪽에 붙는 한 줄의 왼편에 선다. */}
-          <ExpressionBookmark side="left" spot={spot} />
-          <Pressable
-            accessibilityLabel={`${appearance.title} 보기`}
-            accessibilityRole="button"
-            className={`shrink flex-row items-start gap-2 rounded-2xl rounded-tl-md px-3.5 py-2.5 ${appearance.surface}`}
-            key={fontScale}
-            onPress={open}
-            testID="correction-line"
-          >
-            <View className="mt-1">
-              <Icon name="learn" size="sm" tone={appearance.tone} />
-            </View>
-            <View className="shrink">
-              <MarkedSentence
-                className="text-foreground text-sm leading-5"
-                markClassName={`font-semibold ${appearance.text}`}
-                marks={fixedMarks(correction)}
-                testID="correction-line-fixed"
-                text={correction.fixed}
-              />
-            </View>
-            <View className="mt-0.5">
-              <Icon name="expand" size="sm" tone="muted" />
-            </View>
-          </Pressable>
-        </View>
+        <Pressable
+          accessibilityLabel={`${appearance.title} 보기`}
+          accessibilityRole="button"
+          className={`max-w-[92%] flex-row items-start gap-2 self-end rounded-2xl rounded-tl-md px-3.5 py-2.5 ${appearance.surface}`}
+          key={fontScale}
+          onPress={open}
+          testID="correction-line"
+        >
+          <View className="mt-1">
+            <Icon name="learn" size="sm" tone={appearance.tone} />
+          </View>
+          <View className="shrink">
+            <MarkedSentence
+              className="text-foreground text-sm leading-5"
+              markClassName={`font-semibold ${appearance.text}`}
+              marks={fixedMarks(correction)}
+              testID="correction-line-fixed"
+              text={correction.fixed}
+            />
+          </View>
+          <View className="mt-0.5">
+            <Icon name="expand" size="sm" tone="muted" />
+          </View>
+        </Pressable>
       )}
+      {/*
+        아이콘 줄은 접힌 한 줄과 펼친 카드 아래 같은 자리에 선다. 어느 쪽에서
+        담아도 같은 자리를 가리키므로 상태도 함께 바뀐다.
+      */}
+      <LearningExpressionActions spot={spot} text={correction.fixed} />
       <ExpressionSaveFailure align="end" spot={spot} />
     </View>
   );

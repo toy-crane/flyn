@@ -17,6 +17,8 @@ export type UtteranceAddon = ComponentType<{
   /** 이 장면이 아직 도착하는 중인지. 붙는 것이 그동안 무엇을 할지 정한다. */
   isArriving: boolean;
   messageId: string;
+  /** 이 대사 하나의 원문. 장면 전체가 아니라 말풍선에 보이는 그 글이다. */
+  text: string;
 }>;
 
 const SceneSegmentBody = memo(function SceneSegmentBodyContent({
@@ -55,7 +57,12 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
         {name}
       </Text>
       {UtteranceSlot ? (
-        <UtteranceSlot at={at} isArriving={isArriving} messageId={messageId}>
+        <UtteranceSlot
+          at={at}
+          isArriving={isArriving}
+          messageId={messageId}
+          text={text}
+        >
           {bubble}
         </UtteranceSlot>
       ) : (
