@@ -1,6 +1,6 @@
 # 표현 화면 다듬기
 
-상태: 승인. 사용자가 2026-09-10에 다섯 가지를 시안으로 보고 확정했다. 저장 토스트의 자리, 표현 노트 카드, 기억해 둘 표현 카드, 메시지 아래 아이콘 줄, 결말 축하 연출이다. 확정한 화면은 [prototypes/](prototypes/)에 있다. `note.html`, `review.html`, `closing.html`, `toast.html`, `icon-row.html`이며 HTML은 타이밍과 배치를 보여 주는 참고이지 구현 코드가 아니다. 아이콘 줄이 나타나는 때와 1화 첫 장면의 처리는 같은 날 대화로 정했고 시안은 없다.
+상태: 승인. 사용자가 2026-09-10에 다섯 가지를 시안으로 보고 확정했다. 저장 토스트의 자리, 표현 노트 카드, 기억해 둘 표현 카드, 메시지 아래 아이콘 줄, 결말 축하 연출이다. 확정한 화면은 [prototypes/](prototypes/)에 있다. `note.html`, `review.html`, `closing.html`, `toast.html`, `icon-row.html`, `icon-row-entrance.html`이며 HTML은 타이밍과 배치를 보여 주는 참고이지 구현 코드가 아니다. 아이콘 줄이 나타나는 때와 1화 첫 장면의 처리는 같은 날 `icon-row-entrance.html`로 보고 확정했다.
 
 ## 결과와 범위
 
