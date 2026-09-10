@@ -400,10 +400,7 @@ function signedInWith(
 
       function source(): Row[] {
         if (table === "stories") {
-          return [
-            STORY_ROW,
-            ...(state.madeStories ?? []),
-          ] as unknown as Row[];
+          return [STORY_ROW, ...(state.madeStories ?? [])] as unknown as Row[];
         }
 
         if (table === "episodes") {
