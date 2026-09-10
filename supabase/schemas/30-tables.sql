@@ -485,14 +485,14 @@ create table public.episode_expression_results (
   constraint episode_expression_results_complete check (
     case when status = 'corrected' then
       num_nonnulls(fixed, entries, situation, meaning, example, example_meaning) = 6
-      and length(btrim(fixed)) between 1 and 1000
+      and length(btrim(fixed)) >= 1 and length(btrim(fixed)) <= 1000
       and jsonb_typeof(entries) = 'array'
       and jsonb_array_length(entries) > 0
       and octet_length(entries::text) <= 65536
-      and length(btrim(situation)) between 1 and 160
-      and length(btrim(meaning)) between 1 and 1000
-      and length(btrim(example)) between 1 and 1000
-      and length(btrim(example_meaning)) between 1 and 1000
+      and length(btrim(situation)) >= 1 and length(btrim(situation)) <= 160
+      and length(btrim(meaning)) >= 1 and length(btrim(meaning)) <= 1000
+      and length(btrim(example)) >= 1 and length(btrim(example)) <= 1000
+      and length(btrim(example_meaning)) >= 1 and length(btrim(example_meaning)) <= 1000
     else num_nonnulls(fixed, entries, situation, meaning, example, example_meaning) = 0 end
   )
 );
