@@ -6,7 +6,10 @@ import { ExpressionCard } from "@/shared/ui/expression-card";
 import { Icon } from "@/shared/ui/icon";
 import { correctionPresentation } from "./correction-presentation";
 import { fixedMarks } from "./correction-text";
-import { LearningExpressionActions } from "./expression-bookmark";
+import {
+  ExpressionSaveFailure,
+  LearningExpressionActions,
+} from "./expression-bookmark";
 
 /**
  * 한 화가 끝나고 돌아보는 표현 하나.
@@ -29,7 +32,15 @@ export function ExpressionReviewCard({
   return (
     <ExpressionCard
       actions={
-        <LearningExpressionActions spot={spot} text={correction.fixed} />
+        <>
+          <LearningExpressionActions spot={spot} text={correction.fixed} />
+          {/*
+            담지 못하면 그 자리에 한 줄이 남는다. 대화 곁의 배울 표현과 같은
+            줄이고 같은 오른쪽 정렬이다. 여기서 담는 것이 그쪽과 같은 항목을
+            만드므로 실패를 알리는 방법도 같아야 한다.
+          */}
+          <ExpressionSaveFailure align="end" spot={spot} />
+        </>
       }
       detail={{
         original: correction.original,

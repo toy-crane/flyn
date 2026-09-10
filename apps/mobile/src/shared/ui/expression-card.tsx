@@ -166,10 +166,16 @@ export function ExpressionCard({
             >
               {detailLabels.why}
             </Text>
-            {detail.whys.map((why) => (
+            {/*
+              같은 이유가 두 번 올 수 있다. 서버는 짚은 자리와 고친 글로 항목을
+              가리므로 이유가 겹치는 것을 막지 않는다. 줄 번호를 열쇠에 넣어야
+              그때도 두 줄이 각자 남는다.
+            */}
+            {detail.whys.map((why, at) => (
               <Text
                 className="text-[15px] text-muted leading-[22px]"
-                key={why}
+                // biome-ignore lint/suspicious/noArrayIndexKey: 한 카드 안에서 이유의 순서는 바뀌지 않고, 같은 이유가 두 번 올 수 있다
+                key={`${at}:${why}`}
                 selectable={false}
               >
                 {why}

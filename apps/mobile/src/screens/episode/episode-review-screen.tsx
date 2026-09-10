@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useLayoutEffect, useMemo } from "react";
 import { ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { ExpressionResult } from "@/features/episode/api/episode-correction";
@@ -63,7 +63,8 @@ export function EpisodeReviewScreen({
 
   // 대화 화면과 같은 저장소에 서버가 아는 자리를 가져다 놓는다. 여기서 담은
   // 것은 대화로 돌아갔을 때, 대화에서 담은 것은 여기서 채워진 채로 보인다.
-  useEffect(() => {
+  // 대화 화면과 같은 이유로 그리기 전에 넣는다.
+  useLayoutEffect(() => {
     hydrate({
       episodeId: episode.episodeId,
       saved: savedExpressions,
@@ -89,6 +90,8 @@ export function EpisodeReviewScreen({
         {toast === undefined ? null : (
           <View
             pointerEvents="none"
+            // 자리와 쌓는 순서를 값으로 둔다. 알약이 카드 뒤로 깔리던 것을 기기에서
+            // 보고 고친 자리라, 대화 쪽과 같은 모양으로 검사가 그 값을 잰다.
             style={{
               elevation: TOAST_ELEVATION,
               left: 0,
@@ -124,11 +127,11 @@ export function EpisodeReviewScreen({
             </View>
           ) : null}
           {!(isLoading || isRetrying) && cards && cards.length > 0 ? (
-            <View className="gap-4">
+            <View className="gap-3">
               {/*
-              개수를 두지 않는다. 카드가 몇 장인지는 목록이 그대로 보여 주고,
-              세어 둔 숫자는 이 화면에서 할 일을 알려 주지 않는다.
-            */}
+                개수를 두지 않는다. 카드가 몇 장인지는 목록이 그대로 보여 주고,
+                세어 둔 숫자는 이 화면에서 할 일을 알려 주지 않는다.
+              */}
               <Text
                 accessibilityRole="header"
                 className="font-bold text-base text-foreground"
@@ -137,12 +140,15 @@ export function EpisodeReviewScreen({
               >
                 기억해 둘 표현
               </Text>
-              {cards.map((correction) => (
-                <ExpressionReviewCard
-                  correction={correction}
-                  key={correction.messageId}
-                />
-              ))}
+              {/* 카드 사이는 표현 노트 목록과 같은 10pt다. 같은 카드를 쓴다. */}
+              <View className="gap-2.5">
+                {cards.map((correction) => (
+                  <ExpressionReviewCard
+                    correction={correction}
+                    key={correction.messageId}
+                  />
+                ))}
+              </View>
             </View>
           ) : null}
           {!(isLoading || isRetrying) && cards?.length === 0 ? (

@@ -75,6 +75,28 @@ function sourceKey(source: SavedExpressionSource): string {
   return `${source.storyPlayId ?? ""}:${source.episodeId}`;
 }
 
+/** 같은 자리 표인지. 같으면 다시 알리지 않아 붙어 있는 화면이 다시 그려지지 않는다. */
+function isSameStates(
+  left: Record<string, SavedExpressionState>,
+  right: Record<string, SavedExpressionState>
+): boolean {
+  const keys = Object.keys(left);
+
+  return (
+    keys.length === Object.keys(right).length &&
+    keys.every((key) => {
+      const one = left[key];
+      const other = right[key];
+
+      return (
+        one.status === other?.status &&
+        ("id" in one ? one.id : undefined) ===
+          (other && "id" in other ? other.id : undefined)
+      );
+    })
+  );
+}
+
 function savedStates(
   saved: readonly SavedExpressionRef[] | undefined
 ): Record<string, SavedExpressionState> {
@@ -167,14 +189,36 @@ export function useSavedExpressionStore(
 
       source.current = next;
 
-      const merged = isSameSource
-        ? { ...savedStates(next.saved), ...current.current }
-        : savedStates(next.saved);
+      if (!isSameSource) {
+        // 다른 대화로 옮겨 갔다. 앞 대화에서 아직 돌아오지 않은 요청은 여기서
+        // 끊는다. 그대로 두면 그 응답이 새 대화의 자리 표에 앞 대화의 결과를
+        // 적고 이미 사라진 화면에 담겼다고 알린다.
+        for (const controller of running.current.values()) {
+          controller.abort();
+        }
+        running.current.clear();
+        publish(savedStates(next.saved));
 
-      if (
-        isSameSource &&
-        Object.keys(merged).length === Object.keys(current.current).length
-      ) {
+        return;
+      }
+
+      const fromServer = savedStates(next.saved);
+      /*
+        서버가 아는 자리가 실패 표시를 이긴다. 담기 요청이 서버에는 닿았는데
+        응답만 잃으면 이 화면은 실패로 남는데, 그때 서버의 목록에는 그 자리가
+        담긴 채로 있다. 나머지는 이 자리가 더 잘 안다. 담는 중과 놓는 중은
+        아직 끝나지 않은 일이고, 서버가 모르는 자리는 그 목록을 읽은 뒤에
+        담은 것이다.
+      */
+      const kept = Object.fromEntries(
+        Object.entries(current.current).filter(
+          ([key, state]) =>
+            state.status !== "error" || fromServer[key] === undefined
+        )
+      );
+      const merged = { ...fromServer, ...kept };
+
+      if (isSameStates(merged, current.current)) {
         return;
       }
 

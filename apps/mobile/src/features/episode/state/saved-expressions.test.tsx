@@ -216,6 +216,70 @@ test("다른 대화로 옮겨 가면 앞 대화의 표시를 버린다", async (
   expect(result.current.states).toEqual({});
 });
 
+test("다른 대화로 옮겨 가면 아직 돌아오지 않은 요청을 끊는다", async () => {
+  let settle: ((ref: SavedExpressionRef) => void) | undefined;
+  const calls = fakeSaving(
+    () =>
+      new Promise<SavedExpressionRef>((resolve) => {
+        settle = resolve;
+      })
+  );
+  const result = await mountStore(calls);
+
+  await settled(() => {
+    toggle(result, UTTERANCE, calls);
+  });
+  await settled(() => {
+    result.current.hydrate({
+      episodeId: "e2",
+      saved: undefined,
+      storyPlayId: "p1",
+    });
+  });
+  // 앞 대화의 응답이 늦게 도착해도 새 대화의 자리 표에 적히지 않는다.
+  await settled(() => {
+    settle?.(savedRef("saved-1"));
+  });
+
+  expect(result.current.states).toEqual({});
+  expect(calls.announce).not.toHaveBeenCalled();
+});
+
+test("서버가 아는 자리는 남아 있던 실패 표시를 이긴다", async () => {
+  const calls = fakeSaving(() => Promise.reject(new Error("connection lost")));
+  const result = await mountStore(calls);
+
+  await settled(() => {
+    toggle(result, LEARNING, calls);
+  });
+
+  expect(result.current.states["m1:learning"]).toEqual({ status: "error" });
+
+  // 요청은 서버에 닿았고 응답만 잃었다. 서버의 목록이 그 사실을 들고 온다.
+  await settled(() => {
+    result.current.hydrate({ ...PLAY, saved: [CORRECTION_REF] });
+  });
+
+  expect(result.current.states["m1:learning"]).toEqual({
+    id: "saved-2",
+    status: "saved",
+  });
+});
+
+test("서버가 모르는 자리의 실패 표시는 그대로 남는다", async () => {
+  const calls = fakeSaving(() => Promise.reject(new Error("gateway down")));
+  const result = await mountStore(calls);
+
+  await settled(() => {
+    toggle(result, LEARNING, calls);
+  });
+  await settled(() => {
+    result.current.hydrate({ ...PLAY, saved: [] });
+  });
+
+  expect(result.current.states["m1:learning"]).toEqual({ status: "error" });
+});
+
 test("사라진 메시지의 표시는 함께 버린다", async () => {
   const calls = fakeSaving();
   const result = await mountStore(calls, [savedRef("saved-1"), CORRECTION_REF]);
