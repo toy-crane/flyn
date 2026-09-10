@@ -466,76 +466,39 @@ comment on column public.episode_messages.created_at is
 comment on column public.episode_messages.parts is
   'AI SDK UI message parts, kept as one JSON document. Limited to 256 KiB per message.';
 
--- 사용자 메시지에 붙는 교정 한 건. 화면에서는 배울 표현으로 부른다.
---
--- 한 메시지에 여러 개가 붙고, 각 행이 원문의 어긋난 부분과 고친 문장과 이유를
--- 함께 담는다. 행으로 남기므로 한 계정이 지금까지 받은 교정 전체를 한 번의
--- 조회로 꺼낼 수 있다.
-create table public.episode_corrections (
-  id uuid primary key default gen_random_uuid(),
-  message_id uuid not null,
+-- 메시지별 확인 완료 결과. 행이 없으면 아직 완료 결과가 없는 것이다.
+-- 판정과 카드 내용을 한 행에 담아 일부만 저장되는 상태를 만들지 않는다.
+-- 먼저 저장한 결과는 바꾸지 않으며, 메시지가 삭제되면 함께 사라진다.
+create table public.episode_expression_results (
+  message_id uuid primary key,
   user_id uuid not null default auth.uid(),
-  -- 원문에서 어긋난 조각. 화면이 물결 밑줄로 짚는 자리다.
-  original text not null,
-  -- 고친 문장에서 그 조각에 해당하는 부분. 화면이 강조하는 자리다.
-  fixed text not null,
-  -- 이 메시지의 모든 교정을 반영한 문장 하나. 한 메시지에 행이 여럿이어도 같은
-  -- 값이 들어간다. 한 줄로 접힌 배울 표현이 보여 주는 문장이고, 다시 보내기가
-  -- 입력창에 담는 것도 이 문장이다.
-  corrected text not null,
-  -- 이 표현이 어떤 규칙인지 가리키는 영어 kebab-case 키. 화면에 보이지 않는다.
-  -- 같은 규칙을 한 에피소드에서 두 번 알려 주지 않는 근거가 이 열이고, 그래서
-  -- 앱이 이미 받은 목록을 나르지 않아도 된다.
-  pattern text not null,
-  -- 왜 그런지 한국어 한 줄.
-  reason text not null,
-  created_at timestamptz not null default now(),
+  status text not null,
+  fixed text,
+  entries jsonb,
+  situation text,
+  meaning text,
+  example text,
+  example_meaning text,
   foreign key (message_id, user_id)
     references public.episode_messages (id, user_id) on delete cascade,
-  constraint episode_corrections_original_usable check (
-    length(btrim(original)) between 1 and 1000
-  ),
-  constraint episode_corrections_fixed_usable check (
-    length(btrim(fixed)) between 1 and 1000
-  ),
-  constraint episode_corrections_corrected_usable check (
-    length(btrim(corrected)) between 1 and 1000
-  ),
-  constraint episode_corrections_pattern_usable check (
-    length(btrim(pattern)) between 1 and 120
-  ),
-  constraint episode_corrections_reason_usable check (
-    length(btrim(reason)) between 1 and 300
+  constraint episode_expression_results_status_known check (status in ('corrected', 'natural', 'unclear')),
+  constraint episode_expression_results_complete check (
+    case when status = 'corrected' then
+      num_nonnulls(fixed, entries, situation, meaning, example, example_meaning) = 6
+      and length(btrim(fixed)) >= 1 and length(btrim(fixed)) <= 1000
+      and jsonb_typeof(entries) = 'array'
+      and jsonb_array_length(entries) > 0
+      and octet_length(entries::text) <= 65536
+      and length(btrim(situation)) >= 1 and length(btrim(situation)) <= 160
+      and length(btrim(meaning)) >= 1 and length(btrim(meaning)) <= 1000
+      and length(btrim(example)) >= 1 and length(btrim(example)) <= 1000
+      and length(btrim(example_meaning)) >= 1 and length(btrim(example_meaning)) <= 1000
+    else num_nonnulls(fixed, entries, situation, meaning, example, example_meaning) = 0 end
   )
 );
 
--- 한 메시지에 붙은 교정을 함께 읽고, 그 메시지가 사라질 때 함께 지운다. 외래키가
--- `(message_id, user_id)`인데 여기는 앞자리만 담는다. 위 `episode_messages`의
--- 색인 주석과 같은 이유다.
-create index episode_corrections_message_id_idx
-  on public.episode_corrections (message_id);
-
--- 계정에 쌓인 배울 표현을 한 번에 꺼내는 조회가 이 색인을 탄다.
-create index episode_corrections_user_id_idx
-  on public.episode_corrections (user_id);
-
-comment on table public.episode_corrections is
-  'One correction attached to a user message. Shown in the app as 배울 표현.';
-
-comment on column public.episode_corrections.original is
-  'The part of what the person wrote that was off.';
-
-comment on column public.episode_corrections.fixed is
-  'The matching part of the corrected sentence.';
-
-comment on column public.episode_corrections.corrected is
-  'The corrected sentence, with every correction on this message applied.';
-
-comment on column public.episode_corrections.pattern is
-  'Which rule this is, as an English kebab-case key. Never shown; it keeps the same rule from arriving twice in one episode.';
-
-comment on column public.episode_corrections.reason is
-  'One Korean line saying why.';
+create index episode_expression_results_user_id_idx
+  on public.episode_expression_results (user_id);
 
 -- 사용자가 쓰는 영어의 수준. 시즌이 아니라 계정에 붙는다.
 --

@@ -13,11 +13,19 @@ export interface CorrectionEntry {
   why: string;
 }
 
+export interface ExpressionReviewContent {
+  example: string;
+  exampleMeaning: string;
+  meaning: string;
+  situation: string;
+}
+
 export interface EpisodeCorrection {
   entries: CorrectionEntry[];
   fixed: string;
   messageId: string;
   original: string;
+  review: ExpressionReviewContent;
 }
 
 export type ExpressionResult =
@@ -27,6 +35,7 @@ export type ExpressionResult =
 interface CorrectionDraft {
   entries: CorrectionEntry[];
   fixed: string;
+  review: ExpressionReviewContent | null;
   status: "corrected" | "natural" | "unclear";
 }
 
@@ -63,9 +72,41 @@ const correctionSchema = jsonSchema<CorrectionDraft>({
         "고치거나 한국어에서 옮긴 영어 문장 전체. natural이면 원문 그대로, unclear이면 빈 문자열.",
       type: "string",
     },
+    review: {
+      anyOf: [
+        {
+          additionalProperties: false,
+          properties: {
+            example: {
+              description: "같은 표현을 다른 상황에서 쓰는 영어 예문 한 개.",
+              maxLength: 1000,
+              type: "string",
+            },
+            exampleMeaning: {
+              description: "example 전체 문장의 한국어 뜻.",
+              maxLength: 1000,
+              type: "string",
+            },
+            meaning: {
+              description: "fixed 전체 문장의 한국어 뜻.",
+              maxLength: 1000,
+              type: "string",
+            },
+            situation: {
+              description: "이 표현을 쓰는 상황. 예: 주문한 것을 다시 말할 때",
+              maxLength: 160,
+              type: "string",
+            },
+          },
+          required: ["situation", "meaning", "example", "exampleMeaning"],
+          type: "object",
+        },
+        { type: "null" },
+      ],
+    },
     status: { enum: ["corrected", "natural", "unclear"], type: "string" },
   },
-  required: ["status", "fixed", "entries"],
+  required: ["status", "fixed", "entries", "review"],
   type: "object",
 });
 
@@ -76,7 +117,8 @@ export function correctionSystemPrompt(): string {
 - 한국어 또는 한국어와 영어가 섞인 문장은 status=corrected로 같은 뜻의 자연스러운 영어 문장 하나를 제안한다. 이미 자연스러운 영어 부분은 가능하면 유지한다. 한국어는 틀린 영어가 아니다. 각 why는 반드시 핵심 영어 표현과 그 한국어 뜻을 짧게 연결한다. 예: ‘집에 가다’는 head home이라고 해요. 한국어 안내의 why에는 문법 용어, 어순 규칙이나 오류 설명을 넣지 않는다.
 - 문맥으로도 뜻을 알 수 없으면 status=unclear, fixed="", entries=[]로 쓴다. 뜻을 만들어 붙이거나 natural로 처리하지 않는다.
 - corrected일 때 entries는 비울 수 없다. 모든 고친 자리를 포함한다. original과 fixed 조각은 각각 원문과 영어 문장에 실제로 있어야 한다. 같은 규칙이어도 다른 자리는 생략하지 않는다.
-- why는 해요체 한국어 한 문장이다. 채점, 칭찬, 틀린 개수, 문법·어휘 같은 분류 이름은 쓰지 않는다.`;
+- why는 해요체 한국어 한 문장이다. 채점, 칭찬, 틀린 개수, 문법·어휘 같은 분류 이름은 쓰지 않는다.
+- corrected이면 review에 쓰는 상황 한 줄, fixed 전체 문장의 한국어 뜻, 같은 표현을 다른 상황에서 쓴 영어 예문 하나와 그 뜻을 함께 작성한다. 한 메시지의 모든 수정은 같은 카드에 담는다. natural 또는 unclear이면 review=null이다.`;
 }
 
 export interface CorrectionRequest {
@@ -162,8 +204,44 @@ export async function judgeExpression({
     }
   }
   return {
-    correction: { entries, fixed, messageId, original: trimmed },
+    correction: {
+      entries,
+      fixed,
+      messageId,
+      original: trimmed,
+      review: readReviewContent(object.review),
+    },
     messageId,
     status: "corrected",
+  };
+}
+
+function readReviewContent(
+  value: ExpressionReviewContent | null
+): ExpressionReviewContent {
+  if (
+    !(
+      value &&
+      [
+        value.situation,
+        value.meaning,
+        value.example,
+        value.exampleMeaning,
+      ].every(
+        (text) =>
+          typeof text === "string" &&
+          text.trim().length > 0 &&
+          text.length <= 1000
+      )
+    ) ||
+    value.situation.length > 160
+  ) {
+    throw new Error("Incomplete expression review content.");
+  }
+  return {
+    example: value.example.trim(),
+    exampleMeaning: value.exampleMeaning.trim(),
+    meaning: value.meaning.trim(),
+    situation: value.situation.trim(),
   };
 }

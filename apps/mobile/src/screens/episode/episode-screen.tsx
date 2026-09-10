@@ -1,5 +1,5 @@
 import type { UIMessage } from "ai";
-import { type ReactNode, useCallback, useMemo, useRef } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import type { TextInput } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
@@ -8,7 +8,10 @@ import {
   useLocalChatDrafts,
 } from "@/features/chat/state/use-conversation";
 import { ChatPanel } from "@/features/chat/ui/chat-panel";
-import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
+import type {
+  EpisodeCorrection,
+  ExpressionResult,
+} from "@/features/episode/api/episode-correction";
 import { useEpisodeAsks } from "@/features/episode/state/episode-asks";
 import { EpisodeCorrectionsProvider } from "@/features/episode/state/episode-corrections";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
@@ -16,9 +19,12 @@ import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { useEpisodeStoryPlay } from "@/features/episode/state/use-episode-story-play";
 import { EpisodeCorrectionNote } from "@/features/episode/ui/correction-note";
 import { EpisodeClosing } from "@/features/episode/ui/episode-closing";
-import { EpisodeEndingMark } from "@/features/episode/ui/episode-ending-mark";
-import { episodeLabels } from "@/features/episode/ui/episode-labels";
+import {
+  correctionLabels,
+  episodeLabels,
+} from "@/features/episode/ui/episode-labels";
 import { EpisodeSituationBanner } from "@/features/episode/ui/episode-situation-banner";
+import { StatusLine } from "@/shared/ui/status-line";
 
 /**
  * 에피소드 하나를 사건 시작부터 결말까지 진행하는 화면.
@@ -43,34 +49,30 @@ import { EpisodeSituationBanner } from "@/features/episode/ui/episode-situation-
 export function EpisodeScreen({
   episodeId,
   initialMessages,
-  isStartingNext,
-  onLeave,
+  onReview,
   onOpenAsk,
   onStoryPlayStarted,
-  onStartNext,
   readOnly,
   recordedEnding,
   recordedNextUp,
   storyPlayId,
-  savedCorrections,
+  savedResults,
   situation,
   situationEmoji,
   storyId,
 }: {
   episodeId: string;
   initialMessages: UIMessage[];
-  isStartingNext: boolean;
-  onLeave: () => void;
+  onReview: (nextUp: EpisodeNextUp | undefined) => void;
   onOpenAsk: (id: string) => void;
   /** 새 대화의 회차가 서버에서 막 생겼다. */
   onStoryPlayStarted: (storyPlayId: string) => void;
-  onStartNext: (episodeId: string) => void;
   readOnly: boolean;
   recordedEnding?: EpisodeEnding;
   recordedNextUp?: EpisodeNextUp;
   /** 이어가는 회차. 새 대화는 아직 없다. */
   storyPlayId?: string;
-  savedCorrections?: readonly EpisodeCorrection[];
+  savedResults?: readonly ExpressionResult[];
   situation: string;
   situationEmoji: string;
   /** 새 대화가 시작할 스토리. 이어가는 회차에는 필요 없다. */
@@ -88,7 +90,7 @@ export function EpisodeScreen({
     onStoryPlayStarted,
     recordedEnding,
     recordedNextUp,
-    savedCorrections
+    savedResults
   );
   const drafts = useLocalChatDrafts();
   const conversation = useConversation(chat, drafts, accessToken);
@@ -145,22 +147,31 @@ export function EpisodeScreen({
   );
 
   let closing: ReactNode;
+  const isChecking = Object.values(corrections.states).some(
+    (state) => state.status === "pending"
+  );
+  const celebrated = useRef(readOnly || recordedEnding !== undefined);
+  const isReady = ending !== undefined && !isChecking;
+  const animate = isReady && !celebrated.current;
+  useEffect(() => {
+    if (isReady) {
+      celebrated.current = true;
+    }
+  }, [isReady]);
+  const review = useCallback(() => onReview(nextUp), [nextUp, onReview]);
 
   if (ending !== undefined) {
-    closing = (
-      <EpisodeClosing
-        ending={ending}
-        isSettling={false}
-        isStartingNext={isStartingNext}
-        nextUp={nextUp}
-        onLeave={onLeave}
-        onStartNext={onStartNext}
-        readOnly={readOnly}
+    closing = isChecking ? (
+      <StatusLine
+        label={correctionLabels.checking}
+        loading
+        testID="episode-ending-checking"
       />
+    ) : (
+      <EpisodeClosing animate={animate} ending={ending} onReview={review} />
     );
   } else if (readOnly) {
-    // 결말이 기록에 남지 않은 화. 그래도 끝난 대화이므로 끝 표시로 닫는다.
-    closing = <EpisodeEndingMark />;
+    closing = null;
   }
   // 첫 장면은 사용자의 보내기 동작 없이 서버에서 먼저 온다. 빈 상태로
   // 배치된 LegendList를 한 번 다시 만들어야 첫 행의 높이와 위치를 잰다.

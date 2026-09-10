@@ -1,6 +1,7 @@
 import { type ThemeColor, useThemeColor } from "heroui-native/hooks";
 import ArrowDown from "lucide-react-native/icons/arrow-down";
 import ArrowUp from "lucide-react-native/icons/arrow-up";
+import BookOpen from "lucide-react-native/icons/book-open";
 import Bookmark from "lucide-react-native/icons/bookmark";
 import Check from "lucide-react-native/icons/check";
 import ChevronDown from "lucide-react-native/icons/chevron-down";
@@ -26,6 +27,7 @@ const icons = {
   copy: Copy,
   edit: Pencil,
   expand: ChevronDown,
+  expressions: BookOpen,
   forward: ChevronRight,
   latest: ArrowDown,
   /** 교정 표식. 배울 표현이 붙은 자리마다 같은 모양으로 선다. */

@@ -1,7 +1,7 @@
 -- 대화 메시지와 교정의 접근 규칙을 확인한다. 자기 행에만 쓰고, 결말이 난
 -- 플레이는 더 이상 바뀌지 않으며, 교정은 자기가 쓴 메시지에만 붙는다.
 BEGIN;
-SELECT plan(43);
+SELECT no_plan();
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -61,10 +61,6 @@ VALUES (
 
 SELECT has_table('public', 'episode_messages', 'public.episode_messages exists');
 
-SELECT has_table(
-  'public', 'episode_corrections', 'public.episode_corrections exists'
-);
-
 SELECT col_is_pk(
   'public', 'episode_messages', ARRAY['id'],
   'a message keeps the id the AI SDK gave it'
@@ -85,20 +81,9 @@ SELECT fk_ok(
   'a message belongs to a play and to that play''s owner'
 );
 
-SELECT fk_ok(
-  'public', 'episode_corrections', ARRAY['message_id', 'user_id'],
-  'public', 'episode_messages', ARRAY['id', 'user_id'],
-  'a correction belongs to a message and to that message''s owner'
-);
-
 SELECT ok(
   (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.episode_messages'::regclass),
   'row level security is enabled on episode_messages'
-);
-
-SELECT ok(
-  (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.episode_corrections'::regclass),
-  'row level security is enabled on episode_corrections'
 );
 
 SELECT policies_are(
@@ -111,15 +96,6 @@ SELECT policies_are(
   'a person may read, add and remove their own messages, and never rewrite one'
 );
 
-SELECT policies_are(
-  'public', 'episode_corrections',
-  ARRAY[
-    'episode_corrections_select_own',
-    'episode_corrections_write_own_message'
-  ],
-  'a correction is added and read, never rewritten or removed on its own'
-);
-
 -- Only the privileges PostgREST can act on are pinned. The REFERENCES, TRIGGER,
 -- TRUNCATE and MAINTAIN a new table arrives with have no Data API route, and are
 -- accepted. See docs/decisions/supabase-schema-workflow.md.
@@ -129,14 +105,6 @@ SELECT ok(
     FROM unnest(ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE']) AS p
   ),
   'anon cannot reach episode_messages through the Data API'
-);
-
-SELECT ok(
-  NOT (
-    SELECT bool_or(has_table_privilege('anon', 'public.episode_corrections', p))
-    FROM unnest(ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE']) AS p
-  ),
-  'anon cannot reach episode_corrections through the Data API'
 );
 
 -- insert는 열 단위로 주어져 있다. `user_id`가 빠진 자리가 그 이유이므로,
@@ -163,40 +131,11 @@ SELECT ok(
   'a message is added or removed whole, never edited in place'
 );
 
-SELECT ok(
-  (
-    SELECT has_table_privilege('authenticated', 'public.episode_corrections', 'SELECT')
-  )
-  AND (
-    SELECT bool_and(
-      has_column_privilege('authenticated', 'public.episode_corrections', c, 'INSERT')
-    )
-    FROM unnest(
-      ARRAY['message_id', 'original', 'fixed', 'corrected', 'pattern', 'reason']
-    ) AS c
-  )
-  AND NOT (
-    SELECT has_column_privilege(
-      'authenticated', 'public.episode_corrections', 'user_id', 'INSERT'
-    )
-  )
-  AND NOT (
-    SELECT bool_or(has_table_privilege('authenticated', 'public.episode_corrections', p))
-    FROM unnest(ARRAY['UPDATE', 'DELETE']) AS p
-  ),
-  'a correction follows the message it hangs from'
-);
-
 SET LOCAL ROLE anon;
 
 SELECT throws_ok(
   $$select * from public.episode_messages$$,
   '42501', NULL, 'anon cannot read anyone''s conversation'
-);
-
-SELECT throws_ok(
-  $$select * from public.episode_corrections$$,
-  '42501', NULL, 'anon cannot read anyone''s corrections'
 );
 
 RESET ROLE;
@@ -313,86 +252,6 @@ SELECT is(
   'and leaves the finished transcript exactly as it was'
 );
 
-SELECT lives_ok(
-  $$insert into public.episode_corrections
-      (message_id, original, fixed, corrected, pattern, reason)
-    values (
-      'cc000000-0000-4000-8000-000000000001',
-      'I want',
-      'Could I',
-      'Could I change my order?',
-      'could-i-for-requests',
-      '부탁할 때는 Could I가 자연스럽습니다.'
-    )$$,
-  'a correction hangs from the sentence the person wrote'
-);
-
-SELECT lives_ok(
-  $$insert into public.episode_corrections
-      (message_id, original, fixed, corrected, pattern, reason)
-    values (
-      'cc000000-0000-4000-8000-000000000001',
-      'change',
-      'change',
-      'Could I change my order?',
-      'verb-after-modal',
-      '같은 문장에 배울 표현이 둘 붙을 수 있습니다.'
-    )$$,
-  'and one message can carry more than one'
-);
-
-SELECT throws_ok(
-  $$insert into public.episode_corrections
-      (message_id, original, fixed, corrected, pattern, reason)
-    values (
-      'cc000000-0000-4000-8000-000000000002',
-      'Mia looks up.',
-      'Mia looked up.',
-      'Mia looked up.',
-      'past-tense-narration',
-      '상대의 대사를 고치려는 시도.'
-    )$$,
-  '42501', NULL, 'a correction never hangs from the other side''s line'
-);
-
--- 결말이 얼리는 것은 대화, 곧 메시지다. 교정 판정은 장면과 나란히 돌아 결말
--- 확정보다 늦게 끝날 수 있고, 마지막 턴의 배울 표현이 가장 아까운 자리다.
-SELECT lives_ok(
-  $$insert into public.episode_corrections
-      (message_id, original, fixed, corrected, pattern, reason)
-    values (
-      'cc000000-0000-4000-8000-000000000009',
-      'Can I',
-      'Could I',
-      'Could I get another one?',
-      'could-i-for-requests',
-      '결말이 난 뒤에 도착한 판정.'
-    )$$,
-  'a correction still lands on a finished play''s own message'
-);
-
-SELECT throws_ok(
-  $$insert into public.episode_corrections
-      (message_id, original, fixed, corrected, pattern, reason)
-    values (
-      'cc000000-0000-4000-8000-000000000001',
-      'change',
-      'change',
-      'Could I change my order?',
-      'verb-after-modal',
-      '   '
-    )$$,
-  '23514', NULL, 'a correction without a reason line is refused'
-);
-
--- 계정에 쌓인 배울 표현을 한 번에 꺼내는 조회. 화를 가로질러 세지만 조인이
--- 필요 없다.
-SELECT is(
-  (SELECT count(*) FROM public.episode_corrections),
-  3::bigint,
-  'every 배울 표현 this account has received comes back in one read'
-);
-
 -- 특정 화에서 쓴 문장 전체도 한 번의 조회로 나온다.
 SELECT is(
   (SELECT count(*) FROM public.episode_messages
@@ -436,24 +295,11 @@ SELECT lives_ok(
   'removing a message the person wrote raises nothing'
 );
 
--- 그 메시지에 붙어 있던 것만 사라진다. 다른 화의 배울 표현은 그대로 남는다.
-SELECT is(
-  (SELECT count(*) FROM public.episode_corrections
-   WHERE message_id = 'cc000000-0000-4000-8000-000000000001'),
-  0::bigint,
-  'and its corrections leave with it'
-);
-
 SET LOCAL request.jwt.claims TO '{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}';
 
 SELECT is(
   (SELECT count(*) FROM public.episode_messages), 0::bigint,
   'another account sees none of the first one''s conversation'
-);
-
-SELECT is(
-  (SELECT count(*) FROM public.episode_corrections), 0::bigint,
-  'and none of its corrections'
 );
 
 SELECT lives_ok(

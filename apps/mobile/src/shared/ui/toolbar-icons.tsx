@@ -3,6 +3,7 @@ import ArrowBack from "@expo/material-symbols/arrow_back.xml";
 import Check from "@expo/material-symbols/check.xml";
 import Close from "@expo/material-symbols/close.xml";
 import History from "@expo/material-symbols/history.xml";
+import Home from "@expo/material-symbols/home.xml";
 
 /**
  * One toolbar-icon meaning, defined for both platforms in one place.
@@ -21,6 +22,7 @@ import History from "@expo/material-symbols/history.xml";
 export const toolbarIcons = {
   back: { android: ArrowBack, ios: "chevron.backward" },
   close: { android: Close, ios: "xmark" },
+  home: { android: Home, ios: "house" },
   profile: { android: AccountCircle, ios: "person.crop.circle" },
   /** 이 스토리에서 나눈 대화를 모아 보는 자리. 상세의 우측 상단에 선다. */
   records: { android: History, ios: "clock.arrow.circlepath" },

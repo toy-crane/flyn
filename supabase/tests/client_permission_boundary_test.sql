@@ -12,7 +12,7 @@ FROM (VALUES
   ('public.story_plays', 'last_user_message_at', 'INSERT'),
   ('public.episode_plays', 'ending_kind', 'INSERT'),
   ('public.episode_messages', 'created_at', 'INSERT'),
-  ('public.episode_corrections', 'user_id', 'INSERT')
+  ('public.episode_expression_results', 'user_id', 'INSERT')
 ) AS protected(table_name, column_name, privilege);
 
 -- The allowlist is the contract, independent of the cloud's default ACL.

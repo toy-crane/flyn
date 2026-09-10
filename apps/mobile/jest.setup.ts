@@ -234,6 +234,9 @@ jest.mock("react-native-worklets", () =>
 jest.mock("react-native-reanimated", () => {
   const React = require("react") as typeof import("react");
   const mock = require("react-native-reanimated/mock");
+  mock.cubicBezier = jest.requireActual<{
+    cubicBezier: typeof import("react-native-reanimated").cubicBezier;
+  }>("react-native-reanimated/src/css/easing").cubicBezier;
   return {
     ...mock,
     useReducedMotion: () =>

@@ -192,40 +192,27 @@ grant insert (id, play_id, role, parts)
   on table public.episode_messages to authenticated;
 grant all on table public.episode_messages to service_role;
 
-alter table public.episode_corrections enable row level security;
+alter table public.episode_expression_results enable row level security;
 
-create policy episode_corrections_select_own on public.episode_corrections
-  for select
-  to authenticated
+create policy episode_expression_results_select_own on public.episode_expression_results
+  for select to authenticated
   using ((select auth.uid()) = user_id);
 
--- 교정은 사용자가 쓴 메시지에만 붙는다. 상대의 대사에 교정을 다는 요청은 여기서
--- 막힌다.
---
--- 플레이가 끝났는지는 보지 않는다. 결말이 얼리는 것은 대화, 곧 메시지다. 교정
--- 판정은 장면과 나란히 돌아 결말 확정보다 늦게 끝날 수 있는데, 에피소드를 끝내는
--- 마지막 메시지야말로 배울 표현이 가장 아까운 자리다. 경주에서 졌다는 이유로
--- 버리면 "교정은 그 자리에서 확인된다"는 약속이 마지막 턴에서만 깨진다.
-create policy episode_corrections_write_own_message on public.episode_corrections
-  for insert
-  to authenticated
+create policy episode_expression_results_write_own_message on public.episode_expression_results
+  for insert to authenticated
   with check (
     (select auth.uid()) = user_id
     and exists (
-      select 1
-      from public.episode_messages written
-      where written.id = message_id
-        and written.role = 'user'
+      select 1 from public.episode_messages written
+      where written.id = message_id and written.role = 'user'
     )
   );
 
--- delete 정책이 없다. 교정은 그것이 붙은 메시지를 따라 사라진다. `user_id`는
--- 앞의 두 테이블과 같은 이유로 insert grant에서 빠져 있다.
-grant select on table public.episode_corrections to authenticated;
-revoke insert on table public.episode_corrections from authenticated;
-grant insert (message_id, original, fixed, corrected, pattern, reason)
-  on table public.episode_corrections to authenticated;
-grant all on table public.episode_corrections to service_role;
+grant select on table public.episode_expression_results to authenticated;
+revoke insert on table public.episode_expression_results from authenticated;
+grant insert (message_id, status, fixed, entries, situation, meaning, example, example_meaning)
+  on table public.episode_expression_results to authenticated;
+grant all on table public.episode_expression_results to service_role;
 
 -- Access control for public.language_levels.
 --

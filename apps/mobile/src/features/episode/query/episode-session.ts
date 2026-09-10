@@ -21,7 +21,8 @@ export function episodeSessionQueryOptions(
 ) {
   return queryOptions<EpisodeSession>({
     gcTime: 0,
-    queryFn: () => readEpisodeSession(accessToken, storyPlayId, episodeId),
+    queryFn: ({ signal }) =>
+      readEpisodeSession(accessToken, storyPlayId, episodeId, signal),
     queryKey: episodeSessionQueryKey(userId, storyPlayId, episodeId),
     retry: 1,
   });

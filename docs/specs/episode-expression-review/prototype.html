@@ -39,7 +39,7 @@
                and viewport cycle. Chrome that needs explaining has failed.
 
   Self-contained by design: no build, no framework, no network.
---><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>플린 · 홈 이동과 다음 화 배치 제안</title><style>
+--><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>플린 · 에피소드 종료와 표현 돌아보기</title><style>
   /* ── project tokens: the project's own, or this minimal set as-is ── */
   :root {
     --background: #f6f6f6;
@@ -155,9 +155,27 @@ body{background:#ececef;font-family:var(--font);-webkit-font-smoothing:antialias
 body:has(.home-destination:not([hidden])) .sh-destination-note{display:block}
 .sh-destination-note button{background:transparent;text-decoration:underline;color:inherit;padding:8px;min-height:44px}
 .sh-vp-768 .review-foot,body:not(.sh-vp-390):not(.sh-vp-768) .review-foot{padding-left:max(24px,calc((100% - 440px)/2));padding-right:max(24px,calc((100% - 440px)/2))}
+</style><style>:root{--success:#43755d}
+@media(prefers-color-scheme:dark){:root{--success:#87d5a6}}
+.expression-status{display:flex;align-items:center;justify-content:flex-end;gap:6px;max-width:100%;font-size:12px;line-height:18px;color:var(--muted);margin-top:4px;min-height:26px;overflow-wrap:anywhere}
+.expression-status>span:first-child{min-width:0}
+.expression-status.is-error{color:var(--danger,#c2413b)}
+.expression-status.is-natural{color:var(--success,#43755d)}
+.expression-status>svg{width:16px;height:16px;flex:none}
+.inline-retry{display:grid;place-items:center;flex:none;width:44px;height:44px;min-height:44px;min-width:44px;padding:12px;background:transparent;color:inherit;border:0;border-radius:50%}
+.inline-retry svg{width:18px;height:18px}
+.check-spinner{display:inline-block;width:16px;height:16px;flex:none;border:1.8px solid currentColor;border-right-color:transparent;border-radius:50%;animation:check-spin .8s linear infinite}
+.ending-pending{display:flex;align-items:center;justify-content:center;gap:9px;min-height:60px;padding:12px 0;color:var(--muted);font-size:14px;line-height:22px;overflow-wrap:anywhere}
+@keyframes check-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.check-spinner{animation:none}}
+.review-loading{display:flex;justify-content:center;padding:64px 24px;color:var(--muted)}
+.review-loading .check-spinner{width:20px;height:20px}
+.story-unavailable .retry-button{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.retry-button:disabled{cursor:default}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 </style></head><body class="sh-vp-390"><header class="sh-bar"><label class="sh-control"><span class="sh-control-label">화면</span><select id="sh-screen" aria-label="미리 볼 화면"></select></label><label class="sh-control"><span class="sh-control-label">상태</span><select id="sh-state" aria-label="미리 볼 상태"></select></label><button id="sh-vp">너비 390</button></header><main class="sh-stage">
-<section class="screen" data-screen="episode" data-title="에피소드 대화" data-states="에피소드 종료,다른 결말"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="island"></span><span class="signals"><svg viewBox="0 0 20 16" fill="currentColor"><rect x="1" y="10" width="3" height="5" rx=".7"/><rect x="6" y="7" width="3" height="8" rx=".7"/><rect x="11" y="4" width="3" height="11" rx=".7"/><rect x="16" y="1" width="3" height="14" rx=".7"/></svg><svg viewBox="0 0 20 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 5q9-7 18 0M4 8q6-5 12 0M7 11q3-3 6 0"/><circle cx="10" cy="14" r="1" fill="currentColor"/></svg><svg class="battery" viewBox="0 0 27 15" fill="none" stroke="currentColor"><rect x="1" y="1" width="22" height="13" rx="3"/><rect x="3" y="3" width="18" height="9" rx="1.5" fill="currentColor"/><path d="M25 5v5" stroke-width="2"/></svg></span></div><div class="toolbar" data-component="NativeStackHeader"><button class="back" data-action="leave" aria-label="대화 기록으로 돌아가기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg></button><h2 id="episode-title">1화 · 잘못 나온 첫 잔</h2></div><div class="situation" data-component="EpisodeSituationBanner" id="episode-situation"></div><div class="body chat-body" id="episode-body"></div><div class="episode-bottom" id="episode-bottom"></div><span class="home-indicator"></span></section>
-<section class="screen review-screen" data-screen="review" data-title="표현 돌아보기" data-states="표현 없음,표현을 불러오지 못함,확인 중인 표현,표현이 많음,마지막 화"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="island"></span><span class="signals"><svg viewBox="0 0 20 16" fill="currentColor"><rect x="1" y="10" width="3" height="5" rx=".7"/><rect x="6" y="7" width="3" height="8" rx=".7"/><rect x="11" y="4" width="3" height="11" rx=".7"/><rect x="16" y="1" width="3" height="14" rx=".7"/></svg><svg viewBox="0 0 20 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 5q9-7 18 0M4 8q6-5 12 0M7 11q3-3 6 0"/><circle cx="10" cy="14" r="1" fill="currentColor"/></svg><svg class="battery" viewBox="0 0 27 15" fill="none" stroke="currentColor"><rect x="1" y="1" width="22" height="13" rx="3"/><rect x="3" y="3" width="18" height="9" rx="1.5" fill="currentColor"/><path d="M25 5v5" stroke-width="2"/></svg></span></div><div class="toolbar" data-component="NativeStackHeader"><button class="back" data-action="review-back" aria-label="끝난 에피소드로 돌아가기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg></button><h2>표현 돌아보기</h2><button class="header-home" data-action="go-home" aria-label="홈으로 이동"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-8H9v8H4a1 1 0 0 1-1-1Z"/></svg></button></div><div class="body review-body" id="review-body"><div class="review-intro"><div><div class="eyebrow">우리 동네 카페</div><p id="review-episode">1화 · 잘못 나온 첫 잔</p></div></div><div class="section-title"><h2>기억해 둘 표현</h2><span class="count" id="review-count">3개</span></div><div id="review-content"></div></div><div class="cta review-foot" data-component="BottomCTA"><div class="next-preview" data-component="new:EpisodePreview" id="review-next"></div><button class="primary" data-action="next-episode" id="review-primary" data-component="Button">2화 시작하기 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></div><span class="home-indicator"></span></section>
+<section class="screen" data-screen="episode" data-title="에피소드 대화" data-states="에피소드 종료,다른 결말,표현 확인 지연,표현 확인 실패,모든 표현 확인 실패,재시도도 실패,뜻을 파악하기 어려움"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="island"></span><span class="signals"><svg viewBox="0 0 20 16" fill="currentColor"><rect x="1" y="10" width="3" height="5" rx=".7"/><rect x="6" y="7" width="3" height="8" rx=".7"/><rect x="11" y="4" width="3" height="11" rx=".7"/><rect x="16" y="1" width="3" height="14" rx=".7"/></svg><svg viewBox="0 0 20 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 5q9-7 18 0M4 8q6-5 12 0M7 11q3-3 6 0"/><circle cx="10" cy="14" r="1" fill="currentColor"/></svg><svg class="battery" viewBox="0 0 27 15" fill="none" stroke="currentColor"><rect x="1" y="1" width="22" height="13" rx="3"/><rect x="3" y="3" width="18" height="9" rx="1.5" fill="currentColor"/><path d="M25 5v5" stroke-width="2"/></svg></span></div><div class="toolbar" data-component="NativeStackHeader"><button class="back" data-action="leave" aria-label="대화 기록으로 돌아가기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg></button><h2 id="episode-title">1화 · 잘못 나온 첫 잔</h2></div><div class="situation" data-component="EpisodeSituationBanner" id="episode-situation"></div><div class="body chat-body" id="episode-body"></div><div class="episode-bottom" id="episode-bottom"></div><span class="home-indicator"></span></section>
+<section class="screen review-screen" data-screen="review" data-title="표현 돌아보기" data-states="표현 없음,표현이 많음,표현을 불러오는 중,표현을 불러오지 못함,표현 확인 실패,모든 표현 확인 실패,재시도도 실패,마지막 화"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="island"></span><span class="signals"><svg viewBox="0 0 20 16" fill="currentColor"><rect x="1" y="10" width="3" height="5" rx=".7"/><rect x="6" y="7" width="3" height="8" rx=".7"/><rect x="11" y="4" width="3" height="11" rx=".7"/><rect x="16" y="1" width="3" height="14" rx=".7"/></svg><svg viewBox="0 0 20 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 5q9-7 18 0M4 8q6-5 12 0M7 11q3-3 6 0"/><circle cx="10" cy="14" r="1" fill="currentColor"/></svg><svg class="battery" viewBox="0 0 27 15" fill="none" stroke="currentColor"><rect x="1" y="1" width="22" height="13" rx="3"/><rect x="3" y="3" width="18" height="9" rx="1.5" fill="currentColor"/><path d="M25 5v5" stroke-width="2"/></svg></span></div><div class="toolbar" data-component="NativeStackHeader"><button class="back" data-action="review-back" aria-label="끝난 에피소드로 돌아가기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg></button><h2>표현 돌아보기</h2><button class="header-home" data-action="go-home" aria-label="홈으로 이동"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-8H9v8H4a1 1 0 0 1-1-1Z"/></svg></button></div><div class="body review-body" id="review-body"><div class="review-intro"><div><div class="eyebrow">우리 동네 카페</div><p id="review-episode">1화 · 잘못 나온 첫 잔</p></div></div><div class="section-title" id="review-heading"><h2>기억해 둘 표현</h2><span class="count" id="review-count">3개</span></div><div id="review-content"></div></div><div class="cta review-foot" data-component="BottomCTA"><div class="next-preview" data-component="new:EpisodePreview" id="review-next"></div><button class="primary" data-action="next-episode" id="review-primary" data-component="Button">2화 시작하기 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></div><span class="home-indicator"></span></section>
 
 <section class="screen" data-screen="records" data-title="대화 기록"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="island"></span><span class="signals"><svg viewBox="0 0 20 16" fill="currentColor"><rect x="1" y="10" width="3" height="5" rx=".7"/><rect x="6" y="7" width="3" height="8" rx=".7"/><rect x="11" y="4" width="3" height="11" rx=".7"/><rect x="16" y="1" width="3" height="14" rx=".7"/></svg><svg viewBox="0 0 20 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 5q9-7 18 0M4 8q6-5 12 0M7 11q3-3 6 0"/><circle cx="10" cy="14" r="1" fill="currentColor"/></svg><svg class="battery" viewBox="0 0 27 15" fill="none" stroke="currentColor"><rect x="1" y="1" width="22" height="13" rx="3"/><rect x="3" y="3" width="18" height="9" rx="1.5" fill="currentColor"/><path d="M25 5v5" stroke-width="2"/></svg></span></div><div class="toolbar" data-component="NativeStackHeader"><h2>대화 기록</h2></div><div class="body records-body"><div class="eyebrow">스토리</div><h1>우리 동네 카페</h1><div class="records-card" data-component="StoryPlayCard" id="records-content"></div></div><span class="home-indicator"></span></section>
 <section class="screen home-destination" data-screen="home" data-title="홈 (이동 위치 확인)"><div class="statusbar" aria-hidden="true"><span>9:41</span><span class="island"></span><span class="signals"><svg viewBox="0 0 20 16" fill="currentColor"><rect x="1" y="10" width="3" height="5" rx=".7"/><rect x="6" y="7" width="3" height="8" rx=".7"/><rect x="11" y="4" width="3" height="11" rx=".7"/><rect x="16" y="1" width="3" height="14" rx=".7"/></svg><svg viewBox="0 0 20 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 5q9-7 18 0M4 8q6-5 12 0M7 11q3-3 6 0"/><circle cx="10" cy="14" r="1" fill="currentColor"/></svg><svg class="battery" viewBox="0 0 27 15" fill="none" stroke="currentColor"><rect x="1" y="1" width="22" height="13" rx="3"/><rect x="3" y="3" width="18" height="9" rx="1.5" fill="currentColor"/><path d="M25 5v5" stroke-width="2"/></svg></span></div><div class="body"><h1>홈</h1></div><span class="home-indicator"></span></section></main><aside class="sh-destination-note">홈으로 이동하는 동선입니다. 홈의 화면 구성은 이번 비교 범위에 포함하지 않았습니다.<br><button data-action="return-preview">표현 돌아보기로 돌아가기</button></aside><script>
@@ -198,43 +216,242 @@ const alternateEndings={
 5:{reply:'I’m not sure about next week yet, but it was lovely talking to you.',narration:'민이 다음 주 일정은 아직 모른다며 손을 흔든다.',outcome:'다음 약속은 정하지 못했지만 인사를 나눴어요.'}};
 const finalExpression={id:'farewell',kind:'',situation:'다음에 또 만나자고 말할 때',original:'I look forward to see you again.',originalLabel:'내가 쓴 문장',english:'I look forward to <mark>seeing</mark> you again.',plain:'I look forward to seeing you again.',meaning:'다시 만날 날을 기대할게요.',reason:'look forward to 뒤에는 동사의 -ing 형태를 써요.',other:'I look forward to visiting your cafe.',otherMeaning:'당신의 카페에 갈 날을 기대해요.'};
 const longExpressions=[{id:'long-1',kind:'',situation:'주문한 음료가 다른 이유를 정중하게 확인할 때',original:'I think this is different with what I ordered.',originalLabel:'내가 쓴 문장',english:'I think this is <mark>different from</mark> what I ordered.',plain:'I think this is different from what I ordered.',meaning:'제가 주문한 것과 다른 것 같아요.',reason:'무엇과 다르다고 말할 때 different from을 써요.',other:'This room is different from the one in the photos.',otherMeaning:'이 방은 사진에 나온 방과 달라요.'},{id:'long-2',kind:'teal',situation:'바쁜 상대에게 부탁하면서 시간을 넉넉히 줄 때',original:'급한 건 아니니까 시간 되실 때 확인해 주실래요?',originalLabel:'한국어로 물어본 말',english:'<mark>Whenever you have a moment,</mark> could you check whether this was made with regular milk or oat milk?',plain:'Whenever you have a moment, could you check whether this was made with regular milk or oat milk?',meaning:'시간 되실 때, 이걸 일반 우유로 만들었는지 귀리 우유로 만들었는지 확인해 주실래요?',reason:'Whenever you have a moment로 상대가 편한 때 부탁을 들어줘도 된다고 말해요.',other:'Whenever you have a moment, could you check my reservation?',otherMeaning:'시간 되실 때 제 예약을 확인해 주실래요?'}];
-let activeEpisode=1,reviewEpisode=1,reviewMode='Default',current='episode';
+// Dummy timing only. No real requests, background jobs, or user data.
+const CHECK_MS = 1400, DELAYED_CHECK_MS = 12000;
+let activeEpisode=1, reviewEpisode=1, reviewMode='Default', current='episode', contextEpisode=null;
+const checks=new Map(), timers=new Map();
+const reviewQueries=new Map();
+function queryFor(n){if(!reviewQueries.has(n))reviewQueries.set(n,{status:'idle',attempt:0,timer:null,retrying:false});return reviewQueries.get(n);}
+function cancelReviewLoads(){for(const q of reviewQueries.values()){if(q.status!=='loading')continue;clearTimeout(q.timer);q.timer=null;q.attempt++;q.status=q.retrying?'error':'idle';q.retrying=false;}}
+function loadReview(n,{retry=false,delay=CHECK_MS}={}){
+  const q=queryFor(n);if(q.status==='loading')return;
+  q.status='loading';q.retrying=retry;const attempt=++q.attempt;
+  q.timer=setTimeout(()=>{if(q.attempt!==attempt)return;q.timer=null;q.status='ready';q.retrying=false;if(current==='review'&&reviewEpisode===n)renderReview({preserve:true});syncChrome();},delay);
+}
+icons.retry='<path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 18 17"/>';
+icons.check='<path d="m5 12 4 4 10-10"/>';
 const screens=[...document.querySelectorAll('[data-screen]')];
-const screenSelect=$('#sh-screen'),stateSelect=$('#sh-state');
+const screenSelect=$('#sh-screen'), stateSelect=$('#sh-state');
 screens.forEach(s=>{const o=document.createElement('option');o.value=s.dataset.screen;o.textContent=s.dataset.title;screenSelect.append(o)});
-function episodeState(){const e=episodes[activeEpisode];return e.done?(e.alternate?'다른 결말':'에피소드 종료'):'Default'}
-function state(){return current==='episode'?episodeState():current==='review'?reviewMode:'Default'}
-function syncChrome(){screenSelect.value=current;const declared=(screens.find(s=>s.dataset.screen===current).dataset.states||'').split(',').filter(Boolean);stateSelect.replaceChildren(...['Default',...declared].map(v=>{const o=document.createElement('option');o.value=v;o.textContent=v==='Default'?(current==='episode'?'대화 중':'기본'):v;return o}));stateSelect.value=state();stateSelect.disabled=declared.length===0;}
-function situation(n){return `<span aria-hidden="true">${episodes[n].emoji}</span><span>${episodes[n].situation}</span>`}
+
+function newCheck(n,id,original,expression){return {n,id,original,expression,status:expression?'corrected':'natural',attempt:0,repeatFailure:false};}
+function seedChecks(n){
+  if(!checks.has(n))checks.set(n,n===1?[
+    newCheck(n,'order',expressions[0].original,expressions[0]),
+    newCheck(n,'request',expressions[1].original,expressions[1])
+  ]:[]);
+  const e=episodes[n], list=checks.get(n);
+  if(e.sent!==null&&!list.some(c=>c.id==='last')){
+    const expression=n===1&&e.sent===expressions[2].original?expressions[2]:n===5&&e.sent===finalExpression.original?finalExpression:null;
+    list.push(newCheck(n,'last',e.sent,expression));
+  }
+  return list;
+}
+function waiting(n){return seedChecks(n).some(c=>['pending','interrupted'].includes(c.status));}
+function failures(n){return seedChecks(n).filter(c=>c.status==='error');}
+function timerKey(c){return c.n+':'+c.id;}
+function clearCheck(c){const key=timerKey(c);clearTimeout(timers.get(key));timers.delete(key);c.attempt++;}
+function interrupt(n){if(n===null)return;for(const c of seedChecks(n)){if(c.status==='pending'){clearCheck(c);c.status='interrupted';}}episodes[n].celebrationEligible=false;}
+function startCheck(c,{delay=CHECK_MS}={}){
+  if(c.status==='pending')return;
+  clearCheck(c);c.status='pending';const attempt=c.attempt;
+  timers.set(timerKey(c),setTimeout(()=>{
+    if(c.attempt!==attempt)return;
+    timers.delete(timerKey(c));
+    c.status=c.repeatFailure?'error':c.expression?'corrected':'natural';
+    repaint(c.n);
+  },delay));
+}
+function enterContext(n){
+  if(contextEpisode===n)return;
+  interrupt(contextEpisode);contextEpisode=n;
+  for(const c of seedChecks(n))if(['interrupted','error'].includes(c.status))startCheck(c);
+}
+function syncChrome(){
+  screenSelect.value=current;
+  const declared=(screens.find(s=>s.dataset.screen===current).dataset.states||'').split(',').filter(Boolean);
+  stateSelect.replaceChildren(...['Default',...declared].map(v=>{const o=document.createElement('option');o.value=v;o.textContent=v==='Default'?(current==='episode'?'대화 중':'기본'):v;return o}));
+  stateSelect.value=state();stateSelect.disabled=declared.length===0;
+}
+function failurePreset(n){const list=seedChecks(n), bad=failures(n);return bad.some(c=>c.repeatFailure)?'재시도도 실패':bad.length===list.length?'모든 표현 확인 실패':'표현 확인 실패';}
+function state(){
+  if(current==='episode'){
+    const e=episodes[activeEpisode];if(!e.done)return 'Default';
+    if(waiting(activeEpisode))return '표현 확인 지연';
+    if(failures(activeEpisode).length)return failurePreset(activeEpisode);
+    if(seedChecks(activeEpisode).some(c=>c.status==='unclear'))return '뜻을 파악하기 어려움';
+    return e.alternate?'다른 결말':'에피소드 종료';
+  }
+  if(current==='review'){
+    const query=queryFor(reviewEpisode);
+    if(query.status==='loading')return '표현을 불러오는 중';
+    if(query.status==='error')return '표현을 불러오지 못함';
+    if(reviewMode!=='Default')return reviewMode;
+    if(failures(reviewEpisode).length)return failurePreset(reviewEpisode);
+    return reviewEpisode===5?'마지막 화':'Default';
+  }
+  return 'Default';
+}
+function situation(n){return `<span aria-hidden="true">${episodes[n].emoji}</span><span>${episodes[n].situation}</span>`;}
 const characterForEpisode=(text,n)=>`<div class="turn"><div class="character" data-component="SceneMessage"><div class="speaker">${n===5?'민':'바리스타'}</div><div class="speech">${escapeHTML(text)}</div></div></div>`;
 const narration=text=>`<p class="narration" data-component="SceneMessage">${escapeHTML(text)}</p>`;
-function correction(e){return `<details class="correction ${e.kind}" data-correction="${e.id}" data-component="EpisodeCorrectionNote"><summary aria-label="${e.kind?'이럴 때 쓰는 영어 표현':'더 자연스러운 영어 표현'} 보기">${icon(e.kind?'chat':'spark')}<span class="correction-text">${e.plain}</span>${icon('down')}</summary><div class="detail-body"><h3>${e.kind?'이럴 때 쓰는 영어 표현':'더 자연스러운 영어 표현'}</h3><p>${escapeHTML(e.original)}</p><p>${e.english}</p><p>${e.reason}</p></div></details>`}
-function user(text,e,readonly){return `<div class="turn user-turn"><div class="user-bubble" data-component="UserMessage">${escapeHTML(text)}</div>${e&&!readonly?correction(e):''}</div>`}
-function conversation(n,readonly=false){const e=episodes[n];const character=text=>characterForEpisode(text,n);let html='';if(n===1){html=narration('직원이 차가운 라테를 내려놓고 다음 손님을 부르려 한다.')+character('Here you go. Next, please!')+user(expressions[0].original,expressions[0],readonly)+character('Oh, you wanted it hot?')+user(expressions[1].original,expressions[1],readonly)+character('Of course. Pick it up at the other end of the counter.');}else if(n===2){html=narration('옆자리 손님이 서둘러 나간 뒤, 의자 위에 작은 노트가 남아 있다.')+character('Excuse me, is that notebook yours?');}else if(n===3){html=narration('계산서를 확인하니 주문하지 않은 케이크가 적혀 있다.')+character('Everything all right with the bill?');}else if(n===4){html=narration('늘 주문하던 라테를 오늘은 다른 우유로 마셔보고 싶다.')+character('Your usual latte?');}else{html=narration('카페 문을 닫을 시간이다. 민이 다음 주에도 들를 건지 묻는다.')+character('Same time next week?');}
-if(e.sent!==null){const exp=n===1&&e.sent===expressions[2].original?expressions[2]:n===5&&e.sent===finalExpression.original?finalExpression:null;html+=`<div class="last-turn">${user(e.sent,exp,readonly)}<div class="closing-scene">${character(e.alternate?alternateEndings[n].reply:e.reply)}${narration(e.alternate?alternateEndings[n].narration:e.narration)}</div></div>`;}
-return html;}
-function actualOutcome(n){return episodes[n].alternate?alternateEndings[n].outcome:episodes[n].outcome}
+function correction(e){return `<details class="correction ${e.kind}" data-correction="${e.id}" data-component="EpisodeCorrectionNote"><summary aria-label="${e.kind?'이럴 때 쓰는 영어 표현':'더 자연스러운 영어 표현'} 보기">${icon(e.kind?'chat':'spark')}<span class="correction-text">${e.plain}</span>${icon('down')}</summary><div class="detail-body"><h3>${e.kind?'이럴 때 쓰는 영어 표현':'더 자연스러운 영어 표현'}</h3><p>${escapeHTML(e.original)}</p><p>${e.english}</p><p>${e.reason}</p></div></details>`;}
+function statusNote(c){
+  const pending=['pending','interrupted'].includes(c.status), failed=c.status==='error';
+  const label=pending?'표현을 확인하고 있어요.':failed?'표현을 확인하지 못했어요.':c.status==='unclear'?'표현의 뜻을 파악하기 어려워요.':'자연스러운 표현이에요.';
+  return `<div class="expression-status ${failed?'is-error':c.status==='natural'?'is-natural':''}" data-component="StatusLine" ${pending?'role="status" aria-live="polite"':''}><span>${label}</span>${pending?'<span class="check-spinner" aria-hidden="true"></span>':failed?`<button class="inline-retry" data-action="retry-check" data-episode="${c.n}" data-check="${c.id}" aria-label="표현 다시 확인">${icon('retry')}</button>`:c.status==='natural'?icon('check'):''}</div>`;
+}
+function user(text,c){return `<div class="turn user-turn" data-message="${c?.id||''}"><div class="user-bubble" data-component="UserMessage">${escapeHTML(text)}</div>${c?(c.status==='corrected'?correction(c.expression):statusNote(c)):''}</div>`;}
+function conversation(n){
+  const e=episodes[n], list=seedChecks(n), find=id=>list.find(c=>c.id===id), character=text=>characterForEpisode(text,n);let html='';
+  if(n===1)html=narration('직원이 차가운 라테를 내려놓고 다음 손님을 부르려 한다.')+character('Here you go. Next, please!')+user(expressions[0].original,find('order'))+character('Oh, you wanted it hot?')+user(expressions[1].original,find('request'))+character('Of course. Pick it up at the other end of the counter.');
+  else if(n===2)html=narration('옆자리 손님이 서둘러 나간 뒤, 의자 위에 작은 노트가 남아 있다.')+character('Excuse me, is that notebook yours?');
+  else if(n===3)html=narration('계산서를 확인하니 주문하지 않은 케이크가 적혀 있다.')+character('Everything all right with the bill?');
+  else if(n===4)html=narration('늘 주문하던 라테를 오늘은 다른 우유로 마셔보고 싶다.')+character('Your usual latte?');
+  else html=narration('카페 문을 닫을 시간이다. 민이 다음 주에도 들를 건지 묻는다.')+character('Same time next week?');
+  if(e.sent!==null)html+=`<div class="last-turn">${user(e.sent,find('last'))}<div class="closing-scene">${character(e.alternate?alternateEndings[n].reply:e.reply)}${narration(e.alternate?alternateEndings[n].narration:e.narration)}</div></div>`;
+  return html;
+}
+function actualOutcome(n){return episodes[n].alternate?alternateEndings[n].outcome:episodes[n].outcome;}
 function scrollEnd(selector){const el=$(selector);el.scrollTop=el.scrollHeight;}
-function celebrationMarkup(){return '<div class="celebration-burst" aria-hidden="true">'+Array.from({length:22},(_,i)=>{const direction=i%2?-1:1;const dx=direction*(35+(i*17)%99),dy=-(20+(i*23)%66),rotation=direction*(70+(i*31)%160);return `<i class="confetti" style="--dx:${dx}px;--dy:${dy}px;--turn:${rotation}deg;--delay:${(i%4)*22}ms"></i>`;}).join('')+'</div>';}
-function completionCard(n,celebrate=false){const success=!episodes[n].alternate;const title=actualOutcome(n);
-return `<div class="outcome-card completion-celebration ${celebrate?'celebrating':''}" data-component="EpisodeClosing">${celebrate?celebrationMarkup():''}<div class="achievement-heading"><div class="achievement-mark" data-component="new:EpisodeCompletionMark" aria-hidden="true"><div class="achievement-medal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"/></svg></div><svg class="achievement-spark" viewBox="0 0 24 24" fill="currentColor"><path d="m12 0 3.1 8.9L24 12l-8.9 3.1L12 24l-3.1-8.9L0 12l8.9-3.1Z"/></svg><svg class="achievement-spark small" viewBox="0 0 24 24" fill="currentColor"><path d="m12 0 3.1 8.9L24 12l-8.9 3.1L12 24l-3.1-8.9L0 12l8.9-3.1Z"/></svg></div>${success?'<div class="achievement-kicker">해냈어요!</div>':''}<h3 id="outcome-text" tabindex="-1">${title.replace(/[.]$/,'')}</h3></div><button class="primary" data-action="review-expressions" data-component="Button">표현 돌아보기 ${icon('arrow')}</button></div>`;}
-function renderEpisode(celebrate=false){const e=episodes[activeEpisode];$('#episode-title').textContent=`${activeEpisode}화 · ${e.title}`;$('#episode-situation').innerHTML=situation(activeEpisode);$('#episode-body').innerHTML=conversation(activeEpisode);let bottom='';if(e.done){bottom=completionCard(activeEpisode,celebrate);}else{bottom=`<form class="composer" id="episode-form"><textarea id="reply" rows="1" aria-label="답장" placeholder="영어나 한국어로 적어 주세요.">${escapeHTML(e.draft)}</textarea><button class="send" id="send" aria-label="보내기" ${e.draft.trim()?'':'disabled'}>${icon('up')}</button></form>`;}$('#episode-bottom').classList.toggle('has-completion',e.done);$('#episode-bottom').innerHTML=bottom;const input=$('#reply');if(input){input.oninput=()=>{e.draft=input.value;$('#send').disabled=!input.value.trim();input.style.height='48px';input.style.height=Math.min(112,input.scrollHeight)+'px';};$('#episode-form').onsubmit=event=>{event.preventDefault();if(e.done||!input.value.trim())return;e.sent=input.value.trim();input.blur();e.done=true;e.draft='';renderEpisode(true);syncChrome();scrollEnd('#episode-body');$('#outcome-text')?.focus({preventScroll:true});};}scrollEnd('#episode-body');}
-function ensureEnded(n){const e=episodes[n];if(!e.done){e.done=true;e.sent=e.sent||e.draft||e.initialDraft;}}
-function expressionList(){if(reviewEpisode===5)return episodes[5].sent===finalExpression.original?[finalExpression]:[];if(reviewEpisode!==1)return [];const last=episodes[1].sent;return last&&last!==expressions[2].original?expressions.slice(0,2):expressions;}
-function renderReview(){const e=episodes[reviewEpisode];$('#review-episode').textContent=`${reviewEpisode}화 · ${e.title}`;let list=expressionList(),content='';if(reviewMode==='표현이 많음')list=[...list,...longExpressions];if(reviewMode==='표현 없음')list=[];if(reviewMode==='확인 중인 표현')list=list.slice(0,2);$('#review-count').textContent=reviewMode==='표현을 불러오지 못함'?'':`${list.length}개`;
-if(reviewMode==='표현을 불러오지 못함'){content=`<div class="story-unavailable" data-component="StoryUnavailable"><svg class="offline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 2 20 20M8.36 8.36A6 6 0 0 0 6 20h12M9.7 4.3A7 7 0 0 1 20.8 10a5 5 0 0 1 .5 8.2"/></svg><h3>표현을 불러오지 못했어요.</h3><button class="retry-button" data-component="Button" data-variant="secondary" data-action="retry-expressions" aria-busy="false">다시 시도하기</button></div>`;}else if(list.length===0){content=`<div class="empty-card" data-component="new:ExpressionEmpty">${icon('book')}<h3>이번 대화에는 안내한 표현이 없어요</h3></div>`;}else{content=`<div class="learning">${list.map(learnCard).join('')}</div>`;}
-if(reviewMode==='확인 중인 표현')content+='<div class="pending-note" role="status"><span class="pending-dot"></span>마지막 메시지의 표현을 확인하고 있어요.</div>';
-$('#review-content').innerHTML=content;const last=reviewEpisode===5;const nextNumber=Math.min(5,reviewEpisode+1),nextEpisode=episodes[nextNumber];$('#review-next').innerHTML=last?'<div class="next-label">우리 동네 카페</div><h3>마지막 이야기까지 함께했어요</h3>':'<div class="next-label">다음 · '+nextNumber+'화</div><h3>'+nextEpisode.title+'</h3><p>'+(reviewEpisode===1?'노트에는 왜 이 카페의 이름이 있을까요?':nextEpisode.situation)+'</p>';
-
-$('#review-primary').innerHTML=last?'대화 기록 보기':`${nextNumber}화 ${episodes[nextNumber].done?'다시 보기':'시작하기'} ${icon('arrow')}`;$('#review-primary').dataset.action=last?'leave':'next-episode';}
-function renderRecords(){const completed=Object.entries(episodes).filter(([n,e])=>e.done);const final=episodes[5].done;const count=final?5:completed.filter(([n])=>Number(n)<5).length;const next=final?null:Number(Object.keys(episodes).find(n=>!episodes[n].done)||5);let html='<h3 style="font-size:16px;line-height:24px">9월 9일 오전 9:30</h3><div class="progress" role="img" aria-label="5화 중 '+count+'화 종료">'+Array.from({length:5},(_,i)=>'<i style="'+(i<count?'background:var(--accent)':'')+'"></i>').join('')+'</div><p>'+ (final?'5/5화 · 완료':`${next}/5화 · ${episodes[next].title}`)+'</p><div style="margin-top:14px">';html+=completed.map(([n,e])=>`<button class="record-line" data-action="record-episode" data-episode="${n}"><span><strong>${n}화 · ${e.title}</strong><small>${actualOutcome(Number(n))}</small></span>${icon('arrow')}</button>`).join('');html+='</div>';if(!final)html+='<button class="primary" data-action="resume" style="margin-top:14px" data-component="Button">이어서 하기</button>';$('#records-content').innerHTML=html;}
-function go(slug,{preserveScroll=false,animate=true,celebrate=false}={}){const aliases={closing:'review',next:'episode',transcript:'episode'};slug=aliases[slug]||slug;if(!screens.some(s=>s.dataset.screen===slug))slug='episode';current=slug;screens.forEach(s=>{s.hidden=s.dataset.screen!==slug;s.classList.remove('screen-enter')});if(slug==='episode')renderEpisode(celebrate);if(slug==='review')renderReview();if(slug==='records')renderRecords();const screen=screens.find(s=>!s.hidden);if(!preserveScroll&&!['episode','transcript'].includes(slug))screen.querySelector('.body').scrollTop=0;if(animate&&!matchMedia('(prefers-reduced-motion:reduce)').matches)screen.classList.add('screen-enter');history.replaceState(null,'','#'+slug);syncChrome();}
-function setState(name){if(current==='episode'){const e=episodes[activeEpisode];if(name==='Default'){activeEpisode=1;for(const v of Object.values(episodes)){v.done=false;v.sent=null;v.alternate=false;v.draft=v.initialDraft;}episodes[1].draft=expressions[2].original;reviewMode='Default';}else{e.sent=e.sent||e.draft||e.initialDraft;e.done=true;e.alternate=name==='다른 결말';}go('episode',{animate:false,celebrate:['에피소드 종료','다른 결말'].includes(name)});}else if(current==='review'){reviewMode=name;if(name==='마지막 화'){reviewEpisode=5;activeEpisode=5;Object.keys(episodes).forEach(n=>ensureEnded(Number(n)));}go('review',{animate:false});}else{syncChrome();}}
+function celebrationMarkup(){return '<div class="celebration-burst" aria-hidden="true">'+Array.from({length:22},(_,i)=>{const d=i%2?-1:1;return `<i class="confetti" style="--dx:${d*(35+(i*17)%99)}px;--dy:${-(20+(i*23)%66)}px;--turn:${d*(70+(i*31)%160)}deg;--delay:${(i%4)*22}ms"></i>`;}).join('')+'</div>';}
+function completionCard(n,celebrate=false){const success=!episodes[n].alternate;return `<div class="outcome-card completion-celebration ${celebrate?'celebrating':''}" data-component="EpisodeClosing">${celebrate?celebrationMarkup():''}<div class="achievement-heading"><div class="achievement-mark" data-component="new:EpisodeCompletionMark" aria-hidden="true"><div class="achievement-medal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"/></svg></div><svg class="achievement-spark" viewBox="0 0 24 24" fill="currentColor"><path d="m12 0 3.1 8.9L24 12l-8.9 3.1L12 24l-3.1-8.9L0 12l8.9-3.1Z"/></svg><svg class="achievement-spark small" viewBox="0 0 24 24" fill="currentColor"><path d="m12 0 3.1 8.9L24 12l-8.9 3.1L12 24l-3.1-8.9L0 12l8.9-3.1Z"/></svg></div>${success?'<div class="achievement-kicker">해냈어요!</div>':''}<h3 id="outcome-text" tabindex="-1">${actualOutcome(n).replace(/[.]$/,'')}</h3></div><button class="primary" data-action="review-expressions" data-component="Button">표현 돌아보기 ${icon('arrow')}</button></div>`;}
+function renderEpisode({preserve=false}={}){
+  const e=episodes[activeEpisode], body=$('#episode-body'), oldScroll=body.scrollTop;
+  const opened=[...body.querySelectorAll('details[open]')].map(d=>d.dataset.correction);
+  $('#episode-title').textContent=`${activeEpisode}화 · ${e.title}`;
+  $('#episode-situation').innerHTML=situation(activeEpisode);body.innerHTML=conversation(activeEpisode);
+  opened.forEach(id=>body.querySelector(`[data-correction="${id}"]`)?.setAttribute('open',''));
+  const held=e.done&&waiting(activeEpisode), ready=e.done&&!held;
+  let bottom='';
+  if(held)bottom='<div class="ending-pending" role="status" aria-live="polite" data-component="StatusLine"><span class="check-spinner" aria-hidden="true"></span><span>표현을 확인하고 있어요.</span></div>';
+  else if(ready){const celebrate=!!e.celebrationEligible&&!e.celebrated;bottom=completionCard(activeEpisode,celebrate);e.celebrated=true;e.celebrationEligible=false;}
+  else bottom=`<form class="composer" id="episode-form"><textarea id="reply" rows="1" aria-label="답장" placeholder="영어나 한국어로 적어 주세요.">${escapeHTML(e.draft)}</textarea><button class="send" id="send" aria-label="보내기" ${e.draft.trim()?'':'disabled'}>${icon('up')}</button></form>`;
+  $('#episode-bottom').classList.toggle('has-completion',ready);$('#episode-bottom').innerHTML=bottom;
+  const input=$('#reply');
+  if(input){
+    input.oninput=()=>{e.draft=input.value;$('#send').disabled=!input.value.trim();input.style.height='48px';input.style.height=Math.min(112,input.scrollHeight)+'px';};
+    $('#episode-form').onsubmit=event=>{
+      event.preventDefault();if(e.done||!input.value.trim())return;
+      e.sent=input.value.trim();input.blur();e.done=true;e.draft='';e.celebrationEligible=true;
+      const check=seedChecks(activeEpisode).find(c=>c.id==='last');startCheck(check);renderEpisode();syncChrome();
+    };
+  }
+  if(preserve)body.scrollTop=oldScroll;else scrollEnd('#episode-body');
+}
+function ensureEnded(n){const e=episodes[n];if(!e.done){e.done=true;e.sent=e.sent||e.draft||e.initialDraft;}seedChecks(n);}
+function renderReview({preserve=false}={}){
+  const e=episodes[reviewEpisode], body=$('[data-screen="review"] .body'), oldScroll=body.scrollTop;
+  const opened=[...body.querySelectorAll('.learn-card details[open]')].map(d=>d.closest('.learn-card').dataset.expression);
+  $('#review-episode').textContent=`${reviewEpisode}화 · ${e.title}`;
+  const query=queryFor(reviewEpisode);
+  let list=seedChecks(reviewEpisode), content='';
+  if(reviewMode==='표현 없음')list=[];
+  const ready=list.filter(c=>c.status==='corrected');
+  const extra=reviewMode==='표현이 많음'?longExpressions:[];
+  const cardCount=ready.length+extra.length;
+  $('#review-heading').hidden=query.status!=='ready'||cardCount===0;
+  $('#review-count').textContent=query.status==='ready'&&cardCount?`${cardCount}개`:'';
+  if(query.status==='error'||query.retrying)content=`<div class="story-unavailable" data-component="StoryUnavailable"><svg class="offline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 2 20 20M8.36 8.36A6 6 0 0 0 6 20h12M9.7 4.3A7 7 0 0 1 20.8 10a5 5 0 0 1 .5 8.2"/></svg><h3>표현을 불러오지 못했어요.</h3><button class="retry-button" data-component="Button" data-variant="secondary" data-action="retry-expressions" ${query.retrying?'disabled aria-busy="true"':''}>${query.retrying?'<span class="check-spinner" aria-hidden="true"></span>':''}<span>다시 시도하기</span></button>${query.retrying?'<span class="sr-only" role="status">표현을 불러오고 있어요.</span>':''}</div>`;
+  else if(query.status!=='ready')content='<div class="review-loading" data-component="LoadingSpinner" role="status" aria-label="표현을 불러오고 있어요."><span class="check-spinner" aria-hidden="true"></span><span class="sr-only">표현을 불러오고 있어요.</span></div>';
+  else if(!cardCount)content=`<div class="empty-card" data-component="new:ExpressionEmpty">${icon('book')}<h3>이번 대화에는 안내한 표현이 없어요</h3></div>`;
+  else content='<div class="learning">'+ready.map(c=>learnCard(c.expression)).join('')+extra.map(learnCard).join('')+'</div>';
+  $('#review-content').innerHTML=content;
+  opened.forEach(id=>body.querySelector(`[data-expression="${id}"] details`)?.setAttribute('open',''));
+  const last=reviewEpisode===5, nextNumber=Math.min(5,reviewEpisode+1), nextEpisode=episodes[nextNumber];
+  $('#review-next').innerHTML=last?'<div class="next-label">우리 동네 카페</div><h3>마지막 이야기까지 함께했어요</h3>':'<div class="next-label">다음 · '+nextNumber+'화</div><h3>'+nextEpisode.title+'</h3><p>'+(reviewEpisode===1?'노트에는 왜 이 카페의 이름이 있을까요?':nextEpisode.situation)+'</p>';
+  $('#review-primary').innerHTML=last?'대화 기록 보기':`${nextNumber}화 ${nextEpisode.done?'다시 보기':'시작하기'} ${icon('arrow')}`;
+  $('#review-primary').dataset.action=last?'leave':'next-episode';
+  if(preserve)body.scrollTop=oldScroll;
+}
+function renderRecords(){
+  const completed=Object.entries(episodes).filter(([n,e])=>e.done), final=episodes[5].done;
+  const count=completed.length, next=final?null:Number(Object.keys(episodes).find(n=>!episodes[n].done)||5);
+  let html='<h3 style="font-size:16px;line-height:24px">9월 9일 오전 9:30</h3><div class="progress" role="img" aria-label="5화 중 '+count+'화 종료">'+Array.from({length:5},(_,i)=>'<i style="'+(i<count?'background:var(--accent)':'')+'"></i>').join('')+'</div><p>'+(final?'5/5화 · 완료':`${next}/5화 · ${episodes[next].title}`)+'</p><div style="margin-top:14px">';
+  html+=completed.map(([n,e])=>`<button class="record-line" data-action="record-episode" data-episode="${n}"><span><strong>${n}화 · ${e.title}</strong><small>${actualOutcome(Number(n))}</small></span>${icon('arrow')}</button>`).join('');html+='</div>';
+  if(!final)html+='<button class="primary" data-action="resume" style="margin-top:14px" data-component="Button">이어서 하기</button>';
+  $('#records-content').innerHTML=html;
+}
+function repaint(n){
+  if(current==='episode'&&activeEpisode===n)renderEpisode({preserve:true});
+  if(current==='review'&&reviewEpisode===n)renderReview({preserve:true});
+  syncChrome();
+}
+function go(slug,{preserveScroll=false,animate=true}={}){
+  const aliases={closing:'review',next:'episode',transcript:'episode'};slug=aliases[slug]||slug;
+  if(!screens.some(s=>s.dataset.screen===slug))slug='episode';
+  if(slug==='episode')enterContext(activeEpisode);
+  else if(slug==='review'){
+    ensureEnded(reviewEpisode);enterContext(reviewEpisode);
+    if(waiting(reviewEpisode)){activeEpisode=reviewEpisode;slug='episode';}
+    else if(queryFor(reviewEpisode).status==='idle')loadReview(reviewEpisode);
+  }else{interrupt(contextEpisode);contextEpisode=null;}
+  if(slug!=='review')cancelReviewLoads();
+  current=slug;screens.forEach(s=>{s.hidden=s.dataset.screen!==slug;s.classList.remove('screen-enter')});
+  if(slug==='episode')renderEpisode({preserve:preserveScroll});
+  if(slug==='review')renderReview({preserve:preserveScroll});
+  if(slug==='records')renderRecords();
+  const screen=screens.find(s=>!s.hidden);
+  if(!preserveScroll&&slug!=='episode')screen.querySelector('.body').scrollTop=0;
+  if(animate&&!matchMedia('(prefers-reduced-motion:reduce)').matches)screen.classList.add('screen-enter');
+  history.replaceState(null,'','#'+slug);syncChrome();
+}
+function settle(n){for(const c of seedChecks(n)){clearCheck(c);c.status=c.expression?'corrected':'natural';c.repeatFailure=false;}}
+function setState(name){
+  const n=current==='review'?reviewEpisode:activeEpisode;
+  cancelReviewLoads();
+  if(current==='review'&&['표현을 불러오는 중','표현을 불러오지 못함'].includes(name)){
+    const q=queryFor(n);q.status='idle';
+    if(name==='표현을 불러오는 중')loadReview(n,{delay:DELAYED_CHECK_MS});else q.status='error';
+    renderReview();syncChrome();return;
+  }
+  if(current==='episode'&&name==='Default'){
+    for(const list of checks.values())for(const c of list)clearCheck(c);
+    checks.clear();reviewQueries.clear();contextEpisode=null;activeEpisode=reviewEpisode=1;reviewMode='Default';
+    for(const e of Object.values(episodes)){e.done=false;e.sent=null;e.alternate=false;e.draft=e.initialDraft;e.celebrated=false;e.celebrationEligible=false;}
+    go('episode',{animate:false});return;
+  }
+  if(!['episode','review'].includes(current)){syncChrome();return;}
+  ensureEnded(n);settle(n);reviewMode='Default';
+  if(name==='마지막 화'){Object.keys(episodes).forEach(i=>ensureEnded(Number(i)));activeEpisode=reviewEpisode=5;}
+  const target=current==='review'?reviewEpisode:activeEpisode,e=episodes[target],list=seedChecks(target);
+  if(current==='review')queryFor(target).status='ready';
+  contextEpisode=target;
+  if(['표현 확인 실패','모든 표현 확인 실패','재시도도 실패'].includes(name)){
+    const picked=name==='모든 표현 확인 실패'?list:[list[0]];
+    picked.forEach(c=>{c.status='error';c.repeatFailure=name==='재시도도 실패';});
+  }else if(name==='표현 확인 지연'){
+    const c=list[0];c.status='interrupted';e.celebrated=false;e.celebrationEligible=true;startCheck(c,{delay:DELAYED_CHECK_MS});
+  }else if(name==='뜻을 파악하기 어려움')list[list.length-1].status='unclear';
+  else if(current==='episode'){
+    e.alternate=name==='다른 결말';e.celebrated=false;e.celebrationEligible=true;
+  }else if(['표현 없음','표현이 많음'].includes(name))reviewMode=name;
+  go(current,{animate:false});
+}
 window.prototypeShell={showScreen:go,setState,getScreen:()=>current,getState:state};
-screenSelect.onchange=()=>{const slug=screenSelect.value;if(slug==='review'){reviewEpisode=activeEpisode;ensureEnded(reviewEpisode);reviewMode=reviewEpisode===5?'마지막 화':'Default';}go(slug);};stateSelect.onchange=()=>setState(stateSelect.value);
-document.addEventListener('click',event=>{const el=event.target.closest('[data-action]');if(!el)return;const action=el.dataset.action;if(action==='review-expressions'){if(!episodes[activeEpisode].done)return;reviewEpisode=activeEpisode;reviewMode=reviewEpisode===5?'마지막 화':'Default';go('review');}if(action==='review-back'){activeEpisode=reviewEpisode;go('episode');}if(action==='leave')go('records');if(action==='go-home')go('home');if(action==='return-preview')go('review');if(action==='resume'){activeEpisode=Number(Object.keys(episodes).find(n=>!episodes[n].done)||5);go('episode');}if(action==='record-episode'){activeEpisode=Number(el.dataset.episode);go('episode');}if(action==='next-episode'){activeEpisode=Math.min(5,reviewEpisode+1);go('episode');}if(action==='retry-expressions'){reviewMode='Default';go('review');}});
-const VPS=['390','768','full'];let vp=0;$('#sh-vp').onclick=()=>{vp=(vp+1)%VPS.length;document.body.classList.remove('sh-vp-390','sh-vp-768');if(VPS[vp]!=='full')document.body.classList.add('sh-vp-'+VPS[vp]);$('#sh-vp').textContent=VPS[vp]==='full'?'전체 너비':'너비 '+VPS[vp];};
-addEventListener('keydown',event=>{if(/INPUT|TEXTAREA|SELECT|SUMMARY/.test(event.target.tagName)||event.metaKey||event.ctrlKey||event.altKey)return;if(event.key==='m')$('#sh-vp').click();if(event.key==='ArrowRight'||event.key==='ArrowLeft'){const i=screens.findIndex(s=>s.dataset.screen===current);const j=(i+(event.key==='ArrowRight'?1:-1)+screens.length)%screens.length;screenSelect.value=screens[j].dataset.screen;screenSelect.onchange();}});
+screenSelect.onchange=()=>{const slug=screenSelect.value;if(slug==='review'){reviewEpisode=activeEpisode;ensureEnded(reviewEpisode);reviewMode='Default';}go(slug);};
+stateSelect.onchange=()=>setState(stateSelect.value);
+document.addEventListener('click',event=>{
+  const el=event.target.closest('[data-action]');if(!el)return;const action=el.dataset.action;
+  if(action==='review-expressions'){if(!episodes[activeEpisode].done||waiting(activeEpisode))return;reviewEpisode=activeEpisode;reviewMode='Default';go('review');}
+  if(action==='review-back'){activeEpisode=reviewEpisode;go('episode');}
+  if(action==='leave')go('records');
+  if(action==='go-home')go('home');
+  if(action==='return-preview'){reviewMode='Default';go('review');}
+  if(action==='resume'){activeEpisode=Number(Object.keys(episodes).find(n=>!episodes[n].done)||5);go('episode');}
+  if(action==='record-episode'){activeEpisode=Number(el.dataset.episode);go('episode');}
+  if(action==='next-episode'){activeEpisode=Math.min(5,reviewEpisode+1);go('episode');}
+  if(action==='retry-expressions'&&queryFor(reviewEpisode).status==='error'){loadReview(reviewEpisode,{retry:true});renderReview({preserve:true});syncChrome();}
+  if(action==='retry-check'&&current==='episode'){
+    const n=Number(el.dataset.episode),c=seedChecks(n).find(c=>c.id===el.dataset.check);
+    if(c&&c.status==='error'){startCheck(c);repaint(n);}
+  }
+});
+const VPS=['390','768','full'];let vp=0;
+$('#sh-vp').onclick=()=>{vp=(vp+1)%VPS.length;document.body.classList.remove('sh-vp-390','sh-vp-768');if(VPS[vp]!=='full')document.body.classList.add('sh-vp-'+VPS[vp]);$('#sh-vp').textContent=VPS[vp]==='full'?'전체 너비':'너비 '+VPS[vp];};
+addEventListener('keydown',event=>{if(/INPUT|TEXTAREA|SELECT|SUMMARY/.test(event.target.tagName)||event.metaKey||event.ctrlKey||event.altKey)return;if(event.key==='m')$('#sh-vp').click();if(['ArrowRight','ArrowLeft'].includes(event.key)){const i=screens.findIndex(s=>s.dataset.screen===current),j=(i+(event.key==='ArrowRight'?1:-1)+screens.length)%screens.length;screenSelect.value=screens[j].dataset.screen;screenSelect.onchange();}});
 addEventListener('hashchange',()=>go(location.hash.slice(1)));
-const initial=location.hash.slice(1);if(['closing','review','transcript'].includes(initial)){ensureEnded(1);}go(initial||'episode',{animate:false});
+addEventListener('pagehide',()=>{interrupt(contextEpisode);cancelReviewLoads();});
+const initial=location.hash.slice(1);if(['closing','review','transcript'].includes(initial))ensureEnded(1);
+go(initial||'episode',{animate:false});
 </script></body></html>

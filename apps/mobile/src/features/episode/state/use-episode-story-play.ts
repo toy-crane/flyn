@@ -3,7 +3,7 @@ import type { UIMessage } from "ai";
 import { randomUUID } from "expo-crypto";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
+import type { ExpressionResult } from "@/features/episode/api/episode-correction";
 import { checkEpisodeExpression } from "@/features/episode/api/episode-correction";
 import { createEpisodeTransport } from "@/features/episode/api/episode-transport";
 import {
@@ -54,7 +54,7 @@ export function useEpisodeStoryPlay(
   onStoryPlayStarted: (storyPlayId: string) => void,
   recordedEnding?: EpisodeEnding,
   recordedNextUp?: EpisodeNextUp,
-  savedCorrections?: readonly EpisodeCorrection[]
+  savedResults?: readonly ExpressionResult[]
 ): EpisodeRun {
   const currentToken = useRef(accessToken);
   const currentEpisodeId = useRef(episodeId);
@@ -63,7 +63,7 @@ export function useEpisodeStoryPlay(
   // 확인은 이 ref가 가리키는 회차를 쓴다.
   const currentStoryPlayId = useRef(storyPlayId);
   const corrections = useEpisodeCorrections(
-    savedCorrections,
+    savedResults,
     (messageId, signal) =>
       checkEpisodeExpression(
         currentToken.current,
@@ -71,8 +71,23 @@ export function useEpisodeStoryPlay(
         currentEpisodeId.current,
         messageId,
         signal
-      )
+      ),
+    initialMessages
+      .filter((message) => message.role === "user")
+      .map((message) => message.id)
   );
+  const restored = useRef(false);
+  useEffect(() => {
+    if (!accessToken || restored.current) {
+      return;
+    }
+    restored.current = true;
+    for (const message of initialMessages) {
+      if (message.role === "user") {
+        corrections.check(message.id);
+      }
+    }
+  }, [accessToken, corrections.check, initialMessages]);
   // 대화는 한 번만 만들어지므로 그때의 함수가 그대로 붙잡힌다. 지금 상태를
   // 읽는 자리는 ref 하나로 남겨 둔다.
   const currentCorrections = useRef(corrections);

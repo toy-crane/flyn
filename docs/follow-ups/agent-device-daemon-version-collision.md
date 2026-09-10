@@ -6,6 +6,10 @@
 공용 상태 폴더의 daemon이 `0.20.10`으로 바뀌었다. CLI가 `Replacing daemon`과
 `version mismatch`를 출력했다. 그때 `adb devices`와 해당 기기의 셸은 정상 응답했다.
 
+2026-09-10 iOS의 `expression-review-native` 세션에서도 검증 도중 설치된 CLI가
+`0.20.5`에서 `0.20.10`으로 바뀌었다. `Replacing daemon` 뒤 `SESSION_NOT_FOUND`가
+나왔다. 같은 배정 기기와 세션 이름으로 다시 연결했고 앱 데이터와 로그인은 유지했다.
+
 **Suspected cause**: 서로 다른 작업이 버전이 다른 CLI로 `~/.agent-device`를 함께
 사용해 daemon과 세션의 소유권이 바뀐 것으로 추정한다.
 

@@ -27,6 +27,12 @@ const ONE_EXPRESSION: EpisodeCorrection = {
   fixed: "I think you gave me the wrong coffee.",
   messageId: "m1",
   original: "I think this is wrong coffee.",
+  review: {
+    example: "This is the wrong bag.",
+    exampleMeaning: "이건 다른 가방이에요.",
+    meaning: "다른 커피인 것 같아요.",
+    situation: "주문을 확인할 때",
+  },
 };
 
 const TWO_EXPRESSIONS: EpisodeCorrection = {
@@ -47,6 +53,12 @@ const TWO_EXPRESSIONS: EpisodeCorrection = {
   fixed: "Yes. I want to change to an iced americano.",
   messageId: "m2",
   original: "Yes. I want change to iced americano.",
+  review: {
+    example: "This is the wrong bag.",
+    exampleMeaning: "이건 다른 가방이에요.",
+    meaning: "다른 커피인 것 같아요.",
+    situation: "주문을 확인할 때",
+  },
 };
 
 function renderNote(correction: EpisodeCorrection) {
@@ -152,6 +164,12 @@ test("한국어 안내도 같은 카드로 열리고 상황에 맞는 제목과 
     fixed: "I want to head home.",
     messageId: "korean",
     original: "집에 가고 싶어.",
+    review: {
+      example: "This is the wrong bag.",
+      exampleMeaning: "이건 다른 가방이에요.",
+      meaning: "다른 커피인 것 같아요.",
+      situation: "주문을 확인할 때",
+    },
   });
   await rendered;
   await user.press(screen.getByLabelText("이럴 때 쓰는 영어 표현 보기"));

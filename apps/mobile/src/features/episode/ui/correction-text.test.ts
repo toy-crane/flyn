@@ -20,6 +20,12 @@ const CORRECTION = {
   fixed: "I want to change to an iced americano.",
   messageId: "m1",
   original: "I want change to iced americano.",
+  review: {
+    example: "This is the wrong bag.",
+    exampleMeaning: "이건 다른 가방이에요.",
+    meaning: "다른 커피인 것 같아요.",
+    situation: "주문을 확인할 때",
+  },
 };
 
 test("강조할 조각을 짚고 나머지 문장은 그대로 둔다", () => {
