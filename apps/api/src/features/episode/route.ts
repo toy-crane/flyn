@@ -26,11 +26,7 @@ import {
 import { type AuthedEnv, createUserGuard } from "../../shared/user-guard.js";
 import { askSystemPrompt, readAskedCorrection } from "./ask.js";
 import { storyDetailViewOf, storyListViewOf } from "./catalog.js";
-import {
-  type EpisodeCorrection,
-  isKoreanText,
-  judgeExpression,
-} from "./correction.js";
+import { judgeExpression } from "./correction.js";
 import { episodeSystemPrompt, episodeTags } from "./episode.js";
 import { saveExpressionResult } from "./expression-results.js";
 import {
@@ -48,7 +44,12 @@ import {
   saveExpression,
   storyMemoriesOf,
 } from "./progress.js";
-import { sceneUtterances, writeKoreanMeaning } from "./saved-expression.js";
+import {
+  learningDraft,
+  sceneUtterances,
+  textOfMessage,
+  writeKoreanMeaning,
+} from "./saved-expression.js";
 import {
   type EpisodeClient,
   type EpisodeScript,
@@ -189,13 +190,6 @@ async function saveSceneBestEffort(
   }
 }
 
-function textOfMessage(message: UIMessage): string {
-  return message.parts
-    .filter((part) => part.type === "text")
-    .map((part) => part.text)
-    .join("");
-}
-
 /**
  * 담아 둘 인물 대사 하나를 저장된 장면에서 만든다.
  *
@@ -245,49 +239,6 @@ async function utteranceDraft({
     original: null,
     speaker: utterance.speaker,
     utteranceAt,
-  };
-}
-
-/**
- * 담아 둘 배울 표현 하나를 이미 저장된 교정에서 만든다.
- *
- * 새로 만들 값이 없다. 고친 문장도, 어긋난 자리도, 이유도 판정하던 때에 이미
- * 행으로 남았으므로 그대로 옮긴다. 영어 교정인지 한국어 안내인지는 사용자가 쓴
- * 문장을 보고 가르며, 그 판정은 교정을 만들 때 쓰는 것과 같은 하나다.
- */
-function learningDraft({
-  corrections,
-  episodeId,
-  message,
-}: {
-  corrections: readonly EpisodeCorrection[];
-  episodeId: string;
-  message: UIMessage;
-}): SavedExpressionDraft | undefined {
-  const correction = corrections.find(
-    (candidate) => candidate.messageId === message.id
-  );
-
-  if (message.role !== "user" || !correction) {
-    return;
-  }
-
-  const original = correction.original || textOfMessage(message);
-
-  return {
-    english: correction.fixed,
-    entries: correction.entries.map((entry) => ({
-      fixed: entry.fixed,
-      original: entry.original,
-      why: entry.why,
-    })),
-    episodeId,
-    kind: isKoreanText(original) ? "guidance" : "correction",
-    meaning: null,
-    messageId: message.id,
-    original,
-    speaker: null,
-    utteranceAt: null,
   };
 }
 

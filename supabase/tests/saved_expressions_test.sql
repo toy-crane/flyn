@@ -1,7 +1,7 @@
 -- 손으로 담아 둔 표현의 접근 규칙을 확인한다. 자기 것만 읽고 지우며, 종류마다
 -- 담을 수 있는 메시지의 역할이 다르고, 원본이 사라져도 항목은 남는다.
 BEGIN;
-SELECT plan(39);
+SELECT plan(41);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -535,6 +535,32 @@ SELECT lives_ok(
 SELECT is(
   (SELECT count(*) FROM public.saved_expressions), 3::bigint,
   'and it is gone'
+);
+
+-- 교정과 안내도 뜻을 가질 수 있다. 표현 돌아보기가 그 메시지에 대해 이미 만들어
+-- 둔 고친 문장의 뜻을 담을 때 옮겨 담기 때문이다. 새로 만드는 값이 아니므로
+-- 뜻이 없는 항목도 그대로 성립한다.
+SELECT lives_ok(
+  $$insert into public.saved_expressions
+      (kind, episode_id, message_id, english, original, entries, meaning)
+    values (
+      'correction', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
+      'cc000000-0000-4000-8000-000000000002',
+      'I ordered a hot americano, but this is an iced latte.',
+      'I order hot americano but this is ice latte.',
+      '[{"original":"order","fixed":"ordered","why":"지난 일은 ordered로 써요."}]'::jsonb,
+      '저는 뜨거운 아메리카노를 시켰는데 이건 아이스 라테예요.'
+    )$$,
+  'a correction carries the meaning the review already made'
+);
+
+SELECT is(
+  (
+    SELECT meaning FROM public.saved_expressions
+    WHERE kind = 'correction'
+  ),
+  '저는 뜨거운 아메리카노를 시켰는데 이건 아이스 라테예요.',
+  'and the note reads that meaning back'
 );
 
 SELECT throws_ok(
