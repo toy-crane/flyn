@@ -7,6 +7,37 @@ import { createVercelRuntime } from "./vercel-runtime";
 
 const SHA = /^[a-f0-9]{40}$/;
 
+export function apiChanged(base: string | null, sha: string) {
+  if (!base) {
+    return true;
+  }
+  if (
+    !(SHA.test(base) && SHA.test(sha)) ||
+    spawnSync(["git", "merge-base", "--is-ancestor", base, sha]).exitCode !== 0
+  ) {
+    throw new Error("API 성공 커밋보다 이전 버전은 배포하지 않습니다.");
+  }
+  const diff = spawnSync([
+    "git",
+    "diff",
+    "--quiet",
+    base,
+    sha,
+    "--",
+    "apps/api",
+    "packages",
+    "package.json",
+    "bun.lock",
+    "tsconfig.json",
+    "turbo.json",
+    ":(exclude)**/README.md",
+  ]);
+  if (diff.exitCode !== 0 && diff.exitCode !== 1) {
+    throw new Error("API 변경 확인 실패");
+  }
+  return diff.exitCode === 1;
+}
+
 export function requireApiDatabase(base: string | null, sha: string) {
   if (!(base && SHA.test(base) && SHA.test(sha))) {
     throw new Error("DB 성공 기록이 필요합니다.");
@@ -66,41 +97,24 @@ if (import.meta.main) {
     (snapshot.state.pending.service !== "api" ||
       snapshot.state.pending.sha !== sha)
   ) {
+    if (
+      snapshot.state.pending.service === "mobile" &&
+      snapshot.state.pending.sha === sha &&
+      !apiChanged(snapshot.state.success.api, sha)
+    ) {
+      console.log(
+        "API 변경 없음. 기존 모바일 배포는 다음 단계에서 확인합니다."
+      );
+      process.exit(0);
+    }
     throw new Error("기존 서비스 배포를 먼저 확인해야 합니다.");
   }
   const runtime = createVercelRuntime(vercelToken);
   await executeDelivery(sha, {
     journal,
     plan: async (state) => {
-      const base = state.success.api;
-      if (base) {
-        if (
-          spawnSync(["git", "merge-base", "--is-ancestor", base, sha])
-            .exitCode !== 0
-        ) {
-          throw new Error("API 성공 커밋보다 이전 버전은 배포하지 않습니다.");
-        }
-        const diff = spawnSync([
-          "git",
-          "diff",
-          "--quiet",
-          base,
-          sha,
-          "--",
-          "apps/api",
-          "packages",
-          "package.json",
-          "bun.lock",
-          "tsconfig.json",
-          "turbo.json",
-          ":(exclude)**/README.md",
-        ]);
-        if (diff.exitCode === 0) {
-          return [];
-        }
-        if (diff.exitCode !== 1) {
-          throw new Error("API 변경 확인 실패");
-        }
+      if (!apiChanged(state.success.api, sha)) {
+        return [];
       }
       await runtime.prepare();
       return ["api"];
@@ -108,6 +122,6 @@ if (import.meta.main) {
     remote: runtime.delivery,
   });
   console.log(
-    `API 단계 확인 완료: ${sha}. EAS 배포는 아직 연결하지 않았습니다.`
+    `API 단계 확인 완료: ${sha}. 다음 단계에서 EAS 배포를 확인합니다.`
   );
 }

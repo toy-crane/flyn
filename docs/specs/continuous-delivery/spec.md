@@ -116,6 +116,7 @@ EAS Workflows
 
 ## 현재 구현 증거
 
+- 2026-09-10: 수동 main 배포의 API 다음에 EAS Workflows를 연결했다. production 환경의 iOS fingerprint와 internal 채널의 store 빌드를 비교한다. 기존 빌드는 Apple 설치 가능 상태를 확인한 뒤 Update를 발행하고, 새 빌드는 Submit 후 같은 상태를 확인한다. 원격 실행 ID를 대기 전에 기록하고 응답 유실 뒤에는 커밋·요청 ID가 같은 실행만 조회한다. HTTP 경계 테스트와 EAS 서버 YAML 검증이 통과했다. EAS CLI는 공식 24.0.0으로 맞췄으며 기존 빌드의 실제 submit:status 조회가 통과했다. 새 workflow의 원격 배포, main push 자동 실행, iPhone·OTA 검증과 전체 최종 리뷰는 아직 남아 있다.
 - GitHub 실행 `34435602037`에서 `7d2e426`의 DB→Edge→API 단계가 성공했다. delete-account v2의 ACTIVE·verify_jwt=true·원격 소스의 커밋/요청 ID·인증 없는 POST 401을 확인했다. API는 변경이 없어 기존 배포를 재사용했다. 같은 실행을 재실행해 성공했으며 상태 파일 SHA `f0445b94c48e254202efd725f94c33193ef6307a`가 유지됐다. EAS 연결과 기기 검증은 아직 남아 있다.
 - PR #65의 DB 검사 `34435030122`가 공식 GHCR 이미지 경로로 전체 통과했고 `7d2e426`으로 병합했다. 고정된 CLI·이미지 버전과 운영 비밀값 제거는 유지했다. 해결한 이미지 요청 제한 후속 파일은 삭제했으며 이전 기록은 Git 이력에 남는다.
 - PR #65 리뷰에서 함수 설정만 바뀌면 Edge를 건너뛰는 문제를 재현했다. `config.toml`을 변경 감지에 포함하고 기존 수동 검토 계약에 따라 자동 적용과 후속 API 배포를 차단했다. 실제 임시 Git 저장소에서 수정 전 실패와 수정 후 차단을 확인했다. 설정을 자동 덮어쓰는 방식으로 리뷰 제안을 그대로 적용하지 않았다.

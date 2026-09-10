@@ -1,0 +1,118 @@
+name: Flyn Internal
+run_name: Flyn ${{ inputs.release_sha }} (${{ inputs.request_id }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        type: string
+        required: true
+      request_id:
+        type: string
+        required: true
+
+defaults:
+  image: sdk-57
+  tools:
+    node: "22.23.2"
+    bun: "1.4.0"
+
+jobs:
+  identity:
+    type: custom
+    environment: production
+    env:
+      RELEASE_SHA: ${{ inputs.release_sha }}
+      REQUEST_ID: ${{ inputs.request_id }}
+    outputs:
+      release_sha: ${{ steps.receipt.outputs.release_sha }}
+      request_id: ${{ steps.receipt.outputs.request_id }}
+    steps:
+      - id: receipt
+        run: |
+          printf '%s' "$RELEASE_SHA" | grep -Eq '^[a-f0-9]{40}$'
+          printf '%s' "$REQUEST_ID" | grep -Eq '^[a-f0-9-]{36}$'
+          set-output release_sha "$RELEASE_SHA"
+          set-output request_id "$REQUEST_ID"
+
+  fingerprint:
+    type: fingerprint
+    needs: [identity]
+    environment: production
+    env:
+      EXPO_NO_DOTENV: "1"
+
+  get_build:
+    type: get-build
+    needs: [fingerprint]
+    environment: production
+    params:
+      platform: ios
+      profile: production
+      distribution: store
+      channel: internal
+      simulator: false
+      wait_for_in_progress: true
+      fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
+
+  build_ios:
+    type: build
+    needs: [get_build]
+    if: ${{ !needs.get_build.outputs.build_id }}
+    environment: production
+    env:
+      EXPO_NO_DOTENV: "1"
+    params:
+      platform: ios
+      profile: production
+      message: ${{ inputs.release_sha }} (${{ inputs.request_id }})
+
+  submit_ios:
+    name: Submit to Flyn Internal (automatic distribution)
+    type: submit
+    needs: [build_ios]
+    environment: production
+    env:
+      EXPO_NO_DOTENV: "1"
+    params:
+      build_id: ${{ needs.build_ios.outputs.build_id }}
+      profile: production
+      # Flyn Internal is an App Store Connect automatic-distribution group.
+
+  verify_new:
+    type: custom
+    needs: [build_ios, submit_ios]
+    environment: production
+    env:
+      EXPO_NO_DOTENV: "1"
+      FLYN_BUILD_ID: ${{ needs.build_ios.outputs.build_id }}
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - run: cd /tmp && env -u EXPO_TOKEN npm install --global eas-cli@24.0.0
+      - run: bun ../../scripts/ci/verify-testflight.ts "$FLYN_BUILD_ID"
+
+  verify_existing:
+    type: custom
+    needs: [get_build]
+    if: ${{ needs.get_build.outputs.build_id }}
+    environment: production
+    env:
+      EXPO_NO_DOTENV: "1"
+      FLYN_BUILD_ID: ${{ needs.get_build.outputs.build_id }}
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - run: cd /tmp && env -u EXPO_TOKEN npm install --global eas-cli@24.0.0
+      - run: bun ../../scripts/ci/verify-testflight.ts "$FLYN_BUILD_ID"
+
+  update_ios:
+    type: update
+    needs: [verify_existing]
+    environment: production
+    env:
+      EXPO_NO_DOTENV: "1"
+    params:
+      platform: ios
+      channel: internal
+      message: ${{ inputs.release_sha }} (${{ inputs.request_id }})
