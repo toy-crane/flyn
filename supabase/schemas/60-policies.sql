@@ -25,6 +25,16 @@ create policy stories_select_authenticated on public.stories
 grant select on table public.stories to authenticated;
 grant all on table public.stories to service_role;
 
+alter table public.characters enable row level security;
+
+create policy characters_select_authenticated on public.characters
+  for select
+  to authenticated
+  using (true);
+
+grant select on table public.characters to authenticated;
+grant all on table public.characters to service_role;
+
 alter table public.episodes enable row level security;
 
 create policy episodes_select_authenticated on public.episodes
@@ -34,6 +44,17 @@ create policy episodes_select_authenticated on public.episodes
 
 grant select on table public.episodes to authenticated;
 grant all on table public.episodes to service_role;
+
+alter table public.episode_characters enable row level security;
+
+create policy episode_characters_select_authenticated
+  on public.episode_characters
+  for select
+  to authenticated
+  using (true);
+
+grant select on table public.episode_characters to authenticated;
+grant all on table public.episode_characters to service_role;
 
 -- Access control for public.profiles.
 alter table public.profiles enable row level security;

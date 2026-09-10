@@ -39,8 +39,21 @@ export interface FinishedEpisodeRow {
   outcome: string;
 }
 
+/**
+ * 화면이 이름표를 그릴 때 필요한 인물 하나.
+ *
+ * 설명은 오지 않는다. 그것을 읽는 것은 모델이고, 화면이 묻는 것은 이 이름이
+ * 누구이고 이 스토리에서 몇 번째인가 둘뿐이다. 순서가 이름표 색의 번호가 되므로
+ * 같은 인물은 어느 화에서나 같은 색으로 보인다.
+ */
+export interface EpisodeCastView {
+  name: string;
+  position: number;
+}
+
 /** 에피소드 화면과 마무리가 보여 주는 한 화. */
 export interface NextEpisodeView {
+  cast: EpisodeCastView[];
   episodeId: string;
   number: number;
   preview: string;
@@ -683,6 +696,10 @@ export function nextUpAfter(
 
 function nextEpisodeView(episode: EpisodeScript): NextEpisodeView {
   return {
+    cast: episode.cast.map((person) => ({
+      name: person.name,
+      position: person.position,
+    })),
     episodeId: episode.id,
     number: episode.number,
     preview: episode.preview,

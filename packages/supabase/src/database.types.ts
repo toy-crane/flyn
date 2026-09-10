@@ -34,6 +34,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      characters: {
+        Row: {
+          id: string
+          name: string
+          persona: string
+          position: number
+          story_id: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          persona: string
+          position: number
+          story_id: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          persona?: string
+          position?: number
+          story_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "characters_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      episode_characters: {
+        Row: {
+          at: number
+          character_id: string
+          episode_id: string
+          story_id: string
+        }
+        Insert: {
+          at: number
+          character_id: string
+          episode_id: string
+          story_id: string
+        }
+        Update: {
+          at?: number
+          character_id?: string
+          episode_id?: string
+          story_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "episode_characters_character_fkey"
+            columns: ["character_id", "story_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id", "story_id"]
+          },
+          {
+            foreignKeyName: "episode_characters_episode_fkey"
+            columns: ["episode_id", "story_id"]
+            isOneToOne: false
+            referencedRelation: "episodes"
+            referencedColumns: ["id", "story_id"]
+          },
+        ]
+      }
       episode_expression_results: {
         Row: {
           entries: Json | null
@@ -646,3 +714,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

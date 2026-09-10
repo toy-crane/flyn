@@ -148,7 +148,7 @@ SELECT is(
     join public.episodes e on e.story_id = s.id
     where s.slug = 'mia-cafe'
   ),
-  'aed9d0b1502851b7eded919fd1212a55',
+  'ad8cc6f8d2002bb5838b1cabb5c22f57',
   'the database preserves every authored episode field byte for byte'
 );
 

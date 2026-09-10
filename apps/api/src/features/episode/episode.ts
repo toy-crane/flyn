@@ -42,10 +42,54 @@ export interface StoryMemory {
  */
 export function episodeTags(script: EpisodeScript): SceneTags {
   return {
-    cast: script.cast,
+    cast: script.cast.map((person) => person.name),
     endings: EPISODE_ENDINGS,
     notes: Object.values(EPISODE_NOTES),
   };
+}
+
+/** 세 명까지 세는 우리말. 한 화의 인물은 셋을 넘지 못한다. */
+const CAST_COUNTS = ["", "한", "두", "세"] as const;
+
+/** 앞말이 홀소리로 끝나는지. 이름의 마지막 글자로 가른다. */
+const VOWEL_ENDING = /[aeiou]$/i;
+
+/**
+ * 인물 이름을 우리말로 잇는다.
+ *
+ * 홀소리로 끝나면 `와`, 닿소리로 끝나면 `과`다. 로마자 이름이라 소리가 아니라
+ * 마지막 글자로 가른다. Mia와 Owen, Dan과 Grace가 그 결과다.
+ */
+function joinNames(names: readonly string[]): string {
+  const last = names.at(-1) ?? "";
+
+  if (names.length < 2) {
+    return last;
+  }
+
+  const particle = VOWEL_ENDING.test(names.at(-2) ?? "") ? "와" : "과";
+
+  return `${names.slice(0, -1).join(", ")}${particle} ${last}`;
+}
+
+/**
+ * 이 화에 서는 인물을 프롬프트에 넣을 글로 바꾼다.
+ *
+ * 이름을 부르는 문장과 설명이 모두 인물 데이터에서 나온다. 손으로 쓴 무대에
+ * 같은 문장을 두면 인물이 늘거나 이름이 바뀔 때 스물다섯 곳이 따로 어긋난다.
+ */
+function castBlock(cast: readonly EpisodeScript["cast"][number][]): string {
+  if (cast.length === 0) {
+    return "";
+  }
+
+  const names = cast.map((person) => person.name);
+  const lines = cast
+    .filter((person) => person.persona.length > 0)
+    .map((person) => `- ${person.name}: ${person.persona}`);
+  const called = `등장인물은 ${joinNames(names)} ${CAST_COUNTS[cast.length] ?? ""} 명뿐이다. 새 인물을 만들지 않는다.`;
+
+  return lines.length > 0 ? `${called}\n${lines.join("\n")}` : called;
 }
 
 /**
@@ -84,9 +128,10 @@ ${lines.join("\n")}
 }
 
 /**
- * 한 화의 프롬프트. 각본의 무대에 모든 화가 함께 쓰는 규칙을 붙인다.
+ * 한 화의 프롬프트. 인물 설명, 그 화의 무대, 지난 이야기 순으로 잇는다.
  *
- * 무대만 화마다 다르고 형식, 대화, 결말 규칙은 같다. 규칙을 화마다 베껴 두면
+ * 인물은 스토리가 소유하므로 화가 달라도 같은 설명이 들어가고, 무대만 화마다
+ * 다르다. 형식, 대화, 결말 규칙은 모든 화가 함께 쓴다. 규칙을 화마다 베껴 두면
  * 다섯 벌이 조금씩 어긋나고, 어긋난 규칙은 장면 형식이 깨지는 자리로 바로
  * 나타난다.
  */
@@ -95,6 +140,8 @@ export function episodeSystemPrompt(
   memories: readonly StoryMemory[] = []
 ): string {
   return `너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.
+
+${castBlock(script.cast)}
 
 ${script.stage}
 ${pastStoryBlock(memories)}
