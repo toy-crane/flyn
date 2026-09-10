@@ -125,6 +125,14 @@
   .row-text strong { display: block; font-size: 16px; line-height: 22px; font-weight: 600; word-break: keep-all }
   .row-text span { display: block; font-size: 13px; line-height: 19px; color: var(--muted); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
   .row svg { width: 16px; height: 16px; color: var(--muted) }
+  .body { display: flex; flex-direction: column }
+  .chips { display: flex; gap: 8px; margin: 4px 0 12px; padding: 0 2px; overflow-x: auto; scrollbar-width: none; flex-shrink: 0 }
+  .chips::-webkit-scrollbar { display: none }
+  .chips button { min-height: 36px; padding: 7px 14px; border-radius: 99px; background: var(--surface); border: 1px solid var(--border); font-size: 14px; line-height: 22px; font-weight: 500; white-space: nowrap; flex-shrink: 0 }
+  .chips button[aria-pressed="true"] { background: var(--foreground); color: var(--background); border-color: var(--foreground); font-weight: 600 }
+  .empty { flex: 1; display: grid; place-content: center; justify-items: center; gap: 12px; text-align: center; color: var(--muted); font-size: 15px; line-height: 22px; padding: 20px }
+  .empty svg { width: 28px; height: 28px }
+  .empty .primary { width: auto; min-height: 44px; font-size: 15px; padding: 11px 22px; margin-top: 4px }
   .tabbar { position: sticky; bottom: 0; flex-shrink: 0; height: 83px; background: var(--surface); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px 12px 0 }
   .tab { display: grid; justify-items: center; gap: 3px; font-size: 10px; color: var(--muted); width: 72px }
   .tab svg { width: 24px; height: 24px }
@@ -314,6 +322,7 @@
     home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
     compass: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>',
     book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/><path d="M8 3v16"/></svg>',
+    sparkle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/></svg>',
     cell: '<svg viewBox="0 0 17 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="4.5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="9" y="3" width="3" height="9" rx=".8"/><rect x="13.5" y="0" width="3" height="12" rx=".8"/></svg>',
     wifi: '<svg viewBox="0 0 16 12" fill="currentColor"><path d="M8 11.5a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6zM4.7 7.6l1.2 1.2a3 3 0 0 1 4.2 0l1.2-1.2a4.7 4.7 0 0 0-6.6 0zM2.2 5.1l1.2 1.2a6.5 6.5 0 0 1 9.2 0l1.2-1.2a8.2 8.2 0 0 0-11.6 0zM0 2.7l1.2 1.2a9.9 9.9 0 0 1 13.6 0L16 2.7a11.7 11.7 0 0 0-16 0z"/></svg>',
     battery: '<svg class="battery" viewBox="0 0 25 12" fill="none"><rect x=".5" y=".5" width="21" height="11" rx="3" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="18" height="8" rx="2" fill="currentColor"/><path d="M23 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity=".4"/></svg>'
@@ -328,23 +337,33 @@
   // ── 탐색 ──
   const browse = screens.find(s => s.dataset.screen === 'browse');
   const row = s => `<button class="row" data-component="StoryRow"><div class="cover${s.mine ? '' : ' pic'}"></div><div class="row-text"><strong>${escapeHTML(s.title)}</strong><span>${escapeHTML(s.hook)}</span></div>${icon.chevron}</button>`;
-  browse.innerHTML = `<div class="screen">
+  const FILTERS = [{ id: 'all', label: '전체' }, { id: 'mine', label: '내 스토리' }];
+  let made = false;
+  let filter = 'all';
+  function browseList() {
+    const mine = made ? [{ ...STORY, mine: true }] : [];
+    const items = filter === 'mine' ? mine : [...mine, ...OFFICIAL];
+    if (items.length === 0) return `<div class="empty" data-component="EmptyState">${icon.sparkle}<p>아직 내 스토리가 없어요.</p><button class="primary" data-component="Button" data-open-create>스토리 만들기</button></div>`;
+    return `<div class="list">${items.map(row).join('')}</div>`;
+  }
+  function renderBrowse() {
+    browse.innerHTML = `<div class="screen">
       ${statusbar}
       <div class="toolbar" data-component="NativeStackHeader"><h2>탐색</h2>
-        <div class="toolbar-right"><button class="icon-action" id="open-create" aria-label="스토리 만들기" data-component="Stack.Toolbar.Button">${icon.plus}</button></div>
+        <div class="toolbar-right"><button class="icon-action" aria-label="스토리 만들기" data-component="Stack.Toolbar.Button" data-open-create>${icon.plus}</button></div>
       </div>
       <div class="body">
-        <div data-when="만든 뒤">
-          <h3 class="section-label">내가 만든 스토리</h3>
-          <div class="list">${row({ ...STORY, mine: true })}</div>
-        </div>
-        <h3 class="section-label">플린이 만든 스토리</h3>
-        <div class="list">${OFFICIAL.map(row).join('')}</div>
+        <div class="chips" role="group" aria-label="스토리 필터" data-component="new:FilterChips">${FILTERS.map(f => `<button aria-pressed="${f.id === filter}" data-filter="${f.id}">${f.label}</button>`).join('')}</div>
+        ${browseList()}
       </div>
       ${tabbar('browse')}
       <div class="home-indicator"></div>
     </div>`;
-  document.getElementById('open-create').onclick = () => { resetCreate(); show('create'); };
+    browse.querySelectorAll('[data-open-create]').forEach(b => b.onclick = () => { resetCreate(); show('create'); });
+    browse.querySelectorAll('[data-filter]').forEach(b => b.onclick = () => { filter = b.dataset.filter; renderBrowse(); });
+  }
+  browse.addEventListener('statechange', e => { made = e.detail === '만든 뒤'; filter = 'all'; renderBrowse(); });
+  renderBrowse();
 
   // ── 스토리 만들기 ──
   const create = screens.find(s => s.dataset.screen === 'create');
