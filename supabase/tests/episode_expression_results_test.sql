@@ -5,11 +5,12 @@ INSERT INTO auth.users (id, email)
 VALUES ('33333333-3333-4333-8333-333333333333', 'expression-result@example.test');
 INSERT INTO public.story_plays (id, user_id, story_id)
 VALUES ('a3000000-0000-4000-8000-000000000001',
-  '33333333-3333-4333-8333-333333333333', '10000000-0000-4000-8000-000000000001');
+  '33333333-3333-4333-8333-333333333333', (SELECT id FROM public.stories WHERE slug = 'mia-cafe'));
 INSERT INTO public.episode_plays (id, user_id, story_play_id, episode_id)
 VALUES ('aa300000-0000-4000-8000-000000000001',
   '33333333-3333-4333-8333-333333333333', 'a3000000-0000-4000-8000-000000000001',
-  '11000000-0000-4000-8000-000000000001');
+  (SELECT e.id FROM public.episodes e JOIN public.stories s ON s.id = e.story_id
+   WHERE s.slug = 'mia-cafe' AND e.number = 1));
 INSERT INTO public.episode_messages (id, play_id, user_id, role, parts)
 VALUES ('cc300000-0000-4000-8000-000000000001',
   'aa300000-0000-4000-8000-000000000001', '33333333-3333-4333-8333-333333333333',
