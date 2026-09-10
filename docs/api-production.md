@@ -42,6 +42,8 @@ Supabase secret key는 API에 등록하지 않는다. AI Gateway는 Vercel의 OI
 
 ## 검증 범위
 
+- 2026-09-10 커밋 `b5944af9599107e956f88f723ca3b53f65fa8c33`을 DB 적용 성공 후 로컬 CLI 51.6.1로 배포했다. `dpl_9rcotaz9CCLUaFuLNee17Y6QSVry`는 READY이며 운영 별칭과 `icn1` 함수 리전을 확인했다. GET /health 200, 인증 없는 POST /ai/episode 401, 최근 10분 error 로그 조회 결과 없음을 확인했다. API 테스트 117개·타입·운영용 로컬 빌드가 통과했다. 실제 로그인 후 AI 응답과 GitHub 프로젝트 한정 토큰의 배포 권한은 아직 검증하지 않았다.
+- 위 원격 빌드는 Vercel CLI 59.11.7과 Bun 1.3.14를 사용했다. 로컬·GitHub의 Bun 1.4.0과 다르므로 후속 API 자동 배포 연결에서 버전 고정과 잠금 파일 설치를 검증해야 한다.
 - 2026-09-09 배포 `dpl_4FWFVhHf1K2u2baCkB4yE8pAjKKw`가 READY 상태로 운영 주소에 연결됐다.
 - 일반 인터넷 요청에서 `GET /health`는 200과 `{"status":"ok"}`, 인증 없는
   `POST /ai/episode`는 401과 `{"error":"Unauthorized."}`를 반환했다.
