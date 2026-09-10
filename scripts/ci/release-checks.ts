@@ -21,7 +21,7 @@ export async function requireReleaseChecks(
   if (!(SHA.test(sha) && token)) {
     throw new Error("배포 SHA와 인증이 필요합니다.");
   }
-  const maxPolls = options.maxPolls ?? 60;
+  const maxPolls = options.maxPolls ?? 140;
   for (let attempt = 0; attempt < maxPolls; attempt += 1) {
     // biome-ignore lint/performance/noAwaitInLoops: 같은 SHA의 검사가 생기고 끝날 때까지 순서대로 확인한다.
     const states = await Promise.all(
@@ -87,7 +87,7 @@ export async function requireReleaseChecks(
     }
     if (attempt + 1 < maxPolls) {
       console.log(`필수 검사를 기다립니다 (${attempt + 1}/${maxPolls}).`);
-      await sleep(options.pollMilliseconds ?? 10_000);
+      await sleep(options.pollMilliseconds ?? 15_000);
     }
   }
   throw new Error("같은 SHA의 필수 검사 대기 시간이 지났습니다.");
