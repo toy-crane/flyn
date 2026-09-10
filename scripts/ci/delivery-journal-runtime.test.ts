@@ -1,6 +1,9 @@
 import { expect, test } from "bun:test";
 import type { DeliveryState } from "./delivery-execution";
-import { GitHubDeliveryJournal } from "./delivery-journal";
+import {
+  GitHubDeliveryJournal,
+  serializeSignedDeliveryState,
+} from "./delivery-journal";
 
 // Explicit opt-in only. PR tests must never receive the token used by this test.
 test.skipIf(process.env.RUN_DELIVERY_JOURNAL_RUNTIME_TESTS !== "1")(
@@ -11,6 +14,7 @@ test.skipIf(process.env.RUN_DELIVERY_JOURNAL_RUNTIME_TESTS !== "1")(
       throw new Error("GitHub 원격 검증 토큰이 필요합니다.");
     }
     const branch = `deployment-state-check-${crypto.randomUUID()}`;
+    const signingKey = `runtime-${crypto.randomUUID()}`;
     const api = async (path: string, method = "GET", body?: unknown) => {
       const response = await fetch(
         `https://api.github.com/repos/toy-crane/flyn/${path}`,
@@ -47,11 +51,14 @@ test.skipIf(process.env.RUN_DELIVERY_JOURNAL_RUNTIME_TESTS !== "1")(
       };
       await api("contents/state.json", "PUT", {
         branch,
-        content: Buffer.from(JSON.stringify(state)).toString("base64"),
+        content: Buffer.from(
+          serializeSignedDeliveryState(state, signingKey)
+        ).toString("base64"),
         message: "test: 배포 기록 충돌을 검증한다",
       });
       const journal = new GitHubDeliveryJournal(
         token,
+        signingKey,
         "https://api.github.com",
         branch
       );
@@ -69,6 +76,7 @@ test.skipIf(process.env.RUN_DELIVERY_JOURNAL_RUNTIME_TESTS !== "1")(
       ).rejects.toThrow("409");
       const reread = await new GitHubDeliveryJournal(
         token,
+        signingKey,
         "https://api.github.com",
         branch
       ).read();

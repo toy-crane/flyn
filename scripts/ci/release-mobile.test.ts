@@ -25,6 +25,7 @@ test("모바일 배포는 API 성공 뒤 실행하고 로컬 호출은 원격 �
     (item) => item.run === "bun scripts/ci/release-mobile.ts"
   );
   expect(Object.keys(step?.env ?? {}).sort()).toEqual([
+    "DEPLOYMENT_STATE_SIGNING_KEY",
     "EXPO_TOKEN",
     "GH_TOKEN",
   ]);

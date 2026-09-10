@@ -10,6 +10,7 @@ const RUN_ID = /^\d+$/;
 
 async function main() {
   const {
+    DEPLOYMENT_STATE_SIGNING_KEY: signingKey,
     GITHUB_SHA: sha,
     GH_TOKEN: token,
     GITHUB_RUN_ID: runId,
@@ -22,7 +23,8 @@ async function main() {
     !SHA.test(sha) ||
     !token ||
     !runId ||
-    !RUN_ID.test(runId)
+    !RUN_ID.test(runId) ||
+    !signingKey
   ) {
     throw new Error("Flyn main의 GitHub 실행에서만 DB를 배포합니다.");
   }
@@ -31,7 +33,7 @@ async function main() {
     receiptId: `https://github.com/toy-crane/flyn/actions/runs/${runId}`,
     sha,
   });
-  const journal = new GitHubDeliveryJournal(token);
+  const journal = new GitHubDeliveryJournal(token, signingKey);
   const initial = await journal.read();
   if (
     initial.state.pending &&

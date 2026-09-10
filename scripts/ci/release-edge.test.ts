@@ -34,6 +34,7 @@ test("Edge는 DB 다음 API 전에 실행하며 PAT는 설치 단계에 전달�
     step.run?.includes("release-edge.ts")
   );
   expect(Object.keys(deploy?.env ?? {}).sort()).toEqual([
+    "DEPLOYMENT_STATE_SIGNING_KEY",
     "GH_TOKEN",
     "SUPABASE_ACCESS_TOKEN",
   ]);
