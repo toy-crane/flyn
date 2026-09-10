@@ -2074,14 +2074,22 @@ describe("표현을 담아 두는 API", () => {
   test("같은 메시지는 종류가 달라도 항목을 하나만 갖는다", async () => {
     const state = createSeasonState();
     state.messages.push(wrote("괜찮아요, 그런데 좀 급해서요."));
-    state.corrections.push({
-      corrected: "No worries, but I'm in a bit of a hurry.",
-      created_at: "2026-09-07T00:00:03.000Z",
-      fixed: "No worries",
+    state.expressionResults.push({
+      entries: [
+        {
+          fixed: "No worries",
+          original: "괜찮아요",
+          pattern: "expression-no-worries",
+          why: "'괜찮아요'는 No worries라고 해요.",
+        },
+      ],
+      example: "No worries, take your time.",
+      example_meaning: "괜찮아요, 천천히 하세요.",
+      fixed: "No worries, but I'm in a bit of a hurry.",
+      meaning: "괜찮아요, 그런데 좀 급해서요.",
       message_id: "m1",
-      original: "괜찮아요",
-      pattern: "expression-no-worries",
-      reason: "'괜찮아요'는 No worries라고 해요.",
+      situation: "급한 사정을 말할 때",
+      status: "corrected",
     });
     const app = createApp({
       authMiddleware: signedInWith(state),
@@ -2321,14 +2329,15 @@ describe("표현을 담아 두는 API", () => {
     const state = createSeasonState();
     state.messages.push(scene());
     state.messages.push(wrote("I think you gave me wrong coffee."));
-    state.corrections.push({
-      corrected: WRONG_COFFEE.fixed,
-      created_at: "2026-09-07T00:00:03.000Z",
-      fixed: "the wrong coffee",
+    state.expressionResults.push({
+      entries: WRONG_COFFEE.entries,
+      example: "I ordered a tea.",
+      example_meaning: "차를 주문했어요.",
+      fixed: WRONG_COFFEE.fixed,
+      meaning: "주문한 커피가 아니에요.",
       message_id: "m1",
-      original: "wrong coffee",
-      pattern: "article-the-specific",
-      reason: "잘못 나온 그 하나를 짚어 말할 때는 the를 붙여요.",
+      situation: "주문한 것을 다시 말할 때",
+      status: "corrected",
     });
     const app = createApp({
       authMiddleware: signedInWith(state),
