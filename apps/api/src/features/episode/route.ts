@@ -7,7 +7,6 @@ import {
   type LanguageModel,
   type ModelMessage,
   safeValidateUIMessages,
-  stepCountIs,
   streamText,
   type UIMessage,
   type UIMessageStreamWriter,
@@ -452,8 +451,8 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
       장면 파서를 지나지 않으므로 답은 말풍선이 아니라 평범한 Markdown이다.
       카드는 `proposeStory` 조각으로 흐르고 앱이 그것을 그린다.
 
-      `stepCountIs(2)`는 카드를 내놓은 뒤 한 문장을 더 쓰게 한다. 조각 하나로
-      턴이 끝나면 카드만 남고 그 뒤의 말이 오지 않는다.
+      카드 뒤에 붙는 말은 앱이 가지고 있어 모델이 쓰지 않는다. 그래서 한 턴은
+      조각 하나로 끝나고 기다림이 한 번으로 줄어든다.
     */
       .post("/create", requireUser, requireCurrentUser, async (c) => {
         const body: unknown = await c.req.json().catch(() => null);
@@ -477,7 +476,6 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           onError: ({ error }) => {
             logRequestFailure(c.req.method, c.req.path, error);
           },
-          stopWhen: stepCountIs(2),
           system: creationSystemPrompt(),
           tools: CREATION_TOOLS,
         });

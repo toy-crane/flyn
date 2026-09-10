@@ -657,6 +657,40 @@ describe("ChatPanel", () => {
     ).not.toBeOnTheScreen();
   });
 
+  /*
+    스토리 카드처럼 글 없이 매달린 것 하나만 오는 답이 있다. 글이 없다고 그 행을
+    통째로 물리치면 화면에 아무것도 나오지 않는다.
+  */
+  test("글이 없어도 매달린 것이 있으면 그 자리를 만든다", async () => {
+    const message: UIMessage = {
+      id: "assistant-1",
+      parts: [
+        {
+          input: { title: "베를린 출장" },
+          state: "output-available",
+          toolCallId: "call-1",
+          type: "tool-proposeStory",
+        } as unknown as UIMessage["parts"][number],
+      ],
+      role: "assistant",
+    };
+
+    function Addon() {
+      const { Text } = require("react-native") as typeof import("react-native");
+
+      return <Text>매달린 카드</Text>;
+    }
+
+    await renderWithHeroUI(
+      <ChatPanel
+        chat={chatSession({ messages: [message] })}
+        messageAddon={Addon}
+      />
+    );
+
+    expect(screen.getByText("매달린 카드")).toBeOnTheScreen();
+  });
+
   test("완료된 답변 아래에 복사와 다시 받기를 보여 준다", async () => {
     await renderWithHeroUI(
       <ChatPanel

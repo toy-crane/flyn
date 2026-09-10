@@ -1,5 +1,6 @@
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
+import { randomUUID } from "expo-crypto";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, Platform, type TextInput } from "react-native";
@@ -19,7 +20,7 @@ import {
   saveStory,
 } from "@/features/story/api/create-story";
 import { storyLabels } from "@/features/story/ui/story-labels";
-import { StoryOutlineCard } from "@/features/story/ui/story-outline-card";
+import { StoryOutlineTurn } from "@/features/story/ui/story-outline-card";
 import { useFocusOnArrival } from "@/shared/navigation/use-screen-arrival";
 
 /**
@@ -57,7 +58,7 @@ function createOutlineAddon({
     }
 
     return (
-      <StoryOutlineCard
+      <StoryOutlineTurn
         isStarting={isStarting}
         onStart={message.id === startableMessageId ? onStart : undefined}
         outline={outline}
@@ -96,7 +97,8 @@ export function CreateStoryScreen({
     [accessToken]
   );
   const chat = useChat({
-    generateId: () => crypto.randomUUID(),
+    // React Native에는 전역 `crypto`가 없다. 에피소드 대화와 같은 것을 쓴다.
+    generateId: () => randomUUID(),
     messages: [OPENING],
     throttle: STREAM_UPDATE_INTERVAL_MS,
     transport,
