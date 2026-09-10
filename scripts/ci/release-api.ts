@@ -1,6 +1,7 @@
 import { spawnSync } from "bun";
 import { executeDelivery } from "./delivery-execution";
 import { GitHubDeliveryJournal } from "./delivery-journal";
+import { requireEdgeReady } from "./edge-readiness";
 import { requireReleaseChecks } from "./release-checks";
 import { createVercelRuntime } from "./vercel-runtime";
 
@@ -59,6 +60,7 @@ if (import.meta.main) {
   const journal = new GitHubDeliveryJournal(token);
   const snapshot = await journal.read();
   requireApiDatabase(snapshot.state.success.database, sha);
+  requireEdgeReady(snapshot.state.success.edge, sha);
   if (
     snapshot.state.pending &&
     (snapshot.state.pending.service !== "api" ||

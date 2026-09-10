@@ -34,7 +34,8 @@ async function main() {
   const journal = new GitHubDeliveryJournal(token);
   const initial = await journal.read();
   if (
-    initial.state.pending?.service === "api" &&
+    initial.state.pending &&
+    initial.state.pending.service !== "database" &&
     initial.state.pending.sha === sha
   ) {
     requireApiDatabase(initial.state.success.database, sha);
@@ -45,10 +46,10 @@ async function main() {
       sha,
     });
     if (observed.status !== "success") {
-      throw new Error("API 재확인 전에 DB 적용 이력이 필요합니다.");
+      throw new Error("후속 배포 재확인 전에 DB 적용 이력이 필요합니다.");
     }
     console.log(
-      "DB 적용을 확인했습니다. 기존 API 요청을 다음 단계에서 조회합니다."
+      "DB 적용을 확인했습니다. 기존 후속 요청을 다음 단계에서 조회합니다."
     );
     return;
   }
