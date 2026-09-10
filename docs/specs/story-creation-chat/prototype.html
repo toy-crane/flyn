@@ -151,10 +151,13 @@
   .waiting i:nth-child(2) { animation-delay: .2s }
   .waiting i:nth-child(3) { animation-delay: .4s }
   @keyframes pulse { 0%, 60%, 100% { opacity: .35 } 30% { opacity: 1 } }
-  .speaker { font-size: 12px; line-height: 18px; color: var(--muted); padding: 0 4px }
+  .speaker { font-size: 13px; line-height: 18px; font-weight: 700; color: #c2410c; padding: 0 4px }
   .character { max-width: 85%; align-self: flex-start; display: grid; gap: 4px }
   .speech { border-radius: 16px; background: var(--surface); padding: 12px 16px; font-size: 16px; line-height: 24px; overflow-wrap: anywhere }
-  .narration { padding: 0 4px; color: var(--muted); font-size: 14px; line-height: 20px; word-break: keep-all }
+  /* 장면 서술: 카드도 배경도 없이 왼쪽 정렬, 첫 줄만 굵은 본문색 */
+  .scene { padding: 4px 4px 8px; display: grid; gap: 2px; font-size: 16px; line-height: 24px; word-break: keep-all }
+  .scene p:first-child { font-weight: 700; color: var(--foreground) }
+  .scene p { color: #50505b }
   .situation { display: flex; gap: 8px; align-items: flex-start; padding: 6px 20px 10px; font-size: 13px; line-height: 19px; color: var(--muted); word-break: keep-all }
   .situation .emoji { font-size: 15px; line-height: 19px }
 
@@ -332,6 +335,7 @@
       <div class="tab${active === 'home' ? ' on' : ''}">${icon.home}<span>홈</span></div>
       <div class="tab${active === 'browse' ? ' on' : ''}">${icon.compass}<span>탐색</span></div>
       <div class="tab${active === 'stories' ? ' on' : ''}">${icon.book}<span>스토리</span></div>
+      <div class="tab${active === 'notes' ? ' on' : ''}">${icon.sparkle}<span>노트</span></div>
     </nav>`;
 
   // ── 탐색 ──
@@ -395,7 +399,7 @@
   const waitingTurn = `<div class="turn" data-waiting><div class="waiting" data-component="WaitingAnswer" role="status" aria-label="답변을 준비하고 있어요."><i></i><i></i><i></i></div></div>`;
   const storyCard = story => `<div class="turn"><div class="story-card" data-component="new:StoryCard">
       <div class="story-head"><div class="story-cover" data-component="StoryCover"></div><div><h3>${escapeHTML(story.title)}</h3><p>${escapeHTML(story.hook)}</p></div></div>
-      <div class="cast"><span class="label">등장인물</span>${story.cast.map(c => `<p>${escapeHTML(c)}</p>`).join('')}</div>
+      <div class="cast"><span class="label">인물</span>${story.cast.map(c => `<p>${escapeHTML(c)}</p>`).join('')}</div>
       <ol class="episodes">${story.episodes.map((e, i) => `<li><span class="num">${i + 1}화</span><div><strong>${escapeHTML(e.title)}</strong><span>${escapeHTML(e.preview)}</span></div></li>`).join('')}</ol>
       <button class="primary" data-component="Button" data-play>대화 시작하기</button>
     </div></div>`;
@@ -474,9 +478,8 @@
       </div>
       <div class="situation" data-component="SituationLine"><span class="emoji" aria-hidden="true">🏨</span><span>예약을 찾아 체크인해 보세요</span></div>
       <div class="chat-body" data-component="ChatPanel">
-        <p class="narration" data-component="SceneMessage">베를린 공항에서 바로 온 호텔 로비, 프런트 앞이다. 예약 확인서를 내밀었지만 Lena는 화면을 몇 번이나 새로고침한다.</p>
-        <div class="turn"><div class="character" data-component="SceneMessage"><div class="speaker">Lena</div><div class="speech">I’m sorry, I can’t find a reservation under that name.</div></div></div>
-        <p class="narration" data-component="SceneMessage">뒤로는 체크인을 기다리는 사람들이 줄을 서 있고, 손에는 무거운 여행 가방이 들려 있다.</p>
+        <div class="scene" data-component="SceneNarration"><p>베를린 공항에서 바로 온 호텔 로비, 프런트 앞이다.</p><p>예약 확인서를 내밀었지만 화면에는 내 이름이 없다.</p><p>뒤로 체크인 줄이 길고, 손에는 무거운 여행 가방이 들려 있다.</p></div>
+        <div class="turn"><div class="character" data-component="SceneMessage"><div class="speaker">Lena</div><div class="speech">I’m sorry, I can’t find a reservation under that name. Could you spell it for me?</div></div></div>
       </div>
       <div class="episode-bottom" data-component="ComposerSurface">
         <form class="composer" onsubmit="return false">
