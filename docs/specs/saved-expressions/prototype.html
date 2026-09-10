@@ -124,16 +124,16 @@
   .chat { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 16px 2px 12px; display: flex; flex-direction: column; gap: 10px }
   .chat::-webkit-scrollbar { display: none }
   .narration { font-size: 15px; line-height: 23px; color: var(--muted); padding: 0 4px; word-break: keep-all }
-  .utterance { max-width: 96%; align-self: flex-start; position: relative }
+  .utterance { max-width: 96%; align-self: flex-start; position: relative; display: flex; flex-direction: column; align-items: flex-start }
   .utterance .who { display: block; font-size: 12px; line-height: 16px; color: var(--muted); padding: 0 4px; margin-bottom: 4px }
-  .utterance .bubble { background: var(--surface); border-radius: 18px; padding: 12px 16px; font-size: 17px; line-height: 26px }
-  .utterance .bubble-row { display: flex; align-items: flex-end; gap: 0 }
-  .utterance .bubble-row .bookmark { margin: 0 -6px 4px -2px }
+  .utterance .bubble { background: var(--surface); border-radius: 18px; padding: 12px 16px; font-size: 17px; line-height: 26px; align-self: flex-start }
+  .action-row { display: flex; gap: 2px }
+  .action-row .bookmark { margin: 0 }
+  .action-row.start { margin: 6px 0 0 -4px }
+  .action-row.end { margin-right: -4px }
   .toast { position: absolute; left: 50%; bottom: 78px; transform: translateX(-50%); z-index: 8; background: #1c1c21ee; color: #fff; font-size: 15px; line-height: 20px; padding: 11px 18px; border-radius: 24px; box-shadow: 0 8px 22px #00000030; white-space: nowrap }
   .reply { margin-left: auto; max-width: 86%; background: #e0edff; border-radius: 18px; padding: 12px 16px; font-size: 17px; line-height: 26px }
   .learn-slot { margin-left: auto; max-width: 86%; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-top: -4px }
-  .note-row { display: flex; align-items: flex-end; gap: 0; justify-content: flex-end; max-width: 100% }
-  .note-row .bookmark { margin: 0 -2px 4px -6px }
   .note { display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 12px; border-radius: 14px; font-size: 14px; line-height: 20px; text-align: left; max-width: 100% }
   .note.learn { background: var(--learn-surface) } .note.learn b { color: var(--learn); font-weight: 600 }
   .note.expression { background: var(--expression-surface) } .note.expression b { color: var(--expression); font-weight: 600 }
@@ -304,6 +304,7 @@
   const ICON = {
     bookmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>',
     bookmarkFilled: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
     spark: '<svg class="spark" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8z"/></svg>',
     down: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
     up: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg>',
@@ -332,18 +333,24 @@
     const on = isSaved(ref);
     return `<button type="button" class="bookmark" data-bookmark="${ref}" aria-pressed="${on}" aria-label="${on ? '저장 취소' : '표현 저장'}">${on ? ICON.bookmarkFilled : ICON.bookmark}</button>`;
   }
+  // 메시지 아래 아이콘 줄. 매달린 말풍선의 정렬을 따라 좌우가 갈린다.
+  function actionRow(ref, align, copyLabel) {
+    return `<div class="action-row ${align}"><button type="button" class="bookmark" aria-label="${copyLabel}">${ICON.copy}</button>${bookmarkButton(ref)}</div>`;
+  }
   function learnSlot(learn) {
     const open = expanded.has(learn.id);
     const fail = failed.has(learn.id) ? `<p class="status-line">표현을 저장하지 못했어요. ${ICON.refresh}</p>` : '';
-    if (!open) return `<div class="learn-slot"><div class="note-row"><button type="button" class="note ${learn.kind}" data-expand="${learn.id}" aria-label="${learn.title} 보기">${ICON.spark}<span>${mark(learn.fixed, learn.fixedMarks)}</span>${ICON.down}</button></div>${fail}</div>`.replace('<div class="note-row">', '<div class="note-row">' + bookmarkButton(learn.id));
-    return `<div class="learn-slot"><div class="card ${learn.kind}"><div class="head"><h3>${learn.title}</h3>${bookmarkButton(learn.id)}<button type="button" class="bookmark" data-expand="${learn.id}" aria-label="${learn.title} 접기">${ICON.up}</button></div><p class="orig">${umark(learn.original, learn.originalMarks)}</p><p class="fixed">${mark(learn.fixed, learn.fixedMarks)}</p><p class="why">${learn.why}</p><button type="button" class="ask">AI에게 물어보기</button></div>${fail}</div>`;
+    const body = open
+      ? `<div class="card ${learn.kind}"><div class="head"><h3>${learn.title}</h3><button type="button" class="bookmark" data-expand="${learn.id}" aria-label="${learn.title} 접기">${ICON.up}</button></div><p class="orig">${umark(learn.original, learn.originalMarks)}</p><p class="fixed">${mark(learn.fixed, learn.fixedMarks)}</p><p class="why">${learn.why}</p><button type="button" class="ask">AI에게 물어보기</button></div>`
+      : `<button type="button" class="note ${learn.kind}" data-expand="${learn.id}" aria-label="${learn.title} 보기">${ICON.spark}<span>${mark(learn.fixed, learn.fixedMarks)}</span>${ICON.down}</button>`;
+    return `<div class="learn-slot">${body}${actionRow(learn.id, 'end', '표현 복사')}${fail}</div>`;
   }
   function renderChat() {
     const chat = document.getElementById('chat');
     chat.innerHTML = scene.map(part => {
       if (part.type === 'narration') return `<p class="narration">${part.text}</p>`;
       if (part.type === 'utterance') {
-        return `<div class="utterance" data-utterance="${part.id}" data-saved="${isSaved(part.id)}"><span class="who">${part.who}</span><div class="bubble-row"><div class="bubble">${part.text}</div>${bookmarkButton(part.id)}</div>${failed.has(part.id) ? `<p class="status-line" style="margin-top:6px">표현을 저장하지 못했어요. ${ICON.refresh}</p>` : ''}</div>`;
+        return `<div class="utterance" data-utterance="${part.id}" data-saved="${isSaved(part.id)}"><span class="who">${part.who}</span><div class="bubble">${part.text}</div>${actionRow(part.id, 'start', '대사 복사')}${failed.has(part.id) ? `<p class="status-line" style="margin-top:6px">표현을 저장하지 못했어요. ${ICON.refresh}</p>` : ''}</div>`;
       }
       return `<div class="reply">${part.text}</div>${learnSlot(part.learn)}`;
     }).join('');
