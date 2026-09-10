@@ -598,6 +598,10 @@ export type Database = {
         Returns: boolean
       }
       is_reserved_username: { Args: { candidate: string }; Returns: boolean }
+      set_story_cover: {
+        Args: { cover_blurhash: string; cover_path: string; story_id: string }
+        Returns: undefined
+      }
       username_change_interval: { Args: never; Returns: string }
       username_status: { Args: { candidate: string }; Returns: string }
     }

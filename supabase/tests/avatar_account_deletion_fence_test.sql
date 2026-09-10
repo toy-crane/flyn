@@ -17,9 +17,10 @@ SELECT policies_are(
     'avatars_delete_own',
     'avatars_insert_own',
     'avatars_select_own',
-    'avatars_update_own'
+    'avatars_update_own',
+    'story_covers_insert_own_made'
   ],
-  'avatars carries exactly the four owner policies'
+  'avatars carries exactly the four owner policies beside the made-cover write'
 );
 
 SET LOCAL ROLE authenticated;
