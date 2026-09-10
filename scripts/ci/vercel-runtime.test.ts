@@ -1,76 +1,62 @@
 import { expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawnSync } from "bun";
-import { pullFailureSummary } from "./vercel-runtime";
+import { serve, spawn } from "bun";
 
-test("pull 오류 원인만 남기고 토큰과 다른 출력은 숨긴다", () => {
-  expect(
-    pullFailureSummary(
-      "secret fixture-token\nError: Not authorized: fixture-token\nprivate env=value",
-      "fixture-token"
-    )
-  ).toBe("Error: Not authorized: [redacted]");
-  expect(pullFailureSummary("private env=value", "fixture-token")).toBe(
-    "오류 요약 없음"
-  );
-});
-
-test("실제 CLI 프로세스 경계에서 잠금 설치와 prebuilt 배포 및 비밀값 분리를 확인한다", () => {
-  const root = mkdtempSync(join(tmpdir(), "flyn-vercel-cli-"));
+test("공식 배포 클라이언트는 프로젝트와 요청 ID를 보내고 불명확한 실패를 재요청하지 않는다", async () => {
+  const root = mkdtempSync(join(tmpdir(), "flyn-vercel-upload-"));
+  const requests: { path: string; body: Record<string, unknown> }[] = [];
+  const server = serve({
+    fetch: async (request) => {
+      requests.push({
+        body: (await request.json()) as Record<string, unknown>,
+        path: new URL(request.url).pathname,
+      });
+      return Response.json(
+        { error: { code: "unavailable", message: "fixture" } },
+        { status: 503 }
+      );
+    },
+    port: 0,
+  });
   try {
+    mkdirSync(join(root, ".vercel/output/static"), { recursive: true });
     writeFileSync(
-      join(root, "vercel"),
-      `#!${process.execPath}
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
-const args = process.argv.slice(2);
-if (process.env.VERCEL_TOKEN || process.env.GH_TOKEN || process.env.SUPABASE_ACCESS_TOKEN || process.env.SUPABASE_DB_PASSWORD) process.exit(2);
-if (args[args.indexOf("--token") + 1] !== "fixture-not-a-secret") process.exit(4);
-appendFileSync("calls.jsonl", JSON.stringify(args.map((value, index) => args[index - 1] === "--token" ? "redacted" : value)) + "\\n");
-if (args[0] === "pull") {
- mkdirSync(".vercel");
- writeFileSync(".vercel/project.json", JSON.stringify({projectId:"prj_nPla0LdaA37WCfo0uai0kuMBkgLC",orgId:"team_dinnDZJN7Ztt45FtgFkAAGad",settings:{rootDirectory:"apps/api"}}));
-}
-if (args[0] === "deploy") process.exit(1);
-`,
-      { mode: 0o700 }
+      join(root, ".vercel/output/config.json"),
+      JSON.stringify({ version: 3 })
     );
+    writeFileSync(join(root, ".vercel/output/static/index.html"), "fixture");
+    writeFileSync(join(root, ".env"), "MUST_NOT_UPLOAD=private");
     const module = new URL("./vercel-runtime.ts", import.meta.url).pathname;
-    const child = spawnSync(
+    const child = spawn(
       [
         process.execPath,
         "-e",
         `import {createVercelRuntime} from ${JSON.stringify(module)};
-const runtime = createVercelRuntime("fixture-not-a-secret");
-await runtime.prepare();
-try { await runtime.delivery.start({service:"api",sha:"${"a".repeat(40)}",requestId:"fixture-request",remoteId:null}); process.exit(3); } catch (error) { if (!error.message.includes("Vercel deploy 실패")) throw error; }`,
+try { await createVercelRuntime("fixture", ${JSON.stringify(server.url.origin)}).delivery.start({service:"api",sha:"${"a".repeat(40)}",requestId:"fixture-request",remoteId:null}); process.exit(3); }
+catch(error) { if (!error.message.includes("Vercel 배포 API 실패")) throw error; }`,
       ],
-      {
-        cwd: root,
-        env: {
-          ...process.env,
-          GH_TOKEN: "must-not-inherit",
-          PATH: `${root}:${process.env.PATH}`,
-          SUPABASE_ACCESS_TOKEN: "must-not-inherit",
-          SUPABASE_DB_PASSWORD: "must-not-inherit",
-          VERCEL_TOKEN: "must-not-inherit",
-        },
-      }
+      { cwd: root, stderr: "pipe", stdout: "pipe" }
     );
-    expect(child.exitCode).toBe(0);
-    const calls = readFileSync(join(root, "calls.jsonl"), "utf8")
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line));
-    expect(calls.map((args) => args[0])).toEqual(["pull", "build", "deploy"]);
-    expect(calls[2]).toContain("--prebuilt");
-    expect(calls[2]).toContain("flynRequestId=fixture-request");
-    expect(
-      JSON.parse(readFileSync(join(root, ".vercel/project.json"), "utf8"))
-        .settings.installCommand
-    ).toBe("bun install --frozen-lockfile");
+    const error = await new Response(child.stderr).text();
+    expect(error).toBe("");
+    expect(await child.exited).toBe(0);
+    expect(requests).toHaveLength(1);
+    const [first] = requests;
+    if (!first) {
+      throw new Error("배포 요청이 없습니다.");
+    }
+    expect(first.path.endsWith("/deployments")).toBe(true);
+    expect(first.body).toMatchObject({
+      meta: { flynCommitSHA: "a".repeat(40), flynRequestId: "fixture-request" },
+      project: "prj_nPla0LdaA37WCfo0uai0kuMBkgLC",
+      target: "production",
+    });
+    expect(JSON.stringify(requests)).not.toContain("MUST_NOT_UPLOAD");
+    expect(JSON.stringify(requests)).not.toContain('".env"');
   } finally {
+    await server.stop(true);
     rmSync(root, { force: true, recursive: true });
   }
 });

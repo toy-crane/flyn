@@ -12,6 +12,7 @@
   "dependencies": {
     "@repo/supabase": "workspace:*",
     "@supabase/supabase-js": "2.112.2",
+    "@vercel/client": "18.3.5",
     "blurhash": "2.0.5",
     "sharp": "0.34.5"
   },
