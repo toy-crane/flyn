@@ -3,9 +3,11 @@ import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  generateObject,
   type LanguageModel,
   type ModelMessage,
   safeValidateUIMessages,
+  stepCountIs,
   streamText,
   type UIMessage,
   type UIMessageStreamWriter,
@@ -57,6 +59,18 @@ import {
   readStoryOfPlay,
   type StoryContent,
 } from "./story.js";
+import {
+  CREATION_TOOLS,
+  type CreationUIMessage,
+  creationSystemPrompt,
+  readStoryOutline,
+  scriptProblem,
+  scriptPrompt,
+  scriptSystemPrompt,
+  storyToSave,
+  WRITTEN_STORY_SCHEMA,
+  type WrittenStory,
+} from "./story-creation.js";
 import {
   readRecentStories,
   readStoryPlays,
@@ -422,11 +436,119 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
 
   return (
     new Hono<AuthedEnv>()
-      // 탐색. 전체 스토리를 콘텐츠 순서로 보여 준다. 진행은 담지 않는다.
+      // 탐색. 내가 만든 스토리를 위에, 공식 스토리를 아래에 보여 준다.
+      // 진행은 담지 않는다.
       .get("/stories", requireUser, requireCurrentUser, async (c) => {
         const catalog = await readStoryCatalog(c.var.supabaseContext.supabase);
 
         return c.json(storyListViewOf(catalog));
+      })
+      /*
+      스토리를 같이 만드는 대화.
+
+      `/ask`와 같은 자리다. 서버는 아무것도 저장하지 않고 이 대화의 수명은 앱이
+      소유한다. 화면을 나가면 대화와 카드가 사라진다는 약속이 그래서 지켜진다.
+
+      장면 파서를 지나지 않으므로 답은 말풍선이 아니라 평범한 Markdown이다.
+      카드는 `proposeStory` 조각으로 흐르고 앱이 그것을 그린다.
+
+      `stepCountIs(2)`는 카드를 내놓은 뒤 한 문장을 더 쓰게 한다. 조각 하나로
+      턴이 끝나면 카드만 남고 그 뒤의 말이 오지 않는다.
+    */
+      .post("/create", requireUser, requireCurrentUser, async (c) => {
+        const body: unknown = await c.req.json().catch(() => null);
+        const validatedMessages =
+          await safeValidateUIMessages<CreationUIMessage>({
+            messages: (body as { messages?: unknown } | null)?.messages,
+            tools: CREATION_TOOLS,
+          });
+
+        if (!validatedMessages.success || validatedMessages.data.length === 0) {
+          return c.json({ error: "Invalid request body." }, 400);
+        }
+
+        const result = streamText({
+          abortSignal: c.req.raw.signal,
+          messages: await convertToModelMessages(validatedMessages.data),
+          model: dependencies.model ?? resolveModelId(),
+          onAbort: () => {
+            logRequestAbort(c.req.method, c.req.path);
+          },
+          onError: ({ error }) => {
+            logRequestFailure(c.req.method, c.req.path, error);
+          },
+          stopWhen: stepCountIs(2),
+          system: creationSystemPrompt(),
+          tools: CREATION_TOOLS,
+        });
+
+        return result.toUIMessageStreamResponse();
+      })
+      /*
+      `대화 시작하기`. 확정한 개요로 각본을 만들고 저장한 뒤 1화를 가리킨다.
+
+      저장이 이 시점에 처음 일어난다. 카드가 몇 번 바뀌어도 여기까지 오지
+      않으면 어디에도 스토리가 생기지 않는다.
+
+      네 테이블에 행이 함께 들어가야 하므로 저장은 `create_story` 한 번으로
+      한다. 중간에 실패하면 아무것도 남지 않는다.
+    */
+      .post("/stories", requireUser, requireCurrentUser, async (c) => {
+        const body: unknown = await c.req.json().catch(() => null);
+        const read = readStoryOutline(body);
+
+        if ("problem" in read) {
+          return c.json({ error: read.problem }, 400);
+        }
+
+        const { outline } = read;
+        let written: WrittenStory;
+
+        try {
+          const generated = await generateObject({
+            abortSignal: c.req.raw.signal,
+            model: dependencies.model ?? resolveModelId(),
+            prompt: scriptPrompt(outline),
+            schema: WRITTEN_STORY_SCHEMA,
+            system: scriptSystemPrompt(),
+          });
+
+          written = generated.object;
+        } catch (failure) {
+          logRequestFailure(c.req.method, c.req.path, failure);
+
+          return c.json({ error: "Writing the story failed." }, 502);
+        }
+
+        const problem = scriptProblem(written);
+
+        if (problem) {
+          logRequestFailure(c.req.method, c.req.path, new Error(problem));
+
+          return c.json({ error: "Writing the story failed." }, 502);
+        }
+
+        const { data, error } = await c.var.supabaseContext.supabase.rpc(
+          "create_story",
+          { story: storyToSave(outline, written) }
+        );
+
+        const made = data?.at(0);
+
+        if (error || !made) {
+          logRequestFailure(
+            c.req.method,
+            c.req.path,
+            error ?? new Error("Saving the story returned nothing.")
+          );
+
+          return c.json({ error: "Saving the story failed." }, 502);
+        }
+
+        return c.json({
+          episodeId: made.first_episode_id,
+          storyId: made.story_id,
+        });
       })
       // 스토리 탭. 대화한 스토리를 최근순으로 보여 준다.
       .get("/recent", requireUser, requireCurrentUser, async (c) => {
