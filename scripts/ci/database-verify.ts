@@ -79,6 +79,26 @@ async function freePort(): Promise<number> {
   return address.port;
 }
 
+export function databaseEnvironment(
+  input: Record<string, string | undefined> = process.env
+) {
+  const env = Object.fromEntries(
+    Object.entries(input).filter(
+      ([key]) =>
+        !(
+          key.startsWith("SUPABASE_") ||
+          key.startsWith("PG") ||
+          key === "DATABASE_URL"
+        )
+    )
+  );
+  if (input.GITHUB_ACTIONS === "true") {
+    // Match the official supabase/setup-cli action without inheriting credentials.
+    env.SUPABASE_INTERNAL_IMAGE_REGISTRY = "ghcr.io";
+  }
+  return env;
+}
+
 export async function verifyDatabase(
   root = process.cwd(),
   upgrades: string[] = [],
@@ -89,16 +109,7 @@ export async function verifyDatabase(
   const source = join(root, "supabase");
   const cli = join(root, "node_modules/.bin/supabase");
   const id = `flyn-ci-${randomUUID().slice(0, 8)}`;
-  const env = Object.fromEntries(
-    Object.entries(process.env).filter(
-      ([key]) =>
-        !(
-          key.startsWith("SUPABASE_") ||
-          key.startsWith("PG") ||
-          key === "DATABASE_URL"
-        )
-    )
-  );
+  const env = databaseEnvironment();
   const run = async (args: string[], capture = false) => {
     const child = spawn(
       [
