@@ -11,7 +11,11 @@ import type { MiddlewareHandler } from "hono";
  * 아니라 타입 검사에서 걸린다.
  */
 export interface AuthedEnv {
-  Variables: { supabaseContext: SupabaseContext<Database> };
+  Variables: {
+    supabaseContext: SupabaseContext<Database>;
+    /** 확인한 사람의 id. 그 사람 몫의 저장소 자리를 정하는 데 쓴다. */
+    userId: string;
+  };
 }
 
 /**
@@ -34,12 +38,15 @@ export function createUserGuard(
    */
   authMiddleware?: MiddlewareHandler
 ): [MiddlewareHandler<AuthedEnv>, MiddlewareHandler<AuthedEnv>] {
-  const requireUser =
-    authMiddleware ??
+  /*
+    `withSupabase`는 자기가 넣는 변수만 아는 미들웨어를 돌려준다. 여기서 그 위에
+    `userId`를 더 얹으므로 타입만 맞춘다. 그쪽은 이 변수를 읽지 않는다.
+  */
+  const requireUser = (authMiddleware ??
     withSupabase<Database>({
       auth: "user",
       env: { secretKeys: { default: "unused-ai-route-never-calls-admin" } },
-    });
+    })) as MiddlewareHandler<AuthedEnv>;
 
   const requireCurrentUser: MiddlewareHandler<AuthedEnv> = async (c, next) => {
     const { data, error } = await c.var.supabaseContext.supabase.auth.getUser();
@@ -47,6 +54,8 @@ export function createUserGuard(
     if (error || !data.user) {
       return c.json({ error: "Unauthorized." }, 401);
     }
+
+    c.set("userId", data.user.id);
 
     await next();
   };

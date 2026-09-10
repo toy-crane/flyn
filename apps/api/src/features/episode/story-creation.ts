@@ -49,6 +49,8 @@ export interface StoryOutline {
   characters: OutlineCharacter[];
   episodes: OutlineEpisode[];
   hook: string;
+  /** 이야기가 벌어지는 곳 한 줄. 표지 그림이 옷차림과 손에 든 것으로 쓴다. */
+  setting?: string;
   title: string;
 }
 
@@ -104,9 +106,14 @@ const OUTLINE_SCHEMA = jsonSchema<StoryOutline>({
         "목록에 보이는 한 줄 소개. 사용자에게 벌어진 일을 1인칭 한국어로 쓴다.",
       type: "string",
     },
+    setting: {
+      description:
+        "이야기가 벌어지는 곳 한 줄. 카드에는 보이지 않고 표지 그림이 쓴다. 실제 회사나 사람 이름은 쓰지 않는다.",
+      type: "string",
+    },
     title: { description: "스토리 제목. 짧은 한국어.", type: "string" },
   },
-  required: ["title", "hook", "characters", "episodes"],
+  required: ["title", "hook", "setting", "characters", "episodes"],
   type: "object",
 });
 
@@ -196,6 +203,7 @@ export function creationSystemPrompt(): string {
 <예시 카드>
 title: 출장 일주일
 hook: 첫 해외 출장인데, 호텔에 제 예약이 없대요
+setting: 늦은 밤의 베를린 호텔 프런트
 characters:
 1. Anna — 30대 초반의 호텔 프런트 직원. 차분하고 일 처리가 정확하다. 근거가 보이면 방법을 끝까지 찾아 준다.
 2. Daniel — 30대 중반의 현지 동료. 무뚝뚝한 척해도 챙길 것은 챙긴다.
@@ -206,7 +214,8 @@ episodes:
 
 - title은 상황을 가리키는 짧은 한국어다. 인물 이름이나 회사 이름을 넣지 않는다.
 - hook과 화의 preview는 사용자에게 벌어진 일을 1인칭으로 쓰고 "-요"로 끝낸다. "나는 ~해야 한다"처럼 쓰지 않는다.
-- 인물 설명은 한다체로 쓰고, 나이와 직업으로 시작한다.`;
+- 인물 설명은 한다체로 쓰고, 나이와 직업으로 시작한다.
+- setting은 이야기가 벌어지는 곳 한 줄이다. 카드에는 보이지 않고 표지 그림이 쓴다. 실제 회사나 사람 이름은 쓰지 않는다.`;
 }
 
 /** 개요가 규칙을 어긴 자리. 저장을 시작하기 전에 여기서 먼저 거른다. */
@@ -310,6 +319,8 @@ export function readStoryOutline(
         title: episode.title,
       })),
       hook: sent.hook,
+      // 카드에는 보이지 않고 표지 그림만 쓴다. 없으면 없는 대로 그린다.
+      setting: isText(sent.setting) ? sent.setting : undefined,
       title: sent.title,
     },
   };

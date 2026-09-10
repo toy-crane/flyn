@@ -13,6 +13,7 @@ import {
 } from "ai";
 import { Hono, type MiddlewareHandler } from "hono";
 
+import { keepWorking } from "../../shared/keep-working.js";
 import { resolveModelId } from "../../shared/model-id.js";
 import {
   logRequestAbort,
@@ -58,6 +59,7 @@ import {
   readStoryOfPlay,
   type StoryContent,
 } from "./story.js";
+import { COVER_BUCKET, madeCover, type StoryCover } from "./story-cover.js";
 import {
   CREATION_TOOLS,
   type CreationUIMessage,
@@ -78,7 +80,16 @@ import {
 
 export interface EpisodeDependencies {
   authMiddleware?: MiddlewareHandler;
+  /** 표지 그림을 받아 오는 자리. 테스트가 이미지 모델 없이 바꿔 끼운다. */
+  drawCover?: (prompt: string) => Promise<Uint8Array>;
   model?: LanguageModel;
+  /**
+   * 응답을 보낸 뒤에도 끝까지 돌려야 하는 일을 맡기는 자리.
+   *
+   * Vercel은 응답이 나가면 함수를 멈춘다. 늦게 끝난 표지를 그대로 두면 붙지
+   * 못하므로 이 자리에 맡긴다. 테스트는 맡긴 일을 직접 기다린다.
+   */
+  waitUntil?: (work: Promise<unknown>) => void;
 }
 
 const CONFLICT_STATUS = 409;
@@ -500,6 +511,24 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
         }
 
         const { outline } = read;
+        /*
+          표지는 각본과 나란히 시작한다. 그림에 십 초쯤, 각본에 십수 초쯤
+          걸리므로 이렇게 두면 표지 때문에 기다림이 늘지 않는다. 요청이 끊겨도
+          이 일은 이어 간다. 사용자는 이미 1화로 넘어간 뒤이고, 그 뒤에
+          도착하는 표지가 이 스토리의 표지다.
+        */
+        const drawing = madeCover({
+          bucket: c.var.supabaseContext.supabase.storage.from(COVER_BUCKET),
+          draw: dependencies.drawCover,
+          outline,
+          ownerId: c.var.userId,
+        });
+        let cover: StoryCover | undefined;
+        const drawn = drawing.then((finished) => {
+          cover = finished;
+
+          return finished;
+        });
         let written: WrittenStory;
 
         try {
@@ -543,9 +572,40 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           return c.json({ error: "Saving the story failed." }, 502);
         }
 
+        const storyId = made.story_id;
+        const attach = async (drawnCover: StoryCover | undefined) => {
+          if (!drawnCover) {
+            return;
+          }
+
+          const attached = await c.var.supabaseContext.supabase.rpc(
+            "set_story_cover",
+            {
+              cover_blurhash: drawnCover.blurhash,
+              cover_path: drawnCover.path,
+              story_id: storyId,
+            }
+          );
+
+          if (attached.error) {
+            logRequestFailure(c.req.method, c.req.path, attached.error);
+          }
+        };
+
+        /*
+          표지가 이미 도착했으면 여기서 달고 간다. 탐색으로 돌아온 화면이 방금
+          만든 스토리를 다시 읽을 때 표지가 거기 있어야 한다. 아직이면 남은
+          일을 뒤로 넘기고 1화부터 열어 준다.
+        */
+        if (cover) {
+          await attach(cover);
+        } else {
+          keepWorking(dependencies.waitUntil, drawn.then(attach));
+        }
+
         return c.json({
           episodeId: made.first_episode_id,
-          storyId: made.story_id,
+          storyId,
         });
       })
       // 스토리 탭. 대화한 스토리를 최근순으로 보여 준다.
