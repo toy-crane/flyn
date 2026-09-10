@@ -1,7 +1,7 @@
 -- 손으로 담아 둔 표현의 접근 규칙을 확인한다. 자기 것만 읽고 지우며, 종류마다
 -- 담을 수 있는 메시지의 역할이 다르고, 원본이 사라져도 항목은 남는다.
 BEGIN;
-SELECT plan(38);
+SELECT plan(39);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -9,18 +9,19 @@ VALUES
   ('22222222-2222-4222-8222-222222222222', 'saved-b@example.test');
 
 -- 준비는 소유자 권한으로 한다. 회차와 플레이와 메시지를 만드는 규칙은 각자의
--- 테스트가 확인하므로, 여기서는 그 위에 담기는 행만 본다.
+-- 테스트가 확인하므로, 여기서는 그 위에 담기는 행만 본다. seed의 스토리와 화는
+-- DB가 만든 ID를 가지므로 slug와 화 번호로 찾는다.
 INSERT INTO public.story_plays (id, user_id, story_id)
 VALUES
   (
     'a0000000-0000-4000-8000-000000000001',
     '11111111-1111-4111-8111-111111111111',
-    '10000000-0000-4000-8000-000000000001'
+    (select id from public.stories where slug = 'mia-cafe')
   ),
   (
     'b0000000-0000-4000-8000-000000000001',
     '22222222-2222-4222-8222-222222222222',
-    '10000000-0000-4000-8000-000000000001'
+    (select id from public.stories where slug = 'mia-cafe')
   );
 
 -- 1화는 결말이 났고 2화는 열려 있다. 끝난 화에서도 담을 수 있어야 하므로 둘 다
@@ -32,7 +33,7 @@ VALUES (
   'aa000000-0000-4000-8000-000000000001',
   '11111111-1111-4111-8111-111111111111',
   'a0000000-0000-4000-8000-000000000001',
-  '11000000-0000-4000-8000-000000000001',
+  (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
   '성공', '새 아이스 아메리카노를 받아냈다.', now()
 );
 
@@ -42,13 +43,13 @@ VALUES
     'aa000000-0000-4000-8000-000000000002',
     '11111111-1111-4111-8111-111111111111',
     'a0000000-0000-4000-8000-000000000001',
-    '11000000-0000-4000-8000-000000000002'
+    (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 2)
   ),
   (
     'bb000000-0000-4000-8000-000000000001',
     '22222222-2222-4222-8222-222222222222',
     'b0000000-0000-4000-8000-000000000001',
-    '11000000-0000-4000-8000-000000000001'
+    (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)
   );
 
 -- 끝난 1화의 장면 하나와 사용자 메시지 하나.
@@ -89,16 +90,40 @@ VALUES (
   '[{"type":"text","text":"Thank you."}]'::jsonb
 );
 
--- 위 사용자 메시지가 실제로 받은 교정. 배울 표현은 이 행에서 나온다.
-INSERT INTO public.episode_corrections (
-  message_id, user_id, original, fixed, corrected, pattern, reason
-)
+-- 문제없다고 판정받은 사용자 메시지 하나. 판정은 받았지만 고친 문장이 없으므로
+-- 담을 배울 표현이 없는 자리를 보는 데 쓴다.
+INSERT INTO public.episode_messages (id, play_id, user_id, role, parts)
 VALUES (
-  'cc000000-0000-4000-8000-000000000002',
+  'cc000000-0000-4000-8000-000000000005',
+  'aa000000-0000-4000-8000-000000000001',
   '11111111-1111-4111-8111-111111111111',
-  'order', 'ordered', 'I ordered a hot americano, but this is an iced latte.',
-  'past-tense', '지난 일은 ordered로 써요.'
+  'user',
+  '[{"type":"text","text":"Thank you very much."}]'::jsonb
 );
+
+-- 위 사용자 메시지들이 실제로 받은 판정. 배울 표현은 고친 문장이 있는 행에서만
+-- 나온다.
+INSERT INTO public.episode_expression_results (
+  message_id, user_id, status, fixed, entries, situation, meaning, example,
+  example_meaning
+)
+VALUES
+  (
+    'cc000000-0000-4000-8000-000000000002',
+    '11111111-1111-4111-8111-111111111111',
+    'corrected',
+    'I ordered a hot americano, but this is an iced latte.',
+    '[{"original":"order","fixed":"ordered","pattern":"past-tense","why":"지난 일은 ordered로 써요."}]'::jsonb,
+    '받은 음료가 주문과 다를 때',
+    '저는 뜨거운 아메리카노를 시켰는데 이건 아이스 라테예요.',
+    'I ordered a tea, but this is a coffee.',
+    '저는 차를 시켰는데 이건 커피예요.'
+  ),
+  (
+    'cc000000-0000-4000-8000-000000000005',
+    '11111111-1111-4111-8111-111111111111',
+    'natural', NULL, NULL, NULL, NULL, NULL, NULL
+  );
 
 -- 다른 계정의 장면 하나.
 INSERT INTO public.episode_messages (id, play_id, user_id, role, parts)
@@ -152,7 +177,7 @@ SELECT throws_ok(
       (user_id, kind, episode_id, message_id, utterance_at, english, speaker)
     values (
       '11111111-1111-4111-8111-111111111111', 'utterance',
-      '11000000-0000-4000-8000-000000000001',
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
       'cc000000-0000-4000-8000-000000000001', 0, 'Next in line, please!', '미아'
     )$$,
   '23514',
@@ -165,7 +190,7 @@ SELECT throws_ok(
       (user_id, kind, episode_id, message_id, english, original)
     values (
       '11111111-1111-4111-8111-111111111111', 'correction',
-      '11000000-0000-4000-8000-000000000001',
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
       'cc000000-0000-4000-8000-000000000002',
       'I ordered a hot americano.', 'I order hot americano.'
     )$$,
@@ -179,7 +204,7 @@ SELECT throws_ok(
       (user_id, kind, episode_id, message_id, english, original, entries)
     values (
       '11111111-1111-4111-8111-111111111111', 'shopping-list',
-      '11000000-0000-4000-8000-000000000001',
+      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
       'cc000000-0000-4000-8000-000000000002',
       'I ordered a hot americano.', 'I order hot americano.', '[]'::jsonb
     )$$,
@@ -250,7 +275,7 @@ SELECT lives_ok(
   $$insert into public.saved_expressions
       (kind, episode_id, message_id, utterance_at, english, meaning, speaker)
     values (
-      'utterance', '11000000-0000-4000-8000-000000000001',
+      'utterance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
       'cc000000-0000-4000-8000-000000000001', 0,
       'Next in line, please!', '다음 분이요!', '미아'
     )$$,
@@ -268,7 +293,7 @@ SELECT lives_ok(
   $$insert into public.saved_expressions
       (kind, episode_id, message_id, utterance_at, english, meaning, speaker)
     values (
-      'utterance', '11000000-0000-4000-8000-000000000001',
+      'utterance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
       'cc000000-0000-4000-8000-000000000001', 1,
       'Was there something wrong?', '무슨 문제가 있었나요?', '미아'
     )$$,
@@ -279,7 +304,7 @@ SELECT throws_ok(
   $$insert into public.saved_expressions
       (kind, episode_id, message_id, utterance_at, english, meaning, speaker)
     values (
-      'utterance', '11000000-0000-4000-8000-000000000001',
+      'utterance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
       'cc000000-0000-4000-8000-000000000001', 0,
       'Next in line, please!', '다음 분이요!', '미아'
     )$$,
@@ -292,7 +317,7 @@ SELECT lives_ok(
   $$insert into public.saved_expressions
       (kind, episode_id, message_id, english, original, entries)
     values (
-      'correction', '11000000-0000-4000-8000-000000000001',
+      'correction', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
       'cc000000-0000-4000-8000-000000000002',
       'I ordered a hot americano, but this is an iced latte.',
       'I order hot americano but this is ice latte.',
@@ -307,7 +332,7 @@ SELECT throws_ok(
   $$insert into public.saved_expressions
       (kind, episode_id, message_id, english, original, entries)
     values (
-      'guidance', '11000000-0000-4000-8000-000000000001',
+      'guidance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
       'cc000000-0000-4000-8000-000000000002',
       'I ordered a hot americano, but this is an iced latte.',
       'I order hot americano but this is ice latte.',
@@ -324,7 +349,7 @@ SELECT throws_ok(
   $$insert into public.saved_expressions
       (kind, episode_id, message_id, english, original, entries)
     values (
-      'correction', '11000000-0000-4000-8000-000000000001',
+      'correction', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
       'cc000000-0000-4000-8000-000000000004',
       'Thanks a lot.', 'Thank you.',
       '[{"original":"Thank you","fixed":"Thanks a lot","why":"지어낸 이유."}]'::jsonb
@@ -334,12 +359,27 @@ SELECT throws_ok(
   'a message that was never judged has no learning note to save'
 );
 
+-- 판정은 받았어도 고친 문장이 없으면 담을 배울 표현이 없다.
+SELECT throws_ok(
+  $$insert into public.saved_expressions
+      (kind, episode_id, message_id, english, original, entries)
+    values (
+      'correction', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
+      'cc000000-0000-4000-8000-000000000005',
+      'Thanks a lot.', 'Thank you very much.',
+      '[{"original":"Thank you very much","fixed":"Thanks a lot","why":"지어낸 이유."}]'::jsonb
+    )$$,
+  '42501',
+  NULL,
+  'a message judged fine has no learning note to save either'
+);
+
 -- 종류마다 담을 수 있는 역할이 다르다.
 SELECT throws_ok(
   $$insert into public.saved_expressions
       (kind, episode_id, message_id, utterance_at, english, meaning, speaker)
     values (
-      'utterance', '11000000-0000-4000-8000-000000000001',
+      'utterance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
       'cc000000-0000-4000-8000-000000000002', 0,
       'I order hot americano but this is ice latte.', '아메리카노를 시켰어요.', '미아'
     )$$,
@@ -352,7 +392,7 @@ SELECT throws_ok(
   $$insert into public.saved_expressions
       (kind, episode_id, message_id, english, original, entries)
     values (
-      'guidance', '11000000-0000-4000-8000-000000000001',
+      'guidance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
       'cc000000-0000-4000-8000-000000000001',
       'Next in line, please!', '다음 분이요!',
       '[{"original":"","fixed":"","why":"x"}]'::jsonb
@@ -368,7 +408,7 @@ SELECT throws_ok(
   $$insert into public.saved_expressions
       (kind, episode_id, message_id, utterance_at, english, meaning, speaker)
     values (
-      'utterance', '11000000-0000-4000-8000-000000000001',
+      'utterance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
       'cc000000-0000-4000-8000-000000000003', 0,
       'Here you go.', '여기 있습니다.', '미아'
     )$$,
@@ -383,7 +423,7 @@ SELECT lives_ok(
   $$insert into public.saved_expressions
       (kind, episode_id, message_id, utterance_at, english, meaning, speaker)
     values (
-      'utterance', '11000000-0000-4000-8000-000000000002',
+      'utterance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 2),
       'cc000000-0000-4000-8000-000000000003', 0,
       'Here you go.', '여기 있습니다.', '미아'
     )$$,
@@ -394,7 +434,7 @@ SELECT throws_ok(
   $$insert into public.saved_expressions
       (kind, episode_id, message_id, utterance_at, english, meaning, speaker)
     values (
-      'utterance', '11000000-0000-4000-8000-000000000001',
+      'utterance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
       'dd000000-0000-4000-8000-000000000001', 0,
       'Welcome.', '어서 오세요.', '미아'
     )$$,
@@ -447,7 +487,7 @@ SELECT is(
 SELECT is(
   (
     SELECT count(*) FROM public.saved_expressions
-    WHERE episode_id = '11000000-0000-4000-8000-000000000001'
+    WHERE episode_id = (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)
       AND user_id = '11111111-1111-4111-8111-111111111111'
   ),
   3::bigint,

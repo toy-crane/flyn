@@ -243,9 +243,10 @@ create policy saved_expressions_select_own on public.saved_expressions
 
 -- 담는 것은 사람이 한다. 지킬 규칙은 넷이다. 자기 것이어야 하고, 그 종류가 담을
 -- 수 있는 역할의 메시지여야 하고, 적어 낸 화가 그 메시지가 실제로 오간 화여야
--- 하고, 배울 표현은 실제로 판정을 받은 메시지에서만 나와야 한다. 셋째가 없으면
--- 표현 노트의 출처 표시를 앱 밖에서 고를 수 있고, 넷째가 없으면 아무 말에나
--- 지어낸 교정을 붙일 수 있다.
+-- 하고, 배울 표현은 고칠 것이 있다고 판정된 메시지에서만 나와야 한다. 셋째가
+-- 없으면 표현 노트의 출처 표시를 앱 밖에서 고를 수 있고, 넷째가 없으면 아무 말에나
+-- 지어낸 교정을 붙일 수 있다. 판정 결과는 문제없음과 알 수 없음도 행으로 남기므로
+-- 행이 있다는 것만으로는 모자라고, 고친 문장이 있는 판정만 배울 표현이 된다.
 --
 -- 인물 대사는 캐릭터가 말한 것이고 영어 교정과 한국어 안내는 사용자가 쓴 것에
 -- 붙으므로, 담을 수 있는 역할이 종류마다 다르다. 지문과 내 말풍선에 저장을 두지
@@ -283,8 +284,9 @@ create policy saved_expressions_save_own on public.saved_expressions
       kind = 'utterance'
       or exists (
         select 1
-        from public.episode_corrections judged
+        from public.episode_expression_results judged
         where judged.message_id = saved_expressions.message_id
+          and judged.status = 'corrected'
       )
     )
   );
@@ -300,6 +302,7 @@ create policy saved_expressions_erase_own on public.saved_expressions
 -- 자리를 옮기는 일도 없다. `user_id`와 `created_at`은 앞의 테이블들과 같은 이유로
 -- insert grant에서 빠져 있다.
 grant select, delete on table public.saved_expressions to authenticated;
+revoke insert on table public.saved_expressions from authenticated;
 grant insert (
   kind, episode_id, message_id, utterance_at, english, meaning, speaker,
   original, entries

@@ -87,6 +87,9 @@ GRANT MAINTAIN, REFERENCES, TRIGGER, TRUNCATE ON public.saved_expressions TO ano
 
 GRANT DELETE, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE ON public.saved_expressions TO authenticated;
 
+-- Hosted defaults may include table-wide INSERT, which overrides column grants.
+REVOKE INSERT ON public.saved_expressions FROM authenticated;
+
 GRANT INSERT (english, entries, episode_id, kind, meaning, message_id, original, speaker, utterance_at) ON public.saved_expressions TO authenticated;
 
 GRANT ALL ON public.saved_expressions TO service_role;
@@ -114,8 +117,8 @@ CREATE POLICY saved_expressions_save_own ON public.saved_expressions
             WHEN (saved_expressions.kind = 'utterance'::text) THEN 'assistant'::text
             ELSE 'user'::text
         END)))) AND ((kind = 'utterance'::text) OR (EXISTS ( SELECT 1
-   FROM public.episode_corrections judged
-  WHERE (judged.message_id = saved_expressions.message_id))))));
+   FROM public.episode_expression_results judged
+  WHERE ((judged.message_id = saved_expressions.message_id) AND (judged.status = 'corrected'::text)))))));
 
 CREATE POLICY saved_expressions_select_own ON public.saved_expressions
   FOR SELECT
