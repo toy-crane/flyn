@@ -31,6 +31,7 @@ interface DeliveryDependencies {
   remote: {
     start: (request: DeliveryRequest) => Promise<DeliveryObservation>;
     inspect: (request: DeliveryRequest) => Promise<DeliveryObservation>;
+    wait?: (request: DeliveryRequest) => Promise<DeliveryObservation>;
   };
 }
 
@@ -47,8 +48,9 @@ export async function executeDelivery(
   }
   async function observe(
     request: DeliveryRequest,
-    observation: DeliveryObservation
-  ) {
+    observation: DeliveryObservation,
+    wait = false
+  ): Promise<void> {
     if (observation.status !== "pending" && !observation.remoteId) {
       throw new Error("배포 결과의 원격 실행 ID를 확인해야 합니다.");
     }
@@ -71,6 +73,14 @@ export async function executeDelivery(
       };
     }
     revision = await journal.write(revision, state);
+    if (
+      wait &&
+      observation.status === "pending" &&
+      state.pending &&
+      remote.wait
+    ) {
+      return observe(state.pending, await remote.wait(state.pending));
+    }
     if (observation.status !== "success") {
       throw new Error(`${request.service} 배포 ${observation.status}`);
     }
@@ -92,6 +102,6 @@ export async function executeDelivery(
     state.pending = request;
     // biome-ignore lint/performance/noAwaitInLoops: 배포 요청 전에 원격 기록을 먼저 저장해야 한다.
     revision = await journal.write(revision, state);
-    await observe(request, await remote.start(request));
+    await observe(request, await remote.start(request), true);
   }
 }

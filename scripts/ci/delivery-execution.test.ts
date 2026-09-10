@@ -3,6 +3,39 @@ import { type DeliveryState, executeDelivery } from "./delivery-execution";
 
 const target = "a".repeat(40);
 
+test("빌드 완료를 기다리기 전에 원격 실행 ID를 기록하고 중단 후 같은 실행을 조회한다", async () => {
+  let state: DeliveryState = {
+    pending: null,
+    success: { api: null, database: null, edge: null, mobile: null },
+    version: 1,
+  };
+  const journal = {
+    read: () =>
+      Promise.resolve({ revision: "v", state: structuredClone(state) }),
+    write: (_revision: string, next: DeliveryState) => {
+      state = structuredClone(next);
+      return Promise.resolve("v2");
+    },
+  };
+  await expect(
+    executeDelivery(target, {
+      journal,
+      plan: () => Promise.resolve(["mobile"]),
+      remote: {
+        inspect: () => Promise.reject(new Error("unexpected")),
+        start: () => Promise.resolve({ remoteId: "eas-1", status: "pending" }),
+        wait: (request) => {
+          expect(state.pending?.remoteId).toBe("eas-1");
+          expect(request.remoteId).toBe("eas-1");
+          return Promise.reject(new Error("interrupted"));
+        },
+      },
+    })
+  ).rejects.toThrow("interrupted");
+  expect(state.pending?.remoteId).toBe("eas-1");
+  expect(state.success.mobile).toBeNull();
+});
+
 test("원격 실행 ID가 없는 성공 응답은 배포 완료로 기록하지 않는다", async () => {
   let state: DeliveryState = {
     pending: null,
