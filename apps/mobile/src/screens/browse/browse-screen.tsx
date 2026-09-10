@@ -1,6 +1,6 @@
 import { TagGroup } from "heroui-native/tag-group";
 import { useCallback, useMemo, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { ScrollView, useWindowDimensions, View } from "react-native";
 
 import type { StoryCard } from "@/features/story/api/story";
 import { storyLabels } from "@/features/story/ui/story-labels";
@@ -12,6 +12,10 @@ import { useScreenContentHeight } from "@/shared/ui/use-screen-content-height";
 /** 목록을 거르는 칩. 탐색을 다시 열면 언제나 `전체`로 돌아온다. */
 const ALL = "all";
 const MINE = "mine";
+
+/** HeroUI가 보통 크기 칩의 이름에 쓰는 글자 크기와 줄 높이 비율. */
+const CHIP_TEXT_SIZE = 14;
+const CHIP_LEADING = 1.5;
 
 function BrowseRow({
   hasBorder,
@@ -64,7 +68,18 @@ export function BrowseScreen({
   stories: StoryCard[] | undefined;
 }) {
   const [filter, setFilter] = useState<string>(ALL);
+  const { fontScale } = useWindowDimensions();
   const contentHeight = useScreenContentHeight();
+  /*
+    칩의 글자는 기기의 글자 크기 설정을 따라 커지는데 줄 높이는 고정이라, 큰
+    글자 크기에서 이름의 위아래가 잘린다. 줄 높이를 같은 배율로 함께 키운다.
+  */
+  const labelStyle = useMemo(
+    () => ({
+      lineHeight: Math.ceil(CHIP_TEXT_SIZE * fontScale * CHIP_LEADING),
+    }),
+    [fontScale]
+  );
   const shown = useMemo(
     () =>
       filter === MINE ? (stories ?? []).filter((story) => story.mine) : stories,
@@ -101,9 +116,26 @@ export function BrowseScreen({
             showsHorizontalScrollIndicator={false}
             testID="browse-filters"
           >
+            {/*
+              칩은 누를 수 있는 자리다. 밝히지 않으면 화면 읽기 기능이 그냥
+              글자로 읽어 목록을 거를 수 있다는 것을 알리지 못한다.
+
+              `accessibilityRole`이 아니라 `role`을 넘긴다. HeroUI가 칩에
+              `role="listitem"`을 먼저 붙이는데, 둘이 함께 있으면 React Native가
+              `role`을 따르므로 그 자리를 여기서 덮어야 한다. 고른 상태는 HeroUI가
+              이미 밝히고 있어 다시 쓰지 않는다.
+            */}
             <TagGroup.List className="gap-2">
-              <TagGroup.Item id={ALL}>{storyLabels.allStories}</TagGroup.Item>
-              <TagGroup.Item id={MINE}>{storyLabels.myStories}</TagGroup.Item>
+              <TagGroup.Item id={ALL} role="button">
+                <TagGroup.ItemLabel style={labelStyle}>
+                  {storyLabels.allStories}
+                </TagGroup.ItemLabel>
+              </TagGroup.Item>
+              <TagGroup.Item id={MINE} role="button">
+                <TagGroup.ItemLabel style={labelStyle}>
+                  {storyLabels.myStories}
+                </TagGroup.ItemLabel>
+              </TagGroup.Item>
             </TagGroup.List>
           </ScrollView>
         </TagGroup>

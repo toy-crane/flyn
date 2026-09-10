@@ -135,3 +135,35 @@ export function StoryOutlineCard({
     </View>
   );
 }
+
+/**
+ * 카드와 그 뒤에 플린이 덧붙이는 말.
+ *
+ * 문구가 늘 같아서 모델이 쓰지 않는다. 모델에게 맡기면 조각 하나로 끝날 턴에
+ * 한 번 더 다녀와야 하고, 그 사이 카드만 놓인 화면이 잠시 보인다.
+ */
+export function StoryOutlineTurn({
+  isStarting,
+  onStart,
+  outline,
+}: {
+  isStarting?: boolean;
+  onStart?: () => void;
+  outline: StoryOutline;
+}) {
+  return (
+    <View className="w-full gap-3">
+      <StoryOutlineCard
+        isStarting={isStarting}
+        onStart={onStart}
+        outline={outline}
+      />
+      <Text
+        className="px-1 text-[16px] text-foreground leading-6"
+        dynamicTypeRamp="body"
+      >
+        {storyLabels.afterCard}
+      </Text>
+    </View>
+  );
+}

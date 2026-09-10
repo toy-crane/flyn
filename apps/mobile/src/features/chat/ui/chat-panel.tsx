@@ -140,10 +140,26 @@ function PlainTextMessage({
     () => onBeginEdit(message.id),
     [message.id, onBeginEdit]
   );
+  /*
+    글이 없는 메시지는 그리지 않는다. 아직 아무것도 오지 않은 자리와 사용자가
+    지운 자리가 같은 모습이어야 목록에 빈 줄이 생기지 않는다.
+
+    다만 매달린 것이 있으면 그것만으로도 보여 줄 것이 있다. 스토리 카드가 바로
+    그런 경우다. 글 없이 카드 하나만 오는 답을 여기서 물리치면 화면에 아무것도
+    나오지 않는다.
+  */
   if (!text) {
-    return isWaiting ? (
+    if (isWaiting) {
+      return (
+        <View className="mb-4" testID="chat-message-row">
+          <WaitingAnswer />
+        </View>
+      );
+    }
+
+    return MessageAddon ? (
       <View className="mb-4" testID="chat-message-row">
-        <WaitingAnswer />
+        <MessageAddon message={message} />
       </View>
     ) : null;
   }
