@@ -16,7 +16,7 @@ test("로컬 실행은 API 운영 배포 연결 전에 차단한다", () => {
   expect(child.stderr.toString()).toContain("Flyn main의 GitHub 실행");
 });
 
-test("API job은 DB 성공 뒤 실행하며 설치에는 운영 토큰을 주지 않는다", () => {
+test("API job은 Edge 성공 뒤 실행하며 설치에는 운영 토큰을 주지 않는다", () => {
   const workflow = YAML.parse(
     readFileSync(
       new URL("../../.github/workflows/deploy.yml", import.meta.url),
@@ -32,7 +32,7 @@ test("API job은 DB 성공 뒤 실행하며 설치에는 운영 토큰을 주지
     };
   };
   const job = workflow.jobs.api;
-  expect(job.needs).toBe("database");
+  expect(job.needs).toBe("edge");
   expect(job.if).toContain("refs/heads/main");
   const install = job.steps.find((step: { run?: string }) =>
     step.run?.includes("npm install")
