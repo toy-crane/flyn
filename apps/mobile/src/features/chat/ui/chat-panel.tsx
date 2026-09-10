@@ -50,6 +50,7 @@ import { scheduleOnRN } from "react-native-worklets";
 
 import type { ChatSession } from "@/features/chat/state/use-conversation";
 import { Icon } from "@/shared/ui/icon";
+import { copyToClipboard } from "@/shared/ui/icon-row";
 import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { AssistantMessage } from "./assistant-message";
 import { chatLabels } from "./chat-labels";
@@ -57,7 +58,6 @@ import { ComposerBackdrop } from "./composer-backdrop";
 import { COMPOSER_BACKDROP_FADE_HEIGHT } from "./composer-backdrop-layout";
 import { ComposerSurface } from "./composer-surface";
 import { LatestMessageButton } from "./latest-message-button";
-import { copyToClipboard } from "./message-actions";
 import { sceneCopyText, sceneOfMessage } from "./scene";
 import { SceneMessage, type UtteranceAddon } from "./scene-message";
 import { useLateAnswer } from "./use-late-answer";
@@ -104,6 +104,7 @@ function PlainTextMessage({
   areActionsDisabled,
   areActionsVisible,
   canOpenMenu,
+  canSaveUtterances,
   cast,
   hasActions,
   isArriving,
@@ -119,6 +120,7 @@ function PlainTextMessage({
   areActionsDisabled: boolean;
   areActionsVisible: boolean;
   canOpenMenu: boolean;
+  canSaveUtterances: boolean;
   cast: ReadonlyMap<string, number> | undefined;
   hasActions: boolean;
   isArriving: boolean;
@@ -177,7 +179,6 @@ function PlainTextMessage({
       areActionsDisabled={areActionsDisabled}
       areActionsVisible={areActionsVisible}
       hasActions={hasActions}
-      onCopy={copy}
       onRegenerate={regenerate}
       text={text}
     />
@@ -197,12 +198,13 @@ function PlainTextMessage({
       <SceneMessage
         areActionsDisabled={areActionsDisabled}
         areActionsVisible={areActionsVisible}
+        canSaveUtterances={canSaveUtterances}
         cast={cast}
+        copyText={text}
         hasActions={hasActions}
         isArriving={isArriving}
         isFirst={isFirst}
         messageId={message.id}
-        onCopy={copy}
         onRegenerate={regenerate}
         segments={scene}
         utteranceAddon={utteranceAddon}
@@ -472,6 +474,7 @@ function Composer({
 export function ChatPanel({
   banner,
   busyLabel,
+  canSaveUtterances = true,
   canStop = true,
   cast,
   chat,
@@ -493,6 +496,14 @@ export function ChatPanel({
   banner?: ReactNode;
   /** Status read while the current action remains in the Stop button's place. */
   busyLabel?: string;
+  /**
+   * 이 대화의 대사를 담아 둘 수 있는지.
+   *
+   * 회차가 아직 없는 첫 장면에서는 거짓이다. 담을 자리가 없으므로 말풍선 아래
+   * 줄에 복사만 서고, 첫 메시지를 보내 회차가 생기면 책갈피가 같은 떠오름으로
+   * 합류한다.
+   */
+  canSaveUtterances?: boolean;
   /** Whether an answer still arriving can be ended from this panel. */
   canStop?: boolean;
   /**
@@ -891,6 +902,7 @@ export function ChatPanel({
         areActionsDisabled={isEditing}
         areActionsVisible={!(isBusy && index === messageCount - 1)}
         canOpenMenu={hasMessageActions && !(isBusy || isEditing)}
+        canSaveUtterances={canSaveUtterances}
         cast={cast}
         hasActions={hasMessageActions}
         /*
@@ -912,6 +924,7 @@ export function ChatPanel({
     ),
     [
       beginEdit,
+      canSaveUtterances,
       cast,
       doomedFromIndex,
       hasMessageActions,

@@ -15,6 +15,7 @@ import Pencil from "lucide-react-native/icons/pencil";
 import RefreshCw from "lucide-react-native/icons/refresh-cw";
 import Sparkles from "lucide-react-native/icons/sparkles";
 import Square from "lucide-react-native/icons/square";
+import Trash2 from "lucide-react-native/icons/trash-2";
 import X from "lucide-react-native/icons/x";
 import { View } from "react-native";
 import { useCSSVariable } from "uniwind";
@@ -41,6 +42,8 @@ const icons = {
   regenerate: RefreshCw,
   send: ArrowUp,
   stop: Square,
+  /** 담아 둔 표현을 지우는 자리. 확인창을 연다. */
+  trash: Trash2,
 } as const;
 
 const iconSizes = {

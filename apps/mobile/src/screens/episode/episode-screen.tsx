@@ -222,6 +222,16 @@ export function EpisodeScreen({
           banner={
             <EpisodeSituationBanner emoji={situationEmoji} text={situation} />
           }
+          /*
+            회차가 생기기 전의 첫 장면에는 책갈피를 두지 않는다.
+
+            회차는 사용자가 처음 말할 때 생기고, 그전의 첫 장면은 계정에 남지
+            않는다. 담을 자리가 없는데 입구만 보여 주면 누르는 사람은 까닭을 알 수
+            없는 실패를 만난다. 복사는 회차 없이도 되는 동작이라 그동안에도 혼자
+            선다. 처음 말하는 순간 회차가 생기고 그 장면도 대화의 첫 줄로 남으므로,
+            책갈피는 그때 복사 옆에 합류한다.
+          */
+          canSaveUtterances={storyPlayId !== undefined}
           cast={castOrder}
           chat={conversationRun}
           closing={closing}
@@ -231,17 +241,7 @@ export function EpisodeScreen({
           messageAddon={EpisodeCorrectionNote}
           placeholder={episodeLabels.placeholder}
           toast={toast}
-          /*
-            회차가 생기기 전의 첫 장면에는 책갈피를 두지 않는다.
-
-            회차는 사용자가 처음 말할 때 생기고, 그전의 첫 장면은 계정에 남지
-            않는다. 담을 자리가 없는데 입구만 보여 주면 누르는 사람은 까닭을 알 수
-            없는 실패를 만난다. 처음 말하는 순간 회차가 생기고 그 장면도 대화의 첫
-            줄로 남으므로, 책갈피는 그때 함께 나타난다.
-          */
-          utteranceAddon={
-            storyPlayId === undefined ? undefined : UtteranceExpressionSlot
-          }
+          utteranceAddon={UtteranceExpressionSlot}
         />
       </SavedExpressionsProvider>
     </EpisodeCorrectionsProvider>

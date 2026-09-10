@@ -190,6 +190,7 @@ function ScreenToast({
         exiting={isReduced ? fadeOut : slideUpOut}
         onLayout={measurePill}
         style={{ maxWidth: "100%" }}
+        testID="screen-toast-pill"
       >
         {content.icon}
         {/*

@@ -11,6 +11,7 @@
 - Android 툴바 아이콘은 `@expo/material-symbols`가 아이콘마다 내주는 XML 벡터 드로어블을 쓴다. 배율별 PNG를 저장소에 두지 않는다.
 - 툴바 아이콘의 플랫폼 분기는 `Platform.OS`가 아니라 `process.env.EXPO_OS`로 쓴다.
 - 브랜드 로고나 제품 고유 그래픽은 프로젝트가 소유하는 이미지 또는 SVG 파일로 제공한다.
+- 아이콘 줄이 눌렸다고 답하는 데 쓰는 체크와, 담아 둔 표현을 지우는 휴지통도 프로젝트 `Icon`이 소유한다. 두 모양은 `lucide-react-native`의 `check`와 `trash-2`다.
 - 결말 축하의 마크와 조각은 아이콘이 아니라 프로젝트가 소유하는 Lottie 애니메이션 파일이다. `scripts/closing-celebration`의 생성기가 만들고 `src/features/episode/ui/celebration/`에 두며, `lottie-react-native`가 그린다. 앱의 시스템 아이콘과 이모지는 축하 그래픽으로 쓰지 않는다.
 - Lottie 파일의 색은 밝은 화면의 값을 박아 두고, 앱이 `colorFilters`로 레이어 이름에 실행 시점의 시맨틱 색을 입힌다. 레이어 이름이 앱과 파일 사이의 약속이며 이름에 `.`을 두지 않는다.
 
