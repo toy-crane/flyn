@@ -2,8 +2,10 @@
  * 결말 축하의 Lottie 문서를 만든다.
  *
  * 마크(파란 원과 체크)와 효과(고리와 세 색의 조각)는 After Effects 없이 여기서
- * 좌표와 박자를 적어 JSON으로 낸다. 박자는 스펙의 시안 `closing.html`이
- * CSS로 보여 준 값 그대로다. 색은 파일에 밝은 화면의 값을 넣어 두지만, 앱이
+ * 좌표와 박자를 적어 JSON으로 낸다. 좌표와 모양은 스펙의 시안 `closing.html`을
+ * 따르고, 박자는 시안보다 짧고 튀김이 덜하다. 모션 스킬(motion-design,
+ * text-to-lottie)이 성공 표시에 권하는 값(튀는 시간 300ms 안, 넘침 5–10%)으로
+ * 사용자가 줄이기로 했다. 색은 파일에 밝은 화면의 값을 넣어 두지만, 앱이
  * 실행 시점에 레이어 이름으로 강조색과 채널 색을 다시 입힌다. 그래서 레이어
  * 이름이 곧 앱과의 약속이고, Android가 keypath를 `.`으로 나누므로 이름에
  * `.`을 두지 않는다.
@@ -249,17 +251,19 @@ const HALO_WIDTH = 5;
 /** 마크 상자. 원 64에 5짜리 후광이 붙고 튀는 순간 114%까지 커지므로 88로 잡는다. */
 const MARK_SIZE = 88;
 const MARK_CENTER = MARK_SIZE / 2;
-const MARK_DURATION = 1000;
-/** 원이 튀는 때. 시안의 `pop-hero 520ms ... 40ms`다. */
-const POP = { duration: 520, start: 40 };
-/** 체크가 그려지는 때. 시안의 `draw 360ms ... 260ms`다. */
-const DRAW = { duration: 360, start: 260 };
-/** 고리가 퍼지는 때. 시안의 `ring 620ms ... 360ms`다. */
-const RING = { duration: 620, start: 360 };
+const MARK_DURATION = 600;
+/** 원이 튀는 때. 시안은 `pop-hero 520ms ... 40ms`였고, 300ms로 줄였다. */
+const POP = { duration: 300, start: 40 };
+/** 원이 제자리보다 커지는 정도. 시안은 114%였고, 성공 표시의 넘침 5–10%에 맞춰 108%다. */
+const POP_PEAK = { rotation: 2, scale: 108 };
+/** 체크가 그려지는 때. 시안은 `draw 360ms ... 260ms`였고, 200ms를 원이 다 커질 즈음 시작한다. */
+const DRAW = { duration: 200, start: 180 };
+/** 고리가 퍼지는 때. 시안은 `ring 620ms ... 360ms`였고, 원이 가장 커진 직후 420ms 동안 퍼진다. */
+const RING = { duration: 420, start: 240 };
 
 /**
- * 파란 원이 튀어나오고(40ms부터 520ms) 안에서 체크가 그려진다(260ms부터
- * 360ms). 마지막 프레임은 정지 상태라 동작 줄이기와 기록 재방문이 같은 그림을
+ * 파란 원이 튀어나오고(40ms부터 300ms) 안에서 체크가 그려진다(180ms부터
+ * 200ms). 마지막 프레임은 정지 상태라 동작 줄이기와 기록 재방문이 같은 그림을
  * 쓴다. 고리는 원의 두 배 가까이 커져 이 상자를 넘으므로 조각 파일에 둔다.
  */
 export function buildClosingMark(): LottieDocument {
@@ -287,13 +291,17 @@ export function buildClosingMark(): LottieDocument {
           { at: popPeak, value: [100] },
         ]),
         r: animate([
-          { at: popStart, easing: POP_EASING, value: [-10] },
-          { at: popPeak, easing: SETTLE, value: [3] },
+          { at: popStart, easing: POP_EASING, value: [-6] },
+          { at: popPeak, easing: SETTLE, value: [POP_PEAK.rotation] },
           { at: popEnd, value: [0] },
         ]),
         s: animate([
           { at: popStart, easing: POP_EASING, value: [40, 40, 100] },
-          { at: popPeak, easing: SETTLE, value: [114, 114, 100] },
+          {
+            at: popPeak,
+            easing: SETTLE,
+            value: [POP_PEAK.scale, POP_PEAK.scale, 100],
+          },
           { at: popEnd, value: [100, 100, 100] },
         ]),
       },
@@ -367,7 +375,8 @@ const BURST_ORIGIN: [number, number] = [BURST_SIZE[0] / 2, BURST_SIZE[1] / 2];
  * 20, 제목 영역 여백 4, 마크 상자 절반 36)라 조각 출발점보다 14pt 아래다.
  */
 const RING_CENTER: [number, number] = [BURST_ORIGIN[0], BURST_ORIGIN[1] + 14];
-const BURST_DELAY = 320;
+/** 조각이 터지는 때. 시안은 320ms였고, 고리가 퍼지기 시작한 40ms 뒤로 당겼다. */
+const BURST_DELAY = 280;
 const BURST_DURATION = 1150;
 const BURST_STAGGER = 30;
 type Channel = "accent" | "expression" | "learn";
@@ -402,7 +411,7 @@ const pieceShapes: readonly Shape[] = [
   }),
 ];
 
-/** 원 둘레로 한 번 퍼지는 고리. 360ms부터 620ms 동안 0.9배에서 1.9배로 커지며 사라진다. */
+/** 원 둘레로 한 번 퍼지는 고리. 240ms부터 420ms 동안 0.9배에서 1.9배로 커지며 사라진다. */
 function ringLayer(index: number, op: number): Layer {
   const start = frame(RING.start);
   const end = frame(RING.start + RING.duration);
@@ -430,7 +439,7 @@ function ringLayer(index: number, op: number): Layer {
 
 /**
  * 시안의 `burst()`. 성공은 고리와 함께 세 색 26조각이 넓게, 목표를 이루지 못한
- * 결말은 고리 없이 파랑과 청록 10조각이 0.6배로 퍼진다. 조각마다 320ms 뒤
+ * 결말은 고리 없이 파랑과 청록 10조각이 0.6배로 퍼진다. 조각마다 280ms 뒤
  * 30ms씩 엇갈려 1150ms 동안 날아오르고 떨어지며 사라진다.
  */
 export function buildClosingBurst({ half }: { half: boolean }): LottieDocument {

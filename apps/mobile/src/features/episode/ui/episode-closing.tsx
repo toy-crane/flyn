@@ -27,9 +27,11 @@ import closingMark from "./celebration/closing-mark.gen.json";
 const easeOut = Easing.bezier(0.23, 1, 0.32, 1);
 const TRAILING_PERIOD = /[.]$/;
 
-// 시안 closing.html의 박자. 카드가 올라오고, 마크가 튀고(Lottie 안 40ms),
+// 시안 closing.html의 순서. 카드가 올라오고, 마크가 튀고(Lottie 안 40ms),
 // 체크가 그려지고, 고리가 퍼지고, 조각이 터지고, `해냈어요!`가 팝하고, 결과
-// 문장이 올라온다. 지연은 모두 카드가 보이는 순간부터 센다.
+// 문장이 올라온다. 지연은 모두 카드가 보이는 순간부터 센다. 마크의 박자를
+// 시안보다 줄였으므로(scripts/closing-celebration/lottie.ts) 문구의 지연도
+// 그만큼 당겨, 마지막 요소가 500ms 안에 움직이기 시작한다.
 //
 // CSS 애니메이션이 아니라 entering을 쓰는 이유: Android는 CSS 애니메이션이
 // 붙은 뷰의 스타일을 두세 프레임 늦게 적용해서, 지연을 기다리는 문구가 그동안
@@ -55,10 +57,10 @@ const popText = new Keyframe({
   },
 })
   .duration(340)
-  .delay(440)
+  .delay(400)
   .reduceMotion(ReduceMotion.Never);
 const slideUp = FadeInUp.duration(380)
-  .delay(540)
+  .delay(480)
   .easing(easeOut)
   .reduceMotion(ReduceMotion.Never)
   .withInitialValues({ opacity: 0, transform: [{ translateY: 14 }] });
