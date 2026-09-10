@@ -1,6 +1,8 @@
 import { spawnSync } from "bun";
-import type { DeliveryState } from "./delivery-execution";
 import { edgeFunctionConfigurationChanged } from "./edge-readiness";
+
+export const reviewEnvironment = "flyn-production-review";
+export const automaticEnvironment = "flyn-production-automatic";
 
 function pathChanged(
   base: string | null,
@@ -43,17 +45,22 @@ export function edgeConfigurationReviewRequired(
   return edgeFunctionConfigurationChanged(base, sha, root);
 }
 
+/**
+ * Judged from the commit range alone, so the planning job needs no production
+ * credentials. An extra approval is possible after a failed run; a missed one
+ * is not.
+ */
 export function productionReviewEnvironments(
-  state: DeliveryState,
+  base: string | null,
   sha: string,
   root = process.cwd()
 ) {
   return {
-    database: databaseReviewRequired(state.success.database, sha, root)
-      ? "flyn-production-review"
-      : "flyn-production-automatic",
-    edge: edgeConfigurationReviewRequired(state.success.edge, sha, root)
-      ? "flyn-production-review"
-      : "flyn-production-automatic",
+    database: databaseReviewRequired(base, sha, root)
+      ? reviewEnvironment
+      : automaticEnvironment,
+    edge: edgeConfigurationReviewRequired(base, sha, root)
+      ? reviewEnvironment
+      : automaticEnvironment,
   };
 }

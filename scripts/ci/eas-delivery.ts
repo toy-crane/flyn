@@ -5,6 +5,7 @@ import type {
 } from "./delivery-execution";
 
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
+const UUID_SHAPE = /^(.{8})(.{4})(.{4})(.{4})(.{12})/;
 const SHA = /^[a-f0-9]{40}$/;
 interface Job {
   buildId?: string;
@@ -35,6 +36,19 @@ const terminalJobStatuses = new Set([
   "skipped",
   "success",
 ]);
+
+/**
+ * The EAS workflow requires a UUID-shaped input, so derive one from the commit.
+ * Identity stays the commit: a resumed run sends the same value and matches the
+ * existing remote run instead of dispatching a second one.
+ */
+export function easRequestId(sha: string) {
+  if (!SHA.test(sha)) {
+    throw new Error("EAS 요청 ID는 배포 커밋에서 만듭니다.");
+  }
+  const [, a, b, c, d, e] = UUID_SHAPE.exec(sha) ?? [];
+  return `${a}-${b}-${c}-${d}-${e}`;
+}
 
 function hasRunningJob(run: Run) {
   return run.jobs.some(
@@ -79,7 +93,7 @@ export class EasDelivery {
     if (
       request.service !== "mobile" ||
       !SHA.test(request.sha) ||
-      !UUID.test(request.requestId) ||
+      !request.requestId ||
       (request.remoteId && !UUID.test(request.remoteId))
     ) {
       throw new Error("EAS 배포 요청이 올바르지 않습니다.");
@@ -95,7 +109,10 @@ export class EasDelivery {
       appId: "7d2f7888-8fc8-4ecb-b430-9fee421c68cc",
       fileName: "internal.yml",
       gitRef: request.sha,
-      inputs: { release_sha: request.sha, request_id: request.requestId },
+      inputs: {
+        release_sha: request.sha,
+        request_id: easRequestId(request.sha),
+      },
     })) as { id: string };
     if (!UUID.test(result.id)) {
       throw new Error("EAS 실행 ID를 확인하지 못했습니다.");
@@ -126,11 +143,15 @@ export class EasDelivery {
     return (
       jobs.length === 1 &&
       job?.status === "success" &&
-      job.outputs?.request_id === request.requestId &&
+      job.outputs?.request_id === easRequestId(request.sha) &&
       job.outputs.release_sha === request.sha
     );
   }
 
+  /**
+   * Finds this commit's run at EAS. A finished success wins over an unfinished
+   * run, so a retry after a failure starts a new one only when nothing is left.
+   */
   private async find(request: DeliveryRequest) {
     if (request.remoteId) {
       return request.remoteId;
@@ -139,7 +160,8 @@ export class EasDelivery {
     if (!Array.isArray(candidates)) {
       throw new Error("EAS 실행 목록이 불완전합니다.");
     }
-    const matches: string[] = [];
+    let running: string | null = null;
+    let failed: string | null = null;
     for (const candidate of candidates.filter(
       (item) =>
         item.gitCommitHash === request.sha &&
@@ -148,15 +170,21 @@ export class EasDelivery {
       if (!UUID.test(candidate.id)) {
         throw new Error("EAS 실행 ID가 올바르지 않습니다.");
       }
-      // biome-ignore lint/performance/noAwaitInLoops: 같은 요청의 실행을 순서대로 확인한다.
-      if (this.identity(await this.run(candidate.id, request), request)) {
-        matches.push(candidate.id);
+      // biome-ignore lint/performance/noAwaitInLoops: 같은 커밋의 실행을 순서대로 확인한다.
+      const run = await this.run(candidate.id, request);
+      if (!this.identity(run, request)) {
+        continue;
+      }
+      if (run.status === "success") {
+        return candidate.id;
+      }
+      if (["canceled", "failure"].includes(run.status) && !hasRunningJob(run)) {
+        failed ??= candidate.id;
+      } else {
+        running ??= candidate.id;
       }
     }
-    if (matches.length > 1) {
-      throw new Error("같은 EAS 요청의 실행이 여러 개입니다.");
-    }
-    return matches[0] ?? null;
+    return running ?? failed;
   }
 
   private requireResult(run: Run, request: DeliveryRequest) {

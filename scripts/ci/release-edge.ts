@@ -1,51 +1,31 @@
-import { executeDelivery } from "./delivery-execution";
-import { GitHubDeliveryJournal } from "./delivery-journal";
-import { edgeChanged, requireEdgeReady } from "./edge-readiness";
+import { deliverService } from "./delivery-execution";
 import { loadEdgeRuntime } from "./edge-runtime";
-import { requireApiDatabase } from "./release-api";
-import { requireReleaseChecks } from "./release-checks";
+import { releaseRequest } from "./release-request";
 
-const SHA = /^[a-f0-9]{40}$/;
+async function main() {
+  const { receiptId, sha } = releaseRequest("Edge");
+  if (!process.env.SUPABASE_ACCESS_TOKEN) {
+    throw new Error("Edge 배포에는 Supabase 접근 토큰이 필요합니다.");
+  }
+  const runtime = loadEdgeRuntime(sha);
+  // The deployed source is compared with this checkout, so identical functions
+  // are never redeployed even when the commit moved on.
+  const result = await deliverService(
+    {
+      remoteId: null,
+      requestId: receiptId,
+      service: "edge",
+      sha,
+    },
+    runtime
+  );
+  console.log(
+    result === "already"
+      ? `운영 Edge Function이 이미 이 소스와 같습니다: ${sha}`
+      : `Edge 단계 확인 완료: ${sha}`
+  );
+}
 
 if (import.meta.main) {
-  const {
-    DEPLOYMENT_STATE_SIGNING_KEY: signingKey,
-    GITHUB_SHA: sha,
-    GH_TOKEN: token,
-    SUPABASE_ACCESS_TOKEN: pat,
-  } = process.env;
-  if (
-    process.env.GITHUB_ACTIONS !== "true" ||
-    process.env.GITHUB_REPOSITORY !== "toy-crane/flyn" ||
-    process.env.GITHUB_REF !== "refs/heads/main" ||
-    !sha ||
-    !SHA.test(sha) ||
-    !token ||
-    !pat ||
-    !signingKey
-  ) {
-    throw new Error("Flyn main의 GitHub 실행에서만 Edge를 배포합니다.");
-  }
-  await requireReleaseChecks(sha, token);
-  const journal = new GitHubDeliveryJournal(token, signingKey);
-  const { state } = await journal.read();
-  requireApiDatabase(state.success.database, sha);
-  if (state.pending && state.pending.service !== "edge") {
-    if (
-      state.pending.sha !== sha ||
-      !["api", "mobile"].includes(state.pending.service)
-    ) {
-      throw new Error("기존 서비스 배포를 먼저 확인해야 합니다.");
-    }
-    requireEdgeReady(state.success.edge, sha);
-    console.log("Edge 기준 확인 완료. 기존 후속 요청을 유지합니다.");
-  } else {
-    await executeDelivery(sha, {
-      journal,
-      plan: (current) =>
-        Promise.resolve(edgeChanged(current.success.edge, sha) ? ["edge"] : []),
-      remote: loadEdgeRuntime(sha),
-    });
-    console.log(`Edge 단계 확인 완료: ${sha}`);
-  }
+  await main();
 }

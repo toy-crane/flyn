@@ -1,0 +1,355 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Pull requests replace their own pending run. Production runs never cancel, so
+# an active database write is never cut off. GitHub rejects this file when the
+# `queue` key joins an expression group, so a waiting production run can still
+# be replaced by a newer one while it is pending.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('ci-pull-{0}', github.event.pull_request.number) || 'flyn-production-deployment' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    name: Judge changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      api: ${{ steps.plan.outputs.api }}
+      base: ${{ steps.plan.outputs.base }}
+      check_base: ${{ steps.plan.outputs.check_base }}
+      database: ${{ steps.plan.outputs.database }}
+      db_check: ${{ steps.plan.outputs.db_check }}
+      deploy: ${{ steps.plan.outputs.deploy }}
+      edge: ${{ steps.plan.outputs.edge }}
+      mobile: ${{ steps.plan.outputs.mobile }}
+      validate: ${{ steps.plan.outputs.validate }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.23.2"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.0"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          path: ~/.bun/install/cache
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - id: plan
+        name: Decide which checks and services this commit needs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: bun scripts/ci/plan-changes.ts
+
+  validate:
+    needs: changes
+    if: ${{ needs.changes.outputs.validate == 'true' }}
+    name: Validate (${{ matrix.command }})
+    # Existing iOS adapter tests exercise macOS plutil with a mocked simctl.
+    runs-on: ${{ matrix.command == 'test' && 'macos-14' || 'ubuntu-24.04' }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        command: [check, check-types, test]
+    env:
+      CI: "true"
+      EXPO_NO_TELEMETRY: "1"
+      ASTRO_TELEMETRY_DISABLED: "1"
+      TURBO_TELEMETRY_DISABLED: "1"
+      TURBO_FORCE: "true"
+      CHECK_COMMAND: ${{ matrix.command }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          # Expo config imports .ts files; use Node's default type stripping.
+          node-version: "22.23.2"
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.0"
+      - name: Restore the Bun install cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          path: ~/.bun/install/cache
+          restore-keys: bun-${{ runner.os }}-
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Run validation
+        run: bun run "$CHECK_COMMAND"
+
+  database:
+    name: Database validation
+    needs: changes
+    if: ${{ needs.changes.outputs.db_check == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.23.2"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.0"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          path: ~/.bun/install/cache
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - name: Replay migrations, test permissions, compare types and schema
+        env:
+          BASE_SHA: ${{ needs.changes.outputs.check_base }}
+          HEAD_SHA: ${{ github.sha }}
+        run: bun scripts/ci/database.ts verify "$BASE_SHA" "$HEAD_SHA"
+
+  required_validation:
+    name: Required validation
+    if: ${{ always() }}
+    needs: [changes, validate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Require every validation to pass
+        env:
+          PLAN_RESULT: ${{ needs.changes.result }}
+          VALIDATION_NEEDED: ${{ needs.changes.outputs.validate }}
+          VALIDATION_RESULT: ${{ needs.validate.result }}
+        run: |
+          test "$PLAN_RESULT" = success
+          if [ "$VALIDATION_NEEDED" = true ]; then
+            test "$VALIDATION_RESULT" = success
+          else
+            test "$VALIDATION_NEEDED" = false
+            test "$VALIDATION_RESULT" = skipped
+          fi
+
+  required_database:
+    name: Required database validation
+    if: ${{ always() }}
+    needs: [changes, database]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Require the expected database result
+        env:
+          PLAN_RESULT: ${{ needs.changes.result }}
+          DATABASE_NEEDED: ${{ needs.changes.outputs.db_check }}
+          DATABASE_RESULT: ${{ needs.database.result }}
+        run: |
+          test "$PLAN_RESULT" = success
+          if [ "$DATABASE_NEEDED" = true ]; then
+            test "$DATABASE_RESULT" = success
+          else
+            test "$DATABASE_NEEDED" = false
+            test "$DATABASE_RESULT" = skipped
+          fi
+
+  plan:
+    name: Plan production approval
+    needs: [changes, required_validation, required_database]
+    if: ${{ github.ref == 'refs/heads/main' && github.repository == 'toy-crane/flyn' && needs.changes.outputs.deploy == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      database_environment: ${{ steps.review.outputs.database_environment }}
+      edge_environment: ${{ steps.review.outputs.edge_environment }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.0"
+      - id: review
+        name: Choose protected environments for production changes
+        env:
+          BASE_SHA: ${{ needs.changes.outputs.base }}
+        run: bun scripts/ci/plan-production-review.ts
+
+  deploy_database:
+    name: Deploy database (approval when migrations change)
+    needs: [changes, plan]
+    if: ${{ needs.changes.outputs.database == 'true' }}
+    environment:
+      name: ${{ needs.plan.outputs.database_environment }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.23.2"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.0"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          path: ~/.bun/install/cache
+          restore-keys: bun-${{ runner.os }}-
+      - name: Install locked dependencies without production credentials
+        run: bun install --frozen-lockfile
+      - name: Connect the Flyn production database
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: bunx --no-install supabase link --project-ref owtajtnfleiobyfocdjy --output-format text
+      - name: Apply pending migrations and confirm remote history
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: bun scripts/ci/release-database.ts
+
+  deploy_edge:
+    name: Deploy Edge Functions (approval when function config changes)
+    needs: [changes, plan, deploy_database]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.changes.outputs.edge == 'true' && contains(fromJSON('["success", "skipped"]'), needs.deploy_database.result) }}
+    environment:
+      name: ${{ needs.plan.outputs.edge_environment }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.0"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          path: ~/.bun/install/cache
+          restore-keys: bun-${{ runner.os }}-
+      - name: Install locked dependencies without production credentials
+        run: bun install --frozen-lockfile
+      - name: Deploy Edge Functions or confirm the deployed source
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: bun scripts/ci/release-edge.ts
+
+  deploy_api:
+    name: Deploy API
+    needs: [changes, plan, deploy_database, deploy_edge]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.changes.outputs.api == 'true' && contains(fromJSON('["success", "skipped"]'), needs.deploy_database.result) && contains(fromJSON('["success", "skipped"]'), needs.deploy_edge.result) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.23.2"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.0"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          path: ~/.bun/install/cache
+          restore-keys: bun-${{ runner.os }}-
+      - name: Install locked dependencies without production credentials
+        run: bun install --frozen-lockfile
+      # Kept outside the repository so the deploy CLI never joins the lockfile
+      # that every pull request job installs.
+      - name: Restore the pinned Vercel CLI
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          key: cli-${{ runner.os }}-vercel-51.6.1
+          path: ~/.cache/flyn-cli
+      - name: Install the pinned Vercel CLI when the cache is empty
+        run: |
+          if [ ! -x "$HOME/.cache/flyn-cli/bin/vercel" ]; then
+            npm install --global --prefix "$HOME/.cache/flyn-cli" vercel@51.6.1
+          fi
+          echo "$HOME/.cache/flyn-cli/bin" >> "$GITHUB_PATH"
+      - name: Build and deploy the API or confirm the existing deployment
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: bun scripts/ci/release-api.ts
+
+  deploy_mobile:
+    name: Deploy mobile
+    needs: [changes, plan, deploy_database, deploy_edge, deploy_api]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.changes.outputs.mobile == 'true' && contains(fromJSON('["success", "skipped"]'), needs.deploy_database.result) && contains(fromJSON('["success", "skipped"]'), needs.deploy_edge.result) && contains(fromJSON('["success", "skipped"]'), needs.deploy_api.result) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    env:
+      EXPO_NO_DOTENV: "1"
+      EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+      EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ${{ vars.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID }}
+      EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ vars.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
+      EXPO_PUBLIC_SUPPORT_EMAIL: ${{ vars.EXPO_PUBLIC_SUPPORT_EMAIL }}
+      EXPO_PUBLIC_WEB_URL: ${{ vars.EXPO_PUBLIC_WEB_URL }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.23.2"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.0"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          path: ~/.bun/install/cache
+          restore-keys: bun-${{ runner.os }}-
+      - name: Install locked dependencies without production credentials
+        run: bun install --frozen-lockfile
+      - name: Restore the pinned EAS CLI
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          key: cli-${{ runner.os }}-eas-24.0.0
+          path: ~/.cache/flyn-cli-eas
+      - name: Install the pinned EAS CLI when the cache is empty
+        run: |
+          if [ ! -x "$HOME/.cache/flyn-cli-eas/bin/eas" ]; then
+            npm install --global --prefix "$HOME/.cache/flyn-cli-eas" eas-cli@24.0.0
+          fi
+          echo "$HOME/.cache/flyn-cli-eas/bin" >> "$GITHUB_PATH"
+      - name: Deploy mobile or confirm the existing workflow run
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: bun scripts/ci/release-mobile.ts

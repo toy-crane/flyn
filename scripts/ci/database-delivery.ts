@@ -1,5 +1,4 @@
-import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawn, spawnSync } from "bun";
 import type {
@@ -8,7 +7,6 @@ import type {
 } from "./delivery-execution";
 
 const VERSION = /^\d{14}$/;
-const HASH = /^[a-f0-9]{64}$/;
 const SHA = /^[a-f0-9]{40}$/;
 const MIGRATION_FILE = /^\d{14}_.+\.sql$/;
 const PROJECT = "owtajtnfleiobyfocdjy";
@@ -38,36 +36,8 @@ export function loadDatabaseDelivery({
   const migrations = readdirSync(join(root, "supabase/migrations"))
     .filter((name) => MIGRATION_FILE.test(name))
     .sort()
-    .map((name) => ({
-      hash: createHash("sha256")
-        .update(readFileSync(join(root, "supabase/migrations", name)))
-        .digest("hex"),
-      version: name.slice(0, 14),
-    }));
-  const approvalPath = join(root, "supabase/deployment-approvals.json");
-  const rawApprovals: unknown = existsSync(approvalPath)
-    ? JSON.parse(readFileSync(approvalPath, "utf8"))
-    : {};
-  if (
-    !rawApprovals ||
-    Array.isArray(rawApprovals) ||
-    typeof rawApprovals !== "object"
-  ) {
-    throw new Error("DB 자동 배포 승인 목록이 올바르지 않습니다.");
-  }
-  const approved: Record<string, string> = {};
-  for (const [version, hash] of Object.entries(rawApprovals)) {
-    if (
-      !VERSION.test(version) ||
-      typeof hash !== "string" ||
-      !HASH.test(hash)
-    ) {
-      throw new Error("DB 자동 배포 승인 해시가 올바르지 않습니다.");
-    }
-    approved[version] = hash;
-  }
+    .map((name) => name.slice(0, 14));
   return new SupabaseDatabaseDelivery({
-    approved,
     migrations,
     receiptId,
     run: async (args) => {
@@ -104,14 +74,9 @@ export function loadDatabaseDelivery({
   });
 }
 
-export interface DatabaseMigration {
-  hash: string;
-  version: string;
-}
-
 interface DatabaseDeliveryOptions {
-  approved: Record<string, string>;
-  migrations: DatabaseMigration[];
+  /** Migration versions in the checkout, oldest first. */
+  migrations: string[];
   receiptId: string;
   run: (args: string[]) => Promise<string>;
   sha: string;
@@ -126,10 +91,9 @@ export class SupabaseDatabaseDelivery {
       !(SHA.test(options.sha) && options.receiptId) ||
       options.migrations.length === 0 ||
       options.migrations.some(
-        (migration, index) =>
-          !(VERSION.test(migration.version) && HASH.test(migration.hash)) ||
-          (index > 0 &&
-            migration.version <= (options.migrations[index - 1]?.version ?? ""))
+        (version, index) =>
+          !VERSION.test(version) ||
+          (index > 0 && version <= (options.migrations[index - 1] ?? ""))
       )
     ) {
       throw new Error("배포 커밋과 마이그레이션 이력이 올바르지 않습니다.");
@@ -155,19 +119,19 @@ export class SupabaseDatabaseDelivery {
     ) {
       throw new Error("원격 마이그레이션 이력을 확인하지 못했습니다.");
     }
-    const pending: DatabaseMigration[] = [];
-    for (const [index, migration] of this.options.migrations.entries()) {
+    const pending: string[] = [];
+    for (const [index, version] of this.options.migrations.entries()) {
       const row = result.migrations[index];
       if (
         !row ||
-        row.local !== migration.version ||
-        (row.remote !== "" && row.remote !== migration.version) ||
+        row.local !== version ||
+        (row.remote !== "" && row.remote !== version) ||
         (pending.length > 0 && row.remote !== "")
       ) {
         throw new Error("로컬과 원격 마이그레이션 순서가 다릅니다.");
       }
       if (row.remote === "") {
-        pending.push(migration);
+        pending.push(version);
       }
     }
     return pending;
@@ -175,24 +139,21 @@ export class SupabaseDatabaseDelivery {
 
   async inspect(request: DeliveryRequest): Promise<DeliveryObservation> {
     const pending = await this.pending(request);
+    if (pending.length > 0) {
+      // Unapplied migrations mean nothing has started, not work in flight.
+      // A receipt here would make the caller wait for a push it never made.
+      return { remoteId: request.remoteId, status: "pending" };
+    }
     return {
       remoteId: request.remoteId ?? this.options.receiptId,
-      status: pending.length === 0 ? "success" : "pending",
+      status: "success",
     };
   }
 
-  async prepare(request: DeliveryRequest) {
-    const pending = await this.pending(request);
-    for (const migration of pending) {
-      if (this.options.approved[migration.version] !== migration.hash) {
-        throw new Error(`검토한 SQL 해시가 필요합니다: ${migration.version}`);
-      }
-    }
-    return pending;
-  }
-
   async start(request: DeliveryRequest): Promise<DeliveryObservation> {
-    const pending = await this.prepare(request);
+    // The human gate is the protected environment on the deploy job. Reaching
+    // this line means a person already approved this run.
+    const pending = await this.pending(request);
     if (pending.length > 0) {
       await this.options.run([
         "db",

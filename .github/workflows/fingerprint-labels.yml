@@ -1,8 +1,9 @@
 name: Publish fingerprint label
 
 on:
+  # Pull requests target main, so a new main commit is what stales a label.
   push:
-    branches: ["**"]
+    branches: [main]
   workflow_run:
     workflows: [PR fingerprint]
     types: [in_progress, completed]

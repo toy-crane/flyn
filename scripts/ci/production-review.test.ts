@@ -72,21 +72,16 @@ test("DB 마이그레이션과 운영 함수 설정만 별도 승인을 요구�
       edgeConfigurationReviewRequired(migration, functionConfig, root)
     ).toBe(true);
     expect(
-      productionReviewEnvironments(
-        {
-          pending: null,
-          success: {
-            api: null,
-            database: localConfig,
-            edge: migration,
-            mobile: null,
-          },
-          version: 1,
-        },
-        functionConfig,
-        root
-      )
+      productionReviewEnvironments(localConfig, functionConfig, root)
     ).toEqual({
+      database: "flyn-production-review",
+      edge: "flyn-production-review",
+    });
+    expect(productionReviewEnvironments(migration, migration, root)).toEqual({
+      database: "flyn-production-automatic",
+      edge: "flyn-production-automatic",
+    });
+    expect(productionReviewEnvironments(null, functionConfig, root)).toEqual({
       database: "flyn-production-review",
       edge: "flyn-production-review",
     });

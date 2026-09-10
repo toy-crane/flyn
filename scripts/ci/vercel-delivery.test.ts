@@ -3,7 +3,7 @@ import { VercelApiDelivery, vercelProject } from "./vercel-delivery";
 
 const request = {
   remoteId: null,
-  requestId: "request-1",
+  requestId: "https://github.com/toy-crane/flyn/actions/runs/1",
   service: "api" as const,
   sha: "a".repeat(40),
 };
@@ -13,115 +13,113 @@ const deployment = {
   projectId: vercelProject,
   readyState: "READY",
   target: "production",
+  uid: "dpl_fixture",
+};
+const older = {
+  ...deployment,
+  id: "dpl_old",
+  meta: { flynCommitSHA: "b".repeat(40) },
+  uid: "dpl_old",
 };
 
-for (const [name, change, expected] of [
-  ["빌드 중", { readyState: "BUILDING" }, "pending"],
-  ["빌드 실패", { readyState: "ERROR" }, "failure"],
-  ["취소", { readyState: "CANCELED" }, "failure"],
-  ["알 수 없는 상태", { readyState: "UNKNOWN" }, "pending"],
-] as const) {
-  test(`${name} 상태는 성공으로 기록하지 않는다`, async () => {
-    const delivery = new VercelApiDelivery({
-      api: async () => ({ ...deployment, ...change }),
-      deploy: () => Promise.resolve(),
-      probe: async () => true,
-    });
-    expect(
-      await delivery.inspect({ ...request, remoteId: deployment.id })
-    ).toEqual({ remoteId: deployment.id, status: expected });
+function delivery(
+  live: unknown,
+  deployments: unknown[] = [],
+  probe = true,
+  deploy: () => Promise<void> = () => Promise.resolve()
+) {
+  return new VercelApiDelivery({
+    api: (path) =>
+      Promise.resolve(
+        path.startsWith("/v7/") ? { deployments } : (live as object)
+      ),
+    deploy,
+    probe: () => Promise.resolve(probe),
   });
 }
 
-for (const change of [
-  { projectId: "another-project" },
-  { target: "preview" },
-  { meta: { ...deployment.meta, flynCommitSHA: "b".repeat(40) } },
-  { meta: { ...deployment.meta, flynRequestId: "other-request" } },
-]) {
-  test(`다른 배포 대상은 거절한다: ${JSON.stringify(change)}`, async () => {
-    const delivery = new VercelApiDelivery({
-      api: async () => ({ ...deployment, ...change }),
-      deploy: () => Promise.resolve(),
-      probe: async () => true,
-    });
-    await expect(
-      delivery.inspect({ ...request, remoteId: deployment.id })
-    ).rejects.toThrow("배포 대상");
-  });
-}
-
-for (const oldAlias of [true, false]) {
-  test(`운영 별칭이나 HTTP가 준비되지 않으면 대기한다: ${oldAlias}`, async () => {
-    const delivery = new VercelApiDelivery({
-      api: async (path) =>
-        path.includes("flyn-api.vercel.app") && oldAlias
-          ? { id: "dpl_old" }
-          : deployment,
-      deploy: () => Promise.resolve(),
-      probe: async () => false,
-    });
-    expect(
-      (await delivery.inspect({ ...request, remoteId: deployment.id })).status
-    ).toBe("pending");
-  });
-}
-
-test("배포 요청의 응답 유실 뒤에는 조회만으로 기존 작업을 복구한다", async () => {
-  let starts = 0;
-  const delivery = new VercelApiDelivery({
-    api: async (path) =>
-      path.startsWith("/v7/")
-        ? { deployments: [{ ...deployment, uid: deployment.id }] }
-        : deployment,
-    deploy: () => {
-      starts += 1;
-      return Promise.reject(new Error("response lost"));
-    },
-    probe: async () => true,
-  });
-  await expect(delivery.start(request)).rejects.toThrow("response lost");
-  expect((await delivery.inspect(request)).status).toBe("success");
-  expect(starts).toBe(1);
-});
-
-test("같은 요청의 READY 배포와 운영 별칭 및 HTTP를 확인해야 성공한다", async () => {
-  let probes = 0;
-  const delivery = new VercelApiDelivery({
-    api: async (path) =>
-      path.startsWith("/v7/")
-        ? { deployments: [{ ...deployment, uid: deployment.id }] }
-        : deployment,
-    deploy: () => Promise.resolve(),
-    probe: () => {
-      probes += 1;
-      return Promise.resolve(true);
-    },
-  });
-  expect(await delivery.inspect(request)).toEqual({
+test("운영 도메인이 이 커밋을 서비스하면 성공으로 본다", async () => {
+  expect(await delivery(deployment).inspect(request)).toEqual({
     remoteId: "dpl_fixture",
     status: "success",
   });
-  expect(probes).toBe(1);
 });
 
-test("응답을 잃은 배포가 조회되지 않아도 새 배포를 요청하지 않는다", async () => {
-  let starts = 0;
-  const delivery = new VercelApiDelivery({
-    api: async () => ({ deployments: [], pagination: { next: null } }),
-    deploy: () => {
-      starts += 1;
-      return Promise.resolve();
-    },
-    probe: async () => true,
+test("운영 도메인의 커밋이 지금 올라간 커밋이다", async () => {
+  await expect(delivery(deployment).liveCommit()).resolves.toBe(request.sha);
+  await expect(delivery(older).liveCommit()).resolves.toBe("b".repeat(40));
+  await expect(delivery({ id: "dpl_x" }).liveCommit()).resolves.toBeNull();
+});
+
+test("HTTP 경계가 준비되지 않으면 성공으로 보지 않는다", async () => {
+  expect(await delivery(deployment, [], false).inspect(request)).toEqual({
+    remoteId: "dpl_fixture",
+    status: "pending",
   });
+});
+
+for (const [name, state, expected] of [
+  ["빌드 중", "BUILDING", "pending"],
+  ["대기 중", "QUEUED", "pending"],
+  ["빌드 실패", "ERROR", "failure"],
+  ["취소", "CANCELED", "failure"],
+] as const) {
+  test(`운영에 없는 ${name} 배포는 성공으로 기록하지 않는다`, async () => {
+    expect(
+      await delivery(older, [{ ...deployment, readyState: state }]).inspect(
+        request
+      )
+    ).toEqual({ remoteId: "dpl_fixture", status: expected });
+  });
+}
+
+test("같은 커밋의 실패한 배포가 있어도 진행 중 배포를 먼저 본다", async () => {
   expect(
-    await delivery.inspect({
-      remoteId: null,
-      requestId: "request-1",
-      service: "api",
-      sha: "a".repeat(40),
-    })
-  ).toEqual({ remoteId: null, status: "pending" });
-  expect(starts).toBe(0);
+    await delivery(older, [
+      { ...deployment, readyState: "ERROR", uid: "dpl_failed" },
+      { ...deployment, readyState: "BUILDING", uid: "dpl_running" },
+    ]).inspect(request)
+  ).toEqual({ remoteId: "dpl_running", status: "pending" });
+});
+
+test("다른 커밋의 배포는 이 커밋의 결과로 보지 않는다", async () => {
+  expect(await delivery(older, [older]).inspect(request)).toEqual({
+    remoteId: null,
+    status: "pending",
+  });
+});
+
+test("응답을 잃은 배포는 조회로 복구하고 새 배포를 요청하지 않는다", async () => {
+  let starts = 0;
+  const runtime = delivery(deployment, [deployment], true, () => {
+    starts += 1;
+    return Promise.reject(new Error("response lost"));
+  });
+  await expect(runtime.start(request)).rejects.toThrow("response lost");
+  expect((await runtime.inspect(request)).status).toBe("success");
+  expect(starts).toBe(1);
+});
+
+test("운영 배포 응답이 올바르지 않으면 거절한다", async () => {
+  await expect(delivery(null).inspect(request)).rejects.toThrow("운영 배포");
+  await expect(
+    new VercelApiDelivery({
+      api: (path) =>
+        Promise.resolve(path.startsWith("/v7/") ? {} : (older as object)),
+      deploy: () => Promise.resolve(),
+      probe: () => Promise.resolve(true),
+    }).inspect(request)
+  ).rejects.toThrow("배포 목록");
+});
+
+test("다른 프로젝트나 대상의 운영 배포는 성공으로 보지 않는다", async () => {
+  const pending = { remoteId: null, status: "pending" } as const;
+  const [other, preview] = await Promise.all([
+    delivery({ ...deployment, projectId: "another-project" }, []).inspect(
+      request
+    ),
+    delivery({ ...deployment, target: "preview" }, []).inspect(request),
+  ]);
+  expect(other).toEqual(pending);
+  expect(preview).toEqual(pending);
 });

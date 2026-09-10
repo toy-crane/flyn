@@ -1,35 +1,20 @@
 import { appendFileSync } from "node:fs";
-import { GitHubDeliveryJournal } from "./delivery-journal";
 import { productionReviewEnvironments } from "./production-review";
-import { requireReleaseChecks } from "./release-checks";
+import { releaseRequest } from "./release-request";
 
 const SHA = /^[a-f0-9]{40}$/;
 
-async function main() {
-  const {
-    DEPLOYMENT_STATE_SIGNING_KEY: signingKey,
-    GH_TOKEN: token,
-    GITHUB_OUTPUT: output,
-    GITHUB_SHA: sha,
-  } = process.env;
-  if (
-    process.env.GITHUB_ACTIONS !== "true" ||
-    process.env.GITHUB_REPOSITORY !== "toy-crane/flyn" ||
-    process.env.GITHUB_REF !== "refs/heads/main" ||
-    !sha ||
-    !SHA.test(sha) ||
-    !token ||
-    !signingKey ||
-    !output
-  ) {
-    throw new Error("Flyn main의 GitHub 실행에서만 운영 승인을 판정합니다.");
+function main() {
+  const { sha } = releaseRequest("운영 승인 판정");
+  const output = process.env.GITHUB_OUTPUT;
+  const raw = process.env.BASE_SHA ?? "";
+  if (!output) {
+    throw new Error("운영 승인 판정 결과를 기록할 수 없습니다.");
   }
-  await requireReleaseChecks(sha, token);
-  const { state } = await new GitHubDeliveryJournal(token, signingKey).read();
-  if (state.pending && state.pending.sha !== sha) {
-    throw new Error("이전 커밋의 배포를 먼저 확인해야 합니다.");
+  if (raw && !SHA.test(raw)) {
+    throw new Error("기준 커밋이 올바르지 않습니다.");
   }
-  const environments = productionReviewEnvironments(state, sha);
+  const environments = productionReviewEnvironments(raw || null, sha);
   appendFileSync(
     output,
     `database_environment=${environments.database}\nedge_environment=${environments.edge}\n`
@@ -40,5 +25,5 @@ async function main() {
 }
 
 if (import.meta.main) {
-  await main();
+  main();
 }
