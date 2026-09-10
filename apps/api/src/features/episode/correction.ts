@@ -40,6 +40,17 @@ interface CorrectionDraft {
 }
 
 const KOREAN = /[가-힣ㄱ-ㅎㅏ-ㅣ]/;
+
+/**
+ * 사용자가 한국어로 썼는지.
+ *
+ * 영어 교정과 한국어 안내를 가르는 판정이 여기 하나로 있다. 담아 둔 표현의
+ * 출처 종류도 같은 문장을 같은 규칙으로 읽어야 카드가 교정과 안내를 뒤집어
+ * 그리지 않는다.
+ */
+export function isKoreanText(text: string): boolean {
+  return KOREAN.test(text);
+}
 const correctionSchema = jsonSchema<CorrectionDraft>({
   additionalProperties: false,
   properties: {

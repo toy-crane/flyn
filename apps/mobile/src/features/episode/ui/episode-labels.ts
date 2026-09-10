@@ -12,6 +12,10 @@ export const episodeLabels = {
   conversationLoading: "대화를 불러오고 있어요",
   /** Shown when one episode's saved conversation could not be read. */
   conversationUnavailable: "대화를 불러오지 못했어요.",
+  /** Not shown: the icon row under a learning expression. */
+  copyExpression: "표현 복사",
+  /** Not shown: the icon row under one character's line. */
+  copyUtterance: "대사 복사",
   /** 에피소드에서 두 언어를 모두 입력할 수 있음을 알린다. */
   placeholder: "영어나 한국어로 적어 주세요.",
   /** Shown when the story could not be read, as the way to ask again. */
@@ -41,4 +45,24 @@ export const correctionLabels = {
   retry: "표현 다시 확인",
   suggestionLabel: "이럴 때 쓰는 영어 표현",
   unclear: "표현의 뜻을 파악하기 어려워요.",
+} as const;
+
+/**
+ * 대화에서 표현을 담아 두는 자리가 쓰는 말.
+ *
+ * 담긴 것을 다시 보는 화면의 말은 여기 없다. 그 화면은 자기 기능이 소유한다.
+ */
+export const savedExpressionLabels = {
+  /** Not shown: the bookmark on a line that is not saved yet. */
+  save: "표현 저장",
+  /** Shown after a bookmark saves. */
+  saved: "표현을 저장했어요.",
+  /** Shown in place of the line when saving did not go through. */
+  saveFailed: "표현을 저장하지 못했어요.",
+  /** Not shown: the refresh mark that saves again after a failure. */
+  saveRetry: "표현 저장 다시 시도",
+  /** Not shown: the bookmark on a line that is already saved. */
+  unsave: "저장 취소",
+  /** Shown after a saved bookmark empties. */
+  unsaved: "저장을 취소했어요.",
 } as const;

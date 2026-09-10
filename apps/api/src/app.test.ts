@@ -171,6 +171,20 @@ function nextCreatedAt(): string {
  * other half — the server now saves message rows itself, so what lands there is
  * what a reopened episode shows.
  */
+/** 담아 둔 표현 한 줄, `saved_expressions`가 들고 있는 모양대로. */
+interface SavedRow {
+  created_at: string;
+  english: string;
+  entries: { fixed: string; original: string; why: string }[] | null;
+  episode_id: string;
+  id: string;
+  kind: string;
+  meaning: string | null;
+  message_id: string | null;
+  original: string | null;
+  speaker: string | null;
+  utterance_at: number | null;
+}
 /** 회차 한 줄, `story_plays`가 들고 있는 모양대로. */
 interface StoryPlayRow {
   id: string;
@@ -189,6 +203,7 @@ interface SeasonState {
   recordError?: string;
   recorded: Record<string, unknown>[];
   runs: StoryPlayRow[];
+  saved: SavedRow[];
   saveError?: string;
 }
 
@@ -209,6 +224,7 @@ function createSeasonState(finished: FinishedRow[] = []): SeasonState {
     messages: [],
     recorded: [],
     runs: [startedStoryPlay()],
+    saved: [],
   };
 }
 
@@ -306,6 +322,7 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
       let within: { column: string; values: unknown[] } | undefined;
       let after: { column: string; value: string } | undefined;
       let nested = false;
+      let nestedEpisode = false;
       let nestedPlays = false;
       let wantsCounts = false;
       const value = (row: Row, column: string) => row[column];
@@ -341,6 +358,25 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
             ...row,
             "episode_messages.play_id": play.get(String(row.message_id)),
           }));
+        }
+
+        if (table === "saved_expressions") {
+          // 담아 둔 표현도 교정과 같은 자리에 매달린다. 원본을 잃은 항목은 걸
+          // 메시지가 없어 이 조회에 오지 않는다.
+          const play = new Map(
+            state.messages.map((message) => [message.id, message.play_id])
+          );
+
+          return [...state.saved]
+            .sort((left, right) =>
+              left.created_at.localeCompare(right.created_at)
+            )
+            .map((row) => ({
+              ...row,
+              "episode_messages.play_id": row.message_id
+                ? play.get(row.message_id)
+                : undefined,
+            })) as unknown as Row[];
         }
 
         return [];
@@ -381,6 +417,24 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
               (episode) => episode.story_id === value(row, "id")
             ),
           }));
+        }
+
+        // 표현 노트는 담긴 행에서 에피소드를, 그 에피소드에서 스토리를 타고
+        // 제목과 화 번호를 읽는다.
+        if (nestedEpisode) {
+          return ordered.map((row) => {
+            const episode = TEST_EPISODES.find(
+              (candidate) => candidate.id === value(row, "episode_id")
+            );
+
+            return {
+              ...row,
+              episodes: {
+                number: episode?.number ?? 0,
+                stories: { title: STORY_ROW.title },
+              },
+            };
+          });
         }
 
         if (nestedPlays) {
@@ -449,28 +503,46 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
         Promise.resolve().then(() => ({ data: rows(), error: null })),
         {
           delete: () => {
+            // 지우는 문장은 두 모양으로 온다. 뒤를 잘라 내는 삭제는 `gt`에서 곧바로
+            // 끝나고, 담아 둔 표현 하나를 지우는 문장은 필터만 걸고 await한다. 한
+            // 번만 지우도록 표시를 남긴다.
+            let done = false;
+
             function remove() {
+              if (done) {
+                return { error: null };
+              }
+
+              done = true;
+
               const doomed = new Set(rows().map((row) => String(row.id)));
 
-              state.messages = state.messages.filter(
-                (message) => !doomed.has(message.id)
-              );
+              if (table === "saved_expressions") {
+                state.saved = state.saved.filter((row) => !doomed.has(row.id));
+              } else {
+                state.messages = state.messages.filter(
+                  (message) => !doomed.has(message.id)
+                );
+              }
 
-              return Promise.resolve({ error: null });
+              return { error: null };
             }
 
-            const removal = {
-              eq: (column: string, wanted: unknown) => {
-                equals.set(column, wanted);
+            const removal: object = Object.assign(
+              Promise.resolve().then(() => remove()),
+              {
+                eq: (column: string, wanted: unknown) => {
+                  equals.set(column, wanted);
 
-                return removal;
-              },
-              gt: (column: string, wanted: string) => {
-                after = { column, value: wanted };
+                  return removal;
+                },
+                gt: (column: string, wanted: string) => {
+                  after = { column, value: wanted };
 
-                return remove();
-              },
-            };
+                  return Promise.resolve(remove());
+                },
+              }
+            );
 
             return removal;
           },
@@ -486,6 +558,50 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
           },
           insert: (payload: Row | Row[]) => {
             const added = Array.isArray(payload) ? payload : [payload];
+
+            if (table === "saved_expressions") {
+              const row = added[0] as unknown as SavedRow;
+              // 진짜 유니크 색인은 `(message_id, coalesce(utterance_at, -1))`이고
+              // 종류를 열쇠에 넣지 않는다. 한 메시지가 교정과 안내를 둘 다 낳지
+              // 못하게 막는 것이 그 규칙이므로 여기서도 종류를 묻지 않는다.
+              const taken = state.saved.some(
+                (kept) =>
+                  kept.message_id !== null &&
+                  kept.message_id === row.message_id &&
+                  kept.utterance_at === row.utterance_at
+              );
+
+              if (taken) {
+                const clash = {
+                  code: "23505",
+                  message:
+                    'duplicate key value violates unique constraint "saved_expressions_one_per_source_idx"',
+                };
+
+                return {
+                  error: clash,
+                  select: () => ({
+                    maybeSingle: () =>
+                      Promise.resolve({ data: null, error: clash }),
+                    single: () => Promise.resolve({ data: null, error: clash }),
+                  }),
+                };
+              }
+
+              // 열이 uuid라 가짜도 같은 모양을 낸다. 취소 경로가 경로 조각의
+              // 모양을 확인하므로, 짧은 문자열은 실제와 다른 답을 만든다.
+              const stored: SavedRow = {
+                ...row,
+                created_at: nextCreatedAt(),
+                id: `5a4ed000-0000-4000-8000-${(state.saved.length + 1)
+                  .toString()
+                  .padStart(12, "0")}`,
+              };
+
+              state.saved.push(stored);
+
+              return writeResult(stored as unknown as Row);
+            }
 
             if (table === "episode_expression_results") {
               if (state.correctionSaveError) {
@@ -572,6 +688,13 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
               story_play_id: run,
             });
           },
+          // `is(column, null)`은 그 열이 빈 행만 남긴다. 인물 대사가 아닌 항목을
+          // 자리 번호 없이 찾는 조회가 쓴다.
+          is: (column: string, wanted: unknown) => {
+            equals.set(column, wanted);
+
+            return builder;
+          },
           maybeSingle: () =>
             Promise.resolve({ data: rows()[0] ?? null, error: null }),
           // `not(column, "is", null)`은 그 열이 채워진 행만 남긴다. 끝난 플레이를
@@ -588,6 +711,7 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
           },
           select: (projection?: string) => {
             nested = projection?.includes("episodes(") ?? false;
+            nestedEpisode = projection?.includes("episodes!inner(") ?? false;
             nestedPlays = projection?.includes("episode_plays(") ?? false;
             wantsCounts = projection?.includes("episode_messages(") ?? false;
 
@@ -675,7 +799,8 @@ const NO_CORRECTION: CorrectionAnswer = { entries: [], fixed: "" };
 
 function createMockModel(
   text: string[],
-  correction: CorrectionAnswer = NO_CORRECTION
+  correction: CorrectionAnswer = NO_CORRECTION,
+  meaning = "다음 분이요!"
 ): MockLanguageModelV4 {
   const chunks: LanguageModelV4StreamPart[] = [
     { type: "stream-start", warnings: [] },
@@ -701,41 +826,55 @@ function createMockModel(
     },
   ];
 
+  /**
+   * 한 모델이 두 판정을 답한다.
+   *
+   * 교정과 한국어 뜻이 같은 `doGenerate` 자리를 나눠 쓰므로, 무엇을 물었는지는
+   * 프롬프트로 가른다. 뜻을 시험하지 않는 테스트는 예전과 똑같이 돈다.
+   */
+  const answered = (asked: unknown) => {
+    const prompt = JSON.stringify(asked ?? "");
+
+    if (prompt.includes("옮길 대사")) {
+      return { meaning };
+    }
+
+    return {
+      review:
+        correction.status === "corrected"
+          ? {
+              example: "I ordered a tea.",
+              exampleMeaning: "차를 주문했어요.",
+              meaning: "주문한 커피가 아니에요.",
+              situation: "주문한 것을 다시 말할 때",
+            }
+          : null,
+      ...correction,
+    };
+  };
+
   return new MockLanguageModelV4({
-    doGenerate: {
-      content: [
-        {
-          text: JSON.stringify({
-            review:
-              correction.status === "corrected"
-                ? {
-                    example: "I ordered a tea.",
-                    exampleMeaning: "차를 주문했어요.",
-                    meaning: "주문한 커피가 아니에요.",
-                    situation: "주문한 것을 다시 말할 때",
-                  }
-                : null,
-            ...correction,
-          }),
-          type: "text",
+    doGenerate: ({ prompt }) =>
+      Promise.resolve({
+        content: [
+          { text: JSON.stringify(answered(prompt)), type: "text" as const },
+        ],
+        finishReason: { raw: undefined, unified: "stop" as const },
+        usage: {
+          inputTokens: {
+            cacheRead: undefined,
+            cacheWrite: undefined,
+            noCache: undefined,
+            total: undefined,
+          },
+          outputTokens: {
+            reasoning: undefined,
+            text: undefined,
+            total: undefined,
+          },
         },
-      ],
-      finishReason: { raw: undefined, unified: "stop" },
-      usage: {
-        inputTokens: {
-          cacheRead: undefined,
-          cacheWrite: undefined,
-          noCache: undefined,
-          total: undefined,
-        },
-        outputTokens: {
-          reasoning: undefined,
-          text: undefined,
-          total: undefined,
-        },
-      },
-      warnings: [],
-    },
+        warnings: [],
+      }),
     doStream: {
       stream: simulateReadableStream({
         chunkDelayInMs: null,
@@ -1814,6 +1953,455 @@ describe("메시지별 표현 확인 API", () => {
     expect((await app.request(request("missing"))).status).toBe(404);
     expect((await app.request(request("m1", episodeId(2)))).status).toBe(404);
     expect(model.doGenerateCalls).toHaveLength(0);
+  });
+});
+
+describe("표현을 담아 두는 API", () => {
+  /** 지문 하나와 인물 대사 둘이 든 장면. 자리 번호가 대사만 센다. */
+  function scene(id = "s1"): MessageRow {
+    return {
+      created_at: "2026-09-07T00:00:01.000Z",
+      id,
+      parts: [
+        { data: { name: null }, id: "p0", type: "data-speaker" },
+        {
+          text: "카운터에 놓인 컵에는 'Iced Latte'가 적혀 있다.",
+          type: "text",
+        },
+        { data: { name: "Mia" }, id: "p1", type: "data-speaker" },
+        { text: "Next in line, please!", type: "text" },
+        { data: { name: "Mia" }, id: "p2", type: "data-speaker" },
+        { text: "Was there something wrong?", type: "text" },
+      ],
+      play_id: playIdOf(episodeId(1)),
+      role: "assistant",
+    };
+  }
+  function wrote(text: string, id = "m1"): MessageRow {
+    return {
+      created_at: "2026-09-07T00:00:02.000Z",
+      id,
+      parts: [{ text, type: "text" }],
+      play_id: playIdOf(episodeId(1)),
+      role: "user",
+    };
+  }
+  function request(body: Record<string, unknown>) {
+    return new Request(`http://localhost${EPISODE_PATH}/saved-expressions`, {
+      body: JSON.stringify({
+        episodeId: episodeId(1),
+        storyPlayId: STORY_PLAY_ID,
+        ...body,
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
+  }
+  function utterance(at: number, messageId = "s1") {
+    return request({ kind: "utterance", messageId, utteranceAt: at });
+  }
+  function learning(messageId = "m1") {
+    return request({ kind: "learning", messageId });
+  }
+
+  test("인물 대사는 앱이 보낸 글이 아니라 저장된 장면에서 만든다", async () => {
+    const state = createSeasonState();
+    state.messages.push(scene());
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([], NO_CORRECTION, "다음 분이요!"),
+    });
+
+    const response = await app.request(utterance(0));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      kind: "utterance",
+      messageId: "s1",
+      utteranceAt: 0,
+    });
+    expect(state.saved).toMatchObject([
+      {
+        english: "Next in line, please!",
+        entries: null,
+        episode_id: episodeId(1),
+        kind: "utterance",
+        meaning: "다음 분이요!",
+        original: null,
+        speaker: "Mia",
+        utterance_at: 0,
+      },
+    ]);
+  });
+
+  test("한 장면의 다른 대사는 각각 따로 담긴다", async () => {
+    const state = createSeasonState();
+    state.messages.push(scene());
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+
+    expect((await app.request(utterance(0))).status).toBe(200);
+    expect((await app.request(utterance(1))).status).toBe(200);
+
+    expect(state.saved.map((row) => row.english)).toEqual([
+      "Next in line, please!",
+      "Was there something wrong?",
+    ]);
+  });
+
+  test("같은 대사를 두 번 담아도 항목은 하나다", async () => {
+    const state = createSeasonState();
+    state.messages.push(scene());
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+
+    const first = (await (await app.request(utterance(0))).json()) as {
+      id: string;
+    };
+    const again = await app.request(utterance(0));
+
+    expect(again.status).toBe(200);
+    expect(await again.json()).toMatchObject({ id: first.id });
+    expect(state.saved).toHaveLength(1);
+  });
+
+  // 유니크 색인의 열쇠에 종류가 없다. 한 메시지가 교정과 안내를 둘 다 낳지
+  // 못한다는 규칙이고, 그러니 종류가 다른 요청도 이미 있는 항목으로 끝나야 한다.
+  test("같은 메시지는 종류가 달라도 항목을 하나만 갖는다", async () => {
+    const state = createSeasonState();
+    state.messages.push(wrote("괜찮아요, 그런데 좀 급해서요."));
+    state.expressionResults.push({
+      entries: [
+        {
+          fixed: "No worries",
+          original: "괜찮아요",
+          pattern: "expression-no-worries",
+          why: "'괜찮아요'는 No worries라고 해요.",
+        },
+      ],
+      example: "No worries, take your time.",
+      example_meaning: "괜찮아요, 천천히 하세요.",
+      fixed: "No worries, but I'm in a bit of a hurry.",
+      meaning: "괜찮아요, 그런데 좀 급해서요.",
+      message_id: "m1",
+      situation: "급한 사정을 말할 때",
+      status: "corrected",
+    });
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+
+    const first = (await (await app.request(learning())).json()) as {
+      id: string;
+      kind: string;
+    };
+
+    expect(first.kind).toBe("guidance");
+
+    // 같은 메시지의 원문이 영어로 바뀐 것처럼 굴어 다른 종류를 요청한다.
+    state.messages[0] = wrote("I am in a hurry.");
+    const again = await app.request(learning());
+
+    expect(again.status).toBe(200);
+    expect(await again.json()).toMatchObject({ id: first.id });
+    expect(state.saved).toHaveLength(1);
+  });
+
+  test("지문과 없는 자리는 담을 것이 없다", async () => {
+    const state = createSeasonState();
+    state.messages.push(scene());
+    const model = createMockModel([]);
+    const app = createApp({ authMiddleware: signedInWith(state), model });
+
+    // 대사가 둘뿐이므로 2는 지문이 차지한 자리가 아니라 아예 없는 자리다.
+    expect((await app.request(utterance(2))).status).toBe(404);
+    expect((await app.request(utterance(0, "missing"))).status).toBe(404);
+    expect(state.saved).toEqual([]);
+    expect(model.doGenerateCalls).toHaveLength(0);
+  });
+
+  test("내 말풍선은 인물 대사로 담을 수 없다", async () => {
+    const state = createSeasonState();
+    state.messages.push(wrote("I want coffee."));
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+
+    expect((await app.request(utterance(0, "m1"))).status).toBe(404);
+    expect(state.saved).toEqual([]);
+  });
+
+  test("배울 표현은 이미 저장된 교정을 그대로 옮기고 모델을 부르지 않는다", async () => {
+    const state = createSeasonState();
+    state.messages.push(wrote("I think you gave me wrong coffee."));
+    state.expressionResults.push({
+      entries: WRONG_COFFEE.entries,
+      example: "I ordered a tea.",
+      example_meaning: "차를 주문했어요.",
+      fixed: WRONG_COFFEE.fixed,
+      meaning: "주문한 커피가 아니에요.",
+      message_id: "m1",
+      situation: "주문한 것을 다시 말할 때",
+      status: "corrected",
+    });
+    const model = createMockModel([]);
+    const app = createApp({ authMiddleware: signedInWith(state), model });
+
+    const response = await app.request(learning());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      kind: "correction",
+      messageId: "m1",
+      utteranceAt: null,
+    });
+    expect(state.saved).toMatchObject([
+      {
+        english: WRONG_COFFEE.fixed,
+        entries: [
+          {
+            fixed: "the wrong coffee",
+            original: "wrong coffee",
+            why: "잘못 나온 그 하나를 짚어 말할 때는 the를 붙여요.",
+          },
+        ],
+        kind: "correction",
+        meaning: null,
+        original: "I think you gave me wrong coffee.",
+        speaker: null,
+        utterance_at: null,
+      },
+    ]);
+    expect(model.doGenerateCalls).toHaveLength(0);
+  });
+
+  test("한국어로 쓴 메시지의 안내는 다른 종류로 담긴다", async () => {
+    const state = createSeasonState();
+    state.messages.push(wrote("괜찮아요, 그런데 좀 급해서요."));
+    state.expressionResults.push({
+      entries: [
+        {
+          fixed: "No worries",
+          original: "괜찮아요",
+          pattern: "no-worries",
+          why: "‘괜찮아요’는 No worries라고 해요.",
+        },
+      ],
+      example: "No worries, take your time.",
+      example_meaning: "괜찮아요, 천천히 하세요.",
+      fixed: "No worries, but I'm in a bit of a hurry.",
+      meaning: "괜찮아요, 그런데 좀 급해서요.",
+      message_id: "m1",
+      situation: "급한 사정을 말할 때",
+      status: "corrected",
+    });
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+
+    expect(await (await app.request(learning())).json()).toMatchObject({
+      kind: "guidance",
+    });
+  });
+
+  test("교정이 붙지 않은 메시지에는 담을 배울 표현이 없다", async () => {
+    const state = createSeasonState();
+    state.messages.push(wrote("I want coffee."));
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+
+    expect((await app.request(learning())).status).toBe(404);
+    expect(state.saved).toEqual([]);
+  });
+
+  test("다시 연 대화가 담아 둔 자리를 함께 돌려준다", async () => {
+    const state = createSeasonState();
+    state.messages.push(scene());
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+    const saved = (await (await app.request(utterance(1))).json()) as {
+      id: string;
+    };
+
+    const session = (await (
+      await app.request(`http://localhost${episodeSessionPath(1)}`)
+    ).json()) as { saved: unknown[] };
+
+    expect(session.saved).toEqual([
+      {
+        id: saved.id,
+        kind: "utterance",
+        messageId: "s1",
+        utteranceAt: 1,
+      },
+    ]);
+  });
+
+  test("취소하면 목록에서 사라진다", async () => {
+    const state = createSeasonState();
+    state.messages.push(scene());
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+    const saved = (await (await app.request(utterance(0))).json()) as {
+      id: string;
+    };
+
+    const response = await app.request(
+      new Request(
+        `http://localhost${EPISODE_PATH}/saved-expressions/${saved.id}`,
+        { method: "DELETE" }
+      )
+    );
+
+    expect(response.status).toBe(204);
+    expect(state.saved).toEqual([]);
+  });
+
+  test("모양이 어긋난 id로 취소하면 받지 않는다", async () => {
+    const state = createSeasonState();
+    state.messages.push(scene());
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+
+    const response = await app.request(
+      new Request(
+        `http://localhost${EPISODE_PATH}/saved-expressions/not-a-uuid`,
+        {
+          method: "DELETE",
+        }
+      )
+    );
+
+    expect(response.status).toBe(400);
+  });
+
+  test("한국어 뜻을 만들지 못하면 담지 않는다", async () => {
+    const state = createSeasonState();
+    state.messages.push(scene());
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: new MockLanguageModelV4({
+        doGenerate: () => Promise.reject(new Error("gateway down")),
+      }),
+    });
+
+    expect((await app.request(utterance(0))).status).toBe(500);
+    expect(state.saved).toEqual([]);
+  });
+
+  test.each([
+    { kind: "utterance", messageId: "s1" },
+    { kind: "utterance", messageId: "s1", utteranceAt: -1 },
+    { kind: "utterance", messageId: "s1", utteranceAt: "0" },
+    { kind: "note", messageId: "s1" },
+    { kind: "learning" },
+  ])("모양이 어긋난 요청은 받지 않는다: %j", async (body) => {
+    const state = createSeasonState();
+    state.messages.push(scene());
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+
+    expect((await app.request(request(body))).status).toBe(400);
+  });
+
+  function note() {
+    return new Request(`http://localhost${EPISODE_PATH}/saved-expressions`);
+  }
+
+  test("표현 노트는 담은 것을 최근순으로, 종류마다 필요한 값과 함께 돌려준다", async () => {
+    const state = createSeasonState();
+    state.messages.push(scene());
+    state.messages.push(wrote("I think you gave me wrong coffee."));
+    state.expressionResults.push({
+      entries: WRONG_COFFEE.entries,
+      example: "I ordered a tea.",
+      example_meaning: "차를 주문했어요.",
+      fixed: WRONG_COFFEE.fixed,
+      meaning: "주문한 커피가 아니에요.",
+      message_id: "m1",
+      situation: "주문한 것을 다시 말할 때",
+      status: "corrected",
+    });
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+
+    await app.request(utterance(0));
+    await app.request(learning());
+
+    const cards = await (await app.request(note())).json();
+
+    expect(cards).toEqual([
+      {
+        english: WRONG_COFFEE.fixed,
+        entries: [
+          {
+            fixed: "the wrong coffee",
+            original: "wrong coffee",
+            why: "잘못 나온 그 하나를 짚어 말할 때는 the를 붙여요.",
+          },
+        ],
+        episodeNumber: 1,
+        id: expect.any(String),
+        kind: "correction",
+        meaning: null,
+        original: "I think you gave me wrong coffee.",
+        speaker: null,
+        storyTitle: STORY_ROW.title,
+      },
+      {
+        english: "Next in line, please!",
+        entries: null,
+        episodeNumber: 1,
+        id: expect.any(String),
+        kind: "utterance",
+        meaning: expect.any(String),
+        original: null,
+        speaker: "Mia",
+        storyTitle: STORY_ROW.title,
+      },
+    ]);
+  });
+
+  test("원본을 잃은 항목도 표현 노트에는 남는다", async () => {
+    const state = createSeasonState();
+    state.messages.push(scene());
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([]),
+    });
+
+    await app.request(utterance(0));
+    // 다시 받기가 그 메시지를 지우면 담긴 행은 참조만 잃는다.
+    state.messages.length = 0;
+    for (const row of state.saved) {
+      row.message_id = null;
+    }
+
+    const cards = (await (await app.request(note())).json()) as {
+      english: string;
+    }[];
+
+    expect(cards).toHaveLength(1);
+    expect(cards[0]?.english).toBe("Next in line, please!");
   });
 });
 

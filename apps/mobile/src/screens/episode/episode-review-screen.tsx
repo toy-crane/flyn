@@ -3,9 +3,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { ExpressionResult } from "@/features/episode/api/episode-correction";
 import type { EpisodeReviewContext } from "@/features/episode/state/episode-review";
 import { ExpressionReviewCard } from "@/features/episode/ui/expression-review-card";
-import { StoryUnavailable } from "@/features/story/ui/story-status";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
+import { ScreenUnavailable } from "@/shared/ui/screen-status";
 import { EpisodeLoadingScreen } from "./episode-loading-screen";
 
 export function EpisodeReviewScreen({
@@ -97,7 +97,7 @@ export function EpisodeReviewScreen({
           </View>
         ) : null}
         {isRetrying || !(isLoading || cards) ? (
-          <StoryUnavailable
+          <ScreenUnavailable
             isRetrying={isRetrying}
             key={`error-${fontScale}`}
             onRetry={onRetry}

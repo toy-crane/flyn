@@ -11,6 +11,9 @@ const config = {
   },
   preset: "jest-expo",
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
+  // Development Build이 만드는 `ios`와 `android`는 앱의 소스가 아니다. 그 안의
+  // Pods에는 hermes가 딸려 보내는 테스트 파일이 수백 개 들어 있어서, 한 번이라도
+  // 네이티브를 빌드한 checkout에서는 `bun run test`가 그것들을 함께 집어 든다.
   testPathIgnorePatterns: [
     "/node_modules/",
     "<rootDir>/ios/",

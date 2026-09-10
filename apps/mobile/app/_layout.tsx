@@ -24,8 +24,17 @@ import { ProfileUnavailableScreen } from "@/screens/session/profile-unavailable-
 import { SessionCheckingScreen } from "@/screens/session/session-checking-screen";
 import { SetupNeededScreen } from "@/screens/session/setup-needed-screen";
 
+/**
+ * 방금 한 일을 알리는 짧은 문구는 화면 위쪽에 뜬다.
+ *
+ * 아래쪽은 입력창, 최신 메시지 버튼과 키보드가 차례로 쓰는 자리다. 토스트는
+ * 화면 전체를 덮는 층에 그려져서 그 컨트롤들의 높이를 알 수 없으므로, 아래에
+ * 두면 어느 화면에서는 입력창을 덮고 어느 화면에서는 이유 없이 떠 있는다.
+ * 위쪽은 어느 화면에서나 비어 있고 iOS의 시스템 배너가 서는 자리이기도 하다.
+ */
 const heroUIConfig = {
   devInfo: { stylingPrinciples: false },
+  toast: { defaultProps: { placement: "top" } },
 } as const;
 
 function ThemedRootLayout() {

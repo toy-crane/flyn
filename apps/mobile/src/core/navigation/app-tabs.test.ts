@@ -2,7 +2,7 @@ import { expect, test } from "@jest/globals";
 
 import { appTabs } from "./app-tabs";
 
-test("세 네이티브 탭이 route group과 플랫폼별 기본·선택 아이콘을 선언한다", () => {
+test("네 네이티브 탭이 route group과 플랫폼별 기본·선택 아이콘을 선언한다", () => {
   expect(appTabs).toEqual([
     {
       androidIcon: { default: "home", selected: "home_filled" },
@@ -21,6 +21,12 @@ test("세 네이티브 탭이 route group과 플랫폼별 기본·선택 아이�
       iosIcon: { default: "book", selected: "book.fill" },
       label: "스토리",
       routeName: "(stories)",
+    },
+    {
+      androidIcon: { default: "bookmark_border", selected: "bookmark" },
+      iosIcon: { default: "bookmark", selected: "bookmark.fill" },
+      label: "노트",
+      routeName: "(notes)",
     },
   ]);
 });

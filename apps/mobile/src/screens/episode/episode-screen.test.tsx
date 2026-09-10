@@ -103,6 +103,13 @@ let mockCorrections: {
   retry: jest.Mock<(messageId: string) => void>;
 };
 
+/** 담아 둔 표현의 상태도 같은 스탠드인이 함께 돌려준다. */
+let mockSaved: {
+  retain: jest.Mock<(messageIds: Set<string>) => void>;
+  states: Record<string, never>;
+  toggle: jest.Mock<(spot: unknown) => void>;
+};
+
 jest.mock("@/features/episode/state/use-episode-story-play", () => {
   const React = require("react") as typeof import("react");
 
@@ -128,6 +135,7 @@ jest.mock("@/features/episode/state/use-episode-story-play", () => {
         ending: mockEnding,
         nextUp: mockNextUp,
         open: jest.fn(),
+        saved: mockSaved,
       };
     },
   };
@@ -163,7 +171,13 @@ interface PanelProps {
   hasMessageActions?: boolean;
   messageAddon?: ComponentType<{ message: UIMessage }>;
   placeholder?: string;
+  toast?: ReactNode;
   topInset?: number;
+  utteranceAddon?: ComponentType<{
+    at: number;
+    children: ReactNode;
+    messageId: string;
+  }>;
 }
 
 let panel: PanelProps | undefined;
@@ -223,6 +237,7 @@ beforeEach(() => {
     retry: jest.fn(),
     states: {},
   };
+  mockSaved = { retain: jest.fn(), states: {}, toggle: jest.fn() };
   mockOpenAsk.mockClear();
   mockOpenAskConversation.mockClear();
   mockSend.mockClear();
@@ -392,4 +407,20 @@ test("기록에서도 같은 종료 카드와 교정을 보여 주고 축하는 
   expect(screen.getByTestId("correction-line-fixed")).toBeOnTheScreen();
   expect(screen.queryByTestId("episode-celebration-burst")).toBeNull();
   expect(screen.queryByText("끝")).toBeNull();
+});
+
+test("인물 말풍선 곁에 담아 둘 자리를 함께 넘긴다", async () => {
+  await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
+
+  expect(panel?.utteranceAddon).toBeDefined();
+  // 아직 담은 것이 없으므로 알릴 것도 없다.
+  expect(panel?.toast).toBeUndefined();
+});
+
+test("회차가 생기기 전에는 담아 둘 자리를 두지 않는다", async () => {
+  await renderWithHeroUI(
+    <EpisodeScreen {...PLAYING} storyPlayId={undefined} />
+  );
+
+  expect(panel?.utteranceAddon).toBeUndefined();
 });

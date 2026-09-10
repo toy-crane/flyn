@@ -4,7 +4,7 @@ import { ScrollView, Text, View } from "react-native";
 import type { StoryCard } from "@/features/story/api/story";
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { StoryRow } from "@/features/story/ui/story-row";
-import { StoryUnavailable } from "@/features/story/ui/story-status";
+import { ScreenUnavailable } from "@/shared/ui/screen-status";
 
 function BrowseRow({
   hasBorder,
@@ -79,10 +79,11 @@ export function BrowseScreen({
         </>
       ) : null}
       {stories || isLoading ? null : (
-        <StoryUnavailable
+        <ScreenUnavailable
           isRetrying={isRetrying}
           onRetry={onRetry}
           testID="browse-unavailable"
+          title={storyLabels.unavailable}
         />
       )}
     </ScrollView>

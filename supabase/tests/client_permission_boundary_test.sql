@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(40);
+SELECT plan(42);
 
 -- Effective privileges include table-wide and direct role grants, not only
 -- the explicit column grants written in the schema.
@@ -12,7 +12,9 @@ FROM (VALUES
   ('public.story_plays', 'last_user_message_at', 'INSERT'),
   ('public.episode_plays', 'ending_kind', 'INSERT'),
   ('public.episode_messages', 'created_at', 'INSERT'),
-  ('public.episode_expression_results', 'user_id', 'INSERT')
+  ('public.episode_expression_results', 'user_id', 'INSERT'),
+  ('public.saved_expressions', 'user_id', 'INSERT'),
+  ('public.saved_expressions', 'created_at', 'INSERT')
 ) AS protected(table_name, column_name, privilege);
 
 -- The allowlist is the contract, independent of the cloud's default ACL.

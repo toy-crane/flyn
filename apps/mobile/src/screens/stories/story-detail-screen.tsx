@@ -5,8 +5,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { StoryDetail, StoryEpisode } from "@/features/story/api/story";
 import { StoryCover } from "@/features/story/ui/story-cover";
 import { storyLabels } from "@/features/story/ui/story-labels";
-import { StoryUnavailable } from "@/features/story/ui/story-status";
 import { Button } from "@/shared/ui/button";
+import { ScreenUnavailable } from "@/shared/ui/screen-status";
 
 /** [모바일 하단 CTA](docs/decisions/mobile-bottom-cta.md)가 정한 여백. */
 const BOTTOM_PADDING = 12;
@@ -131,10 +131,11 @@ export function StoryDetailScreen({
       >
         {story ? <StoryDetailBody story={story} /> : null}
         {story || isLoading ? null : (
-          <StoryUnavailable
+          <ScreenUnavailable
             isRetrying={isRetrying}
             onRetry={onRetry}
             testID="story-detail-unavailable"
+            title={storyLabels.unavailable}
           />
         )}
       </ScrollView>

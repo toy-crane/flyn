@@ -4,6 +4,10 @@ import type { SceneOutcome } from "../../shared/scene-stream";
 import type { EpisodeCorrection, ExpressionResult } from "./correction";
 import { EPISODE_NOTES, type StoryMemory } from "./episode.js";
 import { readExpressionResults } from "./expression-results.js";
+import type {
+  SavedExpressionKind,
+  SavedExpressionRef,
+} from "./saved-expression";
 import type { EpisodeClient, EpisodeScript, StoryContent } from "./story";
 
 /** 기록 한 줄이 데이터베이스에서 허용되는 길이. */
@@ -11,6 +15,9 @@ const MEMORY_LINE_LIMIT = 300;
 
 /** 대화에 남을 수 있는 두 역할. 데이터베이스도 이 둘만 받는다. */
 const STORED_ROLES = new Set(["assistant", "user"]);
+
+/** 같은 자리를 두 번 담았을 때 Postgres가 돌려주는 코드. */
+const UNIQUE_VIOLATION = "23505";
 
 function usableNote(text: string | undefined): string | undefined {
   const trimmed = text?.trim();
@@ -72,6 +79,14 @@ export interface EpisodeSessionView {
   /** 결말 다음에 보여 줄 예고. 같은 이유로 대화가 아니라 여기 실려 온다. */
   nextUp: NextUpData | undefined;
   readOnly: boolean;
+  /**
+   * 이 대화에서 담아 둔 표현. 어느 자리에 책갈피가 채워져 있는지만 담는다.
+   *
+   * 표현 노트가 읽는 항목 전부가 아니라 이 화의 이름표만 온다. 대화 화면이
+   * 물어보는 것은 "이 말풍선을 이미 담았는가" 하나뿐이라, 문장과 뜻까지 실어
+   * 나르면 대화를 열 때마다 쓰지 않을 글이 함께 온다.
+   */
+  saved: SavedExpressionRef[];
   story: { id: string; title: string };
 }
 
@@ -372,6 +387,238 @@ export async function appendEpisodeMessage(
   }
 }
 
+/**
+ * 이 대화에서 담아 둔 표현의 이름표를 읽는다.
+ *
+ * 교정과 같은 이유로 플레이를 직접 참조하지 않고 메시지에 매달리므로,
+ * `!inner`가 그 메시지를 함께 걸어 이 플레이의 것만 남긴다. 원본을 잃은 항목은
+ * 매달릴 메시지가 없어 여기 오지 않는다. 그 항목이 사는 곳은 표현 노트다.
+ */
+export async function readPlaySavedExpressions(
+  client: EpisodeClient,
+  playId: string
+): Promise<SavedExpressionRef[]> {
+  const { data, error } = await client
+    .from("saved_expressions")
+    .select(
+      "id, kind, message_id, utterance_at, created_at, episode_messages!inner(play_id)"
+    )
+    .eq("episode_messages.play_id", playId)
+    .order("created_at");
+
+  if (error) {
+    throw new Error(`Reading saved expressions failed: ${error.message}`);
+  }
+
+  return data.flatMap((row) =>
+    row.message_id
+      ? [
+          {
+            id: row.id,
+            kind: row.kind as SavedExpressionKind,
+            messageId: row.message_id,
+            utteranceAt: row.utterance_at,
+          },
+        ]
+      : []
+  );
+}
+
+/**
+ * 표현 노트가 보여 주는 카드 하나.
+ *
+ * 한 카드가 세 출처를 모두 그리므로 공통 값은 늘 오고, 종류마다 있는 값은 그
+ * 종류에서만 채워진다. 인물 대사는 한국어 뜻과 화자를, 영어 교정과 한국어
+ * 안내는 내가 쓴 원문과 고친 자리를 가진다.
+ */
+export interface SavedExpressionCard {
+  english: string;
+  entries: { fixed: string; original: string; why: string }[] | null;
+  episodeNumber: number;
+  id: string;
+  kind: SavedExpressionKind;
+  meaning: string | null;
+  original: string | null;
+  speaker: string | null;
+  storyTitle: string;
+}
+
+/** 담긴 행의 `entries`가 실제로 담고 있는 모양. */
+interface StoredEntry {
+  fixed: string;
+  original: string;
+  why: string;
+}
+
+function storedEntries(value: unknown): StoredEntry[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  return value.flatMap((entry) => {
+    const row = entry as Partial<StoredEntry> | null;
+
+    return typeof row?.fixed === "string" &&
+      typeof row.original === "string" &&
+      typeof row.why === "string"
+      ? [{ fixed: row.fixed, original: row.original, why: row.why }]
+      : [];
+  });
+}
+
+/**
+ * 계정에 담긴 표현을 최근 담은 것부터 읽는다.
+ *
+ * 메시지를 걸지 않는다. 원본을 잃은 항목도 여기서는 그대로 보여야 하고, 그것이
+ * 담기와 대화를 따로 두는 이유다. 스토리 제목과 화 번호는 에피소드를 타고
+ * 오므로 콘텐츠가 바뀌면 카드도 함께 바뀐다.
+ *
+ * 어느 계정의 것인지는 묻지 않는다. 정책이 내 행만 내려보낸다.
+ */
+export async function readSavedExpressions(
+  client: EpisodeClient
+): Promise<SavedExpressionCard[]> {
+  const { data, error } = await client
+    .from("saved_expressions")
+    .select(
+      "id, kind, english, meaning, speaker, original, entries, episodes!inner(number, stories!inner(title))"
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`Reading the expression note failed: ${error.message}`);
+  }
+
+  return data.map((row) => {
+    const episode = row.episodes as unknown as {
+      number: number;
+      stories: { title: string };
+    };
+
+    return {
+      english: row.english,
+      entries: storedEntries(row.entries),
+      episodeNumber: episode.number,
+      id: row.id,
+      kind: row.kind as SavedExpressionKind,
+      meaning: row.meaning,
+      original: row.original,
+      speaker: row.speaker,
+      storyTitle: episode.stories.title,
+    };
+  });
+}
+
+/** 담아 둘 표현 한 건. 값은 모두 서버가 저장된 행에서 만든다. */
+export interface SavedExpressionDraft {
+  english: string;
+  entries: { fixed: string; original: string; why: string }[] | null;
+  episodeId: string;
+  kind: SavedExpressionKind;
+  meaning: string | null;
+  messageId: string;
+  original: string | null;
+  speaker: string | null;
+  utteranceAt: number | null;
+}
+
+/**
+ * 표현 하나를 담는다.
+ *
+ * 같은 자리를 두 번 담으면 데이터베이스의 유니크 색인이 막는다. 화면은 이미
+ * 담은 상태를 보여 주고 있으므로, 그 충돌은 오류가 아니라 이미 있는 항목을
+ * 돌려주는 것으로 끝낸다.
+ */
+export async function saveExpression(
+  client: EpisodeClient,
+  draft: SavedExpressionDraft
+): Promise<SavedExpressionRef> {
+  const { data, error } = await client
+    .from("saved_expressions")
+    .insert({
+      english: draft.english,
+      entries: draft.entries,
+      episode_id: draft.episodeId,
+      kind: draft.kind,
+      meaning: draft.meaning,
+      message_id: draft.messageId,
+      original: draft.original,
+      speaker: draft.speaker,
+      utterance_at: draft.utteranceAt,
+    })
+    .select("id, kind, message_id, utterance_at")
+    .single();
+
+  if (error) {
+    if (error.code === UNIQUE_VIOLATION) {
+      const found = await readSavedExpression(client, draft);
+
+      if (found) {
+        return found;
+      }
+    }
+
+    throw new Error(`Saving an expression failed: ${error.message}`);
+  }
+
+  return {
+    id: data.id,
+    kind: data.kind as SavedExpressionKind,
+    messageId: draft.messageId,
+    utteranceAt: data.utterance_at,
+  };
+}
+
+async function readSavedExpression(
+  client: EpisodeClient,
+  draft: SavedExpressionDraft
+): Promise<SavedExpressionRef | undefined> {
+  // 유니크 색인의 열쇠와 같은 조건만 건다. 종류는 열쇠에 없으므로 여기서도 묻지
+  // 않는다. 물으면 충돌을 낸 그 행을 못 찾고 없는 것으로 보게 된다.
+  let query = client
+    .from("saved_expressions")
+    .select("id, kind, message_id, utterance_at")
+    .eq("message_id", draft.messageId);
+
+  query =
+    draft.utteranceAt === null
+      ? query.is("utterance_at", null)
+      : query.eq("utterance_at", draft.utteranceAt);
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error || !data?.message_id) {
+    return;
+  }
+
+  return {
+    id: data.id,
+    kind: data.kind as SavedExpressionKind,
+    messageId: data.message_id,
+    utteranceAt: data.utterance_at,
+  };
+}
+
+/**
+ * 담아 둔 표현 하나를 지운다.
+ *
+ * 책갈피를 다시 누르는 취소와 표현 노트에서 미는 삭제가 같은 문장이다. 남의
+ * 항목을 가리키는 요청은 정책이 걸러 아무 행도 지우지 않고 끝난다.
+ */
+export async function eraseSavedExpression(
+  client: EpisodeClient,
+  id: string
+): Promise<void> {
+  const { error } = await client
+    .from("saved_expressions")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(`Erasing a saved expression failed: ${error.message}`);
+  }
+}
+
 export function storyMemoriesOf(
   finished: readonly FinishedEpisodeRow[],
   story: StoryContent
@@ -499,6 +746,9 @@ export async function readEpisodeSession(
       (row) => row.episode_id === nextUp.episodeId
     );
   }
+  const saved = play.data
+    ? await readPlaySavedExpressions(client, play.data.id)
+    : [];
 
   return {
     corrections: expressionResults.flatMap((result) =>
@@ -510,6 +760,7 @@ export async function readEpisodeSession(
     messages,
     nextUp,
     readOnly: Boolean(ending),
+    saved,
     story: { id: story.id, title: story.title },
   };
 }

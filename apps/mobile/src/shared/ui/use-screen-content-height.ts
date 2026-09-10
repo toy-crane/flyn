@@ -4,7 +4,7 @@ import { type LayoutChangeEvent, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** 네이티브 헤더와 하단 안전 영역을 제외한 스크롤 본문의 최소 높이. */
-export function useStoryContentHeight() {
+export function useScreenContentHeight() {
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
   const [height, setHeight] = useState(0);

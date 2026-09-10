@@ -330,6 +330,73 @@ export type Database = {
           },
         ]
       }
+      saved_expressions: {
+        Row: {
+          created_at: string
+          english: string
+          entries: Json | null
+          episode_id: string
+          id: string
+          kind: string
+          meaning: string | null
+          message_id: string | null
+          original: string | null
+          speaker: string | null
+          user_id: string
+          utterance_at: number | null
+        }
+        Insert: {
+          created_at?: string
+          english: string
+          entries?: Json | null
+          episode_id: string
+          id?: string
+          kind: string
+          meaning?: string | null
+          message_id?: string | null
+          original?: string | null
+          speaker?: string | null
+          user_id?: string
+          utterance_at?: number | null
+        }
+        Update: {
+          created_at?: string
+          english?: string
+          entries?: Json | null
+          episode_id?: string
+          id?: string
+          kind?: string
+          meaning?: string | null
+          message_id?: string | null
+          original?: string | null
+          speaker?: string | null
+          user_id?: string
+          utterance_at?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_expressions_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "episodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_expressions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "episode_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_expressions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stories: {
         Row: {
           completion_copy: string

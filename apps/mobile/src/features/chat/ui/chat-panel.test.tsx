@@ -9,11 +9,13 @@ import {
 } from "@testing-library/react-native";
 import type { UIMessage } from "ai";
 import { setStringAsync } from "expo-clipboard";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
   AccessibilityInfo,
   AppState,
   type AppStateStatus,
+  // 아래 jest.mock 공장들이 저마다 `View`를 require하므로 이름을 비켜 준다.
+  View as SlotView,
   StyleSheet,
 } from "react-native";
 import { KeyboardController } from "react-native-keyboard-controller";
@@ -449,6 +451,58 @@ describe("ChatPanel", () => {
     expect(
       screen.queryByTestId("chat-message-assistant")
     ).not.toBeOnTheScreen();
+  });
+
+  // 서버가 그 메시지를 다 흘린 뒤에 저장하므로, 흐르는 동안 담으려 하면 계정에
+  // 아직 없는 자리를 가리킨다. 곁에 매다는 쪽이 그동안 무엇을 할지 정할 수 있게
+  // 도착 중이라는 것만 넘긴다.
+  test("아직 도착하는 중인 답변이라고 곁의 자리에 알린다", async () => {
+    const scene: UIMessage = {
+      id: "assistant-1",
+      parts: [
+        { data: { name: "만복" }, id: "speaker-1", type: "data-speaker" },
+        { text: "어서 와.", type: "text" },
+      ],
+      role: "assistant",
+    };
+    const Slot = ({
+      children,
+      isArriving,
+      text,
+    }: {
+      children: ReactNode;
+      isArriving: boolean;
+      text: string;
+    }) => (
+      <SlotView
+        accessibilityLabel={text}
+        testID={isArriving ? "slot-arriving" : "slot-ready"}
+      >
+        {children}
+      </SlotView>
+    );
+
+    const { rerender } = await renderWithHeroUI(
+      <ChatPanel
+        chat={chatSession({ isBusy: true, messages: [scene] })}
+        utteranceAddon={Slot}
+      />
+    );
+
+    expect(screen.getByTestId("slot-arriving")).toBeOnTheScreen();
+
+    await rerender(
+      <ChatPanel
+        chat={chatSession({ isBusy: false, messages: [scene] })}
+        utteranceAddon={Slot}
+      />
+    );
+
+    // 곁에 서는 것이 대사 하나를 다루므로, 장면 전체가 아니라 그 말풍선의 글이
+    // 그대로 넘어간다.
+    expect(screen.getByTestId("slot-ready").props.accessibilityLabel).toBe(
+      "어서 와."
+    );
   });
 
   test("장면 복사는 화자 이름이 살아 있는 각본으로 넣는다", async () => {

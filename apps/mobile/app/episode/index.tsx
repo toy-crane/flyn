@@ -79,6 +79,7 @@ export default function EpisodeRoute() {
       messages: [],
       nextUp: undefined,
       readOnly: false,
+      saved: undefined,
       story: { id: detail.data.storyId, title: detail.data.title },
     };
   }, [detail.data, episode.data, paramStoryPlayId]);
@@ -152,6 +153,9 @@ export default function EpisodeRoute() {
           readOnly={playing.readOnly}
           recordedEnding={playing.ending}
           recordedNextUp={playing.nextUp}
+          // 담아 둔 표현은 끝난 화에서도 그대로 돌아온다. 읽기 전용으로 다시 열어
+          // 마음에 드는 대사를 담는 것이 이 기능이 하려는 일이다.
+          savedExpressions={playing.saved}
           savedResults={playing.expressionResults}
           situation={playing.episode.situation}
           situationEmoji={playing.episode.situationEmoji}

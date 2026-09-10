@@ -8,7 +8,6 @@ import type {
   LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
 import type { UIMessage } from "ai";
-import { setStringAsync } from "expo-clipboard";
 import {
   type ComponentType,
   type ReactElement,
@@ -58,8 +57,9 @@ import { ComposerBackdrop } from "./composer-backdrop";
 import { COMPOSER_BACKDROP_FADE_HEIGHT } from "./composer-backdrop-layout";
 import { ComposerSurface } from "./composer-surface";
 import { LatestMessageButton } from "./latest-message-button";
+import { copyToClipboard } from "./message-actions";
 import { sceneCopyText, sceneOfMessage } from "./scene";
-import { SceneMessage } from "./scene-message";
+import { SceneMessage, type UtteranceAddon } from "./scene-message";
 import { useLateAnswer } from "./use-late-answer";
 import { UserMessage } from "./user-message";
 import { WaitingAnswer } from "./waiting-answer";
@@ -91,36 +91,33 @@ function textOfMessage(message: UIMessage): string {
     .join("");
 }
 
-function copyText(text: string) {
-  setStringAsync(text).catch(() => {
-    // Nothing is announced on success either, so a refused clipboard leaves
-    // the same screen behind and the person can try again.
-  });
-}
-
 /** 메시지 본문과 동작. 이동은 목록에서만 처리한다. */
 function PlainTextMessage({
   areActionsDisabled,
   areActionsVisible,
   canOpenMenu,
   hasActions,
+  isArriving,
   isDoomed,
   isWaiting,
   message,
   MessageAddon,
   onBeginEdit,
   onRegenerate,
+  utteranceAddon,
 }: {
   areActionsDisabled: boolean;
   areActionsVisible: boolean;
   canOpenMenu: boolean;
   hasActions: boolean;
+  isArriving: boolean;
   isDoomed: boolean;
   isWaiting: boolean;
   message: UIMessage;
   MessageAddon: ComponentType<{ message: UIMessage }> | undefined;
   onBeginEdit: (messageId: string) => void;
   onRegenerate: (messageId: string) => void;
+  utteranceAddon: UtteranceAddon | undefined;
 }) {
   // 장면 메시지는 화자 순서대로 자르고, 그 밖의 메시지는 지금까지처럼 텍스트
   // 하나로 읽는다. 복사도 같은 갈림을 따라서, 장면은 화자 이름이 살아 있는
@@ -130,7 +127,7 @@ function PlainTextMessage({
     [message]
   );
   const text = scene ? sceneCopyText(scene) : textOfMessage(message);
-  const copy = useCallback(() => copyText(text), [text]);
+  const copy = useCallback(() => copyToClipboard(text), [text]);
   const regenerate = useCallback(
     () => onRegenerate(message.id),
     [message.id, onRegenerate]
@@ -173,9 +170,12 @@ function PlainTextMessage({
         areActionsDisabled={areActionsDisabled}
         areActionsVisible={areActionsVisible}
         hasActions={hasActions}
+        isArriving={isArriving}
+        messageId={message.id}
         onCopy={copy}
         onRegenerate={regenerate}
         segments={scene}
+        utteranceAddon={utteranceAddon}
       />
     );
   }
@@ -451,6 +451,7 @@ export function ChatPanel({
   placeholder = "메시지를 입력하세요",
   source,
   topInset = 0,
+  utteranceAddon,
 }: {
   /**
    * What sits fixed just below the header, in view no matter how far the
@@ -493,6 +494,14 @@ export function ChatPanel({
   /** The read-only source a side conversation started from, above its list. */
   source?: ReactElement;
   topInset?: number;
+  /**
+   * 인물 말풍선 하나를 감싸는 자리. 화면이 그 곁에 둘 것이 있을 때만 넘긴다.
+   *
+   * `messageAddon`과 같은 이유로 그려진 노드가 아니라 컴포넌트다. 패널은 말풍선
+   * 하나마다 이것을 놓고 안을 들여다보지 않으므로, 곁에 붙은 것이 바뀌어도
+   * 목록이 그 행을 다시 만들지 않는다.
+   */
+  utteranceAddon?: UtteranceAddon;
 }) {
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
@@ -664,7 +673,7 @@ export function ChatPanel({
     cancelScrollMotion();
     const generation = motionGeneration.current;
     const list = listRef.current;
-    // biome-ignore lint/suspicious/noUnnecessaryConditions: 네이티브 ref는 화면을 닫는 동안 null이 될 수 있다
+    // biome-ignore lint/suspicious/noUnnecessaryConditions: 네이티브 ref는 화면을 닫는 동안 null이 된다
     if (!list) {
       return;
     }
@@ -831,12 +840,19 @@ export function ChatPanel({
         areActionsVisible={!(isBusy && index === messageCount - 1)}
         canOpenMenu={hasMessageActions && !(isBusy || isEditing)}
         hasActions={hasMessageActions}
+        /*
+          아직 도착하는 중인 답변. 그 메시지는 서버가 다 흘린 뒤에 저장하므로,
+          흐르는 동안 담으려 하면 계정에 없는 자리를 가리켜 실패한다. 곁에 무엇을
+          매다는 자리가 이것을 받아 그동안 무엇을 할지 정한다.
+        */
+        isArriving={isBusy && index === messageCount - 1}
         isDoomed={doomedFromIndex >= 0 && index >= doomedFromIndex}
         isWaiting={isAnswerLate && index === messageCount - 1}
         MessageAddon={messageAddon}
         message={item}
         onBeginEdit={beginEdit}
         onRegenerate={regenerateAnswer}
+        utteranceAddon={utteranceAddon}
       />
     ),
     [
@@ -849,6 +865,7 @@ export function ChatPanel({
       messageAddon,
       messageCount,
       regenerateAnswer,
+      utteranceAddon,
     ]
   );
 
