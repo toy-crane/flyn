@@ -25,7 +25,7 @@ ci.yml (PR과 main push 모두)
 
 fingerprint.yml: PR마다 iOS fingerprint 계산 (변경 없음)
 fingerprint-labels.yml: main 코드로 라벨만 씀 (main push와 fingerprint 완료 때)
-claude.yml: @claude 멘션 응답 (변경 없음)
+claude.yml: 지움 (CI 코드 리뷰는 Codex만)
 ```
 
 ## 워크플로 구조
@@ -72,7 +72,7 @@ claude.yml: @claude 멘션 응답 (변경 없음)
 
 ## 범위 밖
 
-- `claude.yml`과 CI 코드 리뷰 방식은 바꾸지 않는다. [CI 코드 리뷰](../../decisions/ci-code-review.md)가 정한다.
+- CI 코드 리뷰는 Codex GitHub 연동만 유지한다. `claude.yml`은 이 작업에서 지우고, `CLAUDE_CODE_OAUTH_TOKEN` Secret은 워크플로를 지운 뒤 사용자에게 확인하고 지운다. 근거는 [CI 코드 리뷰](../../decisions/ci-code-review.md)가 든다.
 - 배포 순서, 승인 대상, 호환성 규칙, 모바일 배포 정책, 공개 출시는 바꾸지 않는다.
 - fingerprint 라벨의 권한 분리 구조는 바꾸지 않는다. 라벨 쓰기는 계속 `main`의 코드만 실행한다.
 - Android, 스테이징 환경, 외부 알림 채널은 다루지 않는다.
@@ -88,9 +88,10 @@ claude.yml: @claude 멘션 응답 (변경 없음)
 7. `deployment-state` 브랜치와 서명 키 없이 실제 운영 배포가 한 번 이상 성공한다. 같은 실행을 다시 실행하면 새 원격 작업이 생기지 않는다.
 8. 앞선 배포가 실패한 뒤의 다음 배포는 마지막 성공 실행 이후의 변경을 모두 포함한다.
 9. 설치 캐시가 적중한 잡의 설치 단계가 캐시 없는 실행보다 짧고, PR 검사 잡의 설치 시간은 지금보다 늘지 않는다. 캐시한 `vercel`과 `eas-cli`로 실제 배포가 성공한다.
-12. 앞선 실행이 API에서 실패한 뒤 다음 실행은 이미 올라간 Edge를 건너뛰고 API부터 배포한다.
 10. `fingerprint-labels.yml`이 `main`이 아닌 브랜치 push에는 뜨지 않고, `main` push 뒤 열린 PR의 이전 라벨을 지운다.
 11. `scripts/ci`의 테스트가 새 워크플로 파일을 읽어 통과한다. 없어진 코드의 테스트도 함께 없어진다.
+12. 앞선 실행이 API에서 실패한 뒤 다음 실행은 이미 올라간 Edge를 건너뛰고 API부터 배포한다.
+13. `.github/workflows`에 `claude.yml`이 없고, PR 댓글 이벤트로 Claude 워크플로가 뜨지 않는다. Codex 리뷰는 그대로 달린다.
 
 ## 가정과 보류
 
@@ -99,7 +100,7 @@ claude.yml: @claude 멘션 응답 (변경 없음)
 - 가정: 워크플로 수준 `concurrency`의 `group`과 `cancel-in-progress`에 식을 쓴다. `queue` 속성이 식과 함께 동작하지 않으면 `main` 실행의 대기열 없이 기본값으로 시작하고 그 사실을 기록한다.
 - 가정: `eas-cli`를 저장소 밖에서 전역 설치하던 이유는 기록에 없다. 저장소 밖 설치는 유지하고 캐시만 더한다. 캐시 복원 뒤 실제 모바일 배포 한 번으로 확인한다.
 - 보류: 문서만 바뀐 PR에서 fingerprint까지 건너뛰는 것은 라벨 워크플로 수정과 함께 별도로 정한다.
-- 보류: CI 자동 코드 리뷰 도입은 별도 결정이다. 이 스펙은 `claude.yml`을 그대로 둔다.
+- 확정: CI에 Claude 리뷰를 붙이지 않는다. 2026-09-10 사용자가 Codex 유지와 Claude 제거를 결정했다.
 
 ## 남은 위험
 
