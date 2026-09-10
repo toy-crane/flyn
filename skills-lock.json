@@ -313,12 +313,6 @@
       "skillPath": "skills/workflow/tdd/SKILL.md",
       "computedHash": "e5b532fc5fa32e9459c5856eaf39fce076963cee4b2b86987dfb30cca3710843"
     },
-    "text-to-lottie": {
-      "source": "diffusionstudio/lottie",
-      "sourceType": "github",
-      "skillPath": "skills/text-to-lottie/SKILL.md",
-      "computedHash": "143009abf43d2ac6bd9970c42373e6ae029b91cc56124e56287162010a0e9fc1"
-    },
     "uniwind": {
       "source": "uni-stack/uniwind",
       "sourceType": "github",
