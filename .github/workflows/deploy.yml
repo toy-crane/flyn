@@ -141,6 +141,7 @@ jobs:
       - name: Install tools without production credentials
         run: |
           bun install --frozen-lockfile
+          cd /tmp
           npm install --global eas-cli@24.0.0
       - name: Deploy mobile or inspect the existing workflow
         env:
