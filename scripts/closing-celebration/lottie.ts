@@ -40,7 +40,10 @@ interface Shape {
  * 파서에 넘긴다. `ty`보다 앞에 적힌 키는 버려져 도형이 빈 채로 그려지므로 `ty`를
  * 늘 맨 앞에 둔다. 저장소의 린트가 객체 키를 정렬해도 spread 앞의 키는 그대로다.
  */
-function shape(ty: string, fields: Omit<Shape, "ty">): Shape {
+function shape(
+  ty: string,
+  fields: { nm: string; [key: string]: unknown }
+): Shape {
   return { ty, ...fields };
 }
 
