@@ -128,6 +128,45 @@ const TEST_EPISODES = [
   ...episode,
 }));
 
+/**
+ * 스토리가 소유한 인물. 화가 바뀌어도 같은 설명을 쓴다.
+ *
+ * `position`이 이름표 색의 번호이자 스토리 안의 순서다. 실제 각본처럼 Mia가 1,
+ * Owen이 2로 서서 어느 화에서 읽어도 같은 번호가 나온다.
+ */
+const CHARACTER_ID = (position: number) =>
+  `cccccccc-cccc-4ccc-8ccc-cccccccccc0${position}`;
+
+const TEST_CHARACTERS = [
+  {
+    id: CHARACTER_ID(1),
+    name: "Mia",
+    persona:
+      "20대 후반의 바리스타. 바쁘지만 손님이 곤란하면 방법을 같이 찾는다.",
+    position: 1,
+    story_id: STORY_ID,
+  },
+  {
+    id: CHARACTER_ID(2),
+    name: "Owen",
+    persona: "30대 초반의 회사원. 예의는 있지만 급하면 재촉한다.",
+    position: 2,
+    story_id: STORY_ID,
+  },
+];
+
+/** 어느 화에 누가 서는지. `at`이 그 화의 목록에서의 자리다. */
+const TEST_EPISODE_CHARACTERS = TEST_EPISODES.flatMap((episode) =>
+  episode.cast_names.map((name, index) => ({
+    at: index + 1,
+    character_id: CHARACTER_ID(
+      TEST_CHARACTERS.find((person) => person.name === name)?.position ?? 1
+    ),
+    episode_id: episode.id,
+    story_id: STORY_ID,
+  }))
+);
+
 /** A finished play as the database hands it back. */
 interface FinishedRow {
   ending_kind: string;
@@ -262,7 +301,11 @@ type Row = Record<string, unknown>;
  * dropping the tail a retry replaces. Anything else is left out on purpose, so
  * a new query has to be taught here rather than passing silently.
  */
-function signedInWith(state: SeasonState): MiddlewareHandler {
+function signedInWith(
+  state: SeasonState,
+  /** 인물 행이 아직 없는 DB. 콘텐츠가 API보다 늦게 올라간 사이를 흉내 낸다. */
+  fixtures: { withoutCharacters?: boolean } = {}
+): MiddlewareHandler {
   const openedPlays = new Set<string>();
   /** 이번 요청이 연 플레이가 어느 회차에 붙었는지. */
   const openedStoryPlays = new Map<string, string>();
@@ -334,6 +377,18 @@ function signedInWith(state: SeasonState): MiddlewareHandler {
 
         if (table === "episodes") {
           return TEST_EPISODES as unknown as Row[];
+        }
+
+        if (table === "characters") {
+          return (fixtures.withoutCharacters
+            ? []
+            : TEST_CHARACTERS) as unknown as Row[];
+        }
+
+        if (table === "episode_characters") {
+          return (fixtures.withoutCharacters
+            ? []
+            : TEST_EPISODE_CHARACTERS) as unknown as Row[];
         }
 
         if (table === "story_plays") {
@@ -1406,6 +1461,94 @@ describe("POST /ai/episode", () => {
     expect(text).toContain("1화 「카페에서 생긴 일」");
     expect(text).toContain("영수증을 보여 주며 침착하게 요구했다.");
     expect(text).toContain("Mia가 실수를 인정했다.");
+  });
+
+  // 인물 설명이 스토리에 한 벌만 있으므로, 어느 화를 열어도 같은 문장이 들어간다.
+  // 등장인물을 부르는 문장도 손으로 쓴 무대가 아니라 그 데이터에서 나온다.
+  test("names the cast and its personas from the story's own characters", async () => {
+    const model = createMockModel(["Mia: Sure."]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    await (
+      await app.request(
+        createEpisodeRequest({
+          messages: [createUserMessage("My card failed.")],
+        })
+      )
+    ).text();
+
+    const system = model.doStreamCalls[0]?.prompt.find(
+      (message) => message.role === "system"
+    );
+    const text = String(
+      (system as { content?: unknown } | undefined)?.content ?? ""
+    );
+
+    expect(text).toContain(
+      "등장인물은 Mia 한 명뿐이다. 새 인물을 만들지 않는다."
+    );
+    expect(text).toContain(
+      "- Mia: 20대 후반의 바리스타. 바쁘지만 손님이 곤란하면 방법을 같이 찾는다."
+    );
+    // 인물 설명, 그 화의 무대, 지난 이야기 순으로 선다.
+    expect(text.indexOf("등장인물은")).toBeLessThan(
+      text.indexOf("사용자는 잘못 나온 커피를 바꿔야 한다.")
+    );
+  });
+
+  // 두 인물이 서는 화는 그 화의 목록 차례로 이름을 부른다. 우리말 조사는 앞
+  // 이름의 마지막 글자를 따른다.
+  test("calls two characters in the order the episode lists them", async () => {
+    const model = createMockModel(["Owen: Sorry."]);
+    const app = createApp({
+      authMiddleware: signedInWith(
+        createSeasonState([
+          { ending_kind: "성공", ending_outcome: "1화 결과.", episode: 1 },
+          { ending_kind: "성공", ending_outcome: "2화 결과.", episode: 2 },
+        ])
+      ),
+      model,
+    });
+
+    await (
+      await app.request(
+        createEpisodeRequest({
+          episodeId: episodeId(3),
+          messages: [createUserMessage("That is my seat.")],
+        })
+      )
+    ).text();
+
+    const system = model.doStreamCalls[0]?.prompt.find(
+      (message) => message.role === "system"
+    );
+    const text = String(
+      (system as { content?: unknown } | undefined)?.content ?? ""
+    );
+
+    expect(text).toContain("등장인물은 Mia와 Owen 두 명뿐이다.");
+    expect(text).toContain("- Mia: 20대 후반의 바리스타.");
+    expect(text).toContain("- Owen: 30대 초반의 회사원.");
+  });
+
+  // 콘텐츠는 스키마와 API보다 늦게 운영에 올라간다. 그 사이 인물 행이 없어도
+  // 화자 판정이 무너지지 않도록 이전 화자 목록으로 선다. 설명만 빠진다.
+  test("falls back to the old speaker list until the characters land", async () => {
+    const model = createMockModel(["Mia: Sorry about that."]);
+    const app = createApp({
+      authMiddleware: signedInWith(createSeasonState(), {
+        withoutCharacters: true,
+      }),
+      model,
+    });
+
+    const response = await app.request(createEpisodeRequest({ messages: [] }));
+    const body = await response.text();
+
+    // 첫 장면은 모델을 부르지 않으므로 화자 판정만 확인한다. 이름표는 서고
+    // 줄 머리의 `Mia:`는 화면에 흐르지 않는다.
+    expect(body).toContain('"name":"Mia"');
+    expect(body).not.toContain("Mia:");
   });
 
   // 무대는 어느 결말에서 왔든 같다. 기억이 바꾸는 것은 전개뿐이다.
@@ -3113,6 +3256,40 @@ describe("story content database contract", () => {
     const response = await app.request(episodeSessionPath(1));
 
     expect(response.status).toBe(200);
+  });
+
+  // 화면은 인물의 순서로 이름표 색을 고른다. 다른 화의 등장인물 목록을 받지
+  // 않으므로 스토리 안의 순서를 앱이 스스로 알 수는 없다.
+  test("carries each character's name and place in the story", async () => {
+    // 지금 진행하는 화만 열리므로 두 화를 각각 그 자리에서 읽는다.
+    const [first, third] = await Promise.all(
+      [
+        { finished: [] as FinishedRow[], number: 1 },
+        {
+          finished: [1, 2].map((episode) => ({
+            ending_kind: "성공",
+            ending_outcome: `${episode}화를 끝냈다.`,
+            episode,
+          })),
+          number: 3,
+        },
+      ].map(async ({ finished, number }) => {
+        const app = createApp({
+          authMiddleware: signedInWith(createSeasonState(finished)),
+        });
+        const response = await app.request(episodeSessionPath(number));
+        return (await response.json()) as {
+          episode: { cast: { name: string; position: number }[] };
+        };
+      })
+    );
+
+    expect(first?.episode.cast).toEqual([{ name: "Mia", position: 1 }]);
+    // 같은 인물은 어느 화에서나 같은 번호이고, 목록의 차례는 그 화가 정한다.
+    expect(third?.episode.cast).toEqual([
+      { name: "Mia", position: 1 },
+      { name: "Owen", position: 2 },
+    ]);
   });
 
   // 어느 대화인지 말하지 않은 요청은 읽을 회차를 고를 수 없다.

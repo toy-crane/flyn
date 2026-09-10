@@ -4,9 +4,23 @@ import type { SupabaseContext } from "@supabase/server";
 /** 로그인한 사람의 권한으로 데이터베이스에 닿는 클라이언트. */
 export type EpisodeClient = SupabaseContext<Database>["supabase"];
 
+/**
+ * 한 스토리에 사는 인물. 화가 바뀌어도 같은 것만 담는다.
+ *
+ * 그 화에서의 사정은 여기가 아니라 화의 무대가 쓴다. 설명이 한 곳에 있으므로
+ * 모든 화의 프롬프트에 같은 문장이 들어가고 인물이 화를 거듭해도 흐려지지 않는다.
+ */
+export interface StoryCharacter {
+  name: string;
+  persona: string;
+  /** 스토리 안의 순서. 화면에서 이름표 색의 번호가 된다. */
+  position: number;
+}
+
 /** 데이터베이스에서 읽어 장면과 화면이 함께 쓰는 한 에피소드. */
 export interface EpisodeScript {
-  cast: readonly string[];
+  /** 이 화에 서는 인물. 그 화의 목록에 적힌 차례대로다. */
+  cast: readonly StoryCharacter[];
   endings: {
     compromise: string;
     failure: string;
@@ -178,6 +192,94 @@ export async function readStoryOfPlay(
 }
 
 /**
+ * 인물 행이 아직 없는 화를 이전 화자 목록으로 세운다.
+ *
+ * 콘텐츠는 스키마와 API보다 늦게 운영에 올라간다. 그 사이 `characters`가 비어
+ * 있으면 화자 판정이 통째로 무너져 모든 대사가 화자 없는 줄이 된다. 이름만 있는
+ * 인물로 세우면 말풍선과 이름표는 살고 설명만 빠진다. 콘텐츠가 올라간 뒤에는
+ * 이 길로 오지 않는다.
+ *
+ * `cast_names`를 지우는 마이그레이션이 이 대비도 함께 걷어낸다.
+ */
+function namesOnlyCast(names: readonly string[]): StoryCharacter[] {
+  return names.map((name, index) => ({
+    name,
+    persona: "",
+    position: index + 1,
+  }));
+}
+
+/**
+ * 이 스토리의 화마다 누가 서는지 읽어 화 id로 묶는다.
+ *
+ * 인물은 스토리가 소유하고 화는 그중 누구인지만 가리키므로, 두 번 물어 앱이
+ * 아니라 여기서 잇는다. 한 스토리의 인물은 넷을 넘지 못하고 한 화의 인물은
+ * 셋을 넘지 못하므로 이 조회가 화 수만큼 커지지 않는다.
+ *
+ * 목록의 차례는 화가 정한 `at`이다. 프롬프트의 등장인물 문장이 이 차례로 이름을
+ * 부르므로, 같은 인물이라도 화마다 먼저 불릴 수 있다.
+ */
+async function readStoryCast(
+  client: EpisodeClient,
+  storyId: string,
+  slug: string
+): Promise<Map<string, StoryCharacter[]>> {
+  const [people, links] = await Promise.all([
+    client
+      .from("characters")
+      .select("id, name, position, persona")
+      .eq("story_id", storyId),
+    client
+      .from("episode_characters")
+      .select("episode_id, character_id, at")
+      .eq("story_id", storyId)
+      .order("at"),
+  ]);
+
+  if (people.error) {
+    throw new Error(
+      `Reading characters for story ${slug} failed: ${people.error.message}`
+    );
+  }
+
+  if (links.error) {
+    throw new Error(
+      `Reading the cast of story ${slug} failed: ${links.error.message}`
+    );
+  }
+
+  const byId = new Map(
+    people.data.map((person) => [
+      person.id,
+      {
+        name: person.name,
+        persona: person.persona,
+        position: person.position,
+      } satisfies StoryCharacter,
+    ])
+  );
+  const cast = new Map<string, StoryCharacter[]>();
+
+  for (const link of links.data) {
+    const person = byId.get(link.character_id);
+
+    if (!person) {
+      continue;
+    }
+
+    const standing = cast.get(link.episode_id);
+
+    if (standing) {
+      standing.push(person);
+    } else {
+      cast.set(link.episode_id, [person]);
+    }
+  }
+
+  return cast;
+}
+
+/**
  * 스토리 하나와 그 각본을 데이터베이스에서 읽는다.
  *
  * 두 쿼리를 따로 써서 스토리 한 줄과 에피소드 순서의 실패를 각각 드러낸다.
@@ -215,13 +317,15 @@ export async function readStoryContentById(
     );
   }
 
+  const cast = await readStoryCast(client, story.id, slug);
+
   return {
     completion: {
       copy: story.completion_copy,
       title: story.completion_title,
     },
     episodes: episodes.map((episode) => ({
-      cast: episode.cast_names,
+      cast: cast.get(episode.id) ?? namesOnlyCast(episode.cast_names),
       endings: {
         compromise: episode.ending_compromise,
         failure: episode.ending_failure,

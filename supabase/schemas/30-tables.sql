@@ -176,6 +176,37 @@ create table public.stories (
   )
 );
 
+-- 한 스토리에 사는 등장인물. 화가 바뀌어도 같은 것만 여기 있다.
+--
+-- 인물을 스토리가 소유하면 같은 사람을 화마다 다시 설명하지 않는다. 화가 이
+-- 행을 가리키므로 1화의 Mia와 2화의 Mia가 같은 사람이라는 것이 글자 일치가
+-- 아니라 관계로 남는다. 그 화에서의 사정은 여기가 아니라 화의 `stage`가 쓴다.
+--
+-- `position`은 스토리 안의 순서이고 이름표 색의 번호가 된다. 1..4로 묶고 스토리
+-- 안에서 겹치지 않게 하면, 스토리에 다섯째 인물이 생기는 일도 세는 트리거 없이
+-- 막힌다. 한 모델이 여러 인물을 연기하므로 넷을 넘으면 인물이 흐려진다.
+create table public.characters (
+  id uuid primary key default gen_random_uuid(),
+  story_id uuid not null references public.stories (id) on delete restrict,
+  name text not null,
+  position smallint not null,
+  persona text not null,
+  unique (story_id, name),
+  -- 콘텐츠를 다시 올릴 때 두 인물의 순서가 서로 바뀔 수 있다. 문장이 끝날 때
+  -- 확인하면 그 교체가 중간 상태에서 걸리지 않는다. 화 안의 자리도 같은 자세다.
+  unique (story_id, position) deferrable initially deferred,
+  -- 화가 (character_id, story_id) 한 쌍으로 참조하기 위한 대상. 다른 스토리의
+  -- 인물을 이 화에 세우는 문장이 외래키에서 막힌다.
+  constraint characters_owned_id unique (id, story_id),
+  constraint characters_name_usable check (
+    length(btrim(name)) between 1 and 60
+  ),
+  constraint characters_position_usable check (position between 1 and 4),
+  constraint characters_persona_usable check (
+    length(btrim(persona)) between 1 and 2000
+  )
+);
+
 -- 사람이 쓴 각본 한 편. 번호는 스토리 안의 순서이고, 참조에는 안정된 id를 쓴다.
 create table public.episodes (
   id uuid primary key default gen_random_uuid(),
@@ -187,11 +218,17 @@ create table public.episodes (
   situation_emoji text not null,
   opening text not null,
   stage text not null,
+  -- 인물이 `characters`로 옮겨 가기 전의 화자 목록. `episode_characters`와 같은
+  -- 이름을 같은 차례로 담으며 그 일치는 pgTAP이 지킨다. DB가 API보다 먼저
+  -- 배포되므로 아직 이 열을 읽는 앞선 API를 위해 한 판 더 남긴다. 지우는 것은
+  -- 별도 검토와 승인을 거친 뒤의 마이그레이션이 한다.
   cast_names text[] not null,
   ending_success text not null,
   ending_compromise text not null,
   ending_failure text not null,
   unique (story_id, number),
+  -- `episode_characters`가 (episode_id, story_id) 한 쌍으로 참조하기 위한 대상.
+  constraint episodes_owned_id unique (id, story_id),
   constraint episodes_number_usable check (number between 1 and 100),
   constraint episodes_title_usable check (
     length(btrim(title)) between 1 and 120
@@ -224,6 +261,43 @@ create table public.episodes (
     length(btrim(ending_failure)) between 1 and 500
   )
 );
+
+-- 이 화에 서는 인물. 스토리가 소유한 인물 중 누가 나오는지만 가리킨다.
+--
+-- `at`은 이 화의 인물 목록에서의 자리다. 프롬프트의 등장인물 문장이 이 차례로
+-- 이름을 부르므로, 같은 인물이라도 화마다 먼저 불릴 수 있다. 색을 정하는
+-- `characters.position`과는 다른 값이다. 1..3으로 묶고 화 안에서 겹치지 않게
+-- 하면 화에 넷째 인물이 서는 일도 세는 트리거 없이 막힌다.
+--
+-- `story_id`를 함께 들고 두 부모를 그 쌍으로 참조한다. 열 하나가 늘지만, 다른
+-- 스토리의 인물을 이 화에 세우는 문장이 애플리케이션에 닿기 전에 막힌다.
+create table public.episode_characters (
+  episode_id uuid not null,
+  character_id uuid not null,
+  story_id uuid not null,
+  at smallint not null,
+  primary key (episode_id, character_id),
+  -- 콘텐츠를 다시 올릴 때 두 인물의 자리가 서로 바뀔 수 있다. 문장이 끝날 때
+  -- 확인하면 그 교체가 중간 상태에서 걸리지 않는다.
+  unique (episode_id, at) deferrable initially deferred,
+  constraint episode_characters_episode_fkey
+    foreign key (episode_id, story_id)
+    references public.episodes (id, story_id) on delete cascade,
+  constraint episode_characters_character_fkey
+    foreign key (character_id, story_id)
+    references public.characters (id, story_id) on delete restrict,
+  constraint episode_characters_at_usable check (at between 1 and 3)
+);
+
+-- 화를 열 때마다 이 스토리의 연결을 자리 차례로 읽는다. 기본 키는 화 하나를
+-- 묻는 데만 쓸모가 있어서 이 방향을 돕지 못한다.
+create index episode_characters_story_idx
+  on public.episode_characters (story_id, at);
+
+-- 인물 행을 지울 때의 참조 검사가 이 색인을 탄다. 없으면 그 검사가 테이블을
+-- 훑는다.
+create index episode_characters_character_idx
+  on public.episode_characters (character_id);
 
 -- 한 사람이 한 스토리를 1화부터 진행하는 회차 하나.
 --
