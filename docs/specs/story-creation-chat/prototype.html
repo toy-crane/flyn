@@ -376,7 +376,7 @@
       <div class="story-head"><div class="story-cover" data-component="StoryCover"></div><div><h3>${escapeHTML(story.title)}</h3><p>${escapeHTML(story.hook)}</p></div></div>
       <div class="cast"><span class="label">등장인물</span>${story.cast.map(c => `<p>${escapeHTML(c)}</p>`).join('')}</div>
       <ol class="episodes">${story.episodes.map((e, i) => `<li><span class="num">${i + 1}화</span><div><strong>${escapeHTML(e.title)}</strong><span>${escapeHTML(e.preview)}</span></div></li>`).join('')}</ol>
-      <button class="primary" data-component="Button" data-play>플레이하기</button>
+      <button class="primary" data-component="Button" data-play>대화 시작하기</button>
     </div></div>`;
 
   function scrollChat() { chat.scrollTop = chat.scrollHeight; }
@@ -433,8 +433,8 @@
   function startPlay(button) {
     busy = true;
     button.disabled = true;
-    button.innerHTML = '<span class="spinner" aria-hidden="true"></span>플레이하기';
-    button.setAttribute('aria-label', '플레이하기, 만드는 중');
+    button.innerHTML = '<span class="spinner" aria-hidden="true"></span>대화 시작하기';
+    button.setAttribute('aria-label', '대화 시작하기, 만드는 중');
     send.disabled = true;
     setTimeout(() => {
       show('browse'); prototypeShell.setState('만든 뒤');
