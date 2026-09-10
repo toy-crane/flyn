@@ -153,6 +153,8 @@
   .turn .name { font-size: 13px; line-height: 16px; font-weight: 600; padding: 0 4px }
   .turn.cast-1 .name { color: var(--cast-1) }
   .turn.cast-2 .name { color: var(--cast-2) }
+  .turn .tools { display: flex; gap: 14px; padding: 2px 6px 0; color: var(--muted) }
+  .turn .tools svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
   .bubble { background: var(--surface); color: var(--surface-foreground); border-radius: var(--radius); padding: 12px 16px; font-size: 16px; line-height: 24px }
   .turn.me { align-self: flex-end; align-items: flex-end }
   .turn.me .bubble { background: var(--accent); color: var(--accent-foreground) }
@@ -200,19 +202,19 @@
           <p>아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.</p>
           <p>지갑 속 현금은 눈으로 봐도 조금 모자란다.</p>
         </div>
-        <div class="turn cast-1"><div class="name">Mia</div><div class="bubble">Oh, hi again. Hmm, it says declined. Do you want to try again?</div></div>
-        <div class="turn cast-2"><div class="name">Owen</div><div class="bubble">Sorry, I have a meeting in ten minutes. Is this going to take long?</div></div>
+        <div class="turn cast-1"><div class="name">Mia</div><div class="bubble">Oh, hi again. Hmm, it says declined. Do you want to try again?</div><div class="tools"><svg viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg><svg viewBox="0 0 16 16"><path d="M4 2.5h8v11l-4-2.6-4 2.6z"/></svg></div></div>
+        <div class="turn cast-2"><div class="name">Owen</div><div class="bubble">Sorry, I have a meeting in ten minutes. Is this going to take long?</div><div class="tools"><svg viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg><svg viewBox="0 0 16 16"><path d="M4 2.5h8v11l-4-2.6-4 2.6z"/></svg></div></div>
         <div class="turn me">
           <div class="bubble">Sorry for late. Can I pay with my phone instead?</div>
           <div class="fix"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.2 3.3L12.5 6.5 9.2 7.7 8 11 6.8 7.7 3.5 6.5l3.3-1.2zM13 11l.6 1.4 1.4.6-1.4.6L13 15l-.6-1.4-1.4-.6 1.4-.6z"/></svg><span>Sorry <b>for the delay</b>. Can I pay with my phone instead?</span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></div>
         </div>
-        <div class="turn cast-1"><div class="name">Mia</div><div class="bubble">Sure, we take phone payment. Tap it here when you're ready.</div></div>
+        <div class="turn cast-1"><div class="name">Mia</div><div class="bubble">Sure, we take phone payment. Tap it here when you're ready.</div><div class="tools"><svg viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg><svg viewBox="0 0 16 16"><path d="M4 2.5h8v11l-4-2.6-4 2.6z"/></svg></div></div>
         <div class="turn me">
           <div class="bubble">Okay, done. Did it go through?</div>
           <div class="check"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5 4.8 9 10 3.5"/></svg>자연스러운 표현이에요.</div>
         </div>
-        <div class="turn cast-1"><div class="name">Mia</div><div class="bubble">Yep, all good this time. Same as yesterday, one iced americano.</div></div>
-        <div class="turn cast-2"><div class="name">Owen</div><div class="bubble">Great, finally. Good thinking. I might actually make my meeting.</div></div>
+        <div class="turn cast-1"><div class="name">Mia</div><div class="bubble">Yep, all good this time. Same as yesterday, one iced americano.</div><div class="tools"><svg viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg><svg viewBox="0 0 16 16"><path d="M4 2.5h8v11l-4-2.6-4 2.6z"/></svg></div></div>
+        <div class="turn cast-2"><div class="name">Owen</div><div class="bubble">Great, finally. Good thinking. I might actually make my meeting.</div><div class="tools"><svg viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg><svg viewBox="0 0 16 16"><path d="M4 2.5h8v11l-4-2.6-4 2.6z"/></svg></div></div>
       </div>
 
       <div class="composer" data-when="Default,어두운 화면">
