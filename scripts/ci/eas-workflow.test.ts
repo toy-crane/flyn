@@ -2,6 +2,21 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { YAML } from "bun";
 
+test("EAS 내부 npm 조회는 허용하되 저장소의 Bun 기준을 경고한다", () => {
+  const rootPackage = JSON.parse(
+    readFileSync(new URL("../../package.json", import.meta.url), "utf8")
+  ) as {
+    devEngines?: {
+      packageManager?: { name?: string; onFail?: string; version?: string };
+    };
+  };
+  expect(rootPackage.devEngines?.packageManager).toEqual({
+    name: "bun",
+    onFail: "warn",
+    version: "1.4.0",
+  });
+});
+
 test("EAS는 같은 운영 환경에서 호환 빌드를 찾고 설치 가능 여부 뒤에만 Update를 발행한다", () => {
   const workflow = YAML.parse(
     readFileSync(
