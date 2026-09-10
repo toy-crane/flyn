@@ -167,6 +167,7 @@ const PLAYING = {
 interface PanelProps {
   banner?: ReactNode;
   busyLabel?: string;
+  canSaveUtterances?: boolean;
   canStop?: boolean;
   chat: {
     isBusy?: boolean;
@@ -443,10 +444,18 @@ test("담으면 상황 줄 밑에 뜰 문구를 대화판에 넘긴다", async (
   expect(screen.queryByText("표현을 저장했어요.")).toBeNull();
 });
 
-test("회차가 생기기 전에는 담아 둘 자리를 두지 않는다", async () => {
-  await renderWithHeroUI(
+test("회차가 생기기 전에는 담아 둘 수 없다고 대화판에 알린다", async () => {
+  const view = await renderWithHeroUI(
     <EpisodeScreen {...PLAYING} storyPlayId={undefined} />
   );
 
-  expect(panel?.utteranceAddon).toBeUndefined();
+  // 자리는 그대로 넘긴다. 복사는 회차 없이도 되는 동작이라 그동안에도 선다.
+  expect(panel?.utteranceAddon).toBeDefined();
+  expect(panel?.canSaveUtterances).toBe(false);
+
+  await act(() => {
+    view.rerender(<EpisodeScreen {...PLAYING} />);
+  });
+
+  expect(panel?.canSaveUtterances).toBe(true);
 });

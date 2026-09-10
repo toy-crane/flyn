@@ -1,15 +1,15 @@
 import { type ReactNode, useCallback, useMemo } from "react";
 import { View } from "react-native";
 
-import {
-  copyToClipboard,
-  MessageActionButton,
-  MessageActionRow,
-} from "@/features/chat/ui/message-actions";
 import type { SavedExpressionSpot } from "@/features/episode/api/saved-expression";
 import { spotKey } from "@/features/episode/api/saved-expression";
 import { useSavedExpressions } from "@/features/episode/state/saved-expressions";
 import { Icon } from "@/shared/ui/icon";
+import {
+  IconRow,
+  IconRowButton,
+  IconRowCopyButton,
+} from "@/shared/ui/icon-row";
 import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { StatusLine } from "@/shared/ui/status-line";
 import { episodeLabels, savedExpressionLabels } from "./episode-labels";
@@ -21,23 +21,13 @@ import { episodeLabels, savedExpressionLabels } from "./episode-labels";
  * 채워진 강조색이다. 담는 동안에는 같은 자리에 진행 표시를 두고 다시 눌리지
  * 않게 한다. 인물 대사는 서버가 한국어 뜻을 만드느라 곧바로 끝나지 않는다.
  *
+ * 장면이 흐르는 동안 흐릿하게 서서 기다리지 않는다. 그때는 줄 자체가 보이지
+ * 않으므로, 이 책갈피가 보이면 언제나 누를 수 있다.
+ *
  * 자기 자리의 상태만 읽는다. 그래서 책갈피 하나를 눌러도 흐르는 장면과 지나간
  * 말풍선이 함께 다시 그려지지 않는다.
  */
-export function ExpressionBookmark({
-  isWaitingForMessage = false,
-  spot,
-}: {
-  /**
-   * 매달린 메시지가 아직 계정에 없다. 자리는 지키되 누를 수는 없다.
-   *
-   * 장면이 흐르는 동안이 그렇다. 말풍선은 다 그려져 있는데 서버는 장면이 끝나야
-   * 그 메시지를 저장하므로, 이때 누르면 없는 자리를 가리켜 실패한다. 자리까지
-   * 비우면 책갈피가 나타났다 사라지는 것처럼 보여서, 흐릿하게 두고 기다린다.
-   */
-  isWaitingForMessage?: boolean;
-  spot: SavedExpressionSpot;
-}) {
+export function ExpressionBookmark({ spot }: { spot: SavedExpressionSpot }) {
   const { states, toggle } = useSavedExpressions();
   const state = states[spotKey(spot)];
   const press = useCallback(() => toggle(spot), [spot, toggle]);
@@ -45,9 +35,8 @@ export function ExpressionBookmark({
   const isBusy = state?.status === "saving" || state?.status === "erasing";
 
   return (
-    <MessageActionButton
+    <IconRowButton
       isBusy={isBusy}
-      isDisabled={isWaitingForMessage}
       isSelected={isSaved}
       label={
         isSaved ? savedExpressionLabels.unsave : savedExpressionLabels.save
@@ -67,26 +56,7 @@ export function ExpressionBookmark({
           tone={isSaved ? "accent" : "muted"}
         />
       )}
-    </MessageActionButton>
-  );
-}
-
-/** 아이콘 줄에서 그 메시지의 글을 그대로 클립보드에 넣는 버튼. */
-function ExpressionCopy({
-  isDisabled = false,
-  label,
-  text,
-}: {
-  isDisabled?: boolean;
-  label: string;
-  text: string;
-}) {
-  const copy = useCallback(() => copyToClipboard(text), [text]);
-
-  return (
-    <MessageActionButton isDisabled={isDisabled} label={label} onPress={copy}>
-      <Icon name="copy" size="sm" tone="muted" />
-    </MessageActionButton>
+    </IconRowButton>
   );
 }
 
@@ -141,12 +111,22 @@ export function ExpressionSaveFailure({
  */
 export function UtteranceExpressionSlot({
   at,
+  canSave,
   children,
   isArriving,
   messageId,
   text,
 }: {
   at: number;
+  /**
+   * 이 대사를 담아 둘 수 있는지. 회차가 생겼는지가 정한다.
+   *
+   * 회차는 사용자가 처음 말할 때 생기고, 그전의 첫 장면은 계정에 남지 않는다.
+   * 담을 자리가 없는데 입구만 보여 주면 누르는 사람은 까닭을 알 수 없는 실패를
+   * 만난다. 복사는 회차 없이도 되는 동작이라 그동안에도 혼자 선다. 줄을 통째로
+   * 비워 두는 쪽은 아이콘 하나가 빈 것보다 더 눈에 띈다.
+   */
+  canSave: boolean;
   children: ReactNode;
   isArriving: boolean;
   messageId: string;
@@ -160,18 +140,14 @@ export function UtteranceExpressionSlot({
   return (
     <View className="w-full items-start">
       {children}
-      <MessageActionRow testID="utterance-actions">
-        {/*
-          흐르는 동안은 복사도 함께 기다린다. 넘어온 글이 아직 자라는 중이라
-          지금 누르면 문장의 앞부분만 담긴다.
-        */}
-        <ExpressionCopy
-          isDisabled={isArriving}
-          label={episodeLabels.copyUtterance}
-          text={text}
-        />
-        <ExpressionBookmark isWaitingForMessage={isArriving} spot={spot} />
-      </MessageActionRow>
+      <IconRow
+        isVisible={!isArriving}
+        riseIndex={at}
+        testID="utterance-actions"
+      >
+        <IconRowCopyButton label={episodeLabels.copyUtterance} text={text} />
+        {canSave ? <ExpressionBookmark spot={spot} /> : null}
+      </IconRow>
       <ExpressionSaveFailure align="start" spot={spot} />
     </View>
   );
@@ -191,9 +167,9 @@ export function LearningExpressionActions({
   text: string;
 }) {
   return (
-    <MessageActionRow align="end" testID="learning-actions">
-      <ExpressionCopy label={episodeLabels.copyExpression} text={text} />
+    <IconRow align="end" testID="learning-actions">
+      <IconRowCopyButton label={episodeLabels.copyExpression} text={text} />
       <ExpressionBookmark spot={spot} />
-    </MessageActionRow>
+    </IconRow>
   );
 }

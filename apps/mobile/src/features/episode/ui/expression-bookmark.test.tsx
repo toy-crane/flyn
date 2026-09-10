@@ -1,7 +1,7 @@
 import { expect, jest, test } from "@jest/globals";
 import { screen, userEvent } from "@testing-library/react-native";
 import { setStringAsync } from "expo-clipboard";
-import { Text } from "react-native";
+import { StyleSheet, Text } from "react-native";
 
 import type { SavedExpressionSpot } from "@/features/episode/api/saved-expression";
 import {
@@ -26,7 +26,11 @@ const SPOT: SavedExpressionSpot = {
   utteranceAt: 1,
 };
 
-function renderSlot(state?: SavedExpressionState, isArriving = false) {
+function renderSlot(
+  state?: SavedExpressionState,
+  isArriving = false,
+  canSave = true
+) {
   const toggle = jest.fn<(spot: SavedExpressionSpot) => void>();
   const view = renderWithHeroUI(
     <SavedExpressionsProvider
@@ -34,6 +38,7 @@ function renderSlot(state?: SavedExpressionState, isArriving = false) {
     >
       <UtteranceExpressionSlot
         at={1}
+        canSave={canSave}
         isArriving={isArriving}
         messageId="s1"
         text={LINE}
@@ -69,22 +74,33 @@ test("담긴 자리는 취소를 권하고 담긴 것으로 읽힌다", async ()
 // 장면이 흐르는 동안은 그 메시지가 아직 계정에 없고 넘어온 글도 자라는 중이다.
 // 자리를 비우면 줄이 나타났다 사라지는 것처럼 보이므로, 흐리게 두고 둘 다
 // 누르지 못하게 한다.
-test("장면이 도착하는 중이면 줄은 자리를 지키되 누를 수 없다", async () => {
+test("장면이 도착하는 중이면 줄은 자리만 지키고 아무것도 그리지 않는다", async () => {
   mockSetStringAsync.mockClear();
-  const { toggle, view } = renderSlot(undefined, true);
+  const { view } = renderSlot(undefined, true);
   await view;
 
-  const bookmark = screen.getByTestId("expression-bookmark");
-  const copy = screen.getByLabelText(episodeLabels.copyUtterance);
+  // 자리는 남아 있어 줄이 나타날 때 말풍선이 밀리지 않는다. 다만 보이지 않고
+  // 화면 읽기도 지나친다.
+  const row = screen.getByTestId("utterance-actions", {
+    includeHiddenElements: true,
+  });
 
-  expect(bookmark.props.accessibilityState).toMatchObject({ disabled: true });
-  expect(copy.props.accessibilityState).toMatchObject({ disabled: true });
+  expect(StyleSheet.flatten(row.props.style).opacity).toBe(0);
+  expect(row.props.pointerEvents).toBe("none");
+  expect(row.props.importantForAccessibility).toBe("no-hide-descendants");
+});
 
-  await userEvent.press(bookmark);
-  await userEvent.press(copy);
+test("회차가 없으면 복사만 서고 회차가 생기면 책갈피가 합류한다", async () => {
+  const { view } = renderSlot(undefined, false, false);
+  await view;
 
-  expect(toggle).not.toHaveBeenCalled();
-  expect(mockSetStringAsync).not.toHaveBeenCalled();
+  expect(screen.getByLabelText(episodeLabels.copyUtterance)).toBeTruthy();
+  expect(screen.queryByTestId("expression-bookmark")).toBeNull();
+
+  const withPlay = renderSlot(undefined, false, true);
+  await withPlay.view;
+
+  expect(screen.getByTestId("expression-bookmark")).toBeTruthy();
 });
 
 test("장면이 다 오면 같은 자리에서 담을 수 있다", async () => {

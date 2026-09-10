@@ -13,6 +13,8 @@ import type { SceneSegment } from "./scene";
  */
 export type UtteranceAddon = ComponentType<{
   at: number;
+  /** 이 대사를 담아 둘 수 있는지. 붙는 쪽이 무엇을 세울지 정한다. */
+  canSave: boolean;
   children: ReactNode;
   /** 이 장면이 아직 도착하는 중인지. 붙는 것이 그동안 무엇을 할지 정한다. */
   isArriving: boolean;
@@ -74,6 +76,7 @@ const SceneOpening = memo(function SceneOpeningContent({
 const SceneSegmentBody = memo(function SceneSegmentBodyContent({
   at,
   castPosition,
+  canSave,
   isArriving,
   isOpening,
   messageId,
@@ -82,6 +85,7 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
   UtteranceSlot,
 }: SceneSegment & {
   at: number;
+  canSave: boolean;
   castPosition: number | undefined;
   isArriving: boolean;
   isOpening: boolean;
@@ -123,6 +127,7 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
       {UtteranceSlot ? (
         <UtteranceSlot
           at={at}
+          canSave={canSave}
           isArriving={isArriving}
           messageId={messageId}
           text={text}
@@ -149,27 +154,31 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
 export function SceneMessage({
   areActionsDisabled,
   areActionsVisible = true,
+  canSaveUtterances = true,
   cast,
+  copyText,
   hasActions,
   isArriving = false,
   isFirst = false,
   messageId,
-  onCopy,
   onRegenerate,
   segments,
   utteranceAddon,
 }: {
   areActionsDisabled: boolean;
   areActionsVisible?: boolean;
+  /** 이 대화의 대사를 담아 둘 수 있는지. 매다는 자리가 그대로 받는다. */
+  canSaveUtterances?: boolean;
   /** 이 화에 서는 인물의 스토리 안 순서. 이름표 색이 여기서 나온다. */
   cast?: ReadonlyMap<string, number>;
+  /** 복사가 클립보드에 넣을 각본. 화자 이름이 살아 있는 쪽이다. */
+  copyText: string;
   hasActions: boolean;
   /** 이 장면이 아직 흐르는 중이다. 마지막 답변에만 참이 된다. */
   isArriving?: boolean;
   /** 대화의 첫 메시지. 각본이 쓴 도입이라 장면 서술이 여기에만 있다. */
   isFirst?: boolean;
   messageId: string;
-  onCopy: () => void;
   onRegenerate: () => void;
   segments: SceneSegment[];
   utteranceAddon?: UtteranceAddon;
@@ -186,6 +195,7 @@ export function SceneMessage({
         return (
           <SceneSegmentBody
             at={spoken}
+            canSave={canSaveUtterances}
             castPosition={
               segment.name === null ? undefined : cast?.get(segment.name)
             }
@@ -208,8 +218,8 @@ export function SceneMessage({
         <MessageActions
           isDisabled={areActionsDisabled}
           isVisible={areActionsVisible}
-          onCopy={onCopy}
           onRegenerate={onRegenerate}
+          text={copyText}
         />
       ) : null}
     </View>

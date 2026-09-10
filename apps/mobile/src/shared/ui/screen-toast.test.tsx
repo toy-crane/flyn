@@ -162,8 +162,10 @@ test("알약이 커지면 층도 그만큼 높아진다", async () => {
 
   // 큰 접근성 글자에서 알약이 두 줄이 되는 경우다. 층이 따라 높아지지 않으면
   // 문구의 위아래가 잘린다.
+  const pill = screen.getByTestId("screen-toast-pill");
+
   await act(() => {
-    fireEvent(screen.getByText("표현을 저장했어요.").parent, "layout", {
+    fireEvent(pill, "layout", {
       nativeEvent: { layout: { height: 96, width: 320, x: 0, y: 0 } },
     });
   });

@@ -15,14 +15,12 @@ export function AssistantMessage({
   areActionsDisabled,
   areActionsVisible = true,
   hasActions,
-  onCopy,
   onRegenerate,
   text,
 }: {
   areActionsDisabled: boolean;
   areActionsVisible?: boolean;
   hasActions: boolean;
-  onCopy: () => void;
   onRegenerate: () => void;
   text: string;
 }) {
@@ -33,8 +31,8 @@ export function AssistantMessage({
         <MessageActions
           isDisabled={areActionsDisabled}
           isVisible={areActionsVisible}
-          onCopy={onCopy}
           onRegenerate={onRegenerate}
+          text={text}
         />
       ) : null}
     </View>

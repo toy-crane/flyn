@@ -1,4 +1,3 @@
-import { ImpactFeedbackStyle, impactAsync } from "expo-haptics";
 import type { ReactNode } from "react";
 import { useCallback } from "react";
 
@@ -28,8 +27,8 @@ export function useExpressionToast(): {
   const announce = useCallback(
     /** 담았으면 참, 도로 놓았으면 거짓. 두 문구가 같은 자리에 뜬다. */
     (isSaved: boolean) => {
-      // 햅틱을 지원하지 않는 기기에서도 문구는 그대로 뜬다.
-      impactAsync(ImpactFeedbackStyle.Light).catch(() => undefined);
+      // 햅틱은 여기서 주지 않는다. 아이콘 줄이 누르는 순간에 이미 한 번 준다.
+      // 둘 다 주면 책갈피 한 번에 두 번 울린다.
       show({
         icon: (
           <Icon
