@@ -23,7 +23,10 @@ test("같은 SHA의 필수 검사가 실패하면 배포를 허용하지 않는�
   });
   try {
     await expect(
-      requireReleaseChecks("a".repeat(40), "fixture", server.url.origin)
+      requireReleaseChecks("a".repeat(40), "fixture", server.url.origin, {
+        maxPolls: 1,
+        pollMilliseconds: 0,
+      })
     ).rejects.toThrow("필수 검사");
   } finally {
     await server.stop(true);
@@ -62,7 +65,10 @@ for (const invalid of [
     });
     try {
       await expect(
-        requireReleaseChecks("a".repeat(40), "fixture", server.url.origin)
+        requireReleaseChecks("a".repeat(40), "fixture", server.url.origin, {
+          maxPolls: 1,
+          pollMilliseconds: 0,
+        })
       ).rejects.toThrow("필수 검사");
     } finally {
       await server.stop(true);
@@ -94,6 +100,43 @@ test("같은 SHA의 두 필수 검사가 성공하면 배포를 허용한다", a
   }
 });
 
+test("main push 직후에는 필수 검사가 생기고 끝날 때까지 기다린다", async () => {
+  const calls = new Map<string, number>();
+  const server = serve({
+    fetch: (request) => {
+      const name = new URL(request.url).searchParams.get("check_name") ?? "";
+      const attempt = (calls.get(name) ?? 0) + 1;
+      calls.set(name, attempt);
+      const checkRuns =
+        attempt === 1
+          ? []
+          : [
+              {
+                app: { id: 15_368 },
+                conclusion: attempt === 2 ? null : "success",
+                head_sha: "a".repeat(40),
+                name,
+                status: attempt === 2 ? "in_progress" : "completed",
+              },
+            ];
+      return Response.json({
+        check_runs: checkRuns,
+        total_count: checkRuns.length,
+      });
+    },
+    port: 0,
+  });
+  try {
+    await requireReleaseChecks("a".repeat(40), "fixture", server.url.origin, {
+      maxPolls: 3,
+      pollMilliseconds: 0,
+    });
+    expect([...calls.values()]).toEqual([3, 3]);
+  } finally {
+    await server.stop(true);
+  }
+});
+
 test("로컬이나 PR 실행에서는 DB 배포 CLI가 원격 연결 전에 중단된다", () => {
   const child = spawnSync(
     [
@@ -106,7 +149,7 @@ test("로컬이나 PR 실행에서는 DB 배포 CLI가 원격 연결 전에 중�
   expect(child.stderr.toString()).toContain("Flyn main의 GitHub 실행");
 });
 
-test("배포 workflow는 main 수동 실행과 공통 직렬 대기를 사용한다", () => {
+test("배포 workflow는 main push와 수동 실행에 공통 직렬 대기를 사용한다", () => {
   const workflow = YAML.parse(
     readFileSync(
       new URL("../../.github/workflows/deploy.yml", import.meta.url),
@@ -122,7 +165,8 @@ test("배포 workflow는 main 수동 실행과 공통 직렬 대기를 사용한
       };
     };
   };
-  expect(Object.keys(workflow.on)).toEqual(["workflow_dispatch"]);
+  expect(Object.keys(workflow.on)).toEqual(["push", "workflow_dispatch"]);
+  expect(workflow.on.push).toEqual({ branches: ["main"] });
   expect(workflow.concurrency).toEqual({
     "cancel-in-progress": false,
     group: "flyn-production-deployment",
