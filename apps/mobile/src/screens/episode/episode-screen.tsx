@@ -12,6 +12,7 @@ import type {
   EpisodeCorrection,
   ExpressionResult,
 } from "@/features/episode/api/episode-correction";
+import type { EpisodeCastMember } from "@/features/episode/api/episode-session";
 import type { SavedExpressionRef } from "@/features/episode/api/saved-expression";
 import { useEpisodeAsks } from "@/features/episode/state/episode-asks";
 import { EpisodeCorrectionsProvider } from "@/features/episode/state/episode-corrections";
@@ -52,6 +53,7 @@ import { StatusLine } from "@/shared/ui/status-line";
  * 화면을 나가면 요청만 끊고 서버가 자기가 만든 데까지를 스스로 남긴다.
  */
 export function EpisodeScreen({
+  cast,
   episodeId,
   initialMessages,
   onReview,
@@ -67,6 +69,8 @@ export function EpisodeScreen({
   situationEmoji,
   storyId,
 }: {
+  /** 이 화에 서는 인물. 이름표 색이 그 스토리 안 순서를 받는다. */
+  cast?: readonly EpisodeCastMember[];
   episodeId: string;
   initialMessages: UIMessage[];
   onReview: (nextUp: EpisodeNextUp | undefined) => void;
@@ -201,6 +205,15 @@ export function EpisodeScreen({
   // 첫 장면은 사용자의 보내기 동작 없이 서버에서 먼저 온다. 빈 상태로
   // 배치된 LegendList를 한 번 다시 만들어야 첫 행의 높이와 위치를 잰다.
   const panelKey = conversationRun.messages.length === 0 ? "empty" : "started";
+  // 이름표가 인물의 스토리 안 순서를 색으로 받는다. 이름으로 찾으므로 목록을
+  // 지도로 한 번 바꿔 둔다.
+  const castOrder = useMemo(
+    () =>
+      cast === undefined
+        ? undefined
+        : new Map(cast.map((person) => [person.name, person.position])),
+    [cast]
+  );
 
   return (
     <EpisodeCorrectionsProvider value={correctionsView}>
@@ -209,6 +222,7 @@ export function EpisodeScreen({
           banner={
             <EpisodeSituationBanner emoji={situationEmoji} text={situation} />
           }
+          cast={castOrder}
           chat={conversationRun}
           closing={closing}
           hasMessageActions={false}

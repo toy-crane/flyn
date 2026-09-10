@@ -30,6 +30,14 @@ export interface StoryListView {
  * 없다. 상세는 콘텐츠 소개이므로 어느 회차로 보든 같은 목록이어야 한다.
  */
 export interface StoryEpisodeView {
+  /**
+   * 이 화에 서는 인물의 이름과 스토리 안 순서.
+   *
+   * 상세 자체는 쓰지 않는다. 새 회차의 1화는 아직 회차가 없어 저장된 대화를
+   * 읽을 수 없으므로, 그 화면이 이름표 색을 고르는 데 필요한 값을 여기서
+   * 가져간다. 인물 설명은 모델이 읽는 것이라 오지 않는다.
+   */
+  cast: { name: string; position: number }[];
   episodeId: string;
   number: number;
   /** 결말을 드러내지 않는 상황 설명. 모든 화가 공개한다. */
@@ -79,6 +87,10 @@ export function storyDetailViewOf(entry: StoryCatalogEntry): StoryDetailView {
   return {
     ...storyCardOf(entry),
     episodes: entry.episodes.map((episode) => ({
+      cast: episode.cast.map((person) => ({
+        name: person.name,
+        position: person.position,
+      })),
       episodeId: episode.id,
       number: episode.number,
       situation: episode.situation,

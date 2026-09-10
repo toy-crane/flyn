@@ -96,9 +96,11 @@ function PlainTextMessage({
   areActionsDisabled,
   areActionsVisible,
   canOpenMenu,
+  cast,
   hasActions,
   isArriving,
   isDoomed,
+  isFirst,
   isWaiting,
   message,
   MessageAddon,
@@ -109,9 +111,11 @@ function PlainTextMessage({
   areActionsDisabled: boolean;
   areActionsVisible: boolean;
   canOpenMenu: boolean;
+  cast: ReadonlyMap<string, number> | undefined;
   hasActions: boolean;
   isArriving: boolean;
   isDoomed: boolean;
+  isFirst: boolean;
   isWaiting: boolean;
   message: UIMessage;
   MessageAddon: ComponentType<{ message: UIMessage }> | undefined;
@@ -169,8 +173,10 @@ function PlainTextMessage({
       <SceneMessage
         areActionsDisabled={areActionsDisabled}
         areActionsVisible={areActionsVisible}
+        cast={cast}
         hasActions={hasActions}
         isArriving={isArriving}
+        isFirst={isFirst}
         messageId={message.id}
         onCopy={copy}
         onRegenerate={regenerate}
@@ -443,6 +449,7 @@ export function ChatPanel({
   banner,
   busyLabel,
   canStop = true,
+  cast,
   chat,
   closing,
   hasMessageActions = true,
@@ -463,6 +470,14 @@ export function ChatPanel({
   busyLabel?: string;
   /** Whether an answer still arriving can be ended from this panel. */
   canStop?: boolean;
+  /**
+   * 이 화에 서는 인물의 이름과 스토리 안 순서. 이름표 색이 그 순서를 받는다.
+   *
+   * 화면이 세션에서 받아 넘긴다. 같은 인물이 어느 화에서나 같은 색이 되려면
+   * 스토리 전체의 순서를 알아야 하는데, 앱은 다른 화의 등장인물 목록을 받지
+   * 않으므로 스스로 셀 수 없다. 인물이 없는 대화는 넘기지 않는다.
+   */
+  cast?: ReadonlyMap<string, number>;
   chat: ChatSession;
   /**
    * What stands where the composer was once there is nothing left to write.
@@ -839,6 +854,7 @@ export function ChatPanel({
         areActionsDisabled={isEditing}
         areActionsVisible={!(isBusy && index === messageCount - 1)}
         canOpenMenu={hasMessageActions && !(isBusy || isEditing)}
+        cast={cast}
         hasActions={hasMessageActions}
         /*
           아직 도착하는 중인 답변. 그 메시지는 서버가 다 흘린 뒤에 저장하므로,
@@ -847,6 +863,8 @@ export function ChatPanel({
         */
         isArriving={isBusy && index === messageCount - 1}
         isDoomed={doomedFromIndex >= 0 && index >= doomedFromIndex}
+        /* 각본이 쓴 도입은 첫 메시지 하나뿐이다. */
+        isFirst={index === 0}
         isWaiting={isAnswerLate && index === messageCount - 1}
         MessageAddon={messageAddon}
         message={item}
@@ -857,6 +875,7 @@ export function ChatPanel({
     ),
     [
       beginEdit,
+      cast,
       doomedFromIndex,
       hasMessageActions,
       isAnswerLate,

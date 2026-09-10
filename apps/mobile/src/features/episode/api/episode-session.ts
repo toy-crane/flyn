@@ -9,8 +9,21 @@ import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
 import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { aiUrl } from "@/shared/ai/request-options";
 
+/**
+ * 이 화에 서는 인물 하나. 화면이 이름표를 그릴 때 쓴다.
+ *
+ * 설명은 오지 않는다. 그것을 읽는 것은 모델이고, 화면이 묻는 것은 이 이름이
+ * 누구이고 이 스토리에서 몇 번째인가 둘뿐이다. 순서가 이름표 색의 번호가 되므로
+ * 같은 인물은 어느 화에서나 같은 색으로 보인다.
+ */
+export interface EpisodeCastMember {
+  name: string;
+  position: number;
+}
+
 /** 화면이 한 화를 여는 데 필요한 각본 조각. */
 export interface PlayingEpisode {
+  cast?: EpisodeCastMember[];
   episodeId: string;
   number: number;
   preview: string;

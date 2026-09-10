@@ -3188,6 +3188,7 @@ describe("GET /ai/episode/stories/:storyId", () => {
     const response = await app.request(`${EPISODE_PATH}/stories/${STORY_ID}`);
     const view = (await response.json()) as {
       episodes: {
+        cast: { name: string; position: number }[];
         episodeId: string;
         number: number;
         situation: string;
@@ -3202,6 +3203,8 @@ describe("GET /ai/episode/stories/:storyId", () => {
     expect(view.total).toBe(5);
     expect(view.episodes).toHaveLength(5);
     expect(view.episodes[0]).toEqual({
+      // 새 회차의 1화는 저장된 대화가 없어 여기서 이름표 색을 가져간다.
+      cast: [{ name: "Mia", position: 1 }],
       episodeId: episodeId(1),
       number: 1,
       situation: "잘못 나온 커피를 원하는 커피로 바꿔 보세요",
@@ -3209,6 +3212,7 @@ describe("GET /ai/episode/stories/:storyId", () => {
       title: "카페에서 생긴 일",
     });
     expect(view.episodes[4]).toEqual({
+      cast: [{ name: "Mia", position: 1 }],
       episodeId: episodeId(5),
       number: 5,
       situation: "문 닫기 전에 하고 싶은 말을 건네 보세요",

@@ -425,12 +425,15 @@ describe("ChatPanel", () => {
     ).toBeUndefined();
   });
 
-  test("장면 답변은 화자별 말풍선과 지문으로 그린다", async () => {
+  test("장면 답변은 화자별 말풍선으로 그리고 도입은 장면 서술로 연다", async () => {
     const message: UIMessage = {
       id: "assistant-1",
       parts: [
         { data: { name: null }, id: "speaker-1", type: "data-speaker" },
-        { text: "국물 김이 오른다.", type: "text" },
+        {
+          text: "저녁의 국숫집이다.\n국물 김이 오른다.",
+          type: "text",
+        },
         { data: { name: "만복" }, id: "speaker-2", type: "data-speaker" },
         { text: "**어서 와.**", type: "text" },
       ],
@@ -438,12 +441,22 @@ describe("ChatPanel", () => {
     };
 
     await renderWithHeroUI(
-      <ChatPanel chat={chatSession({ messages: [message] })} />
+      <ChatPanel
+        cast={new Map([["만복", 2]])}
+        chat={chatSession({ messages: [message] })}
+      />
     );
 
-    expect(screen.getByTestId("chat-scene-narration")).toHaveTextContent(
-      "국물 김이 오른다."
-    );
+    // 첫 메시지의 첫 서술은 각본이 쓴 도입이라 장면 서술 자리에 선다.
+    const opening = screen.getByTestId("chat-scene-opening");
+    // 첫 줄은 장소와 시각이라 굵게, 나머지는 한 단계 옅게 선다.
+    expect(
+      within(opening).getByText("저녁의 국숫집이다.").props.className
+    ).toContain("font-semibold");
+    expect(
+      within(opening).getByText("국물 김이 오른다.").props.className
+    ).toContain("text-scene");
+    expect(screen.queryByTestId("chat-scene-narration")).not.toBeOnTheScreen();
     expect(
       within(screen.getByTestId("chat-scene-utterance")).getByText("만복")
     ).toBeOnTheScreen();
@@ -451,6 +464,71 @@ describe("ChatPanel", () => {
     expect(
       screen.queryByTestId("chat-message-assistant")
     ).not.toBeOnTheScreen();
+  });
+
+  // 모델이 형식을 어겨 보낸 이름 없는 줄은 장면 서술의 모양을 받지 않는다.
+  // 감추지도 않아서 내용을 잃지 않는다.
+  test("대화 중간의 이름 없는 줄은 지금까지의 작은 줄로 남는다", async () => {
+    const messages: UIMessage[] = [
+      {
+        id: "assistant-1",
+        parts: [
+          { data: { name: "만복" }, id: "speaker-1", type: "data-speaker" },
+          { text: "Come on in.", type: "text" },
+        ],
+        role: "assistant",
+      },
+      {
+        id: "user-1",
+        parts: [{ text: "Thanks.", type: "text" }],
+        role: "user",
+      },
+      {
+        id: "assistant-2",
+        parts: [
+          { data: { name: null }, id: "speaker-2", type: "data-speaker" },
+          { text: "국물 김이 오른다.", type: "text" },
+        ],
+        role: "assistant",
+      },
+    ];
+
+    await renderWithHeroUI(<ChatPanel chat={chatSession({ messages })} />);
+
+    expect(screen.getByTestId("chat-scene-narration")).toHaveTextContent(
+      "국물 김이 오른다."
+    );
+    expect(screen.queryByTestId("chat-scene-opening")).not.toBeOnTheScreen();
+  });
+
+  // 지문이 없어지면 누가 말하는지를 이름표가 혼자 맡는다. 색은 인물의 스토리 안
+  // 순서를 받으므로 같은 인물은 어느 화에서나 같고 두 인물은 서로 다르다.
+  test("인물 이름표는 스토리 안 순서에 따라 다른 색을 받는다", async () => {
+    const message: UIMessage = {
+      id: "assistant-1",
+      parts: [
+        { data: { name: "만복" }, id: "speaker-1", type: "data-speaker" },
+        { text: "Come on in.", type: "text" },
+        { data: { name: "정희" }, id: "speaker-2", type: "data-speaker" },
+        { text: "Two bowls, please.", type: "text" },
+      ],
+      role: "assistant",
+    };
+
+    await renderWithHeroUI(
+      <ChatPanel
+        cast={
+          new Map([
+            ["만복", 1],
+            ["정희", 2],
+          ])
+        }
+        chat={chatSession({ messages: [message] })}
+      />
+    );
+
+    expect(screen.getByText("만복").props.className).toContain("text-cast-1");
+    expect(screen.getByText("정희").props.className).toContain("text-cast-2");
   });
 
   // 서버가 그 메시지를 다 흘린 뒤에 저장하므로, 흐르는 동안 담으려 하면 계정에
