@@ -3,8 +3,9 @@
 ## GitHub 배포 인증
 
 - 2026-09-10: Flyn 전용 키체인의 DB 비밀번호를 `toy-crane/flyn` 저장소의 `SUPABASE_DB_PASSWORD` Secret에 등록했다. 값은 파일이나 로그에 남기지 않았다.
-- `SUPABASE_ACCESS_TOKEN`은 아직 등록하지 않았다. 기존 CLI 토큰은 다른 프로젝트도 조회할 수 있으므로 CI에 그대로 복사하지 않는다.
-- 계정의 실제 토큰 생성 화면에는 이름과 만료만 있으며 프로젝트·권한 제한 선택이 없었다. 공식 문서의 scoped PAT는 점진 배포 중이다. 계정 전체 권한의 classic PAT를 CI에 등록하려면 Flyn 밖의 프로젝트 접근에 대한 승인이 필요하다. 토큰은 생성하지 않았다.
+- 사용자가 계정 전체 권한의 classic PAT 사용을 승인하고 직접 발급해 `SUPABASE_ACCESS_TOKEN` Secret에 등록했다. 2026-09-10 01:21:05 UTC 등록 시각을 확인했다. 기존 로컬 CLI 토큰을 복사하지 않았으며 새 토큰의 값과 정확한 만료일은 읽지 않았다.
+- 계정의 실제 토큰 생성 화면에는 이름과 만료만 있으며 프로젝트·권한 제한 선택이 없었다. 토큰 권한과 무관하게 자동화의 작업 대상은 Flyn 프로젝트로 제한한다.
+- `Deployment access` 수동 workflow는 `main`에서 새 Secret으로 Flyn 연결과 `db push --linked --dry-run`을 검사한다. PR에는 운영 비밀값을 제공하지 않는다. 이 검사는 마이그레이션·seed·Auth 설정을 적용하지 않으며 실제 배포 성공을 증명하지 않는다.
 
 ## 프로젝트
 
