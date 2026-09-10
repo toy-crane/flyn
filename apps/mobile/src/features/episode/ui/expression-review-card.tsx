@@ -2,8 +2,9 @@ import { useCallback, useState } from "react";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
 import { Icon } from "@/shared/ui/icon";
+import { markedParts } from "@/shared/ui/marked-text";
 import { correctionPresentation } from "./correction-presentation";
-import { fixedMarks, markedParts } from "./correction-text";
+import { fixedMarks } from "./correction-text";
 
 /** 한 메시지의 모든 수정과 문맥을 한 카드에 보존한다. 읽음 여부를 따로 기록하지 않는다. */
 export function ExpressionReviewCard({
