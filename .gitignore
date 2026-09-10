@@ -33,6 +33,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# 실제 모델을 부르는 평가가 남기는 기록. 돌릴 때마다 달라지므로 남기지 않는다.
+apps/api/eval/results
+
 # Misc
 .DS_Store
 *.pem
