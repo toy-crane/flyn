@@ -183,6 +183,27 @@ test("Apple 처리 확인 없는 EAS 성공과 다른 요청의 실행은 완료
       remoteId: id,
       status: "pending",
     });
+    run = {
+      ...run,
+      jobs: [
+        identity,
+        { key: "fingerprint", status: "failure" },
+        { buildId: "build", key: "build_ios", status: "in-progress" },
+      ],
+      status: "failure",
+    };
+    expect(await remote.inspect({ ...request, remoteId: id })).toEqual({
+      remoteId: id,
+      status: "pending",
+    });
+    run = {
+      ...run,
+      jobs: [
+        identity,
+        { key: "fingerprint", status: "failure" },
+        { key: "build_ios", status: "failure" },
+      ],
+    };
     run = { ...run, status: "failure" };
     expect((await remote.inspect({ ...request, remoteId: id })).status).toBe(
       "failure"
