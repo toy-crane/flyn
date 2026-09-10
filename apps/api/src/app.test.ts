@@ -53,13 +53,35 @@ const STORY_ROW = {
   cover_blurhash: "LAME]I7y8w{e009uBC,t1j%f_1My",
   cover_emoji: "☕",
   cover_image_path: null,
+  created_at: "2026-01-01T00:00:00.000Z",
   hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
   id: STORY_ID,
   intro: "매일 들르는 동네 카페에서 벌어지는 다섯 번의 사건.",
+  owner_id: null,
   position: 1,
   slug: "mia-cafe",
   target_language: "en",
   title: "Mia의 카페",
+};
+
+/** 부른 사람이 만든 스토리. 자리와 열쇠가 없고 주인이 있다. */
+const MADE_STORY_ID = "10000000-0000-4000-8000-0000000000f1";
+
+const MADE_STORY_ROW = {
+  completion_copy: "호텔부터 미팅까지 영어로 지나왔어요.",
+  completion_title: "출장을 마쳤어요",
+  cover_blurhash: null,
+  cover_emoji: "🧳",
+  cover_image_path: null,
+  created_at: "2026-09-10T00:00:00.000Z",
+  hook: "다음 달 베를린 출장인데, 혼자 해내야 해요",
+  id: MADE_STORY_ID,
+  intro: "첫 해외 출장으로 떠난 베를린에서 보내는 일주일.",
+  owner_id: "user-1",
+  position: null,
+  slug: null,
+  target_language: "en",
+  title: "베를린 출장 일주일",
 };
 
 const TEST_EPISODES = [
@@ -237,6 +259,12 @@ interface SeasonState {
   correctionSaveError?: string;
   expressionResults: Record<string, unknown>[];
   finished: FinishedRow[];
+  /**
+   * 부른 사람이 만든 스토리. 이것을 부르는 테스트에만 보인다.
+   *
+   * 기본으로 두면 공식 목록만 세는 다른 테스트가 함께 흔들린다.
+   */
+  madeStories?: Record<string, unknown>[];
   messages: MessageRow[];
   recordAccepted?: boolean;
   recordError?: string;
@@ -372,7 +400,10 @@ function signedInWith(
 
       function source(): Row[] {
         if (table === "stories") {
-          return [STORY_ROW] as unknown as Row[];
+          return [
+            STORY_ROW,
+            ...(state.madeStories ?? []),
+          ] as unknown as Row[];
         }
 
         if (table === "episodes") {
@@ -3167,6 +3198,7 @@ describe("GET /ai/episode/stories", () => {
         coverBlurhash: string | null;
         coverImagePath: string | null;
         hook: string;
+        mine: boolean;
         storyId: string;
         title: string;
         total: number;
@@ -3180,11 +3212,39 @@ describe("GET /ai/episode/stories", () => {
         coverEmoji: "☕",
         coverImagePath: null,
         hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
+        mine: false,
         storyId: STORY_ID,
         title: "Mia의 카페",
         total: 5,
       },
     ]);
+  });
+
+  /*
+    탐색의 `내 스토리` 칩이 이 값 하나로 목록을 거른다. 정책이 남의 스토리를
+    아예 내려보내지 않으므로, 주인이 있다는 사실이 곧 부른 사람의 것이라는
+    뜻이다. 서버가 그 해석을 하고 앱은 참·거짓만 읽는다.
+  */
+  test("marks a story the caller made so the filter can tell them apart", async () => {
+    const state = createSeasonState();
+
+    state.madeStories = [MADE_STORY_ROW];
+
+    const app = createApp({ authMiddleware: signedInWith(state) });
+    const response = await app.request(`${EPISODE_PATH}/stories`);
+    const view = (await response.json()) as {
+      stories: { mine: boolean; storyId: string }[];
+    };
+
+    expect(response.status).toBe(200);
+    expect(
+      Object.fromEntries(
+        view.stories.map((story) => [story.storyId, story.mine])
+      )
+    ).toEqual({
+      [MADE_STORY_ID]: true,
+      [STORY_ID]: false,
+    });
   });
 });
 

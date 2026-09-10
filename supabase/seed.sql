@@ -809,17 +809,12 @@ set title = excluded.title,
 -- 일은 배포한 콘텐츠의 식별자를 바꾸는 것이라 별도 마이그레이션이 맡는다.
 -- 이 파일을 한 트랜잭션 안에서 두 번 실행하는 재실행 검사가 있으므로, 남은
 -- 자리를 먼저 치우고 끝에서 직접 지운다.
-drop table if exists seeded_episode_characters;
-
-create temp table seeded_episode_characters (
-  slug text,
-  number smallint,
-  name text,
-  at smallint
-);
-
-insert into seeded_episode_characters (slug, number, name, at)
-values
+-- 한 문장 안에서 끝낸다. 목록을 임시 테이블에 담으면 그 테이블을 만드는 문장과
+-- 읽는 문장이 나뉘는데, CLI는 seed를 한 묶음으로 서버에 미리 준비시키므로 뒤쪽
+-- 문장이 아직 없는 테이블을 가리켜 `db reset`이 그 자리에서 멈춘다. psql은
+-- 문장을 하나씩 보내 지나가지만 두 경로가 같은 파일을 다르게 읽는 것은 곤란하다.
+with listed (slug, number, name, at) as (
+  values
     ('mia-cafe', 1::smallint, 'Mia', 1::smallint),
     ('mia-cafe', 2::smallint, 'Mia', 1::smallint),
     ('mia-cafe', 2::smallint, 'Owen', 2::smallint),
@@ -852,35 +847,37 @@ values
     ('upstairs-neighbor', 2::smallint, 'Frank', 1::smallint),
     ('upstairs-neighbor', 3::smallint, 'Nora', 1::smallint),
     ('upstairs-neighbor', 4::smallint, 'Frank', 1::smallint),
-    ('upstairs-neighbor', 5::smallint, 'Nora', 1::smallint);
-
-delete from public.episode_characters standing
-where exists (
-  select 1 from seeded_episode_characters listed
-  join public.stories story on story.slug = listed.slug
-  where story.id = standing.story_id
-)
-and not exists (
-  select 1
-  from seeded_episode_characters listed
+    ('upstairs-neighbor', 5::smallint, 'Nora', 1::smallint)
+),
+resolved as (
+  select
+    episode.id as episode_id,
+    person.id as character_id,
+    story.id as story_id,
+    listed.at
+  from listed
   join public.stories story on story.slug = listed.slug
   join public.episodes episode
     on episode.story_id = story.id and episode.number = listed.number
   join public.characters person
     on person.story_id = story.id and person.name = listed.name
-  where episode.id = standing.episode_id
-    and person.id = standing.character_id
-);
-
+),
+-- 화에서 인물을 빼면 upsert만으로는 낡은 연결이 남는다. 목록에 없는 것을 먼저
+-- 치운다. 지우는 것과 넣는 것이 서로 겹치지 않아 한 문장 안에 함께 둘 수 있다.
+pruned as (
+  delete from public.episode_characters standing
+  where standing.story_id in (
+      select story.id from public.stories story
+      where story.slug in (select listed.slug from listed)
+    )
+    and not exists (
+      select 1 from resolved
+      where resolved.episode_id = standing.episode_id
+        and resolved.character_id = standing.character_id
+    )
+  returning 1
+)
 insert into public.episode_characters (episode_id, character_id, story_id, at)
-select episode.id, person.id, story.id, listed.at
-from seeded_episode_characters listed
-join public.stories story on story.slug = listed.slug
-join public.episodes episode
-  on episode.story_id = story.id and episode.number = listed.number
-join public.characters person
-  on person.story_id = story.id and person.name = listed.name
+select episode_id, character_id, story_id, at from resolved
 on conflict (episode_id, character_id) do update
 set at = excluded.at;
-
-drop table seeded_episode_characters;

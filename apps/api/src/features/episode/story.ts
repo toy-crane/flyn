@@ -37,13 +37,18 @@ export interface EpisodeScript {
   title: string;
 }
 
-/** 하나의 완결된 공식 스토리와 그 안의 순서 있는 에피소드. */
+/**
+ * 하나의 완결된 스토리와 그 안의 순서 있는 에피소드.
+ *
+ * 공식 콘텐츠와 사용자가 만든 스토리가 같은 모양이다. 자리와 열쇠는 공식
+ * 콘텐츠에만 있어 사용자가 만든 스토리에서는 비어 있다.
+ */
 export interface StoryContent {
   completion: { copy: string; title: string };
   episodes: EpisodeScript[];
   id: string;
-  position: number;
-  slug: string;
+  position: number | null;
+  slug: string | null;
   targetLanguage: string;
   title: string;
 }
@@ -70,12 +75,23 @@ export interface StoryCatalogEntry {
   coverBlurhash: string | null;
   coverEmoji: string;
   coverImagePath: string | null;
+  /** 만든 시각. 공식 콘텐츠도 갖지만 순서를 정하는 데 쓰지는 않는다. */
+  createdAt: string;
   episodes: StoryCatalogEpisode[];
   hook: string;
   id: string;
   intro: string;
-  position: number;
-  slug: string;
+  /**
+   * 부른 사람이 만든 스토리인지.
+   *
+   * 정책이 남의 스토리를 아예 내려보내지 않으므로, 주인이 있다는 사실만으로
+   * 그 주인이 부른 사람이라는 것이 정해진다.
+   */
+  mine: boolean;
+  /** 공식 콘텐츠 안의 자리. 사용자가 만든 스토리에는 없다. */
+  position: number | null;
+  /** 공식 콘텐츠를 다시 올릴 때 쓰는 열쇠. 사용자가 만든 스토리에는 없다. */
+  slug: string | null;
   title: string;
 }
 
@@ -89,12 +105,19 @@ export interface StoryCatalogEntry {
 export async function readStoryCatalog(
   client: EpisodeClient
 ): Promise<StoryCatalogEntry[]> {
+  /*
+    순서를 데이터베이스가 정한다. 자리가 비어 있는 행이 사용자가 만든
+    스토리이므로 `nullsFirst`가 그것을 목록 맨 위로 올리고, 그 안에서는 만든
+    시각의 역순으로 선다. 공식 스토리는 그 아래에 자리 순서대로 이어진다.
+    정책이 남의 스토리를 걸러 내므로 여기서 주인을 따로 묻지 않는다.
+  */
   const { data, error } = await client
     .from("stories")
     .select(
-      "id, position, slug, title, hook, intro, cover_emoji, cover_image_path, cover_blurhash, completion_title, completion_copy, episodes(id, number, title, preview, situation, situation_emoji)"
+      "id, owner_id, created_at, position, slug, title, hook, intro, cover_emoji, cover_image_path, cover_blurhash, completion_title, completion_copy, episodes(id, number, title, preview, situation, situation_emoji)"
     )
-    .order("position")
+    .order("position", { nullsFirst: true })
+    .order("created_at", { ascending: false })
     .order("number", { referencedTable: "episodes" });
 
   if (error) {
@@ -109,6 +132,7 @@ export async function readStoryCatalog(
     coverBlurhash: story.cover_blurhash,
     coverEmoji: story.cover_emoji,
     coverImagePath: story.cover_image_path,
+    createdAt: story.created_at,
     episodes: story.episodes.map((episode) => ({
       id: episode.id,
       number: episode.number,
@@ -120,6 +144,8 @@ export async function readStoryCatalog(
     hook: story.hook,
     id: story.id,
     intro: story.intro,
+    // 정책이 남의 스토리를 내려보내지 않으므로, 주인이 있으면 부른 사람이다.
+    mine: story.owner_id !== null,
     position: story.position,
     slug: story.slug,
     title: story.title,
@@ -268,8 +294,14 @@ function namesOnlyCast(names: readonly string[]): StoryCharacter[] {
 export async function readStoryCast(
   client: EpisodeClient,
   storyId: string,
-  slug: string
+  /**
+   * 오류 문구에 쓰는 이름. 사용자가 만든 스토리에는 열쇠가 없어 비어 있고,
+   * 그때는 id가 그 자리를 대신한다.
+   */
+  slug: string | null
 ): Promise<Map<string, StoryCharacter[]>> {
+  const named = slug ?? storyId;
+
   const [people, links] = await Promise.all([
     client
       .from("characters")
@@ -284,13 +316,13 @@ export async function readStoryCast(
 
   if (people.error) {
     throw new Error(
-      `Reading characters for story ${slug} failed: ${people.error.message}`
+      `Reading characters for story ${named} failed: ${people.error.message}`
     );
   }
 
   if (links.error) {
     throw new Error(
-      `Reading the cast of story ${slug} failed: ${links.error.message}`
+      `Reading the cast of story ${named} failed: ${links.error.message}`
     );
   }
 
@@ -331,7 +363,7 @@ export async function readStoryContentById(
 
   if (episodeError) {
     throw new Error(
-      `Reading episodes for story ${slug} failed: ${episodeError.message}`
+      `Reading episodes for story ${slug ?? story.id} failed: ${episodeError.message}`
     );
   }
 
