@@ -2,7 +2,7 @@
 
 ## 확정 범위
 
-2026-09-09 대화에서 합의한 PR 검증과 Supabase·Hono·iOS 내부 테스트 배포를 확정한다. 이번 문서는 구현 계약이며, 자동 배포가 이미 동작한다는 기록이 아니다. 구현과 원격 연결은 별도 작업이다.
+2026-09-09 대화에서 합의한 PR 검증과 Supabase·Hono·iOS 내부 테스트 배포를 확정한다. 이번 문서는 구현 계약과 실제 원격 검증 기록을 함께 담는다.
 
 ## 사용자에게 보이는 결과
 
@@ -107,7 +107,7 @@ EAS Workflows
 
 - 임시 DB와 합성 데이터는 운영의 데이터 규모, 잠금 시간, 모든 행의 형태를 재현하지 않는다. 운영의 파괴적 변경은 별도 검토 대상이다.
 - fingerprint는 네이티브 호환성 검사이지 기능 정상 동작의 증명이 아니다. PR 비교와 배포용 빌드 조회는 서로 대체하지 않는다.
-- 현재 저장소 기준 Expo SDK 57, EAS CLI 23.2.0, Supabase CLI 2.113.0, Bun 1.3.6을 확인했다. 구현 때 실제 설치 버전과 공식 문서·workflow 검증 결과를 대조한다. 이번 스펙 작성에서는 scratch 환경 실행이나 원격 배포를 수행하지 않았다.
+- 현재 저장소는 Expo SDK 57, EAS CLI 24.0.0, Supabase CLI 2.113.0, Bun 1.4.0을 고정한다. GitHub Actions와 EAS Workflows의 실제 원격 실행으로 이 조합을 확인했다.
 - Supabase CLI 도움말 조회가 로컬 telemetry 파일 쓰기 권한으로 실패한 적이 있다. 공식 문서만으로 CLI 실행 검증이 끝났다고 보지 않는다. 구현 때 격리된 검증 환경에서 명령·종료 코드와 schema diff 한계를 확인한다.
 - [Supabase 공식 CI 예제](https://github.com/supabase/supabase-action-example/blob/main/.github/workflows/ci.yaml)는 임시 DB, lint, pgTAP, 생성 타입 비교를 보여준다. 해당 예제의 `latest`, 운영 비밀값을 사용하는 별도 dry-run 작업과 환경 구성을 그대로 복사하지 않는다.
 - [선언형 스키마](https://supabase.com/docs/guides/local-development/declarative-database-schemas)의 diff 사각지대, [EAS 배포 예제](https://docs.expo.dev/eas/workflows/examples/deploy-to-production/), [runtimeVersion](https://docs.expo.dev/eas-update/runtime-versions/), [EAS 외부 실행 API](https://docs.expo.dev/eas/workflows/rest-api/)를 확인했다. 공식 문서는 복사하지 않고 구현 시 원본을 다시 읽는다.
@@ -116,7 +116,11 @@ EAS Workflows
 
 ## 현재 구현 증거
 
-- 2026-09-10: 수동 main 배포의 API 다음에 EAS Workflows를 연결했다. production 환경의 iOS fingerprint와 internal 채널의 store 빌드를 비교한다. 기존 빌드는 Apple 설치 가능 상태를 확인한 뒤 Update를 발행하고, 새 빌드는 Submit 후 같은 상태를 확인한다. 원격 실행 ID를 대기 전에 기록하고 응답 유실 뒤에는 커밋·요청 ID가 같은 실행만 조회한다. HTTP 경계 테스트와 EAS 서버 YAML 검증이 통과했다. EAS CLI는 공식 24.0.0으로 맞췄으며 기존 빌드의 실제 submit:status 조회가 통과했다. 새 workflow의 원격 배포, main push 자동 실행, iPhone·OTA 검증과 전체 최종 리뷰는 아직 남아 있다.
+- 2026-09-10: 같은 커밋 `e2f3dd46e6a02f184d7e503b294457827c8a1312`로 EAS Workflow `01a089d0-2e9f-7b56-897d-ddffbd8715b1`을 다시 실행했다. iOS fingerprint `1d097586281da39057197653615cbc3f9cc4e7bf`가 같은 TestFlight build 2를 찾았고 `check_existing`은 `update`를 선택했다. 새 Build와 Submit을 건너뛰고 `internal` 채널에 Update 그룹 `dfefad0f-efe9-414e-9f61-599d99265953`을 발행했다. 완료 조건 8의 두 분기를 모두 원격에서 확인했다.
+- 2026-09-10: `main` push로 자동 시작한 GitHub 실행 `34441113501`이 커밋 `0b3dc27413eaa7e3ed3a136d9bcb9e85c5e7574d`의 필수 검사를 기다린 뒤 DB→Edge→API→모바일 순서로 성공했다. 문서와 workflow만 바뀐 커밋이라 서비스 변경을 만들지 않았고, 기존 성공 기록과 EAS 실행을 그대로 유지했다. 수동 호출 없이 자동 시작되는 경로와 완료 조건 11의 문서 변경 건너뛰기를 확인했다.
+- 2026-09-10: GitHub 실행 `34439724745`가 커밋 `e2f3dd46e6a02f184d7e503b294457827c8a1312`의 DB→Edge→API→모바일 전체 배포를 성공했다. EAS Workflow `01a089b8-57ee-74ea-8dc2-25d7430daba8`은 호환 빌드가 없어서 build `3ef8bbca-2724-47b2-a0d2-bd80557fc9f3`을 만들고 Submit했다. App Store Connect에서 앱 1.0.0 build 2가 `VALID`, `IN_BETA_TESTING`, 만료되지 않음으로 확인됐다. 운영 API의 `/health`는 200, 인증 없는 `/ai/episode`는 401이며, `delete-account`는 ACTIVE·verify_jwt=true다. 원격 DB에는 `20260910024156`까지 마이그레이션이 적용됐다.
+- 2026-09-10: `kim의 iPhone`을 명시해 TestFlight 자동 실행을 시도했으나 기기의 Developer Mode가 꺼져 있어 CoreDevice가 연결을 거절했다. 이는 TestFlight 배포 상태와 별개인 Mac 자동 조작 조건이다. 해당 기기에서 Developer Mode를 켜고 재시작·잠금 해제한 뒤에만 최초 설치, OTA 수신, Metro 없는 셀룰러 로그인·기존 기록 조회·AI 응답을 확인할 수 있다. 완료 조건 9와 전체 최종 리뷰는 아직 남아 있다.
+- 2026-09-10: 수동 main 배포의 API 다음에 EAS Workflows를 연결했다. production 환경의 iOS fingerprint와 internal 채널의 store 빌드를 비교한다. 기존 빌드는 Apple 설치 가능 상태를 확인한 뒤 Update를 발행하고, 새 빌드는 Submit 후 같은 상태를 확인한다. 원격 실행 ID를 대기 전에 기록하고 응답 유실 뒤에는 커밋·요청 ID가 같은 실행만 조회한다. HTTP 경계 테스트와 EAS 서버 YAML 검증이 통과했다. EAS CLI는 공식 24.0.0으로 맞췄으며 기존 빌드의 실제 submit:status 조회가 통과했다.
 - GitHub 실행 `34435602037`에서 `7d2e426`의 DB→Edge→API 단계가 성공했다. delete-account v2의 ACTIVE·verify_jwt=true·원격 소스의 커밋/요청 ID·인증 없는 POST 401을 확인했다. API는 변경이 없어 기존 배포를 재사용했다. 같은 실행을 재실행해 성공했으며 상태 파일 SHA `f0445b94c48e254202efd725f94c33193ef6307a`가 유지됐다. EAS 연결과 기기 검증은 아직 남아 있다.
 - PR #65의 DB 검사 `34435030122`가 공식 GHCR 이미지 경로로 전체 통과했고 `7d2e426`으로 병합했다. 고정된 CLI·이미지 버전과 운영 비밀값 제거는 유지했다. 해결한 이미지 요청 제한 후속 파일은 삭제했으며 이전 기록은 Git 이력에 남는다.
 - PR #65 리뷰에서 함수 설정만 바뀌면 Edge를 건너뛰는 문제를 재현했다. `config.toml`을 변경 감지에 포함하고 기존 수동 검토 계약에 따라 자동 적용과 후속 API 배포를 차단했다. 실제 임시 Git 저장소에서 수정 전 실패와 수정 후 차단을 확인했다. 설정을 자동 덮어쓰는 방식으로 리뷰 제안을 그대로 적용하지 않았다.
