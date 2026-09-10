@@ -62,7 +62,7 @@ const settle = {
   animationTimingFunction: "ease-out",
 } as const;
 
-/** 시안의 `.mark`는 72pt다. 파일은 후광까지 담느라 80이라 위아래 4pt를 접는다. */
+/** 시안의 `.mark`는 72pt다. 파일은 튀는 순간의 후광까지 담느라 88이라 위아래 8pt를 접는다. */
 const MARK_BOX = 72;
 /**
  * 조각이 터져 나오는 자리. 시안은 카드 위에서 46pt 아래, 가로 가운데이고,

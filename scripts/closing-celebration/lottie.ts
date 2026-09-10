@@ -237,8 +237,8 @@ function compose(
   };
 }
 
-/** 마크 상자. 원 64에 5짜리 후광이 붙어 72를 넘으므로 80으로 잡는다. */
-export const MARK_SIZE = 80;
+/** 마크 상자. 원 64에 5짜리 후광이 붙고 튀는 순간 114%까지 커지므로 88로 잡는다. */
+export const MARK_SIZE = 88;
 const MARK_CENTER = MARK_SIZE / 2;
 const DISC_DIAMETER = 64;
 const HALO_WIDTH = 5;
