@@ -61,6 +61,11 @@ const settle = {
   animationName: { from: { opacity: 0.55 }, to: { opacity: 1 } },
   animationTimingFunction: "ease-out",
 } as const;
+// Android는 CSS 애니메이션을 한두 프레임 늦게 등록해서, 지연을 기다리는 요소가
+// 그동안 기본 스타일로 보인다. 기본 스타일을 시작 상태로 맞춰 두면 그 틈이
+// 사라지고, 애니메이션이 끝난 뒤에는 fill mode가 끝 상태를 지킨다.
+const hidden = { opacity: 0 } as const;
+const dimmed = { opacity: 0.55 } as const;
 
 /** 시안의 `.mark`는 72pt다. 파일은 튀는 순간의 후광까지 담느라 88이라 위아래 8pt를 접는다. */
 const MARK_BOX = 72;
@@ -147,8 +152,8 @@ export function EpisodeClosing({
       className="gap-4 overflow-hidden rounded-3xl border border-accent/15 bg-surface px-5 pt-5 pb-4"
       style={[
         { maxHeight: height * 0.4 },
-        playing ? rise : undefined,
-        motion === "pending" ? { opacity: 0 } : undefined,
+        motion === "pending" ? hidden : undefined,
+        playing ? [hidden, rise] : undefined,
       ]}
       testID="episode-closing"
     >
@@ -163,7 +168,7 @@ export function EpisodeClosing({
       >
         <CompletionMark motion={motion} quiet={!isSuccess} />
         {isSuccess ? (
-          <Animated.View style={playing ? popText : undefined}>
+          <Animated.View style={playing ? [hidden, popText] : undefined}>
             <Text
               className="font-semibold text-accent text-sm"
               dynamicTypeRamp="footnote"
@@ -173,7 +178,7 @@ export function EpisodeClosing({
             </Text>
           </Animated.View>
         ) : null}
-        <Animated.View style={playing ? slideUp : undefined}>
+        <Animated.View style={playing ? [hidden, slideUp] : undefined}>
           <Text
             accessibilityRole="header"
             className="text-center font-bold text-[22px] text-foreground leading-[30px]"
@@ -185,7 +190,7 @@ export function EpisodeClosing({
           </Text>
         </Animated.View>
       </ScrollView>
-      <Animated.View style={playing ? settle : undefined}>
+      <Animated.View style={playing ? [dimmed, settle] : undefined}>
         <Button
           accessibilityLabel="표현 돌아보기"
           key={`review-${fontScale}`}
