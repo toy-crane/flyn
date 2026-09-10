@@ -9,6 +9,8 @@ import {
   vercelTeam,
 } from "./vercel-delivery";
 
+const ERROR_CODE = /^[a-zA-Z0-9_-]{1,80}$/;
+
 export function createVercelRuntime(
   token: string,
   apiOrigin = "https://api.vercel.com"
@@ -81,8 +83,13 @@ export function createVercelRuntime(
         deploymentOptions
       )) {
         if (event.type === "error") {
+          const { code } = event.payload;
+          const hint =
+            typeof code === "string" && ERROR_CODE.test(code)
+              ? code
+              : "unknown";
           throw new Error(
-            "Vercel 배포 API 실패. 기존 요청을 먼저 조회해야 합니다."
+            `Vercel 배포 API 실패 (${hint}). 기존 요청을 먼저 조회해야 합니다.`
           );
         }
       }
