@@ -1,6 +1,7 @@
 import { spawnSync } from "bun";
 
 export const edgePaths = [
+  "supabase/config.toml",
   "supabase/functions",
   "packages",
   "package.json",
@@ -36,5 +37,28 @@ export function edgeChanged(base: string | null, sha: string) {
 export function requireEdgeReady(base: string | null, sha: string) {
   if (edgeChanged(base, sha)) {
     throw new Error("이 커밋의 Edge Function을 먼저 배포해야 합니다.");
+  }
+}
+
+export function requireReviewedEdgeConfiguration(
+  base: string | null,
+  sha: string
+) {
+  if (!base) {
+    return;
+  }
+  const diff = spawnSync([
+    "git",
+    "diff",
+    "--quiet",
+    base,
+    sha,
+    "--",
+    "supabase/config.toml",
+  ]);
+  if (diff.exitCode !== 0) {
+    throw new Error(
+      "supabase/config.toml 변경은 별도 검토·적용이 필요합니다. 자동 배포를 중단합니다."
+    );
   }
 }

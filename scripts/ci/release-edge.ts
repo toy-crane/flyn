@@ -1,6 +1,10 @@
 import { executeDelivery } from "./delivery-execution";
 import { GitHubDeliveryJournal } from "./delivery-journal";
-import { edgeChanged, requireEdgeReady } from "./edge-readiness";
+import {
+  edgeChanged,
+  requireEdgeReady,
+  requireReviewedEdgeConfiguration,
+} from "./edge-readiness";
 import { loadEdgeRuntime } from "./edge-runtime";
 import { requireApiDatabase } from "./release-api";
 import { requireReleaseChecks } from "./release-checks";
@@ -40,8 +44,12 @@ if (import.meta.main) {
   } else {
     await executeDelivery(sha, {
       journal,
-      plan: async (current) =>
-        edgeChanged(current.success.edge, sha) ? ["edge"] : [],
+      plan: (current) => {
+        requireReviewedEdgeConfiguration(current.success.edge, sha);
+        return Promise.resolve(
+          edgeChanged(current.success.edge, sha) ? ["edge"] : []
+        );
+      },
       remote: loadEdgeRuntime(sha),
     });
     console.log(`Edge 단계 확인 완료: ${sha}`);
