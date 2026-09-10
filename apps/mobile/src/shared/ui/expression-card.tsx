@@ -107,7 +107,12 @@ export function ExpressionCard({
   const body = (
     <>
       <View className="gap-2">
-        <View className="min-h-5 flex-row items-center gap-2">
+        {/*
+          아이콘과 쉐브론은 첫 줄에 맞춘다. 큰 접근성 글자에서 첫 줄이 두세 줄로
+          늘어나는데, 가운데 맞춤이면 둘이 글의 한가운데로 떠올라 무엇에 붙은
+          표시인지 읽히지 않는다.
+        */}
+        <View className="min-h-5 flex-row items-start gap-2">
           {header}
           {detail === undefined ? null : (
             <Icon

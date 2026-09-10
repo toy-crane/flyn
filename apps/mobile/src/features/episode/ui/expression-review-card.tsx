@@ -1,121 +1,58 @@
-import { useCallback, useState } from "react";
-import { Pressable, Text, useWindowDimensions, View } from "react-native";
+import { useMemo } from "react";
+import { Text } from "react-native";
+
 import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
+import { ExpressionCard } from "@/shared/ui/expression-card";
 import { Icon } from "@/shared/ui/icon";
-import { markedParts } from "@/shared/ui/marked-text";
 import { correctionPresentation } from "./correction-presentation";
 import { fixedMarks } from "./correction-text";
+import { LearningExpressionActions } from "./expression-bookmark";
 
-/** 한 메시지의 모든 수정과 문맥을 한 카드에 보존한다. 읽음 여부를 따로 기록하지 않는다. */
+/**
+ * 한 화가 끝나고 돌아보는 표현 하나.
+ *
+ * 표현 노트와 같은 카드다. 다른 것은 첫 줄과 아이콘 줄의 둘째 아이콘뿐이다.
+ * 첫 줄은 출처 대신 이 표현을 쓰는 상황이고, 채널 색과 반짝임 아이콘이 붙는다.
+ * 책갈피는 대화에서 같은 메시지의 배울 표현을 담는 것과 같은 자리를 가리킨다.
+ */
 export function ExpressionReviewCard({
   correction,
 }: {
   correction: EpisodeCorrection;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const { fontScale } = useWindowDimensions();
-  const toggle = useCallback(() => setExpanded((value) => !value), []);
   const presentation = correctionPresentation(correction.original);
+  const spot = useMemo(
+    () => ({ kind: "learning" as const, messageId: correction.messageId }),
+    [correction.messageId]
+  );
+
   return (
-    <View
-      className="gap-3 rounded-2xl bg-surface px-4 pt-4 pb-2"
-      key={fontScale}
-      testID={`expression-card-${correction.messageId}`}
-    >
-      <View className="flex-row items-start gap-1.5">
-        <Icon name="learn" size="xs" tone={presentation.tone} />
-        <Text
-          className={`flex-1 text-xs leading-4 ${presentation.text}`}
-          dynamicTypeRamp="caption1"
-        >
-          {correction.review.situation}
-        </Text>
-      </View>
-      <Text
-        className="font-medium text-foreground text-lg leading-7"
-        dynamicTypeRamp="body"
-        selectable
-      >
-        {markedParts(correction.fixed, fixedMarks(correction)).map((part) => (
+    <ExpressionCard
+      actions={
+        <LearningExpressionActions spot={spot} text={correction.fixed} />
+      }
+      detail={{
+        original: correction.original,
+        originalMarks: correction.entries.map((entry) => entry.original),
+        whys: correction.entries.map((entry) => entry.why),
+      }}
+      english={correction.fixed}
+      header={
+        <>
+          <Icon name="learn" size="xs" tone={presentation.tone} />
           <Text
-            className={
-              part.isMarked
-                ? `font-semibold ${presentation.text} ${presentation.surface}`
-                : undefined
-            }
-            key={part.at}
+            className={`flex-1 text-xs leading-[18px] ${presentation.text}`}
+            selectable={false}
           >
-            {part.text}
+            {correction.review.situation}
           </Text>
-        ))}
-      </Text>
-      <Text
-        className="text-muted text-sm leading-5"
-        dynamicTypeRamp="footnote"
-        selectable
-      >
-        {correction.review.meaning}
-      </Text>
-      <Pressable
-        accessibilityLabel="내 대화와 다른 예문"
-        accessibilityRole="button"
-        accessibilityState={{ expanded }}
-        className="min-h-11 flex-row items-center justify-between gap-3"
-        onPress={toggle}
-      >
-        <Text
-          className="flex-1 text-muted text-xs leading-5"
-          dynamicTypeRamp="footnote"
-        >
-          내 대화와 다른 예문
-        </Text>
-        <Icon name={expanded ? "collapse" : "expand"} size="sm" tone="muted" />
-      </Pressable>
-      {expanded ? (
-        <View className="gap-3 border-separator border-t pt-4 pb-3">
-          <View className="gap-2">
-            <Text className="text-muted text-xs" dynamicTypeRamp="caption1">
-              내가 쓴 문장
-            </Text>
-            <Text
-              className="text-foreground text-sm leading-5"
-              dynamicTypeRamp="body"
-              selectable
-            >
-              {correction.original}
-            </Text>
-            {correction.entries.map((entry) => (
-              <Text
-                className="text-muted text-sm leading-5"
-                dynamicTypeRamp="body"
-                key={`${entry.pattern}:${entry.original}:${entry.fixed}`}
-                selectable
-              >
-                {entry.why}
-              </Text>
-            ))}
-          </View>
-          <View className="gap-2">
-            <Text className="text-muted text-xs" dynamicTypeRamp="caption1">
-              다른 상황에서
-            </Text>
-            <Text
-              className="font-medium text-base text-foreground leading-6"
-              dynamicTypeRamp="body"
-              selectable
-            >
-              {correction.review.example}
-            </Text>
-            <Text
-              className="text-muted text-sm leading-5"
-              dynamicTypeRamp="footnote"
-              selectable
-            >
-              {correction.review.exampleMeaning}
-            </Text>
-          </View>
-        </View>
-      ) : null}
-    </View>
+        </>
+      }
+      headerLabel={correction.review.situation}
+      markClassName={`${presentation.text} ${presentation.surface}`}
+      marks={fixedMarks(correction)}
+      meaning={correction.review.meaning}
+      testID={`expression-card-${correction.messageId}`}
+    />
   );
 }

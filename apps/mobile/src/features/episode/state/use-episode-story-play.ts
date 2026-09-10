@@ -6,10 +6,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ExpressionResult } from "@/features/episode/api/episode-correction";
 import { checkEpisodeExpression } from "@/features/episode/api/episode-correction";
 import { createEpisodeTransport } from "@/features/episode/api/episode-transport";
-import type { SavedExpressionRef } from "@/features/episode/api/saved-expression";
-import {
-  eraseSavedExpression,
-  saveExpression,
+import type {
+  SavedExpressionRef,
+  SavedExpressionSpot,
 } from "@/features/episode/api/saved-expression";
 import {
   type EpisodeCorrectionStore,
@@ -18,7 +17,7 @@ import {
 import { type EpisodeEnding, endingOfEpisode } from "./episode-ending";
 import { type EpisodeNextUp, nextUpOfEpisode } from "./episode-next-up";
 import {
-  type SavedExpressionStore,
+  type SavedExpressions,
   useEpisodeSavedExpressions,
 } from "./saved-expressions";
 
@@ -37,7 +36,7 @@ export interface EpisodeRun {
   /** Asks for the first scene again after it failed to arrive. */
   open: () => void;
   /** 이 에피소드에서 지금까지 담아 둔 표현. */
-  saved: SavedExpressionStore;
+  saved: SavedExpressions;
 }
 
 /**
@@ -102,19 +101,25 @@ export function useEpisodeStoryPlay(
       }
     }
   }, [accessToken, corrections.check, initialMessages]);
-  const saved = useEpisodeSavedExpressions(
-    savedExpressions,
-    (spot, signal) =>
-      saveExpression(
-        currentToken.current,
-        currentStoryPlayId.current ?? "",
-        currentEpisodeId.current,
-        spot,
-        signal
-      ),
-    (id, signal) => eraseSavedExpression(currentToken.current, id, signal),
-    onExpressionChanged
+  const { hydrate, retain, states, toggle } = useEpisodeSavedExpressions();
+  const changed = useRef(onExpressionChanged);
+
+  changed.current = onExpressionChanged;
+
+  const saved = useMemo(
+    () => ({
+      states,
+      toggle: (spot: SavedExpressionSpot) =>
+        toggle(spot, (isSaved) => changed.current(isSaved)),
+    }),
+    [states, toggle]
   );
+
+  // 서버가 아는 자리를 위 층의 저장소에 가져다 놓는다. 표현 돌아보기도 같은
+  // 것을 하므로, 어느 쪽에서 담았든 다른 쪽이 채워진 책갈피를 본다.
+  useEffect(() => {
+    hydrate({ episodeId, saved: savedExpressions, storyPlayId });
+  }, [episodeId, hydrate, savedExpressions, storyPlayId]);
   // 대화는 한 번만 만들어지므로 그때의 함수가 그대로 붙잡힌다. 지금 상태를
   // 읽는 자리는 ref 하나로 남겨 둔다.
   const currentCorrections = useRef(corrections);
@@ -186,7 +191,7 @@ export function useEpisodeStoryPlay(
     }
     // 담아 둔 표현은 항목으로 남지만 책갈피는 그 메시지의 것이다. 다시 받기로
     // 사라진 메시지의 표시까지 들고 있으면 새 장면에 남의 자리 표시가 붙는다.
-    saved.retain(new Set(chat.messages.map((message) => message.id)));
+    retain(new Set(chat.messages.map((message) => message.id)));
     knownMessages.current = new Set(chat.messages.map((message) => message.id));
     const wasSending =
       previousStatus.current === "submitted" ||
@@ -202,7 +207,7 @@ export function useEpisodeStoryPlay(
     corrections.failWaiting,
     corrections.retain,
     readOnly,
-    saved.retain,
+    retain,
   ]);
   const open = useCallback(() => {
     if (readOnly) {

@@ -1,6 +1,8 @@
 import { expect, jest, test } from "@jest/globals";
 import { screen, userEvent } from "@testing-library/react-native";
 import type { ExpressionResult } from "@/features/episode/api/episode-correction";
+import type { SavedExpressionRef } from "@/features/episode/api/saved-expression";
+import { EpisodeSavedExpressionsProvider } from "@/features/episode/state/saved-expressions";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { EpisodeReviewScreen } from "./episode-review-screen";
 
@@ -55,7 +57,7 @@ const base = {
   onRetry: jest.fn(),
 };
 
-test("준비된 표현만 한 목록에 두고 원문과 예문을 펼쳐 읽는다", async () => {
+test("준비된 표현만 개수 없이 세우고 눌러야 원문과 이유가 열린다", async () => {
   const user = userEvent.setup();
   await renderWithHeroUI(
     <EpisodeReviewScreen
@@ -68,17 +70,52 @@ test("준비된 표현만 한 목록에 두고 원문과 예문을 펼쳐 읽는
     />
   );
   expect(screen.getByText("기억해 둘 표현")).toBeOnTheScreen();
-  expect(screen.getByText("1개")).toBeOnTheScreen();
+  expect(screen.queryByText("1개")).toBeNull();
+  expect(screen.getByText("주문한 것을 다시 말할 때")).toBeOnTheScreen();
   expect(screen.getByText("라테를 주문했어요.")).toBeOnTheScreen();
-  expect(screen.queryByText("I ordered latte.")).toBeNull();
-  await user.press(screen.getByRole("button", { name: "내 대화와 다른 예문" }));
-  expect(screen.getByText("I ordered latte.")).toBeOnTheScreen();
-  expect(screen.getByText("I ordered a sandwich.")).toBeOnTheScreen();
-  expect(screen.getByText("샌드위치를 주문했어요.")).toBeOnTheScreen();
-  await user.press(screen.getByRole("button", { name: "내 대화와 다른 예문" }));
-  expect(screen.queryByText("I ordered a sandwich.")).toBeNull();
-  expect(screen.getByText("1개")).toBeOnTheScreen();
   expect(screen.queryByText("안 본 표현")).toBeNull();
+  expect(screen.queryByText("I ordered latte.")).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "내 대화와 다른 예문" })
+  ).toBeNull();
+
+  await user.press(screen.getByTestId("expression-card-m1-body"));
+
+  expect(screen.getByText("내가 쓴 문장")).toBeOnTheScreen();
+  expect(screen.getByText("I ordered latte.")).toBeOnTheScreen();
+  expect(screen.getByText("이렇게 쓰는 이유")).toBeOnTheScreen();
+  expect(screen.getByText("한 잔을 말할 때 a를 붙여요.")).toBeOnTheScreen();
+  // 서버는 예문을 그대로 만들고 저장한다. 이 화면에서만 빠진다.
+  expect(screen.queryByText("다른 상황에서")).toBeNull();
+  expect(screen.queryByText("I ordered a sandwich.")).toBeNull();
+  expect(screen.queryByText("샌드위치를 주문했어요.")).toBeNull();
+});
+
+test("카드 아래 오른쪽에 복사와 책갈피가 서고 담긴 것은 채워져 온다", async () => {
+  // 저장소는 대화와 이 화면 위 층에 있다. 실제 앱에서는 에피소드 레이아웃이
+  // 그 층을 세운다.
+  const review = (saved?: SavedExpressionRef[]) => (
+    <EpisodeSavedExpressionsProvider accessToken={undefined}>
+      <EpisodeReviewScreen
+        {...base}
+        results={[ready]}
+        savedExpressions={saved}
+      />
+    </EpisodeSavedExpressionsProvider>
+  );
+  const view = await renderWithHeroUI(review());
+
+  expect(screen.getByRole("button", { name: "표현 복사" })).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "표현 저장" })).toBeOnTheScreen();
+
+  // 대화에서 먼저 담은 표현은 서버가 아는 자리로 실려 와 채워진 채로 선다.
+  await view.rerender(
+    review([
+      { id: "saved-1", kind: "correction", messageId: "m1", utteranceAt: null },
+    ])
+  );
+
+  expect(screen.getByRole("button", { name: "저장 취소" })).toBeOnTheScreen();
 });
 
 test("카드가 없으면 제목과 개수, 개별 재시도 없이 중립적인 빈 상태를 보여 준다", async () => {

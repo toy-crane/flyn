@@ -5,7 +5,10 @@ import type {
   SavedExpressionRef,
   SavedExpressionSpot,
 } from "@/features/episode/api/saved-expression";
-import { useEpisodeSavedExpressions } from "./saved-expressions";
+import {
+  type SavedExpressionStore,
+  useSavedExpressionStore,
+} from "./saved-expressions";
 
 const UTTERANCE: SavedExpressionSpot = {
   kind: "utterance",
@@ -44,15 +47,30 @@ async function settled(work: () => void) {
   });
 }
 
+const PLAY = { episodeId: "e1", storyPlayId: "p1" };
+
 async function mountStore(
   calls: ReturnType<typeof fakeSaving>,
   saved?: readonly SavedExpressionRef[]
 ) {
   const { result } = await renderHook(() =>
-    useEpisodeSavedExpressions(saved, calls.save, calls.erase, calls.announce)
+    useSavedExpressionStore(calls.save, calls.erase)
   );
 
+  await settled(() => {
+    result.current.hydrate({ ...PLAY, saved });
+  });
+
   return result;
+}
+
+/** 화면이 붙이는 알림까지 함께 넘긴다. 저장소는 그것을 들고 있지 않는다. */
+function toggle(
+  result: { current: { toggle: SavedExpressionStore["toggle"] } },
+  spot: SavedExpressionSpot,
+  calls: ReturnType<typeof fakeSaving>
+) {
+  result.current.toggle(spot, calls.announce);
 }
 
 test("담으면 그 자리만 채워지고 한 번 알린다", async () => {
@@ -60,7 +78,7 @@ test("담으면 그 자리만 채워지고 한 번 알린다", async () => {
   const result = await mountStore(calls);
 
   await settled(() => {
-    result.current.toggle(UTTERANCE);
+    toggle(result, UTTERANCE, calls);
   });
 
   expect(result.current.states["s1:0"]).toEqual({
@@ -82,8 +100,8 @@ test("담는 동안 다시 눌러도 두 번 담지 않는다", async () => {
   const result = await mountStore(calls);
 
   await settled(() => {
-    result.current.toggle(UTTERANCE);
-    result.current.toggle(UTTERANCE);
+    toggle(result, UTTERANCE, calls);
+    toggle(result, UTTERANCE, calls);
   });
 
   expect(result.current.states["s1:0"]).toEqual({ status: "saving" });
@@ -105,7 +123,7 @@ test("담지 못하면 그 자리에 실패로 남고 다시 누르면 다시 �
   const result = await mountStore(calls);
 
   await settled(() => {
-    result.current.toggle(LEARNING);
+    toggle(result, LEARNING, calls);
   });
 
   expect(result.current.states["m1:learning"]).toEqual({ status: "error" });
@@ -113,7 +131,7 @@ test("담지 못하면 그 자리에 실패로 남고 다시 누르면 다시 �
 
   calls.save.mockImplementation(() => Promise.resolve(CORRECTION_REF));
   await settled(() => {
-    result.current.toggle(LEARNING);
+    toggle(result, LEARNING, calls);
   });
 
   expect(result.current.states["m1:learning"]).toEqual({
@@ -132,7 +150,7 @@ test("담긴 것을 다시 누르면 도로 놓이고 그 사실만 알린다", 
   });
 
   await settled(() => {
-    result.current.toggle(UTTERANCE);
+    toggle(result, UTTERANCE, calls);
   });
 
   expect(result.current.states["s1:0"]).toBeUndefined();
@@ -151,13 +169,51 @@ test("도로 놓지 못하면 담긴 상태로 돌아간다", async () => {
   const result = await mountStore(calls, [savedRef("saved-1")]);
 
   await settled(() => {
-    result.current.toggle(UTTERANCE);
+    toggle(result, UTTERANCE, calls);
   });
 
   expect(result.current.states["s1:0"]).toEqual({
     id: "saved-1",
     status: "saved",
   });
+});
+
+test("같은 대화를 다시 가져다 놓아도 방금 담은 것을 잃지 않는다", async () => {
+  const calls = fakeSaving();
+  const result = await mountStore(calls);
+
+  await settled(() => {
+    toggle(result, UTTERANCE, calls);
+  });
+  // 표현 돌아보기가 자기 조회로 같은 대화를 다시 가져다 놓는 자리다. 서버의
+  // 목록에는 방금 담은 것이 아직 없을 수 있다.
+  await settled(() => {
+    result.current.hydrate({ ...PLAY, saved: [CORRECTION_REF] });
+  });
+
+  expect(result.current.states["s1:0"]).toEqual({
+    id: "saved-1",
+    status: "saved",
+  });
+  expect(result.current.states["m1:learning"]).toEqual({
+    id: "saved-2",
+    status: "saved",
+  });
+});
+
+test("다른 대화로 옮겨 가면 앞 대화의 표시를 버린다", async () => {
+  const calls = fakeSaving();
+  const result = await mountStore(calls, [savedRef("saved-1")]);
+
+  await settled(() => {
+    result.current.hydrate({
+      episodeId: "e2",
+      saved: undefined,
+      storyPlayId: "p1",
+    });
+  });
+
+  expect(result.current.states).toEqual({});
 });
 
 test("사라진 메시지의 표시는 함께 버린다", async () => {

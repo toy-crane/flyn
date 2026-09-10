@@ -101,6 +101,7 @@ export default function EpisodeReviewRoute() {
         onContinue={continueStory}
         onRetry={retry}
         results={query.isError ? undefined : query.data?.expressionResults}
+        savedExpressions={query.data?.saved}
       />
       <Stack.Toolbar placement="right">
         <Stack.Toolbar.Button
