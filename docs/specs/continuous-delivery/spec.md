@@ -116,6 +116,7 @@ EAS Workflows
 
 ## 현재 구현 증거
 
+- 2026-09-10: Vercel 배포 상태 연결 모듈을 추가했다. 요청 ID로 원격 배포를 찾고 프로젝트·커밋·production 대상, READY, 현재 운영 별칭과 HTTP 검증을 모두 통과해야 성공을 반환한다. 미확인·빌드 중·별칭 및 HTTP 준비 전은 pending으로 남긴다. 응답 유실 뒤 inspect는 배포를 다시 요청하지 않는다. 경계 테스트 13개와 타입 검사가 통과했다. 실제 기존 배포 `dpl_9rcotaz9CCLUaFuLNee17Y6QSVry`를 요청 ID로 찾아 성공을 반환하는 읽기 전용 실행도 확인했다. CLI 실행 연결·GitHub API 단계·프로젝트 한정 토큰의 실제 배포·EAS 연결은 아직 남아 있다.
 - 2026-09-10: PR #61을 필수 검사 통과 후 rebase 병합했다. `b5944af9599107e956f88f723ca3b53f65fa8c33`의 main 검사도 통과한 뒤 GitHub 실행 `34430127164`에서 표현 결과 마이그레이션 2개를 적용했다. 원격 이력과 DB 성공 SHA를 다시 읽어 확인했다. 기존 교정 테이블은 없고 새 결과 테이블의 RLS는 켜져 있다. authenticated의 전체 INSERT·user_id INSERT는 거절하며 message_id INSERT는 허용한다. 사용자가 비운 메시지·플레이는 0개를 유지하고 스토리 5개·에피소드 25개도 유지했다. PR의 보존 검사 8개와 DB 테스트 318개가 통과했다.
 - 같은 커밋의 API를 로컬 Vercel CLI로 운영 배포했다. `dpl_9rcotaz9CCLUaFuLNee17Y6QSVry`가 READY이며 `flyn-api.vercel.app`과 서울 함수 리전을 확인했다. GET /health 200, 인증 없는 POST /ai/episode 401을 확인했다. 최근 10분의 해당 배포 error 로그 조회는 결과가 없었다. API 테스트 117개·타입 검사·운영용 로컬 빌드가 통과했다. 이번 배포는 GitHub VERCEL_TOKEN이나 API 자동 실행 연결을 검증하지 않았으므로 자동 배포 상태의 API 성공 SHA를 쓰지 않았다. EAS·실기기·운영 로그인 후 AI 응답과 전체 구현 최종 리뷰는 남아 있다.
 - 2026-09-10 사용자가 운영 테스트 기록을 직접 삭제했다고 확인했다. 교정·메시지·플레이 0개를 이번 배포 전 기준으로 삼는다. 전용 Supabase 검토는 두 표현 결과 마이그레이션에 수정할 문제 없이 PASS_WITH_GAPS를 반환했다. 두 SQL의 실제 SHA-256만 배포 승인 목록에 추가했다. 원격 적용·최종 권한·HTTP 검증은 아직 남아 있다.
