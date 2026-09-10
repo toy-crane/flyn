@@ -2875,6 +2875,36 @@ describe("POST /ai/episode/ask", () => {
     // 시트는 장면 파서를 지나지 않는다. 답은 말풍선이 아니라 평범한 답변이다.
     expect(body).not.toContain('"type":"data-speaker"');
   });
+
+  /*
+    답의 말투, 글 모양과 범위를 정하는 것은 이 프롬프트뿐이다. 앱은 받은 글을
+    그대로 그리고, 규칙이 사라져도 경로는 200으로 답한다. 세 규칙이 실제로
+    모델에게 가는지는 여기서만 확인할 수 있다.
+  */
+  test("답의 말투, 글 모양과 범위를 모델에게 지시한다", async () => {
+    const model = createMockModel(["그 커피를 가리키기 때문이에요."]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createConversationRequest({
+        messages: [createUserMessage("the를 왜 붙여요?")],
+      })
+    );
+
+    expect(response.status).toBe(200);
+    await response.text();
+
+    const system = JSON.stringify(
+      model.doStreamCalls[0]?.prompt.find(
+        (message) => message.role === "system"
+      )
+    );
+
+    expect(system).toContain("해요체");
+    expect(system).toContain("문단");
+    expect(system).toContain("굵은 글씨");
+    expect(system).toContain("대화로 돌아");
+  });
 });
 
 interface RecentViewBody {
