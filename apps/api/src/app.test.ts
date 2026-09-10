@@ -2453,7 +2453,8 @@ describe("표현을 담아 두는 API", () => {
           },
         ],
         kind: "correction",
-        meaning: null,
+        // 표현 돌아보기가 이미 만들어 둔 뜻을 그대로 옮겨 담는다.
+        meaning: "주문한 커피가 아니에요.",
         original: "I think you gave me wrong coffee.",
         speaker: null,
         utterance_at: null,
@@ -2643,7 +2644,7 @@ describe("표현을 담아 두는 API", () => {
         episodeNumber: 1,
         id: expect.any(String),
         kind: "correction",
-        meaning: null,
+        meaning: "주문한 커피가 아니에요.",
         original: "I think you gave me wrong coffee.",
         speaker: null,
         storyTitle: STORY_ROW.title,
