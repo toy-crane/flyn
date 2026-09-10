@@ -181,13 +181,18 @@ export class SupabaseDatabaseDelivery {
     };
   }
 
-  async start(request: DeliveryRequest): Promise<DeliveryObservation> {
+  async prepare(request: DeliveryRequest) {
     const pending = await this.pending(request);
     for (const migration of pending) {
       if (this.options.approved[migration.version] !== migration.hash) {
         throw new Error(`검토한 SQL 해시가 필요합니다: ${migration.version}`);
       }
     }
+    return pending;
+  }
+
+  async start(request: DeliveryRequest): Promise<DeliveryObservation> {
+    const pending = await this.prepare(request);
     if (pending.length > 0) {
       await this.options.run([
         "db",
