@@ -47,6 +47,7 @@ jobs:
         run: bunx --no-install supabase link --project-ref owtajtnfleiobyfocdjy --output-format text
       - name: Apply approved migrations and record verified history
         env:
+          DEPLOYMENT_STATE_SIGNING_KEY: ${{ secrets.DEPLOYMENT_STATE_SIGNING_KEY }}
           GH_TOKEN: ${{ github.token }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -74,6 +75,7 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Deploy Edge Functions or inspect the existing request
         env:
+          DEPLOYMENT_STATE_SIGNING_KEY: ${{ secrets.DEPLOYMENT_STATE_SIGNING_KEY }}
           GH_TOKEN: ${{ github.token }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: bun scripts/ci/release-edge.ts
@@ -107,6 +109,7 @@ jobs:
         run: bun scripts/ci/release-checks.ts
       - name: Build and deploy the API or inspect the existing request
         env:
+          DEPLOYMENT_STATE_SIGNING_KEY: ${{ secrets.DEPLOYMENT_STATE_SIGNING_KEY }}
           GH_TOKEN: ${{ github.token }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: bun scripts/ci/release-api.ts
@@ -148,6 +151,7 @@ jobs:
           npm install --global eas-cli@24.0.0
       - name: Deploy mobile or inspect the existing workflow
         env:
+          DEPLOYMENT_STATE_SIGNING_KEY: ${{ secrets.DEPLOYMENT_STATE_SIGNING_KEY }}
           GH_TOKEN: ${{ github.token }}
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: bun scripts/ci/release-mobile.ts

@@ -44,6 +44,7 @@ test("API job은 Edge 성공 뒤 실행하며 설치에는 운영 토큰을 주�
     (step: { run?: string }) => step.run === "bun scripts/ci/release-api.ts"
   );
   expect(Object.keys(deploy?.env ?? {}).sort()).toEqual([
+    "DEPLOYMENT_STATE_SIGNING_KEY",
     "GH_TOKEN",
     "VERCEL_TOKEN",
   ]);

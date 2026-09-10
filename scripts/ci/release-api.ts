@@ -61,6 +61,7 @@ export function requireApiDatabase(base: string | null, sha: string) {
 
 export function apiReleaseEnvironment() {
   const {
+    DEPLOYMENT_STATE_SIGNING_KEY: signingKey,
     GITHUB_SHA: sha,
     GH_TOKEN: token,
     VERCEL_TOKEN: vercelToken,
@@ -72,15 +73,16 @@ export function apiReleaseEnvironment() {
     !sha ||
     !SHA.test(sha) ||
     !token ||
-    !vercelToken
+    !vercelToken ||
+    !signingKey
   ) {
     throw new Error("Flyn main의 GitHub 실행에서만 API를 배포합니다.");
   }
-  return { sha, token, vercelToken };
+  return { sha, signingKey, token, vercelToken };
 }
 
 if (import.meta.main) {
-  const { sha, token, vercelToken } = apiReleaseEnvironment();
+  const { sha, signingKey, token, vercelToken } = apiReleaseEnvironment();
   if (
     spawnSync(["git", "rev-parse", "HEAD"]).stdout.toString().trim() !== sha ||
     spawnSync(["git", "status", "--porcelain"]).stdout.toString().trim()
@@ -88,7 +90,7 @@ if (import.meta.main) {
     throw new Error("API 체크아웃이 배포 커밋과 다릅니다.");
   }
   await requireReleaseChecks(sha, token);
-  const journal = new GitHubDeliveryJournal(token);
+  const journal = new GitHubDeliveryJournal(token, signingKey);
   const snapshot = await journal.read();
   requireApiDatabase(snapshot.state.success.database, sha);
   requireEdgeReady(snapshot.state.success.edge, sha);

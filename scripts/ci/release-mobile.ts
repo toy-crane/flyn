@@ -42,6 +42,7 @@ export function mobileChanged(base: string | null, sha: string) {
 
 if (import.meta.main) {
   const {
+    DEPLOYMENT_STATE_SIGNING_KEY: signingKey,
     GITHUB_SHA: sha,
     GH_TOKEN: token,
     EXPO_TOKEN: expoToken,
@@ -53,7 +54,8 @@ if (import.meta.main) {
     !sha ||
     !SHA.test(sha) ||
     !token ||
-    !expoToken
+    !expoToken ||
+    !signingKey
   ) {
     throw new Error("Flyn main의 GitHub 실행에서만 모바일을 배포합니다.");
   }
@@ -64,7 +66,7 @@ if (import.meta.main) {
     throw new Error("모바일 체크아웃이 배포 커밋과 다릅니다.");
   }
   await requireReleaseChecks(sha, token);
-  const journal = new GitHubDeliveryJournal(token);
+  const journal = new GitHubDeliveryJournal(token, signingKey);
   const snapshot = await journal.read();
   requireApiDatabase(snapshot.state.success.database, sha);
   requireEdgeReady(snapshot.state.success.edge, sha);

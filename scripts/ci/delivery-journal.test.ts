@@ -1,7 +1,19 @@
 import { expect, test } from "bun:test";
+import { createHmac } from "node:crypto";
 import { serve } from "bun";
 import type { DeliveryState } from "./delivery-execution";
 import { GitHubDeliveryJournal } from "./delivery-journal";
+
+const signingKey = "delivery-journal-test-key-1234567890";
+
+function signed(value: unknown) {
+  const payload = JSON.stringify(value);
+  return JSON.stringify({
+    signature: createHmac("sha256", signingKey).update(payload).digest("hex"),
+    state: value,
+    version: 1,
+  });
+}
 
 test.each([{}, { pending: null, success: { database: "main" }, version: 1 }])(
   "잘못된 원격 상태를 빈 성공 이력으로 해석하지 않는다: %j",
@@ -9,7 +21,7 @@ test.each([{}, { pending: null, success: { database: "main" }, version: 1 }])(
     const server = serve({
       fetch: () =>
         Response.json({
-          content: Buffer.from(JSON.stringify(state)).toString("base64"),
+          content: Buffer.from(signed(state)).toString("base64"),
           encoding: "base64",
           sha: "1".repeat(40),
           type: "file",
@@ -18,13 +30,40 @@ test.each([{}, { pending: null, success: { database: "main" }, version: 1 }])(
     });
     try {
       await expect(
-        new GitHubDeliveryJournal("test", server.url.origin).read()
+        new GitHubDeliveryJournal("test", signingKey, server.url.origin).read()
       ).rejects.toThrow("형식");
     } finally {
       server.stop(true);
     }
   }
 );
+
+test("서명 뒤에 바꾼 배포 상태를 신뢰하지 않는다", async () => {
+  const original: DeliveryState = {
+    pending: null,
+    success: { api: null, database: null, edge: null, mobile: null },
+    version: 1,
+  };
+  const envelope = JSON.parse(signed(original));
+  envelope.state.success.database = "a".repeat(40);
+  const server = serve({
+    fetch: () =>
+      Response.json({
+        content: Buffer.from(JSON.stringify(envelope)).toString("base64"),
+        encoding: "base64",
+        sha: "1".repeat(40),
+        type: "file",
+      }),
+    port: 0,
+  });
+  try {
+    await expect(
+      new GitHubDeliveryJournal("test", signingKey, server.url.origin).read()
+    ).rejects.toThrow("서명");
+  } finally {
+    server.stop(true);
+  }
+});
 
 test("GitHub 상태 저장은 읽었던 blob SHA로 갱신하며 충돌을 덮어쓰지 않는다", async () => {
   const state: DeliveryState = {
@@ -33,7 +72,7 @@ test("GitHub 상태 저장은 읽었던 blob SHA로 갱신하며 충돌을 덮�
     version: 1,
   };
   let blob = "1".repeat(40);
-  let content = Buffer.from(JSON.stringify(state)).toString("base64");
+  let content = Buffer.from(signed(state)).toString("base64");
   const server = serve({
     async fetch(request) {
       const url = new URL(request.url);
@@ -63,7 +102,11 @@ test("GitHub 상태 저장은 읽었던 blob SHA로 갱신하며 충돌을 덮�
     port: 0,
   });
   try {
-    const journal = new GitHubDeliveryJournal("test-token", server.url.origin);
+    const journal = new GitHubDeliveryJournal(
+      "test-token",
+      signingKey,
+      server.url.origin
+    );
     const first = await journal.read();
     const second = await journal.read();
     expect(first.state).toEqual(state);

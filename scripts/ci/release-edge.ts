@@ -13,6 +13,7 @@ const SHA = /^[a-f0-9]{40}$/;
 
 if (import.meta.main) {
   const {
+    DEPLOYMENT_STATE_SIGNING_KEY: signingKey,
     GITHUB_SHA: sha,
     GH_TOKEN: token,
     SUPABASE_ACCESS_TOKEN: pat,
@@ -24,12 +25,13 @@ if (import.meta.main) {
     !sha ||
     !SHA.test(sha) ||
     !token ||
-    !pat
+    !pat ||
+    !signingKey
   ) {
     throw new Error("Flyn main의 GitHub 실행에서만 Edge를 배포합니다.");
   }
   await requireReleaseChecks(sha, token);
-  const journal = new GitHubDeliveryJournal(token);
+  const journal = new GitHubDeliveryJournal(token, signingKey);
   const { state } = await journal.read();
   requireApiDatabase(state.success.database, sha);
   if (state.pending && state.pending.service !== "edge") {
