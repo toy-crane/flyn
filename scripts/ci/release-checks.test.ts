@@ -161,6 +161,7 @@ test("배포 workflow는 main push와 수동 실행에 공통 직렬 대기를 �
     jobs: {
       database: {
         if: string;
+        "timeout-minutes": number;
         steps: { name?: string; env?: Record<string, string>; run?: string }[];
       };
     };
@@ -173,6 +174,7 @@ test("배포 workflow는 main push와 수동 실행에 공통 직렬 대기를 �
     queue: "max",
   });
   expect(workflow.jobs.database.if).toContain("refs/heads/main");
+  expect(workflow.jobs.database["timeout-minutes"]).toBe(45);
   const { steps } = workflow.jobs.database;
   const gate = steps.findIndex(
     (step) => step.run === "bun scripts/ci/release-checks.ts"
