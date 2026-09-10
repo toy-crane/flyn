@@ -29,7 +29,7 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/workflow/build-prototype/SKILL.md",
-      "computedHash": "8770bac0b3f2f8cc3a2d8d9d2c250eda03d954016ea93d164b9d9af3346596ee"
+      "computedHash": "a5da70dd569d7b58629f24dc92f49d00eb7c16b1f37f5f5a128613712bb43f88"
     },
     "commit": {
       "source": "toy-crane/skills",
@@ -131,7 +131,7 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/expo/expo-dev-loop/SKILL.md",
-      "computedHash": "998fcea6f694cd12e9d4a705d97d76708118ec67f51705aed26c25f1dcff7e35"
+      "computedHash": "9dcf4a9b0a4ced3d149dd92d0c9e7035bb43fab1f56c2acd118c9fe101af5935"
     },
     "expo-dom": {
       "source": "expo/skills",
@@ -179,7 +179,7 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/expo/expo-smoke-test/SKILL.md",
-      "computedHash": "f8a9a8a160f7233885d711fadf4f3501ccda19b808da5ae7e8827b2fce703371"
+      "computedHash": "de141d53e0b8d72d9ae1631789a6e9fca7598dac4136eb1c89511cc82cb5463c"
     },
     "expo-ui": {
       "source": "expo/skills",
@@ -275,13 +275,13 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/workflow/shape-idea/SKILL.md",
-      "computedHash": "2a90c704cb92f4c5bdc01fce6d4afae0148e518a12ae3a81cebcadf5f034b1d5"
+      "computedHash": "4aef1291843f652a73997645a2857f92947b95eb85bca05257ae3487003ba113"
     },
     "split-into-tasks": {
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/workflow/split-into-tasks/SKILL.md",
-      "computedHash": "801dc12c1c9ffd9ef2a64ab7cd1e767215cf034c36d6284ff0fdee82a55c93de"
+      "computedHash": "eb0ac37cd33b8bb461f6a97553e99e517d4cd457b56fa439296b4f74c6ed7866"
     },
     "supabase": {
       "source": "supabase/agent-skills",
@@ -317,7 +317,7 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/workflow/update-project-skills/SKILL.md",
-      "computedHash": "e8df92d8ccd489e20c760726f4afe10d96eec3131025e1db17261e38932e4f8e"
+      "computedHash": "d32afd997c10adf6707b80ab0ee30c37638dc53b5f728dd539ce5ff058c0a432"
     }
   }
 }
