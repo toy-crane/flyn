@@ -6,7 +6,8 @@
   [AI 에피소드 프로토콜](ai-episode-protocol.md)이 소유한다. 일반 채팅 전용
   `POST /ai/chat`은 제공하지 않는다.
 - 요청과 응답은 Vercel AI SDK의 UI message 프로토콜을 사용한다.
-- Hono 서버는 `streamText()`의 결과를 `createUIMessageStreamResponse({ stream: toUIMessageStream({ stream: result.stream }) })`로 반환한다. `ai` 패키지가 내보내는 두 헬퍼를 사용하고, 결과 객체에 붙은 변환 메서드는 사용하지 않는다.
+- 모델 응답을 그대로 흘려보내는 경로는 `streamText()` 결과의 `toUIMessageStreamResponse()`로 반환한다. 스토리 만들기 대화와 `AI에게 물어보기`가 이 경로다.
+- 모델 출력을 장면 part로 나눠 쓰는 에피소드 진행은 `createUIMessageStream`의 writer로 스트림을 만들고 `createUIMessageStreamResponse`로 반환한다.
 - 모바일 앱은 `@ai-sdk/react`의 `useChat()`과 `expo/fetch`로 응답을 스트리밍한다.
 - 모바일의 진행 중 대화 상태는 AI SDK가 관리한다. 에피소드의 저장과 복구는
   [AI 에피소드 프로토콜](ai-episode-protocol.md), 물어보기의 메모리 수명은
@@ -25,10 +26,11 @@
 
 Vercel AI SDK의 UI message 프로토콜은 텍스트뿐 아니라 추론, 도구 호출과 사용자 정의 데이터를 순서가 있는 message part로 전달한다. `useChat()`이 이 프로토콜의 전송과 채팅 상태를 처리하므로 모바일과 서버가 별도 스트림 형식과 상태 관리 코드를 만들지 않아도 된다. Expo SDK 57은 스트리밍에 필요한 `expo/fetch`를 제공한다. 대화 수명은 각 기능의 계약에서 정하므로 공통 스트리밍 계층이 저장 여부를 강제하지 않는다. 최소 자동 테스트와 기기 확인은 새 테스트 계층을 추가하지 않고 서버 계약과 양쪽 모바일 런타임을 확인한다.
 
-응답을 만드는 방법은 AI SDK 7이 권장하는 형태를 따른다. 결과 객체의 `toUIMessageStreamResponse()`와 `toUIMessageStream()`은 7에서 deprecated이며 다음 major에서 사라진다. 두 방식이 내보내는 바이트는 같고, 제공자 오류 원문을 가리는 기본 동작도 `toUIMessageStream`이 그대로 갖고 있다. 헬퍼를 쓰면 스트림을 결과 객체에서 떼어 낼 수 있어 나중에 스트림을 감싸거나 바꿔 끼우기도 쉽다.
+결과 객체의 `toUIMessageStreamResponse()`는 AI SDK 7에서 deprecated이며 다음 major에서 사라진다. 그래도 독립 헬퍼 `toUIMessageStream`과 `createUIMessageStreamResponse`를 조합한 방식과 내보내는 바이트가 같고, 제공자 오류 원문을 가리는 기본 동작도 같다. 지금 옮겨도 동작이 달라지지 않으므로, 메서드가 실제로 사라지는 major 판올림 때 옮긴다. 에피소드 진행은 모델 출력을 그대로 흘리지 않고 장면 단위 part로 나눠 쓰므로 writer로 스트림을 직접 만든다.
 
 ## 재검토 조건
 
+- `ai`를 다음 major로 올릴 때. 결과 객체의 `toUIMessageStreamResponse()`가 사라지므로 그 경로를 독립 헬퍼로 옮긴다.
 - AI 기능이 대화가 아닌 한 번의 생성 요청으로 바뀔 때
 - `expo/fetch`가 iOS 또는 Android에서 UI message stream을 안정적으로 처리하지 못할 때
 - Hono나 Vercel Functions가 AI SDK 응답 스트리밍을 안정적으로 전달하지 못할 때
