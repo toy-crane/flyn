@@ -14,7 +14,7 @@
 ### 워크플로 구조
 
 - 검사와 배포는 `.github/workflows/ci.yml` 하나가 PR과 `main` push에서 실행한다. 배포 잡은 같은 실행의 게이트 잡에 `needs`로 잇고, 다른 실행의 검사 결과를 조회하며 기다리지 않는다.
-- `fingerprint.yml`은 PR마다 iOS fingerprint를 계산하고, `fingerprint-labels.yml`은 `main`의 코드로 라벨만 쓴다. 둘은 `ci.yml`과 따로 둔다. 파괴적 마이그레이션 감지와 Codex 리뷰 확인은 라벨·리뷰 이벤트에 반응하는 별도의 작은 PR 워크플로가 맡고, `ci.yml`은 라벨 이벤트로 다시 돌지 않는다. 운영 연결만 읽어 보던 수동 워크플로는 두지 않는다.
+- `fingerprint.yml`은 PR마다 iOS fingerprint를 계산하고, `fingerprint-labels.yml`은 `main`의 코드로 라벨만 쓴다. 둘은 `ci.yml`과 따로 둔다. 파괴적 마이그레이션 감지와 Codex 리뷰 확인은 라벨 이벤트와 Codex 댓글 이벤트에 반응하는 별도의 작은 PR 워크플로가 맡고, `ci.yml`은 라벨 이벤트로 다시 돌지 않는다. 운영 연결만 읽어 보던 수동 워크플로는 두지 않는다.
 - 게이트 잡 이름 `Required validation`과 `Required database validation`은 브랜치 보호의 필수 검사 이름이므로 바꾸지 않는다. 게이트는 항상 실행하고, 선행 잡이 정당하게 건너뛰었을 때만 통과한다. 실패, 취소, 판정 잡 실패는 통과로 처리하지 않는다.
 - PR 실행은 PR 번호별 그룹에서 진행 중인 실행을 취소한다. `main` 실행은 운영 그룹에서 취소하지 않는다. 대기 중인 `main` 실행은 더 새 실행에 밀릴 수 있다.
 - 운영 배포 잡은 GitHub 환경 `production` 하나를 쓴다. 이 환경은 보호된 브랜치에서만 배포하도록 두고 필수 승인자를 두지 않는다. `main`은 PR 필수를 켜서 PR을 거치지 않은 push를 받지 않는다.

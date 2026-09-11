@@ -42,6 +42,15 @@ from version-controlled artifacts.
 
 - Flag unexpected `DROP`, `TRUNCATE`, `CASCADE`, destructive rollback SQL, or a
   drop-and-recreate sequence that may be a rename or ordering artifact.
+- A statement that drops stored data needs a `-- 삭제 이유:` comment directly
+  above it that says what disappears, why that is safe, and when the user
+  decided it. Report a missing or vague reason, and any `squawk-ignore` that
+  hides such a statement. A person approves it on the pull request; approval
+  is never the reviewer's call.
+- A migration that rewrites existing rows or changes a populated column's type
+  should come with a preservation case in `supabase/upgrade-tests/<version>/`
+  (`before.sql` and `after.test.sql`). CI runs a case when both files exist but
+  never requires one, so report its absence when the change needs it.
 - Check type narrowing, lossy casts, default or identity changes, and adding
   `NOT NULL`, unique, check, or foreign-key constraints to populated tables.
 - For DML and backfills, check predicates, null handling, ordering before new
