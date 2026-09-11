@@ -13,13 +13,12 @@
 - 2026-09-10: PR #60 병합 커밋 `29e07ead37240517010d82c27c48142a81c19c1e`의 [운영 DB 배포](https://github.com/toy-crane/flyn/actions/runs/34427601260)가 성공했다. 첫 시도는 필수 검사 미완료로 운영 연결 전에 차단됐고, 두 번째 시도에서 BlurHash SQL을 적용했다. 세 번째 시도도 성공했으며 상태 파일 SHA `2ce2b6c6e041663d5b7db6e4b17a0ad65a837198`이 같아 중복 적용·상태 쓰기가 없었다.
 - 적용 후 nullable text 열을 확인했다. 스토리 5개·에피소드 25개와 스토리 ID 지문 `9c07e9bf313278c4a2f062c9bd47d594`가 적용 전후 같다. seed·Storage·Auth는 변경하지 않았다.
 - 같은 시간에 PR #59가 main에 들어왔다. 새 커밋 `009bf9d` 대상 실행 두 개는 필수 검사 미완료로 차단됐다. 두 작업의 실행 구간은 겹치지 않았다. 새 마이그레이션 `20260909153801`, `20260910015016`은 이번 적용 대상이 아니며 다음 배포 전에 별도 검토한다.
-- `.github/workflows/deploy.yml`은 현재 DB 단계만 수동 실행한다. 전체 자동 배포와 API·EAS 연결 완료를 뜻하지 않는다.
-- 같은 SHA의 필수 검사 두 개가 성공해야 시작한다. `deployment-state` 브랜치에 요청과 확인 결과를 기록하며, 없는 기록을 성공 이력으로 추정하지 않는다.
 - 첫 허용 항목은 nullable text 열 추가인 `20260909123219`다. 전용 Supabase 검토에서 actionable finding이 없었고 기존 앱의 NULL 처리를 확인했다. 운영 잠금 시간과 실제 이전 앱 동작은 별도 검증 대상이다. seed·Storage·Auth 변경은 포함하지 않는다.
 - 2026-09-10: 스토리 만들기의 세 항목을 허용 목록에 넣었다. `20260910091856`과 `20260910093000`은 `impact: none`이다. 앞은 기존 행을 읽지도 바꾸지도 않는 함수 하나를 만들고, 뒤는 `storage.objects`에 넣기 정책 하나를 더한다. `20260910071055`는 `impact: preserve`다. `stories`에 `owner_id`와 `created_at`을 더하고 `slug`·`position`의 not null을 풀며 외래키 여섯 개를 다시 만든다. 세 항목 모두 `supabase-reviewer` 검토를 거쳤고 지적받은 것을 고쳤으며, 격리 스택에서 마이그레이션·lint·pgTAP·타입·스키마 diff와 `20260910071055`의 데이터 보존 검사가 지나갔다.
 - `20260910071055`의 운영 잠금 시간은 재지 못했다. 로컬 데이터로는 잴 수 없다. 외래키 여섯 개를 다시 만드는 동안 `stories`와 그 자식 테이블이 잠긴다. 적용은 사용자가 적은 시간대에 하고, 적용 뒤 스토리 5개·에피소드 25개와 스토리 ID 지문이 그대로인지 확인한다. 세 API 역할의 권한 상태도 적용 뒤에 다시 본다.
 - `delete-account` Edge Function 원본이 이 변경에서 바뀌었다. 만든 표지 폴더까지 지운다. 함수 배포는 마이그레이션과 별개이므로 따로 올린다.
 - 2026-09-10: 검토한 SQL의 SHA-256 목록 `supabase/deployment-approvals.json`을 없앴다. 위 허용 목록 기록은 그 시점의 검토 내용으로 남긴다. 이제 새 마이그레이션의 사람 승인은 `flyn-production-review` 환경 하나가 맡는다. 위험한 변경의 별도 승인을 `impact.json`으로 대신하지 않는다.
+- 2026-09-11: 검증과 배포를 `ci.yml` 하나로 합치면서(#81) `deploy.yml`과 배포 상태 기록을 없앴다. 상태 파일 없이 배포가 성공한 것(#83, #84)을 확인한 뒤 원격 `deployment-state` 브랜치와 `DEPLOYMENT_STATE_SIGNING_KEY` Secret을 지웠다. 지금 배포 규칙은 [지속 배포](decisions/continuous-delivery.md)가 정한다.
 
 ## 프로젝트 정보
 
