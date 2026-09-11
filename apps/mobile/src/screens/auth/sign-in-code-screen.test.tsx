@@ -269,10 +269,10 @@ test("코드 확인이 1초를 넘기면 입력칸 자리에서 진행 상태를
   });
 
   expect(
-    screen.getByRole("progressbar", { name: "코드를 확인하고 있어요" })
+    screen.getByRole("progressbar", { name: "코드를 확인하고 있어요." })
   ).toBeOnTheScreen();
   expect(screen.queryByLabelText("인증 코드")).not.toBeOnTheScreen();
-  const progressLabel = screen.getByText("코드를 확인하고 있어요");
+  const progressLabel = screen.getByText("코드를 확인하고 있어요.");
 
   expect(progressLabel.props.adjustsFontSizeToFit).toBeUndefined();
   expect(progressLabel.props.minimumFontScale).toBeUndefined();
