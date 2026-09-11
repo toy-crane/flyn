@@ -101,9 +101,7 @@
 
 ## 보존할 근거
 
-- 선택 화면, 행 오른쪽 표시, 외부 이동 글리프와 파괴적 행 규칙은 2026-09-02에
-  `toy-crane/dearly@0438e47`의 `docs/decisions/mobile-ui-foundation.md`와 설정
-  구현을 기준으로 맞췄다. 볼 파일은
+- 선택 화면, 행 오른쪽 표시, 외부 이동 글리프와 파괴적 행 규칙은 dearly의
+  `docs/decisions/mobile-ui-foundation.md`와 설정 구현을 기준으로 맞췄다. 볼 파일은
   [Expo 참조 저장소 색인](../references/expo-reference-repos.md)의 dearly 항목에
-  있다. dearly의 런타임 버전 행과 글자 배율 상한은 가져오지 않았다. iOS 행 앞
-  아이콘은 처음에 제외했다가 같은 날 사용자가 보고 가져오기로 했다.
+  있다. dearly의 런타임 버전 행과 글자 배율 상한은 가져오지 않았다.

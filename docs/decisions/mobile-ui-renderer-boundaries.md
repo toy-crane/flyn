@@ -62,8 +62,6 @@ Settings는 프로필과 선택 화면으로 이어지는 계층이므로 시트
 
 ## 보존할 근거
 
-- 설정 계층의 화면 등록 방식과 iOS·Android 헤더 규칙은 2026-09-02에 `toy-crane/dearly@0438e47`의 `docs/decisions/mobile-ui-foundation.md`를 기준으로 맞췄다. dearly는 Native Tabs 없이 Stack 하나로 앱을 구성하므로 "Stack 헤더 옵션을 전역에서 한 번 정한다"는 규칙은 그대로 가져오지 않았다. 이 앱의 루트 Stack은 탭, 대화, 에피소드가 각자 헤더를 그려 `headerShown: false`이고, 설정 세 화면만 한 옵션 헬퍼를 공유한다.
-- 설치된 `@expo/ui 57.0.14`에는 Compose `selectable(selected, handler, "radioButton")` modifier와 `RadioButton`, SwiftUI `accessibilityAddTraits`, `Host`의 `colorScheme` 속성이 있다. 선택 화면의 선택 상태는 이 API로 화면 읽기 기능에 전달한다.
-
-- 검증에 사용한 `@expo/ui 57.0.11`의 Android `Switch label`은 보이는 라벨과 스위치를 별도 접근성 노드로 내보내고 라벨 색상 API를 제공하지 않는다. 앱은 이 한계를 고치기 위한 패치나 플랫폼별 Settings 트리를 두지 않고 공통 기본 `Switch`를 유지한다. `@expo/ui`를 올릴 때 동작이 바뀌었는지 다시 확인한다.
-- 2026-08-16 Android Development Build의 설정 화면에서 다시 확인했다. `알림` 라벨은 `android.widget.TextView`로, `notifications-switch`는 이름 없는 `android.view.View`로 같은 행 아래 형제 노드로 나왔다. `햅틱 반응`과 `haptics-switch`도 같았다. `SwitchProps`는 `value`, `onValueChange`, `label`, `disabled`, `testID`, `modifiers`만 선언해 라벨 색상 API도 그대로 없다.
+- 설정 계층의 화면 등록 방식과 iOS·Android 헤더 규칙은 dearly의 `docs/decisions/mobile-ui-foundation.md`를 기준으로 맞췄다. dearly는 Native Tabs 없이 Stack 하나로 앱을 구성하므로 "Stack 헤더 옵션을 전역에서 한 번 정한다"는 규칙은 그대로 가져오지 않았다. 이 앱의 루트 Stack은 탭, 대화, 에피소드가 각자 헤더를 그려 `headerShown: false`이고, 설정 세 화면만 한 옵션 헬퍼를 공유한다.
+- `@expo/ui`에는 Compose `selectable(selected, handler, "radioButton")` modifier와 `RadioButton`, SwiftUI `accessibilityAddTraits`, `Host`의 `colorScheme` 속성이 있다. 선택 화면의 선택 상태는 이 API로 화면 읽기 기능에 전달한다.
+- `@expo/ui`의 Android `Switch label`은 보이는 라벨과 스위치를 별도 접근성 노드로 내보내고 라벨 색상 API를 제공하지 않는다. `SwitchProps`는 `value`, `onValueChange`, `label`, `disabled`, `testID`, `modifiers`만 선언한다. 앱은 이 한계를 고치기 위한 패치나 플랫폼별 Settings 트리를 두지 않고 공통 기본 `Switch`를 유지한다. `@expo/ui`를 올릴 때 동작이 바뀌었는지 다시 확인한다.

@@ -14,7 +14,7 @@
 - Jest와 React Native Testing Library 관련 패키지는 모바일 앱 워크스페이스의 개발 의존성이다. `agent-device`는 앱에 번들되지 않는 저장소 공용 개발 의존성이다.
 - Skill은 에이전트에게 사용 절차를 제공할 뿐이므로 `agent-device` CLI를 대체하지 않는다.
 - Jest 계층은 Expo 네이티브 API를 모킹하여 빠르게 실행한다. 네이티브 모듈, 운영체제 상호작용, 실제 렌더링 및 런타임 진단은 Development Build와 `agent-device`로 검증한다.
-- 현재 범위는 iOS와 Android의 로컬 Simulator·Emulator 검증이다. 원격 기기 호스트, 기기 팜, CI E2E, EAS Workflows 및 실기기 자동화는 별도 결정이 필요하다.
+- 현재 범위는 iOS와 Android의 로컬 Simulator·Emulator 검증이다. 원격 기기 호스트, 기기 팜, CI E2E와 실기기 자동화는 별도 결정이 필요하다. 배포에 쓰는 EAS Workflows는 [검증과 내부 테스트 배포](continuous-delivery.md)가 정한다.
 - Expo Web 테스트는 모바일 제품 범위에 포함하지 않는다.
 
 ## 이유
@@ -45,4 +45,4 @@
 - iOS는 러너 로그에 `AGENT_DEVICE_RUNNER_REPAIR_TEXT_ENTRY expectedLength=6 observedLength=3`을 남긴다. `observedLength=3`은 닉네임 칸의 placeholder `닉네임`이다. 로그 경로는 `agent-device logs path`가 알려 주는 세션 폴더의 `runner.log`다.
 - Android도 증상은 같지만 텍스트 입력을 컴파일된 helper APK가 맡아 소스로 확인하지 못했다. 위 로그 표시도 iOS에서만 남는다. Android에서는 입력 방법을 바꿔 가며 비교한다.
 - 시뮬레이터 키패드를 직접 눌러 넣거나 `adb shell input text`로 넣으면 다음 화면의 입력칸은 비어 있다. 앱이 화면 사이로 값을 옮기는 것이 아니다. 화면을 넘기는 입력에서 다음 화면에 값이 남아 있으면 앱보다 이 동작을 먼저 의심한다.
-- 2026-08-17에 확인했다. `agent-device`를 올릴 때 이 동작이 남아 있는지 다시 본다.
+- `agent-device`를 올릴 때 이 동작이 남아 있는지 다시 본다.

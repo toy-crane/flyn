@@ -53,7 +53,7 @@
 ## 보존할 근거
 
 - 설치된 Expo Router `NativeTabs`는 `Trigger.Icon`의 `sf`와 `md` 정의를 각 플랫폼의 네이티브 탭 아이콘으로 변환한다.
-- Expo SDK 57의 [`@expo/ui` `Icon`](https://docs.expo.dev/versions/v57.0.0/sdk/ui/universal/icon/)은 `Host` 안에서 iOS SF Symbol과 Android Material Symbol XML을 렌더링한다. 설치된 `57.0.14`의 `IconName` 타입은 Android 쪽으로 `ImageSourcePropType`만 받고, 문서가 그 출처로 `@expo/material-symbols`를 지목한다. 설정의 외부 이동 글리프가 이 경로를 쓴다.
+- Expo SDK 57의 [`@expo/ui` `Icon`](https://docs.expo.dev/versions/v57.0.0/sdk/ui/universal/icon/)은 `Host` 안에서 iOS SF Symbol과 Android Material Symbol XML을 렌더링한다. `@expo/ui`의 `IconName` 타입은 Android 쪽으로 `ImageSourcePropType`만 받고, 문서가 그 출처로 `@expo/material-symbols`를 지목한다. 설정의 외부 이동 글리프가 이 경로를 쓴다.
 - `react-native-svg`는 HeroUI Native의 직접 peer dependency로 이미 모바일 앱에 설치되어 있고, HeroUI Native의 기본 검색·닫기·체크 아이콘도 SVG로 렌더링한다.
 - Expo SDK 57의 `expo-symbols`는 Android에서 약 939KB인 기본 Material Symbols 폰트를 `expo-font`로 불러오고 완료 전에는 같은 크기의 빈 뷰를 렌더링한다.
 - 설치된 Expo Router의 `Stack.Toolbar.Button`은 아이콘을 iOS 심벌 이름 또는 Android 이미지 자산으로 받는다. Android 구현은 이미지 소스가 없으면 경고를 남기고 `null`을 반환한다. 그래서 아이콘을 빠뜨린 버튼은 화면에도 접근성 트리에도 나타나지 않는다.

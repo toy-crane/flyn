@@ -3,14 +3,14 @@
 ## 결정
 
 - CI의 PR 자동 코드 리뷰는 Codex GitHub 연동 하나만 쓴다. Claude는 CI에 붙이지 않는다.
-- `.github/workflows/claude-code-review.yml`을 두지 않고, `@claude` 멘션에 응답하던 `.github/workflows/claude.yml`도 지운다. 2026-09-10 사용자가 결정했다.
+- `.github/workflows/claude-code-review.yml`과 `@claude` 멘션에 응답하는 `.github/workflows/claude.yml`을 두지 않는다.
 - 푸시 전 점검은 각자 세션에서 `/code-review`로 한다.
 
 ## 경계
 
-- `/install-github-app`이 만들어주는 워크플로를 다시 설치하지 않는다. `CLAUDE_CODE_OAUTH_TOKEN` Secret은 워크플로를 지운 뒤 함께 지운다.
+- `/install-github-app`이 만들어주는 워크플로를 다시 설치하지 않는다.
 - 이 결정은 CI만 막는다. 사람이나 에이전트가 세션에서 리뷰를 돌리는 것은 그대로 한다.
-- 관리형 Claude Code Review GitHub App도 지금은 설치하지 않는다. Team·Enterprise 플랜 전용이고 리뷰 1회에 $15–25다.
+- 관리형 Claude Code Review GitHub App도 지금은 설치하지 않는다.
 
 ## 이유
 
@@ -23,25 +23,20 @@
 - [claude-code-action#1087](https://github.com/anthropics/claude-code-action/issues/1087)이 닫힐 때
 - Anthropic이 운영하는 관리형 [Code Review](https://code.claude.com/docs/en/code-review) GitHub App을 쓸 수 있는 플랜으로 옮길 때. Team과 Enterprise 전용이고 리뷰 1회에 $15–25다.
 - Codex 리뷰를 그만둘 때
-- 세션 밖에서 `@claude`를 불러 작업시킬 필요가 실제로 생길 때. 2026-09-10까지 `claude.yml`은 한 번도 조건에 걸려 실행된 적이 없다.
+- 세션 밖에서 `@claude`를 불러 작업시킬 필요가 실제로 생길 때. 지운 `claude.yml`은 한 번도 조건에 걸려 실행된 적이 없다.
 
 ## 계속 제외하는 대안
 
 - 도구 허용 목록만 넓히기: 거부가 24건이나 되는 실행도 인라인 코멘트를 남겼고, 거부가 12건인 실행은 아무것도 안 남겼다. 거부 건수와 결과가 따로 논다. 목록을 넓혀도 #1087이 남는다.
 - 저장소 접근 권한을 쓰기로 올리기: 코멘트는 액션이 OIDC로 교환한 App 토큰으로 쓴다. `pull-requests: read` 상태에서도 실제로 코멘트가 달린 실행이 있다.
 - 플러그인 없이 워크플로에 리뷰 프롬프트를 직접 쓰기: 두 버그는 피하지만 Codex 리뷰와 하는 일이 겹친다. 커뮤니티 블로그 글이 쓰는 방식이며, 리뷰 깊이가 프롬프트에 좌우된다.
-- `@claude` 멘션 워크플로만 남기기: 사람이 부를 때만 돌아 비용은 예측되지만, 실제로 부른 적이 없고 Codex 봇 댓글마다 건너뛴 실행만 쌓였다. 2026-09-10 사용자가 지우기로 했다.
+- `@claude` 멘션 워크플로만 남기기: 사람이 부를 때만 돌아 비용은 예측되지만, 실제로 부른 적이 없고 Codex 봇 댓글이 일으킨 `issue_comment` 이벤트마다 건너뛴 실행만 쌓였다.
 
 ## 보존할 근거
 
 - 2026-09-10 상류 확인. #1087은 3월부터 8월까지 독립된 보고 7건이 붙은 채 열려 있다. Max 플랜과 사설 저장소, 16k줄 PR과 39줄 PR에서 모두 재현됐고, 세 번 실행에 $0.95, $1.71, $2.05를 쓰고 코멘트 0개, 15분에 $5.24를 쓰고 코멘트 0개 같은 실측이 이 저장소 기록과 같다. 프롬프트에 `--comment`를 넣는 우회가 한 사람에게 통했지만 두 달 뒤 다른 두 사람은 그 우회를 쓰고도 아래 두 번째 실패에 걸렸다.
 - 같은 날 확인한 관련 열린 이슈. [#1646](https://github.com/anthropics/claude-code-action/issues/1646)은 플러그인이 비동기 에이전트를 기다리는 동안 액션이 세션을 끝내 리뷰가 시작도 안 되는데 잡은 성공으로 끝난다. [#1383](https://github.com/anthropics/claude-code-action/issues/1383)은 `/install-github-app`이 만드는 워크플로에 `--comment`와 쓰기 권한이 빠져 아무것도 안 한다. [#1458](https://github.com/anthropics/claude-code-action/issues/1458)은 프롬프트로 플러그인 스킬을 부르는 것 자체가 특정 커밋 이후 실패한다.
-- 이 저장소의 `claude.yml` 최근 실행 30건은 전부 건너뛰기였다. Codex 봇 댓글이 `issue_comment` 이벤트를 일으키고 `@claude` 조건에 걸리지 않은 결과다.
-
-- 실행 분류(2026년 8월 12일부터 14일까지 15건, 합계 약 $37). 코멘트를 남긴 실행 6건(PR 48 두 번, 52, 55, 58, 60), 플러그인 게이트가 건너뛴 것으로 보이는 실행 4건(PR 50 첫 실행, 53, 54, 56, 3–13턴에 $0.22–0.32), 리뷰를 돌리고 아무것도 남기지 않은 실행 5건(PR 49, 50 두 번째, 51, 57, 59, 9–24턴에 약 $8).
-- 실제 지적을 받은 PR은 4건이다(48, 55, 58, 60). PR 52는 "이상 없음" 요약만 받았다.
-- 권한 거부 건수와 결과 사이에 상관이 없다. PR 55와 58은 거부가 24건인데도 인라인 코멘트를 남겼고, PR 57은 거부 12건에 24턴을 돌고 아무것도 안 남겼다.
-- 실행 비용의 편차가 크다. PR 60 실행은 205턴에 $10.49를 썼고, 같은 날 다른 실행은 $0.22로 끝났다.
+- 이 저장소에서 돌린 리뷰 15건(합계 약 $37) 가운데 코멘트를 남긴 것은 6건이고, 5건은 리뷰를 돌리고도 아무것도 남기지 않았다. 권한 거부 건수와 결과는 상관이 없었고, 실행 한 번의 비용은 $0.22에서 $10.49까지 갈렸다.
 - `gh run rerun --debug`로는 가려진 SDK 출력이 열리지 않는다. 액션은 debug 모드에서도 "full output hidden for security"를 찍는다. `show_full_output: true`만 통한다.
 - 액션은 워크플로 파일이 기본 브랜치와 다르면 "Workflow validation failed"로 실행을 건너뛴다. 워크플로를 고치는 PR에서는 그 변경을 검증할 수 없다.
 - 액션은 PR head를 믿지 않아서 `.claude`, `CLAUDE.md`, `.mcp.json` 등을 `origin/main`에서 되돌린 뒤 리뷰한다. PR이 바꾼 지침은 리뷰에 반영되지 않는다.

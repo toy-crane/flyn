@@ -112,7 +112,6 @@
 
 - 네이티브 하단 스크롤 경계 효과가 현재 입력창 배치와 키보드 이동을 지원해 같은
   결과를 직접 제공할 때
-
 - `EnrichedMarkdownText`가 지원하는 React Native 버전 또는 접근성 동작이 현재
   앱과 맞지 않을 때
 - [CommonMark CJK 강조 이슈](https://github.com/commonmark/commonmark-spec/issues/650)처럼
@@ -156,9 +155,7 @@
   `apps/mobile/src/screens/chat/components/chat-panel.tsx`는 입력 영역 높이보다
   72px 높은 효과를 입력창과 함께 이동시킨다.
   `apps/mobile/src/shared/components/ui/blur-ramp.ios.tsx`는 시스템 재질에 위에서 아래로
-  짙어지는 마스크를 씌우고, Android 구현은 효과를 그리지 않는다. Flyn에서는 이
-  표현을 구현한 뒤 실제 화면으로 확인해야 한다.
-
+  짙어지는 마스크를 씌우고, Android 구현은 효과를 그리지 않는다.
 - 설치한 `react-native-enriched-markdown@1.0.1`의 API 문서는 CommonMark가 전체
   Markdown을 하나의 `TextView`로 그리고, GFM은 텍스트와 표, 코드, 수학 블록을
   여러 구간으로 나눠 구간 사이를 선택할 수 없다고 밝힌다. 같은 버전은 목록과
