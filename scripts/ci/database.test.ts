@@ -82,14 +82,14 @@ test("기존 마이그레이션을 삭제한 PR은 차단한다", () => {
   ).toBe(1);
 });
 
-test("새 마이그레이션에 데이터 영향 설명이 없으면 차단한다", () => {
+test("새 마이그레이션은 데이터 영향 파일 없이 통과하고 보존 검사는 요청하지 않는다", () => {
   const result = changedFile(
     "supabase/migrations/20260102000000_next.sql",
     null,
-    "select 1;"
+    "create table example (id int);"
   );
-  expect(result.code).toBe(1);
-  expect(result.stderr).toContain("데이터 영향");
+  expect(result.code).toBe(0);
+  expect(JSON.parse(result.stdout)).toEqual({ database: true, upgrades: [] });
 });
 
 test("DB 생성 타입만 바꾸어도 DB 검증을 요청한다", () => {
@@ -102,50 +102,14 @@ test("DB 생성 타입만 바꾸어도 DB 검증을 요청한다", () => {
   expect(JSON.parse(result.stdout)).toEqual({ database: true });
 });
 
-test("데이터 변환을 선언했지만 보존 SQL이 없으면 차단한다", () => {
+test("보존 검사 파일이 둘 다 있으면 그 버전의 보존 검사를 요청한다", () => {
   const result = changedFile(
     "supabase/migrations/20260102000000_next.sql",
     null,
-    "select 1;",
-    {
-      "supabase/upgrade-tests/20260102000000/impact.json": JSON.stringify({
-        impact: "preserve",
-        reason: "기존 값을 새 형식으로 옮긴다",
-      }),
-    }
-  );
-  expect(result.code).toBe(1);
-  expect(result.stderr).toContain("before.sql");
-});
-
-test("빈 테이블 추가는 이유를 기록하고 보존 DB 검사를 건너뛴다", () => {
-  const result = changedFile(
-    "supabase/migrations/20260102000000_next.sql",
-    null,
-    "create table example (id int);",
-    {
-      "supabase/upgrade-tests/20260102000000/impact.json": JSON.stringify({
-        impact: "none",
-        reason: "기존 테이블에 접근하지 않는 빈 테이블 추가",
-      }),
-    }
-  );
-  expect(result.code).toBe(0);
-  expect(JSON.parse(result.stdout)).toEqual({ database: true, upgrades: [] });
-});
-
-test("데이터 변환은 해당 버전의 보존 검사를 요청한다", () => {
-  const result = changedFile(
-    "supabase/migrations/20260102000000_next.sql",
-    null,
-    "select 1;",
+    "update example set value = 1;",
     {
       "supabase/upgrade-tests/20260102000000/after.test.sql": "select 1;",
       "supabase/upgrade-tests/20260102000000/before.sql": "select 1;",
-      "supabase/upgrade-tests/20260102000000/impact.json": JSON.stringify({
-        impact: "preserve",
-        reason: "ID와 값을 보존한다",
-      }),
     }
   );
   expect(result.code).toBe(0);
@@ -155,20 +119,43 @@ test("데이터 변환은 해당 버전의 보존 검사를 요청한다", () =>
   });
 });
 
-test("데이터 영향 이유가 비었거나 잘못된 분류이면 차단한다", () => {
-  for (const impact of [
-    { impact: "none", reason: " " },
-    { impact: "typo", reason: "test" },
-  ]) {
+test("보존 검사 파일이 하나만 있으면 차단한다", () => {
+  for (const file of ["before.sql", "after.test.sql"]) {
     const result = changedFile(
       "supabase/migrations/20260102000000_next.sql",
       null,
-      "select 1;",
-      {
-        "supabase/upgrade-tests/20260102000000/impact.json":
-          JSON.stringify(impact),
-      }
+      "update example set value = 1;",
+      { [`supabase/upgrade-tests/20260102000000/${file}`]: "select 1;" }
     );
     expect(result.code).toBe(1);
+    expect(result.stderr).toContain("before.sql과 after.test.sql");
   }
+});
+
+test("보존 검사 SQL이 비었으면 차단한다", () => {
+  const result = changedFile(
+    "supabase/migrations/20260102000000_next.sql",
+    null,
+    "update example set value = 1;",
+    {
+      "supabase/upgrade-tests/20260102000000/after.test.sql": "select 1;",
+      "supabase/upgrade-tests/20260102000000/before.sql": " \n",
+    }
+  );
+  expect(result.code).toBe(1);
+  expect(result.stderr).toContain("보존 SQL이 비었습니다");
+});
+
+test("기존 보존 검사만 고쳐도 그 버전을 다시 검사한다", () => {
+  const result = changedFile(
+    "supabase/upgrade-tests/20260101000000/after.test.sql",
+    "select 1;",
+    "select 2;",
+    { "supabase/upgrade-tests/20260101000000/before.sql": "select 1;" }
+  );
+  expect(result.code).toBe(0);
+  expect(JSON.parse(result.stdout)).toEqual({
+    database: true,
+    upgrades: ["20260101000000"],
+  });
 });

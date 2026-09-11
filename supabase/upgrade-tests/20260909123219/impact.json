@@ -1,4 +1,0 @@
-{
-  "impact": "none",
-  "reason": "stories에 nullable text 열만 추가한다. 기존 열과 값, ID, 관계를 바꾸지 않으며 기존 행은 NULL을 사용한다."
-}
