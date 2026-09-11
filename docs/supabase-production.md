@@ -19,6 +19,7 @@
 - `delete-account` Edge Function 원본이 이 변경에서 바뀌었다. 만든 표지 폴더까지 지운다. 함수 배포는 마이그레이션과 별개이므로 따로 올린다.
 - 2026-09-10: 검토한 SQL의 SHA-256 목록 `supabase/deployment-approvals.json`을 없앴다. 위 허용 목록 기록은 그 시점의 검토 내용으로 남긴다. 이제 새 마이그레이션의 사람 승인은 `flyn-production-review` 환경 하나가 맡는다. 위험한 변경의 별도 승인을 `impact.json`으로 대신하지 않는다.
 - 2026-09-11: 검증과 배포를 `ci.yml` 하나로 합치면서(#81) `deploy.yml`과 배포 상태 기록을 없앴다. 상태 파일 없이 배포가 성공한 것(#83, #84)을 확인한 뒤 원격 `deployment-state` 브랜치와 `DEPLOYMENT_STATE_SIGNING_KEY` Secret을 지웠다. 지금 배포 규칙은 [지속 배포](decisions/continuous-delivery.md)가 정한다.
+- 2026-09-11: 운영 배포의 사람 승인을 PR merge로 옮기는 변경을 구현했다. `flyn-production-review` 환경 승인, `impact.json`, `Deployment access` 수동 workflow를 없앤다. 데이터를 지우는 마이그레이션은 PR에서 squawk가 찾고 사람이 `DB:destructive-approved` 라벨로 승인한다. GitHub 환경과 브랜치 보호 설정은 이 변경을 합친 뒤 바꾼다. 규칙은 [검증과 내부 테스트 배포](decisions/continuous-delivery.md)와 [Supabase 스키마 작업 방식](decisions/supabase-schema-workflow.md)이 정한다.
 
 ## 프로젝트 정보
 

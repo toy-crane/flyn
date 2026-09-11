@@ -1,0 +1,5 @@
+# Read by the merge gate's check for statements that drop data
+# (scripts/ci/merge-gate.ts). The Supabase CLI targets Postgres 17 here.
+pg_version = "17.0"
+# The Supabase CLI sends each migration file as one implicit transaction.
+assume_in_transaction = true

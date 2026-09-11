@@ -42,3 +42,4 @@
 - `gh run rerun --debug`로는 가려진 SDK 출력이 열리지 않는다. 액션은 debug 모드에서도 "full output hidden for security"를 찍는다. `show_full_output: true`만 통한다.
 - 액션은 워크플로 파일이 기본 브랜치와 다르면 "Workflow validation failed"로 실행을 건너뛴다. 워크플로를 고치는 PR에서는 그 변경을 검증할 수 없다.
 - 액션은 PR head를 믿지 않아서 `.claude`, `CLAUDE.md`, `.mcp.json` 등을 `origin/main`에서 되돌린 뒤 리뷰한다. PR이 바꾼 지침은 리뷰에 반영되지 않는다.
+- 2026-09-11 확인한 Codex 연동의 동작. Codex는 PR을 열 때, draft를 준비 상태로 바꿀 때, `@codex review` 댓글이 달릴 때만 리뷰하고 push마다 다시 리뷰하지 않는다. 지적이 없으면 PR 리뷰를 남기지 않고 👍 반응과 요약 댓글(`<!-- codex-pull-request-review-summary -->`)만 고친다. 그 요약 댓글의 표가 리뷰한 커밋과 완료 여부를 적으므로 필수 검사는 이 댓글을 읽는다. 댓글 수정은 `issue_comment` 이벤트라 `main`의 워크플로가 돌고 잡 결과가 `main` 커밋에 붙기 때문에, 결과를 PR head 커밋의 commit status `Codex review`로 쓴다. 같은 날 PR #83과 #84에는 사용량 한도 안내만 달리고 리뷰가 없었다.

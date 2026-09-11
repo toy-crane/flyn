@@ -1,0 +1,77 @@
+name: Merge gate
+
+# Merging a pull request is the production approval, so these two required
+# checks decide whether it may merge. See docs/decisions/continuous-delivery.md.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+  # Codex reports a finished review by editing its summary comment. This event
+  # runs main's copy of the workflow, which writes a commit status on the pull
+  # request's head commit because a job result here would land on main.
+  issue_comment:
+    types: [created, edited]
+
+permissions: {}
+
+# No concurrency group: a cancelled run could skip removing a stale approval
+# label. Every run reads live labels and comments, so the newest run is right.
+
+jobs:
+  destructive:
+    name: Destructive migration approval
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.23.2"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.0"
+      # Kept outside the repository so no other job installs it.
+      - name: Restore the pinned squawk CLI
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          key: cli-${{ runner.os }}-squawk-2.65.0
+          path: ~/.cache/flyn-cli-squawk
+      - name: Install the pinned squawk CLI when the cache is empty
+        run: |
+          if [ ! -x "$HOME/.cache/flyn-cli-squawk/bin/squawk" ]; then
+            npm install --global --prefix "$HOME/.cache/flyn-cli-squawk" squawk-cli@2.65.0
+          fi
+          echo "$HOME/.cache/flyn-cli-squawk/bin" >> "$GITHUB_PATH"
+      - name: Check new migrations for statements that drop data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun scripts/ci/merge-gate.ts destructive
+
+  codex:
+    name: Report Codex review status
+    if: ${{ (github.event_name == 'pull_request' && contains(fromJSON('["opened", "synchronize", "reopened", "ready_for_review"]'), github.event.action)) || (github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.comment.user.login == 'chatgpt-codex-connector[bot]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: read
+      pull-requests: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.0"
+      - name: Write the Codex review status on the head commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun scripts/ci/merge-gate.ts codex
