@@ -1,8 +1,6 @@
 # Worktree 개발 세션
 
-## Decisions
-
-기기 풀, 자동 빌드·설치, 플린 앱 로그인 격리에 관한 아래 규칙은 기존 Simulator·Emulator 경로에 적용한다. 실기기는 이미 설치된 호환 Development Build를 LAN으로 연결하는 것만 다룬다.
+## 결정
 
 - 루트의 `bun run dev <ios|android>`를 저장소 전체 로컬 개발 세션의 기본 실행 명령으로 사용한다. 이 명령은 API, Metro와 대상 Simulator 또는 Emulator를 함께 시작한다. 명시적으로 선택한 실기기에는 같은 Wi-Fi의 LAN 연결을 제공한다.
 - 플랫폼 인수는 필수다. `bun run dev`만 실행하면 아무것도 시작하지 않고 사용법을 보여 준다. 플랫폼은 여러 개를 나열할 수 있고(`bun run dev ios android`) 적은 순서가 시작 순서다. 기기 부팅과 fingerprint 계산은 모든 플랫폼이 함께 진행하고, 빌드와 앱 열기는 적은 순서대로 한다.
@@ -32,15 +30,15 @@
 - Metro가 `/status`에서 준비됐다고 응답하면 현재 입력 fingerprint를 기록한다. 이 값은 해당 입력으로 캐시 초기화를 적용한 Metro가 준비됐다는 뜻이며 앱의 bundle 성공 여부를 뜻하지 않는다.
 - `bun run dev <ios|android> --clear`는 입력 fingerprint와 관계없이 해당 worktree의 Metro 캐시를 한 번 초기화한다. `dev:stop`은 Metro와 Gradle 캐시를 남기고 `dev:remove`와 사라진 worktree 회수는 두 캐시를 함께 지운다.
 - 모든 시작 명령은 새 자원을 배정하기 전에 저장소 상태를 실제 Git worktree와 실행 중인 프로세스에 맞춘다. 사라진 worktree의 자원은 회수하고, 살아 있는 worktree의 기기 배정과 앱 데이터는 유지한다.
-
 - 실기기 연결은 `bun run dev <ios|android> --physical`로 명시한다. 세션은 Mac의 LAN IPv4를 자동으로 고르고, `--host <IPv4>`를 주면 그 주소를 쓴다. 주소 변경은 다음 개발 시작 때 반영하며 환경 파일을 덮어쓰지 않는다. 연결 안내는 worktree와 목적지 주소를 함께 보여 준다.
 - 후보 주소가 없거나 여럿이어서 확실히 고를 수 없으면 임의의 주소를 골라 성공으로 보고하지 않는다. 실패한 연결과 다음 행동을 구분해 안내하고 `--host` 지정 방법을 알려 준다.
 - 실기기의 최초 빌드, 서명과 설치는 개발자가 미리 마치는 사전 준비다. `--physical`은 설치된 앱을 이번 worktree의 서버에 연결할 뿐 실기기에 앱을 빌드하거나 설치하지 않는다.
 - 실기기는 가상 기기 풀에 포함하지 않는다. 종료·자원 반납 시 실제 폰의 앱과 데이터를 삭제하거나 기기를 초기화하지 않는다.
 - 폰 하나의 앱 하나로 worktree를 번갈아 연다. 가상 기기와 달리 폰에 저장된 로그인 상태와 앱 데이터는 worktree별로 나누지 않는다. 완전한 격리가 필요하면 앱 설치 구조를 다시 정해야 한다.
 
-## Boundaries
+## 경계
 
+- 기기 풀, 자동 빌드·설치, 플린 앱 로그인 격리에 관한 규칙은 Simulator·Emulator 경로에 적용한다. 실기기는 이미 설치된 호환 Development Build를 LAN으로 연결하는 것만 다룬다.
 - 이 결정은 로컬 iOS Simulator, Android Emulator와 같은 Wi-Fi의 실제 iPhone·Android 폰 개발에 적용한다. Expo Web, 외부 네트워크의 원격 기기와 CI 기기 실행은 포함하지 않는다.
 - 실행 중에 네트워크를 계속 지켜보다 IP 변경을 스스로 복구하지 않는다. 바뀐 주소는 다음 개발 시작에서 반영한다.
 - 본인 폰에서 코드를 고쳐 가며 확인하는 로컬 개발만 다룬다. 외부 사용자에게 iOS 앱을 나눠 주는 일은 TestFlight의 몫이며 그 배포 설정은 이 계약이 정하지 않는다.
@@ -56,11 +54,10 @@
 - 자동 초기화는 Metro 캐시에만 적용한다. 네이티브 모듈, config plugin, Expo SDK 또는 React Native 변경으로 Development Build가 달라지는지는 별도의 native fingerprint가 판단한다.
 - worktree별 Gradle 홈은 Android native fingerprint를 바꾸지 않는다. 완성한 Android APK는 기존처럼 플랫폼과 native fingerprint를 기준으로 저장소 전체에서 공유한다.
 - `watchman watch-del-all`, `node_modules` 삭제와 패키지 재설치는 자동으로 실행하지 않는다. 캐시 초기화로 해결되지 않을 때 사람이 원인을 확인한 뒤 사용하는 진단 절차로 남긴다.
-
 - iOS 앱 삭제는 Keychain 전체 삭제를 뜻하지 않는다. 플린 세션 본문은 앱의 SQLite에 저장하므로 남은 암호화 키만으로 이전 세션을 복원하지 못한다. 기기 전체 초기화는 자동 반납 경로에서 실행하지 않는다.
 - 계정 제공자가 요구하는 재인증까지 막지는 않는다. 실제 Apple·Google 계정의 로그인 지속 여부는 직접 검증하지 않았다.
 
-## Why
+## 이유
 
 실기기는 Mac과 별개의 네트워크 장치이므로 가상 기기 전용 주소를 사용할 수 없다. 같은 Wi-Fi에서 개발하는 현재 요구에는 LAN 주소 자동 설정이 별도 VPN이나 공개 터널보다 준비할 것이 적다. 기존 worktree별 포트와 공용 Supabase는 유지한다.
 
@@ -96,7 +93,7 @@ Supabase 포트를 `env()`로 넘기지 않는 이유는 소유권이다. CLI는
 
 fingerprint마다 새 캐시 폴더를 만드는 대신 worktree마다 하나의 폴더를 계속 쓴다. 변경을 발견했을 때 Expo의 공식 초기화 경로를 실행하면 오래된 캐시 세대를 따로 세고 지우는 코드가 필요 없다. 전체 `bun.lock`을 읽으므로 모바일과 관계없는 패키지 변경에도 한 번 더 초기화할 수 있지만, 잘못된 캐시를 재사용하는 것보다 비용이 작고 동작을 설명하기 쉽다.
 
-## Reconsider when
+## 재검토 조건
 
 - 같은 컴퓨터에서 같은 slug의 저장소 clone을 둘 이상 동시에 실행해야 할 때
 - 같은 컴퓨터에서 대역 번호가 겹치는 프로젝트가 생기거나 프로젝트가 열 개를 넘을 때
@@ -117,10 +114,9 @@ fingerprint마다 새 캐시 폴더를 만드는 대신 worktree마다 하나의
 - 다음 개발 세션까지 기다리지 않고 Git worktree 삭제 직후 자원을 반드시 회수해야 할 때
 - 플랫폼별 5개보다 많은 기기를 동시에 사용해야 하거나 일반 종료 때도 배정을 반납해야 할 때
 
-## Still-rejected alternatives
+## 계속 제외하는 대안
 
 - 반납할 때 기기 전체 초기화: 플린 앱 데이터뿐 아니라 Apple·Google 기기 계정도 지워져 기기마다 다시 로그인해야 한다.
-
 - iOS를 기본 플랫폼으로 사용: 짧지만 실행 대상을 명령에서 확인할 수 없고 Android 작업에서도 실수로 iOS를 열 수 있다.
 - 실행 중인 기기나 이전 실행에서 플랫폼 추론: 같은 명령의 결과가 로컬 상태에 따라 달라져 사람과 에이전트가 예측하기 어렵다.
 - 브랜치 이름으로 실행 환경 식별: 브랜치 전환과 detached HEAD를 안정적으로 처리하지 못한다.
@@ -149,10 +145,9 @@ fingerprint마다 새 캐시 폴더를 만드는 대신 worktree마다 하나의
 - fingerprint마다 새 캐시 폴더 만들기: 자동 초기화와 같은 결과를 내면서 오래된 폴더를 세고 지우는 수명 관리가 추가된다.
 - `watchman watch-del-all`과 `node_modules` 재설치 자동화: 다른 프로젝트의 watcher를 끊고 실제 의존성 손상과 Metro 캐시 문제를 구분하기 어렵게 만든다.
 
-## Evidence worth preserving
+## 보존할 근거
 
 - 기준 포트는 API `3900`, Metro `8081`이다. 세션 없이 직접 실행하는 `apps/api`의 `dev` 명령은 1번 대역의 slot 0과 같은 `3901`을 쓴다.
-- 2026-09-02 이 컴퓨터에서 dearly의 Supabase 스택(`supabase_*_dearly`)이 `54321`～`54327`을, dearly 세션이 `3900`과 `8081`을 쓰고 있었다. flyn 기본 checkout은 slot 2(`3920`, `8101`)로 옮겨 가 있었고 Codex worktree 상태는 slot 0을 기록한 채였다. dearly의 세션 스크립트도 같은 기준 포트에서 시작한다.
 - Supabase CLI 2.113.0의 `supabase start`에는 포트 플래그가 없다. 컨테이너 이름은 `supabase_<서비스>_<project_id>`이며 "이미 실행 중"도 이 이름으로 판단한다. gitignore되지 않는 포트 덮어쓰기 파일 요청 [discussion #39585](https://github.com/orgs/supabase/discussions/39585)는 2025-10 이후 답이 없다.
 - 정수 포트의 `env()` 지원 요청 [supabase/cli#1551](https://github.com/supabase/cli/issues/1551)은 2025-12-04 maintainer가 `port = "env(VAR)"`가 동작함을 확인하고 닫았다. CLI의 `LoadEnvHook`은 변수가 비어 있으면 값을 바꾸지 않고, CLI는 `supabase/.env.local`, `.env.development.local`, `.env.development`, `.env` 순으로 읽는다.
 - 실행 중인 Supabase 스택 하나(dearly)의 컨테이너 메모리 합은 약 2.3GB였다(Docker 메모리 7.6GB). `supabase start`는 `edge_runtime.inspector_port`를 호스트에 열지 않는다.
@@ -163,13 +158,12 @@ fingerprint마다 새 캐시 폴더를 만드는 대신 worktree마다 하나의
 - 앱이 실제 연결한 Metro 주소는 `expo-router/build/getDevServer`에서 읽는다. Expo Router 57.0.18에서 React Native 0.86.3의 실제 bundle URL을 돌려주는 것을 확인했다. 공개 API가 아닌 내부 경로이므로 Expo를 올릴 때 다시 확인한다. `Constants.expoConfig.hostUri`도 같은 값을 주지만 스킴이 없고 터널에서는 포트가 빠진다.
 - 실기기 LAN 경로는 2026-09-07에 iPhone 14 / iOS 18.7.7과 Samsung SM-G991N / Android 15에서 동작했다. 다른 OS 버전이나 제조사로 이 결과를 일반화하지 않는다.
 - 생성된 iOS 설정의 `NSAllowsLocalNetworking`이 `true`, `NSAllowsArbitraryLoads`가 `false`이고 Android debug manifest가 HTTP를 허용해 개발용 LAN 평문 연결이 통한다. 배포용 설정은 바꾸지 않았으므로 이 경로가 스토어 빌드에서도 열려 있다고 보지 않는다.
-- 현재 앱에서 `EXPO_PUBLIC_API_URL`만 `http://127.0.0.1:3900`과 `http://127.0.0.1:3910`으로 바꿔 만든 iOS native fingerprint는 모두 `4a36fb8683f551d9b9cf800effec1f673b736511`이었다. slot별 API 포트는 공용 네이티브 빌드 재사용을 막지 않는다.
-- 삭제한 `.claude/worktrees/hello-8dab8b`에서 만든 Gradle 결과를 다른 worktree가 `FROM-CACHE`로 읽었고, 존재하지 않는 `AndroidManifest.xml` 절대 경로를 열려다 `:app:packageDebug`가 실패했다. Metro와 API가 정상이어도 전역 Gradle 캐시는 별도로 격리해야 한다는 직접 근거다.
+- 현재 앱에서 `EXPO_PUBLIC_API_URL`만 `http://127.0.0.1:3900`과 `http://127.0.0.1:3910`으로 바꿔 만든 iOS native fingerprint는 서로 같았다. slot별 API 포트는 공용 네이티브 빌드 재사용을 막지 않는다.
+- 삭제한 worktree에서 만든 Gradle 결과를 다른 worktree가 `FROM-CACHE`로 읽었고, 존재하지 않는 `AndroidManifest.xml` 절대 경로를 열려다 `:app:packageDebug`가 실패했다. Metro와 API가 정상이어도 전역 Gradle 캐시는 별도로 격리해야 한다는 직접 근거다.
 - Gradle 공식 문서는 daemon의 기본 유휴 종료 시간이 3시간이며, `GRADLE_OPTS`의 `-Dorg.gradle.daemon=false`로 daemon을 끌 수 있다고 설명한다. [Gradle Daemon](https://docs.gradle.org/current/userguide/gradle_daemon.html)
 - 패키지를 올린 뒤 새 Metro 프로세스를 시작했는데도 `expo-router@57.0.11` 경로가 번들에 남았다. 같은 checkout을 새 `TMPDIR`로 시작하자 현재 설치 버전인 `expo-router@57.0.13`을 사용했다. 실행 중이던 프로세스 재사용이 아니라 OS 임시 폴더 아래 캐시가 관여했다는 직접 근거다.
 - Expo 공식 문서는 설정 변경 뒤 `expo start --clear`를 안내한다. Expo의 Worklets cache-key 수정 [PR #39541](https://github.com/expo/expo/pull/39541)은 서로 다른 프로젝트의 전역 변환 캐시가 섞일 수 있음을 재현했고, 동시 worktree 캐시 쓰기 수정 [PR #46171](https://github.com/expo/expo/pull/46171)은 공유 캐시가 Expo의 기본 방향임을 보여 준다.
 - Expo worktree 캐시 분리 제안 [PR #43113](https://github.com/expo/expo/pull/43113)은 같은 문제 부류를 확인했지만 닫혔다. 유지보수자는 절대 경로로 캐시를 무효화하기보다 위치에 따라 달라지는 변환 결과를 고쳐야 한다고 설명했다. 이 저장소의 `TMPDIR` 분리는 Metro의 변환 키를 바꾸지 않는 로컬 실행 경계다.
 - 서로 다른 worktree에서 `expo run:ios`를 동시에 실행하면 두 번째 실행이 다른 worktree의 시뮬레이터를 가로채던 버그 [expo/expo#42611](https://github.com/expo/expo/issues/42611)은 [PR #43673](https://github.com/expo/expo/pull/43673)이 2026-03에 수정해 `@expo/cli`에 들어갔다. 이 저장소의 기기 풀은 이 버그가 아니라 worktree별 앱 데이터와 로그인 상태의 소유권 때문에 존재하므로, 이 수정은 기기 풀 구조를 바꿀 이유가 아니다.
 - Expo는 Metro 변환 캐시 key에서 절대 경로를 의도적으로 배제하고, monorepo의 동일 구조 프로젝트를 구분하는 상대 프로젝트 루트를 key에 넣었으며([PR #29733](https://github.com/expo/expo/pull/29733)), Babel 설정 변경의 캐시 무효화를 자동화했다([PR #45260](https://github.com/expo/expo/pull/45260), [PR #45495](https://github.com/expo/expo/pull/45495)). 재검토 조건 "공유 캐시의 모든 입력을 안정적으로 구분할 때"를 향한 진행이지만, 이 저장소가 겪은 패키지 교체 사례(위의 `expo-router` 항목)는 이 수정들이 덮지 않으므로 worktree별 캐시 격리는 유지한다.
-
 - iOS Simulator와 Android Emulator에서 공용 빌드 설치, 플린 앱 삭제, 앱 밖의 확인용 파일 보존, 같은 빌드 재설치를 확인했다. iOS는 삭제 전 앱 컨테이너의 파일이 재설치 뒤 사라진 것도 확인했다. 이 검증은 기기 데이터 보존을 확인했으며 실제 계정 로그인 지속을 증명하지는 않는다.
