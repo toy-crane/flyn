@@ -20,7 +20,7 @@ test("모바일 배포는 API 성공 뒤 실행하고 로컬 호출은 원격 �
   const mobile = workflow.jobs.deploy_mobile;
   expect(mobile.needs).toEqual([
     "changes",
-    "plan",
+    "release",
     "deploy_database",
     "deploy_edge",
     "deploy_api",

@@ -173,40 +173,39 @@ jobs:
             test "$DATABASE_RESULT" = skipped
           fi
 
-  plan:
-    name: Plan production approval
+  # Merging the pull request is the only human approval. A commit on main
+  # releases without waiting on anyone once its checks pass.
+  release:
+    name: Start production release
     needs: [changes, required_validation, required_database]
     # The implicit success() also fails when a job further up was skipped, such
     # as Database validation on a commit without migrations, so name the gate
     # results instead.
     if: ${{ !cancelled() && needs.changes.result == 'success' && needs.required_validation.result == 'success' && needs.required_database.result == 'success' && github.ref == 'refs/heads/main' && github.repository == 'toy-crane/flyn' && needs.changes.outputs.deploy == 'true' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    outputs:
-      database_environment: ${{ steps.review.outputs.database_environment }}
-      edge_environment: ${{ steps.review.outputs.edge_environment }}
+    timeout-minutes: 1
+    permissions: {}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version: "1.4.0"
-      - id: review
-        name: Choose protected environments for production changes
+      - name: Record the services this commit releases
         env:
           BASE_SHA: ${{ needs.changes.outputs.base }}
-        run: bun scripts/ci/plan-production-review.ts
+          DATABASE: ${{ needs.changes.outputs.database }}
+          EDGE: ${{ needs.changes.outputs.edge }}
+          API: ${{ needs.changes.outputs.api }}
+          MOBILE: ${{ needs.changes.outputs.mobile }}
+        run: |
+          {
+            echo "배포 커밋: $GITHUB_SHA"
+            echo "기준 커밋: ${BASE_SHA:-없음, 전체를 배포한다}"
+            echo "대상: database=$DATABASE edge=$EDGE api=$API mobile=$MOBILE"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
   deploy_database:
-    name: Deploy database (approval when migrations change)
-    needs: [changes, plan]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.changes.outputs.database == 'true' }}
+    name: Deploy database
+    needs: [changes, release]
+    if: ${{ !cancelled() && needs.release.result == 'success' && needs.changes.outputs.database == 'true' }}
     environment:
-      name: ${{ needs.plan.outputs.database_environment }}
+      name: production
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -239,11 +238,11 @@ jobs:
         run: bun scripts/ci/release-database.ts
 
   deploy_edge:
-    name: Deploy Edge Functions (approval when function config changes)
-    needs: [changes, plan, deploy_database]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.changes.outputs.edge == 'true' && contains(fromJSON('["success", "skipped"]'), needs.deploy_database.result) }}
+    name: Deploy Edge Functions
+    needs: [changes, release, deploy_database]
+    if: ${{ !cancelled() && needs.release.result == 'success' && needs.changes.outputs.edge == 'true' && contains(fromJSON('["success", "skipped"]'), needs.deploy_database.result) }}
     environment:
-      name: ${{ needs.plan.outputs.edge_environment }}
+      name: production
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -268,8 +267,10 @@ jobs:
 
   deploy_api:
     name: Deploy API
-    needs: [changes, plan, deploy_database, deploy_edge]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.changes.outputs.api == 'true' && contains(fromJSON('["success", "skipped"]'), needs.deploy_database.result) && contains(fromJSON('["success", "skipped"]'), needs.deploy_edge.result) }}
+    needs: [changes, release, deploy_database, deploy_edge]
+    if: ${{ !cancelled() && needs.release.result == 'success' && needs.changes.outputs.api == 'true' && contains(fromJSON('["success", "skipped"]'), needs.deploy_database.result) && contains(fromJSON('["success", "skipped"]'), needs.deploy_edge.result) }}
+    environment:
+      name: production
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -310,8 +311,10 @@ jobs:
 
   deploy_mobile:
     name: Deploy mobile
-    needs: [changes, plan, deploy_database, deploy_edge, deploy_api]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.changes.outputs.mobile == 'true' && contains(fromJSON('["success", "skipped"]'), needs.deploy_database.result) && contains(fromJSON('["success", "skipped"]'), needs.deploy_edge.result) && contains(fromJSON('["success", "skipped"]'), needs.deploy_api.result) }}
+    needs: [changes, release, deploy_database, deploy_edge, deploy_api]
+    if: ${{ !cancelled() && needs.release.result == 'success' && needs.changes.outputs.mobile == 'true' && contains(fromJSON('["success", "skipped"]'), needs.deploy_database.result) && contains(fromJSON('["success", "skipped"]'), needs.deploy_edge.result) && contains(fromJSON('["success", "skipped"]'), needs.deploy_api.result) }}
+    environment:
+      name: production
     runs-on: ubuntu-24.04
     timeout-minutes: 100
     env:

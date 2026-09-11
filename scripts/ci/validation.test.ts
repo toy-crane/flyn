@@ -52,13 +52,19 @@ test("검증과 배포가 한 워크플로에 있고 나머지 워크플로는 �
     "database",
     "required_validation",
     "required_database",
-    "plan",
+    "release",
     "deploy_database",
     "deploy_edge",
     "deploy_api",
     "deploy_mobile",
   ]);
-  for (const name of ["validate", "database", "deploy", "claude"]) {
+  for (const name of [
+    "validate",
+    "database",
+    "deploy",
+    "claude",
+    "deployment-access",
+  ]) {
     expect(
       existsSync(
         new URL(`../../.github/workflows/${name}.yml`, import.meta.url).pathname
@@ -136,21 +142,46 @@ test("DB 변경 없음만 건너뛰기를 허용하고 실행 실패는 차단�
 });
 
 test("배포는 두 필수 검사를 통과한 같은 실행에서만 이어진다", () => {
-  const { plan } = ci().jobs;
-  expect(plan?.needs).toEqual([
+  const { release } = ci().jobs;
+  expect(release?.needs).toEqual([
     "changes",
     "required_validation",
     "required_database",
   ]);
-  expect(plan?.if).toContain("refs/heads/main");
-  expect(plan?.if).toContain("toy-crane/flyn");
-  expect(plan?.if).toContain("needs.changes.outputs.deploy == 'true'");
+  expect(release?.if).toContain("refs/heads/main");
+  expect(release?.if).toContain("toy-crane/flyn");
+  expect(release?.if).toContain("needs.changes.outputs.deploy == 'true'");
   for (const gateJob of [
     "changes",
     "required_validation",
     "required_database",
   ]) {
-    expect(plan?.if).toContain(`needs.${gateJob}.result == 'success'`);
+    expect(release?.if).toContain(`needs.${gateJob}.result == 'success'`);
+  }
+});
+
+test("운영 배포는 승인 대기 없이 production 환경 하나를 쓴다", () => {
+  const { jobs } = ci();
+  for (const name of [
+    "deploy_database",
+    "deploy_edge",
+    "deploy_api",
+    "deploy_mobile",
+  ]) {
+    expect({ environment: jobs[name]?.environment?.name, name }).toEqual({
+      environment: "production",
+      name,
+    });
+    expect(jobs[name]?.name ?? "").not.toContain("approval");
+  }
+  const workflow = readFileSync(
+    new URL("../../.github/workflows/ci.yml", import.meta.url),
+    "utf8"
+  );
+  expect(workflow).not.toContain("flyn-production-review");
+  expect(workflow).not.toContain("flyn-production-automatic");
+  for (const name of ["plan-production-review.ts", "production-review.ts"]) {
+    expect(existsSync(new URL(name, import.meta.url).pathname)).toBe(false);
   }
 });
 
