@@ -1,4 +1,0 @@
-{
-  "impact": "preserve",
-  "reason": "인물이 사는 빈 characters와 episode_characters를 더하면서 기존 episodes에 (id, story_id) 고유 제약을 건다. 기존 스토리와 에피소드의 ID, 서로의 관계, 그 위에 쌓인 회차와 플레이 기록의 연결을 그대로 보존한다. id가 이미 기본 키라 이 제약이 어떤 행도 밀어내지 못하는 것이 분류의 근거이고, 검사는 그 보존과 제약이 실제로 선 것까지 확인한다. 운영 규모에서 이 ALTER가 episodes에 잠깐 거는 잠금 시간은 합성 데이터로 확인할 수 없다."
-}

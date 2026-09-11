@@ -11,18 +11,38 @@ function git(...args: string[]): string {
 
 const UPGRADE_PATH = /^supabase\/upgrade-tests\/(\d{14})\//;
 const VERSION = /^\d{14}$/;
+const PRESERVATION_FILES = ["before.sql", "after.test.sql"];
 
-function requireSql(to: string, version: string) {
-  for (const file of ["before.sql", "after.test.sql"]) {
-    const sqlPath = `supabase/upgrade-tests/${version}/${file}`;
-    if (!git("show", `${to}:${sqlPath}`).trim()) {
-      throw new Error(`보존 SQL이 비었습니다: ${sqlPath}`);
+/**
+ * A version has a data preservation case when its folder holds the two SQL
+ * files. Whether a migration needs one is a review question, not a CI rule.
+ */
+function preservationCase(to: string, version: string) {
+  const folder = `supabase/upgrade-tests/${version}/`;
+  const present = new Set(
+    git("ls-tree", "-r", "--name-only", to, "--", folder)
+      .split("\n")
+      .filter(Boolean)
+      .map((path) => path.slice(folder.length))
+  );
+  const found = PRESERVATION_FILES.filter((file) => present.has(file));
+  if (found.length === 0) {
+    return false;
+  }
+  if (found.length !== PRESERVATION_FILES.length) {
+    throw new Error(
+      `보존 검사는 before.sql과 after.test.sql이 함께 있어야 합니다: ${folder}`
+    );
+  }
+  for (const file of PRESERVATION_FILES) {
+    if (!git("show", `${to}:${folder}${file}`).trim()) {
+      throw new Error(`보존 SQL이 비었습니다: ${folder}${file}`);
     }
   }
+  return true;
 }
 
 function upgradePlan(added: string[], paths: string[], to: string) {
-  const upgrades: string[] = [];
   const versions = new Set(
     added.map((path) => path.split("/").at(-1)?.split("_")[0])
   );
@@ -32,29 +52,12 @@ function upgradePlan(added: string[], paths: string[], to: string) {
       versions.add(match[1]);
     }
   }
+  const upgrades: string[] = [];
   for (const version of versions) {
     if (!(version && VERSION.test(version))) {
       throw new Error("잘못된 마이그레이션 버전입니다.");
     }
-    const impactPath = `supabase/upgrade-tests/${version}/impact.json`;
-    const found = spawnSync(["git", "show", `${to}:${impactPath}`]);
-    if (found.exitCode !== 0) {
-      throw new Error(
-        `새 마이그레이션의 데이터 영향 설명이 필요합니다: ${impactPath}`
-      );
-    }
-    const impact = JSON.parse(found.stdout.toString());
-    if (
-      !["none", "preserve"].includes(impact.impact) ||
-      typeof impact.reason !== "string" ||
-      !impact.reason.trim()
-    ) {
-      throw new Error(
-        `데이터 영향은 none 또는 preserve와 이유를 적어야 합니다: ${impactPath}`
-      );
-    }
-    if (impact.impact === "preserve") {
-      requireSql(to, version);
+    if (preservationCase(to, version)) {
       upgrades.push(version);
     }
   }

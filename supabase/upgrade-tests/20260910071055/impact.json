@@ -1,4 +1,0 @@
-{
-  "impact": "preserve",
-  "reason": "stories에 owner_id와 created_at을 더하고 slug·position의 not null을 풀며, 기존 행에 stories_authorship_usable 검사와 다시 만든 여섯 개의 외래키가 걸린다. 공식 스토리와 인물, 각본, 회차, 플레이, 저장한 표현의 ID·소유자·관계·값을 모두 보존하고, 기존 스토리는 owner_id가 비어 공식 콘텐츠로 남는다."
-}

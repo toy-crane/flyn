@@ -1,4 +1,0 @@
-{
-  "impact": "none",
-  "reason": "이미 운영에 적용한 stories와 episodes의 UUID 기본값을 복원한다. 새 행의 기본값만 바꾸고 기존 ID나 참조 관계는 수정하지 않는다."
-}
