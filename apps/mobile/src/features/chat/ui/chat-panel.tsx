@@ -51,7 +51,6 @@ import { scheduleOnRN } from "react-native-worklets";
 import type { ChatSession } from "@/features/chat/state/use-conversation";
 import { Icon } from "@/shared/ui/icon";
 import { copyToClipboard } from "@/shared/ui/icon-row";
-import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { AssistantMessage } from "./assistant-message";
 import { chatLabels } from "./chat-labels";
 import { ComposerBackdrop } from "./composer-backdrop";
@@ -311,7 +310,6 @@ function ReturnControls({
  * replaces the three of them together.
  */
 function Composer({
-  busyLabel,
   canSend,
   canStop,
   chat,
@@ -323,7 +321,6 @@ function Composer({
   onStop,
   placeholder,
 }: {
-  busyLabel: string | undefined;
   canSend: boolean;
   canStop: boolean;
   chat: ChatSession;
@@ -369,20 +366,6 @@ function Composer({
         testID="chat-send"
       >
         <Icon filled name="stop" size="sm" tone="accentForeground" />
-      </Pressable>
-    );
-  } else if (chat.isBusy && busyLabel) {
-    action = (
-      <Pressable
-        accessibilityLabel={chatLabels.stop}
-        accessibilityRole="button"
-        accessibilityState={{ busy: true, disabled: true }}
-        accessibilityValue={{ text: busyLabel }}
-        className="h-11 w-11 items-center justify-center rounded-full bg-accent"
-        disabled
-        testID="chat-send"
-      >
-        <LoadingSpinner color="accent-foreground" />
       </Pressable>
     );
   }
@@ -473,7 +456,6 @@ function Composer({
 
 export function ChatPanel({
   banner,
-  busyLabel,
   canSaveUtterances = true,
   canStop = true,
   cast,
@@ -494,8 +476,6 @@ export function ChatPanel({
    * reserved for it and the messages start right under the header.
    */
   banner?: ReactNode;
-  /** Status read while the current action remains in the Stop button's place. */
-  busyLabel?: string;
   /**
    * 이 대화의 대사를 담아 둘 수 있는지.
    *
@@ -601,7 +581,6 @@ export function ChatPanel({
   // answer exists with nothing in it yet. Only a wait long enough to notice
   // puts a line in the answer's place; a quick one shows nothing at all.
   const isWaitingForAnswer =
-    busyLabel === undefined &&
     chat.isBusy &&
     (lastMessage?.role !== "assistant" || textOfMessage(lastMessage) === "");
   const isAnswerLate = useLateAnswer(isWaitingForAnswer);
@@ -1106,7 +1085,6 @@ export function ChatPanel({
           */}
           {closing === undefined ? (
             <Composer
-              busyLabel={busyLabel}
               canSend={canSend}
               canStop={canStop}
               chat={chat}

@@ -166,7 +166,6 @@ const PLAYING = {
 
 interface PanelProps {
   banner?: ReactNode;
-  busyLabel?: string;
   canSaveUtterances?: boolean;
   canStop?: boolean;
   chat: {
