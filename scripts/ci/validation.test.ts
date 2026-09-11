@@ -11,6 +11,8 @@ import { join } from "node:path";
 import { spawnSync, YAML } from "bun";
 import { affectedPackages, changedPaths, planChanges } from "./changes";
 
+const STATUS_GUARD = /!cancelled\(\)|always\(\)/;
+
 interface Job {
   environment?: { name?: string };
   if?: string;
@@ -138,6 +140,37 @@ test("배포는 두 필수 검사를 통과한 같은 실행에서만 이어진�
   expect(plan?.if).toContain("refs/heads/main");
   expect(plan?.if).toContain("toy-crane/flyn");
   expect(plan?.if).toContain("needs.changes.outputs.deploy == 'true'");
+  for (const gateJob of [
+    "changes",
+    "required_validation",
+    "required_database",
+  ]) {
+    expect(plan?.if).toContain(`needs.${gateJob}.result == 'success'`);
+  }
+});
+
+test("건너뛸 수 있는 작업 뒤의 작업은 암묵적 success()에 기대지 않는다", () => {
+  const { jobs } = ci();
+  const ancestors = (name: string, seen = new Set<string>()) => {
+    for (const parent of [jobs[name]?.needs ?? []].flat()) {
+      if (!seen.has(parent)) {
+        seen.add(parent);
+        ancestors(parent, seen);
+      }
+    }
+    return seen;
+  };
+  for (const [name, job] of Object.entries(jobs)) {
+    const afterSkippable = [...ancestors(name)].some(
+      (parent) => jobs[parent]?.if
+    );
+    if (afterSkippable) {
+      expect({
+        guarded: STATUS_GUARD.test(job?.if ?? ""),
+        name,
+      }).toEqual({ guarded: true, name });
+    }
+  }
 });
 
 test("검사 결과를 별도 API로 조회하는 코드가 남아 있지 않다", () => {
