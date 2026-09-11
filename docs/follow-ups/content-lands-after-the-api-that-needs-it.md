@@ -2,7 +2,7 @@
 
 **Symptom**: 자동 배포는 마이그레이션과 API를 올리지만 `supabase/seed.sql`은 올리지 않는다. 그래서 콘텐츠 테이블을 새로 만드는 변경에서는, 새 API가 아직 비어 있는 그 테이블을 읽는 구간이 생긴다.
 
-**Observed evidence**: 2026-09-10 `scripts/ci/delivery.ts:54`가 `supabase/seed.sql`을 `manual` 대상으로 분류하고 `supabase/migrations/`와 `apps/api/`만 자동 대상에 넣는 것을 확인했다. [내부 테스트 자동 배포](../specs/continuous-delivery/spec.md)도 "DB seed·콘텐츠와 Auth 설정을 매 배포마다 일괄 덮어쓰지 않는다"고 적는다. 이번 인물 구조 변경에서 실제로 그 구간이 생겼다. 마이그레이션이 `characters`를 빈 채로 만들고, 같은 배포의 API가 그 테이블에서 프롬프트의 등장인물 문장을 만든다.
+**Observed evidence**: 2026-09-10 `scripts/ci/delivery.ts:54`가 `supabase/seed.sql`을 `manual` 대상으로 분류하고 `supabase/migrations/`와 `apps/api/`만 자동 대상에 넣는 것을 확인했다. [검증과 내부 테스트 배포](../decisions/continuous-delivery.md)도 seed·콘텐츠와 Auth 설정을 매 배포마다 덮어쓰지 않는다고 정한다. 이번 인물 구조 변경에서 실제로 그 구간이 생겼다. 마이그레이션이 `characters`를 빈 채로 만들고, 같은 배포의 API가 그 테이블에서 프롬프트의 등장인물 문장을 만든다.
 
 **Suspected cause**: 배포 단계가 서비스 단위(DB, API, 모바일)로만 나뉘어 있고, 콘텐츠는 그 순서 밖의 수동 작업으로 남아 있다. 스키마와 콘텐츠가 한 변경으로 묶이는 경우를 배포 절차가 표현하지 못한다.
 

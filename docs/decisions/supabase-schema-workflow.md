@@ -10,9 +10,10 @@
 - 마이그레이션 검토는 Claude Code와 Codex의 전용 `supabase-reviewer` agent가 맡는다. 두 agent는 `.agents/reviewers/supabase-reviewer.md`의 공용 검토 계약을 읽고 구현 대화와 분리된 읽기 전용 맥락에서 실행한다.
 - 전체 마이그레이션은 `supabase db reset`으로 처음부터 재생해 검증한다. 그런 다음 로컬 스키마에서 TypeScript 타입을 다시 생성한다. 스키마, 마이그레이션과 생성 타입은 같은 변경 단위로 커밋한다.
 - 모바일과 향후 서버가 공유하는 TypeScript 데이터베이스 타입은 로컬 스키마에서 생성한다.
-- DB 관련 PR은 임시 로컬 Supabase에서 전체 마이그레이션·seed, DB lint, pgTAP, 생성 타입과 선언형 스키마의 일치를 검사한다. 무관한 변경은 DB 검사를 건너뛴다.
+- DB 관련 PR은 임시 로컬 Supabase에서 전체 마이그레이션·seed, DB lint, pgTAP, 생성 타입과 선언형 스키마의 일치를 검사한다. 스키마, 마이그레이션, seed, DB 테스트, 생성 타입과 DB 검증에 영향을 주는 설정·도구 변경을 DB 관련 변경으로 본다. 무관한 변경은 DB 검사를 건너뛴다.
+- DB lint는 오류를 실패로 본다. 경고까지 막을지는 실제 기준선의 잡음을 보고 정한다. 비교가 불완전하거나 실패했는데 일치로 표시하지 않는다.
 
-## seed의 ID와 갱신 규칙
+### seed의 ID와 갱신 규칙
 
 - seed에 UUID를 직접 적지 않는다. UUID 기본 키는 선언형 스키마의 `default gen_random_uuid()`로 DB가 처음 삽입할 때 생성한다.
 - seed는 고유 제약이 있는 값으로 기존 행을 찾아 `ON CONFLICT ... DO UPDATE`로 내용을 갱신한다. 스토리는 `slug`, 에피소드는 `(story_id, number)`를 사용한다.
@@ -28,7 +29,7 @@
 - 일반적인 구조 변경을 위해 빈 명령형 마이그레이션부터 직접 작성하지 않는다. DML과 선언형 diff가 표현하지 못하는 객체만 생성된 마이그레이션에 수동으로 보완하거나 별도 버전 관리 마이그레이션으로 관리한다. 이 저장소에서 그 대상은 콘텐츠와 storage 버킷 생성 같은 DML, storage.objects 정책, auth.users 위의 트리거, profiles의 열 단위 grant, comment on 주석이다.
 - 이미 원격 환경에 적용된 마이그레이션은 수정하지 않는다. 변경이 필요하면 앞으로 진행하는 새 마이그레이션을 추가한다.
 - 마이그레이션 안에 임의의 `COMMIT` 또는 `BEGIN`을 삽입하지 않는다.
-- 로컬 개발자의 마이그레이션 재생과 DB 테스트 책임은 유지한다. CI는 운영 데이터·자격 증명 없이 같은 검증을 재현한다. 기존 마이그레이션의 수정·삭제를 차단하고 위험한 데이터 변경에만 이전 데이터 보존 검사를 추가한다. 자동 diff의 사각지대는 명시적인 테스트와 검토로 보완한다. 자세한 범위는 [내부 테스트 자동 배포](../specs/continuous-delivery/spec.md)를 따른다.
+- 로컬 개발자의 마이그레이션 재생과 DB 테스트 책임은 유지한다. CI는 운영 데이터·자격 증명 없이 같은 검증을 재현한다. 기준 브랜치에 있던 마이그레이션의 수정·삭제를 차단하고, 아직 배포하지 않은 이력을 정리하는 예외도 자동 통과시키지 않고 따로 검토한다. 위험한 데이터 변경에만 이전 데이터 보존 검사를 추가한다. 자동 diff의 사각지대는 명시적인 테스트와 검토로 보완한다.
 - 새 마이그레이션에는 `supabase/upgrade-tests/<version>/impact.json`으로 기존 데이터 영향과 이유를 기록한다. `preserve`에는 이전 스키마의 합성 데이터와 변환 후 pgTAP 검사를 요구한다. `none`은 이유를 검토하며 보존 검사용 초기화는 건너뛴다. 분류를 자동 배포 승인으로 취급하지 않는다. 작성·실행 방법은 [기존 데이터 보존 검사](../../supabase/upgrade-tests/README.md)를 따른다.
 - `supabase`와 `supabase-postgres-best-practices`는 여러 Supabase 작업이 함께 쓰는 분야 지식 Skill로 유지한다. `supabase-reviewer`의 검토 계약은 일반 Skill로 제공하지 않는다.
 
@@ -57,3 +58,4 @@
 - 공식 [선언형 데이터베이스 스키마 문서](https://supabase.com/docs/guides/local-development/declarative-database-schemas)의 Known caveats(2026-08-28 확인)는 schema diff가 놓칠 수 있는 항목을 나열한다. DML, 뷰 소유권과 grant·security invoker·구체화 뷰, alter policy, 열 단위 권한, 스키마별 분리 diff, 주석, 파티션, publication에 테이블 추가, domain, 기본 권한에서 복제되는 grant.
 - 같은 문서는 이 목록이 옛 migra 엔진 기준으로 적혔고 일부는 지금 쓰는 pg-delta에도 해당한다면서, 엔진과 무관하게 생성된 마이그레이션을 검토하라고 안내한다. 그래서 이 목록은 무조건 손으로 쓸 목록이 아니라 생성물과 대조할 목록이다.
 - 뷰, 구체화 뷰, 파티션, domain, publication, alter policy는 현재 저장소에서 사용하지 않는다(2026-08-28 확인).
+- Supabase CLI 2.113.0은 이미 기록된 seed 경로의 내용이 바뀌면 SQL을 다시 실행하지 않고 해시만 갱신한다. 운영에 바뀐 `seed.sql`을 적용할 때는 dry-run에 그 파일 하나만 보이는 임시 경로로 같은 파일을 실행했다.
