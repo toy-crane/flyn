@@ -7,6 +7,9 @@ import { SessionCheckingScreen } from "./session-checking-screen";
 
 jest.mock("expo-splash-screen", () => ({ hide: jest.fn() }));
 
+/** 화면에 보이는 글자라면 무엇이든. */
+const ANY_TEXT = /./;
+
 test("로그인 상태를 확인하는 동안 테마 배경으로 화면을 채운다", async () => {
   await renderWithHeroUI(<SessionCheckingScreen />);
 
@@ -22,7 +25,7 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-test("진입 대기가 1초를 넘을 때만 상태 문구와 진행 표시를 보여 준다", async () => {
+test("진입 대기가 1초를 넘을 때만 글자 없이 진행 표시를 보여 준다", async () => {
   jest.useFakeTimers();
   await renderWithHeroUI(<SessionCheckingScreen />);
   await act(() => jest.advanceTimersByTime(999));
@@ -30,8 +33,9 @@ test("진입 대기가 1초를 넘을 때만 상태 문구와 진행 표시를 �
   expect(hideSplashScreen).not.toHaveBeenCalled();
   await act(() => jest.advanceTimersByTime(1));
   expect(
-    screen.getByRole("progressbar", { name: "로그인 상태를 확인하고 있어요." })
-  ).toBeOnTheScreen();
+    screen.getByRole("progressbar", { name: "로그인 상태 확인 중" })
+  ).toHaveProp("accessibilityState", { busy: true });
+  expect(screen.queryAllByText(ANY_TEXT)).toHaveLength(0);
   expect(hideSplashScreen).toHaveBeenCalledTimes(1);
 });
 
@@ -44,6 +48,6 @@ test("로그인에서 프로필 확인으로 넘어가도 진입 대기를 다�
   await rendered.rerender(<SessionCheckingScreen phase="profile" />);
   await act(() => jest.advanceTimersByTime(300));
   expect(
-    screen.getByRole("progressbar", { name: "프로필을 확인하고 있어요." })
+    screen.getByRole("progressbar", { name: "프로필 확인 중" })
   ).toBeOnTheScreen();
 });

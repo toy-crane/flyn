@@ -3,6 +3,9 @@ import { ActivityIndicator, Platform, View } from "react-native";
 
 import { type ProgressRole, useProgressMetrics } from "./progress-metrics";
 
+/** React Native `ActivityIndicator`가 그리는 시스템 크기. */
+const NATIVE_SIZE = { large: 36, small: 20 } as const;
+
 export interface LoadingSpinnerProps {
   /**
    * The contrast colour of the control the spinner sits inside. Leave it out
@@ -23,6 +26,9 @@ export function LoadingSpinner({
   const { indicator } = useProgressMetrics(sizeRole);
   const platformDefault: ThemeColor =
     Platform.OS === "ios" ? "muted" : "accent";
+  // 홀로 서는 표시는 시스템 large를 그대로 쓴다. small을 키우면 iOS 스포크가 번진다.
+  const nativeSize = sizeRole === "standalone" ? "large" : "small";
+  const base = NATIVE_SIZE[nativeSize];
 
   return (
     <View
@@ -39,11 +45,11 @@ export function LoadingSpinner({
         accessible={false}
         color={useThemeColor(color ?? platformDefault)}
         importantForAccessibility="no-hide-descendants"
-        size="small"
+        size={nativeSize}
         style={{
-          height: 20,
-          transform: [{ scale: indicator / 20 }],
-          width: 20,
+          height: base,
+          transform: [{ scale: indicator / base }],
+          width: base,
         }}
         testID={testID}
       />

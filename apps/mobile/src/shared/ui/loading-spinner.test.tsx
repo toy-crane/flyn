@@ -67,3 +67,20 @@ test("컨트롤 역할은 시스템 small 진행 표시를 원래 아이콘 자�
 
   expect(indicator().props.size).toBe("small");
 });
+
+// 곁에 설 글자가 없는 표시를 small로 키우면 iOS 스포크가 번진다. 시스템이 그리는
+// large가 곧 36이므로 그대로 쓴다.
+test("화면 가운데 홀로 서는 역할은 시스템 large 진행 표시를 36px 그대로 쓴다", async () => {
+  await renderWithHeroUI(
+    <LoadingSpinner sizeRole="standalone" testID="loading" />
+  );
+
+  const spinner = indicator();
+
+  expect(spinner.props.size).toBe("large");
+  expect(spinner.props.style).toMatchObject({
+    height: 36,
+    transform: [{ scale: 1 }],
+    width: 36,
+  });
+});

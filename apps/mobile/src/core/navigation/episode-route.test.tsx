@@ -326,6 +326,7 @@ test("서버 장면을 1초 넘게 읽으면 본문에서 진행 상태를 알�
   expect(
     screen.getByRole("progressbar", { name: "대화를 불러오고 있어요." })
   ).toBeOnTheScreen();
+  expect(screen.queryByText("대화를 불러오고 있어요.")).not.toBeOnTheScreen();
 });
 
 test("서버 장면을 읽지 못하면 같은 화면에서 다시 시도한다", async () => {
