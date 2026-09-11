@@ -176,7 +176,10 @@ jobs:
   plan:
     name: Plan production approval
     needs: [changes, required_validation, required_database]
-    if: ${{ github.ref == 'refs/heads/main' && github.repository == 'toy-crane/flyn' && needs.changes.outputs.deploy == 'true' }}
+    # The implicit success() also fails when a job further up was skipped, such
+    # as Database validation on a commit without migrations, so name the gate
+    # results instead.
+    if: ${{ !cancelled() && needs.changes.result == 'success' && needs.required_validation.result == 'success' && needs.required_database.result == 'success' && github.ref == 'refs/heads/main' && github.repository == 'toy-crane/flyn' && needs.changes.outputs.deploy == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -201,7 +204,7 @@ jobs:
   deploy_database:
     name: Deploy database (approval when migrations change)
     needs: [changes, plan]
-    if: ${{ needs.changes.outputs.database == 'true' }}
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.changes.outputs.database == 'true' }}
     environment:
       name: ${{ needs.plan.outputs.database_environment }}
     runs-on: ubuntu-24.04
