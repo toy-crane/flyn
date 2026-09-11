@@ -18,6 +18,7 @@ interface Job {
   if?: string;
   name?: string;
   needs?: string | string[];
+  "runs-on"?: string;
   steps: { id?: string; name?: string; run?: string; uses?: string }[];
   strategy?: { matrix: { command: string[] } };
 }
@@ -77,6 +78,10 @@ test("PR 검증은 코드·타입·테스트 명령을 모두 실행한다", () 
     "test",
   ]);
   expect(validate.steps.at(-1)?.run).toBe('bun run "$CHECK_COMMAND"');
+});
+
+test("PR 검증은 모두 Linux 러너에서 실행한다", () => {
+  expect(ci().jobs.validate?.["runs-on"]).toBe("ubuntu-24.04");
 });
 
 test("필수 검사 이름은 브랜치 보호 설정과 같게 유지한다", () => {

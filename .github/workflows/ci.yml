@@ -63,8 +63,8 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.validate == 'true' }}
     name: Validate (${{ matrix.command }})
-    # Existing iOS adapter tests exercise macOS plutil with a mocked simctl.
-    runs-on: ${{ matrix.command == 'test' && 'macos-14' || 'ubuntu-24.04' }}
+    # iOS device adapter tests need macOS plutil and skip themselves here.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
       fail-fast: false

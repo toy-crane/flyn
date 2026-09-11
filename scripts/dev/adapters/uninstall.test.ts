@@ -65,20 +65,34 @@ exit 0
   return { ...result, commands };
 }
 
+// The iOS adapter reads simctl's plist output through macOS `plutil`, which the
+// Linux CI runners do not have. Those cases run on a developer's Mac instead.
+const needsMac = (platform: string) =>
+  platform === "ios" && process.platform !== "darwin";
+
 for (const platform of ["ios", "android"]) {
-  test(`${platform}: 플린 패키지만 삭제하고 기기 데이터는 건드리지 않는다`, async () => {
-    const result = await probe(platform, true);
-    expect(result.code).toBe(0);
-    expect(result.commands).toContain("uninstall");
-    expect(result.commands).toContain("com.example.app");
-    expect(result.commands).not.toMatch(DESTRUCTIVE_COMMAND);
-  });
-  test(`${platform}: 이미 앱이 없으면 반납을 계속한다`, async () => {
-    const result = await probe(platform, false);
-    expect(result.code).toBe(0);
-    expect(result.commands).not.toContain("uninstall");
-  });
-  test(`${platform}: 삭제 실패를 성공으로 처리하지 않는다`, async () => {
-    expect((await probe(platform, true, true)).code).not.toBe(0);
-  });
+  test.skipIf(needsMac(platform))(
+    `${platform}: 플린 패키지만 삭제하고 기기 데이터는 건드리지 않는다`,
+    async () => {
+      const result = await probe(platform, true);
+      expect(result.code).toBe(0);
+      expect(result.commands).toContain("uninstall");
+      expect(result.commands).toContain("com.example.app");
+      expect(result.commands).not.toMatch(DESTRUCTIVE_COMMAND);
+    }
+  );
+  test.skipIf(needsMac(platform))(
+    `${platform}: 이미 앱이 없으면 반납을 계속한다`,
+    async () => {
+      const result = await probe(platform, false);
+      expect(result.code).toBe(0);
+      expect(result.commands).not.toContain("uninstall");
+    }
+  );
+  test.skipIf(needsMac(platform))(
+    `${platform}: 삭제 실패를 성공으로 처리하지 않는다`,
+    async () => {
+      expect((await probe(platform, true, true)).code).not.toBe(0);
+    }
+  );
 }
