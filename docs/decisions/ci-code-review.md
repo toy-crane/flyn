@@ -5,12 +5,14 @@
 - CI의 PR 자동 코드 리뷰는 Codex GitHub 연동 하나만 쓴다. Claude는 CI에 붙이지 않는다.
 - `.github/workflows/claude-code-review.yml`과 `@claude` 멘션에 응답하는 `.github/workflows/claude.yml`을 두지 않는다.
 - 푸시 전 점검은 각자 세션에서 `/code-review`로 한다.
+- Codex 리뷰는 merge의 필수 조건이다. 2026-09-11 사용자가 정했다. PR의 head 커밋에 Codex 리뷰가 달려 있어야 필수 검사가 통과하고, 리뷰가 달리면 사람이 손대지 않아도 검사가 다시 돈다. 커밋을 더 push하면 Codex를 다시 부른다. merge를 맡은 에이전트는 리뷰를 기다려 짚은 내용을 사용자에게 보여 준 뒤 합친다.
 
 ## 경계
 
 - `/install-github-app`이 만들어주는 워크플로를 다시 설치하지 않는다.
 - 이 결정은 CI만 막는다. 사람이나 에이전트가 세션에서 리뷰를 돌리는 것은 그대로 한다.
 - 관리형 Claude Code Review GitHub App도 지금은 설치하지 않는다.
+- Codex 연동이 멈추면 모든 PR이 막힌다. 사용자가 이를 받아들였다. 2026-09-10의 PR 4개 중 3개는 Codex 리뷰가 달리기 전에 합쳐져 리뷰가 쓰이지 않았다.
 
 ## 이유
 
