@@ -151,8 +151,9 @@ export class SupabaseDatabaseDelivery {
   }
 
   async start(request: DeliveryRequest): Promise<DeliveryObservation> {
-    // The human gate is the protected environment on the deploy job. Reaching
-    // this line means a person already approved this run.
+    // The human gate is the pull request merge, and a statement that drops
+    // data also needed an approval label there. Reaching this line means the
+    // change was already approved.
     const pending = await this.pending(request);
     if (pending.length > 0) {
       await this.options.run([

@@ -50,7 +50,7 @@ test("API job은 DB와 Edge 뒤에 실행하고 배포 도구에만 운영 토�
   const api = job("deploy_api");
   expect(api.needs).toEqual([
     "changes",
-    "plan",
+    "release",
     "deploy_database",
     "deploy_edge",
   ]);
