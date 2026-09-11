@@ -55,14 +55,13 @@
 
 ## 모바일 화면 표현
 
-- [모바일 이미지 로딩](mobile-image-loading.md) — 원격 이미지의 로딩 미리보기, 원본 전환 또는 표지 이모지 표시를 변경할 때 읽는다.
-
 - [모바일 UI 렌더러 경계](mobile-ui-renderer-boundaries.md) — 모바일 화면의 주 렌더러, 네이티브 셸 소유권 또는 Liquid Glass 사용 범위를 선택할 때 읽는다.
 - [모바일 탭과 상세 화면 배치](mobile-tab-navigation.md) — 화면을 탭 안이나 바깥에 둘 기준, 상세 화면의 탭 표시 또는 진입 경로별 뒤로 가기를 변경할 때 읽는다.
 - [모바일 Uniwind 스타일 경계](mobile-uniwind-styling.md) — React Native UI의 `className`, inline `style`, 런타임 값 또는 외부 컴포넌트 스타일 경계를 변경할 때 읽는다.
 - [모바일 색상 시맨틱](mobile-color-semantics.md) — 모바일 색상 이름, 시맨틱 토큰, 화면 모드 또는 플랫폼별 색상 매핑을 변경할 때 읽는다.
 - [모바일 타이포그래피](mobile-typography.md) — 모바일 텍스트 역할, 시스템 폰트, monospace 사용, Dynamic Type 또는 렌더러별 타이포그래피 매핑을 변경할 때 읽는다.
 - [모바일 아이콘 렌더링](mobile-icon-rendering.md) — RN UI, 네이티브 셸 또는 `@expo/ui` 안에서 아이콘 렌더러와 플랫폼별 심벌을 선택하거나, 축하 같은 제품 그래픽의 애니메이션 파일을 둘 때 읽는다.
+- [모바일 이미지 로딩](mobile-image-loading.md) — 원격 이미지의 로딩 미리보기, 원본 전환 또는 표지 이모지 표시를 변경할 때 읽는다.
 - [모바일 작업 진행 표시](mobile-action-progress.md) — 모바일 버튼이나 자동 실행 작업의 진행 중 표시, 그 표시를 그리는 컴포넌트와 색, 중복 실행 차단 또는 표시 위치를 정할 때 읽는다.
 - [모바일 토스트 자리](mobile-toast-placement.md) — 잠시 떴다 사라지는 안내를 어디서 띄우고 무엇을 덮지 않을지 정하거나 바꿀 때 읽는다.
 - [모바일 하단 CTA](mobile-bottom-cta.md) — 하단 행동 버튼의 고정 배치, 투명한 주변 영역, 효과, 여백과 강조 수준을 정할 때 읽는다.
