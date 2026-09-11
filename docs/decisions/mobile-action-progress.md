@@ -28,8 +28,7 @@
 - 사용자가 중단할 수 있는 작업은 중지 컨트롤을 제공한다. 채팅의 새 질문, 다시 받기와 재시도는 입력창의 전송 버튼을 중지 버튼으로 바꾼다. 같은 요청의 중지 버튼을 메시지나 오류 옆에 중복해서 두지 않는다.
 - 네이티브 셸과 `@expo/ui` 화면은 프로젝트 공통 `Button`을 사용하지 않는다. 각 렌더러가 제공하는 버튼, 행과 진행 표시로 같은 의미를 표현한다.
 - `@expo/ui` 화면에서 사용자가 시작한 작업은 그 작업을 시작한 컨트롤에서 진행 중임을 표시한다. 컨트롤의 문구는 바꾸지 않고 진행 표시만 더한다. iOS는 SwiftUI `ProgressView`, Android는 Compose `CircularProgressIndicator`가 그 자리를 그린다. 두 플랫폼 모두 문구 옆에 서는 얇은 원형 링이며, Android는 Material 기본값 대신 20dp에 선 2dp를 쓴다.
-- 설정 화면에서 행으로 실행하는 계정 동작은 `FieldGroup.Section` 안의 `ListItem`으로
-  만든다. 아이콘과 쉐브론은 두지 않는다. 진행 표시는 trailing 슬롯에 둔다.
+- 설정 화면에서 행으로 실행하는 계정 동작은 `FieldGroup.Section` 안의 `ListItem`으로 만든다. 아이콘과 쉐브론은 두지 않는다. 진행 표시는 trailing 슬롯에 둔다.
 - 진행 중임을 화면 읽기에 알리는 방법은 플랫폼마다 다르다. iOS는 행의 `accessibilityValue`로 상태를 지니고, Android는 작업이 시작될 때 `AccessibilityInfo.announceForAccessibility`로 한 번 알린다. Android 문구는 행이 앞에 서지 않으므로 `계정 삭제 진행 중`처럼 동작 이름을 함께 담는다.
 
 ## 경계
@@ -79,7 +78,7 @@ iOS 툴바의 저장 진행 표시에도 같은 `muted`를 쓴다. 이 자리가
 
 하나의 공통 버튼이 HeroUI Native, 네이티브 셸과 `@expo/ui`를 모두 감싸면 각 렌더러가 제공하는 상태, 배치와 접근성 표현을 잃는다. 공통으로 유지할 것은 진행 상태의 의미이며, 실제 표시는 화면의 주 렌더러가 담당한다.
 
-문구를 바꾸면 같은 컨트롤이 상태마다 다른 이름을 갖는다. Apple 설정 앱은 행의 이름을 고정한 채 상태를 별도 요소나 값으로 붙인다. 이 앱의 React Native `Button`도 처음부터 문구와 크기를 유지하고 표시만 바꿔 왔으므로 `@expo/ui` 화면만 다른 규칙을 쓸 이유가 없다.
+문구를 바꾸면 같은 컨트롤이 상태마다 다른 이름을 갖는다. Apple 설정 앱은 행의 이름을 고정한 채 상태를 별도 요소나 값으로 붙인다. 이 앱의 React Native `Button`도 문구와 크기를 유지하고 표시만 바꾸므로 `@expo/ui` 화면만 다른 규칙을 쓸 이유가 없다.
 
 화면 읽기 알림이 플랫폼마다 갈리는 이유는 Compose 쪽에 걸 자리가 없어서다. iOS는 행이 상태를 지니므로 나중에 다시 초점을 맞춰도 진행 중임을 읽지만, Android는 한 번 말하고 끝난다. 이 앱의 파괴적 동작은 1초 안에 끝나므로 돌아와서 다시 확인할 일이 사실상 없다.
 
@@ -118,32 +117,30 @@ Android에서 Material 3 Expressive의 `LoadingIndicator`를 쓰지 않는 이�
 
 ## 보존할 근거
 
+- 아래 라이브러리 내부 동작은 `@expo/ui` 57.0.x, React Native 0.86, HeroUI Native 1.0.8에서 읽었다. 올린 뒤에는 다시 확인한다.
 - 설치된 HeroUI Native `1.0.8`의 `Button`은 별도 진행 중 속성이 없고 자식으로 `Spinner`를 조합한다. 버튼 기본 스타일은 높이와 가로 여백을 정하지만 너비는 정하지 않는다.
-- 검증에 사용한 `@expo/ui 57.0.11`의 범용 `Button`은 `disabled`와 사용자 지정 자식을 지원하지만 진행 중 또는 `busy` 속성을 제공하지 않는다. `ButtonProps`는 `children`, `label`, `onPress`, `variant`만 선언하고 `disabled`는 `UniversalBaseProps`에서 온다.
+- `@expo/ui`의 범용 `Button`은 `disabled`와 사용자 지정 자식을 지원하지만 진행 중 또는 `busy` 속성을 제공하지 않는다. `ButtonProps`는 `children`, `label`, `onPress`, `variant`만 선언하고 `disabled`는 `UniversalBaseProps`에서 온다.
 - [SEED 로딩 지침](https://seed-design.io/docs/guidelines/loading)은 1초 안에 끝나는 작업에 별도 로딩 표시를 권하지 않으며, [Progress Circle 지침](https://seed-design.io/docs/components/progress-circle)은 표시 위치가 로딩 범위를 나타낸다고 설명한다. 화면 전체 로딩에 문구를 두라거나 두지 말라는 문장은 없다. 로딩이 길어지면 안내 메시지로 알린 사례를 들지만 그 기준은 5초다.
 - 20px, 28px, 36px을 폰 너비의 빈 화면 중앙에 나란히 놓고 iOS 스포크와 Android 원호, 밝은 화면과 어두운 화면에서 비교했다. 20px은 옆에 설 글자가 없으면 배경에 묻힌다.
 - [Apple 진행 표시 지침](https://developer.apple.com/design/human-interface-guidelines/progress-indicators)은 진행 표시를 일관된 자리에 두라고 안내한다. 컨트롤 바로 옆에 두라는 문장은 macOS 절에 있으므로 iOS 규칙으로 인용하지 않는다.
-- `@expo/ui 57.0.11`은 접근성을 props가 아니라 modifier로 제공한다. `@expo/ui/swift-ui/modifiers`의 `accessibilityLabel`, `accessibilityValue`, `accessibilityHint`, `accessibilityAddTraits`, `accessibilityHidden`과 `disabled`를 `modifiers` 배열로 넘긴다. `ListItem`과 범용 `Button` 모두 `modifiers`를 받는다.
+- `@expo/ui`는 접근성을 props가 아니라 modifier로 제공한다. `@expo/ui/swift-ui/modifiers`의 `accessibilityLabel`, `accessibilityValue`, `accessibilityHint`, `accessibilityAddTraits`, `accessibilityHidden`과 `disabled`를 `modifiers` 배열로 넘긴다. `ListItem`과 범용 `Button` 모두 `modifiers`를 받는다.
 - `@expo/ui`의 `ProgressView`는 SwiftUI `ProgressView`에 자식을 라벨로 넘긴다. 자식을 주면 화면에도 보이므로 진행 표시만 필요할 때는 자식 없이 사용한다.
-- `@expo/ui 57.0.11`의 범용 `Button`은 자기가 그린 글자에서만 press를 받는다. iOS Simulator에서 행의 가로 위치를 옮겨 가며 확인했고, 글자 폭을 벗어난 지점은 눌리지 않았다. 버튼에 `contentShape(shapes.rectangle())`를 걸어도 넓어지지 않았고 `frame`에는 maxWidth를 무한으로 두는 값이 없다. 같은 버전의 `ListItem`은 iOS에서 SwiftUI `Button`을 감싸며 `contentShape(.rectangle())`를 적용해 행 전체를 누를 수 있게 해 준다.
+- `@expo/ui`의 범용 `Button`은 자기가 그린 글자에서만 press를 받는다. 글자 폭을 벗어난 지점은 눌리지 않았다. 버튼에 `contentShape(shapes.rectangle())`를 걸어도 넓어지지 않았고 `frame`에는 maxWidth를 무한으로 두는 값이 없다. `ListItem`은 iOS에서 SwiftUI `Button`을 감싸며 `contentShape(.rectangle())`를 적용해 행 전체를 누를 수 있게 해 준다.
 - 진행 표시만으로는 접근성 트리에 아무것도 남지 않는다. `accessibilityValue`를 붙이면 iOS Simulator에서 행이 label `계정 삭제`에 value `진행 중`을 함께 보고했다. Apple 설정 앱이 `Voice, American (Voice 4)`로 읽히는 것과 같은 구조다.
 - Apple 설정 앱의 접근성 트리에서 행의 상태는 이름을 고정한 채 전달된다. 사전 선택은 셀 `Catalan` 옆의 `selected` 요소로, Siri 음성은 셀의 `selected` 트레잇과 별도 `Checkmark` 요소로, 값이 있는 행은 `Voice, American (Voice 4)`처럼 이름과 값으로 읽힌다.
 - [App Store 심사 지침 5.1.1(v)](https://developer.apple.com/support/offering-account-deletion-in-your-app/)은 계정 삭제를 앱에서 찾기 쉬운 곳에 두고 오래 걸리면 알리라고 요구하지만 버튼 문구는 정하지 않는다.
-- `@expo/ui 57.0.11`의 Compose 진행 표시는 `LoadingIndicator`, `ContainedLoadingIndicator`, `CircularProgressIndicator`, `CircularWavyProgressIndicator`, `LinearProgressIndicator`, `LinearWavyProgressIndicator`다. 원형인 넷을 계정 삭제 행에 나란히 그려 Android Emulator에서 비교했다. `LoadingIndicator`는 33dp를 채운 덩어리이고, `CircularWavyProgressIndicator`는 48dp라 넷 중 가장 크며 호가 짧아지는 구간에서 링으로 보이지 않는다. `CircularProgressIndicator`만 크기와 선 두께를 함께 조절할 수 있다.
+- `@expo/ui`의 Compose 진행 표시는 `LoadingIndicator`, `ContainedLoadingIndicator`, `CircularProgressIndicator`, `CircularWavyProgressIndicator`, `LinearProgressIndicator`, `LinearWavyProgressIndicator`다. 원형인 넷을 계정 삭제 행에 나란히 그려 Android Emulator에서 비교했다. `LoadingIndicator`는 33dp를 채운 덩어리이고, `CircularWavyProgressIndicator`는 48dp라 넷 중 가장 크며 호가 짧아지는 구간에서 링으로 보이지 않는다. `CircularProgressIndicator`만 크기와 선 두께를 함께 조절할 수 있다.
 - `CircularProgressIndicator`는 `color`, `trackColor`, `strokeWidth`, `strokeCap`, `gapSize`를 props로 받고 크기는 `@expo/ui/jetpack-compose/modifiers`의 `size(width, height)`로 정한다. Compose 컴포넌트는 `testID`를 받지 않아 감싸는 `Row`가 대신 지닌다.
 - Android Emulator에서 계정 삭제가 도는 시간은 614ms였다. 로컬 Supabase를 부른 값이며 확인창이 닫히는 애니메이션이 그 앞부분을 덮는다.
-- `@expo/ui 57.0.11`의 Compose modifier 42개 중 접근성에 닿는 것은 `semantics` 하나뿐이고, 이 modifier는 자동 완성용 `contentType`만 받는다. `ModifierRegistry.kt`가 `Modifier.semantics { contentType = ct }`로만 옮긴다. `contentDescription`, `stateDescription`, `liveRegion`에 해당하는 modifier는 없다. 그래서 Compose 쪽 행에는 진행 중 상태를 걸 자리가 없다.
+- `@expo/ui`의 Compose modifier 가운데 접근성에 닿는 것은 `semantics` 하나뿐이고, 이 modifier는 자동 완성용 `contentType`만 받는다. `ModifierRegistry.kt`가 `Modifier.semantics { contentType = ct }`로만 옮긴다. `contentDescription`, `stateDescription`, `liveRegion`에 해당하는 modifier는 없다. 그래서 Compose 쪽 행에는 진행 중 상태를 걸 자리가 없다.
 - [Android 16 동작 변경](https://developer.android.com/about/versions/16/behavior-changes-all)은 `announceForAccessibility`와 `TYPE_ANNOUNCEMENT` 이벤트를 deprecated로 표시했다. 동작하지 않게 만들지는 않았고, 권장 대안은 `setAccessibilityLiveRegion`과 Compose의 `Modifier.semantics { liveRegion = ... }`이다. React Native는 [무엇으로 대체할지 아직 논의 중](https://github.com/react-native-community/discussions-and-proposals/discussions/848)이다.
-- React Native 0.86.2의 `AccessibilityInfo.announceForAccessibility`는 화면 읽기가 꺼져 있으면 아무것도 보내지 않고 바로 돌아온다(`AccessibilityInfoModule.kt`). 켜져 있을 때만 `TYPE_ANNOUNCEMENT` 이벤트를 보낸다.
-- Android Emulator에서 TalkBack을 켜고 계정 삭제를 시작해 음성 알림이 나오는 것까지 확인했다. 프로덕션 이미지에서는 TalkBack 로그 수준을 올릴 수 없어 실제 발화 문장은 확인하지 못했다.
-- 이 앱은 채팅 오류 안내에서 이미 같은 방법을 쓴다(`chat-panel.tsx`).
-- react-native 0.86.3의 `ActivityIndicator.js`는 `color` 기본값을 iOS `#999999`, Android `null`로 둔다. 크기는 `small` 20, `large` 36이고 Android에는 언제나 `styleAttr: "Normal"`을 넘긴다. `ProgressBarContainerView.kt`는 색이 없으면 `clearColorFilter()`를 불러 벡터의 tint를 그대로 둔다.
+- React Native의 `AccessibilityInfo.announceForAccessibility`는 화면 읽기가 꺼져 있으면 아무것도 보내지 않고 바로 돌아온다(`AccessibilityInfoModule.kt`). 켜져 있을 때만 `TYPE_ANNOUNCEMENT` 이벤트를 보낸다.
+- React Native의 `ActivityIndicator.js`는 `color` 기본값을 iOS `#999999`, Android `null`로 둔다. 크기는 `small` 20, `large` 36이고 Android에는 언제나 `styleAttr: "Normal"`을 넘긴다. `ProgressBarContainerView.kt`는 색이 없으면 `clearColorFilter()`를 불러 벡터의 tint를 그대로 둔다.
 - Android가 그리는 것은 AOSP의 `vector_drawable_progress_bar_medium.xml`이다. 48dp에 반지름 18, 선 4, square 캡이고 tint가 `?attr/colorControlActivated`다. 호는 1333ms 주기로 자라고 줄며 전체는 4444ms에 720도 돈다. `small`이면 이 벡터가 20dp 프레임에 맞춰지므로 선도 1.67dp로 얇아진다.
-- AppCompat 1.7.0에서 `colorControlActivated`는 `?attr/colorAccent`이고 Light는 `#008577`, night는 `#80CBC4`다. `progressBarStyle`은 재정의하지 않는다. `expo-template-bare-minimum@57.0.20`의 `styles.xml`은 `Theme.AppCompat.DayNight.NoActionBar`를 쓰고 `colorAccent`를 정하지 않는다.
-- Expo의 `primaryColor` 설정은 `colorPrimary`만 정하고 `colorAccent`에 닿지 않는다(`@expo/config-plugins` 10.1.2의 `PrimaryColor.js`). `colorAccent`를 정하려면 `withAndroidStyles`로 config plugin을 직접 써야 한다.
-- [Expo 참조 저장소 색인](../references/expo-reference-repos.md)의 다섯 저장소 모두 `colorAccent`를 정하지 않는다. `ActivityIndicator`를 쓰는 clarity와 amber는 배경이 있는 컨트롤 안이면 대비색을 주고 화면 한가운데 뜨는 첫 로딩이면 색을 생략한다. clarity는 눈에 띄는 자리에 Lottie를, ai-chat-demo와 우리 앱은 답변 대기에 글자 shimmer를 쓴다.
+- AppCompat에서 `colorControlActivated`는 `?attr/colorAccent`이고 Light는 `#008577`, night는 `#80CBC4`다. `progressBarStyle`은 재정의하지 않는다. Expo 템플릿의 `styles.xml`은 `Theme.AppCompat.DayNight.NoActionBar`를 쓰고 `colorAccent`를 정하지 않는다.
+- Expo의 `primaryColor` 설정은 `colorPrimary`만 정하고 `colorAccent`에 닿지 않는다(`@expo/config-plugins`의 `PrimaryColor.js`). `colorAccent`를 정하려면 `withAndroidStyles`로 config plugin을 직접 써야 한다.
+- [Expo 참조 저장소 색인](../references/expo-reference-repos.md)의 다섯 저장소 모두 `colorAccent`를 정하지 않는다. `ActivityIndicator`를 쓰는 clarity와 amber는 배경이 있는 컨트롤 안이면 대비색을 주고 화면 한가운데 뜨는 첫 로딩이면 색을 생략한다. clarity는 눈에 띄는 자리에 Lottie를 쓴다.
 - React Native Paper의 `ActivityIndicator`는 React Native의 것을 쓰지 않고 `Animated.View` 두 겹을 직접 돌리며 색을 `theme.colors.primary`에서 얻는다.
 - HeroUI Native 1.0.8의 `Spinner`는 react-native-svg로 mingcute 로딩 아이콘을 그리고 Reanimated로 1000ms 등속 회전한다. 크기는 sm 16, md 24, lg 32이고 기본색은 `accent`다. 링의 지름은 sm에서 14px이라 `ActivityIndicator`의 `small`이 그리는 15dp와 거의 같다.
 - 진행 표시와 그것을 이어받는 표시를 트리의 같은 자리에 두면 React가 네이티브 뷰 하나를 고쳐 쓴다. Android는 이때 사라진 `busy`를 지우지 않는다. 아이디 확인 자리에서 확인이 끝난 뒤에도 화면 읽기가 `사용할 수 있는 아이디, busy`로 읽었고, 두 상태에 값을 적자 잔상이 사라졌다. 같은 전환에서 `accessibilityRole`은 정상으로 돌아왔으므로 `busy`만 이렇게 남는다. iOS에서는 이 잔상이 없었다.
-- 두 플랫폼의 색을 기기 녹화 프레임에서 쟀다. iOS 라이트는 흰 배경 위 가장 어두운 화소가 (127, 127, 131)로 `muted`(113, 113, 122)에 가깝고 React Native 기본 `#999999`(153, 153, 153)의 중성 회색과 다르다. iOS 다크는 (139, 139, 146)이라 화면 모드를 따라 바뀐다. Android는 라이트 (4, 131, 242), 다크 (2, 129, 238)로 `accent`(4, 133, 247)와 같고 AppCompat 기본 teal(라이트 (0, 133, 119), 다크 (128, 203, 196))과 멀다. 값의 작은 차이는 h264 압축과 안티에일리어싱에서 온다.
 - 인증 코드 확인, 대화 불러오기, 진행 저장의 진행 표시는 1초 지연 뒤에 나타나는데 로컬 스택에서는 세 작업이 모두 1초 안에 끝난다. 이 세 자리는 로컬에서 화면으로 확인할 수 없다.

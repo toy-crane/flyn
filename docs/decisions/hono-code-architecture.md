@@ -55,8 +55,6 @@
 
 - Hono 공식 Best Practices는 큰 앱에서 기능별 Hono 인스턴스를 만들고
   `app.route()`로 합치며, 가능한 경우 별도 Controller를 만들지 않도록 권한다.
-- 2026-09-10: 기존 운영 배포 수정을 복원하며 Vercel CLI 51.6.1의 실제 빌드가
-  `src/app.ts`를 handler로 선택함을 확인했다. 기존 `index.ts`만 배포 진입점이라는
-  설명을 실제 운영 방식과 맞췄다. [Vercel의 Hono 안내](https://vercel.com/docs/frameworks/backend/hono)는
-  Hono를 가져오는 앱 파일의 기본 내보내기를 요구한다. 운영 배포 기록은
-  [API 운영 배포](../api-production.md)에 남긴다.
+- [Vercel의 Hono 안내](https://vercel.com/docs/frameworks/backend/hono)는 Hono를
+  가져오는 앱 파일의 기본 내보내기를 요구한다. Vercel 빌드는 `index.ts`가 아니라
+  `src/app.ts`를 handler로 고른다. 운영 배포 기록은 [API 운영 배포](../api-production.md)에 있다.

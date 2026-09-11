@@ -63,5 +63,4 @@ HeroUI Native가 이미 제공하는 시맨틱 문법을 앱의 공식 이름으
 
 ## 보존할 근거
 
-- 화면 모드의 원본·저장·`Host` 전달과 iOS 설정 폼 배경 규칙은 2026-09-02에 `toy-crane/dearly@0438e47`의 `docs/decisions/mobile-ui-foundation.md`를 기준으로 맞췄다. dearly는 `@react-native-async-storage/async-storage`에 비동기로 저장하고 읽을 때까지 첫 프레임을 비워 두지만, 이 앱은 동기로 읽을 수 있는 `expo-sqlite/kv-store`가 이미 있어 그 게이트를 두지 않는다.
-- 설치된 `uniwind 1.10.1`의 `Uniwind.setTheme`는 dearly의 `1.11.0`과 같은 시그니처(`ThemeName | system`)다.
+- 화면 모드의 원본·저장·`Host` 전달과 iOS 설정 폼 배경 규칙은 dearly의 `docs/decisions/mobile-ui-foundation.md`를 기준으로 맞췄다. dearly는 `@react-native-async-storage/async-storage`에 비동기로 저장하고 읽을 때까지 첫 프레임을 비워 두지만, 이 앱은 동기로 읽을 수 있는 `expo-sqlite/kv-store`가 이미 있어 그 게이트를 두지 않는다.

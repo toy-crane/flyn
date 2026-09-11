@@ -48,6 +48,5 @@
 ## 보존할 근거
 
 - Expo SDK 57의 `FieldGroup.SectionFooter`는 iOS에서 SwiftUI `Section`의 푸터로 전달되고, Android와 Web에서는 각 플랫폼 구현이 자체 여백을 적용한다. 모든 플랫폼에 공통인 숫자형 푸터 간격 값은 없다.
-- Android와 iOS Development Build에서 사진 유무, Light와 Dark 모드, 큰 글자와 전체 행 누르기를 확인했다. Android에서는 Material 3, iOS에서는 기존 SwiftUI 설정 표현이 유지됐다.
-- Android의 `FieldGroup.Section`은 자식을 Material 3 `ListItem`으로 감싼다. 그 안에서 `ListItem`을 다시 쓰거나 행이 아닌 내용을 일반 자식으로 넣으면 카드가 한 겹 더 그려진다. 2026-08-16 에뮬레이터에서 두 경우를 모두 확인했다. 계정 삭제 행에서는 진행 중에 라벨 둘레로 흰 사각형이 생겼고, 프로필 화면에서는 사진 뒤에 카드가 깔렸다.
-- 같은 날 Android 프로필 화면에서 위쪽 여백 없이 `FieldGroup`을 그리자 프로필 사진이 앱 바와 겹쳤다. 설정 화면은 처음부터 헤더 높이를 여백으로 주고 있었다. 이 여백은 Android 헤더도 투명하게 두었을 때의 대응이었다. 2026-09-02에 설정 계층의 Android 헤더를 대화 화면과 같은 불투명 App Bar로 정하면서 여백 규칙을 걷었다.
+- Android의 `FieldGroup.Section`은 자식을 Material 3 `ListItem`으로 감싼다. 그 안에서 `ListItem`을 다시 쓰거나 행이 아닌 내용을 일반 자식으로 넣으면 카드가 한 겹 더 그려진다. 계정 삭제 행에서는 진행 중에 라벨 둘레로 흰 사각형이 생겼고, 프로필 화면에서는 사진 뒤에 카드가 깔렸다.
+- Android 헤더를 투명하게 두면 위쪽 여백 없이 그린 `FieldGroup`의 프로필 사진이 앱 바와 겹친다. 설정 계층의 Android 헤더는 대화 화면과 같은 불투명 App Bar라 헤더 높이만큼의 여백을 따로 주지 않는다.

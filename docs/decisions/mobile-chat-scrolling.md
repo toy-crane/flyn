@@ -56,10 +56,9 @@
 
 ## 보존할 근거
 
-- 2026-09-08 사용자 확인에서 짧은 대화를 아래에 붙이고 전송 뒤 목록 끝으로
-  이동하는 방식은 의도가 아닌 것으로 확인했다. 짧은 대화는 위에서 시작하고 질문은
+- 짧은 대화를 아래에 붙이고 전송 뒤 목록 끝으로 이동하는 방식은 사용자가 의도가
+  아니라고 확인했다. 짧은 대화는 위에서 시작하고 질문은
   위쪽에 놓는 현재 결정을 유지한다.
-- Legend List 3.3.5의 [공식 API](https://legendapp.com/open-source/list/v3/api/)에서
+- Legend List의 [공식 API](https://legendapp.com/open-source/list/v3/api/)에서
   `initialScrollAtEnd`는 긴 대화의 진입 위치를 정하고 `alignItemsAtEnd`는 짧은
-  대화에 위쪽 빈 공간을 만든다는 차이를 확인했다. 현재는 `initialScrollAtEnd`만
-  사용한다.
+  대화에 위쪽 빈 공간을 만든다는 차이를 확인했다. 앱은 `initialScrollAtEnd`만 쓴다.
