@@ -24,8 +24,7 @@ iOS 시뮬레이터의 글자 크기를 `accessibility-extra-extra-extra-large`�
 ## 지금 상태
 
 탐색 화면은 HeroUI 기본 패턴 그대로 둔다. 큰 접근성 글자 크기는 사용자가
-나중에 따로 보기로 했다. `docs/specs/story-creation-chat/spec.md`의 완료
-기준에서도 그 줄을 뺐다.
+나중에 따로 보기로 했다. 스토리 만들기 작업의 완료 기준에서도 그 줄을 뺐다.
 
 ## 다음 단계 제안
 
