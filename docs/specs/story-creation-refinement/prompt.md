@@ -59,7 +59,7 @@
 - hook과 화의 preview는 사용자에게 벌어진 일을 1인칭으로 쓰고 "-요"로 끝낸다. "나는 ~해야 한다"처럼 쓰지 않는다. 결말은 드러내지 않는다.
 - 인물 설명은 한다체로 쓰고 나이와 직업으로 시작한다. 무엇에 어떻게 반응하는지 한 문장을 넣는다.
 - setting은 이야기가 벌어지는 곳 한 줄이다. 카드에는 보이지 않고 표지 그림이 쓴다. 실제 회사나 사람 이름은 쓰지 않는다.
-- cover는 표지 그림을 위한 영어 한 줄이다. 카드에는 보이지 않는다. 1번 인물의 성별, 나이대, 머리, 옷, 표정을 적고, 앵글은 아래 다섯 중 하나를 고른다. 실제 사람이나 회사 이름은 쓰지 않는다.
+- cover는 표지 그림을 위한 영어 한 줄이다. 카드에는 보이지 않는다. 1번 인물 한 명만 적는다. 성별, 나이대, 머리, 옷, 그리고 이 이야기의 상황에서 그 사람이 짓는 표정과 자세를 적고, 앵글은 아래 다섯 중 하나를, 배경색은 deep navy, terracotta orange, teal, mustard, plum, forest green 중 분위기에 맞는 하나를 고른다. 실제 사람이나 회사 이름은 쓰지 않는다.
   - seen from behind, looking back over one shoulder
   - seen from slightly below, leaning back
   - close-up, head tilted
@@ -85,7 +85,7 @@
 title: 출장 일주일
 hook: 첫 해외 출장인데, 호텔에 제 예약이 없대요
 setting: 늦은 밤의 베를린 호텔 프런트
-cover: A woman in her early thirties, hair in a neat bun, navy hotel front-desk uniform with a scarf, calm and attentive, seen from behind, looking back over one shoulder
+cover: A woman in her early thirties, hair in a neat bun, navy hotel front-desk uniform with a scarf, apologetic but composed, seen from behind, looking back over one shoulder, deep navy background
 characters:
 1. Anna: 30대 초반의 호텔 프런트 직원. 차분하고 일 처리가 정확하다. 근거가 보이면 방법을 끝까지 찾아 준다.
 2. Klaus: 40대 후반의 거래처 구매 담당자. 우리 제안에 불만이 있고 경쟁사와 자꾸 비교한다. 숫자로 답하면 듣고, 두루뭉술하면 말을 끊는다.
@@ -109,7 +109,7 @@ episodes:
 title: 새 동료의 방식
 hook: 새로 온 동료가 제 일을 자꾸 자기 식으로 바꿔요
 setting: 점심시간의 회사 구내식당
-cover: A man in his early thirties, tousled hair, hoodie over a collared shirt, confident and a little cocky, seen from slightly above, looking up
+cover: A man in his early thirties, tousled hair, hoodie over a collared shirt, confident and a little cocky, arms crossed, seen from slightly above, looking up, teal background
 characters:
 1. Lucas: 30대 초반의 새로 온 개발자. 전 직장 방식이 더 낫다고 믿고 자신 있게 말한다. 근거를 들으면 물러서지만 감정으로 말하면 더 밀어붙인다.
 2. Sora: 40대 초반의 팀장. 말은 부드럽지만 정한 방식은 지키게 한다.
@@ -132,7 +132,7 @@ episodes:
 title: 물이 새는 집
 hook: 이사 온 집에 물이 새는데 집주인이 제 탓이래요
 setting: 비 오는 저녁의 낡은 아파트 현관
-cover: A woman in her sixties, short silver hair, cardigan and reading glasses, guarded but not unkind, close-up, head tilted
+cover: A woman in her sixties, short silver hair, cardigan and reading glasses, guarded, peering out as if through a half-open door, close-up, head tilted, terracotta orange background
 characters:
 1. Margaret: 60대 집주인. 돈 나가는 일을 미루고 답장이 늦다. 사진이나 계약 조항처럼 눈에 보이는 근거 앞에서는 태도를 바꾼다.
 2. Tom: 50대 수리 기사. 말이 빠르고 집주인 편도 세입자 편도 아니다.
