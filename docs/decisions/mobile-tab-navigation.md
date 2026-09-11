@@ -13,10 +13,16 @@
   기록을 열면 스토리 목록으로 돌아간다. 같은 내용을 보여 준다는 이유로 다른 탭의
   화면으로 이동시키거나 복귀 경로를 고정하지 않는다.
 - 대화에서 뒤로 가면 대화를 열었던 상세 또는 대화 기록으로 돌아간다. 다음 화를
-  진행해도 이 복귀 경로를 유지한다.
+  진행해도 이 복귀 경로를 유지한다. `대화 시작하기`, `새 대화`, 진행 중인 회차
+  이어 가기와 끝난 화 열기가 모두 같은 기준을 따른다. `AI에게 물어보기` 시트를
+  열고 닫아도 보던 대화와 이 복귀 경로가 그대로다.
 - 탭이 없는 화면끼리 이동할 때 탭 바가 잠깐 나타나지 않는다. 탭 목록과 상세 사이의
   전환은 Native Stack이 소유하며, 뒤로 가기 제스처 도중 드러나는 원래 목록과 탭도
   시스템 전환에 맡긴다.
+- 불러오는 중, 빈 상태, 조회 실패 상태에서도 그 화면의 탭 표시와 뒤로 가기는
+  달라지지 않는다.
+- 목록과 대화 기록으로 돌아올 때 읽던 위치와 펼친 회차를 가능한 한 유지한다.
+  대화 진행에 따른 정상 데이터 갱신은 허용하며, 정확한 스크롤 복원 방식은 바꿀 수 있다.
 
 ## 경계
 
@@ -60,15 +66,13 @@
 - [Expo 공식 문서의 상세 화면 복귀 패턴](https://docs.expo.dev/router/basics/common-navigation-patterns/#going-back-to-the-tab-you-came-from)은
   상세를 탭 밖의 상위 Stack에서 열면 들어온 탭으로 돌아간다고 설명한다.
   [탭 안의 Stack](https://docs.expo.dev/router/basics/common-navigation-patterns/#stacks-inside-tabs-nested-navigators)은
-  하위 화면에서도 탭을 유지하는 패턴이다. 2026-09-09 원문을 확인했다.
+  하위 화면에서도 탭을 유지하는 패턴이다.
 - [NativeTabs의 탭 바 숨김](https://docs.expo.dev/router/advanced/native-tabs/#hiding-the-tab-bar)은
   부모의 `hidden`과 Context를 사용하는 공식 기능이다. 이 기능이 없어서 다른
   방식을 택한 것이 아니라, 탭이 필요 없는 화면의 배치와 복귀를 함께 맞추려고
   상위 Stack을 선택했다.
-- 기준 checkout의 `bun.lock`은 `expo-router 57.0.18`과 `react-native-screens 4.26.2`를
-  지정한다. Expo Router 57.0.18의 소스에서 `usePathname()`이 전역 경로를 읽고,
-  iOS와 Android의 NativeTabs가 `hidden`을 네이티브 `tabBarHidden`에 전달함을 확인했다.
-- 같은 버전의 `usePathname()`과 앱의 탭 숨김 함수를 작업 폴더 밖에 복사해 경로를
-  주입했다. `/records/… → /episode → /records/…`에서 숨김 값은
-  `true → false → true`였다. 이는 상태 변화의 근거이며, 실제 기기의 전환 장면이나
-  수정 후 동작을 검증한 결과는 아니다.
+- 상세와 기록을 탭 안에 두고 전역 경로로 `NativeTabs.hidden`을 바꾸던 구조에서는
+  `/records/… → /episode → /records/…`로 이동할 때 숨김 값이 `true → false → true`로
+  바뀌어 탭이 잠깐 드러났다. 상위 Stack으로 옮긴 뒤 iOS와 Android의 전환 녹화에서
+  탭 없는 화면끼리 이동해도 탭이 나타나지 않았고, iOS 뒤로 가기 제스처를 취소해도
+  탭이 남지 않았다.
