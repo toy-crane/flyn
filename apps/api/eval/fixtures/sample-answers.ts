@@ -3,9 +3,8 @@ import type { AnswerScope } from "../answer-checks";
 /**
  * 2026-09-10에 `openai/gpt-5.6-luna`에서 실제로 받은 답이다.
  *
- * 원문과 그때의 질문은 스펙 폴더의 `sample-answers.md`에 있다. 검사가 무엇을
- * 가르는지는 통과하는 답만으로는 알 수 없으므로, 고치기 전 프롬프트의 답을
- * 대조군으로 함께 둔다.
+ * 검사가 무엇을 가르는지는 통과하는 답만으로는 알 수 없으므로, 고치기 전
+ * 프롬프트의 답을 대조군으로 함께 둔다.
  */
 export interface SampleAnswer {
   answer: string;

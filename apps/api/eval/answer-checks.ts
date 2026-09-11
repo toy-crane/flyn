@@ -78,8 +78,8 @@ function isStandingAlone(lines: string[], at: number): boolean {
 /**
  * 답 하나에서 규칙에 어긋난 자리를 모은다.
  *
- * 규칙은 [AI에게 물어보기 답변 규칙](../../../docs/specs/ask-ai-answer-rules/spec.md)의
- * 완료 기준이 소유한다. 빈 배열이 통과다.
+ * 규칙은 [AI에게 물어보기 답변](../../../docs/decisions/ask-ai-answers.md)의
+ * 평가 항목이 소유한다. 빈 배열이 통과다.
  */
 export function answerViolations(answer: string, scope: AnswerScope): string[] {
   const violations: string[] = [];
