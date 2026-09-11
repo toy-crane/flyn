@@ -30,6 +30,7 @@
 - [에피소드 콘텐츠 제작](episode-authoring.md) — 새 화를 만들거나, 화 사이의 연결 방식, 각본과 모델의 역할 분담을 변경할 때 읽는다.
 - [AI 모델 라우팅](ai-model-routing.md) — AI Gateway, 모델 제공자, 모델 식별자 또는 provider fallback 방식을 변경할 때 읽는다.
 - [AI 프롬프트 평가](ai-prompt-evaluation.md) — 실제 모델을 부르는 프롬프트 평가를 만들거나, 그 자리, 검사 방식, 모델 채점 또는 평가 도구를 바꿀 때 읽는다.
+- [AI에게 물어보기 답변](ask-ai-answers.md) — 물어보기 프롬프트의 말투, 글 모양, 답하는 범위나 `eval:ask`의 질문과 검사를 바꿀 때 읽는다.
 - [계정 삭제 서버 경계](account-deletion-server-boundary.md) — 계정 삭제의 사용자 인증, 관리자 권한, 서버 런타임 또는 secret key 범위를 변경할 때 읽는다.
 
 ## 웹
