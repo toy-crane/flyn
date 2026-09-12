@@ -77,7 +77,7 @@ describe("classifyAuthError", () => {
     expect(failure.kind).toBe("invalidCode");
     // Supabase answers a wrong code and an expired one alike, so the message
     // names the step that works either way rather than guessing which happened.
-    expect(failure.message).toBe("코드를 다시 입력해 주세요.");
+    expect(failure.message).toBe("코드를 다시 입력해 주세요");
   });
 
   test("서버가 거절한 이메일은 입력을 다시 보게 한다", () => {
@@ -96,7 +96,7 @@ describe("classifyAuthError", () => {
   test("Error가 아닌 값도 안내 문구를 만든다", () => {
     expect(classifyAuthError("boom")).toEqual({
       kind: "unknown",
-      message: "다시 시도해 주세요.",
+      message: "다시 시도해 주세요",
     });
   });
 });

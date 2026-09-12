@@ -51,7 +51,7 @@ export function useEmailRequest(onSent: (email: string) => void): EmailRequest {
     if (!isValidEmail(address)) {
       setFailure({
         kind: "invalidEmail",
-        message: "이메일 주소를 다시 입력해 주세요.",
+        message: "이메일 주소를 다시 입력해 주세요",
       });
 
       return;

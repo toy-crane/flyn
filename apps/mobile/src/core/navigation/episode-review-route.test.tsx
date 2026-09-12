@@ -134,12 +134,12 @@ test("조회 재시도를 겹치지 않고 오류와 다음 화 이동을 유지
   globalThis.fetch = mockFetch as typeof fetch;
   const user = userEvent.setup();
   await renderWithHeroUI(<EpisodeReviewRoute />);
-  await screen.findByText("표현을 불러오지 못했어요.", {}, { timeout: 4000 });
+  await screen.findByText("표현을 불러오지 못했어요", {}, { timeout: 4000 });
   const retry = screen.getByRole("button", { name: "다시 시도하기" });
   await user.press(retry);
   await user.press(retry);
   expect(mockFetch).toHaveBeenCalledTimes(3);
-  expect(screen.getByText("표현을 불러오지 못했어요.")).toBeOnTheScreen();
+  expect(screen.getByText("표현을 불러오지 못했어요")).toBeOnTheScreen();
   expect(retry).toBeDisabled();
   expect(screen.getByRole("button", { name: "2화 시작하기" })).toBeEnabled();
   await act(() => {

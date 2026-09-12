@@ -284,7 +284,7 @@ test("화면에 들어오면 그 자리에서 에피소드를 연다", async () 
   expect(panel?.chat).toMatchObject({ tag: "conversation" });
   // 불투명 네이티브 헤더가 확보한 높이를 본문에 다시 더하지 않는다.
   expect(panel?.topInset).toBeUndefined();
-  expect(panel?.placeholder).toBe("영어나 한국어로 적어 주세요.");
+  expect(panel?.placeholder).toBe("영어나 한국어로 적어 주세요");
 });
 
 test("표현을 확인하거나 장면을 받는 중에도 화면 이탈을 막지 않는다", async () => {
@@ -365,7 +365,7 @@ test("마지막 대사가 와도 앞선 메시지의 표현 확인이 남으면 
   mockCorrections.states = { earlier: { retrying: false, status: "pending" } };
   await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
   expect(screen.getByTestId("episode-ending-checking")).toHaveTextContent(
-    "표현을 확인하고 있어요."
+    "표현을 확인하고 있어요"
   );
   expect(screen.queryByTestId("episode-closing")).toBeNull();
   expect(screen.queryByRole("button", { name: "표현 돌아보기" })).toBeNull();
@@ -379,7 +379,7 @@ test("모든 확인이 실패로 끝나도 실제 결말과 표현 돌아보기�
   const user = userEvent.setup();
   await renderWithHeroUI(<EpisodeScreen {...PLAYING} onReview={onReview} />);
   expect(screen.getByText("다른 음료를 받았다")).toBeOnTheScreen();
-  expect(screen.getByText("표현을 확인하지 못했어요.")).toBeOnTheScreen();
+  expect(screen.getByText("표현을 확인하지 못했어요")).toBeOnTheScreen();
   await user.press(screen.getByRole("button", { name: "표현 돌아보기" }));
   expect(onReview).toHaveBeenCalledWith(mockNextUp);
 });
@@ -433,14 +433,14 @@ test("담으면 상황 줄 밑에 뜰 문구를 대화판에 넘긴다", async (
   });
 
   expect(panel?.toast).toBeDefined();
-  expect(screen.getByText("표현을 저장했어요.")).toBeOnTheScreen();
+  expect(screen.getByText("표현을 저장했어요")).toBeOnTheScreen();
 
   await act(() => {
     mockSavedChanged?.(false);
   });
 
-  expect(screen.getByText("저장을 취소했어요.")).toBeOnTheScreen();
-  expect(screen.queryByText("표현을 저장했어요.")).toBeNull();
+  expect(screen.getByText("저장을 취소했어요")).toBeOnTheScreen();
+  expect(screen.queryByText("표현을 저장했어요")).toBeNull();
 });
 
 test("회차가 생기기 전에는 담아 둘 수 없다고 대화판에 알린다", async () => {

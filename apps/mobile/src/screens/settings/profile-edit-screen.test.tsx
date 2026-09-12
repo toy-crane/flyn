@@ -361,7 +361,7 @@ test("변경 제한 중에는 아이디만 잠그고 다시 바꿀 날짜를 보
   // still has to be able to fix their name.
   expect(screen.getByTestId("profile-nickname").props.editable).not.toBe(false);
   expect(screen.getByTestId("profile-username-policy")).toHaveTextContent(
-    `${unlockDay}부터 아이디를 다시 바꿀 수 있어요.`
+    `${unlockDay}부터 아이디를 다시 바꿀 수 있어요`
   );
 });
 
@@ -380,7 +380,7 @@ test("이미 사용 중인 아이디에는 대안을 제안한다", async () => 
 
     await waitFor(() => {
       expect(screen.getByTestId("profile-username-message")).toHaveTextContent(
-        "이미 사용 중인 아이디예요."
+        "이미 사용 중인 아이디예요"
       );
     });
 
@@ -403,7 +403,7 @@ test("예약어를 입력하면 쓸 수 없다고 알리고 화면은 그대로 
 
     await waitFor(() => {
       expect(screen.getByTestId("profile-username-message")).toHaveTextContent(
-        "사용할 수 없는 아이디예요."
+        "사용할 수 없는 아이디예요"
       );
     });
 
@@ -615,7 +615,7 @@ test("아이디를 바꾸면 확인을 거치고, 취소하면 입력한 값을 
     expect(title).toBe("아이디를 변경할까요?");
     // The previous-id protection is in the footer the person just read. Saying it
     // again here would bury the one fact this dialog exists for.
-    expect(body).toBe("변경 후 30일 동안 다시 바꿀 수 없어요.");
+    expect(body).toBe("변경 후 30일 동안 다시 바꿀 수 없어요");
     expect(buttons?.map((button) => button.text)).toEqual(["취소", "변경"]);
     // 변경 replaces a value rather than removing one, so it is not destructive.
     expect(buttons?.[1]?.style).toBeUndefined();

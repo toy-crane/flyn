@@ -114,7 +114,7 @@ test("만든 스토리가 없으면 내 스토리가 만들기를 안내한다",
   await user.press(screen.getByText("내 스토리"));
 
   expect(screen.getByTestId("browse-mine-empty")).toBeVisible();
-  expect(screen.getByText("아직 내 스토리가 없어요.")).toBeVisible();
+  expect(screen.getByText("아직 내 스토리가 없어요")).toBeVisible();
 
   await user.press(screen.getByText("스토리 만들기"));
 

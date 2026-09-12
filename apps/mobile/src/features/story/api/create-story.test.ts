@@ -28,7 +28,7 @@ function card(id: string, title: string, state = "output-available") {
     id,
     parts: [
       { input: outline(title), state, type: OUTLINE_PART_TYPE },
-      { text: "고칠 게 있으면 말해 주세요.", type: "text" },
+      { text: "고칠 게 있으면 말해 주세요", type: "text" },
     ],
     role: "assistant",
   } as unknown as UIMessage;

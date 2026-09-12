@@ -10,7 +10,7 @@ export const noteLabels = {
   /** Not shown: 카드 아래 아이콘 줄의 복사. */
   copy: "표현 복사",
   /** 아직 담은 것이 없는 노트. 여기서 할 일이 없으므로 버튼을 두지 않는다. */
-  emptyTitle: "아직 저장한 표현이 없어요.",
+  emptyTitle: "아직 저장한 표현이 없어요",
   /** 카드 아래 아이콘 줄의 휴지통이자, 확인창에서 지우는 쪽. */
   erase: "삭제",
   /**
@@ -28,5 +28,5 @@ export const noteLabels = {
   /** 화면의 큰 제목. */
   title: "표현 노트",
   /** 목록을 읽어 오지 못했을 때. */
-  unavailable: "표현 노트를 불러오지 못했어요.",
+  unavailable: "표현 노트를 불러오지 못했어요",
 } as const;

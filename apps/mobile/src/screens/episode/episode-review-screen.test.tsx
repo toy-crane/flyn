@@ -125,7 +125,7 @@ test("카드가 없으면 제목과 개수, 개별 재시도 없이 중립적인
   ).toBeOnTheScreen();
   expect(screen.queryByText("기억해 둘 표현")).toBeNull();
   expect(screen.queryByText("0개")).toBeNull();
-  expect(screen.queryByText("표현을 확인하지 못했어요.")).toBeNull();
+  expect(screen.queryByText("표현을 확인하지 못했어요")).toBeNull();
   expect(screen.queryByLabelText("표현 다시 확인")).toBeNull();
   expect(screen.getByRole("button", { name: "2화 시작하기" })).toBeEnabled();
 });
@@ -139,7 +139,7 @@ test("조회 중에는 빈 결과로 단정하지 않고 하단 이동을 유지
 
 test("조회 재시도 중에도 오류 안내와 이동은 유지하고 재조회 버튼만 잠근다", async () => {
   await renderWithHeroUI(<EpisodeReviewScreen {...base} isRetrying />);
-  expect(screen.getByText("표현을 불러오지 못했어요.")).toBeOnTheScreen();
+  expect(screen.getByText("표현을 불러오지 못했어요")).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "다시 시도하기" })).toHaveProp(
     "accessibilityState",
     { busy: true, disabled: true }

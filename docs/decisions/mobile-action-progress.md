@@ -122,7 +122,6 @@ Android에서 Material 3 Expressive의 `LoadingIndicator`를 쓰지 않는 이�
 - 아래 라이브러리 내부 동작은 `@expo/ui` 57.0.x, React Native 0.86, HeroUI Native 1.0.8에서 읽었다. 올린 뒤에는 다시 확인한다.
 - 설치된 HeroUI Native `1.0.8`의 `Button`은 별도 진행 중 속성이 없고 자식으로 `Spinner`를 조합한다. 버튼 기본 스타일은 높이와 가로 여백을 정하지만 너비는 정하지 않는다.
 - `@expo/ui`의 범용 `Button`은 `disabled`와 사용자 지정 자식을 지원하지만 진행 중 또는 `busy` 속성을 제공하지 않는다. `ButtonProps`는 `children`, `label`, `onPress`, `variant`만 선언하고 `disabled`는 `UniversalBaseProps`에서 온다.
-- [SEED 로딩 지침](https://seed-design.io/docs/guidelines/loading)은 1초 안에 끝나는 작업에 별도 로딩 표시를 권하지 않으며, [Progress Circle 지침](https://seed-design.io/docs/components/progress-circle)은 표시 위치가 로딩 범위를 나타낸다고 설명한다. 화면 전체 로딩에 문구를 두라거나 두지 말라는 문장은 없다. 로딩이 길어지면 안내 메시지로 알린 사례를 들지만 그 기준은 5초다.
 - 20px, 28px, 36px을 폰 너비의 빈 화면 중앙에 나란히 놓고 iOS 스포크와 Android 원호, 밝은 화면과 어두운 화면에서 비교했다. 20px은 옆에 설 글자가 없으면 배경에 묻힌다.
 - [Apple 진행 표시 지침](https://developer.apple.com/design/human-interface-guidelines/progress-indicators)은 진행 표시를 일관된 자리에 두라고 안내한다. 컨트롤 바로 옆에 두라는 문장은 macOS 절에 있으므로 iOS 규칙으로 인용하지 않는다.
 - `@expo/ui`는 접근성을 props가 아니라 modifier로 제공한다. `@expo/ui/swift-ui/modifiers`의 `accessibilityLabel`, `accessibilityValue`, `accessibilityHint`, `accessibilityAddTraits`, `accessibilityHidden`과 `disabled`를 `modifiers` 배열로 넘긴다. `ListItem`과 범용 `Button` 모두 `modifiers`를 받는다.

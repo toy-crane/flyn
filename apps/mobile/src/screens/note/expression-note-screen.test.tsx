@@ -253,7 +253,7 @@ test("담은 것이 없으면 책갈피 한 줄만 보이고 버튼은 없다", 
   await rendered;
 
   expect(screen.getByTestId("expression-note-empty")).toBeOnTheScreen();
-  expect(screen.getByText("아직 저장한 표현이 없어요.")).toBeOnTheScreen();
+  expect(screen.getByText("아직 저장한 표현이 없어요")).toBeOnTheScreen();
   expect(screen.queryByRole("button")).toBeNull();
 });
 
@@ -262,7 +262,7 @@ test("불러오지 못하면 제목과 다시 시도하기가 본문에 선다",
 
   await rendered;
 
-  expect(screen.getByText("표현 노트를 불러오지 못했어요.")).toBeOnTheScreen();
+  expect(screen.getByText("표현 노트를 불러오지 못했어요")).toBeOnTheScreen();
   expect(screen.getByText("다시 시도하기")).toBeOnTheScreen();
 });
 

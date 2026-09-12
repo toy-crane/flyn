@@ -73,7 +73,7 @@ requires equivalent meaning, hierarchy, state, and accessibility behavior.
 
 ### Copy, states, and accessibility
 
-- Apply `korean-ui-writing.md` to visible Korean copy, action labels, recovery
+- Apply `ux-writing.md` to visible Korean copy, action labels, recovery
   text, punctuation, and tone. Respect provider-owned wording.
 - Apply `mobile-action-progress.md` and the active feature contract to loading,
   pending, disabled, error, empty, success, and duplicate-action behavior.

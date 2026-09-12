@@ -10,7 +10,7 @@
  */
 export const storyLabels = {
   /** 카드 뒤에 플린이 덧붙이는 말. 문구가 늘 같아 모델이 쓰지 않는다. */
-  afterCard: "고칠 게 있으면 말해 주세요.",
+  afterCard: "고칠 게 있으면 말해 주세요",
   /** 탐색의 필터 칩. 공식 스토리와 내가 만든 것을 함께 보여 준다. */
   allStories: "전체",
   /** 탐색 탭의 이름이자 그 화면의 큰 제목. */
@@ -30,7 +30,7 @@ export const storyLabels = {
   /** 어디서나 화를 번호로 부르는 말. */
   episodeNumber: (episode: number) => `${episode}화`,
   /** 아직 만든 스토리가 없을 때 `내 스토리` 칩이 보여 주는 안내. */
-  mineEmptyTitle: "아직 내 스토리가 없어요.",
+  mineEmptyTitle: "아직 내 스토리가 없어요",
   /** 탐색의 필터 칩. 내가 만든 스토리만 보여 준다. */
   myStories: "내 스토리",
   /** 대화 기록 헤더 오른쪽의 텍스트 버튼. */
@@ -40,13 +40,13 @@ export const storyLabels = {
   /** 대화가 없는 스토리 탭이 안내하는 곳. */
   recentEmptyAction: "스토리 둘러보기",
   /** 대화한 스토리가 아직 없는 스토리 탭. */
-  recentEmptyTitle: "아직 대화한 스토리가 없어요.",
+  recentEmptyTitle: "아직 대화한 스토리가 없어요",
   /** 스토리 탭과 대화 기록의 목록 제목. */
   recentHeading: "최근 대화",
   /** 상세 우측 상단 버튼. 이 스토리의 대화 기록을 연다. */
   records: "대화 기록",
   /** 이 스토리에 아직 기록이 없는 대화 기록 화면. */
-  recordsEmptyTitle: "아직 나눈 대화가 없어요.",
+  recordsEmptyTitle: "아직 나눈 대화가 없어요",
   /** 대화 기록에서 미완료 회차를 다시 여는 버튼. */
   resume: "이어서 하기",
   /** Not shown: 회차 카드에서 이 회차를 이어가는 버튼. */
@@ -75,5 +75,5 @@ export const storyLabels = {
   /** 스토리 탭의 이름이자 그 화면의 큰 제목. */
   tab: "스토리",
   /** Shown when the stories could not be read. */
-  unavailable: "이야기를 불러오지 못했어요.",
+  unavailable: "이야기를 불러오지 못했어요",
 } as const;

@@ -436,7 +436,7 @@ test("메일 앱을 열지 못하면 지원 섹션에서 그렇게 말한다", a
   // A device with no mail app rejects `mailto:`, and without this the row
   // would look like one that does nothing when pressed.
   expect(await screen.findByTestId("support-mail-error")).toHaveTextContent(
-    "메일 앱을 열지 못했습니다."
+    "메일 앱을 열지 못했습니다"
   );
 });
 

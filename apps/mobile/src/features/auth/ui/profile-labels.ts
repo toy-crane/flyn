@@ -26,7 +26,7 @@ export const profileLabels = {
   /** The pill under the picture. Its accessible name stays the fuller 사진 편집. */
   edit: "편집",
   /** Said when the device has no mail app to hand the address to. */
-  mailAppUnavailable: "메일 앱을 열지 못했습니다.",
+  mailAppUnavailable: "메일 앱을 열지 못했습니다",
   nickname: "닉네임",
   /** The name Home's settings control carries for a screen reader. */
   openSettings: "설정 열기",
@@ -66,7 +66,7 @@ export const USERNAME_POLICY_NOTE =
 
 /** Replaces the standing rule once the id is locked. */
 export function usernameUnlockNote(lockedUntil: string): string {
-  return `${formatUsernameUnlockDate(lockedUntil)}부터 아이디를 다시 바꿀 수 있어요.`;
+  return `${formatUsernameUnlockDate(lockedUntil)}부터 아이디를 다시 바꿀 수 있어요`;
 }
 
 /**
@@ -77,10 +77,10 @@ export function usernameUnlockNote(lockedUntil: string): string {
  * repeating it here would bury the one fact this dialog exists for.
  */
 export const USERNAME_CONFIRM_TITLE = "아이디를 변경할까요?";
-export const USERNAME_CONFIRM_BODY = "변경 후 30일 동안 다시 바꿀 수 없어요.";
+export const USERNAME_CONFIRM_BODY = "변경 후 30일 동안 다시 바꿀 수 없어요";
 
 export const CHECKING_USERNAME_MESSAGE =
-  "사용할 수 있는 아이디인지 확인하고 있어요.";
+  "사용할 수 있는 아이디인지 확인하고 있어요";
 
 /**
  * Shown in place of the photo, not over the OS dialog: by the time this appears

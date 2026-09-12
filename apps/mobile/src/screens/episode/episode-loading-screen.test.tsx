@@ -20,7 +20,7 @@ test("대화 읽기가 1초를 넘기면 글자 없이 진행 표시만 세우�
   await act(() => jest.advanceTimersByTime(1));
 
   expect(
-    screen.getByRole("progressbar", { name: "대화를 불러오고 있어요." })
+    screen.getByRole("progressbar", { name: "대화를 불러오고 있어요" })
   ).toHaveProp("accessibilityState", { busy: true });
   expect(screen.queryAllByText(ANY_TEXT)).toHaveLength(0);
 });
@@ -32,7 +32,7 @@ test("늦게 붙는 진행 표시는 화면 읽기에 스스로 알린다", asyn
   await act(() => jest.advanceTimersByTime(1000));
 
   expect(
-    screen.getByRole("progressbar", { name: "대화를 불러오고 있어요." })
+    screen.getByRole("progressbar", { name: "대화를 불러오고 있어요" })
   ).toHaveProp("accessibilityLiveRegion", "polite");
 });
 
@@ -41,12 +41,12 @@ test("늦게 붙는 진행 표시는 화면 읽기에 스스로 알린다", asyn
 test("한 칸만 기다리는 자리는 문구를 함께 보인다", async () => {
   jest.useFakeTimers();
   await renderWithHeroUI(
-    <EpisodeLoadingScreen label="표현을 불러오고 있어요." />
+    <EpisodeLoadingScreen label="표현을 불러오고 있어요" />
   );
   await act(() => jest.advanceTimersByTime(1000));
 
-  expect(screen.getByText("표현을 불러오고 있어요.")).toBeOnTheScreen();
+  expect(screen.getByText("표현을 불러오고 있어요")).toBeOnTheScreen();
   expect(
-    screen.getByRole("progressbar", { name: "표현을 불러오고 있어요." })
+    screen.getByRole("progressbar", { name: "표현을 불러오고 있어요" })
   ).toBeOnTheScreen();
 });

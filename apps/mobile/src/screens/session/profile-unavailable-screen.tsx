@@ -32,7 +32,7 @@ export function ProfileUnavailableScreen({
           잠시 후 다시 시도해 주세요
         </Text>
         <Text className="text-base text-muted leading-6">
-          프로필을 불러오지 못했어요.
+          프로필을 불러오지 못했어요
         </Text>
       </View>
 
