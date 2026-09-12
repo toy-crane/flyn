@@ -3,7 +3,6 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 import { simulateReadableStream } from "ai";
-import { prepareEpisodeMessage } from "@/features/episode/state/episode-notation";
 
 import {
   type ChatSession,
@@ -114,32 +113,32 @@ describe("useConversation", () => {
     await waitFor(() => expect(result.current.isBusy).toBe(false));
     expect(messageText(result.current.messages[0])).toBe("hello i am here");
   });
-  test("에피소드의 말풍선과 전송에는 고친 표기가 쓰이고 수정할 때도 유지된다", async () => {
+  test("전송 전 변환 결과가 메시지와 전송에 쓰이고 수정할 때도 유지된다", async () => {
     const transport = fakeTransport(() =>
       Promise.resolve(answerStream("Okay"))
     );
     const { result } = await renderHook(() =>
-      useTestConversation(ACCESS_TOKEN, prepareEpisodeMessage)
+      useTestConversation(ACCESS_TOKEN, (text) => text.toUpperCase())
     );
     await ask(result, "hello. what is your name");
     await waitFor(() => expect(result.current.isBusy).toBe(false));
     expect(messageText(result.current.messages[0])).toBe(
-      "Hello. What is your name"
+      "HELLO. WHAT IS YOUR NAME"
     );
     expect(
       messageText(transport.sendMessages.mock.calls[0][0].messages[0])
-    ).toBe("Hello. What is your name");
+    ).toBe("HELLO. WHAT IS YOUR NAME");
     await act(() => result.current.beginEdit(result.current.messages[0].id));
-    expect(result.current.draft).toBe("Hello. What is your name");
+    expect(result.current.draft).toBe("HELLO. WHAT IS YOUR NAME");
     await ask(result, "yesterday i goed home");
     await waitFor(() => expect(result.current.isBusy).toBe(false));
     expect(result.current.messages.map(messageText)).toEqual([
-      "Yesterday I goed home",
+      "YESTERDAY I GOED HOME",
       "Okay",
     ]);
     expect(
       messageText(transport.sendMessages.mock.calls[1][0].messages[0])
-    ).toBe("Yesterday I goed home");
+    ).toBe("YESTERDAY I GOED HOME");
   });
   afterEach(() => {
     jest.clearAllMocks();
