@@ -4,7 +4,7 @@ const MIXED_CASE_OR_NUMBER = /[\p{Lu}\p{N}_]/u;
 const LATIN = /\p{Script=Latin}/u;
 const STANDALONE_I = /(?<![\p{L}\p{M}\p{N}_])i(?![\p{L}\p{M}\p{N}_])/gu;
 const ADDRESS =
-  /[^\s]*\/[^\s]*|(?:www\.|mailto:)[^\s]+|[\p{L}\p{M}\p{N}._%+'-]+@[\p{L}\p{M}\p{N}.-]+\.[\p{L}]{2,}|(?:localhost|(?:[\p{L}\p{N}-]+\.)+[\p{L}\p{N}-]+)(?::\d+)?(?:[?#][^\s]*)?/giu;
+  /[^\s]*\/[^\s]*|(?:www\.|mailto:)[^\s]+|[^\s]+@[^\s]+|(?:localhost|(?:[\p{L}\p{N}-]+\.)+[\p{L}\p{N}-]+)(?::\d+)?(?:[?#][^\s]*)?/giu;
 
 function addressAt(text: string): (index: number) => boolean {
   const ranges = Array.from(

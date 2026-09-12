@@ -2,6 +2,15 @@ import { expect, test } from "@jest/globals";
 
 import { prepareEpisodeMessage } from "./episode-notation";
 
+test.each(["i@localhost", "i@[192.168.0.1]", "i@example.xn--p1ai"])(
+  "이메일의 호스트 종류와 무관하게 로컬 부분을 보존한다: %s",
+  (address) => {
+    expect(prepareEpisodeMessage(`${address} is my email and i agree`)).toBe(
+      `${address} is my email and I agree`
+    );
+  }
+);
+
 test.each([
   "192.168.0.1/i",
   "localhost/i",
