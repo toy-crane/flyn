@@ -42,6 +42,17 @@ const second = {
 
 export const CREATION_CASES: CreationCase[] = [
   {
+    name: "사고 정보 교환에서 사용자를 별도 인물로 만들지 않기",
+    turns: [
+      {
+        characters: 1,
+        episodes: 1,
+        question:
+          "고속도로에서 사고가 났어요. 상대 운전자와 연락처와 보험 정보를 교환하는 상황을 연습하고 싶어요.",
+      },
+    ],
+  },
+  {
     name: "육아 갈등에서 원하는 상황 함께 찾기",
     turns: [{ asks: true, question: "어제 와이프랑 육아 문제로 싸웠어" }],
   },

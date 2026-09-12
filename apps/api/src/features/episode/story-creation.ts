@@ -61,7 +61,7 @@ const OUTLINE_SCHEMA = jsonSchema<StoryOutline>({
   additionalProperties: false,
   properties: {
     characters: {
-      description: `스토리에 사는 인물. ${CHARACTERS_PER_STORY}명까지.`,
+      description: `AI가 연기할 상대 인물만 넣는다. 사용자는 포함하지 않는다. ${CHARACTERS_PER_STORY}명까지.`,
       items: {
         additionalProperties: false,
         properties: {
@@ -93,7 +93,7 @@ const OUTLINE_SCHEMA = jsonSchema<StoryOutline>({
         additionalProperties: false,
         properties: {
           cast: {
-            description: `이 화에 나오는 인물의 이름. ${CAST_PER_EPISODE}명까지이고 characters에 있는 이름만 쓴다.`,
+            description: `AI가 연기할 이 화의 상대 이름. 사용자는 제외하며 ${CAST_PER_EPISODE}명까지이고 characters에 있는 이름만 쓴다.`,
             items: { type: "string" },
             type: "array",
           },
@@ -229,6 +229,7 @@ export function creationSystemPrompt(): string {
 
 - 화 수는 사용자가 원한 상황 수이며 한 화부터 ${EPISODES_PER_STORY}화까지다. 기본 화 수를 채우지 않는다. 사용자가 3화를 원한다고만 하면 각 화에서 원하는 상황을 함께 정한다.
 - 인물은 ${CHARACTERS_PER_STORY}명을 넘지 않는다. 한 화에는 ${CAST_PER_EPISODE}명을 넘지 않고 2명이 기본이며, 3명은 압박을 더하는 자리에만 쓴다.
+- characters와 각 화의 cast에는 AI가 연기할 상대만 넣는다. 사용자는 이 목록 밖에서 직접 플레이하므로 이름과 역할을 가진 별도 인물로 만들지 않는다. 사용자의 목표와 조건은 details에 남긴다. 상대 한 명과 대화하는 상황이면 상대 한 명만 넣고, 기본 인원수를 맞추려고 사용자 역할이나 다른 상대를 추가하지 않는다.
 - 화의 인물 이름은 반드시 characters에 있는 이름이어야 한다.
 - 인물의 이름은 영어 이름을 쓴다. 사용자가 실제 사람 이름을 말했어도 그 이름을 쓰지 않는다.
 - 1번 인물은 이야기의 중심 상대다.

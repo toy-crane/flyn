@@ -2,6 +2,34 @@ import { expect, test } from "bun:test";
 import { CREATION_CASES } from "./story-creation-cases";
 import { creationViolations } from "./story-creation-checks";
 
+test("사용자 역할을 별도 인물로 추가한 카드는 상대 인원 검사에서 실패한다", () => {
+  const outline = CREATION_CASES.find((item) => item.seed)?.seed;
+  if (!outline) {
+    throw new Error("평가 카드가 없습니다.");
+  }
+  const duplicatedPlayer = {
+    ...outline,
+    characters: [
+      ...outline.characters,
+      {
+        name: "Mia",
+        position: 2,
+        role: "고장 난 기계를 들고 직원에게 교환을 요청하는 고객.",
+      },
+    ],
+    episodes: outline.episodes.map((episode) => ({
+      ...episode,
+      cast: [...episode.cast, "Mia"],
+    })),
+  };
+  expect(
+    creationViolations("", [duplicatedPlayer], { characters: 1, episodes: 1 })
+  ).toContain("요청한 상대 인원과 다름");
+  expect(
+    creationViolations("", [outline], { characters: 1, episodes: 1 })
+  ).toEqual([]);
+});
+
 test("상한을 알리지 않은 제안과 이전 결과를 확정한 추가 제안을 잡는다", () => {
   expect(
     creationViolations("관리 방법을 묻는 장면은 어때요?", [], { atLimit: true })

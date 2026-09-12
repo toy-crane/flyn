@@ -21,6 +21,7 @@ export const COVER_ANGLES = [
 export interface CreationExpectation {
   asks?: boolean;
   atLimit?: boolean;
+  characters?: number;
   episodes?: number;
   preserve?: number[];
   unresolved?: boolean;
@@ -37,6 +38,12 @@ function cardViolations(
     return [read.problem];
   }
   const { outline } = read;
+  if (
+    expected.characters !== undefined &&
+    outline.characters.length !== expected.characters
+  ) {
+    violations.push("요청한 상대 인원과 다름");
+  }
   if (outline.episodes.length !== expected.episodes) {
     violations.push("요청한 화 수와 다름");
   }
