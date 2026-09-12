@@ -2229,6 +2229,48 @@ describe("메시지별 표현 확인 API", () => {
       "article-the-specific"
     );
   });
+  test("잘못된 교정 항목을 한 번 다시 판정하고 원래 메시지에만 저장한다", async () => {
+    const state = createSeasonState();
+    state.messages.push(stored("I think this is wrong coffee."));
+    const model = createMockModel([], {
+      ...WRONG_COFFEE,
+      entries: [
+        {
+          fixed: "the wrong coffee",
+          original: "absent",
+          pattern: "article-the-specific",
+          why: "그 커피를 가리켜요.",
+        },
+      ],
+      status: "corrected",
+    });
+    const invalid = model.doGenerate.bind(model);
+    const valid = createMockModel([], { ...WRONG_COFFEE, status: "corrected" });
+    let calls = 0;
+    model.doGenerate = (options) => {
+      calls += 1;
+      return calls === 1 ? invalid(options) : valid.doGenerate(options);
+    };
+    const app = createApp({ authMiddleware: signedInWith(state), model });
+
+    const response = await app.request(request());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      correction: { entries: WRONG_COFFEE.entries, messageId: "m1" },
+      status: "corrected",
+    });
+    expect(calls).toBe(2);
+    expect(valid.doGenerateCalls[0]?.prompt.at(-1)).toMatchObject({
+      content: [
+        { text: "확인할 문장:\nI think this is wrong coffee.", type: "text" },
+      ],
+      role: "user",
+    });
+    expect(state.messages).toHaveLength(1);
+    expect(state.expressionResults).toHaveLength(1);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
   test.each(["natural", "unclear"] as const)(
     "%s 판정은 다시 열고 재요청해도 저장된 결과를 사용한다",
     async (status) => {
@@ -2370,14 +2412,16 @@ describe("메시지별 표현 확인 API", () => {
     async (answer) => {
       const state = createSeasonState();
       state.messages.push(stored("I wants coffee."));
+      const model = createMockModel([], answer as CorrectionAnswer);
       const app = createApp({
         authMiddleware: signedInWith(state),
-        model: createMockModel([], answer as CorrectionAnswer),
+        model,
       });
       const response = await app.request(request());
       expect(response.status).toBe(500);
       expect(await response.json()).not.toHaveProperty("status", "natural");
       expect(state.expressionResults).toHaveLength(0);
+      expect(model.doGenerateCalls).toHaveLength(2);
     }
   );
   test("한국어를 문제없는 영어로 판정한 결과는 거절한다", async () => {
