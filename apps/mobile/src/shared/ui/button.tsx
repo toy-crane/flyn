@@ -90,21 +90,26 @@ export function Button({
   ...props
 }: ButtonProps) {
   const effectiveDisabled = isDisabled || isPending;
-  const idleSize = useRef<{ height: number; width: number } | undefined>(
-    undefined
-  );
+  const idleSize = useRef<
+    { height: number; width: number; label: ReactNode } | undefined
+  >(undefined);
   const handleLayout = useCallback(
     (event: LayoutChangeEvent) => {
       if (!isPending) {
         const { height, width } = event.nativeEvent.layout;
 
-        idleSize.current = { height, width };
+        idleSize.current = { height, label: children, width };
       }
       onLayout?.(event);
     },
-    [isPending, onLayout]
+    [children, isPending, onLayout]
   );
-  const pendingSize = isPending ? idleSize.current : undefined;
+  // 단계별 문구가 바뀌는 스토리 만들기는 새 문구에 맞춰 높이를 다시 잰다.
+  const measured = idleSize.current;
+  const pendingSize =
+    isPending && measured && measured.label === children
+      ? { height: measured.height, width: measured.width }
+      : undefined;
   const dynamicTypeClassName = getDynamicTypeClassName(size, pendingSize);
   const resolvedStyle =
     typeof style === "function"

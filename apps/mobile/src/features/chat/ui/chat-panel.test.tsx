@@ -2331,6 +2331,10 @@ describe("끝난 대화", () => {
       "placeholder",
       "영어로 말해 보세요"
     );
+    expect(screen.getByTestId("chat-input")).toHaveProp(
+      "placeholderTextColorClassName",
+      "accent-muted"
+    );
   });
 });
 

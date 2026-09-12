@@ -101,6 +101,22 @@ test("처음부터 진행 중이면 측정 전까지 내용에 맞춘 높이를 
   expect(StyleSheet.flatten(button.props.style)).not.toHaveProperty("height");
 });
 
+test("진행 단계의 문구가 바뀌면 이전 문구의 높이에 가두지 않는다", async () => {
+  const view = await renderWithHeroUI(<Button>스토리 만들기</Button>);
+  await act(() => {
+    fireEvent(screen.getByRole("button"), "layout", {
+      nativeEvent: { layout: { height: 48, width: 300, x: 0, y: 0 } },
+    });
+  });
+
+  await view.rerender(<Button isPending>대본을 쓰고 있어요</Button>);
+
+  const button = screen.getByRole("button", { name: "대본을 쓰고 있어요" });
+  expect(StyleSheet.flatten(button.props.style)).not.toHaveProperty("height");
+  expect(button).toBeBusy();
+  expect(button).toBeDisabled();
+});
+
 test.each([
   { className: "h-auto! min-h-10 px-[30px]! py-2.5", size: "sm" as const },
   { className: "h-auto! min-h-12 px-8! py-3", size: "md" as const },

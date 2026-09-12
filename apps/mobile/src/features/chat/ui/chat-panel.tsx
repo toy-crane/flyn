@@ -428,6 +428,7 @@ function Composer({
           onContentSizeChange={onResize}
           onSubmitEditing={onSend}
           placeholder={placeholder}
+          placeholderTextColorClassName="accent-muted"
           ref={inputRef}
           returnKeyType="send"
           style={{ height: inputHeight, maxHeight: maxInputHeight }}

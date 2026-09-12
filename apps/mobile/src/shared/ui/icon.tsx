@@ -12,6 +12,7 @@ import Copy from "lucide-react-native/icons/copy";
 import Lock from "lucide-react-native/icons/lock";
 import MessagesSquare from "lucide-react-native/icons/messages-square";
 import Pencil from "lucide-react-native/icons/pencil";
+import Plus from "lucide-react-native/icons/plus";
 import RefreshCw from "lucide-react-native/icons/refresh-cw";
 import Sparkles from "lucide-react-native/icons/sparkles";
 import Square from "lucide-react-native/icons/square";
@@ -21,6 +22,7 @@ import { View } from "react-native";
 import { useCSSVariable } from "uniwind";
 
 const icons = {
+  add: Plus,
   bookmark: Bookmark,
   check: Check,
   close: X,

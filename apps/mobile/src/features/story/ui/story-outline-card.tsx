@@ -1,7 +1,8 @@
-import { Text, View } from "react-native";
+import { Text, useWindowDimensions, View } from "react-native";
 
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { Button } from "@/shared/ui/button";
+import { Icon } from "@/shared/ui/icon";
 
 /** 카드에 적힌 인물 한 명. 순서가 곧 이름표 색의 번호다. */
 export interface OutlineCharacter {
@@ -56,12 +57,14 @@ export function StoryOutlineCard({
   outline: StoryOutline;
   progress?: string;
 }) {
+  const { fontScale } = useWindowDimensions();
   const startLabel = isStarting
     ? (progress ?? storyLabels.creationProgress.script)
     : storyLabels.createStory;
   return (
     <View
       className="w-full gap-3.5 rounded-2xl bg-surface p-4"
+      key={fontScale}
       testID="story-outline-card"
     >
       <View>
@@ -102,7 +105,7 @@ export function StoryOutlineCard({
         {outline.episodes.map((episode) => (
           <View className="flex-row gap-1.5" key={episode.number}>
             <Text
-              className="w-8 font-semibold text-[12px] text-muted leading-[18px]"
+              className="min-w-8 shrink-0 font-semibold text-[12px] text-muted leading-[18px]"
               dynamicTypeRamp="caption1"
             >
               {storyLabels.episodeNumber(episode.number)}
@@ -130,7 +133,7 @@ export function StoryOutlineCard({
           accessibilityLabel={storyLabels.addEpisode}
           isDisabled={isDisabled || isStarting || outline.episodes.length >= 5}
           onPress={onAdd}
-          startContent={<Text className="text-[20px] text-foreground">＋</Text>}
+          startContent={<Icon name="add" />}
           variant="outline"
         >
           {storyLabels.addEpisode}
@@ -181,6 +184,7 @@ export function StoryOutlineTurn({
   outline: StoryOutline;
   progress?: string;
 }) {
+  const { fontScale } = useWindowDimensions();
   return (
     <View className="w-full gap-3">
       <StoryOutlineCard
@@ -195,6 +199,7 @@ export function StoryOutlineTurn({
         <Text
           className="px-1 text-[16px] text-foreground leading-6"
           dynamicTypeRamp="body"
+          key={fontScale}
         >
           {storyLabels.afterCard}
         </Text>
