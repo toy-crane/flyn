@@ -11,7 +11,7 @@ export const COVER_BUCKET = "story-covers";
 /** 표지 모델. 값과 품질은 스펙이 정했고, 여기서는 자리만 둔다. */
 export const COVER_MODEL_ENV = "AI_GATEWAY_IMAGE_MODEL";
 const DEFAULT_COVER_MODEL = "openai/gpt-image-1-mini";
-// 표지를 기다려도 서버의 120초 유휴 제한 전에 대본 저장을 계속한다.
+// 그림 생성과 업로드를 합쳐 서버의 120초 유휴 제한 전에 저장을 계속한다.
 const COVER_TIMEOUT_MS = 60_000;
 
 /**
@@ -169,7 +169,7 @@ export async function madeCover({
     const deadline = new Promise<never>((_resolve, reject) => {
       timer = setTimeout(() => {
         controller.abort();
-        reject(new Error("Drawing the story cover timed out."));
+        reject(new Error("Preparing the story cover timed out."));
       }, timeoutMs);
     });
     // 취소에 응답하지 않는 공급자도 저장을 계속 막지 못하게 한다.
@@ -177,15 +177,17 @@ export async function madeCover({
       draw(prompt, controller.signal),
       deadline,
     ]);
-    clearTimeout(timer);
     const digest = createHash("sha256").update(bytes).digest("hex");
     const path = `made/${ownerId}/${digest}.png`;
     const blurhash = previewHash(bytes);
-    const { error } = await bucket.upload(path, bytes, {
-      cacheControl: "31536000",
-      contentType: "image/png",
-      upsert: false,
-    });
+    const { error } = await Promise.race([
+      bucket.upload(path, bytes, {
+        cacheControl: "31536000",
+        contentType: "image/png",
+        upsert: false,
+      }),
+      deadline,
+    ]);
 
     /*
       이름이 내용의 해시이므로, 이미 있는 파일은 지금 올리려던 그림과 같은

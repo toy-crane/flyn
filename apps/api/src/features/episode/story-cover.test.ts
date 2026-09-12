@@ -205,6 +205,25 @@ describe("madeCover", () => {
     expect(made).toBeUndefined();
   });
 
+  test("업로드 응답이 멈춰도 표지 처리 제한 시간 뒤 끝낸다", async () => {
+    let finish!: (result: { error: null }) => void;
+    const made = await madeCover({
+      bucket: {
+        upload: () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+      },
+      draw: () => Promise.resolve(png(0, 0, 255)),
+      outline: card(),
+      ownerId: owner,
+      timeoutMs: 10,
+    });
+
+    expect(made).toBeUndefined();
+    finish({ error: null });
+  }, 1000);
+
   /*
     같은 그림을 두 사람이 만들 수 있다. 이름이 내용의 해시라 이미 있는 파일과
     부딪히는데, 그 파일이 곧 우리가 올리려던 그림이다.
