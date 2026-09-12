@@ -10,6 +10,7 @@ import {
   type StoryOutline,
 } from "../src/features/episode/story-creation";
 import { resolveModelId } from "../src/shared/model-id";
+import { STORY_BASELINE_REVISION } from "./story-baseline";
 import { CREATION_CASES, type CreationCase } from "./story-creation-cases";
 import { creationViolations } from "./story-creation-checks";
 
@@ -18,7 +19,7 @@ const baseline = process.argv.includes("--baseline");
 const revision =
   process.argv
     .find((argument) => argument.startsWith("--baseline-ref="))
-    ?.slice("--baseline-ref=".length) || "98e248d";
+    ?.slice("--baseline-ref=".length) || STORY_BASELINE_REVISION;
 const PLACEHOLDER = /\$\{(\w+)\}/g;
 const BASELINE_VALUES: Record<string, string> = {
   CAST_PER_EPISODE: "3",

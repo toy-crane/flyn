@@ -16,19 +16,21 @@ import {
   WRITTEN_STORY_SCHEMA,
 } from "../src/features/episode/story-creation";
 import { resolveModelId } from "../src/shared/model-id";
+import {
+  loadBaselineEpisodePrompt,
+  STORY_BASELINE_REVISION,
+} from "./story-baseline";
 
 const baseline = process.argv.includes("--baseline");
-const BASE_REVISION = "98e248d";
+const BASE_REVISION = STORY_BASELINE_REVISION;
 const OLD_SYSTEM =
   /export function scriptSystemPrompt\(\): string \{\s*return `([\s\S]*?)`;/u;
 const OLD_EXAMPLE = /const FORMAT_EXAMPLE = `([\s\S]*?)`;/u;
 const EXAMPLE_PLACEHOLDER = /\$\{FORMAT_EXAMPLE\}/u;
 const DETAILS_LINE = /\n합의한 상세 상황:[^\n]*/gu;
-const NEW_MEMORY_RULES = [
-  "- 인사나 지난 일의 언급만",
-  "- 지금 상황에 필요한 정보에만",
-  "- 좋은 결과였다고 이번 부탁까지",
-];
+const playPrompt = baseline
+  ? await loadBaselineEpisodePrompt()
+  : episodeSystemPrompt;
 function baselineScriptSystem(): string {
   const source = execFileSync(
     "git",
@@ -149,16 +151,7 @@ async function run(round: number) {
   };
   const reactions = await Promise.all(
     memories.map(async (memory) => {
-      const current = episodeSystemPrompt(script, [memory]);
-      // 이 세 줄을 제외한 본문은 BASE_REVISION의 프롬프트와 같다.
-      const playSystem = baseline
-        ? current
-            .split("\n")
-            .filter(
-              (line) => !NEW_MEMORY_RULES.some((rule) => line.startsWith(rule))
-            )
-            .join("\n")
-        : current;
+      const playSystem = playPrompt(script, [memory]);
       const answer = await generateText({
         abortSignal: AbortSignal.timeout(120_000),
         messages: [
