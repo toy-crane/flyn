@@ -110,6 +110,53 @@ test("데이터를 지우는 규칙을 끄는 squawk-ignore 주석을 찾는다"
   ).toEqual([1, 4, 5]);
 });
 
+test("블록 주석과 줄 끝 주석에 쓴 squawk-ignore도 찾는다", () => {
+  // squawk 2.65.0 honors the block form and hides the drop it covers.
+  const text = [
+    "/* squawk-ignore ban-drop-table */",
+    "drop table public.a;",
+    "drop table public.b; -- squawk-ignore ban-drop-table",
+    "/*",
+    "  squawk-ignore-file",
+    "*/",
+    "/* squawk-ignore require-lock-timeout */",
+  ].join("\n");
+  expect(
+    forbiddenIgnores([{ path: FILE, text }]).map((item) => item.line)
+  ).toEqual([1, 3, 5]);
+});
+
+test("앞 문장 끝의 주석 때문에 앞 문장의 이유를 빌려 오지 않는다", () => {
+  const text = [
+    "-- 삭제 이유: 옛 정책을 지운다.",
+    "drop policy p on public.t; -- 정리",
+    "drop table public.t;",
+  ].join("\n");
+  const [found] = findings([{ path: FILE, text }], [violation(2)]);
+  expect(found?.reasoned).toBe(false);
+});
+
+test("squawk가 읽지 못한 문장이 있으면 사람이 라벨을 붙여야 통과한다", () => {
+  // squawk reports only the syntax error and skips every rule in that file,
+  // so a drop further down would otherwise pass unseen.
+  const found = findings(
+    [{ path: FILE, text: "create tabel x (id int);\ndrop table public.a;" }],
+    [violation(0, "syntax-error")]
+  );
+  expect(destructiveVerdict(found, [], false).pass).toBe(false);
+  expect(destructiveVerdict(found, [], true).pass).toBe(true);
+  const report = renderReport({
+    files: [FILE],
+    found,
+    ignores: [],
+    repository: "toy-crane/flyn",
+    sha: HEAD,
+    verdict: destructiveVerdict(found, [], false),
+  });
+  expect(report).toContain("syntax-error");
+  expect(report).not.toContain("<details>");
+});
+
 test("삭제 문장은 이유 주석과 승인 라벨이 모두 있어야 통과한다", () => {
   const reasoned = findings([{ path: FILE, text: DROP }], [violation(4)]);
   const bare = findings(
