@@ -22,7 +22,7 @@
 
 ## Constraints
 
-- 이 task는 `screens/browse`, `screens/stories`, `screens/note`, `screens/home`, `screens/settings`의 RN 부분, `features/story`, `features/note`, `shared/ui`를 다룬다. `shared/ui/status-line.tsx`와 `shared/ui/progress-metrics.ts`는 03이 이미 바꿨으므로 여기서는 손대지 않는다. `@expo/ui`가 소유하는 설정 화면의 글자는 바꾸지 않는다.
+- 이 task는 `screens/browse`, `screens/stories`, `screens/note`, `screens/home`, `screens/settings`의 RN 부분, `features/story`, `features/note`, `shared/ui`를 다룬다. `shared/ui/status-line.tsx`, `shared/ui/progress-metrics.ts`, `shared/ui/screen-toast.tsx`는 03이 이미 바꿨으므로 여기서는 손대지 않는다. `@expo/ui`가 소유하는 설정 화면의 글자는 바꾸지 않는다.
 - 02와 03이 끝난 뒤에 한다. 저장소 전체 0건 주장은 그 둘이 끝나야 참이 된다.
 - 카드와 목록 행의 구조는 바꾸지 않는다. 글자 역할만 바꾼다.
 - `Typography`의 값을 global.css에서 재정의하지 않는다.

@@ -15,7 +15,7 @@ None.
 - [ ] 인증, 온보딩, 세션 화면 폴더에 `text-[Npx]`, `leading-[Npx]`가 없고, `Text`에 `text-*`(색 제외), `leading-*`, `font-*` 클래스가 없다. 제공자 로그인 버튼의 인라인 크기는 계약의 예외다.
 - [ ] 쓰인 `Typography` `type`이 모두 [모바일 타이포그래피](../../../decisions/mobile-typography.md) 대응표에 있고, 본문 계열은 `Paragraph`, 제목 계열은 `Heading`이다.
 - [ ] 화면 안 제목이 접근성 트리에서 헤더 역할이다.
-- [ ] 다섯 인증·온보딩 화면과 세션 안내 화면을 계약의 절차로 기본 크기와 최대 글자 크기, 밝은 화면과 어두운 화면으로 열어 잘림과 겹침이 없다.
+- [ ] 다섯 인증·온보딩 화면과 세션 안내 화면 두 개(프로필을 불러오지 못한 화면, 설정이 필요한 화면)를 계약의 절차로 기본 크기와 최대 글자 크기, 밝은 화면과 어두운 화면으로 열어 잘림과 겹침이 없다.
 
 ## Constraints
 
@@ -27,7 +27,7 @@ None.
 
 - 위 세 폴더에 대한 `grep -rnE "text-\[|leading-\[|leading-[0-9]|font-(bold|semibold|medium|extrabold)"`가 로그인 버튼의 예외를 빼고 0건이다.
 - `bun run check`와 모바일 `bun run test`가 통과하고, 크기 클래스를 검사하던 테스트는 역할 `type`을 검사한다.
-- 기기 확인: `xcrun simctl ui <udid> content_size accessibility-extra-extra-extra-large`(iOS)와 `adb shell settings put system font_scale 2.0`(Android)로 바꾼 뒤 앱을 완전히 닫고 다시 시작해 여섯 화면을 밝은·어두운 모드로 찍는다. 통과 조건은 잘림과 겹침이 없는 것이다.
+- 기기 확인: `xcrun simctl ui <udid> content_size accessibility-extra-extra-extra-large`(iOS)와 `adb shell settings put system font_scale 2.0`(Android)로 바꾼 뒤 앱을 완전히 닫고 다시 시작해 일곱 화면(로그인 방법, 이메일, 코드, 닉네임, 아이디, 프로필을 불러오지 못한 화면, 설정이 필요한 화면)을 밝은·어두운 모드로 찍는다. 통과 조건은 잘림과 겹침이 없는 것이다.
 - `agent-device` 접근성 트리에서 화면 안 제목이 헤더 역할이다.
 - 변경을 `mobile-ui-consistency-reviewer`로 검토한다.
 
