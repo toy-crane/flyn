@@ -3,6 +3,7 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 import { simulateReadableStream } from "ai";
+import { prepareEpisodeMessage } from "@/features/episode/state/episode-notation";
 
 import {
   type ChatSession,
@@ -13,12 +14,20 @@ import {
 
 let testTransport: ChatTransport<UIMessage>;
 
-function useTestConversation(accessToken: string | undefined) {
+function useTestConversation(
+  accessToken: string | undefined,
+  prepareMessage?: (text: string) => string
+) {
   const chat = useChat({
     throttle: STREAM_UPDATE_INTERVAL_MS,
     transport: testTransport,
   });
-  return useConversation(chat, useLocalChatDrafts(), accessToken);
+  return useConversation(
+    chat,
+    useLocalChatDrafts(),
+    accessToken,
+    prepareMessage
+  );
 }
 
 const ACCESS_TOKEN = "test-access-token";
@@ -96,6 +105,42 @@ async function ask(result: { current: ChatSession }, text: string) {
 }
 
 describe("useConversation", () => {
+  test("일반 채팅은 영어 표기를 바꾸지 않는다", async () => {
+    fakeTransport(() => Promise.resolve(answerStream("Okay")));
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
+    await ask(result, "hello i am here");
+    await waitFor(() => expect(result.current.isBusy).toBe(false));
+    expect(messageText(result.current.messages[0])).toBe("hello i am here");
+  });
+  test("에피소드의 말풍선과 전송에는 고친 표기가 쓰이고 수정할 때도 유지된다", async () => {
+    const transport = fakeTransport(() =>
+      Promise.resolve(answerStream("Okay"))
+    );
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN, prepareEpisodeMessage)
+    );
+    await ask(result, "hello. what is your name");
+    await waitFor(() => expect(result.current.isBusy).toBe(false));
+    expect(messageText(result.current.messages[0])).toBe(
+      "Hello. What is your name"
+    );
+    expect(
+      messageText(transport.sendMessages.mock.calls[0][0].messages[0])
+    ).toBe("Hello. What is your name");
+    await act(() => result.current.beginEdit(result.current.messages[0].id));
+    expect(result.current.draft).toBe("Hello. What is your name");
+    await ask(result, "yesterday i goed home");
+    await waitFor(() => expect(result.current.isBusy).toBe(false));
+    expect(result.current.messages.map(messageText)).toEqual([
+      "Yesterday I goed home",
+      "Okay",
+    ]);
+    expect(
+      messageText(transport.sendMessages.mock.calls[1][0].messages[0])
+    ).toBe("Yesterday I goed home");
+  });
   afterEach(() => {
     jest.clearAllMocks();
   });

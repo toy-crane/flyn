@@ -78,7 +78,8 @@ export function useLocalChatDrafts(): ChatDrafts {
 export function useConversation(
   chat: UseChatHelpers<UIMessage>,
   drafts: ChatDrafts,
-  accessToken: string | undefined
+  accessToken: string | undefined,
+  prepareMessage?: (text: string) => string
 ): ChatSession {
   const [requestError, setRequestError] = useState<Error | undefined>();
   const {
@@ -134,7 +135,8 @@ export function useConversation(
   );
 
   const send = useCallback(() => {
-    const text = draft.trim();
+    const trimmed = draft.trim();
+    const text = prepareMessage ? prepareMessage(trimmed) : trimmed;
 
     if (!(text && canStartRequest())) {
       return;
@@ -165,6 +167,7 @@ export function useConversation(
     draft,
     editingMessageId,
     messages,
+    prepareMessage,
     runRequest,
     sendMessage,
     setDraft,

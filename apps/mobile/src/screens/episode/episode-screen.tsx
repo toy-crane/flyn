@@ -18,6 +18,7 @@ import { useEpisodeAsks } from "@/features/episode/state/episode-asks";
 import { EpisodeCorrectionsProvider } from "@/features/episode/state/episode-corrections";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
 import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
+import { prepareEpisodeMessage } from "@/features/episode/state/episode-notation";
 import { SavedExpressionsProvider } from "@/features/episode/state/saved-expressions";
 import { useEpisodeStoryPlay } from "@/features/episode/state/use-episode-story-play";
 import { EpisodeCorrectionNote } from "@/features/episode/ui/correction-note";
@@ -122,7 +123,12 @@ export function EpisodeScreen({
       changed
     );
   const drafts = useLocalChatDrafts();
-  const conversation = useConversation(chat, drafts, accessToken);
+  const conversation = useConversation(
+    chat,
+    drafts,
+    accessToken,
+    prepareEpisodeMessage
+  );
   const { openAsk } = useEpisodeAsks();
   const inputRef = useRef<TextInput>(null);
   // 첫 장면을 받지 못했다면 다시 받을 것은 답변이 아니라 에피소드의 시작이다.
