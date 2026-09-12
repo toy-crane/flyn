@@ -51,6 +51,10 @@ const DISTINCT_APOSTROPHE_WORDS = new Map([
   ["were", "we're"],
   ["cant", "can't"],
   ["wont", "won't"],
+  ["lets", "let's"],
+  ["id", "i'd"],
+  ["shed", "she'd"],
+  ["whore", "who're"],
 ]);
 
 /**
@@ -260,6 +264,11 @@ export async function judgeExpression({
 /** 최소 표현 조각의 앞뒤 표기는 그대로 두고, 바뀐 부분만 확인한다. */
 function keepsEntryNotation(entry: CorrectionEntry): boolean {
   const { original, fixed } = entry;
+  const withoutCaseOrSpacing = (value: string) =>
+    value.replace(/\s/g, "").toLowerCase();
+  if (withoutCaseOrSpacing(original) === withoutCaseOrSpacing(fixed)) {
+    return false;
+  }
   const withoutApostrophe = (value: string) => value.replace(/['’]/g, "");
   const before = original.toLowerCase().replace(/’/g, "'");
   const after = fixed.toLowerCase().replace(/’/g, "'");

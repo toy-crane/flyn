@@ -1968,6 +1968,7 @@ describe("메시지별 표현 확인 API", () => {
     ["He has a apple", "He has an apple", "a apple", "an apple"],
     ["Its raining", "It's raining", "Its", "It's"],
     ["Well go home", "We'll go home", "Well", "We'll"],
+    ["Lets go home", "Let's go home", "Lets", "Let's"],
     ["She dont wants it", "She doesnt want it", "dont wants", "doesnt want"],
     ["She don't want it", "She doesn't want it", "don't", "doesn't"],
     [
@@ -2030,6 +2031,8 @@ describe("메시지별 표현 확인 API", () => {
   );
   test.each([
     ["She dont wants it", "She doesn't want it", "dont wants", "doesn't want"],
+    ["Thanks sarah", "Thanks Sarah", "sarah", "Sarah"],
+    ["Yes  I agree", "Yes I agree", "Yes  I", "Yes I"],
     [
       "I goed home, then left",
       "I went, home then left",
