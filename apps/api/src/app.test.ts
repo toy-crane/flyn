@@ -2052,6 +2052,10 @@ describe("메시지별 표현 확인 API", () => {
     ["Thanks sarah", "Thanks Sarah", "sarah", "Sarah"],
     ["Yes  I agree", "Yes I agree", "Yes  I", "Yes I"],
     ["I goed home", "I Went home", "goed", "Went"],
+    ["I goed home 😊", "I went home", "goed home 😊", "went home"],
+    ["I work 👩‍💻", "I work 👩💻", "👩‍💻", "👩💻"],
+    ["I work ☕️", "I work ☕", "☕️", "☕"],
+    ["I work 1️⃣", "I work 1", "1️⃣", "1"],
     [
       "I goed to Alexs house",
       "I went to Alex's house",
@@ -2075,7 +2079,7 @@ describe("메시지별 표현 확인 API", () => {
       "went, home then",
     ],
   ])(
-    "항목에 섞인 아포스트로피 추가와 쉼표 이동은 저장하지 않는다: %s",
+    "표현 항목에 섞인 표기와 채팅 말투 변경은 저장하지 않는다: %s",
     async (original, fixed, before, after) => {
       const state = createSeasonState();
       state.messages.push(stored(original));
