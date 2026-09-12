@@ -249,7 +249,7 @@ test("닉네임이 비었거나 30자를 넘으면 다음으로 갈 수 없다",
 
   expect(screen.getByLabelText("다음")).toBeDisabled();
   expect(screen.getByTestId("onboarding-error-nickname")).toHaveTextContent(
-    "30자 이하로 입력해 주세요."
+    "30자 이하로 입력해 주세요"
   );
 
   await type("onboarding-nickname", "김민서");
@@ -349,7 +349,7 @@ test("형식이 틀리면 오류를 보여주고 시작하기를 막는다", asy
   await type("onboarding-username", "민서");
 
   expect(screen.getByTestId("onboarding-error-username")).toHaveTextContent(
-    "영문 소문자, 숫자, 밑줄(_)만 사용할 수 있어요."
+    "영문 소문자, 숫자, 밑줄(_)만 사용할 수 있어요"
   );
   expect(screen.getByLabelText("시작하기")).toBeDisabled();
 });
@@ -366,7 +366,7 @@ test("이미 쓰는 아이디면 후보 세 개를 보여주고 고르면 다시
   await waitFor(
     () => {
       expect(screen.getByTestId("onboarding-error-username")).toHaveTextContent(
-        "이미 사용 중인 아이디예요."
+        "이미 사용 중인 아이디예요"
       );
     },
     { timeout: SETTLE_TIMEOUT }
@@ -412,7 +412,7 @@ test("예약한 아이디는 쓸 수 없다고 알린다", async () => {
   await typeUsername("admin");
 
   expect(screen.getByTestId("onboarding-error-username")).toHaveTextContent(
-    "사용할 수 없는 아이디예요."
+    "사용할 수 없는 아이디예요"
   );
   expect(screen.getByLabelText("시작하기")).toBeDisabled();
 });
@@ -486,7 +486,7 @@ test("저장 직전에 아이디를 뺏기면 값을 잃지 않고 후보를 보
 
   await waitFor(() => {
     expect(screen.getByTestId("onboarding-error-username")).toHaveTextContent(
-      "이미 사용 중인 아이디예요."
+      "이미 사용 중인 아이디예요"
     );
   });
 

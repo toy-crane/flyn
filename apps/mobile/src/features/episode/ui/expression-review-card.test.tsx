@@ -72,7 +72,7 @@ test("담지 못하면 카드 아래에 실패 줄이 남고 다시 시도할 �
   const { toggle, view } = renderCard({ status: "error" });
   await view;
 
-  expect(screen.getByText("표현을 저장하지 못했어요.")).toBeOnTheScreen();
+  expect(screen.getByText("표현을 저장하지 못했어요")).toBeOnTheScreen();
 
   await userEvent.press(screen.getByLabelText("표현 저장 다시 시도"));
 

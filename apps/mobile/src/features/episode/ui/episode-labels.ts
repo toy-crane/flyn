@@ -9,21 +9,21 @@ export const episodeLabels = {
   /** Not shown: the episode header's back button. */
   back: "뒤로 가기",
   /** Not shown: the name of the indicator standing in for the conversation. */
-  conversationLoading: "대화를 불러오고 있어요.",
+  conversationLoading: "대화를 불러오고 있어요",
   /** Shown when one episode's saved conversation could not be read. */
-  conversationUnavailable: "대화를 불러오지 못했어요.",
+  conversationUnavailable: "대화를 불러오지 못했어요",
   /** Not shown: the icon row under a learning expression. */
   copyExpression: "표현 복사",
   /** Not shown: the icon row under one character's line. */
   copyUtterance: "대사 복사",
   /** 에피소드에서 두 언어를 모두 입력할 수 있음을 알린다. */
-  placeholder: "영어나 한국어로 적어 주세요.",
+  placeholder: "영어나 한국어로 적어 주세요",
   /** Shown when the story could not be read, as the way to ask again. */
   retry: "다시 시도하기",
   /** Shown wherever an episode is named next to its number. */
   title: (episode: number, title: string) => `${episode}화 · ${title}`,
   /** Shown when the story could not be read. */
-  unavailable: "이야기를 불러오지 못했어요.",
+  unavailable: "이야기를 불러오지 못했어요",
 } as const;
 
 /**
@@ -38,13 +38,13 @@ export const correctionLabels = {
   askPlaceholder: "궁금한 것을 한국어로 물어보세요",
   /** Shown as the sheet's title. */
   askTitle: "AI에게 물어보기",
-  checking: "표현을 확인하고 있어요.",
-  failed: "표현을 확인하지 못했어요.",
+  checking: "표현을 확인하고 있어요",
+  failed: "표현을 확인하지 못했어요",
   label: "더 자연스러운 영어 표현",
-  natural: "자연스러운 표현이에요.",
+  natural: "자연스러운 표현이에요",
   retry: "표현 다시 확인",
   suggestionLabel: "이럴 때 쓰는 영어 표현",
-  unclear: "표현의 뜻을 파악하기 어려워요.",
+  unclear: "표현의 뜻을 파악하기 어려워요",
 } as const;
 
 /**
@@ -56,13 +56,13 @@ export const savedExpressionLabels = {
   /** Not shown: the bookmark on a line that is not saved yet. */
   save: "표현 저장",
   /** Shown after a bookmark saves. */
-  saved: "표현을 저장했어요.",
+  saved: "표현을 저장했어요",
   /** Shown in place of the line when saving did not go through. */
-  saveFailed: "표현을 저장하지 못했어요.",
+  saveFailed: "표현을 저장하지 못했어요",
   /** Not shown: the refresh mark that saves again after a failure. */
   saveRetry: "표현 저장 다시 시도",
   /** Not shown: the bookmark on a line that is already saved. */
   unsave: "저장 취소",
   /** Shown after a saved bookmark empties. */
-  unsaved: "저장을 취소했어요.",
+  unsaved: "저장을 취소했어요",
 } as const;

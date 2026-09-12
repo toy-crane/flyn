@@ -123,7 +123,7 @@ export function EpisodeReviewScreen({
           </View>
           {isLoading && !isRetrying ? (
             <View className="min-h-40">
-              <EpisodeLoadingScreen label="표현을 불러오고 있어요." />
+              <EpisodeLoadingScreen label="표현을 불러오고 있어요" />
             </View>
           ) : null}
           {!(isLoading || isRetrying) && cards && cards.length > 0 ? (
@@ -171,7 +171,7 @@ export function EpisodeReviewScreen({
               key={`error-${fontScale}`}
               onRetry={onRetry}
               testID="expression-review-unavailable"
-              title="표현을 불러오지 못했어요."
+              title="표현을 불러오지 못했어요"
             />
           ) : null}
         </ScrollView>

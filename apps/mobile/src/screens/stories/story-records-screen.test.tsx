@@ -257,7 +257,7 @@ test("기록이 없으면 빈 화면을 보여 주고 다시 시도를 붙이지
 
   expect(screen.getByTestId("story-records-empty")).toBeVisible();
   expect(screen.getByRole("header", { name: "최근 대화" })).toBeVisible();
-  expect(screen.getByText("아직 나눈 대화가 없어요.")).toBeVisible();
+  expect(screen.getByText("아직 나눈 대화가 없어요")).toBeVisible();
   expect(screen.queryByText("다시 시도하기")).toBeNull();
 });
 

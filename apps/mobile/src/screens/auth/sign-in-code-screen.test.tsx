@@ -103,7 +103,7 @@ test("코드가 맞지 않으면 다시 입력하라고 알린다", async () => 
   await type("인증 코드", CODE);
 
   expect(await screen.findByTestId("sign-in-error-code")).toHaveTextContent(
-    "코드를 다시 입력해 주세요."
+    "코드를 다시 입력해 주세요"
   );
 });
 
@@ -269,10 +269,10 @@ test("코드 확인이 1초를 넘기면 입력칸 자리에서 진행 상태를
   });
 
   expect(
-    screen.getByRole("progressbar", { name: "코드를 확인하고 있어요." })
+    screen.getByRole("progressbar", { name: "코드를 확인하고 있어요" })
   ).toBeOnTheScreen();
   expect(screen.queryByLabelText("인증 코드")).not.toBeOnTheScreen();
-  const progressLabel = screen.getByText("코드를 확인하고 있어요.");
+  const progressLabel = screen.getByText("코드를 확인하고 있어요");
 
   expect(progressLabel.props.adjustsFontSizeToFit).toBeUndefined();
   expect(progressLabel.props.minimumFontScale).toBeUndefined();
@@ -287,5 +287,5 @@ test("코드 확인이 1초를 넘기면 입력칸 자리에서 진행 상태를
 test("어디로 보냈는지 알려준다", async () => {
   await renderCode();
 
-  expect(screen.getByText(`${EMAIL} 주소로 보냈어요.`)).toBeOnTheScreen();
+  expect(screen.getByText(`${EMAIL} 주소로 보냈어요`)).toBeOnTheScreen();
 });

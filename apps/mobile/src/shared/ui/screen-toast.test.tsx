@@ -24,7 +24,7 @@ function ToastHarness() {
     () =>
       show({
         icon: <Icon filled name="bookmark" size="sm" tone="accent" />,
-        text: "표현을 저장했어요.",
+        text: "표현을 저장했어요",
       }),
     [show]
   );
@@ -32,7 +32,7 @@ function ToastHarness() {
     () =>
       show({
         icon: <Icon name="bookmark" size="sm" tone="muted" />,
-        text: "저장을 취소했어요.",
+        text: "저장을 취소했어요",
       }),
     [show]
   );
@@ -76,7 +76,7 @@ test("알린 문구가 위쪽 띠 아래 자리에 선다", async () => {
     fireEvent.press(screen.getByTestId("save"));
   });
 
-  expect(screen.getByText("표현을 저장했어요.")).toBeTruthy();
+  expect(screen.getByText("표현을 저장했어요")).toBeTruthy();
   // 띠 아래 자리에 서고 띠 안에는 없다. 헤더와 상황 줄을 덮지 않는 것이 이 자리다.
   expect(
     within(screen.getByTestId("below-strip")).getByTestId("screen-toast")
@@ -96,13 +96,13 @@ test("2.5초가 지나면 문구가 사라진다", async () => {
     jest.advanceTimersByTime(2499);
   });
 
-  expect(screen.queryByText("표현을 저장했어요.")).toBeTruthy();
+  expect(screen.queryByText("표현을 저장했어요")).toBeTruthy();
 
   await act(() => {
     jest.advanceTimersByTime(1);
   });
 
-  expect(screen.queryByText("표현을 저장했어요.")).toBeNull();
+  expect(screen.queryByText("표현을 저장했어요")).toBeNull();
 });
 
 test("연달아 알리면 문구 하나만 서 있고 시간을 새로 센다", async () => {
@@ -117,8 +117,8 @@ test("연달아 알리면 문구 하나만 서 있고 시간을 새로 센다", 
   });
 
   // 앞의 문구는 자리를 내주고 사라진다. 같은 줄이 둘 서지 않는다.
-  expect(screen.queryByText("표현을 저장했어요.")).toBeNull();
-  expect(screen.getByText("저장을 취소했어요.")).toBeTruthy();
+  expect(screen.queryByText("표현을 저장했어요")).toBeNull();
+  expect(screen.getByText("저장을 취소했어요")).toBeTruthy();
   expect(screen.getAllByTestId("screen-toast")).toHaveLength(1);
 
   // 앞의 문구가 남긴 시간이 아니라 방금 선 문구의 시간을 센다.
@@ -126,13 +126,13 @@ test("연달아 알리면 문구 하나만 서 있고 시간을 새로 센다", 
     jest.advanceTimersByTime(2000);
   });
 
-  expect(screen.getByText("저장을 취소했어요.")).toBeTruthy();
+  expect(screen.getByText("저장을 취소했어요")).toBeTruthy();
 
   await act(() => {
     jest.advanceTimersByTime(500);
   });
 
-  expect(screen.queryByText("저장을 취소했어요.")).toBeNull();
+  expect(screen.queryByText("저장을 취소했어요")).toBeNull();
 });
 
 test("화면 읽기가 뜬 문구를 읽는다", async () => {
@@ -146,7 +146,7 @@ test("화면 읽기가 뜬 문구를 읽는다", async () => {
   // 말풍선을 누르지 못한다.
   expect(screen.getByTestId("screen-toast").props.pointerEvents).toBe("none");
   expect(
-    screen.getByText("표현을 저장했어요.").parent?.props.accessibilityLiveRegion
+    screen.getByText("표현을 저장했어요").parent?.props.accessibilityLiveRegion
   ).toBe("polite");
 });
 

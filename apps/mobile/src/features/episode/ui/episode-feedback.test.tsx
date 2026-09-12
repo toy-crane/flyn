@@ -41,13 +41,13 @@ test("응답이 멈추면 확인 실패로 바꾸고 시간 초과 뒤의 늦은
   await user.press(screen.getByLabelText("예문 보내기"));
   await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
   await act(() => jest.advanceTimersByTime(35_000));
-  expect(screen.getByText("표현을 확인하지 못했어요.")).toBeOnTheScreen();
-  expect(screen.queryByText("표현을 확인하고 있어요.")).toBeNull();
+  expect(screen.getByText("표현을 확인하지 못했어요")).toBeOnTheScreen();
+  expect(screen.queryByText("표현을 확인하고 있어요")).toBeNull();
   expect(signal?.aborted).toBe(true);
   await act(() => {
     complete(Response.json({ messageId: checkingId, status: "natural" }));
   });
-  expect(screen.queryByText("자연스러운 표현이에요.")).toBeNull();
+  expect(screen.queryByText("자연스러운 표현이에요")).toBeNull();
   expect(screen.getByRole("button", { name: "표현 다시 확인" })).toBeEnabled();
 });
 
@@ -155,9 +155,9 @@ test("보내자마자 확인 중을 표시하고 장면 뒤에는 교정이 늦�
   const user = userEvent.setup();
   await user.press(screen.getByLabelText("예문 보내기"));
   await waitFor(() =>
-    expect(screen.getByText("표현을 확인하고 있어요.")).toBeOnTheScreen()
+    expect(screen.getByText("표현을 확인하고 있어요")).toBeOnTheScreen()
   );
-  expect(screen.queryByText("자연스러운 표현이에요.")).toBeNull();
+  expect(screen.queryByText("자연스러운 표현이에요")).toBeNull();
   await waitFor(() =>
     expect(screen.getByLabelText("예문 보내기")).toBeEnabled()
   );
@@ -165,9 +165,9 @@ test("보내자마자 확인 중을 표시하고 장면 뒤에는 교정이 늦�
     complete(Response.json({ messageId: checkingId, status: "natural" }));
   });
   await waitFor(() =>
-    expect(screen.getByText("자연스러운 표현이에요.")).toBeOnTheScreen()
+    expect(screen.getByText("자연스러운 표현이에요")).toBeOnTheScreen()
   );
-  expect(screen.queryByText("표현을 확인하고 있어요.")).toBeNull();
+  expect(screen.queryByText("표현을 확인하고 있어요")).toBeNull();
 });
 
 test("실패하면 새로고침 아이콘으로 그 표현만 재시도하고 중복 요청을 막는다", async () => {
@@ -195,11 +195,11 @@ test("실패하면 새로고침 아이콘으로 그 표현만 재시도하고 �
   const user = userEvent.setup();
   await user.press(screen.getByLabelText("예문 보내기"));
   await waitFor(() =>
-    expect(screen.getByText("표현을 확인하지 못했어요.")).toBeOnTheScreen()
+    expect(screen.getByText("표현을 확인하지 못했어요")).toBeOnTheScreen()
   );
-  expect(screen.queryByText("자연스러운 표현이에요.")).toBeNull();
+  expect(screen.queryByText("자연스러운 표현이에요")).toBeNull();
   await user.press(screen.getByRole("button", { name: "표현 다시 확인" }));
-  expect(screen.getByText("표현을 확인하고 있어요.")).toBeOnTheScreen();
+  expect(screen.getByText("표현을 확인하고 있어요")).toBeOnTheScreen();
   const retry = screen.getByRole("button", { name: "표현 다시 확인" });
   expect(retry).toBeDisabled();
   expect(retry).toHaveProp(
@@ -213,7 +213,7 @@ test("실패하면 새로고침 아이콘으로 그 표현만 재시도하고 �
     complete(Response.json({ messageId: checkingId, status: "natural" }));
   });
   await waitFor(() =>
-    expect(screen.getByText("자연스러운 표현이에요.")).toBeOnTheScreen()
+    expect(screen.getByText("자연스러운 표현이에요")).toBeOnTheScreen()
   );
   expect(screen.queryByLabelText("표현 다시 확인")).toBeNull();
 });
@@ -242,7 +242,7 @@ test("다음 말을 보낸 뒤 결과가 역순으로 와도 원래 메시지에
   );
   await user.press(screen.getByLabelText("예문 보내기"));
   await waitFor(() =>
-    expect(screen.getAllByText("표현을 확인하고 있어요.")).toHaveLength(2)
+    expect(screen.getAllByText("표현을 확인하고 있어요")).toHaveLength(2)
   );
   await act(() => {
     pending[1].resolve(
@@ -250,12 +250,12 @@ test("다음 말을 보낸 뒤 결과가 역순으로 와도 원래 메시지에
     );
   });
   await waitFor(() =>
-    expect(screen.getByText("자연스러운 표현이에요.")).toBeOnTheScreen()
+    expect(screen.getByText("자연스러운 표현이에요")).toBeOnTheScreen()
   );
-  expect(screen.getAllByText("표현을 확인하고 있어요.")).toHaveLength(1);
+  expect(screen.getAllByText("표현을 확인하고 있어요")).toHaveLength(1);
   await user.press(screen.getByLabelText("앞 장면 다시 받기"));
   await waitFor(() =>
-    expect(screen.queryByText("표현을 확인하고 있어요.")).toBeNull()
+    expect(screen.queryByText("표현을 확인하고 있어요")).toBeNull()
   );
   expect(pending[0].signal?.aborted).toBe(true);
   await act(() => {
@@ -263,5 +263,5 @@ test("다음 말을 보낸 뒤 결과가 역순으로 와도 원래 메시지에
       Response.json({ messageId: pending[0].id, status: "natural" })
     );
   });
-  expect(screen.queryByText("자연스러운 표현이에요.")).toBeNull();
+  expect(screen.queryByText("자연스러운 표현이에요")).toBeNull();
 });

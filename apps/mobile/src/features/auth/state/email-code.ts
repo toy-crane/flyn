@@ -36,5 +36,5 @@ export function formatResendLabel(secondsLeft: number): string {
  * by the last sound, and an email can end in either.
  */
 export function describeCodeSent(email: string): string {
-  return `${email} 주소로 보냈어요.`;
+  return `${email} 주소로 보냈어요`;
 }

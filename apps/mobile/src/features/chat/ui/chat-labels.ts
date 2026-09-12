@@ -10,11 +10,11 @@ export const chatLabels = {
   /** Shown as the menu item on a message. */
   editMessage: "수정",
   /** Shown above the composer while a message is being rewritten. */
-  editNotice: "이 메시지부터 다시 물어봐요.",
+  editNotice: "이 메시지부터 다시 물어봐요",
   /** Not shown: the button that leaves the edit state. */
   endEdit: "수정 그만두기",
   /** Spoken aloud when a request fails. The screen shows the same words. */
-  errorAnnouncement: "답변을 받지 못했어요.",
+  errorAnnouncement: "답변을 받지 못했어요",
   input: "메시지",
   latest: "최신 메시지로 이동",
   /** Not shown: the icon row under a finished answer. */
@@ -25,5 +25,5 @@ export const chatLabels = {
   /** Not shown: the send button's place while an answer is arriving. */
   stop: "답변 그만 받기",
   /** Not shown: one accessibility state for the three waiting dots. */
-  waiting: "답변을 준비하고 있어요.",
+  waiting: "답변을 준비하고 있어요",
 } as const;
