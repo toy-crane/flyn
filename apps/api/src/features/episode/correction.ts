@@ -288,26 +288,28 @@ function keepsEntryNotation(entry: CorrectionEntry): boolean {
   ) {
     return false;
   }
+  const originalCharacters = Array.from(original);
+  const fixedCharacters = Array.from(fixed);
   let start = 0;
-  let originalEnd = original.length;
-  let fixedEnd = fixed.length;
+  let originalEnd = originalCharacters.length;
+  let fixedEnd = fixedCharacters.length;
   while (
     start < originalEnd &&
     start < fixedEnd &&
-    original[start] === fixed[start]
+    originalCharacters[start] === fixedCharacters[start]
   ) {
     start += 1;
   }
   while (
     originalEnd > start &&
     fixedEnd > start &&
-    original[originalEnd - 1] === fixed[fixedEnd - 1]
+    originalCharacters[originalEnd - 1] === fixedCharacters[fixedEnd - 1]
   ) {
     originalEnd -= 1;
     fixedEnd -= 1;
   }
-  const changedOriginal = original.slice(start, originalEnd);
-  const changedFixed = fixed.slice(start, fixedEnd);
+  const changedOriginal = originalCharacters.slice(start, originalEnd).join("");
+  const changedFixed = fixedCharacters.slice(start, fixedEnd).join("");
   if (!keepsWordNotation(entry.original, entry.fixed)) {
     return false;
   }
@@ -316,8 +318,8 @@ function keepsEntryNotation(entry: CorrectionEntry): boolean {
   if (
     changedOriginal &&
     changedFixed &&
-    originalEnd < original.length &&
-    fixedEnd < fixed.length &&
+    originalEnd < originalCharacters.length &&
+    fixedEnd < fixedCharacters.length &&
     TRAILING_SPACE.test(changedOriginal) !== TRAILING_SPACE.test(changedFixed)
   ) {
     return false;

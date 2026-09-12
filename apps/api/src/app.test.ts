@@ -2053,6 +2053,7 @@ describe("메시지별 표현 확인 API", () => {
     ["Yes  I agree", "Yes I agree", "Yes  I", "Yes I"],
     ["I goed home", "I Went home", "goed", "Went"],
     ["I goed home 😊", "I went home", "goed home 😊", "went home"],
+    ["I 😊 goed home", "I 😢 went home", "😊 goed", "😢 went"],
     ["I work 👩‍💻", "I work 👩💻", "👩‍💻", "👩💻"],
     ["I work ☕️", "I work ☕", "☕️", "☕"],
     ["I work 1️⃣", "I work 1", "1️⃣", "1"],
