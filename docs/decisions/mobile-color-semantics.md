@@ -22,8 +22,14 @@
 | `learn-surface` | `oklch(0.945 0.022 300)` | `oklch(0.27 0.045 300)` |
 | `expression` | `#0F766E` | `#76D6C9` |
 | `expression-surface` | `#E5F3EF` | `#152F2C` |
+| `scene` | `#3C3C43` | `#C7C7CC` |
+| `cast-1` | `#B4552F` | `#F0997B` |
+| `cast-2` | `#2F6F4E` | `#97C459` |
+| `cast-3` | `#8A5A10` | `#E0B063` |
+| `cast-4` | `#A8386A` | `#EE93B1` |
 
-- HeroUI의 시맨틱 집합으로 뜻을 표현할 수 없는 제품 역할은 전역 CSS에 직접 등재한다. 영어 교정에는 `learn`, `learn-foreground`, `learn-surface`를, 한국어 입력의 영어 안내에는 `expression`, `expression-surface`를 쓴다. 한국어 안내는 문제없음이나 실패 상태와 다른 학습 안내이므로 전용 역할을 둔다. 값은 다른 역할과 같은 자리에서 Light와 Dark를 함께 정의하고, `@theme inline`으로 `bg-learn`, `text-expression` 같은 클래스를 만든다.
+- HeroUI의 시맨틱 집합으로 뜻을 표현할 수 없는 제품 역할은 전역 CSS에 직접 등재한다. 영어 교정에는 `learn`, `learn-foreground`, `learn-surface`를, 한국어 입력의 영어 안내에는 `expression`, `expression-surface`를 쓴다. 한국어 안내는 문제없음이나 실패 상태와 다른 학습 안내이므로 전용 역할을 둔다. 에피소드의 장면 서술은 `scene`, 인물 이름표는 스토리 안 순서를 받는 `cast-1`부터 `cast-4`를 쓴다. 이름표 색은 파랑, 보라, 청록을 피해 서로 구분되는 계열에서 고른다. 표시 규칙은 [모바일 에피소드 장면 표시](mobile-episode-scene-display.md)가 소유한다. 값은 다른 역할과 같은 자리에서 Light와 Dark를 함께 정의하고, `@theme inline`으로 `bg-learn`, `text-expression` 같은 클래스를 만든다.
+- 앱이 값을 바꾼 HeroUI 역할과 같은 값을 가져야 하는 HeroUI 역할은 함께 바꾼다. HeroUI는 다크 모드의 `overlay`(메뉴, 다이얼로그, 시트 배경)와 `field-background`(입력 배경)를 `surface`와 같은 리터럴로 두므로, 앱이 `surface`를 바꾸면 이 둘도 같은 값으로 등재한다.
 - 등재한 이름이 HeroUI의 `useThemeColor`가 아는 목록에 없으므로, 클래스를 쓸 수 없는 자리는 Uniwind의 CSS 변수 읽기로 같은 값을 얻는다. 이름은 `--color-` 접두사 없이 등재한 이름 그대로다.
 - 클래스를 사용할 수 없는 Expo Router, 네이티브 Stack 옵션과 루트 창에는 얇은 테마 브리지가 Uniwind 변숫값을 전달한다. 이 브리지는 색상을 정의하지 않는다.
 - Expo Router 내비게이션 테마의 `background`와 `card`는 HeroUI의 `background`에 연결하고, `text`는 `foreground`에 연결한다. 기본 내비게이션 테마의 시스템 폰트는 덮어쓰지 않는다.
