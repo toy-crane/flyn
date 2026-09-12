@@ -40,6 +40,7 @@ export interface CorrectionDraft {
 }
 
 const KOREAN = /[가-힣ㄱ-ㅎㅏ-ㅣ]/;
+const SENTENCE_PUNCTUATION = /[.!?,]/g;
 
 /**
  * 사용자가 한국어로 썼는지.
@@ -226,10 +227,15 @@ export async function judgeExpression({
       entries.push(entry);
     }
   }
-  if (
-    !(isKoreanText(trimmed) || onlyReplacesEntries(trimmed, fixed, entries))
-  ) {
-    throw new Error("Expression result changes text outside its entries.");
+  if (!isKoreanText(trimmed)) {
+    const keepsPunctuation = entries.every(
+      (entry) =>
+        (entry.original.match(SENTENCE_PUNCTUATION) ?? []).join("") ===
+        (entry.fixed.match(SENTENCE_PUNCTUATION) ?? []).join("")
+    );
+    if (!(keepsPunctuation && onlyReplacesEntries(trimmed, fixed, entries))) {
+      throw new Error("Expression result changes notation.");
+    }
   }
   return {
     correction: {

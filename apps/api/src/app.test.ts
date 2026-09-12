@@ -1991,28 +1991,34 @@ describe("메시지별 표현 확인 API", () => {
       expect(state.expressionResults).toHaveLength(1);
     }
   );
-  test("표현 항목 밖에 마침표를 추가한 결과는 저장하지 않는다", async () => {
-    const state = createSeasonState();
-    state.messages.push(stored("I goed home"));
-    const app = createApp({
-      authMiddleware: signedInWith(state),
-      model: createMockModel([], {
-        ...WRONG_COFFEE,
-        entries: [
-          {
-            fixed: "went",
-            original: "goed",
-            pattern: "past-go",
-            why: "go의 과거형은 went예요.",
-          },
-        ],
-        fixed: "I went home.",
-        status: "corrected",
-      }),
-    });
-    expect((await app.request(request())).status).toBe(500);
-    expect(state.expressionResults).toHaveLength(0);
-  });
+  test.each([
+    { fixed: "went", original: "goed" },
+    { fixed: "went home.", original: "goed home" },
+  ])(
+    "마침표를 추가한 결과는 항목 안팎 모두 저장하지 않는다: %j",
+    async (entry) => {
+      const state = createSeasonState();
+      state.messages.push(stored("I goed home"));
+      const app = createApp({
+        authMiddleware: signedInWith(state),
+        model: createMockModel([], {
+          ...WRONG_COFFEE,
+          entries: [
+            {
+              fixed: entry.fixed,
+              original: entry.original,
+              pattern: "past-go",
+              why: "go의 과거형은 went예요.",
+            },
+          ],
+          fixed: "I went home.",
+          status: "corrected",
+        }),
+      });
+      expect((await app.request(request())).status).toBe(500);
+      expect(state.expressionResults).toHaveLength(0);
+    }
+  );
   function stored(text: string, id = "m1"): MessageRow {
     return {
       created_at: `2026-09-07T00:00:0${id === "m1" ? "1" : "2"}.000Z`,
