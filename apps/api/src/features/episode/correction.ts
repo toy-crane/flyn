@@ -129,6 +129,7 @@ export function correctionSystemPrompt(): string {
 - gonna, lol, 이모지, !!! 같은 채팅 말투와 미국식·영국식 철자 차이는 고치지도 지적하지도 않는다.
 - recieve, tommorow 같은 철자 오타는 반드시 교정한다. its/it's, there/their, well/we'll처럼 서로 다른 낱말은 문맥에 맞지 않을 때 표현 교정이다. 모든 아포스트로피 차이를 무시하지 않는다.
 - 표현을 교정해도 fixed에는 원문의 표기를 그대로 보존한다. 표현 자리만 바꾸고 대문자, 아포스트로피, 쉼표, 마침표, 물음표나 공백을 더하거나 빼지 않는다. entries에는 바뀐 표현의 최소 조각만 넣는다. 표기 항목을 만들거나 문장 전체를 항목으로 넣지 않는다.
+- 영어의 fixed는 원문에서 entries의 original 조각을 fixed 조각으로 바꾼 결과여야 한다. 마지막으로 그 결과와 fixed 전체를 비교해 항목 밖의 글자가 바뀌었다면 원문대로 되돌린다. 여러 문장이어도 동일하며, 마지막 문장 끝이 낱말이면 fixed도 그 낱말에서 끝낸다. 예문을 새로 쓰듯 문장 끝을 다듬지 않는다.
 - 표현을 바꾸면서 활용형이 달라져도 원문의 표기 방식을 따른다. 아포스트로피 없이 쓴 부정 축약형을 다른 활용형으로 바꿀 때도 아포스트로피를 넣지 않는다. 단, its/it's나 well/we'll처럼 서로 다른 낱말을 바로잡는 경우는 예외다.
 - 예: Hello. what is your name? → natural. I dont like it here → natural. Thanks sarah → natural. Im gonna go lol → natural.
 - 예: i dont wants it → fixed="i dont want it", entries의 조각은 wants → want 하나. I goed home early → fixed="I went home early", 조각은 goed → went 하나. See you tommorow → fixed="See you tomorrow", 조각은 tommorow → tomorrow 하나. 문장 끝 부호를 붙이지 않는다.

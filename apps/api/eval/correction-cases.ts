@@ -19,6 +19,23 @@ export const CORRECTION_CASES: CorrectionCase[] = [
       },
       {
         content:
+          "Mia: I’m sorry. I’ll make a new one now. It will be ready soon.",
+        role: "assistant",
+      },
+    ],
+    entries: [{ fixed: "tomorrow", original: "tommorow" }],
+    fixed: "Thanks sarah. See you tomorrow",
+    name: "대화 중 두 문장의 표기를 보존하며 철자 교정",
+    original: "Thanks sarah. See you tommorow",
+  },
+  {
+    context: [
+      {
+        content: "아이스 아메리카노를 주문했는데 뜨거운 라테가 나왔어요",
+        role: "user",
+      },
+      {
+        content:
           "Mia: I’m sorry. Your receipt says iced Americano, so I made the wrong drink. I’ll make a new one now. It will be ready soon.",
         role: "assistant",
       },
