@@ -11,7 +11,7 @@
       "source": "callstack/agent-device",
       "sourceType": "github",
       "skillPath": "skills/agent-device/SKILL.md",
-      "computedHash": "0a673fe5ec24469f6ad35596cdf40f9d33076b78d0a929742d9e1de83f97d231"
+      "computedHash": "3187ae73a1a8b055e20630d64c86e5bb7576341b495c9a755f5e3ec7927c0302"
     },
     "ai-sdk": {
       "source": "vercel/ai",
@@ -24,6 +24,12 @@
       "sourceType": "github",
       "skillPath": "skills/animate-expo/SKILL.md",
       "computedHash": "c9eaf6603b97ca61b05c7561e1045b2f58b6d84cdf8d67565bff23a9ff94ce8a"
+    },
+    "babysit-specs": {
+      "source": "toy-crane/skills",
+      "sourceType": "github",
+      "skillPath": "skills/workflow/babysit-specs/SKILL.md",
+      "computedHash": "af63d664a410b29961954d8d4b8f3c1b274ee6aeefc72c3c1c4bc75de92e3d31"
     },
     "build-prototype": {
       "source": "toy-crane/skills",
@@ -113,7 +119,7 @@
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-brownfield/SKILL.md",
-      "computedHash": "07ce124e416f89a24c21c57402c03960a16e573675752be6a89735fba073b9d4"
+      "computedHash": "f8cfba99b743685ab2202b98ed57d896eb7be81de7b454e1d4512be3d9fc81eb"
     },
     "expo-data-fetching": {
       "source": "expo/skills",
@@ -215,13 +221,13 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/workflow/implement/SKILL.md",
-      "computedHash": "737362cd77f4c528484310e383649abca1ad6c6548b31603fffa5e9c92122b0e"
+      "computedHash": "4a9ff1e93a439a74ed2e6be7084cc23d3bdc6d1f2f2faabfc6666dd6da49327a"
     },
     "maintain-project-context": {
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/workflow/maintain-project-context/SKILL.md",
-      "computedHash": "7653068ab75452c3699f5c347a3816eec55f46bc7105fc9388fe7ce88af2939a"
+      "computedHash": "d41f5a9440a14d9705691c7bbbbea0aaf620f4161b79578453a0606063a6782d"
     },
     "merge": {
       "source": "toy-crane/skills",
@@ -305,7 +311,7 @@
       "source": "supabase/server",
       "sourceType": "github",
       "skillPath": "skills/supabase-server/SKILL.md",
-      "computedHash": "894219773817ad2c047b2b6baa41fc6cbb7d87e9aab9c453cb7e0f6f64dbadb2"
+      "computedHash": "0c874981c2d596289726f26cb1bc639b3c833fc80278a3056c15b2e4fc3d4c52"
     },
     "tdd": {
       "source": "toy-crane/skills",
