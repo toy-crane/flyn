@@ -3,6 +3,7 @@ import { act, screen, userEvent, waitFor } from "@testing-library/react-native";
 import type { UIMessage } from "ai";
 import { Alert } from "react-native";
 
+import type { ChatSession } from "@/features/chat/state/use-conversation";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { CreateStoryScreen } from "./create-story-screen";
 
@@ -102,7 +103,8 @@ jest.mock("@/shared/navigation/use-screen-arrival", () => ({
 */
 jest.mock("@/features/chat/ui/chat-panel", () => {
   const React = require("react") as typeof import("react");
-  const { View } = require("react-native") as typeof import("react-native");
+  const { View, TextInput, Pressable, Text } =
+    require("react-native") as typeof import("react-native");
 
   const Row = React.memo(
     ({
@@ -120,12 +122,22 @@ jest.mock("@/features/chat/ui/chat-panel", () => {
       chat,
       messageAddon,
     }: {
-      chat: { messages: UIMessage[] };
+      chat: ChatSession;
       messageAddon?: (props: { message: UIMessage }) => React.ReactNode;
     }) =>
       React.createElement(
         View,
         { testID: "create-panel" },
+        React.createElement(TextInput, {
+          accessibilityLabel: "메시지",
+          onChangeText: chat.setDraft,
+          value: chat.draft,
+        }),
+        React.createElement(
+          Pressable,
+          { accessibilityRole: "button", onPress: chat.send },
+          React.createElement(Text, null, "보내기")
+        ),
         messageAddon
           ? chat.messages.map((message) =>
               React.createElement(Row, {
@@ -144,6 +156,23 @@ beforeEach(() => {
   mockSendMessage.mockResolvedValue(undefined);
 });
 
+test.each(["스토리 만들기", "에피소드 추가하기"])(
+  "메시지 전송 상태가 반영되기 전에 %s를 눌러도 요청을 겹치지 않는다",
+  async (action) => {
+    mockSendMessage.mockReturnValue(new Promise(() => undefined));
+    mockSaveStory.mockReturnValue(new Promise(() => undefined));
+    await renderWithHeroUI(<CreateStoryScreen onMade={jest.fn()} />);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("메시지"), "상대는 한 명이에요");
+    // SDK 경계는 ready 상태를 유지해 전송 상태 반영 전의 버튼 동작을 재현한다.
+    await user.press(screen.getByRole("button", { name: "보내기" }));
+    await user.press(screen.getByRole("button", { name: action }));
+
+    expect(mockSendMessage).toHaveBeenCalledTimes(1);
+    expect(mockSaveStory).not.toHaveBeenCalled();
+  }
+);
+
 test("추가 버튼은 의사만 보내고 새 카드가 나올 때까지 두 행동을 막는다", async () => {
   await renderWithHeroUI(<CreateStoryScreen onMade={jest.fn()} />);
   const user = userEvent.setup();
@@ -157,6 +186,27 @@ test("추가 버튼은 의사만 보내고 새 카드가 나올 때까지 두 �
   ).toBeDisabled();
   expect(screen.getByRole("button", { name: "스토리 만들기" })).toBeDisabled();
 });
+
+test.each(["스토리 만들기", "에피소드 추가하기"])(
+  "%s 요청 중에는 메시지를 보내지 않고 입력을 보존한다",
+  async (action) => {
+    mockSendMessage.mockReturnValue(new Promise(() => undefined));
+    mockSaveStory.mockReturnValue(new Promise(() => undefined));
+    await renderWithHeroUI(<CreateStoryScreen onMade={jest.fn()} />);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("메시지"), "상대는 한 명이에요");
+    await user.press(screen.getByRole("button", { name: action }));
+    // 패널의 비활성 표시와 별개로 전송 동작 자체가 막혀야 한다.
+    await user.press(screen.getByRole("button", { name: "보내기" }));
+
+    expect(mockSendMessage).toHaveBeenCalledTimes(
+      action === "에피소드 추가하기" ? 1 : 0
+    );
+    expect(screen.getByLabelText("메시지")).toHaveDisplayValue(
+      "상대는 한 명이에요"
+    );
+  }
+);
 
 /*
   실패한 시도는 아무것도 남기지 않는다. 알림을 닫으면 카드와 대화가 그대로 남아

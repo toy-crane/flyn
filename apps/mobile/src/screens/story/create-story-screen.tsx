@@ -120,7 +120,7 @@ export function CreateStoryScreen({
   const [isStarting, setIsStarting] = useState(false);
   const [stage, setStage] = useState<StoryCreationStage>();
   const [addingAt, setAddingAt] = useState<string>();
-  const adding = useRef<true | undefined>(undefined);
+  const requestLock = useRef(false);
   // 같은 프레임에 두 번 눌리는 것까지 막는다. 상태만으로는 다시 그리기 전의
   // 두 번째 누름이 지나가 스토리가 둘 만들어진다. 만드는 중인 카드를 들고
   // 있으므로 어느 카드로 만드는 중인지도 이 한 값이 답한다.
@@ -145,7 +145,13 @@ export function CreateStoryScreen({
     transport,
   });
   const drafts = useLocalChatDrafts();
-  const conversation = useConversation(chat, drafts, accessToken);
+  const conversation = useConversation(
+    chat,
+    drafts,
+    accessToken,
+    undefined,
+    requestLock
+  );
   const newest = useMemo(() => latestOutline(chat.messages), [chat.messages]);
   const interviewPending =
     newest !== undefined &&
@@ -155,7 +161,7 @@ export function CreateStoryScreen({
   const add = useCallback(() => {
     if (
       // biome-ignore lint/suspicious/noUnnecessaryConditions: 다른 버튼 호출이 이 ref를 동기적으로 변경한다.
-      adding.current ||
+      requestLock.current ||
       starting.current ||
       isDisabled ||
       !accessToken ||
@@ -164,7 +170,7 @@ export function CreateStoryScreen({
     ) {
       return;
     }
-    adding.current = true;
+    requestLock.current = true;
     setAddingAt(newest.messageId);
     chat
       .sendMessage({ text: "에피소드를 하나 더 넣고 싶어요." })
@@ -172,20 +178,21 @@ export function CreateStoryScreen({
         // 요청 실패는 useChat의 error를 통해 기존 대화 재시도로 표시한다.
       })
       .finally(() => {
-        adding.current = undefined;
+        requestLock.current = false;
       });
   }, [accessToken, chat.sendMessage, isDisabled, newest]);
 
   const start = useCallback(() => {
     if (
       starting.current !== undefined ||
-      adding.current ||
+      requestLock.current ||
       isDisabled ||
       !(accessToken && newest)
     ) {
       return;
     }
 
+    requestLock.current = true;
     starting.current = newest.messageId;
     setIsStarting(true);
 
@@ -216,6 +223,7 @@ export function CreateStoryScreen({
         ]);
       })
       .finally(() => {
+        requestLock.current = false;
         starting.current = undefined;
         // biome-ignore lint/suspicious/noUnnecessaryConditions: 응답 전에 화면이 사라질 수 있다.
         if (mounted.current) {
