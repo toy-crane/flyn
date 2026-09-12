@@ -42,6 +42,22 @@ const second = {
 
 export const CREATION_CASES: CreationCase[] = [
   {
+    name: "짧게 끊긴 입력 뒤 추가 인터뷰",
+    turns: [
+      { asks: true, question: "비" },
+      {
+        episodes: 1,
+        question:
+          "My baby keeps crying on a plane. The passenger next to me sighs and looks at us but does not shout. I want to explain I am trying and ask for understanding. Make only this one episode.",
+      },
+      {
+        asks: true,
+        question: "에피소드를 하나 더 넣고 싶어요.",
+        unresolved: true,
+      },
+    ],
+  },
+  {
     name: "충분한 한 사건",
     turns: [
       {
