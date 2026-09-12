@@ -2,6 +2,22 @@ import { expect, test } from "@jest/globals";
 
 import { prepareEpisodeMessage } from "./episode-notation";
 
+test("줄바꿈만 긴 입력도 한 번에 처리한다", () => {
+  const original = "\n".repeat(50_000);
+  const started = performance.now();
+  expect(prepareEpisodeMessage(original)).toBe(original);
+  expect(performance.now() - started).toBeLessThan(1000);
+});
+
+test("긴 일반 토큰을 보내도 표기 보정이 지연되지 않는다", () => {
+  const original = `${"a".repeat(20_000)} i agree`;
+  const started = performance.now();
+  expect(prepareEpisodeMessage(original)).toBe(
+    `${"A"}${"a".repeat(19_999)} I agree`
+  );
+  expect(performance.now() - started).toBeLessThan(1000);
+});
+
 test.each(["i@localhost", "i@[192.168.0.1]", "i@example.xn--p1ai"])(
   "이메일의 호스트 종류와 무관하게 로컬 부분을 보존한다: %s",
   (address) => {
