@@ -25,8 +25,12 @@ const DATA_LOSS_RULES = new Set([
   "ban-drop-table",
   "ban-truncate-cascade",
 ]);
-const IGNORE_DIRECTIVE = /^\s*--\s*squawk-ignore(?:-file)?(?:\s+(.*))?$/;
-const RULE_LIST = /[\s,]+/;
+/** squawk reports this when it cannot parse a file, then skips every rule. */
+const SYNTAX_ERROR = "syntax-error";
+/** Any squawk-ignore, whether in a line, trailing, or block comment. */
+const IGNORE_MENTION = /squawk-ignore(?:-file)?\b([^\n]*)/g;
+const RULE_LIST = /[\s,:]+/;
+const TRAILING_COMMENT = /--.*$/;
 const ROW_COMMIT = /`([0-9a-f]{7,40})`/;
 
 export interface SquawkViolation {
@@ -73,11 +77,9 @@ function statementStart(lines: string[], index: number) {
   let start = index;
   while (start > 0) {
     const previous = lines[start - 1] ?? "";
-    if (
-      !previous.trim() ||
-      isComment(previous) ||
-      previous.trimEnd().endsWith(";")
-    ) {
+    // A trailing comment still ends the previous statement at its semicolon.
+    const code = previous.replace(TRAILING_COMMENT, "").trimEnd();
+    if (!previous.trim() || isComment(previous) || code.endsWith(";")) {
       return start;
     }
     start -= 1;
@@ -145,17 +147,20 @@ export function findings(
 export function forbiddenIgnores(files: MigrationFile[]): IgnoreDirective[] {
   const found: IgnoreDirective[] = [];
   for (const file of files) {
-    for (const [index, line] of file.text.split("\n").entries()) {
-      const match = IGNORE_DIRECTIVE.exec(line);
-      if (!match) {
-        continue;
-      }
-      const rules = (match[1] ?? "").split(RULE_LIST).filter(Boolean);
+    const lines = file.text.split("\n");
+    for (const match of file.text.matchAll(IGNORE_MENTION)) {
+      const [listed = ""] = (match[1] ?? "").split("*/");
+      const rules = listed.split(RULE_LIST).filter(Boolean);
       if (
         rules.length === 0 ||
         rules.some((rule) => DATA_LOSS_RULES.has(rule))
       ) {
-        found.push({ line: index + 1, path: file.path, text: line.trim() });
+        const line = file.text.slice(0, match.index).split("\n").length;
+        found.push({
+          line,
+          path: file.path,
+          text: (lines[line - 1] ?? "").trim(),
+        });
       }
     }
   }
@@ -169,6 +174,7 @@ export function destructiveVerdict(
 ): Verdict {
   const dropping = found.filter((item) => item.dataLoss);
   const unreasoned = dropping.filter((item) => !item.reasoned).length;
+  const unreadable = found.filter((item) => item.rule === SYNTAX_ERROR).length;
   const problems: string[] = [];
   if (ignores.length > 0) {
     problems.push(
@@ -180,7 +186,12 @@ export function destructiveVerdict(
       `\`${REASON_PREFIX}\` 주석이 없는 삭제 문장이 ${unreasoned}개 있습니다. 문장 바로 윗줄에 무엇이 사라지고 왜 지워도 되는지 적으세요.`
     );
   }
-  if (dropping.length > 0 && !approved) {
+  if (unreadable > 0 && !approved) {
+    problems.push(
+      `squawk가 읽지 못한 문장이 ${unreadable}개 있어 그 파일에서 데이터를 지우는 문장을 확인하지 못했습니다. 사람이 파일 전체를 읽어야 합니다.`
+    );
+  }
+  if ((dropping.length > 0 || unreadable > 0) && !approved) {
     problems.push(
       `사람이 이유를 읽고 PR에 \`${APPROVAL_LABEL}\` 라벨을 붙여야 합니다.`
     );
@@ -206,8 +217,18 @@ export function renderReport(input: ReportInput) {
   const { files, found, ignores, repository, sha, verdict } = input;
   const link = (path: string, line: number) =>
     `[${path.split("/").at(-1)}:${line}](https://github.com/${repository}/blob/${sha}/${path}#L${line})`;
-  const dropping = found.filter((item) => item.dataLoss);
-  const advice = found.filter((item) => !item.dataLoss);
+  // A person must read these: statements that drop data, and statements squawk
+  // could not parse, which hide whatever else is in their file.
+  const blocking = found.filter(
+    (item) => item.dataLoss || item.rule === SYNTAX_ERROR
+  );
+  const advice = found.filter((item) => !blocking.includes(item));
+  const reason = (item: Finding) => {
+    if (!item.dataLoss) {
+      return "해당 없음";
+    }
+    return item.reasoned ? "있음" : "없음";
+  };
   const lines = [REPORT_MARKER, "### 마이그레이션 삭제 문장 검사", ""];
   if (files.length === 0) {
     lines.push("이 PR에는 새 마이그레이션이 없습니다.");
@@ -220,21 +241,21 @@ export function renderReport(input: ReportInput) {
       ...verdict.problems.map((problem) => `- ${problem}`),
       ""
     );
-  } else if (dropping.length > 0) {
+  } else if (blocking.length > 0) {
     lines.push(
-      `데이터를 지우는 문장 ${dropping.length}개를 사람이 승인했습니다.`,
+      `사람이 확인해야 하는 문장 ${blocking.length}개를 승인했습니다.`,
       ""
     );
   } else {
     lines.push("새 마이그레이션에 데이터를 지우는 문장이 없습니다.", "");
   }
-  if (dropping.length > 0) {
+  if (blocking.length > 0) {
     lines.push(
       "| 위치 | 규칙 | 문장 | 이유 주석 |",
       "| --- | --- | --- | --- |",
-      ...dropping.map(
+      ...blocking.map(
         (item) =>
-          `| ${link(item.path, item.line)} | \`${item.rule}\` | \`${cell(shorten(item.statement))}\` | ${item.reasoned ? "있음" : "없음"} |`
+          `| ${link(item.path, item.line)} | \`${item.rule}\` | \`${cell(shorten(item.statement))}\` | ${reason(item)} |`
       ),
       "",
       "새 커밋을 push하면 승인 라벨이 떨어집니다. 바뀐 SQL을 다시 읽고 라벨을 붙이세요.",
