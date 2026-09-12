@@ -44,6 +44,9 @@ const CHANGED_NOTATION = /[\p{P}\r\n\t]| {2,}/u;
 const TRAILING_SPACE = /\s$/;
 const WORD = /\p{L}+(?:['’]\p{L}+)*/gu;
 const UPPERCASE = /\p{Lu}/u;
+const INTERNAL_APOSTROPHE = /(?<=\p{L})['’](?=\p{L})/gu;
+const OMITTED_CONTRACTION =
+  /\b(?:(?:do|does|did|is|are|was|were|has|have|had|could|should|would|must|need|might|dare|sha)nt|im|ive|youre|youve|youll|youd|hes|shes|thats|theres|heres|whats|whos|hows|wheres|whens|whys|theyre|theyve|theyll|theyd|weve)\b/gi;
 const DISTINCT_APOSTROPHE_WORDS = new Map([
   ["its", "it's"],
   ["well", "we'll"],
@@ -266,21 +269,32 @@ export async function judgeExpression({
 
 /** 최소 표현 조각의 앞뒤 표기는 그대로 두고, 바뀐 부분만 확인한다. */
 function keepsEntryNotation(entry: CorrectionEntry): boolean {
-  const { original, fixed } = entry;
   const withoutCaseOrSpacing = (value: string) =>
     value.replace(/\s/g, "").toLowerCase();
-  if (withoutCaseOrSpacing(original) === withoutCaseOrSpacing(fixed)) {
+  if (
+    withoutCaseOrSpacing(entry.original) === withoutCaseOrSpacing(entry.fixed)
+  ) {
     return false;
   }
-  const withoutApostrophe = (value: string) => value.replace(/['’]/g, "");
-  const before = original.toLowerCase().replace(/’/g, "'");
-  const after = fixed.toLowerCase().replace(/’/g, "'");
+  const original = entry.original.replace(INTERNAL_APOSTROPHE, "");
+  const fixed = entry.fixed.replace(INTERNAL_APOSTROPHE, "");
+  const before = entry.original.toLowerCase().replace(/’/g, "'");
+  const after = entry.fixed.toLowerCase().replace(/’/g, "'");
+  if (original === fixed) {
+    return (
+      DISTINCT_APOSTROPHE_WORDS.get(before) === after ||
+      DISTINCT_APOSTROPHE_WORDS.get(after) === before
+    );
+  }
+  // 활용형을 바꾸며 생략했던 부호를 복원하지 않는다. 낱말 자체가 다른
+  // your/you're, their/they're, whose/who's는 이 생략 규칙에 포함되지 않는다.
   if (
-    withoutApostrophe(original) === withoutApostrophe(fixed) &&
-    (DISTINCT_APOSTROPHE_WORDS.get(before) === after ||
-      DISTINCT_APOSTROPHE_WORDS.get(after) === before)
+    (entry.original.match(OMITTED_CONTRACTION)?.length ?? 0) >
+      (entry.fixed.match(OMITTED_CONTRACTION)?.length ?? 0) &&
+    (entry.fixed.match(INTERNAL_APOSTROPHE)?.length ?? 0) >
+      (entry.original.match(INTERNAL_APOSTROPHE)?.length ?? 0)
   ) {
-    return true;
+    return false;
   }
   let start = 0;
   let originalEnd = original.length;

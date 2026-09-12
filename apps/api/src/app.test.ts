@@ -1967,6 +1967,9 @@ describe("메시지별 표현 확인 API", () => {
     ["She goed and he goed", "She went and he went", "goed", "went"],
     ["He has a apple", "He has an apple", "a apple", "an apple"],
     ["Goed home", "Went home", "Goed", "Went"],
+    ["Your welcome", "You're welcome", "Your", "You're"],
+    ["Their coming", "They're coming", "Their", "They're"],
+    ["Whose coming", "Who's coming", "Whose", "Who's"],
     [
       "I went to United States",
       "I went to the United States",
