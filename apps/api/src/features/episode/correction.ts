@@ -41,6 +41,7 @@ export interface CorrectionDraft {
 
 const KOREAN = /[가-힣ㄱ-ㅎㅏ-ㅣ]/;
 const CHANGED_NOTATION = /[.!?,'’";:\r\n\t]| {2,}/;
+const TRAILING_SPACE = /\s$/;
 const DISTINCT_APOSTROPHE_WORDS = new Map([
   ["its", "it's"],
   ["well", "we'll"],
@@ -297,9 +298,26 @@ function keepsEntryNotation(entry: CorrectionEntry): boolean {
     originalEnd -= 1;
     fixedEnd -= 1;
   }
+  const changedOriginal = original.slice(start, originalEnd);
+  const changedFixed = fixed.slice(start, fixedEnd);
+  const uppercase = (value: string) => (value.match(/\p{Lu}/gu) ?? []).join("");
+  if (uppercase(changedOriginal) !== uppercase(changedFixed)) {
+    return false;
+  }
+  // 같은 뒷말에 다른 표현을 붙일 때 그 사이의 공백을 없애지 않는다.
+  // 관사처럼 표현 전체를 넣거나 빼는 교정은 허용한다.
+  if (
+    changedOriginal &&
+    changedFixed &&
+    originalEnd < original.length &&
+    fixedEnd < fixed.length &&
+    TRAILING_SPACE.test(changedOriginal) !== TRAILING_SPACE.test(changedFixed)
+  ) {
+    return false;
+  }
   return !(
-    CHANGED_NOTATION.test(original.slice(start, originalEnd)) ||
-    CHANGED_NOTATION.test(fixed.slice(start, fixedEnd))
+    CHANGED_NOTATION.test(changedOriginal) ||
+    CHANGED_NOTATION.test(changedFixed)
   );
 }
 
@@ -309,15 +327,19 @@ function onlyReplacesEntries(
   fixed: string,
   entries: CorrectionEntry[]
 ): boolean {
-  const pending: [number, number][] = [[0, 0]];
+  const allUsed = "1".repeat(entries.length);
+  const indexedEntries = entries.map((entry, index) => ({ entry, index }));
+  const pending: [number, number, string][] = [
+    [0, 0, "0".repeat(entries.length)],
+  ];
   const seen = new Set<string>();
   while (pending.length) {
     const position = pending.pop();
     if (!position) {
       break;
     }
-    let [left, right] = position;
-    const key = `${left}:${right}`;
+    let [left, right, used] = position;
+    const key = `${left}:${right}:${used}`;
     if (seen.has(key)) {
       continue;
     }
@@ -327,16 +349,17 @@ function onlyReplacesEntries(
       return false;
     }
     while (left < original.length && right < fixed.length) {
-      const matches = entries.filter(
-        (entry) =>
+      const matches = indexedEntries.filter(
+        ({ entry }) =>
           entry.original !== entry.fixed &&
           original.startsWith(entry.original, left) &&
           fixed.startsWith(entry.fixed, right)
       );
-      for (const entry of matches) {
+      for (const { entry, index } of matches) {
         pending.push([
           left + entry.original.length,
           right + entry.fixed.length,
+          `${used.slice(0, index)}1${used.slice(index + 1)}`,
         ]);
       }
       if (original[left] !== fixed[right]) {
@@ -345,7 +368,11 @@ function onlyReplacesEntries(
       left += 1;
       right += 1;
     }
-    if (left === original.length && right === fixed.length) {
+    if (
+      left === original.length &&
+      right === fixed.length &&
+      used === allUsed
+    ) {
       return true;
     }
   }

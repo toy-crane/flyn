@@ -1966,6 +1966,9 @@ describe("메시지별 표현 확인 API", () => {
     ["She go and I go", "She goes and I go", "go", "goes"],
     ["She goed and he goed", "She went and he went", "goed", "went"],
     ["He has a apple", "He has an apple", "a apple", "an apple"],
+    ["This is more good", "This is better", "more good", "better"],
+    ["I saw a birds", "I saw birds", "a birds", "birds"],
+    ["I goed  home", "I went  home", "goed", "went"],
     ["Its raining", "It's raining", "Its", "It's"],
     ["Well go home", "We'll go home", "Well", "We'll"],
     ["Lets go home", "Let's go home", "Lets", "Let's"],
@@ -2033,6 +2036,8 @@ describe("메시지별 표현 확인 API", () => {
     ["She dont wants it", "She doesn't want it", "dont wants", "doesn't want"],
     ["Thanks sarah", "Thanks Sarah", "sarah", "Sarah"],
     ["Yes  I agree", "Yes I agree", "Yes  I", "Yes I"],
+    ["I goed home", "I Went home", "goed", "Went"],
+    ["I goed home", "I wenthome", "goed home", "wenthome"],
     [
       "I goed home, then left",
       "I went, home then left",
@@ -2063,6 +2068,33 @@ describe("메시지별 표현 확인 API", () => {
       expect(state.expressionResults).toHaveLength(0);
     }
   );
+  test("완성 문장에 실제로 쓰이지 않은 교정 항목은 저장하지 않는다", async () => {
+    const state = createSeasonState();
+    state.messages.push(stored("I goed home and left"));
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([], {
+        entries: [
+          {
+            fixed: "went",
+            original: "goed",
+            pattern: "past-go",
+            why: "go의 과거형은 went예요.",
+          },
+          {
+            fixed: "left",
+            original: "home",
+            pattern: "unrelated",
+            why: "이 표현을 써요.",
+          },
+        ],
+        fixed: "I went home and left",
+        status: "corrected",
+      }),
+    });
+    expect((await app.request(request())).status).toBe(500);
+    expect(state.expressionResults).toHaveLength(0);
+  });
   function stored(text: string, id = "m1"): MessageRow {
     return {
       created_at: `2026-09-07T00:00:0${id === "m1" ? "1" : "2"}.000Z`,
