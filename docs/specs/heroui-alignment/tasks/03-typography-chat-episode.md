@@ -29,7 +29,7 @@ None.
 
 ## Verification
 
-- 위 세 폴더에 대한 `grep -rnE "text-\[|leading-\[|leading-[0-9]|font-(bold|semibold|medium|extrabold)"`가 Markdown 렌더러와 토스트의 예외를 빼고 0건이다.
+- 위 세 폴더에 대한 `grep -rnE "text-\[|text-(xs|sm|base|lg|[0-9]?xl)|leading-\[|leading-[0-9]|font-(bold|semibold|medium|extrabold)"`가 Markdown 렌더러와 토스트의 예외를 빼고 0건이다.
 - `bun run check`와 모바일 `bun run test`가 통과하고, 채팅 패널 테스트의 Markdown 크기 기대값과 배울 표현 재시도 테스트의 줄 높이 기대값이 대응표 값으로 바뀐다.
 - 기기 확인: 계약의 절차대로 최대 글자 크기로 바꾼 뒤 앱을 완전히 닫고 다시 시작해 대화(종료 카드 포함), 표현 돌아보기, 에피소드를 열 수 없는 화면을 iOS와 Android, 밝은·어두운 모드로 찍는다. 통과 조건은 잘림과 겹침이 없는 것이다.
 - `agent-device` 접근성 트리에서 `기억해 둘 표현` 제목이 헤더 역할이다.

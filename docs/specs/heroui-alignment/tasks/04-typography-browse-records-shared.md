@@ -29,7 +29,7 @@
 
 ## Verification
 
-- `grep -rnE "text-\[|leading-\[|leading-[0-9]|font-(bold|semibold|medium|extrabold)" apps/mobile/src apps/mobile/app`가 계약의 예외(Markdown 렌더러, 토스트, 제공자 로그인 버튼)를 빼고 0건이다.
+- `grep -rnE "text-\[|text-(xs|sm|base|lg|[0-9]?xl)|leading-\[|leading-[0-9]|font-(bold|semibold|medium|extrabold)" apps/mobile/src apps/mobile/app`가 계약의 예외(Markdown 렌더러, 토스트, 제공자 로그인 버튼)를 빼고 0건이다. 기본 크기 클래스(`text-sm` 등)도 잡아야 굵기나 행간 클래스 없이 크기만 붙은 원시 `Text`가 남지 않는다.
 - `bun run check`와 모바일 `bun run test`가 통과하고, 크기 클래스를 검사하던 테스트는 역할 `type`을 검사한다.
 - 기기 확인: 계약의 절차대로 최대 글자 크기로 바꾼 뒤 앱을 완전히 닫고 다시 시작해 일곱 화면(탐색, 스토리 상세, 대화 기록, 표현 노트, 홈, 프로필 편집, 생성된 개요가 보이는 스토리 만들기)을 iOS와 Android, 밝은·어두운 모드로 찍는다. 통과 조건은 잘림과 겹침이 없고, 카드 제목(`h6`)과 본문의 위계가 최대 크기에서 뒤집혀 보이지 않는 것이다.
 - `agent-device` 접근성 트리에서 소제목과 화면 안 제목이 헤더 역할이다.
