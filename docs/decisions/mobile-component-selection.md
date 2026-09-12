@@ -20,10 +20,13 @@
 - 사용자 말풍선의 길게 누르기: 말풍선은 버튼이 아니라 메시지라서 버튼 역할을 지우고 길게 누를 때만 메뉴를 연다. [모바일 채팅 메시지 동작](mobile-chat-message-actions.md).
 - Google, Apple, 이메일 로그인 버튼: 제공자 브랜드 규칙이 모양과 색을 정한다. [모바일 작업 진행 표시](mobile-action-progress.md).
 - 아바타 탭(홈, 설정, 프로필 편집): 이미지 자체가 컨트롤이다. [모바일 UI 렌더러 경계](mobile-ui-renderer-boundaries.md).
-- 채팅의 보내기, 중지, 최신 메시지 버튼: Glass 플로팅 컨트롤 안의 44pt 원형 아이콘 버튼이다. HeroUI `Button`의 가장 작은 크기가 40pt 고정이라 만들 수 없다. 공용 아이콘 버튼 하나로 모은다. [모바일 AI 채팅 표현](mobile-ai-chat-rendering.md).
-- 메시지 아래 아이콘 줄의 28pt 버튼: HeroUI `PressableFeedback`을 쓰며 하이라이트와 물결을 뺀다. [모바일 채팅 메시지 동작](mobile-chat-message-actions.md).
 - 대화 중 배울 표현의 접힌 한 줄과 펼친 카드, 카드의 접기 쉐브론: 한 줄이 그 자리에서 카드로 바뀌는 구조라 HeroUI `Accordion`으로 표현할 수 없다. [모바일 대화 중 교정](mobile-episode-correction.md).
 - 사용자 말풍선 아래 표현 확인 실패 줄의 재시도 아이콘: 표시 크기는 역할별 기준값, 터치 영역은 그와 따로 정한다. [모바일 작업 진행 표시](mobile-action-progress.md)와 [모바일 대화 중 교정](mobile-episode-correction.md).
+
+다음 자리는 원시 `Pressable`이 아니라 HeroUI의 다른 수단을 쓴다. 기본 컴포넌트 대신 쓰는 이유를 적어 두는 것이지 원시 `Pressable`을 허용하는 것이 아니다.
+
+- 채팅의 보내기, 중지, 최신 메시지 버튼: Glass 플로팅 컨트롤 안의 44pt 원형 아이콘 버튼이다. HeroUI `Button`의 가장 작은 크기가 40pt 고정이라 만들 수 없어, `PressableFeedback` 위에 만든 공용 아이콘 버튼 하나로 모은다. [모바일 AI 채팅 표현](mobile-ai-chat-rendering.md).
+- 메시지 아래 아이콘 줄의 28pt 버튼: `PressableFeedback` 위에 만든 버튼이며 하이라이트와 물결을 뺀다. [모바일 채팅 메시지 동작](mobile-chat-message-actions.md).
 - 탐색의 필터 칩: HeroUI `TagGroup` 기본 패턴이다. [모바일 스토리 탐색](mobile-story-browsing.md).
 
 ## 경계
