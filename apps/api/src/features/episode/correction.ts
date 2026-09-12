@@ -40,7 +40,10 @@ export interface CorrectionDraft {
 }
 
 const KOREAN = /[가-힣ㄱ-ㅎㅏ-ㅣ]/;
-const CHANGED_NOTATION = /[\p{P}\p{S}\p{C}]|[^\S ]|\uFE0E|\uFE0F|\u20E3| {2,}/u;
+const CHANGED_NOTATION = /[\p{P}\p{S}\p{C}]|\uFE0E|\uFE0F|\u20E3/u;
+const SPACING = /[\s\u0085]/gu;
+const PROTECTED_SPACING = / {2,}|[^\S ]|\u0085/gu;
+const ORDINARY_SPACING = /^ ?$/;
 const TRAILING_SPACE = /\s$/;
 const WORD = /\p{L}+(?:['’]\p{L}+)*/gu;
 const UPPERCASE = /\p{Lu}/u;
@@ -325,30 +328,38 @@ function keepsEntryNotation(entry: CorrectionEntry): boolean {
     return false;
   }
   return !(
-    CHANGED_NOTATION.test(changedOriginal) ||
-    CHANGED_NOTATION.test(changedFixed)
+    CHANGED_NOTATION.test(changedOriginal.replace(SPACING, "")) ||
+    CHANGED_NOTATION.test(changedFixed.replace(SPACING, ""))
   );
 }
 
 function keepsWordNotation(original: string, fixed: string): boolean {
-  const before: string[] = original.match(WORD) ?? [];
-  const after: string[] = fixed.match(WORD) ?? [];
-  if ((before.length + 1) * (after.length + 1) > 10_000) {
+  const source = notationWords(original);
+  const target = notationWords(fixed);
+  const before = source.words;
+  const after = target.words;
+  if (
+    !keepsSpacing(source.tail, target.tail) ||
+    JSON.stringify(original.match(PROTECTED_SPACING) ?? []) !==
+      JSON.stringify(fixed.match(PROTECTED_SPACING) ?? []) ||
+    (before.length + 1) * (after.length + 1) > 10_000
+  ) {
     return false;
   }
   let costs = Array.from({ length: after.length + 1 }, (_, index) => index);
   let valid = costs.map(() => true);
-  for (const word of before) {
+  for (const { word, spacing } of before) {
     const nextCosts = [(costs[0] ?? 0) + 1];
     const nextValid = [valid[0] ?? true];
-    for (const [index, replacement] of after.entries()) {
+    for (const [index, next] of after.entries()) {
+      const replacement = next.word;
       const sameWord = plainWord(word) === plainWord(replacement);
       const replace = (costs[index] ?? 0) + (sameWord ? 0 : 1);
       const remove = (costs[index + 1] ?? 0) + 1;
       const insert = (nextCosts[index] ?? 0) + 1;
       const best = Math.min(replace, remove, insert);
       // 최소 낱말 편집 경로에서만 표기를 비교한다. 관사 삽입을 치환으로 읽지 않는다.
-      const keepsCase = keepsWordPair(word, replacement);
+      const keepsCase = keepsWordPair(word, replacement, spacing, next.spacing);
       nextCosts.push(best);
       nextValid.push(
         (replace === best && !!valid[index] && keepsCase) ||
@@ -362,16 +373,44 @@ function keepsWordNotation(original: string, fixed: string): boolean {
   return valid[after.length] ?? false;
 }
 
+function notationWords(text: string) {
+  let previousEnd = 0;
+  const words = Array.from(text.matchAll(WORD), (match) => {
+    const spacing = (
+      text.slice(previousEnd, match.index).match(SPACING) ?? []
+    ).join("");
+    previousEnd = match.index + match[0].length;
+    return { spacing, word: match[0] };
+  });
+  return {
+    tail: (text.slice(previousEnd).match(SPACING) ?? []).join(""),
+    words,
+  };
+}
+
+function keepsSpacing(original: string, fixed: string): boolean {
+  return (
+    original === fixed ||
+    (ORDINARY_SPACING.test(original) && ORDINARY_SPACING.test(fixed))
+  );
+}
+
 function plainWord(word: string): string {
   return word.replace(INTERNAL_APOSTROPHE, "").toLowerCase();
 }
 
-function keepsWordPair(original: string, fixed: string): boolean {
+function keepsWordPair(
+  original: string,
+  fixed: string,
+  originalSpacing: string,
+  fixedSpacing: string
+): boolean {
   return (
     (original === "I" ||
       fixed === "I" ||
       wordCase(original) === wordCase(fixed)) &&
-    keepsWordApostrophe(original, fixed)
+    keepsWordApostrophe(original, fixed) &&
+    keepsSpacing(originalSpacing, fixedSpacing)
   );
 }
 
