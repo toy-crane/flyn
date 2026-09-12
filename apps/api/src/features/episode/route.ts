@@ -13,7 +13,6 @@ import {
 } from "ai";
 import { Hono, type MiddlewareHandler } from "hono";
 
-import { keepWorking } from "../../shared/keep-working.js";
 import { resolveModelId } from "../../shared/model-id.js";
 import {
   logRequestAbort,
@@ -60,7 +59,7 @@ import {
   readStoryOfPlay,
   type StoryContent,
 } from "./story.js";
-import { COVER_BUCKET, madeCover, type StoryCover } from "./story-cover.js";
+import { COVER_BUCKET, madeCover } from "./story-cover.js";
 import {
   CREATION_TOOLS,
   type CreationUIMessage,
@@ -71,7 +70,6 @@ import {
   scriptSystemPrompt,
   storyToSave,
   WRITTEN_STORY_SCHEMA,
-  type WrittenStory,
 } from "./story-creation.js";
 import {
   readRecentStories,
@@ -462,102 +460,81 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
         }
 
         const { outline } = read;
-        /*
-          표지는 각본과 나란히 시작한다. 그림에 십 초쯤, 각본에 십수 초쯤
-          걸리므로 이렇게 두면 표지 때문에 기다림이 늘지 않는다. 요청이 끊겨도
-          이 일은 이어 간다. 사용자는 이미 1화로 넘어간 뒤이고, 그 뒤에
-          도착하는 표지가 이 스토리의 표지다.
-        */
-        const drawing = madeCover({
-          bucket: c.var.supabaseContext.supabase.storage.from(COVER_BUCKET),
-          draw: dependencies.drawCover,
-          outline,
-          ownerId: c.var.userId,
-        });
-        let cover: StoryCover | undefined;
-        const drawn = drawing.then((finished) => {
-          cover = finished;
+        const stream = createUIMessageStream({
+          execute: async ({ writer }) => {
+            writer.write({
+              data: { stage: "script" },
+              type: "data-story-progress",
+            });
+            // 각본과 표지는 함께 시작한다. 실패한 표지는 없는 것으로 완료한다.
+            let coverDone = false;
+            const drawing = madeCover({
+              bucket: c.var.supabaseContext.supabase.storage.from(COVER_BUCKET),
+              draw: dependencies.drawCover,
+              outline,
+              ownerId: c.var.userId,
+            }).finally(() => {
+              coverDone = true;
+            });
 
-          return finished;
-        });
-        let written: WrittenStory;
-
-        try {
-          const generated = await generateObject({
-            abortSignal: c.req.raw.signal,
-            model: dependencies.model ?? resolveModelId(),
-            prompt: scriptPrompt(outline),
-            schema: WRITTEN_STORY_SCHEMA,
-            system: scriptSystemPrompt(),
-          });
-
-          written = generated.object;
-        } catch (failure) {
-          logRequestFailure(c.req.method, c.req.path, failure);
-
-          return c.json({ error: "Writing the story failed." }, 502);
-        }
-
-        const problem = scriptProblem(written);
-
-        if (problem) {
-          logRequestFailure(c.req.method, c.req.path, new Error(problem));
-
-          return c.json({ error: "Writing the story failed." }, 502);
-        }
-
-        const { data, error } = await c.var.supabaseContext.supabase.rpc(
-          "create_story",
-          { story: storyToSave(outline, written) }
-        );
-
-        const made = data?.at(0);
-
-        if (error || !made) {
-          logRequestFailure(
-            c.req.method,
-            c.req.path,
-            error ?? new Error("Saving the story returned nothing.")
-          );
-
-          return c.json({ error: "Saving the story failed." }, 502);
-        }
-
-        const storyId = made.story_id;
-        const attach = async (drawnCover: StoryCover | undefined) => {
-          if (!drawnCover) {
-            return;
-          }
-
-          const attached = await c.var.supabaseContext.supabase.rpc(
-            "set_story_cover",
-            {
-              cover_blurhash: drawnCover.blurhash,
-              cover_path: drawnCover.path,
-              story_id: storyId,
+            const generated = await generateObject({
+              abortSignal: c.req.raw.signal,
+              model: dependencies.model ?? resolveModelId(),
+              prompt: scriptPrompt(outline),
+              schema: WRITTEN_STORY_SCHEMA,
+              system: scriptSystemPrompt(),
+            });
+            const problem = scriptProblem(generated.object, outline);
+            if (problem) {
+              throw new Error(problem);
             }
-          );
-
-          if (attached.error) {
-            logRequestFailure(c.req.method, c.req.path, attached.error);
-          }
-        };
-
-        /*
-          표지가 이미 도착했으면 여기서 달고 간다. 탐색으로 돌아온 화면이 방금
-          만든 스토리를 다시 읽을 때 표지가 거기 있어야 한다. 아직이면 남은
-          일을 뒤로 넘기고 1화부터 열어 준다.
-        */
-        if (cover) {
-          await attach(cover);
-        } else {
-          keepWorking(dependencies.waitUntil, drawn.then(attach));
-        }
-
-        return c.json({
-          episodeId: made.first_episode_id,
-          storyId,
+            if (!coverDone) {
+              writer.write({
+                data: { stage: "cover" },
+                type: "data-story-progress",
+              });
+            }
+            const cover = await drawing;
+            writer.write({
+              data: { stage: "saving" },
+              type: "data-story-progress",
+            });
+            const { data, error } = await c.var.supabaseContext.supabase.rpc(
+              "create_story",
+              { story: storyToSave(outline, generated.object) }
+            );
+            const made = data?.at(0);
+            if (error || !made) {
+              throw error ?? new Error("Saving the story returned nothing.");
+            }
+            if (cover) {
+              const attached = await c.var.supabaseContext.supabase.rpc(
+                "set_story_cover",
+                {
+                  cover_blurhash: cover.blurhash,
+                  cover_path: cover.path,
+                  story_id: made.story_id,
+                }
+              );
+              // 표지 저장 실패도 표지 없는 스토리로 연다. 저장된 스토리를 다시 만들지 않는다.
+              if (attached.error) {
+                logRequestFailure(c.req.method, c.req.path, attached.error);
+              }
+            }
+            writer.write({
+              data: {
+                episodeId: made.first_episode_id,
+                storyId: made.story_id,
+              },
+              type: "data-story-created",
+            });
+          },
+          onError: (failure) => {
+            logRequestFailure(c.req.method, c.req.path, failure);
+            return "Making the story failed.";
+          },
         });
+        return createUIMessageStreamResponse({ stream });
       })
       // 스토리 탭. 대화한 스토리를 최근순으로 보여 준다.
       .get("/recent", requireUser, requireCurrentUser, async (c) => {

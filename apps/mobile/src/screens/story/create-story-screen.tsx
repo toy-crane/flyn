@@ -6,6 +6,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -24,6 +25,7 @@ import {
   latestOutline,
   type MadeStory,
   outlineOfMessage,
+  type StoryCreationStage,
   saveStory,
 } from "@/features/story/api/create-story";
 import { storyLabels } from "@/features/story/ui/story-labels";
@@ -38,7 +40,7 @@ import { useFocusOnArrival } from "@/shared/navigation/use-screen-arrival";
  */
 const OPENING: UIMessage = {
   id: "creation-opening",
-  parts: [{ text: "어떤 상황을 만들고 싶어요?", type: "text" }],
+  parts: [{ text: "어떤 상황에서 영어로 대화해 보고 싶으세요?", type: "text" }],
   role: "assistant",
 };
 
@@ -50,12 +52,18 @@ const OPENING: UIMessage = {
  * 화면에 나타나지 않던 이유가 이것이었다.
  */
 const OutlineStart = createContext<{
+  isDisabled: boolean;
   isStarting: boolean;
+  onAdd: () => void;
   onStart: () => void;
   startableMessageId: string | undefined;
+  stage: StoryCreationStage | undefined;
 }>({
+  isDisabled: false,
   isStarting: false,
+  onAdd: () => undefined,
   onStart: () => undefined,
+  stage: undefined,
   startableMessageId: undefined,
 });
 
@@ -66,7 +74,8 @@ const OutlineStart = createContext<{
  * 않는다. 이 컴포넌트는 한 번 만들어 두고 바꾸지 않는다.
  */
 function OutlineAddon({ message }: { message: UIMessage }) {
-  const { isStarting, onStart, startableMessageId } = useContext(OutlineStart);
+  const { isDisabled, isStarting, onAdd, onStart, startableMessageId, stage } =
+    useContext(OutlineStart);
   const outline = outlineOfMessage(message);
 
   if (!outline) {
@@ -75,9 +84,16 @@ function OutlineAddon({ message }: { message: UIMessage }) {
 
   return (
     <StoryOutlineTurn
+      isDisabled={isDisabled}
       isStarting={isStarting}
+      onAdd={message.id === startableMessageId ? onAdd : undefined}
       onStart={message.id === startableMessageId ? onStart : undefined}
       outline={outline}
+      progress={
+        message.id === startableMessageId && stage
+          ? storyLabels.creationProgress[stage]
+          : undefined
+      }
     />
   );
 }
@@ -94,7 +110,7 @@ function OutlineAddon({ message }: { message: UIMessage }) {
 export function CreateStoryScreen({
   onMade,
 }: {
-  /** 저장이 끝났을 때. 여기서 1화를 연다. */
+  /** 저장이 끝나면 스토리 상세를 연다. */
   onMade: (made: MadeStory) => void;
 }) {
   const { session } = useAuthSession();
@@ -102,10 +118,20 @@ export function CreateStoryScreen({
   const headerHeight = useHeaderHeight();
   const inputRef = useFocusOnArrival<TextInput>();
   const [isStarting, setIsStarting] = useState(false);
+  const [stage, setStage] = useState<StoryCreationStage>();
+  const [addingAt, setAddingAt] = useState<string>();
+  const adding = useRef<true | undefined>(undefined);
   // 같은 프레임에 두 번 눌리는 것까지 막는다. 상태만으로는 다시 그리기 전의
   // 두 번째 누름이 지나가 스토리가 둘 만들어진다. 만드는 중인 카드를 들고
   // 있으므로 어느 카드로 만드는 중인지도 이 한 값이 답한다.
   const starting = useRef<string | undefined>(undefined);
+  const mounted = useRef<true | undefined>(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = undefined;
+    };
+  }, []);
 
   const transport = useMemo(
     () => createStoryTransport(() => accessToken),
@@ -121,18 +147,65 @@ export function CreateStoryScreen({
   const drafts = useLocalChatDrafts();
   const conversation = useConversation(chat, drafts, accessToken);
   const newest = useMemo(() => latestOutline(chat.messages), [chat.messages]);
+  const interviewPending =
+    newest !== undefined &&
+    (addingAt === newest.messageId ||
+      chat.messages.at(-1)?.id !== newest.messageId);
+  const isDisabled = conversation.isBusy || interviewPending;
+  const add = useCallback(() => {
+    if (
+      // biome-ignore lint/suspicious/noUnnecessaryConditions: 다른 버튼 호출이 이 ref를 동기적으로 변경한다.
+      adding.current ||
+      starting.current ||
+      isDisabled ||
+      !accessToken ||
+      !newest ||
+      newest.outline.episodes.length >= 5
+    ) {
+      return;
+    }
+    adding.current = true;
+    setAddingAt(newest.messageId);
+    chat
+      .sendMessage({ text: "에피소드를 하나 더 넣고 싶어요." })
+      .catch(() => {
+        // 요청 실패는 useChat의 error를 통해 기존 대화 재시도로 표시한다.
+      })
+      .finally(() => {
+        adding.current = undefined;
+      });
+  }, [accessToken, chat.sendMessage, isDisabled, newest]);
 
   const start = useCallback(() => {
-    if (starting.current !== undefined || !(accessToken && newest)) {
+    if (
+      starting.current !== undefined ||
+      adding.current ||
+      isDisabled ||
+      !(accessToken && newest)
+    ) {
       return;
     }
 
     starting.current = newest.messageId;
     setIsStarting(true);
 
-    saveStory(accessToken, newest.outline)
-      .then(onMade)
+    saveStory(accessToken, newest.outline, (nextStage) => {
+      // biome-ignore lint/suspicious/noUnnecessaryConditions: 응답 전에 effect 정리 함수가 ref를 변경할 수 있다.
+      if (mounted.current) {
+        setStage(nextStage);
+      }
+    })
+      .then((made) => {
+        // biome-ignore lint/suspicious/noUnnecessaryConditions: 응답 전에 화면이 사라질 수 있다.
+        if (mounted.current) {
+          onMade(made);
+        }
+      })
       .catch(() => {
+        // biome-ignore lint/suspicious/noUnnecessaryConditions: 응답 전에 화면이 사라질 수 있다.
+        if (!mounted.current) {
+          return;
+        }
         /*
           실패한 시도는 아무것도 남기지 않는다. 카드와 대화는 그대로 두고 시작
           실패와 같은 알림만 띄운다.
@@ -144,9 +217,13 @@ export function CreateStoryScreen({
       })
       .finally(() => {
         starting.current = undefined;
-        setIsStarting(false);
+        // biome-ignore lint/suspicious/noUnnecessaryConditions: 응답 전에 화면이 사라질 수 있다.
+        if (mounted.current) {
+          setIsStarting(false);
+          setStage(undefined);
+        }
       });
-  }, [accessToken, newest, onMade]);
+  }, [accessToken, isDisabled, newest, onMade]);
 
   /*
     `대화 시작하기`는 가장 최근 카드에만 붙는다. 지난 카드는 대화에 남되 버튼이
@@ -154,16 +231,20 @@ export function CreateStoryScreen({
   */
   const startState = useMemo(
     () => ({
+      isDisabled,
       isStarting,
+      onAdd: add,
       onStart: start,
+      stage,
       startableMessageId: newest?.messageId,
     }),
-    [isStarting, newest?.messageId, start]
+    [add, isDisabled, isStarting, newest?.messageId, stage, start]
   );
 
   return (
     <OutlineStart value={startState}>
       <ChatPanel
+        canCompose={!isStarting}
         chat={conversation}
         hasMessageActions={false}
         inputRef={inputRef}

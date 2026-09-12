@@ -456,6 +456,7 @@ function Composer({
 
 export function ChatPanel({
   banner,
+  canCompose = true,
   canSaveUtterances = true,
   canStop = true,
   cast,
@@ -476,6 +477,8 @@ export function ChatPanel({
    * reserved for it and the messages start right under the header.
    */
   banner?: ReactNode;
+  /** 별도 서버 작업 중에도 대화 목록과 초안은 유지하되 전송을 막는다. */
+  canCompose?: boolean;
   /**
    * 이 대화의 대사를 담아 둘 수 있는지.
    *
@@ -564,7 +567,7 @@ export function ChatPanel({
   const motionGeneration = useRef(0);
   const userMomentum = useRef<true | undefined>(undefined);
   const userScrollStart = useRef<number | undefined>(undefined);
-  const canSend = chat.draft.trim().length > 0 && !chat.isBusy;
+  const canSend = canCompose && chat.draft.trim().length > 0 && !chat.isBusy;
   const composerBottomPadding = Math.max(insets.bottom, 12);
   const hasBanner = banner !== undefined && banner !== null;
   // 토스트가 띠 바로 밑에서 나오려면 띠가 실제로 차지한 높이를 알아야 한다.

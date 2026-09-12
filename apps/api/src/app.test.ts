@@ -928,9 +928,12 @@ const MADE_OUTLINE = {
     { name: "Lena", position: 1, role: "호텔 프런트 직원." },
     { name: "Markus", position: 2, role: "거래처 담당자." },
   ],
+  cover:
+    "A woman in her thirties, dark bob, navy uniform, attentive, close-up, head tilted, teal background",
   episodes: [
     {
       cast: ["Lena"],
+      details: "호텔에서 예약 확인 메일을 보여 주며 방을 요청한다.",
       number: 1,
       preview: "밤늦게 도착했는데 제 예약이 없대요.",
       title: "예약이 없는 호텔",
@@ -4386,6 +4389,60 @@ test("모든 스토리 조회 화면에 원본 표지와 같은 BlurHash를 전�
 });
 
 describe("POST /ai/episode/stories", () => {
+  async function createdStory(response: Response) {
+    const parts = (await response.text())
+      .split("\n")
+      .filter((line) => line.startsWith("data: {"))
+      .map(
+        (line) => JSON.parse(line.slice(6)) as { type: string; data?: unknown }
+      );
+    return parts.find((part) => part.type === "data-story-created")?.data;
+  }
+  test("각본 뒤 표지를 기다리는 실제 단계를 보내고 모두 끝난 뒤 저장 결과를 보낸다", async () => {
+    let finishDrawing: (bytes: Uint8Array) => void = () => undefined;
+    const drawing = new Promise<Uint8Array>((resolve) => {
+      finishDrawing = resolve;
+    });
+    const { app, state } = savingApp(createWritingModel(), {
+      drawCover: () => drawing,
+      waitUntil: () => undefined,
+    });
+    const response = await app.request(`${EPISODE_PATH}/stories`, {
+      body: JSON.stringify({ outline: MADE_OUTLINE }),
+      method: "POST",
+    });
+    if (!response.body) {
+      throw new Error("응답 스트림이 없습니다.");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let body = "";
+    while (!body.includes('"stage":"cover"')) {
+      // biome-ignore lint/performance/noAwaitInLoops: 스트리밍의 실제 단계 도착을 기다린다
+      const chunk = await reader.read();
+      if (chunk.done) {
+        break;
+      }
+      body += decoder.decode(chunk.value, { stream: true });
+    }
+    expect(body).toContain('"stage":"script"');
+    expect(body).toContain('"stage":"cover"');
+    expect(body).not.toContain('"type":"data-story-created"');
+    expect(state.madeStoryRequests).toHaveLength(0);
+    finishDrawing(drawnPng());
+    for (;;) {
+      // biome-ignore lint/performance/noAwaitInLoops: 나머지 완료 조각을 차례로 읽는다
+      const chunk = await reader.read();
+      if (chunk.done) {
+        break;
+      }
+      body += decoder.decode(chunk.value, { stream: true });
+    }
+    expect(body).toContain('"stage":"saving"');
+    expect(body).toContain('"type":"data-story-created"');
+    expect(body).toContain(MADE_STORY_ID);
+    expect(state.madeCoverRequests).toHaveLength(1);
+  });
   /** 한 가지 색으로 채운 진짜 PNG. 표지 모델이 돌려주는 그림을 대신한다. */
   function drawnPng(): Uint8Array {
     const side = 8;
@@ -4436,7 +4493,7 @@ describe("POST /ai/episode/stories", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    expect(await createdStory(response)).toEqual({
       episodeId: MADE_EPISODE_ID,
       storyId: MADE_STORY_ID,
     });
@@ -4450,10 +4507,11 @@ describe("POST /ai/episode/stories", () => {
   test("저장 요청은 카드의 제목과 화 목록을 그대로 싣는다", async () => {
     const { app, state } = savingApp();
 
-    await app.request(`${EPISODE_PATH}/stories`, {
+    const response = await app.request(`${EPISODE_PATH}/stories`, {
       body: JSON.stringify({ outline: MADE_OUTLINE }),
       method: "POST",
     });
+    await response.text();
 
     const [request] = state.madeStoryRequests ?? [];
     const story = request?.story as {
@@ -4544,7 +4602,8 @@ describe("POST /ai/episode/stories", () => {
       method: "POST",
     });
 
-    expect(response.status).toBe(502);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('"type":"error"');
     expect(state.madeStoryRequests).toHaveLength(0);
   });
 
@@ -4570,6 +4629,7 @@ describe("POST /ai/episode/stories", () => {
     });
 
     expect(response.status).toBe(200);
+    await response.text();
     expect(state.uploadedCovers).toHaveLength(1);
     expect(state.uploadedCovers?.[0]?.path).toMatch(MADE_COVER_PATH);
     expect(state.madeCoverRequests).toHaveLength(1);
@@ -4578,41 +4638,6 @@ describe("POST /ai/episode/stories", () => {
       cover_path: state.uploadedCovers?.[0]?.path,
       story_id: MADE_STORY_ID,
     });
-  });
-
-  /*
-    표지가 늦어도 기다리지 않는다. 각본이 끝나면 1화를 열어 주고, 표지는 그
-    뒤에 조용히 붙는다.
-  */
-  test("표지가 늦으면 1화를 먼저 열고 표지는 나중에 단다", async () => {
-    let finishDrawing: ((bytes: Uint8Array) => void) | undefined;
-    const drawn = new Promise<Uint8Array>((resolve) => {
-      finishDrawing = resolve;
-    });
-    const late: Promise<unknown>[] = [];
-    const { app, state } = savingApp(createWritingModel(), {
-      drawCover: () => drawn,
-      waitUntil: (work) => {
-        late.push(work);
-      },
-    });
-    const response = await app.request(`${EPISODE_PATH}/stories`, {
-      body: JSON.stringify({ outline: MADE_OUTLINE }),
-      method: "POST",
-    });
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
-      episodeId: MADE_EPISODE_ID,
-      storyId: MADE_STORY_ID,
-    });
-    expect(state.madeCoverRequests).toHaveLength(0);
-
-    finishDrawing?.(drawnPng());
-    await Promise.all(late);
-
-    expect(state.madeCoverRequests).toHaveLength(1);
-    expect(state.uploadedCovers).toHaveLength(1);
   });
 
   // 그림이 실패해도 스토리는 그대로 만들어진다. 표지 자리는 빈 색 상자로 남는다.
@@ -4626,7 +4651,7 @@ describe("POST /ai/episode/stories", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    expect(await createdStory(response)).toEqual({
       episodeId: MADE_EPISODE_ID,
       storyId: MADE_STORY_ID,
     });
@@ -4652,7 +4677,8 @@ describe("POST /ai/episode/stories", () => {
       method: "POST",
     });
 
-    expect(response.status).toBe(502);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('"type":"error"');
     expect(state.madeCoverRequests).toHaveLength(0);
   });
 
@@ -4672,8 +4698,8 @@ describe("POST /ai/episode/stories", () => {
     });
 
     expect(prompts).toHaveLength(1);
-    expect(prompts[0]).toContain("호텔 프런트 직원.");
-    expect(prompts[0]).toContain("베를린의 호텔 프런트");
+    expect(prompts[0]).toContain(MADE_OUTLINE.cover);
+    expect(prompts[0]).not.toContain("베를린의 호텔 프런트");
     expect(prompts[0]).not.toContain("Lena");
     expect(prompts[0]).not.toContain("베를린 출장 일주일");
   });

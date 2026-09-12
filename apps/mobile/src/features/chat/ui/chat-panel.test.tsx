@@ -36,6 +36,19 @@ const mockScrollToIndex = jest.fn<
   }) => Promise<void>
 >(() => Promise.resolve());
 const mockListState = { contentLength: 1000, scroll: 500, scrollLength: 500 };
+
+test("서버 작업 중에는 대화 대기 표시 없이 전송만 막는다", async () => {
+  const send = jest.fn();
+  await renderWithHeroUI(
+    <ChatPanel
+      canCompose={false}
+      chat={chatSession({ draft: "상황 수정", send })}
+    />
+  );
+  expect(screen.getByTestId("chat-send")).toBeDisabled();
+  await userEvent.setup().press(screen.getByTestId("chat-send"));
+  expect(send).not.toHaveBeenCalled();
+});
 const mockScrollToOffset = jest.fn<
   (options: { animated?: boolean; offset: number }) => Promise<void>
 >(({ offset }) => {

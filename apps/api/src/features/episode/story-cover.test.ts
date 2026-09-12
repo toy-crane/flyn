@@ -14,9 +14,12 @@ function card(overrides: Partial<StoryOutline> = {}): StoryOutline {
       },
       { name: "Markus", position: 2, role: "거래처 담당자. 숫자를 묻는다." },
     ],
+    cover:
+      "A woman in her thirties, dark bob, navy uniform, attentive, close-up, head tilted, teal background",
     episodes: [
       {
         cast: ["Lena"],
+        details: "호텔에서 예약 확인 메일을 보여 주며 방을 요청한다.",
         number: 1,
         preview: "밤늦게 도착했는데 제 예약이 없대요.",
         title: "예약이 없는 호텔",
@@ -44,11 +47,13 @@ function png(red: number, green: number, blue: number): Uint8Array {
 }
 
 describe("coverPrompt", () => {
-  test("순서 1번 인물의 설명과 장소가 들어간다", () => {
+  test("표지용 한 줄만 바꾸고 표정과 앵글을 고정하거나 물건을 들리지 않는다", () => {
     const prompt = coverPrompt(card());
 
-    expect(prompt).toContain("30대 호텔 프런트 직원. 규정을 지킨다.");
-    expect(prompt).toContain("베를린의 호텔 프런트");
+    expect(prompt).toContain(card().cover);
+    expect(prompt).not.toContain("베를린의 호텔 프런트");
+    expect(prompt).not.toContain("warm and gentle expression");
+    expect(prompt).toContain("empty hands");
   });
 
   /*
@@ -74,7 +79,7 @@ describe("coverPrompt", () => {
     expect(prompt).not.toContain("Jaeyoon");
     expect(prompt).not.toContain("법무법인 세종");
     expect(prompt).not.toContain("김재윤");
-    expect(prompt).toContain("40대 변호사. 서류를 꼼꼼히 본다.");
+    expect(prompt).toContain(card().cover);
   });
 
   test("순서 1번이 아닌 인물은 그리지 않는다", () => {
@@ -86,7 +91,7 @@ describe("coverPrompt", () => {
   test("장소가 없어도 문구를 만든다", () => {
     const prompt = coverPrompt(card({ setting: undefined }));
 
-    expect(prompt).toContain("30대 호텔 프런트 직원. 규정을 지킨다.");
+    expect(prompt).toContain(card().cover);
   });
 
   // 인물이 하나도 없는 카드는 저장 앞에서 걸리지만, 그림은 그보다 먼저 시작한다.

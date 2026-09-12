@@ -1,7 +1,12 @@
-import { DefaultChatTransport, type UIMessage } from "ai";
+import {
+  DefaultChatTransport,
+  parseJsonEventStream,
+  type UIMessage,
+  uiMessageChunkSchema,
+} from "ai";
 
 import type { StoryOutline } from "@/features/story/ui/story-outline-card";
-import { aiRequestOptions, aiUrl } from "@/shared/ai/request-options";
+import { aiRequestOptions } from "@/shared/ai/request-options";
 
 export const CREATE_STORY_API_PATH = "/ai/episode/create";
 export const SAVE_STORY_API_PATH = "/ai/episode/stories";
@@ -28,6 +33,22 @@ export interface MadeStory {
   episodeId: string;
   storyId: string;
 }
+export type StoryCreationStage = "script" | "cover" | "saving";
+
+function readCreationStage(data: unknown): StoryCreationStage {
+  const stage = (data as { stage?: unknown } | null)?.stage;
+  if (stage !== "script" && stage !== "cover" && stage !== "saving") {
+    throw new Error("Unknown story stage.");
+  }
+  return stage;
+}
+function readMadeStory(value: unknown): MadeStory {
+  const data = value as Partial<MadeStory> | null;
+  if (typeof data?.storyId !== "string" || typeof data.episodeId !== "string") {
+    throw new Error("Invalid created story.");
+  }
+  return { episodeId: data.episodeId, storyId: data.storyId };
+}
 
 /**
  * 확정한 개요로 각본을 만들어 저장한다.
@@ -37,9 +58,11 @@ export interface MadeStory {
  */
 export async function saveStory(
   accessToken: string,
-  outline: StoryOutline
+  outline: StoryOutline,
+  onProgress?: (stage: StoryCreationStage) => void
 ): Promise<MadeStory> {
-  const response = await fetch(aiUrl(SAVE_STORY_API_PATH), {
+  const options = aiRequestOptions(SAVE_STORY_API_PATH, () => accessToken);
+  const response = await options.fetch(options.api, {
     body: JSON.stringify({ outline }),
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -52,7 +75,42 @@ export async function saveStory(
     throw new Error(`Making the story failed with ${response.status}`);
   }
 
-  return (await response.json()) as MadeStory;
+  if (!response.body) {
+    throw new Error("Story stream is missing.");
+  }
+  const reader = parseJsonEventStream({
+    schema: uiMessageChunkSchema,
+    stream: response.body,
+  }).getReader();
+  let made: MadeStory | undefined;
+  try {
+    for (;;) {
+      // biome-ignore lint/performance/noAwaitInLoops: 서버가 알린 단계 순서를 그대로 따른다
+      const next = await reader.read();
+      if (next.done) {
+        break;
+      }
+      if (!next.value.success) {
+        throw next.value.error;
+      }
+      const part = next.value.value;
+      if (part.type === "error") {
+        throw new Error(part.errorText);
+      }
+      if (part.type === "data-story-progress") {
+        onProgress?.(readCreationStage(part.data));
+      }
+      if (part.type === "data-story-created") {
+        made = readMadeStory(part.data);
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  if (!made) {
+    throw new Error("Story creation did not finish.");
+  }
+  return made;
 }
 
 /**
@@ -75,6 +133,7 @@ export function outlineOfMessage(message: UIMessage): StoryOutline | undefined {
   if (
     typeof outline?.title !== "string" ||
     typeof outline.hook !== "string" ||
+    typeof outline.cover !== "string" ||
     !(Array.isArray(outline.characters) && Array.isArray(outline.episodes))
   ) {
     return;
@@ -82,6 +141,7 @@ export function outlineOfMessage(message: UIMessage): StoryOutline | undefined {
 
   return {
     characters: outline.characters,
+    cover: outline.cover,
     episodes: outline.episodes,
     hook: outline.hook,
     // 카드에 보이지 않지만 표지 그림이 쓴다. 서버까지 그대로 넘긴다.

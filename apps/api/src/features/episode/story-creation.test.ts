@@ -4,6 +4,7 @@ import {
   readStoryOutline,
   type StoryOutline,
   scriptProblem,
+  scriptPrompt,
   storyToSave,
   type WrittenStory,
 } from "./story-creation";
@@ -14,9 +15,12 @@ function card(overrides: Partial<StoryOutline> = {}): StoryOutline {
       { name: "Lena", position: 1, role: "호텔 프런트 직원." },
       { name: "Markus", position: 2, role: "거래처 담당자." },
     ],
+    cover:
+      "A woman in her thirties, dark bob, navy uniform, attentive, close-up, head tilted, teal background",
     episodes: [
       {
         cast: ["Lena"],
+        details: "호텔에서 예약 확인 메일을 보여 주며 방을 요청한다.",
         number: 1,
         preview: "밤늦게 도착했는데 제 예약이 없대요.",
         title: "예약이 없는 호텔",
@@ -29,6 +33,52 @@ function card(overrides: Partial<StoryOutline> = {}): StoryOutline {
 }
 
 describe("readStoryOutline", () => {
+  test("표지 문구가 빠진 카드는 받지 않는다", () => {
+    expect(
+      readStoryOutline({ outline: { ...card(), cover: undefined } })
+    ).toEqual({ problem: "A story needs a cover description." });
+  });
+  test("상세 상황이 빠진 카드는 각본 생성을 시작하지 않는다", () => {
+    const outline = card();
+    expect(
+      readStoryOutline({
+        outline: {
+          ...outline,
+          episodes: outline.episodes.map((episode) => ({
+            ...episode,
+            details: undefined,
+          })),
+        },
+      })
+    ).toEqual({ problem: "Every episode needs agreed details." });
+  });
+  test("카드에서 줄여 보여 준 세부 조건과 표지 문구를 생성 요청까지 보존한다", () => {
+    const details =
+      "예약 메일에는 조용한 방이라고 적혀 있다. 다음 날 발표 때문에 자야 하므로 공사 소리가 없는 방으로 바꾸고 싶다. 직원은 소리를 지르지 않는다.";
+    const cover =
+      "A woman in her thirties, dark bob, navy uniform, attentive, close-up, head tilted, teal background";
+    const outline = card();
+    const read = readStoryOutline({
+      outline: {
+        ...outline,
+        cover,
+        episodes: outline.episodes.map((episode) => ({ ...episode, details })),
+      },
+    });
+
+    expect(read).toEqual({
+      outline: {
+        ...outline,
+        cover,
+        episodes: outline.episodes.map((episode) => ({ ...episode, details })),
+      },
+    });
+    if (!("outline" in read)) {
+      throw new Error(read.problem);
+    }
+    expect(scriptPrompt(read.outline)).toContain(details);
+  });
+
   test("카드의 개요를 그대로 읽는다", () => {
     const read = readStoryOutline({ outline: card() });
 
@@ -51,6 +101,7 @@ describe("readStoryOutline", () => {
         episodes: [
           {
             cast: ["Lena", "Markus", "Sofia", "Jonas"],
+            details: "호텔에서 예약 확인 메일을 보여 주며 방을 요청한다.",
             number: 1,
             preview: "넷이 한꺼번에 말해요.",
             title: "너무 많은 사람",
@@ -75,6 +126,7 @@ describe("readStoryOutline", () => {
         episodes: [
           {
             cast: ["Person1"],
+            details: "호텔에서 예약 확인 메일을 보여 주며 방을 요청한다.",
             number: 1,
             preview: "한 사람만 나와요.",
             title: "한 사람",
@@ -91,6 +143,7 @@ describe("readStoryOutline", () => {
       outline: card({
         episodes: [1, 2, 3, 4, 5, 6].map((number) => ({
           cast: ["Lena"],
+          details: "호텔에서 예약 확인 메일을 보여 주며 방을 요청한다.",
           number,
           preview: "무슨 일이 벌어져요.",
           title: `${number}화`,
@@ -107,6 +160,7 @@ describe("readStoryOutline", () => {
         episodes: [
           {
             cast: ["Nobody"],
+            details: "호텔에서 예약 확인 메일을 보여 주며 방을 요청한다.",
             number: 1,
             preview: "누군지 모를 사람이 말해요.",
             title: "낯선 사람",
@@ -134,12 +188,14 @@ describe("readStoryOutline", () => {
         episodes: [
           {
             cast: ["Lena"],
+            details: "호텔에서 예약 확인 메일을 보여 주며 방을 요청한다.",
             number: 2,
             preview: "밤늦게 도착했는데 제 예약이 없대요.",
             title: "예약이 없는 호텔",
           },
           {
             cast: ["Markus"],
+            details: "호텔에서 예약 확인 메일을 보여 주며 방을 요청한다.",
             number: 7,
             preview: "발표 중간에 말을 끊고 물어요.",
             title: "숫자를 묻는 담당자",
@@ -188,6 +244,15 @@ function written(overrides: Partial<WrittenStory> = {}): WrittenStory {
 }
 
 describe("scriptProblem", () => {
+  test("합의한 화가 빠지거나 같은 번호를 두 번 쓰면 저장하지 않는다", () => {
+    expect(scriptProblem(written({ episodes: [] }), card())).toBeDefined();
+    expect(
+      scriptProblem(written({ episodes: [script(), script()] }), card())
+    ).toBeDefined();
+    expect(
+      scriptProblem(written({ episodes: [script({ number: 2 })] }), card())
+    ).toBeDefined();
+  });
   test("형식을 지킨 각본은 지나간다", () => {
     expect(scriptProblem(written())).toBeUndefined();
   });
@@ -231,6 +296,25 @@ describe("scriptProblem", () => {
 });
 
 describe("storyToSave", () => {
+  test("각본 모델이 줄여도 합의한 상세 상황은 플레이 무대에 남는다", () => {
+    const saved = storyToSave(card(), written()) as {
+      episodes: { stage: string }[];
+    };
+    const [first] = saved.episodes;
+    if (!first) {
+      throw new Error("저장할 첫 화가 없습니다.");
+    }
+    expect(first.stage).toContain(
+      "호텔에서 예약 확인 메일을 보여 주며 방을 요청한다."
+    );
+    expect(
+      first.stage
+        .split("\n")
+        .filter(Boolean)
+        .slice(1)
+        .every((line) => line.startsWith("- "))
+    ).toBe(true);
+  });
   /*
     사용자가 카드에서 본 것과 저장되는 것이 같아야 한다. 각본을 쓰는 모델이
     제목이나 화 번호를 흘려도 그 자리는 개요가 채운다.
