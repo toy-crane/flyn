@@ -341,7 +341,10 @@ test("기본 상태에서는 아이디 규칙만 설명하고 검증 문구는 �
 });
 
 test("변경 제한 중에는 아이디만 잠그고 다시 바꿀 날짜를 보여 준다", async () => {
-  const unlockAt = new Date(2026, 8, 11, 9, 0);
+  // A fixed instant unlocks itself once the calendar passes it, so the lock
+  // sits a full period ahead of whenever this test runs.
+  const unlockAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const unlockDay = `${unlockAt.getFullYear()}년 ${unlockAt.getMonth() + 1}월 ${unlockAt.getDate()}일`;
 
   resetFakeSupabase({
     profile: createProfileRow({
@@ -358,7 +361,7 @@ test("변경 제한 중에는 아이디만 잠그고 다시 바꿀 날짜를 보
   // still has to be able to fix their name.
   expect(screen.getByTestId("profile-nickname").props.editable).not.toBe(false);
   expect(screen.getByTestId("profile-username-policy")).toHaveTextContent(
-    "2026년 9월 11일부터 아이디를 다시 바꿀 수 있어요."
+    `${unlockDay}부터 아이디를 다시 바꿀 수 있어요.`
   );
 });
 
