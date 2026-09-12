@@ -20,6 +20,8 @@ export function ScreenLoading({
   return (
     <View
       accessibilityLabel={label}
+      // 표시는 1초 뒤에 붙는다. Android는 이 값이 있어야 그때 스스로 알린다.
+      accessibilityLiveRegion="polite"
       accessibilityRole="progressbar"
       accessibilityState={{ busy: true }}
       accessible
