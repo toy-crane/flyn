@@ -2,14 +2,19 @@ import { expect, test } from "@jest/globals";
 
 import { prepareEpisodeMessage } from "./episode-notation";
 
-test.each(["192.168.0.1/i", "localhost/i", "example.xn--p1ai/i", "intranet/i"])(
-  "주소나 경로에 든 i는 대문자로 바꾸지 않는다: %s",
-  (address) => {
-    expect(prepareEpisodeMessage(`visit ${address} and i agree`)).toBe(
-      `Visit ${address} and I agree`
-    );
-  }
-);
+test.each([
+  "192.168.0.1/i",
+  "localhost/i",
+  "example.xn--p1ai/i",
+  "intranet/i",
+  "localhost?next=i",
+  "192.168.0.1?next=i",
+  "example.xn--p1ai?next=i",
+])("주소나 경로에 든 i는 대문자로 바꾸지 않는다: %s", (address) => {
+  expect(prepareEpisodeMessage(`visit ${address} and i agree`)).toBe(
+    `Visit ${address} and I agree`
+  );
+});
 
 test("접두어 없는 URL의 경로와 질의도 그대로 둔다", () => {
   expect(prepareEpisodeMessage("example.com/i?name=i#i and i agree")).toBe(
