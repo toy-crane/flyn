@@ -1967,6 +1967,13 @@ describe("메시지별 표현 확인 API", () => {
     ["She goed and he goed", "She went and he went", "goed", "went"],
     ["He has a apple", "He has an apple", "a apple", "an apple"],
     ["Goed home", "Went home", "Goed", "Went"],
+    [
+      "I went to United States",
+      "I went to the United States",
+      "United States",
+      "the United States",
+    ],
+    ["This is MORE GOOD", "This is BETTER", "MORE GOOD", "BETTER"],
     ["Me am happy", "I am happy", "Me", "I"],
     ["He and me went", "He and I went", "me", "I"],
     ["See you TOMMOROW", "See you TOMORROW", "TOMMOROW", "TOMORROW"],
@@ -2042,6 +2049,7 @@ describe("메시지별 표현 확인 API", () => {
     ["Thanks sarah", "Thanks Sarah", "sarah", "Sarah"],
     ["Yes  I agree", "Yes I agree", "Yes  I", "Yes I"],
     ["I goed home", "I Went home", "goed", "Went"],
+    ["I goed (home)", "I went home", "goed (home)", "went home"],
     ["See you TOMMOROW", "See you Tomorrow", "TOMMOROW", "Tomorrow"],
     ["iPhnoe works", "Iphone works", "iPhnoe", "Iphone"],
     [

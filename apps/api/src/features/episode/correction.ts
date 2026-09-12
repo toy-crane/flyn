@@ -40,7 +40,7 @@ export interface CorrectionDraft {
 }
 
 const KOREAN = /[가-힣ㄱ-ㅎㅏ-ㅣ]/;
-const CHANGED_NOTATION = /[.!?,'’";:\r\n\t]| {2,}/;
+const CHANGED_NOTATION = /[\p{P}\r\n\t]| {2,}/u;
 const TRAILING_SPACE = /\s$/;
 const WORD = /\p{L}+(?:['’]\p{L}+)*/gu;
 const UPPERCASE = /\p{Lu}/u;
@@ -325,30 +325,36 @@ function keepsEntryNotation(entry: CorrectionEntry): boolean {
 function keepsWordCase(original: string, fixed: string): boolean {
   const before: string[] = original.match(WORD) ?? [];
   const after: string[] = fixed.match(WORD) ?? [];
-  const upper = (word: string) => UPPERCASE.test(word);
-  if (before.length === after.length) {
-    return before.every((word, index) => {
-      const replacement = after[index] ?? "";
-      // I는 원래 대문자로 쓰는 별개의 대명사다. me → I는 표기 교정이 아니다.
-      return (
+  if ((before.length + 1) * (after.length + 1) > 10_000) {
+    return false;
+  }
+  let costs = Array.from({ length: after.length + 1 }, (_, index) => index);
+  let valid = costs.map(() => true);
+  for (const word of before) {
+    const nextCosts = [(costs[0] ?? 0) + 1];
+    const nextValid = [valid[0] ?? true];
+    for (const [index, replacement] of after.entries()) {
+      const sameWord = word.toLowerCase() === replacement.toLowerCase();
+      const replace = (costs[index] ?? 0) + (sameWord ? 0 : 1);
+      const remove = (costs[index + 1] ?? 0) + 1;
+      const insert = (nextCosts[index] ?? 0) + 1;
+      const best = Math.min(replace, remove, insert);
+      // 최소 낱말 편집 경로에서만 표기를 비교한다. 관사 삽입을 치환으로 읽지 않는다.
+      const keepsCase =
         word === "I" ||
         replacement === "I" ||
-        wordCase(word) === wordCase(replacement)
+        wordCase(word) === wordCase(replacement);
+      nextCosts.push(best);
+      nextValid.push(
+        (replace === best && !!valid[index] && keepsCase) ||
+          (remove === best && !!valid[index + 1]) ||
+          (insert === best && !!nextValid[index])
       );
-    });
+    }
+    costs = nextCosts;
+    valid = nextValid;
   }
-  // 관사 삽입처럼 낱말 수가 달라도 첫 낱말의 표기와 기존 이름은 유지한다.
-  return (
-    wordCase(before[0] ?? "") === wordCase(after[0] ?? "") &&
-    before
-      .slice(1)
-      .filter(upper)
-      .every((word) => after.includes(word)) &&
-    after
-      .slice(1)
-      .filter(upper)
-      .every((word) => before.includes(word))
-  );
+  return valid[after.length] ?? false;
 }
 
 function wordCase(word: string): string {
