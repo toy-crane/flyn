@@ -384,7 +384,9 @@
   // 셸의 setState로 프리셋에 들어와도 데이터가 따라오게 감싼다. 셸 스크립트가 뒤에 오므로 로드 뒤에 감싼다.
   addEventListener('load', () => {
     const shellSetState = prototypeShell.setState;
+    const shellShowScreen = prototypeShell.showScreen;
     prototypeShell.setState = name => { shellSetState(name); syncState(); };
+    prototypeShell.showScreen = slug => { shellShowScreen(slug); syncState(); };
   });
 </script>
 
