@@ -2,6 +2,15 @@ import { expect, test } from "@jest/globals";
 
 import { prepareEpisodeMessage } from "./episode-notation";
 
+test("URL과 이메일 주소의 대소문자는 바꾸지 않는다", () => {
+  expect(
+    prepareEpisodeMessage("visit https://example.com/i?name=i#i and i agree")
+  ).toBe("Visit https://example.com/i?name=i#i and I agree");
+  expect(prepareEpisodeMessage("i@example.com is my email. i will write")).toBe(
+    "i@example.com is my email. I will write"
+  );
+});
+
 test.each([
   ["iphone is great", "Iphone is great"],
   ["it is fine", "It is fine"],
