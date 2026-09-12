@@ -3,15 +3,12 @@ import {
   type StoryOutline,
 } from "../src/features/episode/story-creation";
 
-const SENTENCES = /[.!?]+(?:\s|$)/u;
-const USER_ADDRESS = /사용자|당신/u;
-const FORMATTING = /\*|`|^#|^[-\d]+[.) ]|[\p{Extended_Pictographic}]/mu;
 const ENGLISH_NAME = /^[A-Za-z][A-Za-z '.-]*$/;
 const PALETTE = /deep navy|terracotta orange|teal|mustard|plum|forest green/;
 const LIMIT_COUNT = /(5|다섯)/u;
 const LIMIT_NOTICE = /없|최대|상한|한도/u;
 const PREDETERMINED_RESULT =
-  /문제를 해결한 뒤(?!가 아니라)|교환받은 (?:새 )?기계/u;
+  /문제를 해결한 뒤(?!가 아니라)|교환받은 (?:새 )?기계|교환한 뒤|아기가 잠든 뒤|아기를 달랜 뒤/u;
 
 export const COVER_ANGLES = [
   "seen from behind, looking back over one shoulder",
@@ -27,38 +24,6 @@ export interface CreationExpectation {
   episodes?: number;
   preserve?: number[];
   unresolved?: boolean;
-}
-
-function dialogueViolations(answer: string, asks?: boolean): string[] {
-  const violations: string[] = [];
-  if (!answer) {
-    violations.push("대화 없음");
-  }
-  if (answer.includes("\n")) {
-    violations.push("여러 문단");
-  }
-  const sentences = answer.split(SENTENCES).filter(Boolean);
-  if (sentences.length > 3) {
-    violations.push("세 문장 초과");
-  }
-  if (sentences.some((sentence) => !sentence.trim().endsWith("요"))) {
-    violations.push("해요체 아님");
-  }
-  if (USER_ADDRESS.test(answer)) {
-    violations.push("사용자 호칭");
-  }
-  if (FORMATTING.test(answer)) {
-    violations.push("서식 또는 이모지");
-  }
-  const questions = answer.match(/\?/g) ?? [];
-  if (
-    (asks && questions.length !== 1) ||
-    questions.length > 1 ||
-    (questions.length > 0 && !answer.endsWith("?"))
-  ) {
-    violations.push("마지막 문장 질문 규칙");
-  }
-  return violations;
 }
 
 function cardViolations(
@@ -106,7 +71,7 @@ function cardViolations(
   return violations;
 }
 
-/** 형식과 합의된 카드의 보존을 검사한다. 의미와 재미는 전문으로 따로 확인한다. */
+/** 카드 계약을 검사한다. 대화의 이해도, 말투와 가독성은 전문으로 따로 확인한다. */
 export function creationViolations(
   text: string,
   cards: unknown[],
@@ -128,7 +93,9 @@ export function creationViolations(
     if (cards.length) {
       violations.push("합의 전에 카드 생성");
     }
-    violations.push(...dialogueViolations(answer, expected.asks));
+    if (!answer) {
+      violations.push("대화 없음");
+    }
   } else {
     if (cards.length !== 1) {
       violations.push("카드 하나 필요");

@@ -15,7 +15,10 @@ import { creationViolations } from "./story-creation-checks";
 
 // 이전 프롬프트는 수정 전 커밋에서 읽는다. 현재 도구 스키마와 같은 검사로 비교한다.
 const baseline = process.argv.includes("--baseline");
-const revision = "98e248d";
+const revision =
+  process.argv
+    .find((argument) => argument.startsWith("--baseline-ref="))
+    ?.slice("--baseline-ref=".length) || "98e248d";
 const PLACEHOLDER = /\$\{(\w+)\}/g;
 const BASELINE_VALUES: Record<string, string> = {
   CAST_PER_EPISODE: "3",
@@ -161,7 +164,7 @@ await writeFile(
     `프롬프트 SHA-256: ${createHash("sha256").update(system).digest("hex")}`,
     `답 ${records.length}개, 실패 ${failed.length}개, 호출 실패 ${errors.length}개`,
     "",
-    "의미와 재미에 대한 사람의 검토는 별도다. 아래는 출력 전문과 기계 검사 결과다.",
+    "기계 검사는 카드 계약을 확인한다. 대화의 이해도, 답할 지점, 말투와 가독성은 아래 전문으로 따로 검토한다. 문장 수와 서식 유무는 합격 기준이 아니다. 사용자 재미 확인도 별도다.",
     "",
     ...errors,
     ...records.map((record) =>

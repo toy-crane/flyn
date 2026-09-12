@@ -42,6 +42,10 @@ const second = {
 
 export const CREATION_CASES: CreationCase[] = [
   {
+    name: "육아 갈등에서 원하는 상황 함께 찾기",
+    turns: [{ asks: true, question: "어제 와이프랑 육아 문제로 싸웠어" }],
+  },
+  {
     name: "짧게 끊긴 입력 뒤 추가 인터뷰",
     turns: [
       { asks: true, question: "비" },

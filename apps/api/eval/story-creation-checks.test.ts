@@ -22,10 +22,29 @@ test("상한을 알리지 않은 제안과 이전 결과를 확정한 추가 제
   ).toEqual([]);
 });
 
-test("서식과 말투가 다른 질문 및 카드 없이 끝나는 답을 떨어뜨린다", () => {
+test("교환이나 아기 달래기의 성공을 가정한 추가 제안도 잡는다", () => {
+  for (const answer of [
+    "커피 머신을 교환한 뒤 겪을 수 있는 다른 상황도 넣어 볼게요.",
+    "아기가 잠든 뒤 승무원이 말을 거는 순간은 어때요?",
+  ]) {
+    expect(creationViolations(answer, [], { unresolved: true })).toContain(
+      "이전 결과 선확정"
+    );
+  }
+});
+
+test("대화의 길이와 서식을 합격 기준으로 삼지 않는다", () => {
   expect(
-    creationViolations("**알겠습니다.**\n어떤 상황입니까?", [], { asks: true })
-  ).not.toEqual([]);
+    creationViolations(
+      "어제 다툰 뒤 다시 이야기를 꺼내려는 상황이군요.\n\n**육아 분담을 다시 이야기하는 장면**을 생각해 볼 수 있어요. 서로 부담스러웠던 일을 설명하는 자리예요. 누가 옳은지나 화해 여부는 정하지 않아요.\n\n원하는 장면과 가까운가요? 다르게 생각한 부분이 있으면 말해 주세요.",
+      [],
+      { asks: true }
+    )
+  ).toEqual([]);
+});
+
+test("필요한 대화나 카드가 없으면 떨어뜨린다", () => {
+  expect(creationViolations(" \n", [], { asks: true })).toContain("대화 없음");
   expect(
     creationViolations("카드를 만들었어요.", [], { episodes: 1 })
   ).toContain("카드 하나 필요");
