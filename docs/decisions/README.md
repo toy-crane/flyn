@@ -60,7 +60,7 @@
 - [모바일 탭과 상세 화면 배치](mobile-tab-navigation.md) — 화면을 탭 안이나 바깥에 둘 기준, 상세 화면의 탭 표시 또는 진입 경로별 뒤로 가기를 변경할 때 읽는다.
 - [모바일 Uniwind 스타일 경계](mobile-uniwind-styling.md) — React Native UI의 `className`, inline `style`, 런타임 값 또는 외부 컴포넌트 스타일 경계를 변경할 때 읽는다.
 - [모바일 색상 시맨틱](mobile-color-semantics.md) — 모바일 색상 이름, 시맨틱 토큰, 화면 모드 또는 플랫폼별 색상 매핑을 변경할 때 읽는다.
-- [모바일 타이포그래피](mobile-typography.md) — 모바일 텍스트 역할, 시스템 폰트, monospace 사용, Dynamic Type 또는 렌더러별 타이포그래피 매핑을 변경할 때 읽는다.
+- [모바일 타이포그래피](mobile-typography.md) — 모바일 텍스트 역할과 HeroUI `Typography` 사용, 시스템 폰트, monospace 사용, Dynamic Type, 시스템 글자 크기의 검증 절차와 지원 범위 또는 렌더러별 타이포그래피 매핑을 변경할 때 읽는다.
 - [모바일 아이콘 렌더링](mobile-icon-rendering.md) — RN UI, 네이티브 셸 또는 `@expo/ui` 안에서 아이콘 렌더러와 플랫폼별 심벌을 선택하거나, 축하 같은 제품 그래픽의 애니메이션 파일을 둘 때 읽는다.
 - [모바일 이미지 로딩](mobile-image-loading.md) — 원격 이미지의 로딩 미리보기, 원본 전환 또는 표지 이모지 표시를 변경할 때 읽는다.
 - [모바일 작업 진행 표시](mobile-action-progress.md) — 모바일 버튼이나 자동 실행 작업의 진행 중 표시, 그 표시를 그리는 컴포넌트와 색, 중복 실행 차단 또는 표시 위치를 정할 때 읽는다.
@@ -73,6 +73,7 @@
 - [모바일 에피소드 상황 줄](mobile-episode-situation-line.md) — 에피소드 화면의 사건·목표 안내 위치, 내용 소유권, 표시 수명 또는 형태를 변경할 때 읽는다.
 - [모바일 뒤로 가기 표시](mobile-back-button-display.md) — 뒤로 가기 버튼의 라벨, 쉐브론 표시 또는 접근성 이름을 바꿀 때 읽는다.
 - [모바일 앱 에셋 생성](mobile-app-asset-generation.md) — 앱 아이콘, Android adaptive icon, 스플래시 이미지 또는 이를 만드는 에이전트 작업을 추가하거나 바꿀 때 읽는다.
+- [모바일 컴포넌트 선택](mobile-component-selection.md) — 누를 수 있는 것과 표면에 어떤 HeroUI 컴포넌트를 쓸지, 원시 `Pressable`의 예외 목록, HeroUI 기본값 재정의 자리를 정하거나 바꿀 때 읽는다.
 - [모바일 UI 일관성 검토](mobile-ui-consistency-review.md) — 모바일 UI를 작성하거나 검토할 때, 같은 역할의 조합·크기·간격·상태·배치 검증 기준과 검토 에이전트의 범위를 확인하려면 읽는다.
 
 ## 모바일 기능
