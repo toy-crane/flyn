@@ -1,0 +1,1397 @@
+{
+  "failed": 0,
+  "model": "openai/gpt-5.6-luna",
+  "prompt": "사용자의 마지막 문장을 확인하고 JSON만 작성한다. 대화 기록은 뜻과 상황을 파악하는 근거다.\n- 판정 대상과 언어는 마지막의 '확인할 문장'만으로 정한다. 앞서 한국어를 썼어도 마지막 문장이 영어면 영어 교정 규칙을 따른다. 대화 기록의 문장을 다시 번역하거나 교정하지 않는다.\n- 영어는 표현만 확인한다. 표현은 문법, 낱말 선택, 철자 오타다. 같은 표현 실수를 이미 알려 줬거나 앞서 올바르게 썼어도 이번 실수는 교정한다.\n- 표기는 교정하지 않는다. 대소문자(문장 첫 글자, i, 사람 이름 포함), 문장 끝 부호, 쉼표, 띄어쓰기, 다른 낱말이 되지 않는 아포스트로피 생략은 그대로 둔다. dont, im처럼 아포스트로피가 없어도 뜻이 같은 것은 표기다. 표기만 어긋나면 status=natural, fixed=원문 그대로, entries=[], review=null이다.\n- gonna, lol, 이모지, !!! 같은 채팅 말투와 미국식·영국식 철자 차이는 고치지도 지적하지도 않는다.\n- recieve, tommorow 같은 철자 오타는 반드시 교정한다. its/it's, there/their, well/we'll처럼 서로 다른 낱말은 문맥에 맞지 않을 때 표현 교정이다. 모든 아포스트로피 차이를 무시하지 않는다.\n- 표현을 교정해도 fixed에는 원문의 표기를 그대로 보존한다. 표현 자리만 바꾸고 대문자, 아포스트로피, 쉼표, 마침표, 물음표나 공백을 더하거나 빼지 않는다. entries에는 바뀐 표현의 최소 조각만 넣는다. 표기 항목을 만들거나 문장 전체를 항목으로 넣지 않는다.\n- 표현을 바꾸면서 활용형이 달라져도 원문의 표기 방식을 따른다. 아포스트로피 없이 쓴 부정 축약형을 다른 활용형으로 바꿀 때도 아포스트로피를 넣지 않는다. 단, its/it's나 well/we'll처럼 서로 다른 낱말을 바로잡는 경우는 예외다.\n- 예: Hello. what is your name? → natural. I dont like it here → natural. Thanks sarah → natural. Im gonna go lol → natural.\n- 예: i dont wants it → fixed=\"i dont want it\", entries의 조각은 wants → want 하나. I goed home early → fixed=\"I went home early\", 조각은 goed → went 하나. See you tommorow → fixed=\"See you tomorrow\", 조각은 tommorow → tomorrow 하나. 문장 끝 부호를 붙이지 않는다.\n- 예: Its raining outside → fixed=\"It's raining outside\", 조각은 Its → It's 하나. This is there house → fixed=\"This is their house\", 조각은 there → their 하나. Well go home tomorrow → fixed=\"We'll go home tomorrow\", 조각은 Well → We'll 하나.\n- 영어에 실제 오류가 있으면 status=corrected. 뜻과 올바른 낱말을 유지하고 필요한 부분만 고친다. 이미 자연스러우면 취향 차이로 바꾸지 않고 status=natural, fixed=원문, entries=[]로 쓴다.\n- 문법과 낱말이 맞는 요청은 직설적이어도 natural이다. 더 공손하게, 부드럽게, 격식 있게 바꾸는 것은 교정이 아니다. 원하는 것을 말하는 동사를 공손한 요청 구문으로 바꾸지 않는다. 인물의 반응은 태도를 다룰 수 있지만 이 판정은 예절을 가르치지 않는다.\n- 한국어 또는 한국어와 영어가 섞인 문장은 status=corrected로 같은 뜻의 자연스러운 영어 문장 하나를 제안한다. 이미 자연스러운 영어 부분은 가능하면 유지한다. 한국어는 틀린 영어가 아니다. 각 why는 반드시 핵심 영어 표현과 그 한국어 뜻을 짧게 연결한다. 예: ‘집에 가다’는 head home이라고 해요. 한국어 안내의 why에는 문법 용어, 어순 규칙이나 오류 설명을 넣지 않는다.\n- 문맥으로도 뜻을 알 수 없으면 status=unclear, fixed=\"\", entries=[]로 쓴다. 뜻을 만들어 붙이거나 natural로 처리하지 않는다.\n- corrected일 때 entries는 비울 수 없다. 모든 고친 표현 자리를 포함한다. original과 fixed 조각은 대소문자까지 각각 원문과 영어 문장에 실제로 있어야 한다. 같은 규칙이어도 다른 자리는 생략하지 않는다. 영어 표기 보존 규칙은 한국어 입력의 영어 안내에는 적용하지 않는다.\n- 한국어 안내의 original도 원문에서 연속된 글자를 그대로 복사한다. 사전형으로 바꾸거나 떨어진 조각을 합치지 않는다. fixed 조각도 완성한 영어 문장에서 연속된 글자를 그대로 복사한다.\n- why는 해요체 한국어 한 문장이다. 채점, 칭찬, 틀린 개수, 문법·어휘 같은 분류 이름은 쓰지 않는다.\n- corrected이면 review에 쓰는 상황 한 줄, fixed 전체 문장의 한국어 뜻, 같은 표현을 다른 상황에서 쓴 영어 예문 하나와 그 뜻을 함께 작성한다. 한 메시지의 모든 수정은 같은 카드에 담는다. natural 또는 unclear이면 review=null이다.",
+  "recordedAt": "2026-09-12T15:45:06.436Z",
+  "records": [
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Yes please, I want the iced americano",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 1,
+      "sample": {
+        "context": [
+          {
+            "content": "아이스 아메리카노를 주문했는데 뜨거운 라테가 나왔어요",
+            "role": "user"
+          },
+          {
+            "content": "Mia: I’m sorry. Your receipt says iced Americano, so I made the wrong drink. I’ll make a new one now. It will be ready soon.",
+            "role": "assistant"
+          },
+          {
+            "content": "Thanks sarah. See you tommorow",
+            "role": "user"
+          },
+          {
+            "content": "Mia: It’s Mia, but no problem. Do you still want the iced Americano?",
+            "role": "assistant"
+          }
+        ],
+        "name": "대화 문맥에서도 공손함과 표기를 고치지 않음",
+        "original": "Yes please, I want the iced americano"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Hello. what is your name?",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 1,
+      "sample": {
+        "name": "문장 중간 대문자",
+        "original": "Hello. what is your name?"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Hello. What is your name",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 1,
+      "sample": {
+        "name": "문장 끝 부호 생략",
+        "original": "Hello. What is your name"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "I dont like it here",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 1,
+      "sample": {
+        "name": "아포스트로피 생략",
+        "original": "I dont like it here"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Thanks sarah",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 1,
+      "sample": {
+        "name": "고유명사 소문자",
+        "original": "Thanks sarah"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Im gonna go lol",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 1,
+      "sample": {
+        "name": "채팅 말투",
+        "original": "Im gonna go lol"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Thanks!!! 😊",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 1,
+      "sample": {
+        "name": "이모지와 겹친 부호",
+        "original": "Thanks!!! 😊"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "My favourite colour is blue",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 1,
+      "sample": {
+        "name": "영국식 철자",
+        "original": "My favourite colour is blue"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Yes  I like it",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 1,
+      "sample": {
+        "name": "띄어쓰기와 쉼표",
+        "original": "Yes  I like it"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "went",
+            "original": "goed",
+            "pattern": "goed → went",
+            "why": "go의 과거형은 불규칙하게 went라고 해요."
+          }
+        ],
+        "fixed": "I went home early",
+        "review": {
+          "example": "She went home early because she felt sick.",
+          "exampleMeaning": "그녀는 아파서 일찍 집에 갔어요.",
+          "meaning": "나는 일찍 집에 갔어요.",
+          "situation": "일찍 집에 갔다고 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 1,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "went",
+            "original": "goed"
+          }
+        ],
+        "fixed": "I went home early",
+        "name": "문법만 교정",
+        "original": "I goed home early"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "want",
+            "original": "wants",
+            "pattern": "wants → want",
+            "why": "주어가 I일 때는 want를 써요."
+          }
+        ],
+        "fixed": "i dont want it",
+        "review": {
+          "example": "She doesn't want it.",
+          "exampleMeaning": "그녀는 그것을 원하지 않아요.",
+          "meaning": "나는 그것을 원하지 않아.",
+          "situation": "원하지 않는 물건이나 일을 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 1,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "want",
+            "original": "wants"
+          }
+        ],
+        "fixed": "i dont want it",
+        "name": "표기를 보존하며 교정",
+        "original": "i dont wants it"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "tomorrow",
+            "original": "tommorow",
+            "pattern": "철자를 고쳐야 해요.",
+            "why": "‘내일’은 tomorrow라고 써요."
+          }
+        ],
+        "fixed": "See you tomorrow",
+        "review": {
+          "example": "I’ll call you tomorrow.",
+          "exampleMeaning": "내일 전화할게.",
+          "meaning": "내일 봐.",
+          "situation": "다음 날 다시 만나기로 하고 작별 인사를 할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 1,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "tomorrow",
+            "original": "tommorow"
+          }
+        ],
+        "fixed": "See you tomorrow",
+        "name": "철자 오타",
+        "original": "See you tommorow"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "receive",
+            "original": "recieve",
+            "pattern": "철자가 틀린 단어를 올바르게 고쳐 써요.",
+            "why": "‘받다’는 receive라고 써요."
+          }
+        ],
+        "fixed": "I will receive it",
+        "review": {
+          "example": "I received your email yesterday",
+          "exampleMeaning": "어제 네 이메일을 받았어.",
+          "meaning": "나는 그것을 받을 거야.",
+          "situation": "무언가를 받게 될 예정이라고 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 1,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "receive",
+            "original": "recieve"
+          }
+        ],
+        "fixed": "I will receive it",
+        "name": "다른 철자 오타",
+        "original": "I will recieve it"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "It's",
+            "original": "Its",
+            "pattern": "Its",
+            "why": "‘비가 오고 있다’처럼 날씨를 말할 때는 It's raining이라고 해요."
+          }
+        ],
+        "fixed": "It's raining outside",
+        "review": {
+          "example": "It's getting cold outside.",
+          "exampleMeaning": "밖이 추워지고 있어요.",
+          "meaning": "밖에 비가 오고 있어요.",
+          "situation": "현재 밖의 날씨를 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 1,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "It's",
+            "original": "Its"
+          }
+        ],
+        "fixed": "It's raining outside",
+        "name": "its와 it's",
+        "original": "Its raining outside"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "their",
+            "original": "there",
+            "pattern": "there → their",
+            "why": "소유를 나타내는 ‘그들의’는 their를 써요."
+          }
+        ],
+        "fixed": "This is their house",
+        "review": {
+          "example": "Their house is near the park.",
+          "exampleMeaning": "그들의 집은 공원 근처에 있어요.",
+          "meaning": "이것은 그들의 집이에요.",
+          "situation": "누군가의 집이 누구의 것인지 말할 때 써요."
+        },
+        "status": "corrected"
+      },
+      "round": 1,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "their",
+            "original": "there"
+          }
+        ],
+        "fixed": "This is their house",
+        "name": "there와 their",
+        "original": "This is there house"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "We'll",
+            "original": "Well",
+            "pattern": "We'll",
+            "why": "‘우리 집에 가다’라는 뜻으로는 We'll go home이라고 해요."
+          }
+        ],
+        "fixed": "We'll go home tomorrow",
+        "review": {
+          "example": "We'll meet at the station tomorrow",
+          "exampleMeaning": "우리는 내일 역에서 만날 거예요.",
+          "meaning": "우리는 내일 집에 갈 거예요.",
+          "situation": "내일 집에 가자고 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 1,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "We'll",
+            "original": "Well"
+          }
+        ],
+        "fixed": "We'll go home tomorrow",
+        "name": "well과 we'll",
+        "original": "Well go home tomorrow"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "I want to go home early",
+            "original": "집에 일찍 가고 싶어요",
+            "pattern": "‘집에 일찍 가고 싶어요’는 I want to go home early라고 해요.",
+            "why": "go home은 ‘집에 가다’, want to는 ‘~하고 싶다’, early는 ‘일찍’이라는 뜻이에요."
+          }
+        ],
+        "fixed": "I want to go home early",
+        "review": {
+          "example": "She wants to go home early today",
+          "exampleMeaning": "그녀는 오늘 일찍 집에 가고 싶어 해요.",
+          "meaning": "집에 일찍 가고 싶어요.",
+          "situation": "퇴근이나 수업이 끝난 뒤 일찍 집에 가고 싶다고 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 1,
+      "sample": {
+        "korean": true,
+        "name": "한국어 안내",
+        "original": "집에 일찍 가고 싶어요"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "we are meeting alex on monday",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 1,
+      "sample": {
+        "name": "예시에 없는 표기",
+        "original": "we are meeting alex on monday"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "I cant come tonight lol",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 1,
+      "sample": {
+        "name": "예시에 없는 축약",
+        "original": "I cant come tonight lol"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "doesnt",
+            "original": "dont",
+            "pattern": "doesnt",
+            "why": "she와 함께 ‘원하지 않는다’라고 할 때는 doesnt want라고 해요."
+          }
+        ],
+        "fixed": "she doesnt want coffee!!!",
+        "review": {
+          "example": "She doesnt like tea.",
+          "exampleMeaning": "그녀는 차를 좋아하지 않아요.",
+          "meaning": "그녀는 커피를 원하지 않아요.",
+          "situation": "그녀가 커피를 원하지 않는다고 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 1,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "doesnt",
+            "original": "dont"
+          }
+        ],
+        "fixed": "she doesnt want coffee!!!",
+        "name": "예시에 없는 문법과 부호",
+        "original": "she dont want coffee!!!"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Yes please, I want the iced americano",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 2,
+      "sample": {
+        "context": [
+          {
+            "content": "아이스 아메리카노를 주문했는데 뜨거운 라테가 나왔어요",
+            "role": "user"
+          },
+          {
+            "content": "Mia: I’m sorry. Your receipt says iced Americano, so I made the wrong drink. I’ll make a new one now. It will be ready soon.",
+            "role": "assistant"
+          },
+          {
+            "content": "Thanks sarah. See you tommorow",
+            "role": "user"
+          },
+          {
+            "content": "Mia: It’s Mia, but no problem. Do you still want the iced Americano?",
+            "role": "assistant"
+          }
+        ],
+        "name": "대화 문맥에서도 공손함과 표기를 고치지 않음",
+        "original": "Yes please, I want the iced americano"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Hello. what is your name?",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 2,
+      "sample": {
+        "name": "문장 중간 대문자",
+        "original": "Hello. what is your name?"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Hello. What is your name",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 2,
+      "sample": {
+        "name": "문장 끝 부호 생략",
+        "original": "Hello. What is your name"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "I dont like it here",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 2,
+      "sample": {
+        "name": "아포스트로피 생략",
+        "original": "I dont like it here"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Thanks sarah",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 2,
+      "sample": {
+        "name": "고유명사 소문자",
+        "original": "Thanks sarah"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Im gonna go lol",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 2,
+      "sample": {
+        "name": "채팅 말투",
+        "original": "Im gonna go lol"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Thanks!!! 😊",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 2,
+      "sample": {
+        "name": "이모지와 겹친 부호",
+        "original": "Thanks!!! 😊"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "My favourite colour is blue",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 2,
+      "sample": {
+        "name": "영국식 철자",
+        "original": "My favourite colour is blue"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Yes  I like it",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 2,
+      "sample": {
+        "name": "띄어쓰기와 쉼표",
+        "original": "Yes  I like it"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "went",
+            "original": "goed",
+            "pattern": "goed → went",
+            "why": "go의 과거형은 went라고 해요."
+          }
+        ],
+        "fixed": "I went home early",
+        "review": {
+          "example": "She went home early because she felt tired.",
+          "exampleMeaning": "그녀는 피곤해서 일찍 집에 갔어요.",
+          "meaning": "나는 일찍 집에 갔어요.",
+          "situation": "일찍 집에 갔다고 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 2,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "went",
+            "original": "goed"
+          }
+        ],
+        "fixed": "I went home early",
+        "name": "문법만 교정",
+        "original": "I goed home early"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "want",
+            "original": "wants",
+            "pattern": "wants 대신 want를 써요. ‘원하지 않다’라는 뜻이에요.",
+            "why": "I와 함께는 want를 써서 ‘나는 그것을 원하지 않는다’라는 뜻을 만들어요."
+          }
+        ],
+        "fixed": "i dont want it",
+        "review": {
+          "example": "i dont want to go there",
+          "exampleMeaning": "나는 거기에 가고 싶지 않아.",
+          "meaning": "나는 그것을 원하지 않아.",
+          "situation": "원하지 않는 물건이나 일을 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 2,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "want",
+            "original": "wants"
+          }
+        ],
+        "fixed": "i dont want it",
+        "name": "표기를 보존하며 교정",
+        "original": "i dont wants it"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "tomorrow",
+            "original": "tommorow",
+            "pattern": "철자 오타인 tommorow는 tomorrow로 써요.",
+            "why": "‘내일’은 tomorrow라고 써요."
+          }
+        ],
+        "fixed": "See you tomorrow",
+        "review": {
+          "example": "I'll call you tomorrow.",
+          "exampleMeaning": "내일 전화할게.",
+          "meaning": "내일 봐.",
+          "situation": "헤어지면서 다음 날 다시 만나자고 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 2,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "tomorrow",
+            "original": "tommorow"
+          }
+        ],
+        "fixed": "See you tomorrow",
+        "name": "철자 오타",
+        "original": "See you tommorow"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "receive",
+            "original": "recieve",
+            "pattern": "recieve → receive",
+            "why": "receive가 ‘받다’라는 뜻의 올바른 철자예요."
+          }
+        ],
+        "fixed": "I will receive it",
+        "review": {
+          "example": "Did you receive my message?",
+          "exampleMeaning": "내 메시지 받았어?",
+          "meaning": "나는 그것을 받을 것이다.",
+          "situation": "무언가를 받게 될 것이라고 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 2,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "receive",
+            "original": "recieve"
+          }
+        ],
+        "fixed": "I will receive it",
+        "name": "다른 철자 오타",
+        "original": "I will recieve it"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "It's",
+            "original": "Its",
+            "pattern": "Its → It's",
+            "why": "비가 오고 있다는 뜻일 때는 소유격 its가 아니라 줄임말 It's를 써요."
+          }
+        ],
+        "fixed": "It's raining outside",
+        "review": {
+          "example": "It's raining outside, so bring an umbrella.",
+          "exampleMeaning": "밖에 비가 오고 있으니 우산을 가져오세요.",
+          "meaning": "밖에 비가 오고 있어요.",
+          "situation": "밖의 날씨를 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 2,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "It's",
+            "original": "Its"
+          }
+        ],
+        "fixed": "It's raining outside",
+        "name": "its와 it's",
+        "original": "Its raining outside"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "their",
+            "original": "there",
+            "pattern": "there → their",
+            "why": "소유를 나타내는 ‘그들의’는 their라고 해요."
+          }
+        ],
+        "fixed": "This is their house",
+        "review": {
+          "example": "Their house is near the park.",
+          "exampleMeaning": "그들의 집은 공원 근처에 있어요.",
+          "meaning": "이것은 그들의 집이에요.",
+          "situation": "어떤 집이 누구의 것인지 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 2,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "their",
+            "original": "there"
+          }
+        ],
+        "fixed": "This is their house",
+        "name": "there와 their",
+        "original": "This is there house"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "We'll",
+            "original": "Well",
+            "pattern": "We'll",
+            "why": "‘우리 ~할 것이다’라는 뜻은 We'll이라고 해요."
+          }
+        ],
+        "fixed": "We'll go home tomorrow",
+        "review": {
+          "example": "We'll meet at the station tomorrow",
+          "exampleMeaning": "우리는 내일 역에서 만날 거예요.",
+          "meaning": "우리는 내일 집에 갈 거예요.",
+          "situation": "내일 집에 가자고 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 2,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "We'll",
+            "original": "Well"
+          }
+        ],
+        "fixed": "We'll go home tomorrow",
+        "name": "well과 we'll",
+        "original": "Well go home tomorrow"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "I want to go home early.",
+            "original": "집에 일찍 가고 싶어요",
+            "pattern": "집에 가다를 영어로는 go home이라고 해요.",
+            "why": "‘일찍 집에 가고 싶어요’는 I want to go home early라고 해요."
+          }
+        ],
+        "fixed": "I want to go home early.",
+        "review": {
+          "example": "I want to leave work early today.",
+          "exampleMeaning": "오늘은 일찍 퇴근하고 싶어요.",
+          "meaning": "집에 일찍 가고 싶어요.",
+          "situation": "오늘 집에 평소보다 일찍 가고 싶다고 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 2,
+      "sample": {
+        "korean": true,
+        "name": "한국어 안내",
+        "original": "집에 일찍 가고 싶어요"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "we are meeting alex on monday",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 2,
+      "sample": {
+        "name": "예시에 없는 표기",
+        "original": "we are meeting alex on monday"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "I cant come tonight lol",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 2,
+      "sample": {
+        "name": "예시에 없는 축약",
+        "original": "I cant come tonight lol"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "doesnt",
+            "original": "dont",
+            "pattern": "doesn't는 3인칭 주어와 함께 ‘~하지 않는다’라는 뜻으로 써요.",
+            "why": "doesn't는 3인칭 주어와 함께 ‘~하지 않는다’라는 뜻으로 써요."
+          }
+        ],
+        "fixed": "she doesnt want coffee!!!",
+        "review": {
+          "example": "She doesnt want tea either.",
+          "exampleMeaning": "그녀는 차도 원하지 않아.",
+          "meaning": "그녀는 커피를 원하지 않아.",
+          "situation": "그녀가 커피를 원하지 않는다고 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 2,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "doesnt",
+            "original": "dont"
+          }
+        ],
+        "fixed": "she doesnt want coffee!!!",
+        "name": "예시에 없는 문법과 부호",
+        "original": "she dont want coffee!!!"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Yes please, I want the iced americano",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 3,
+      "sample": {
+        "context": [
+          {
+            "content": "아이스 아메리카노를 주문했는데 뜨거운 라테가 나왔어요",
+            "role": "user"
+          },
+          {
+            "content": "Mia: I’m sorry. Your receipt says iced Americano, so I made the wrong drink. I’ll make a new one now. It will be ready soon.",
+            "role": "assistant"
+          },
+          {
+            "content": "Thanks sarah. See you tommorow",
+            "role": "user"
+          },
+          {
+            "content": "Mia: It’s Mia, but no problem. Do you still want the iced Americano?",
+            "role": "assistant"
+          }
+        ],
+        "name": "대화 문맥에서도 공손함과 표기를 고치지 않음",
+        "original": "Yes please, I want the iced americano"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Hello. what is your name?",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 3,
+      "sample": {
+        "name": "문장 중간 대문자",
+        "original": "Hello. what is your name?"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Hello. What is your name",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 3,
+      "sample": {
+        "name": "문장 끝 부호 생략",
+        "original": "Hello. What is your name"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "I dont like it here",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 3,
+      "sample": {
+        "name": "아포스트로피 생략",
+        "original": "I dont like it here"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Thanks sarah",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 3,
+      "sample": {
+        "name": "고유명사 소문자",
+        "original": "Thanks sarah"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Im gonna go lol",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 3,
+      "sample": {
+        "name": "채팅 말투",
+        "original": "Im gonna go lol"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Thanks!!! 😊",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 3,
+      "sample": {
+        "name": "이모지와 겹친 부호",
+        "original": "Thanks!!! 😊"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "My favourite colour is blue",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 3,
+      "sample": {
+        "name": "영국식 철자",
+        "original": "My favourite colour is blue"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "Yes  I like it",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 3,
+      "sample": {
+        "name": "띄어쓰기와 쉼표",
+        "original": "Yes  I like it"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "went",
+            "original": "goed",
+            "pattern": "goed → went",
+            "why": "go의 과거형은 went라고 해요."
+          }
+        ],
+        "fixed": "I went home early",
+        "review": {
+          "example": "She went home early because she was tired.",
+          "exampleMeaning": "그녀는 피곤해서 일찍 집에 갔어요.",
+          "meaning": "나는 일찍 집에 갔어요.",
+          "situation": "일찍 귀가한 일을 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 3,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "went",
+            "original": "goed"
+          }
+        ],
+        "fixed": "I went home early",
+        "name": "문법만 교정",
+        "original": "I goed home early"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "want",
+            "original": "wants",
+            "pattern": "want",
+            "why": "‘원하지 않다’라고 할 때 주어가 I이면 want를 써요."
+          }
+        ],
+        "fixed": "i dont want it",
+        "review": {
+          "example": "I dont want to go",
+          "exampleMeaning": "나는 가고 싶지 않아.",
+          "meaning": "나는 그것을 원하지 않아.",
+          "situation": "원하지 않는 물건이나 일을 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 3,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "want",
+            "original": "wants"
+          }
+        ],
+        "fixed": "i dont want it",
+        "name": "표기를 보존하며 교정",
+        "original": "i dont wants it"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "tomorrow",
+            "original": "tommorow",
+            "pattern": "tommorow → tomorrow",
+            "why": "내일은 tomorrow라고 써요."
+          }
+        ],
+        "fixed": "See you tomorrow",
+        "review": {
+          "example": "I'll call you tomorrow.",
+          "exampleMeaning": "내일 전화할게.",
+          "meaning": "내일 봐.",
+          "situation": "헤어지면서 다음 날 다시 보자고 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 3,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "tomorrow",
+            "original": "tommorow"
+          }
+        ],
+        "fixed": "See you tomorrow",
+        "name": "철자 오타",
+        "original": "See you tommorow"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "receive",
+            "original": "recieve",
+            "pattern": "receive",
+            "why": "receive는 ‘받다’라는 뜻으로 철자를 이렇게 써요."
+          }
+        ],
+        "fixed": "I will receive it",
+        "review": {
+          "example": "I received it yesterday",
+          "exampleMeaning": "나는 어제 그것을 받았어요.",
+          "meaning": "나는 그것을 받을 거예요.",
+          "situation": "무언가를 받을 예정이라고 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 3,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "receive",
+            "original": "recieve"
+          }
+        ],
+        "fixed": "I will receive it",
+        "name": "다른 철자 오타",
+        "original": "I will recieve it"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "It's",
+            "original": "Its",
+            "pattern": "Its → It's",
+            "why": "‘비가 오고 있다’처럼 날씨를 말할 때는 It's raining이라고 해요."
+          }
+        ],
+        "fixed": "It's raining outside",
+        "review": {
+          "example": "It's getting cold outside.",
+          "exampleMeaning": "밖이 점점 추워지고 있어요.",
+          "meaning": "밖에 비가 오고 있어요.",
+          "situation": "밖의 날씨를 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 3,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "It's",
+            "original": "Its"
+          }
+        ],
+        "fixed": "It's raining outside",
+        "name": "its와 it's",
+        "original": "Its raining outside"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "their",
+            "original": "there",
+            "pattern": "there → their",
+            "why": "소유를 나타내는 ‘그들의’는 their를 써요."
+          }
+        ],
+        "fixed": "This is their house",
+        "review": {
+          "example": "Their house is near the park.",
+          "exampleMeaning": "그들의 집은 공원 근처에 있어요.",
+          "meaning": "이것은 그들의 집이에요.",
+          "situation": "누군가의 집이 누구의 것인지 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 3,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "their",
+            "original": "there"
+          }
+        ],
+        "fixed": "This is their house",
+        "name": "there와 their",
+        "original": "This is there house"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "We'll",
+            "original": "Well",
+            "pattern": "We'll",
+            "why": "‘우리 ~할 것이다’라는 뜻에는 We'll을 써요."
+          }
+        ],
+        "fixed": "We'll go home tomorrow",
+        "review": {
+          "example": "We'll meet at the station tomorrow",
+          "exampleMeaning": "우리는 내일 역에서 만날 거예요.",
+          "meaning": "우리는 내일 집에 갈 거예요.",
+          "situation": "내일 집에 가자고 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 3,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "We'll",
+            "original": "Well"
+          }
+        ],
+        "fixed": "We'll go home tomorrow",
+        "name": "well과 we'll",
+        "original": "Well go home tomorrow"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "I want to go home early.",
+            "original": "집에 일찍 가고 싶어요",
+            "pattern": "go home early",
+            "why": "‘집에 일찍 가다’는 go home early라고 해요."
+          }
+        ],
+        "fixed": "I want to go home early.",
+        "review": {
+          "example": "I want to leave work early today.",
+          "exampleMeaning": "오늘은 일찍 퇴근하고 싶어요.",
+          "meaning": "집에 일찍 가고 싶어요.",
+          "situation": "평소보다 일찍 집에 가고 싶은 마음을 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 3,
+      "sample": {
+        "korean": true,
+        "name": "한국어 안내",
+        "original": "집에 일찍 가고 싶어요"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "we are meeting alex on monday",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 3,
+      "sample": {
+        "name": "예시에 없는 표기",
+        "original": "we are meeting alex on monday"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [],
+        "fixed": "I cant come tonight lol",
+        "review": null,
+        "status": "natural"
+      },
+      "round": 3,
+      "sample": {
+        "name": "예시에 없는 축약",
+        "original": "I cant come tonight lol"
+      },
+      "violations": []
+    },
+    {
+      "output": {
+        "entries": [
+          {
+            "fixed": "doesnt",
+            "original": "dont",
+            "pattern": "doesn't want는 ‘원하지 않다’라는 뜻으로, 주어가 she일 때는 doesnt를 써요.",
+            "why": "doesnt want는 ‘원하지 않다’라는 뜻으로, 주어가 she일 때는 doesnt를 써요."
+          }
+        ],
+        "fixed": "she doesnt want coffee!!!",
+        "review": {
+          "example": "He doesnt want tea",
+          "exampleMeaning": "그는 차를 원하지 않아요.",
+          "meaning": "그녀는 커피를 원하지 않아요.",
+          "situation": "상대방이 커피를 원하지 않는다고 말할 때"
+        },
+        "status": "corrected"
+      },
+      "round": 3,
+      "sample": {
+        "entries": [
+          {
+            "fixed": "doesnt",
+            "original": "dont"
+          }
+        ],
+        "fixed": "she doesnt want coffee!!!",
+        "name": "예시에 없는 문법과 부호",
+        "original": "she dont want coffee!!!"
+      },
+      "violations": []
+    }
+  ]
+}

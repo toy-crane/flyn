@@ -6,6 +6,7 @@ import { withSupabase } from "@supabase/server/adapters/hono";
 import { MockLanguageModelV4, simulateReadableStream } from "ai/test";
 import { encode as encodePng } from "fast-png";
 import type { MiddlewareHandler } from "hono";
+import finalCorrectionEvaluation from "../eval/results/correction-candidate-1789228066622.json";
 
 import deployedApp, { createApp } from "./app";
 
@@ -1890,7 +1891,7 @@ const WRONG_COFFEE: CorrectionAnswer = {
       why: "잘못 나온 그 하나를 짚어 말할 때는 the를 붙여요.",
     },
   ],
-  fixed: "I think you gave me the wrong coffee.",
+  fixed: "I think this is the wrong coffee.",
 };
 
 test("표현만 다시 확인하면 문제없음을 명시하고 대화는 바꾸지 않는다", async () => {
@@ -1946,6 +1947,210 @@ test("장면 응답은 교정을 기다리지 않고 저장된 사용자 메시�
 });
 
 describe("메시지별 표현 확인 API", () => {
+  test("최종 모델 평가의 출력 63건을 서버 검사로 다시 확인한다", async () => {
+    expect(finalCorrectionEvaluation.records).toHaveLength(63);
+    await Promise.all(
+      finalCorrectionEvaluation.records.map(async (record) => {
+        const state = createSeasonState();
+        state.messages.push(stored(record.sample.original));
+        const app = createApp({
+          authMiddleware: signedInWith(state),
+          model: createMockModel([], record.output as CorrectionAnswer),
+        });
+        expect((await app.request(request())).status).toBe(200);
+        expect(state.expressionResults).toHaveLength(1);
+      })
+    );
+  });
+  test.each([
+    ["She go and I go", "She goes and I go", "go", "goes"],
+    ["She goed and he goed", "She went and he went", "goed", "went"],
+    ["He has a apple", "He has an apple", "a apple", "an apple"],
+    ["Goed home", "Went home", "Goed", "Went"],
+    ["I went to Alxs house", "I went to Alexs house", "Alxs", "Alexs"],
+    ["I went to Alx's house", "I went to Alex's house", "Alx's", "Alex's"],
+    [
+      "She dont\u00a0wants it",
+      "She doesnt\u00a0want it",
+      "dont\u00a0wants",
+      "doesnt\u00a0want",
+    ],
+    ["I\u00a0goed home", "I\u00a0went home", "I\u00a0goed", "I\u00a0went"],
+    ["Your welcome", "You're welcome", "Your", "You're"],
+    ["Their coming", "They're coming", "Their", "They're"],
+    ["Whose coming", "Who's coming", "Whose", "Who's"],
+    [
+      "I went to United States",
+      "I went to the United States",
+      "United States",
+      "the United States",
+    ],
+    ["This is MORE GOOD", "This is BETTER", "MORE GOOD", "BETTER"],
+    ["Me am happy", "I am happy", "Me", "I"],
+    ["He and me went", "He and I went", "me", "I"],
+    ["See you TOMMOROW", "See you TOMORROW", "TOMMOROW", "TOMORROW"],
+    ["iPhnoe works", "iPhone works", "iPhnoe", "iPhone"],
+    ["This is more good", "This is better", "more good", "better"],
+    ["I saw a birds", "I saw birds", "a birds", "birds"],
+    ["I goed  home", "I went  home", "goed", "went"],
+    ["Its raining", "It's raining", "Its", "It's"],
+    ["Well go home", "We'll go home", "Well", "We'll"],
+    ["Lets go home", "Let's go home", "Lets", "Let's"],
+    ["She dont wants it", "She doesnt want it", "dont wants", "doesnt want"],
+    ["She don't want it", "She doesn't want it", "don't", "doesn't"],
+    [
+      "I goed home, then left",
+      "I went home, then left",
+      "goed home, then",
+      "went home, then",
+    ],
+  ])(
+    "표현 조각이 겹치거나 반복돼도 해당 자리만 고친 결과를 저장한다: %s",
+    async (original, fixed, before, after) => {
+      const state = createSeasonState();
+      state.messages.push(stored(original));
+      const app = createApp({
+        authMiddleware: signedInWith(state),
+        model: createMockModel([], {
+          entries: [
+            {
+              fixed: after,
+              original: before,
+              pattern: "expression",
+              why: "이 표현을 써요.",
+            },
+          ],
+          fixed,
+          status: "corrected",
+        }),
+      });
+      expect((await app.request(request())).status).toBe(200);
+      expect(state.expressionResults).toHaveLength(1);
+    }
+  );
+  test.each([
+    { fixed: "went", original: "goed" },
+    { fixed: "went home.", original: "goed home" },
+  ])(
+    "마침표를 추가한 결과는 항목 안팎 모두 저장하지 않는다: %j",
+    async (entry) => {
+      const state = createSeasonState();
+      state.messages.push(stored("I goed home"));
+      const app = createApp({
+        authMiddleware: signedInWith(state),
+        model: createMockModel([], {
+          ...WRONG_COFFEE,
+          entries: [
+            {
+              fixed: entry.fixed,
+              original: entry.original,
+              pattern: "past-go",
+              why: "go의 과거형은 went예요.",
+            },
+          ],
+          fixed: "I went home.",
+          status: "corrected",
+        }),
+      });
+      expect((await app.request(request())).status).toBe(500);
+      expect(state.expressionResults).toHaveLength(0);
+    }
+  );
+  test.each([
+    ["She dont wants it", "She doesn't want it", "dont wants", "doesn't want"],
+    ["Thanks sarah", "Thanks Sarah", "sarah", "Sarah"],
+    ["Yes  I agree", "Yes I agree", "Yes  I", "Yes I"],
+    ["I goed home", "I Went home", "goed", "Went"],
+    ["I saw him,goed home", "I saw him, went home", "him,goed", "him, went"],
+    ["I went to Alxs house", "I went to Alex's house", "Alxs", "Alex's"],
+    ["I\u00a0goed home", "I went home", "I\u00a0goed", "I went"],
+    [
+      "I\u00a0goed home",
+      "I went\u00a0home",
+      "I\u00a0goed home",
+      "I went\u00a0home",
+    ],
+    ["I\u202fgoed home", "I went home", "I\u202fgoed", "I went"],
+    ["I\u3000goed home", "I went home", "I\u3000goed", "I went"],
+    ["I\u0085goed home", "I went home", "I\u0085goed", "I went"],
+    ["I goed home 😊", "I went home", "goed home 😊", "went home"],
+    ["I 😊 goed home", "I 😢 went home", "😊 goed", "😢 went"],
+    ["I work 👩‍💻", "I work 👩💻", "👩‍💻", "👩💻"],
+    ["I work ☕️", "I work ☕", "☕️", "☕"],
+    ["I work 1️⃣", "I work 1", "1️⃣", "1"],
+    [
+      "I goed to Alexs house",
+      "I went to Alex's house",
+      "goed to Alexs",
+      "went to Alex's",
+    ],
+    ["I goed (home)", "I went home", "goed (home)", "went home"],
+    ["See you TOMMOROW", "See you Tomorrow", "TOMMOROW", "Tomorrow"],
+    ["iPhnoe works", "Iphone works", "iPhnoe", "Iphone"],
+    [
+      "I goed with Wendy",
+      "I Went with wendy",
+      "goed with Wendy",
+      "Went with wendy",
+    ],
+    ["I goed home", "I wenthome", "goed home", "wenthome"],
+    [
+      "I goed home, then left",
+      "I went, home then left",
+      "goed home, then",
+      "went, home then",
+    ],
+  ])(
+    "표현 항목에 섞인 표기와 채팅 말투 변경은 저장하지 않는다: %s",
+    async (original, fixed, before, after) => {
+      const state = createSeasonState();
+      state.messages.push(stored(original));
+      const app = createApp({
+        authMiddleware: signedInWith(state),
+        model: createMockModel([], {
+          entries: [
+            {
+              fixed: after,
+              original: before,
+              pattern: "expression",
+              why: "이 표현을 써요.",
+            },
+          ],
+          fixed,
+          status: "corrected",
+        }),
+      });
+      expect((await app.request(request())).status).toBe(500);
+      expect(state.expressionResults).toHaveLength(0);
+    }
+  );
+  test("완성 문장에 실제로 쓰이지 않은 교정 항목은 저장하지 않는다", async () => {
+    const state = createSeasonState();
+    state.messages.push(stored("I goed home and left"));
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([], {
+        entries: [
+          {
+            fixed: "went",
+            original: "goed",
+            pattern: "past-go",
+            why: "go의 과거형은 went예요.",
+          },
+          {
+            fixed: "left",
+            original: "home",
+            pattern: "unrelated",
+            why: "이 표현을 써요.",
+          },
+        ],
+        fixed: "I went home and left",
+        status: "corrected",
+      }),
+    });
+    expect((await app.request(request())).status).toBe(500);
+    expect(state.expressionResults).toHaveLength(0);
+  });
   function stored(text: string, id = "m1"): MessageRow {
     return {
       created_at: `2026-09-07T00:00:0${id === "m1" ? "1" : "2"}.000Z`,
@@ -2084,7 +2289,7 @@ describe("메시지별 표현 확인 API", () => {
   });
   test("한 문장에서 같은 규칙의 다른 자리도 빠짐없이 남긴다", async () => {
     const state = createSeasonState();
-    state.messages.push(stored("I want coffee and she want tea."));
+    state.messages.push(stored("I want coffee and she wants tea."));
     const entries = [
       {
         fixed: "some coffee",
@@ -3007,7 +3212,7 @@ describe("POST /ai/episode/ask", () => {
 
     expect(JSON.stringify(system)).toContain("I think this is wrong coffee.");
     expect(JSON.stringify(system)).toContain(
-      "I think you gave me the wrong coffee."
+      "I think this is the wrong coffee."
     );
     expect(prompt).toContain("Next in line, please!");
     expect(body).toContain("잘못 나온 그 커피 하나를 짚어 말하기 때문이에요.");

@@ -13,12 +13,20 @@ import {
 
 let testTransport: ChatTransport<UIMessage>;
 
-function useTestConversation(accessToken: string | undefined) {
+function useTestConversation(
+  accessToken: string | undefined,
+  prepareMessage?: (text: string) => string
+) {
   const chat = useChat({
     throttle: STREAM_UPDATE_INTERVAL_MS,
     transport: testTransport,
   });
-  return useConversation(chat, useLocalChatDrafts(), accessToken);
+  return useConversation(
+    chat,
+    useLocalChatDrafts(),
+    accessToken,
+    prepareMessage
+  );
 }
 
 const ACCESS_TOKEN = "test-access-token";
@@ -96,6 +104,42 @@ async function ask(result: { current: ChatSession }, text: string) {
 }
 
 describe("useConversation", () => {
+  test("일반 채팅은 영어 표기를 바꾸지 않는다", async () => {
+    fakeTransport(() => Promise.resolve(answerStream("Okay")));
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
+    await ask(result, "hello i am here");
+    await waitFor(() => expect(result.current.isBusy).toBe(false));
+    expect(messageText(result.current.messages[0])).toBe("hello i am here");
+  });
+  test("전송 전 변환 결과가 메시지와 전송에 쓰이고 수정할 때도 유지된다", async () => {
+    const transport = fakeTransport(() =>
+      Promise.resolve(answerStream("Okay"))
+    );
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN, (text) => text.toUpperCase())
+    );
+    await ask(result, "hello. what is your name");
+    await waitFor(() => expect(result.current.isBusy).toBe(false));
+    expect(messageText(result.current.messages[0])).toBe(
+      "HELLO. WHAT IS YOUR NAME"
+    );
+    expect(
+      messageText(transport.sendMessages.mock.calls[0][0].messages[0])
+    ).toBe("HELLO. WHAT IS YOUR NAME");
+    await act(() => result.current.beginEdit(result.current.messages[0].id));
+    expect(result.current.draft).toBe("HELLO. WHAT IS YOUR NAME");
+    await ask(result, "yesterday i goed home");
+    await waitFor(() => expect(result.current.isBusy).toBe(false));
+    expect(result.current.messages.map(messageText)).toEqual([
+      "YESTERDAY I GOED HOME",
+      "Okay",
+    ]);
+    expect(
+      messageText(transport.sendMessages.mock.calls[1][0].messages[0])
+    ).toBe("YESTERDAY I GOED HOME");
+  });
   afterEach(() => {
     jest.clearAllMocks();
   });
