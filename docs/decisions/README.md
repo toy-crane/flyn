@@ -68,7 +68,7 @@
 - [모바일 하단 CTA](mobile-bottom-cta.md) — 하단 행동 버튼의 고정 배치, 투명한 주변 영역, 효과, 여백과 강조 수준을 정할 때 읽는다.
 - [모바일 키보드 회피](mobile-keyboard-avoidance.md) — 키보드가 입력이나 하단 버튼을 가리는 화면을 만들거나 고칠 때 읽는다.
 - [모바일 진입 키보드](mobile-keyboard-entry-focus.md) — 화면에 들어오자마자 입력을 시작하게 만들거나 고칠 때 읽는다.
-- [화면 문구 한국어 말투](korean-ui-writing.md) — 앱 화면에 보이는 문구의 종결어미, 버튼과 오류 문구, 마침표를 쓰거나 고칠 때 읽는다.
+- [UX 라이팅 원칙](ux-writing.md) — 한국어 UI 문구의 내용, 길이, 말투와 문장 부호를 정할 때 읽는다.
 - [스토리 진행·결말 화면 표기](story-progress-and-ending-display.md) — 스토리·에피소드의 진행 상태, 완료, 결말을 화면에 표기하거나 그 문구를 바꿀 때 읽는다.
 - [모바일 에피소드 상황 줄](mobile-episode-situation-line.md) — 에피소드 화면의 사건·목표 안내 위치, 내용 소유권, 표시 수명 또는 형태를 변경할 때 읽는다.
 - [모바일 뒤로 가기 표시](mobile-back-button-display.md) — 뒤로 가기 버튼의 라벨, 쉐브론 표시 또는 접근성 이름을 바꿀 때 읽는다.
