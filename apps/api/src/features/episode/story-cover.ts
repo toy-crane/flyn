@@ -11,6 +11,8 @@ export const COVER_BUCKET = "story-covers";
 /** 표지 모델. 값과 품질은 스펙이 정했고, 여기서는 자리만 둔다. */
 export const COVER_MODEL_ENV = "AI_GATEWAY_IMAGE_MODEL";
 const DEFAULT_COVER_MODEL = "openai/gpt-image-1-mini";
+// 표지를 기다려도 서버의 120초 유휴 제한 전에 대본 저장을 계속한다.
+const COVER_TIMEOUT_MS = 60_000;
 
 /**
  * 표지의 모양을 정하는 문구. 스토리마다 바뀌지 않는다.
@@ -71,8 +73,12 @@ export function coverPrompt(outline: StoryOutline): string | undefined {
 }
 
 /** 게이트웨이에 그림 한 장을 받는다. 크기와 품질은 스펙이 정했다. */
-async function drawCover(prompt: string): Promise<Uint8Array> {
+async function drawCover(
+  prompt: string,
+  abortSignal: AbortSignal
+): Promise<Uint8Array> {
   const result = await generateImage({
+    abortSignal,
     model: resolveCoverModelId(),
     n: 1,
     prompt,
@@ -143,11 +149,13 @@ export async function madeCover({
   draw = drawCover,
   outline,
   ownerId,
+  timeoutMs = COVER_TIMEOUT_MS,
 }: {
   bucket: CoverBucket;
-  draw?: (prompt: string) => Promise<Uint8Array>;
+  draw?: (prompt: string, abortSignal: AbortSignal) => Promise<Uint8Array>;
   outline: StoryOutline;
   ownerId: string;
+  timeoutMs?: number;
 }): Promise<StoryCover | undefined> {
   const prompt = coverPrompt(outline);
 
@@ -155,8 +163,21 @@ export async function madeCover({
     return;
   }
 
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const bytes = await draw(prompt);
+    const deadline = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        reject(new Error("Drawing the story cover timed out."));
+      }, timeoutMs);
+    });
+    // 취소에 응답하지 않는 공급자도 저장을 계속 막지 못하게 한다.
+    const bytes = await Promise.race([
+      draw(prompt, controller.signal),
+      deadline,
+    ]);
+    clearTimeout(timer);
     const digest = createHash("sha256").update(bytes).digest("hex");
     const path = `made/${ownerId}/${digest}.png`;
     const blurhash = previewHash(bytes);
@@ -177,5 +198,7 @@ export async function madeCover({
     return { blurhash, path };
   } catch {
     // 표지가 없는 스토리는 빈 색 상자로 보인다. 그것이 실패의 모습이다.
+  } finally {
+    clearTimeout(timer);
   }
 }

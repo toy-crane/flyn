@@ -163,6 +163,35 @@ describe("madeCover", () => {
     expect(made).toBeUndefined();
   });
 
+  test("그림 응답이 멈추면 제한 시간 뒤 취소하고 표지 없이 끝낸다", async () => {
+    let uploaded = false;
+    let signal: AbortSignal | undefined;
+    let finish!: (bytes: Uint8Array) => void;
+    const made = await madeCover({
+      bucket: {
+        upload: () => {
+          uploaded = true;
+          return Promise.resolve({ error: null });
+        },
+      },
+      draw: (_prompt, abortSignal) => {
+        signal = abortSignal;
+        return new Promise((resolve) => {
+          finish = resolve;
+        });
+      },
+      outline: card(),
+      ownerId: owner,
+      timeoutMs: 10,
+    });
+
+    expect(made).toBeUndefined();
+    expect(signal?.aborted).toBe(true);
+    finish(png(0, 0, 255));
+    await Promise.resolve();
+    expect(uploaded).toBe(false);
+  }, 1000);
+
   test("올리기가 실패하면 아무것도 돌려주지 않는다", async () => {
     const made = await madeCover({
       bucket: {
