@@ -257,6 +257,20 @@ describe("scriptProblem", () => {
     expect(scriptProblem(written())).toBeUndefined();
   });
 
+  test("화면 목표에 내부 무대 목록을 섞으면 저장하지 않는다", () => {
+    const mixed = written({
+      episodes: [
+        script({
+          situation:
+            "연락처를 물어보세요\n상황:\n- 사용자가 말을 해야 이 일이 풀린다.",
+        }),
+      ],
+    });
+    expect(scriptProblem(mixed)).toBe(
+      "Episode 1 mixes stage directions into its visible goal."
+    );
+  });
+
   /*
     도입은 장면 서술 한 덩어리 뒤 대사만이다. 서술이 길어지면 화면의 첫 장면이
     읽히지 않는 글 덩어리가 되고, 저장한 대본은 고칠 길이 없다.
