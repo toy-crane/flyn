@@ -40,7 +40,7 @@ export interface CorrectionDraft {
 }
 
 const KOREAN = /[가-힣ㄱ-ㅎㅏ-ㅣ]/;
-const CHANGED_NOTATION = /[\p{P}\p{S}\p{Cf}\r\n\t]|\uFE0E|\uFE0F|\u20E3| {2,}/u;
+const CHANGED_NOTATION = /[\p{P}\p{S}\p{C}]|[^\S ]|\uFE0E|\uFE0F|\u20E3| {2,}/u;
 const TRAILING_SPACE = /\s$/;
 const WORD = /\p{L}+(?:['’]\p{L}+)*/gu;
 const UPPERCASE = /\p{Lu}/u;
