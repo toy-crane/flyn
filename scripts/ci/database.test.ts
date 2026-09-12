@@ -10,7 +10,8 @@ function changedFile(
   path: string,
   before: string | null,
   after: string | null,
-  extra: Record<string, string> = {}
+  extra: Record<string, string> = {},
+  baseExtra: Record<string, string> = {}
 ) {
   const root = mkdtempSync(join(tmpdir(), "flyn-db-plan-"));
   const git = (...args: string[]) => {
@@ -25,6 +26,10 @@ function changedFile(
     git("config", "user.name", "CI test");
     git("config", "user.email", "ci@example.test");
     writeFileSync(join(root, "README.md"), "base");
+    for (const [name, content] of Object.entries(baseExtra)) {
+      mkdirSync(dirname(join(root, name)), { recursive: true });
+      writeFileSync(join(root, name), content);
+    }
     mkdirSync(dirname(join(root, path)), { recursive: true });
     if (before !== null) {
       writeFileSync(join(root, path), before);
@@ -144,6 +149,22 @@ test("보존 검사 SQL이 비었으면 차단한다", () => {
   );
   expect(result.code).toBe(1);
   expect(result.stderr).toContain("보존 SQL이 비었습니다");
+});
+
+test("보존 검사 폴더의 다른 파일만 바뀌면 그 버전을 다시 검사하지 않는다", () => {
+  const result = changedFile(
+    "supabase/upgrade-tests/20260101000000/notes.md",
+    "before",
+    "after",
+    {},
+    {
+      "supabase/upgrade-tests/20260101000000/after.test.sql": "select 1;",
+      "supabase/upgrade-tests/20260101000000/before.sql": "select 1;",
+    }
+  );
+  expect(result.code).toBe(0);
+  // No migration and no preservation SQL changed, so nothing to replay.
+  expect(JSON.parse(result.stdout)).toEqual({ database: true });
 });
 
 test("기존 보존 검사만 고쳐도 그 버전을 다시 검사한다", () => {
