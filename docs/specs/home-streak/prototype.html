@@ -366,7 +366,10 @@
   }
   stateSelectEl.addEventListener('change', syncState);
   // 화면을 바꾸면 셸이 상태를 Default로 되돌리므로 데이터도 같이 되돌린다.
+  // 해시 이동, 화면 선택기, 좌우 화살표 세 경로가 모두 화면을 바꾼다.
   addEventListener('hashchange', () => setTimeout(syncState, 0));
+  document.getElementById('sh-screen').addEventListener('change', () => setTimeout(syncState, 0));
+  addEventListener('keydown', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') setTimeout(syncState, 0); });
 </script>
 
 <script>
