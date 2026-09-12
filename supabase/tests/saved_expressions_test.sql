@@ -148,7 +148,7 @@ SELECT ok(
   'row level security is on'
 );
 
--- 참조는 각본을 가리킨다. 회차를 지워도 카드의 출처 표시가 남는 이유다.
+-- 참조는 대본을 가리킨다. 회차를 지워도 카드의 출처 표시가 남는 이유다.
 SELECT col_is_fk(
   'public', 'saved_expressions', ARRAY['episode_id'],
   'a saved expression points at the script it came from'

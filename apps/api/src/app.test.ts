@@ -157,7 +157,7 @@ const TEST_EPISODES = [
 /**
  * 스토리가 소유한 인물. 화가 바뀌어도 같은 설명을 쓴다.
  *
- * `position`이 이름표 색의 번호이자 스토리 안의 순서다. 실제 각본처럼 Mia가 1,
+ * `position`이 이름표 색의 번호이자 스토리 안의 순서다. 실제 대본처럼 Mia가 1,
  * Owen이 2로 서서 어느 화에서 읽어도 같은 번호가 나온다.
  */
 const CHARACTER_ID = (position: number) =>
@@ -928,9 +928,12 @@ const MADE_OUTLINE = {
     { name: "Lena", position: 1, role: "호텔 프런트 직원." },
     { name: "Markus", position: 2, role: "거래처 담당자." },
   ],
+  cover:
+    "A woman in her thirties, dark bob, navy uniform, attentive, close-up, head tilted, teal background",
   episodes: [
     {
       cast: ["Lena"],
+      details: "호텔에서 예약 확인 메일을 보여 주며 방을 요청한다.",
       number: 1,
       preview: "밤늦게 도착했는데 제 예약이 없대요.",
       title: "예약이 없는 호텔",
@@ -941,7 +944,7 @@ const MADE_OUTLINE = {
   title: "베를린 출장 일주일",
 };
 
-/** 형식을 지킨 각본 하나. 모델이 돌려주는 값을 대신한다. */
+/** 형식을 지킨 대본 하나. 모델이 돌려주는 값을 대신한다. */
 const WRITTEN_STORY = {
   characters: [{ name: "Lena", persona: "30대 호텔 직원이다.", position: 1 }],
   completionCopy: "호텔부터 미팅까지 영어로 지나왔어요.",
@@ -966,7 +969,7 @@ const WRITTEN_STORY = {
   intro: "첫 해외 출장으로 떠난 베를린에서 보내는 일주일.",
 };
 
-/** 각본을 한 번에 돌려주는 모델. 저장 경로만 시험한다. */
+/** 대본을 한 번에 돌려주는 모델. 저장 경로만 시험한다. */
 function createWritingModel(answer: unknown = WRITTEN_STORY) {
   return new MockLanguageModelV4({
     doGenerate: () =>
@@ -1445,7 +1448,7 @@ describe("POST /ai/episode", () => {
   });
 
   // 어떤 화가 열리는지는 계정의 진행이 정한다. 1화를 끝낸 사람이 에피소드를
-  // 열면 2화의 각본이 나온다.
+  // 열면 2화의 대본이 나온다.
   test("opens the episode the account's progress points at", async () => {
     const state = createSeasonState([
       { ending_kind: "성공", ending_outcome: "새 잔을 받아냈다.", episode: 1 },
@@ -2226,6 +2229,48 @@ describe("메시지별 표현 확인 API", () => {
       "article-the-specific"
     );
   });
+  test("잘못된 교정 항목을 한 번 다시 판정하고 원래 메시지에만 저장한다", async () => {
+    const state = createSeasonState();
+    state.messages.push(stored("I think this is wrong coffee."));
+    const model = createMockModel([], {
+      ...WRONG_COFFEE,
+      entries: [
+        {
+          fixed: "the wrong coffee",
+          original: "absent",
+          pattern: "article-the-specific",
+          why: "그 커피를 가리켜요.",
+        },
+      ],
+      status: "corrected",
+    });
+    const invalid = model.doGenerate.bind(model);
+    const valid = createMockModel([], { ...WRONG_COFFEE, status: "corrected" });
+    let calls = 0;
+    model.doGenerate = (options) => {
+      calls += 1;
+      return calls === 1 ? invalid(options) : valid.doGenerate(options);
+    };
+    const app = createApp({ authMiddleware: signedInWith(state), model });
+
+    const response = await app.request(request());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      correction: { entries: WRONG_COFFEE.entries, messageId: "m1" },
+      status: "corrected",
+    });
+    expect(calls).toBe(2);
+    expect(valid.doGenerateCalls[0]?.prompt.at(-1)).toMatchObject({
+      content: [
+        { text: "확인할 문장:\nI think this is wrong coffee.", type: "text" },
+      ],
+      role: "user",
+    });
+    expect(state.messages).toHaveLength(1);
+    expect(state.expressionResults).toHaveLength(1);
+    expect(model.doStreamCalls).toHaveLength(0);
+  });
   test.each(["natural", "unclear"] as const)(
     "%s 판정은 다시 열고 재요청해도 저장된 결과를 사용한다",
     async (status) => {
@@ -2367,14 +2412,16 @@ describe("메시지별 표현 확인 API", () => {
     async (answer) => {
       const state = createSeasonState();
       state.messages.push(stored("I wants coffee."));
+      const model = createMockModel([], answer as CorrectionAnswer);
       const app = createApp({
         authMiddleware: signedInWith(state),
-        model: createMockModel([], answer as CorrectionAnswer),
+        model,
       });
       const response = await app.request(request());
       expect(response.status).toBe(500);
       expect(await response.json()).not.toHaveProperty("status", "natural");
       expect(state.expressionResults).toHaveLength(0);
+      expect(model.doGenerateCalls).toHaveLength(2);
     }
   );
   test("한국어를 문제없는 영어로 판정한 결과는 거절한다", async () => {
@@ -4386,6 +4433,60 @@ test("모든 스토리 조회 화면에 원본 표지와 같은 BlurHash를 전�
 });
 
 describe("POST /ai/episode/stories", () => {
+  async function createdStory(response: Response) {
+    const parts = (await response.text())
+      .split("\n")
+      .filter((line) => line.startsWith("data: {"))
+      .map(
+        (line) => JSON.parse(line.slice(6)) as { type: string; data?: unknown }
+      );
+    return parts.find((part) => part.type === "data-story-created")?.data;
+  }
+  test("대본 뒤 표지를 기다리는 실제 단계를 보내고 모두 끝난 뒤 저장 결과를 보낸다", async () => {
+    let finishDrawing: (bytes: Uint8Array) => void = () => undefined;
+    const drawing = new Promise<Uint8Array>((resolve) => {
+      finishDrawing = resolve;
+    });
+    const { app, state } = savingApp(createWritingModel(), {
+      drawCover: () => drawing,
+      waitUntil: () => undefined,
+    });
+    const response = await app.request(`${EPISODE_PATH}/stories`, {
+      body: JSON.stringify({ outline: MADE_OUTLINE }),
+      method: "POST",
+    });
+    if (!response.body) {
+      throw new Error("응답 스트림이 없습니다.");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let body = "";
+    while (!body.includes('"stage":"cover"')) {
+      // biome-ignore lint/performance/noAwaitInLoops: 스트리밍의 실제 단계 도착을 기다린다
+      const chunk = await reader.read();
+      if (chunk.done) {
+        break;
+      }
+      body += decoder.decode(chunk.value, { stream: true });
+    }
+    expect(body).toContain('"stage":"script"');
+    expect(body).toContain('"stage":"cover"');
+    expect(body).not.toContain('"type":"data-story-created"');
+    expect(state.madeStoryRequests).toHaveLength(0);
+    finishDrawing(drawnPng());
+    for (;;) {
+      // biome-ignore lint/performance/noAwaitInLoops: 나머지 완료 조각을 차례로 읽는다
+      const chunk = await reader.read();
+      if (chunk.done) {
+        break;
+      }
+      body += decoder.decode(chunk.value, { stream: true });
+    }
+    expect(body).toContain('"stage":"saving"');
+    expect(body).toContain('"type":"data-story-created"');
+    expect(body).toContain(MADE_STORY_ID);
+    expect(state.madeCoverRequests).toHaveLength(1);
+  });
   /** 한 가지 색으로 채운 진짜 PNG. 표지 모델이 돌려주는 그림을 대신한다. */
   function drawnPng(): Uint8Array {
     const side = 8;
@@ -4428,7 +4529,7 @@ describe("POST /ai/episode/stories", () => {
     };
   }
 
-  test("각본을 만들어 저장하고 앱이 열 1화를 가리킨다", async () => {
+  test("대본을 만들어 저장하고 앱이 열 1화를 가리킨다", async () => {
     const { app, state } = savingApp();
     const response = await app.request(`${EPISODE_PATH}/stories`, {
       body: JSON.stringify({ outline: MADE_OUTLINE }),
@@ -4436,7 +4537,7 @@ describe("POST /ai/episode/stories", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    expect(await createdStory(response)).toEqual({
       episodeId: MADE_EPISODE_ID,
       storyId: MADE_STORY_ID,
     });
@@ -4444,16 +4545,17 @@ describe("POST /ai/episode/stories", () => {
   });
 
   /*
-    사용자가 카드에서 본 것과 저장되는 것이 같아야 한다. 각본을 쓴 모델이
+    사용자가 카드에서 본 것과 저장되는 것이 같아야 한다. 대본을 쓴 모델이
     제목이나 화 번호를 흘려도 그 자리는 카드가 채운다.
   */
   test("저장 요청은 카드의 제목과 화 목록을 그대로 싣는다", async () => {
     const { app, state } = savingApp();
 
-    await app.request(`${EPISODE_PATH}/stories`, {
+    const response = await app.request(`${EPISODE_PATH}/stories`, {
       body: JSON.stringify({ outline: MADE_OUTLINE }),
       method: "POST",
     });
+    await response.text();
 
     const [request] = state.madeStoryRequests ?? [];
     const story = request?.story as {
@@ -4477,10 +4579,10 @@ describe("POST /ai/episode/stories", () => {
   });
 
   /*
-    화 수와 인물 수는 데이터베이스가 거절하는 규칙이다. 각본을 만드는 데 십수
+    화 수와 인물 수는 데이터베이스가 거절하는 규칙이다. 대본을 만드는 데 십수
     초를 쓰기 전에 요청을 받은 자리에서 거른다.
   */
-  test("규칙을 넘는 개요는 각본을 만들기 전에 돌려보낸다", async () => {
+  test("규칙을 넘는 개요는 대본을 만들기 전에 돌려보낸다", async () => {
     const { app, state } = savingApp();
     const tooMany = {
       ...MADE_OUTLINE,
@@ -4524,10 +4626,10 @@ describe("POST /ai/episode/stories", () => {
   });
 
   /*
-    형식을 어긴 각본은 저장하지 않는다. 한 번 저장한 각본은 고칠 길이 없으므로,
+    형식을 어긴 대본은 저장하지 않는다. 한 번 저장한 대본은 고칠 길이 없으므로,
     장면 서술이 길거나 아무도 말하지 않는 도입은 여기서 막는다.
   */
-  test("장면 서술이 너무 긴 각본은 저장하지 않는다", async () => {
+  test("장면 서술이 너무 긴 대본은 저장하지 않는다", async () => {
     const { app, state } = savingApp(
       createWritingModel({
         ...WRITTEN_STORY,
@@ -4544,12 +4646,13 @@ describe("POST /ai/episode/stories", () => {
       method: "POST",
     });
 
-    expect(response.status).toBe(502);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('"type":"error"');
     expect(state.madeStoryRequests).toHaveLength(0);
   });
 
   /*
-    표지는 각본과 나란히 만든다. 각본이 십수 초, 표지가 십 초쯤이라 보통은
+    표지는 대본과 나란히 만든다. 대본이 십수 초, 표지가 십 초쯤이라 보통은
     표지가 먼저 끝나고, 그때는 1화를 열어 주기 전에 달아 둔다. 탐색으로
     돌아왔을 때 표지가 이미 거기 있으려면 그래야 한다.
   */
@@ -4570,6 +4673,7 @@ describe("POST /ai/episode/stories", () => {
     });
 
     expect(response.status).toBe(200);
+    await response.text();
     expect(state.uploadedCovers).toHaveLength(1);
     expect(state.uploadedCovers?.[0]?.path).toMatch(MADE_COVER_PATH);
     expect(state.madeCoverRequests).toHaveLength(1);
@@ -4578,41 +4682,6 @@ describe("POST /ai/episode/stories", () => {
       cover_path: state.uploadedCovers?.[0]?.path,
       story_id: MADE_STORY_ID,
     });
-  });
-
-  /*
-    표지가 늦어도 기다리지 않는다. 각본이 끝나면 1화를 열어 주고, 표지는 그
-    뒤에 조용히 붙는다.
-  */
-  test("표지가 늦으면 1화를 먼저 열고 표지는 나중에 단다", async () => {
-    let finishDrawing: ((bytes: Uint8Array) => void) | undefined;
-    const drawn = new Promise<Uint8Array>((resolve) => {
-      finishDrawing = resolve;
-    });
-    const late: Promise<unknown>[] = [];
-    const { app, state } = savingApp(createWritingModel(), {
-      drawCover: () => drawn,
-      waitUntil: (work) => {
-        late.push(work);
-      },
-    });
-    const response = await app.request(`${EPISODE_PATH}/stories`, {
-      body: JSON.stringify({ outline: MADE_OUTLINE }),
-      method: "POST",
-    });
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
-      episodeId: MADE_EPISODE_ID,
-      storyId: MADE_STORY_ID,
-    });
-    expect(state.madeCoverRequests).toHaveLength(0);
-
-    finishDrawing?.(drawnPng());
-    await Promise.all(late);
-
-    expect(state.madeCoverRequests).toHaveLength(1);
-    expect(state.uploadedCovers).toHaveLength(1);
   });
 
   // 그림이 실패해도 스토리는 그대로 만들어진다. 표지 자리는 빈 색 상자로 남는다.
@@ -4626,7 +4695,7 @@ describe("POST /ai/episode/stories", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    expect(await createdStory(response)).toEqual({
       episodeId: MADE_EPISODE_ID,
       storyId: MADE_STORY_ID,
     });
@@ -4635,7 +4704,7 @@ describe("POST /ai/episode/stories", () => {
   });
 
   // 저장이 실패하면 붙일 스토리가 없다. 표지도 달지 않는다.
-  test("각본이 실패하면 표지를 달지 않는다", async () => {
+  test("대본이 실패하면 표지를 달지 않는다", async () => {
     const { app, state } = savingApp(
       createWritingModel({
         ...WRITTEN_STORY,
@@ -4652,7 +4721,8 @@ describe("POST /ai/episode/stories", () => {
       method: "POST",
     });
 
-    expect(response.status).toBe(502);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('"type":"error"');
     expect(state.madeCoverRequests).toHaveLength(0);
   });
 
@@ -4672,8 +4742,8 @@ describe("POST /ai/episode/stories", () => {
     });
 
     expect(prompts).toHaveLength(1);
-    expect(prompts[0]).toContain("호텔 프런트 직원.");
-    expect(prompts[0]).toContain("베를린의 호텔 프런트");
+    expect(prompts[0]).toContain(MADE_OUTLINE.cover);
+    expect(prompts[0]).not.toContain("베를린의 호텔 프런트");
     expect(prompts[0]).not.toContain("Lena");
     expect(prompts[0]).not.toContain("베를린 출장 일주일");
   });

@@ -450,7 +450,7 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 | `표현 저장 다시 시도` | 담지 못했을 때 그 자리에 남는 줄의 새로고침 아이콘 |
 | `삭제` | 표현 노트 카드 아래 아이콘 줄의 휴지통. `표현을 삭제할까요?` 확인창을 엽니다 |
 
-에피소드의 이름, 상황 줄, 예고는 데이터베이스의 공식 각본에서 옵니다. 서버는
+에피소드의 이름, 상황 줄, 예고는 데이터베이스의 공식 대본에서 옵니다. 서버는
 `apps/api/src/features/episode/story.ts`에서 그 데이터를 읽습니다.
 
 온보딩 화면의 요소에는 `testID`도 있습니다.

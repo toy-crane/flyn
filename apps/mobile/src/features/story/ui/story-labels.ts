@@ -9,8 +9,9 @@
  * 나오지 않는다. 진행은 분절 바와 `현재 위치 · 화 제목`으로 짧게 말한다.
  */
 export const storyLabels = {
+  addEpisode: "에피소드 추가하기",
   /** 카드 뒤에 플린이 덧붙이는 말. 문구가 늘 같아 모델이 쓰지 않는다. */
-  afterCard: "고칠 게 있으면 말해 주세요",
+  afterCard: "바꾸고 싶은 부분이 있으면 말해 주세요.",
   /** 탐색의 필터 칩. 공식 스토리와 내가 만든 것을 함께 보여 준다. */
   allStories: "전체",
   /** 탐색 탭의 이름이자 그 화면의 큰 제목. */
@@ -23,8 +24,12 @@ export const storyLabels = {
   createStory: "스토리 만들기",
   /** 만들기 대화 화면의 제목. */
   createTitle: "스토리 만들기",
-  /** 만드는 동안 `대화 시작하기` 버튼이 알리는 말. */
-  creating: "만드는 중",
+  creationProgress: {
+    cover: "표지를 그리고 있어요",
+    saving: "거의 다 됐어요",
+    script: "대본을 쓰고 있어요",
+  },
+  episodeLimit: "에피소드는 최대 5화까지 넣을 수 있어요",
   /** 상세의 에피소드 목록 제목. */
   episodeList: "에피소드",
   /** 어디서나 화를 번호로 부르는 말. */

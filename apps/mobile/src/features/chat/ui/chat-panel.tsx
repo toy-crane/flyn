@@ -134,7 +134,7 @@ function PlainTextMessage({
 }) {
   // 장면 메시지는 화자 순서대로 자르고, 그 밖의 메시지는 지금까지처럼 텍스트
   // 하나로 읽는다. 복사도 같은 갈림을 따라서, 장면은 화자 이름이 살아 있는
-  // 각본으로 복사된다.
+  // 대본으로 복사된다.
   const scene = useMemo(
     () => (message.role === "assistant" ? sceneOfMessage(message) : undefined),
     [message]
@@ -428,6 +428,7 @@ function Composer({
           onContentSizeChange={onResize}
           onSubmitEditing={onSend}
           placeholder={placeholder}
+          placeholderTextColorClassName="accent-muted"
           ref={inputRef}
           returnKeyType="send"
           style={{ height: inputHeight, maxHeight: maxInputHeight }}
@@ -456,6 +457,7 @@ function Composer({
 
 export function ChatPanel({
   banner,
+  canCompose = true,
   canSaveUtterances = true,
   canStop = true,
   cast,
@@ -476,6 +478,8 @@ export function ChatPanel({
    * reserved for it and the messages start right under the header.
    */
   banner?: ReactNode;
+  /** 별도 서버 작업 중에도 대화 목록과 초안은 유지하되 전송을 막는다. */
+  canCompose?: boolean;
   /**
    * 이 대화의 대사를 담아 둘 수 있는지.
    *
@@ -564,7 +568,7 @@ export function ChatPanel({
   const motionGeneration = useRef(0);
   const userMomentum = useRef<true | undefined>(undefined);
   const userScrollStart = useRef<number | undefined>(undefined);
-  const canSend = chat.draft.trim().length > 0 && !chat.isBusy;
+  const canSend = canCompose && chat.draft.trim().length > 0 && !chat.isBusy;
   const composerBottomPadding = Math.max(insets.bottom, 12);
   const hasBanner = banner !== undefined && banner !== null;
   // 토스트가 띠 바로 밑에서 나오려면 띠가 실제로 차지한 높이를 알아야 한다.
@@ -891,7 +895,7 @@ export function ChatPanel({
         */
         isArriving={isBusy && index === messageCount - 1}
         isDoomed={doomedFromIndex >= 0 && index >= doomedFromIndex}
-        /* 각본이 쓴 도입은 첫 메시지 하나뿐이다. */
+        /* 대본이 쓴 도입은 첫 메시지 하나뿐이다. */
         isFirst={index === 0}
         isWaiting={isAnswerLate && index === messageCount - 1}
         MessageAddon={messageAddon}

@@ -42,7 +42,7 @@ describe("sceneOfMessage", () => {
 });
 
 describe("sceneCopyText", () => {
-  test("화자를 각본의 줄 머리로 되살린다", () => {
+  test("화자를 대본의 줄 머리로 되살린다", () => {
     expect(
       sceneCopyText([
         { name: null, text: "국물 김이 오른다." },

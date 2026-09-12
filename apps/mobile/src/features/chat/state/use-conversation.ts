@@ -79,7 +79,8 @@ export function useConversation(
   chat: UseChatHelpers<UIMessage>,
   drafts: ChatDrafts,
   accessToken: string | undefined,
-  prepareMessage?: (text: string) => string
+  prepareMessage?: (text: string) => string,
+  requestLock?: { current: boolean }
 ): ChatSession {
   const [requestError, setRequestError] = useState<Error | undefined>();
   const {
@@ -109,29 +110,34 @@ export function useConversation(
     stop,
   } = chat;
   const isBusy = status === "submitted" || status === "streaming";
-  const sending = useRef(false);
+  const localSending = useRef(false);
+  // 카드 저장 등 대화 밖의 요청도 같은 잠금을 확인할 수 있다.
+  const sending = requestLock ?? localSending;
 
   // Every path that reaches the server reports the same way: a rejected
   // request becomes the one error the screen shows, and the guard against a
   // second request in the same frame is released either way.
-  const runRequest = useCallback((request: Promise<void>) => {
-    sending.current = true;
-    setRequestError(undefined);
+  const runRequest = useCallback(
+    (request: Promise<void>) => {
+      sending.current = true;
+      setRequestError(undefined);
 
-    request
-      .catch((cause: unknown) => {
-        setRequestError(
-          cause instanceof Error ? cause : new Error(String(cause))
-        );
-      })
-      .finally(() => {
-        sending.current = false;
-      });
-  }, []);
+      request
+        .catch((cause: unknown) => {
+          setRequestError(
+            cause instanceof Error ? cause : new Error(String(cause))
+          );
+        })
+        .finally(() => {
+          sending.current = false;
+        });
+    },
+    [sending]
+  );
 
   const canStartRequest = useCallback(
     () => Boolean(currentToken.current) && !(isBusy || sending.current),
-    [isBusy]
+    [isBusy, sending]
   );
 
   const send = useCallback(() => {

@@ -95,7 +95,7 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
   const { fontScale } = useWindowDimensions();
   if (name === null) {
     /*
-      각본이 쓴 도입의 서술과, 모델이 형식을 어겨 보낸 이름 없는 줄은 다른
+      대본이 쓴 도입의 서술과, 모델이 형식을 어겨 보낸 이름 없는 줄은 다른
       것이다. 앞의 것만 장면 서술의 모양을 받는다. 뒤의 것은 지금까지의 작은
       회색 줄로 두어 내용을 잃지 않게 하고, 그 처리는 별도 결정으로 정한다.
     */
@@ -171,12 +171,12 @@ export function SceneMessage({
   canSaveUtterances?: boolean;
   /** 이 화에 서는 인물의 스토리 안 순서. 이름표 색이 여기서 나온다. */
   cast?: ReadonlyMap<string, number>;
-  /** 복사가 클립보드에 넣을 각본. 화자 이름이 살아 있는 쪽이다. */
+  /** 복사가 클립보드에 넣을 대본. 화자 이름이 살아 있는 쪽이다. */
   copyText: string;
   hasActions: boolean;
   /** 이 장면이 아직 흐르는 중이다. 마지막 답변에만 참이 된다. */
   isArriving?: boolean;
-  /** 대화의 첫 메시지. 각본이 쓴 도입이라 장면 서술이 여기에만 있다. */
+  /** 대화의 첫 메시지. 대본이 쓴 도입이라 장면 서술이 여기에만 있다. */
   isFirst?: boolean;
   messageId: string;
   onRegenerate: () => void;
@@ -201,7 +201,7 @@ export function SceneMessage({
             }
             isArriving={isArriving}
             /*
-              장면 서술은 각본이 쓰고 한 화에 하나뿐이다. 첫 메시지에서 아직
+              장면 서술은 대본이 쓰고 한 화에 하나뿐이다. 첫 메시지에서 아직
               아무도 말하지 않은 동안의 이름 없는 줄만 그 자리다.
             */
             isOpening={isFirst && spoken < 0}

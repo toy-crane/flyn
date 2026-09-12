@@ -206,17 +206,43 @@ export async function judgeExpression({
   if (!trimmed) {
     return { messageId, status: "unclear" };
   }
-  const { object } = await generateObject({
-    abortSignal: signal,
-    maxRetries: 0,
-    messages: [
-      ...context,
-      { content: `확인할 문장:\n${trimmed}`, role: "user" },
-    ],
-    model,
-    schema: correctionSchema,
-    system: correctionSystemPrompt(),
-  });
+  const messages: ModelMessage[] = [
+    ...context,
+    { content: `확인할 문장:\n${trimmed}`, role: "user" },
+  ];
+  const generate = (input: ModelMessage[], repairInstruction = "") =>
+    generateObject({
+      abortSignal: signal,
+      maxRetries: 0,
+      messages: input,
+      model,
+      schema: correctionSchema,
+      system: `${correctionSystemPrompt()}${repairInstruction}`,
+    });
+  const { object } = await generate(messages);
+  try {
+    return readExpressionResult(object, messageId, trimmed);
+  } catch (error) {
+    // 모델이 만든 모순된 결과만 한 번 고친다. 네트워크 오류는 재호출하지 않고,
+    // 두 호출은 요청이 받은 같은 시간 제한과 취소 신호를 사용한다.
+    signal?.throwIfAborted();
+    const repaired = await generate(
+      [
+        ...messages,
+        { content: JSON.stringify(object), role: "assistant" },
+        { content: `확인할 문장:\n${trimmed}`, role: "user" },
+      ],
+      `\n\n이전 판정은 검사에서 거절됐다: ${error instanceof Error ? error.message : "Invalid expression result."} 마지막 사용자 메시지의 '확인할 문장'을 다시 판정한다. 검사 안내를 번역하거나 교정하지 않는다. 실제로 바꾼 표현만 교정 항목에 담고, 각 조각은 원문과 고친 문장에서 그대로 가져온다. 고칠 말이 없다면 항목을 만들어 내지 말고 natural로 판정한다.`
+    );
+    return readExpressionResult(repaired.object, messageId, trimmed);
+  }
+}
+
+function readExpressionResult(
+  object: CorrectionDraft,
+  messageId: string,
+  trimmed: string
+): ExpressionResult {
   if (
     !(object && Array.isArray(object.entries)) ||
     typeof object.fixed !== "string"

@@ -120,8 +120,8 @@ SELECT results_eq(
   'the first story owns the five authored episodes in order'
 );
 
--- 첫 스토리의 사용자에게 보이는 각본 필드를 같은 순서로 이어 계산한 값이다.
--- 각본 한 글자나 등장인물·결말 기준이 달라져도 실패한다.
+-- 첫 스토리의 사용자에게 보이는 대본 필드를 같은 순서로 이어 계산한 값이다.
+-- 대본 한 글자나 등장인물·결말 기준이 달라져도 실패한다.
 SELECT is(
   (
     select md5(

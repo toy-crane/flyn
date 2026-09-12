@@ -11,22 +11,22 @@ export const COVER_BUCKET = "story-covers";
 /** 표지 모델. 값과 품질은 스펙이 정했고, 여기서는 자리만 둔다. */
 export const COVER_MODEL_ENV = "AI_GATEWAY_IMAGE_MODEL";
 const DEFAULT_COVER_MODEL = "openai/gpt-image-1-mini";
+// 그림 생성과 업로드를 합쳐 서버의 120초 유휴 제한 전에 저장을 계속한다.
+const COVER_TIMEOUT_MS = 60_000;
 
 /**
  * 표지의 모양을 정하는 문구. 스토리마다 바뀌지 않는다.
  *
  * 공식 표지를 보고 적었다. 단색 배경에 상반신 하나, 글자와 로고와 풍경 없음이
  * 공식 표지의 모양이고, 목록의 작은 타일에서 스토리를 알아보게 하는 것도
- * 그 단순함이다. 장소는 옷차림과 손에 든 것으로만 나타나고 배경으로 그리지
- * 않는다.
+ * 그 단순함이다. 상황은 표정과 자세로만 나타낸다.
  */
 const COVER_STYLE = [
   "Anime-inspired digital illustration with soft cel shading and clean lines.",
-  "One flat saturated colour fills the entire frame as the background: no gradient, no floor, no wall, no furniture, no room, no scenery.",
-  "Bust portrait of one adult, centred, facing the viewer, warm and gentle expression.",
-  "They may hold one small object that suits their work.",
+  "One flat background colour: deep navy, terracotta orange, teal, mustard, plum, or forest green. No gradient, no floor, no wall, no furniture, no room, no scenery.",
+  "Bust portrait of exactly one adult filling about two thirds of the frame. Follow the person's expression, pose and camera angle below.",
+  "Keep empty hands; no objects or props.",
   "No text, no letters, no logos, no name tags, no signage.",
-  "The place informs only their clothing and that one object; never draw the place itself.",
 ].join(" ");
 
 /** BlurHash를 만들기 전에 줄이는 한 변. 공식 표지와 같은 크기다. */
@@ -56,9 +56,8 @@ export function resolveCoverModelId(): string {
 /**
  * 이 카드로 그릴 그림을 말하는 문구.
  *
- * 스토리마다 바뀌는 것은 순서 1번 인물의 설명과 장소뿐이다. 사용자가 적은
- * 실제 사람이나 회사 이름은 들어가지 않는다. 이름과 제목과 한 줄 소개가 모두
- * 사용자의 말을 그대로 옮길 수 있는 자리라서, 여기서는 역할 설명만 쓴다.
+ * 스토리마다 바뀌는 것은 개요의 표지용 한 줄뿐이다. 이름, 장소와 역할 설명을
+ * 덧붙이지 않는다. 그 줄은 인터뷰 모델이 중심 인물만 영어로 적는다.
  *
  * 그릴 인물이 없으면 문구를 만들지 않는다. 인물이 없는 카드는 저장에서도
  * 걸리지만 그림은 그보다 먼저 시작한다.
@@ -66,25 +65,20 @@ export function resolveCoverModelId(): string {
 export function coverPrompt(outline: StoryOutline): string | undefined {
   const lead = outline.characters.find((person) => person.position === 1);
 
-  if (!lead?.role.trim()) {
+  if (!(lead && outline.cover.trim())) {
     return;
   }
 
-  const place = outline.setting?.trim();
-
-  return [
-    COVER_STYLE,
-    "",
-    `Person: ${lead.role.trim()}`,
-    place ? `Place: ${place}` : "",
-  ]
-    .join("\n")
-    .trim();
+  return `${COVER_STYLE}\n\nPerson: ${outline.cover.trim()}`;
 }
 
 /** 게이트웨이에 그림 한 장을 받는다. 크기와 품질은 스펙이 정했다. */
-async function drawCover(prompt: string): Promise<Uint8Array> {
+async function drawCover(
+  prompt: string,
+  abortSignal: AbortSignal
+): Promise<Uint8Array> {
   const result = await generateImage({
+    abortSignal,
     model: resolveCoverModelId(),
     n: 1,
     prompt,
@@ -148,18 +142,20 @@ function previewHash(bytes: Uint8Array): string {
  * 그 폴더 밖에는 정책이 넣지 못하게 막는다.
  *
  * 실패하면 아무것도 돌려주지 않는다. 표지가 없는 스토리는 빈 색 상자로 보이고
- * 그것이 스펙이 정한 실패의 모습이다. 여기서 던지면 각본까지 함께 무너진다.
+ * 그것이 스펙이 정한 실패의 모습이다. 여기서 던지면 대본까지 함께 무너진다.
  */
 export async function madeCover({
   bucket,
   draw = drawCover,
   outline,
   ownerId,
+  timeoutMs = COVER_TIMEOUT_MS,
 }: {
   bucket: CoverBucket;
-  draw?: (prompt: string) => Promise<Uint8Array>;
+  draw?: (prompt: string, abortSignal: AbortSignal) => Promise<Uint8Array>;
   outline: StoryOutline;
   ownerId: string;
+  timeoutMs?: number;
 }): Promise<StoryCover | undefined> {
   const prompt = coverPrompt(outline);
 
@@ -167,16 +163,31 @@ export async function madeCover({
     return;
   }
 
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const bytes = await draw(prompt);
+    const deadline = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        reject(new Error("Preparing the story cover timed out."));
+      }, timeoutMs);
+    });
+    // 취소에 응답하지 않는 공급자도 저장을 계속 막지 못하게 한다.
+    const bytes = await Promise.race([
+      draw(prompt, controller.signal),
+      deadline,
+    ]);
     const digest = createHash("sha256").update(bytes).digest("hex");
     const path = `made/${ownerId}/${digest}.png`;
     const blurhash = previewHash(bytes);
-    const { error } = await bucket.upload(path, bytes, {
-      cacheControl: "31536000",
-      contentType: "image/png",
-      upsert: false,
-    });
+    const { error } = await Promise.race([
+      bucket.upload(path, bytes, {
+        cacheControl: "31536000",
+        contentType: "image/png",
+        upsert: false,
+      }),
+      deadline,
+    ]);
 
     /*
       이름이 내용의 해시이므로, 이미 있는 파일은 지금 올리려던 그림과 같은
@@ -189,5 +200,7 @@ export async function madeCover({
     return { blurhash, path };
   } catch {
     // 표지가 없는 스토리는 빈 색 상자로 보인다. 그것이 실패의 모습이다.
+  } finally {
+    clearTimeout(timer);
   }
 }

@@ -50,7 +50,7 @@ export function sceneOfMessage(message: UIMessage): SceneSegment[] | undefined {
   return segments.filter((segment) => segment.text.length > 0);
 }
 
-/** 복사하거나 이어 붙일 때는 화자를 각본의 줄 머리로 되살린다. */
+/** 복사하거나 이어 붙일 때는 화자를 대본의 줄 머리로 되살린다. */
 export function sceneCopyText(segments: SceneSegment[]): string {
   return segments
     .map((segment) =>

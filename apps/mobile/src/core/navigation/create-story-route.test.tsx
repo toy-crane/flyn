@@ -7,7 +7,7 @@ import CreateStoryRoute from "../../../app/story/create";
 const mockRefresh = jest.fn();
 
 jest.mock("expo-router", () => ({
-  router: { back: jest.fn(), push: jest.fn() },
+  router: { back: jest.fn(), push: jest.fn(), replace: jest.fn() },
 }));
 
 jest.mock("@/features/auth/state/auth-session", () => ({
@@ -47,16 +47,17 @@ beforeEach(() => {
   1화 아래에 남는 것이 탐색뿐이어야 한다. 만들던 대화가 사이에 끼면 1화에서 뒤로
   갈 때 이미 끝난 대화로 돌아간다.
 */
-test("저장이 끝나면 만들기 화면을 닫고 그 위에 1화를 연다", async () => {
+test("저장이 끝나면 만들기 화면을 스토리 상세로 바꾼다", async () => {
   await render(<CreateStoryRoute />);
   const user = userEvent.setup();
 
   await user.press(screen.getByLabelText("만들기 끝"));
 
-  expect(router.back).toHaveBeenCalled();
-  expect(router.push).toHaveBeenCalledWith({
-    params: { episodeId: "episode-1", storyId: "story-1" },
-    pathname: "/episode",
+  expect(router.back).not.toHaveBeenCalled();
+  expect(router.push).not.toHaveBeenCalled();
+  expect(router.replace).toHaveBeenCalledWith({
+    params: { storyId: "story-1" },
+    pathname: "/story/[storyId]",
   });
 });
 

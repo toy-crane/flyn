@@ -219,7 +219,7 @@ create table public.characters (
   -- 공식 스토리를 실수로 지우는 것을 막는 일은 스토리를 바깥에서 가리키는
   -- 회차와 저장한 표현이 맡는다. 그 둘은 행이 생긴 뒤에만 막으므로, 아무도
   -- 플레이하지 않은 스토리는 `delete from public.stories` 한 문장에 인물과
-  -- 각본까지 함께 사라진다. 그 문장을 쓸 수 있는 것은 소유자와 `service_role`
+  -- 대본까지 함께 사라진다. 그 문장을 쓸 수 있는 것은 소유자와 `service_role`
   -- 뿐이고 앱에는 그 길이 없다.
   story_id uuid not null references public.stories (id) on delete cascade,
   name text not null,
@@ -241,10 +241,10 @@ create table public.characters (
   )
 );
 
--- 사람이 쓴 각본 한 편. 번호는 스토리 안의 순서이고, 참조에는 안정된 id를 쓴다.
+-- 사람이 쓴 대본 한 편. 번호는 스토리 안의 순서이고, 참조에는 안정된 id를 쓴다.
 create table public.episodes (
   id uuid primary key default gen_random_uuid(),
-  -- `characters.story_id`와 같은 이유로 함께 지운다. 각본은 스토리의 일부다.
+  -- `characters.story_id`와 같은 이유로 함께 지운다. 대본은 스토리의 일부다.
   story_id uuid not null references public.stories (id) on delete cascade,
   number smallint not null,
   title text not null,
@@ -661,7 +661,7 @@ create table public.saved_expressions (
   -- 그대로 보이지 않으므로 영어 키를 쓴다.
   kind text not null,
   -- 이 표현이 나온 화. 카드가 스토리 제목과 화 번호를 여기서 읽는다. 플레이가
-  -- 아니라 각본을 가리키므로 회차를 지워도 출처 표시가 남는다.
+  -- 아니라 대본을 가리키므로 회차를 지워도 출처 표시가 남는다.
   -- `story_plays.story_id`와 같은 이유로 확인을 문장 끝으로 미룬다.
   episode_id uuid not null references public.episodes (id)
     on delete no action deferrable initially deferred,
@@ -747,7 +747,7 @@ create unique index saved_expressions_one_per_source_idx
 create index saved_expressions_user_id_created_at_idx
   on public.saved_expressions (user_id, created_at desc);
 
--- 한 화를 다시 열 때 그 화에서 담은 것을 모아 읽고, 각본을 지울 때 도는 조회도
+-- 한 화를 다시 열 때 그 화에서 담은 것을 모아 읽고, 대본을 지울 때 도는 조회도
 -- 함께 받는다.
 create index saved_expressions_episode_id_idx
   on public.saved_expressions (episode_id);

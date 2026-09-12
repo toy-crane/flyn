@@ -1,16 +1,20 @@
 import { beforeEach, expect, jest, test } from "@jest/globals";
-import { screen, userEvent, waitFor } from "@testing-library/react-native";
+import { act, screen, userEvent, waitFor } from "@testing-library/react-native";
 import type { UIMessage } from "ai";
 import { Alert } from "react-native";
 
+import type { ChatSession } from "@/features/chat/state/use-conversation";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { CreateStoryScreen } from "./create-story-screen";
 
 const mockOutline = {
   characters: [{ name: "Lena", position: 1, role: "호텔 프런트 직원." }],
+  cover:
+    "A woman in her thirties, dark bob, navy uniform, attentive, close-up, head tilted, teal background",
   episodes: [
     {
       cast: ["Lena"],
+      details: "예약 확인 메일을 갖고 직원에게 방을 요청한다.",
       number: 1,
       preview: "밤늦게 도착했는데 제 예약이 없대요.",
       title: "예약이 없는 호텔",
@@ -42,7 +46,14 @@ const mockMessages = [
 ] as unknown as UIMessage[];
 
 const mockSaveStory =
-  jest.fn<() => Promise<{ episodeId: string; storyId: string }>>();
+  jest.fn<
+    (
+      token: string,
+      outline: unknown,
+      onProgress?: (stage: "script" | "cover" | "saving") => void
+    ) => Promise<{ episodeId: string; storyId: string }>
+  >();
+const mockSendMessage = jest.fn<(message: { text: string }) => Promise<void>>();
 
 jest.mock("@/features/story/api/create-story", () => {
   const actual = jest.requireActual(
@@ -52,7 +63,8 @@ jest.mock("@/features/story/api/create-story", () => {
   return {
     ...actual,
     createStoryTransport: () => ({}),
-    saveStory: () => mockSaveStory(),
+    saveStory: (...args: Parameters<typeof mockSaveStory>) =>
+      mockSaveStory(...args),
   };
 });
 
@@ -62,7 +74,7 @@ jest.mock("@ai-sdk/react", () => ({
     error: undefined,
     messages: mockMessages,
     regenerate: jest.fn(),
-    sendMessage: jest.fn(),
+    sendMessage: mockSendMessage,
     setMessages: jest.fn(),
     status: "ready",
     stop: jest.fn(),
@@ -91,7 +103,8 @@ jest.mock("@/shared/navigation/use-screen-arrival", () => ({
 */
 jest.mock("@/features/chat/ui/chat-panel", () => {
   const React = require("react") as typeof import("react");
-  const { View } = require("react-native") as typeof import("react-native");
+  const { View, TextInput, Pressable, Text } =
+    require("react-native") as typeof import("react-native");
 
   const Row = React.memo(
     ({
@@ -109,12 +122,22 @@ jest.mock("@/features/chat/ui/chat-panel", () => {
       chat,
       messageAddon,
     }: {
-      chat: { messages: UIMessage[] };
+      chat: ChatSession;
       messageAddon?: (props: { message: UIMessage }) => React.ReactNode;
     }) =>
       React.createElement(
         View,
         { testID: "create-panel" },
+        React.createElement(TextInput, {
+          accessibilityLabel: "메시지",
+          onChangeText: chat.setDraft,
+          value: chat.draft,
+        }),
+        React.createElement(
+          Pressable,
+          { accessibilityRole: "button", onPress: chat.send },
+          React.createElement(Text, null, "보내기")
+        ),
         messageAddon
           ? chat.messages.map((message) =>
               React.createElement(Row, {
@@ -130,7 +153,60 @@ jest.mock("@/features/chat/ui/chat-panel", () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockSendMessage.mockResolvedValue(undefined);
 });
+
+test.each(["스토리 만들기", "에피소드 추가하기"])(
+  "메시지 전송 상태가 반영되기 전에 %s를 눌러도 요청을 겹치지 않는다",
+  async (action) => {
+    mockSendMessage.mockReturnValue(new Promise(() => undefined));
+    mockSaveStory.mockReturnValue(new Promise(() => undefined));
+    await renderWithHeroUI(<CreateStoryScreen onMade={jest.fn()} />);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("메시지"), "상대는 한 명이에요");
+    // SDK 경계는 ready 상태를 유지해 전송 상태 반영 전의 버튼 동작을 재현한다.
+    await user.press(screen.getByRole("button", { name: "보내기" }));
+    await user.press(screen.getByRole("button", { name: action }));
+
+    expect(mockSendMessage).toHaveBeenCalledTimes(1);
+    expect(mockSaveStory).not.toHaveBeenCalled();
+  }
+);
+
+test("추가 버튼은 의사만 보내고 새 카드가 나올 때까지 두 행동을 막는다", async () => {
+  await renderWithHeroUI(<CreateStoryScreen onMade={jest.fn()} />);
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("button", { name: "에피소드 추가하기" }));
+  expect(mockSendMessage).toHaveBeenCalledWith({
+    text: "에피소드를 하나 더 넣고 싶어요.",
+  });
+  expect(mockSaveStory).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole("button", { name: "에피소드 추가하기" })
+  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "스토리 만들기" })).toBeDisabled();
+});
+
+test.each(["스토리 만들기", "에피소드 추가하기"])(
+  "%s 요청 중에는 메시지를 보내지 않고 입력을 보존한다",
+  async (action) => {
+    mockSendMessage.mockReturnValue(new Promise(() => undefined));
+    mockSaveStory.mockReturnValue(new Promise(() => undefined));
+    await renderWithHeroUI(<CreateStoryScreen onMade={jest.fn()} />);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("메시지"), "상대는 한 명이에요");
+    await user.press(screen.getByRole("button", { name: action }));
+    // 패널의 비활성 표시와 별개로 전송 동작 자체가 막혀야 한다.
+    await user.press(screen.getByRole("button", { name: "보내기" }));
+
+    expect(mockSendMessage).toHaveBeenCalledTimes(
+      action === "에피소드 추가하기" ? 1 : 0
+    );
+    expect(screen.getByLabelText("메시지")).toHaveDisplayValue(
+      "상대는 한 명이에요"
+    );
+  }
+);
 
 /*
   실패한 시도는 아무것도 남기지 않는다. 알림을 닫으면 카드와 대화가 그대로 남아
@@ -164,6 +240,10 @@ test("만들기에 실패하면 시작 실패와 같은 알림을 띄우고 카�
   expect(screen.getByTestId("story-outline-card")).toBeOnTheScreen();
   expect(screen.getByText("베를린 출장 일주일")).toBeOnTheScreen();
   expect(screen.getByTestId("story-outline-start")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "스토리 만들기" })).toBeEnabled();
+  expect(
+    screen.getByText("바꾸고 싶은 부분이 있으면 말해 주세요.")
+  ).toBeOnTheScreen();
 });
 
 // 두 번 눌러도 스토리가 둘 만들어지지 않는다.
@@ -181,8 +261,33 @@ test("만드는 동안 다시 눌러도 한 번만 저장한다", async () => {
   expect(mockSaveStory).toHaveBeenCalledTimes(1);
 });
 
+test.each([
+  { label: "대본을 쓰고 있어요", stage: "script" },
+  { label: "표지를 그리고 있어요", stage: "cover" },
+  { label: "거의 다 됐어요", stage: "saving" },
+] as const)("$stage 단계는 버튼 안에만 표시한다", async ({ stage, label }) => {
+  mockSaveStory.mockImplementation((_token, _outline, progress) => {
+    progress?.(stage);
+    return new Promise(() => undefined);
+  });
+  await renderWithHeroUI(<CreateStoryScreen onMade={jest.fn()} />);
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "스토리 만들기" }));
+  const button = screen.getByRole("button", { name: label });
+  expect(button).toBeBusy();
+  expect(button).toBeDisabled();
+  expect(button).toContainElement(screen.getByText(label));
+  expect(
+    screen.queryByText("바꾸고 싶은 부분이 있으면 말해 주세요.")
+  ).not.toBeOnTheScreen();
+});
+
 test("만드는 동안 버튼이 진행 중임을 알린다", async () => {
-  mockSaveStory.mockReturnValue(new Promise(() => undefined));
+  mockSaveStory.mockImplementation((_token, _outline, progress) => {
+    progress?.("cover");
+    return new Promise(() => undefined);
+  });
 
   await renderWithHeroUI(<CreateStoryScreen onMade={jest.fn()} />);
 
@@ -191,8 +296,14 @@ test("만드는 동안 버튼이 진행 중임을 알린다", async () => {
   await user.press(screen.getByTestId("story-outline-start"));
 
   await waitFor(() => {
-    expect(screen.getByText("만드는 중")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "표지를 그리고 있어요" })
+    ).toBeBusy();
   });
+  expect(screen.getByText("표지를 그리고 있어요")).toBeOnTheScreen();
+  expect(
+    screen.queryByText("바꾸고 싶은 부분이 있으면 말해 주세요.")
+  ).not.toBeOnTheScreen();
 });
 
 test("저장이 끝나면 만든 스토리를 넘긴다", async () => {
@@ -215,4 +326,21 @@ test("저장이 끝나면 만든 스토리를 넘긴다", async () => {
       storyId: "story-1",
     });
   });
+});
+
+test("생성 중 화면을 나가면 늦게 도착한 결과로 이동하지 않는다", async () => {
+  let complete!: (made: { episodeId: string; storyId: string }) => void;
+  mockSaveStory.mockReturnValue(
+    new Promise((resolve) => {
+      complete = resolve;
+    })
+  );
+  const onMade = jest.fn();
+  const view = await renderWithHeroUI(<CreateStoryScreen onMade={onMade} />);
+  await userEvent.setup().press(screen.getByTestId("story-outline-start"));
+  await view.unmount();
+  await act(() => {
+    complete({ episodeId: "episode-1", storyId: "story-1" });
+  });
+  expect(onMade).not.toHaveBeenCalled();
 });

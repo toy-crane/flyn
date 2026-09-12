@@ -13,7 +13,7 @@
 -- Functions are the exception and are revoked one by one in 50-functions.sql:
 -- Revoke both PUBLIC and direct API-role grants before restoring allowed calls.
 
--- 스토리와 각본. 로그인한 사람은 공식 콘텐츠와 자기가 만든 스토리를 읽을 수
+-- 스토리와 대본. 로그인한 사람은 공식 콘텐츠와 자기가 만든 스토리를 읽을 수
 -- 있지만, 어느 쪽도 앱이 바꾸지는 못한다.
 --
 -- 만든 스토리를 저장하는 것은 `create_story`다. 그 함수가 네 테이블을 한

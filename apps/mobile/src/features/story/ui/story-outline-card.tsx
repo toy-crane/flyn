@@ -1,7 +1,8 @@
-import { Text, View } from "react-native";
+import { Text, useWindowDimensions, View } from "react-native";
 
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { Button } from "@/shared/ui/button";
+import { Icon } from "@/shared/ui/icon";
 
 /** 카드에 적힌 인물 한 명. 순서가 곧 이름표 색의 번호다. */
 export interface OutlineCharacter {
@@ -13,14 +14,16 @@ export interface OutlineCharacter {
 /** 카드에 적힌 화 한 줄. */
 export interface OutlineEpisode {
   cast: string[];
+  details: string;
   number: number;
   preview: string;
   title: string;
 }
 
-/** 플린이 내놓은 스토리 개요. 각본은 여기 없다. */
+/** 플린이 내놓은 스토리 개요. 대본은 여기 없다. */
 export interface StoryOutline {
   characters: OutlineCharacter[];
+  cover: string;
   episodes: OutlineEpisode[];
   hook: string;
   /** 이야기가 벌어지는 곳 한 줄. 카드에 그리지 않고 표지 그림이 쓴다. */
@@ -32,50 +35,52 @@ export interface StoryOutline {
  * 플린이 내놓은 스토리 카드.
  *
  * 대화 흐름 안에 놓이고 입력창은 그대로 열려 있다. 사용자가 고칠 것을 말하면
- * 플린이 새 카드를 내놓고, 지난 카드는 대화에 남되 `대화 시작하기`는 붙지
+ * 플린이 새 카드를 내놓고, 지난 카드는 대화에 남되 행동 버튼은 붙지
  * 않는다. 그 버튼이 카드마다 있으면 어느 카드로 만드는지가 흐려진다.
  *
- * 표지 자리는 아직 빈 색 상자다. 그림은 `대화 시작하기` 때 만든다.
+ * 아직 표지가 없으므로 빈 이미지 자리도 두지 않는다.
  */
 export function StoryOutlineCard({
+  isDisabled,
   isStarting,
+  onAdd,
   onStart,
   outline,
+  progress,
 }: {
+  isDisabled?: boolean;
   /** 만드는 중인지. 진행을 보여 주는 동안 같은 요청을 다시 시작하지 못한다. */
   isStarting?: boolean;
+  onAdd?: () => void;
   /** 가장 최근 카드에만 온다. 없으면 버튼을 그리지 않는다. */
   onStart?: () => void;
   outline: StoryOutline;
+  progress?: string;
 }) {
+  const { fontScale } = useWindowDimensions();
+  const startLabel = isStarting
+    ? (progress ?? storyLabels.creationProgress.script)
+    : storyLabels.createStory;
   return (
     <View
       className="w-full gap-3.5 rounded-2xl bg-surface p-4"
+      key={fontScale}
       testID="story-outline-card"
     >
-      <View className="flex-row items-center gap-3">
-        {/* 표지가 없는 동안의 자리. 만든 표지가 들어오면 이 상자가 그림이 된다. */}
-        <View
-          accessibilityElementsHidden
-          className="size-16 shrink-0 rounded-[14px] bg-accent-soft"
-          importantForAccessibility="no-hide-descendants"
-          testID="story-outline-cover"
-        />
-        <View className="flex-1">
-          <Text
-            accessibilityRole="header"
-            className="font-semibold text-[17px] text-foreground leading-6"
-            dynamicTypeRamp="headline"
-          >
-            {outline.title}
-          </Text>
-          <Text
-            className="mt-[3px] text-[13px] text-muted leading-[19px]"
-            dynamicTypeRamp="footnote"
-          >
-            {outline.hook}
-          </Text>
-        </View>
+      <View>
+        <Text
+          accessibilityRole="header"
+          className="font-semibold text-[17px] text-foreground leading-6"
+          dynamicTypeRamp="headline"
+        >
+          {outline.title}
+        </Text>
+        <Text
+          className="mt-[3px] text-[13px] text-muted leading-[19px]"
+          dynamicTypeRamp="footnote"
+        >
+          {outline.hook}
+        </Text>
       </View>
 
       <View className="gap-1 border-border border-t pt-3">
@@ -100,7 +105,7 @@ export function StoryOutlineCard({
         {outline.episodes.map((episode) => (
           <View className="flex-row gap-1.5" key={episode.number}>
             <Text
-              className="w-8 font-semibold text-[12px] text-muted leading-[18px]"
+              className="min-w-8 shrink-0 font-semibold text-[12px] text-muted leading-[18px]"
               dynamicTypeRamp="caption1"
             >
               {storyLabels.episodeNumber(episode.number)}
@@ -123,15 +128,35 @@ export function StoryOutlineCard({
         ))}
       </View>
 
+      {onAdd ? (
+        <Button
+          accessibilityLabel={storyLabels.addEpisode}
+          isDisabled={isDisabled || isStarting || outline.episodes.length >= 5}
+          onPress={onAdd}
+          startContent={<Icon name="add" />}
+          variant="outline"
+        >
+          {storyLabels.addEpisode}
+        </Button>
+      ) : null}
+      {onAdd && outline.episodes.length >= 5 ? (
+        <Text
+          className="text-center text-[12px] text-muted leading-[18px]"
+          dynamicTypeRamp="caption1"
+        >
+          {storyLabels.episodeLimit}
+        </Text>
+      ) : null}
       {onStart ? (
         <Button
-          accessibilityLabel={storyLabels.start}
+          accessibilityLabel={startLabel}
+          isDisabled={isDisabled}
           isPending={isStarting}
           onPress={onStart}
           testID="story-outline-start"
           variant="primary"
         >
-          {isStarting ? storyLabels.creating : storyLabels.start}
+          {startLabel}
         </Button>
       ) : null}
     </View>
@@ -145,27 +170,40 @@ export function StoryOutlineCard({
  * 한 번 더 다녀와야 하고, 그 사이 카드만 놓인 화면이 잠시 보인다.
  */
 export function StoryOutlineTurn({
+  isDisabled,
   isStarting,
+  onAdd,
   onStart,
   outline,
+  progress,
 }: {
+  isDisabled?: boolean;
   isStarting?: boolean;
+  onAdd?: () => void;
   onStart?: () => void;
   outline: StoryOutline;
+  progress?: string;
 }) {
+  const { fontScale } = useWindowDimensions();
   return (
     <View className="w-full gap-3">
       <StoryOutlineCard
+        isDisabled={isDisabled}
         isStarting={isStarting}
+        onAdd={onAdd}
         onStart={onStart}
         outline={outline}
+        progress={progress}
       />
-      <Text
-        className="px-1 text-[16px] text-foreground leading-6"
-        dynamicTypeRamp="body"
-      >
-        {storyLabels.afterCard}
-      </Text>
+      {isStarting && onStart ? null : (
+        <Text
+          className="px-1 text-[16px] text-foreground leading-6"
+          dynamicTypeRamp="body"
+          key={fontScale}
+        >
+          {storyLabels.afterCard}
+        </Text>
+      )}
     </View>
   );
 }

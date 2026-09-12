@@ -1,18 +1,26 @@
-import { expect, test } from "@jest/globals";
+import { expect, jest, test } from "@jest/globals";
 import type { UIMessage } from "ai";
+
+jest.mock("expo/fetch", () => ({
+  fetch: (...args: Parameters<typeof fetch>) => globalThis.fetch(...args),
+}));
 
 import {
   latestOutline,
   OUTLINE_PART_TYPE,
   outlineOfMessage,
+  saveStory,
 } from "./create-story";
 
 function outline(title: string) {
   return {
     characters: [{ name: "Lena", position: 1, role: "호텔 프런트 직원." }],
+    cover:
+      "A woman in her thirties, dark bob, navy uniform, attentive, close-up, head tilted, teal background",
     episodes: [
       {
         cast: ["Lena"],
+        details: "예약 확인 메일을 갖고 있고 직원에게 방을 요청한다.",
         number: 1,
         preview: "밤늦게 도착했는데 제 예약이 없대요.",
         title: "예약이 없는 호텔",
@@ -45,6 +53,12 @@ function said(id: string, text: string) {
 test("메시지에 실린 카드를 읽는다", () => {
   expect(outlineOfMessage(card("a1", "베를린 출장 일주일"))?.title).toBe(
     "베를린 출장 일주일"
+  );
+});
+
+test("화면에 줄여 보여도 표지와 상세 상황은 저장 요청까지 보존한다", () => {
+  expect(outlineOfMessage(card("a1", "베를린 출장"))).toEqual(
+    outline("베를린 출장")
   );
 });
 
@@ -84,4 +98,41 @@ test("가장 최근 카드를 든 메시지를 가리킨다", () => {
 
 test("카드가 하나도 없으면 빈손이다", () => {
   expect(latestOutline([said("u1", "안녕하세요.")])).toBeUndefined();
+});
+
+test("서버 진행 단계를 읽고 완료 조각에서만 만든 스토리를 반환한다", async () => {
+  const chunks = [
+    { data: { stage: "script" }, type: "data-story-progress" },
+    { data: { stage: "cover" }, type: "data-story-progress" },
+    { data: { stage: "saving" }, type: "data-story-progress" },
+    {
+      data: { episodeId: "episode-1", storyId: "story-1" },
+      type: "data-story-created",
+    },
+  ];
+  const response = new Response(null);
+  Object.defineProperty(response, "body", {
+    value: new ReadableStream({
+      start(controller) {
+        controller.enqueue(
+          new TextEncoder().encode(
+            `${chunks
+              .map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`)
+              .join("")}data: [DONE]\n\n`
+          )
+        );
+        controller.close();
+      },
+    }),
+  });
+  const fetch = jest.spyOn(globalThis, "fetch").mockResolvedValue(response);
+  const progress = jest.fn();
+  try {
+    await expect(
+      saveStory("token", outline("스토리"), progress)
+    ).resolves.toEqual({ episodeId: "episode-1", storyId: "story-1" });
+    expect(progress.mock.calls).toEqual([["script"], ["cover"], ["saving"]]);
+  } finally {
+    fetch.mockRestore();
+  }
 });
