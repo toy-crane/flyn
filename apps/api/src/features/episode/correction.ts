@@ -44,6 +44,23 @@ const CHANGED_NOTATION = /[\p{P}\p{S}\p{C}]|\uFE0E|\uFE0F|\u20E3/u;
 const SPACING = /[\s\u0085]/gu;
 const PROTECTED_SPACING = / {2,}|[^\S ]|\u0085/gu;
 const ORDINARY_SPACING = /^ ?$/;
+const POSSESSIVE_ENDING = /['’]s$/iu;
+const S_CONTRACTION_STEMS = new Set([
+  "he",
+  "she",
+  "it",
+  "that",
+  "this",
+  "there",
+  "here",
+  "what",
+  "who",
+  "where",
+  "when",
+  "why",
+  "how",
+  "let",
+]);
 const TRAILING_SPACE = /\s$/;
 const WORD = /\p{L}+(?:['’]\p{L}+)*/gu;
 const UPPERCASE = /\p{Lu}/u;
@@ -348,7 +365,7 @@ function keepsWordNotation(original: string, fixed: string): boolean {
   }
   let costs = Array.from({ length: after.length + 1 }, (_, index) => index);
   let valid = costs.map(() => true);
-  for (const { word, spacing } of before) {
+  for (const [originalIndex, { word, spacing }] of before.entries()) {
     const nextCosts = [(costs[0] ?? 0) + 1];
     const nextValid = [valid[0] ?? true];
     for (const [index, next] of after.entries()) {
@@ -359,7 +376,14 @@ function keepsWordNotation(original: string, fixed: string): boolean {
       const insert = (nextCosts[index] ?? 0) + 1;
       const best = Math.min(replace, remove, insert);
       // 최소 낱말 편집 경로에서만 표기를 비교한다. 관사 삽입을 치환으로 읽지 않는다.
-      const keepsCase = keepsWordPair(word, replacement, spacing, next.spacing);
+      const keepsCase = keepsWordPair(
+        word,
+        replacement,
+        spacing,
+        next.spacing,
+        originalIndex,
+        index
+      );
       nextCosts.push(best);
       nextValid.push(
         (replace === best && !!valid[index] && keepsCase) ||
@@ -388,10 +412,16 @@ function notationWords(text: string) {
   };
 }
 
-function keepsSpacing(original: string, fixed: string): boolean {
+function keepsSpacing(
+  original: string,
+  fixed: string,
+  boundaryShift = false
+): boolean {
   return (
     original === fixed ||
-    (ORDINARY_SPACING.test(original) && ORDINARY_SPACING.test(fixed))
+    (boundaryShift &&
+      ORDINARY_SPACING.test(original) &&
+      ORDINARY_SPACING.test(fixed))
   );
 }
 
@@ -403,19 +433,28 @@ function keepsWordPair(
   original: string,
   fixed: string,
   originalSpacing: string,
-  fixedSpacing: string
+  fixedSpacing: string,
+  originalIndex: number,
+  fixedIndex: number
 ): boolean {
   return (
     (original === "I" ||
       fixed === "I" ||
       wordCase(original) === wordCase(fixed)) &&
     keepsWordApostrophe(original, fixed) &&
-    keepsSpacing(originalSpacing, fixedSpacing)
+    keepsSpacing(
+      originalSpacing,
+      fixedSpacing,
+      (originalIndex === 0 || fixedIndex === 0) && originalIndex !== fixedIndex
+    )
   );
 }
 
 function keepsWordApostrophe(original: string, fixed: string): boolean {
   if (plainWord(original) !== plainWord(fixed)) {
+    if (plainWord(original).endsWith("s") && plainWord(fixed).endsWith("s")) {
+      return possessiveEnding(original) === possessiveEnding(fixed);
+    }
     return true;
   }
   const before = original.toLowerCase();
@@ -427,6 +466,17 @@ function keepsWordApostrophe(original: string, fixed: string): boolean {
     DISTINCT_APOSTROPHE_WORDS.get(after.replace(/’/g, "'")) ===
       before.replace(/’/g, "'")
   );
+}
+
+function possessiveEnding(word: string): string {
+  const ending = word.match(POSSESSIVE_ENDING)?.[0];
+  if (
+    !ending ||
+    S_CONTRACTION_STEMS.has(word.slice(0, -ending.length).toLowerCase())
+  ) {
+    return "";
+  }
+  return ending;
 }
 
 function wordCase(word: string): string {
