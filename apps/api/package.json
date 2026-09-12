@@ -8,6 +8,7 @@
     "check-types": "tsc --noEmit",
     "dev": "BUN_PORT=3901 bun run --hot src/index.ts",
     "eval:ask": "bun eval/ask.ts",
+    "eval:correction": "bun eval/correction.ts",
     "fix": "ultracite fix .",
     "test": "bun test"
   },
