@@ -1967,6 +1967,15 @@ describe("메시지별 표현 확인 API", () => {
     ["She goed and he goed", "She went and he went", "goed", "went"],
     ["He has a apple", "He has an apple", "a apple", "an apple"],
     ["Its raining", "It's raining", "Its", "It's"],
+    ["Well go home", "We'll go home", "Well", "We'll"],
+    ["She dont wants it", "She doesnt want it", "dont wants", "doesnt want"],
+    ["She don't want it", "She doesn't want it", "don't", "doesn't"],
+    [
+      "I goed home, then left",
+      "I went home, then left",
+      "goed home, then",
+      "went home, then",
+    ],
   ])(
     "표현 조각이 겹치거나 반복돼도 해당 자리만 고친 결과를 저장한다: %s",
     async (original, fixed, before, after) => {
@@ -2012,6 +2021,38 @@ describe("메시지별 표현 확인 API", () => {
             },
           ],
           fixed: "I went home.",
+          status: "corrected",
+        }),
+      });
+      expect((await app.request(request())).status).toBe(500);
+      expect(state.expressionResults).toHaveLength(0);
+    }
+  );
+  test.each([
+    ["She dont wants it", "She doesn't want it", "dont wants", "doesn't want"],
+    [
+      "I goed home, then left",
+      "I went, home then left",
+      "goed home, then",
+      "went, home then",
+    ],
+  ])(
+    "항목에 섞인 아포스트로피 추가와 쉼표 이동은 저장하지 않는다: %s",
+    async (original, fixed, before, after) => {
+      const state = createSeasonState();
+      state.messages.push(stored(original));
+      const app = createApp({
+        authMiddleware: signedInWith(state),
+        model: createMockModel([], {
+          entries: [
+            {
+              fixed: after,
+              original: before,
+              pattern: "expression",
+              why: "이 표현을 써요.",
+            },
+          ],
+          fixed,
           status: "corrected",
         }),
       });

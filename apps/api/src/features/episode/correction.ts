@@ -40,7 +40,18 @@ export interface CorrectionDraft {
 }
 
 const KOREAN = /[가-힣ㄱ-ㅎㅏ-ㅣ]/;
-const SENTENCE_PUNCTUATION = /[.!?,]/g;
+const CHANGED_NOTATION = /[.!?,'’";:\r\n\t]| {2,}/;
+const DISTINCT_APOSTROPHE_WORDS = new Map([
+  ["its", "it's"],
+  ["well", "we'll"],
+  ["ill", "i'll"],
+  ["hell", "he'll"],
+  ["shell", "she'll"],
+  ["wed", "we'd"],
+  ["were", "we're"],
+  ["cant", "can't"],
+  ["wont", "won't"],
+]);
 
 /**
  * 사용자가 한국어로 썼는지.
@@ -228,11 +239,7 @@ export async function judgeExpression({
     }
   }
   if (!isKoreanText(trimmed)) {
-    const keepsPunctuation = entries.every(
-      (entry) =>
-        (entry.original.match(SENTENCE_PUNCTUATION) ?? []).join("") ===
-        (entry.fixed.match(SENTENCE_PUNCTUATION) ?? []).join("")
-    );
+    const keepsPunctuation = entries.every(keepsEntryNotation);
     if (!(keepsPunctuation && onlyReplacesEntries(trimmed, fixed, entries))) {
       throw new Error("Expression result changes notation.");
     }
@@ -248,6 +255,43 @@ export async function judgeExpression({
     messageId,
     status: "corrected",
   };
+}
+
+/** 최소 표현 조각의 앞뒤 표기는 그대로 두고, 바뀐 부분만 확인한다. */
+function keepsEntryNotation(entry: CorrectionEntry): boolean {
+  const { original, fixed } = entry;
+  const withoutApostrophe = (value: string) => value.replace(/['’]/g, "");
+  const before = original.toLowerCase().replace(/’/g, "'");
+  const after = fixed.toLowerCase().replace(/’/g, "'");
+  if (
+    withoutApostrophe(original) === withoutApostrophe(fixed) &&
+    (DISTINCT_APOSTROPHE_WORDS.get(before) === after ||
+      DISTINCT_APOSTROPHE_WORDS.get(after) === before)
+  ) {
+    return true;
+  }
+  let start = 0;
+  let originalEnd = original.length;
+  let fixedEnd = fixed.length;
+  while (
+    start < originalEnd &&
+    start < fixedEnd &&
+    original[start] === fixed[start]
+  ) {
+    start += 1;
+  }
+  while (
+    originalEnd > start &&
+    fixedEnd > start &&
+    original[originalEnd - 1] === fixed[fixedEnd - 1]
+  ) {
+    originalEnd -= 1;
+    fixedEnd -= 1;
+  }
+  return !(
+    CHANGED_NOTATION.test(original.slice(start, originalEnd)) ||
+    CHANGED_NOTATION.test(fixed.slice(start, fixedEnd))
+  );
 }
 
 /** 같은 조각이 여러 번 나와도 실제로 바꾼 자리만 대응시킨다. */
