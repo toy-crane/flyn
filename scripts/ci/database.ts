@@ -9,7 +9,8 @@ function git(...args: string[]): string {
   return result.stdout.toString();
 }
 
-const UPGRADE_PATH = /^supabase\/upgrade-tests\/(\d{14})\//;
+const UPGRADE_PATH =
+  /^supabase\/upgrade-tests\/(\d{14})\/(?:before\.sql|after\.test\.sql)$/;
 const VERSION = /^\d{14}$/;
 const PRESERVATION_FILES = ["before.sql", "after.test.sql"];
 
