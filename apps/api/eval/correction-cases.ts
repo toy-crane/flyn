@@ -1,6 +1,8 @@
+import type { ModelMessage } from "ai";
 import type { CorrectionDraft } from "../src/features/episode/correction";
 
 export interface CorrectionCase {
+  context?: ModelMessage[];
   entries?: { original: string; fixed: string }[];
   fixed?: string;
   korean?: boolean;
@@ -9,6 +11,27 @@ export interface CorrectionCase {
 }
 
 export const CORRECTION_CASES: CorrectionCase[] = [
+  {
+    context: [
+      {
+        content: "아이스 아메리카노를 주문했는데 뜨거운 라테가 나왔어요",
+        role: "user",
+      },
+      {
+        content:
+          "Mia: I’m sorry. Your receipt says iced Americano, so I made the wrong drink. I’ll make a new one now. It will be ready soon.",
+        role: "assistant",
+      },
+      { content: "Thanks sarah. See you tommorow", role: "user" },
+      {
+        content:
+          "Mia: It’s Mia, but no problem. Do you still want the iced Americano?",
+        role: "assistant",
+      },
+    ],
+    name: "대화 문맥에서도 공손함과 표기를 고치지 않음",
+    original: "Yes please, I want the iced americano",
+  },
   { name: "문장 중간 대문자", original: "Hello. what is your name?" },
   { name: "문장 끝 부호 생략", original: "Hello. What is your name" },
   { name: "아포스트로피 생략", original: "I dont like it here" },

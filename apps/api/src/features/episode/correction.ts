@@ -123,6 +123,7 @@ export const correctionSchema = jsonSchema<CorrectionDraft>({
 
 export function correctionSystemPrompt(): string {
   return `사용자의 마지막 문장을 확인하고 JSON만 작성한다. 대화 기록은 뜻과 상황을 파악하는 근거다.
+- 판정 대상과 언어는 마지막의 '확인할 문장'만으로 정한다. 앞서 한국어를 썼어도 마지막 문장이 영어면 영어 교정 규칙을 따른다. 대화 기록의 문장을 다시 번역하거나 교정하지 않는다.
 - 영어는 표현만 확인한다. 표현은 문법, 낱말 선택, 철자 오타다. 같은 표현 실수를 이미 알려 줬거나 앞서 올바르게 썼어도 이번 실수는 교정한다.
 - 표기는 교정하지 않는다. 대소문자(문장 첫 글자, i, 사람 이름 포함), 문장 끝 부호, 쉼표, 띄어쓰기, 다른 낱말이 되지 않는 아포스트로피 생략은 그대로 둔다. dont, im처럼 아포스트로피가 없어도 뜻이 같은 것은 표기다. 표기만 어긋나면 status=natural, fixed=원문 그대로, entries=[], review=null이다.
 - gonna, lol, 이모지, !!! 같은 채팅 말투와 미국식·영국식 철자 차이는 고치지도 지적하지도 않는다.
@@ -133,6 +134,7 @@ export function correctionSystemPrompt(): string {
 - 예: i dont wants it → fixed="i dont want it", entries의 조각은 wants → want 하나. I goed home early → fixed="I went home early", 조각은 goed → went 하나. See you tommorow → fixed="See you tomorrow", 조각은 tommorow → tomorrow 하나. 문장 끝 부호를 붙이지 않는다.
 - 예: Its raining outside → fixed="It's raining outside", 조각은 Its → It's 하나. This is there house → fixed="This is their house", 조각은 there → their 하나. Well go home tomorrow → fixed="We'll go home tomorrow", 조각은 Well → We'll 하나.
 - 영어에 실제 오류가 있으면 status=corrected. 뜻과 올바른 낱말을 유지하고 필요한 부분만 고친다. 이미 자연스러우면 취향 차이로 바꾸지 않고 status=natural, fixed=원문, entries=[]로 쓴다.
+- 문법과 낱말이 맞는 요청은 직설적이어도 natural이다. 더 공손하게, 부드럽게, 격식 있게 바꾸는 것은 교정이 아니다. 원하는 것을 말하는 동사를 공손한 요청 구문으로 바꾸지 않는다. 인물의 반응은 태도를 다룰 수 있지만 이 판정은 예절을 가르치지 않는다.
 - 한국어 또는 한국어와 영어가 섞인 문장은 status=corrected로 같은 뜻의 자연스러운 영어 문장 하나를 제안한다. 이미 자연스러운 영어 부분은 가능하면 유지한다. 한국어는 틀린 영어가 아니다. 각 why는 반드시 핵심 영어 표현과 그 한국어 뜻을 짧게 연결한다. 예: ‘집에 가다’는 head home이라고 해요. 한국어 안내의 why에는 문법 용어, 어순 규칙이나 오류 설명을 넣지 않는다.
 - 문맥으로도 뜻을 알 수 없으면 status=unclear, fixed="", entries=[]로 쓴다. 뜻을 만들어 붙이거나 natural로 처리하지 않는다.
 - corrected일 때 entries는 비울 수 없다. 모든 고친 표현 자리를 포함한다. original과 fixed 조각은 대소문자까지 각각 원문과 영어 문장에 실제로 있어야 한다. 같은 규칙이어도 다른 자리는 생략하지 않는다. 영어 표기 보존 규칙은 한국어 입력의 영어 안내에는 적용하지 않는다.

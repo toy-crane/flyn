@@ -20,6 +20,7 @@ for (let round = 1; round <= 3; round += 1) {
         abortSignal: AbortSignal.timeout(30_000),
         maxRetries: 0,
         messages: [
+          ...(sample.context ?? []),
           { content: `확인할 문장:\n${sample.original}`, role: "user" },
         ],
         model,
