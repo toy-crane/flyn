@@ -45,6 +45,7 @@ export function StoryOutlineCard({
   onAdd,
   onStart,
   outline,
+  progress,
 }: {
   isDisabled?: boolean;
   /** 만드는 중인지. 진행을 보여 주는 동안 같은 요청을 다시 시작하지 못한다. */
@@ -53,7 +54,11 @@ export function StoryOutlineCard({
   /** 가장 최근 카드에만 온다. 없으면 버튼을 그리지 않는다. */
   onStart?: () => void;
   outline: StoryOutline;
+  progress?: string;
 }) {
+  const startLabel = isStarting
+    ? (progress ?? storyLabels.creationProgress.script)
+    : storyLabels.createStory;
   return (
     <View
       className="w-full gap-3.5 rounded-2xl bg-surface p-4"
@@ -141,14 +146,14 @@ export function StoryOutlineCard({
       ) : null}
       {onStart ? (
         <Button
-          accessibilityLabel={storyLabels.createStory}
+          accessibilityLabel={startLabel}
           isDisabled={isDisabled}
           isPending={isStarting}
           onPress={onStart}
           testID="story-outline-start"
           variant="primary"
         >
-          {storyLabels.createStory}
+          {startLabel}
         </Button>
       ) : null}
     </View>
@@ -184,13 +189,16 @@ export function StoryOutlineTurn({
         onAdd={onAdd}
         onStart={onStart}
         outline={outline}
+        progress={progress}
       />
-      <Text
-        className="px-1 text-[16px] text-foreground leading-6"
-        dynamicTypeRamp="body"
-      >
-        {progress ?? storyLabels.afterCard}
-      </Text>
+      {isStarting && onStart ? null : (
+        <Text
+          className="px-1 text-[16px] text-foreground leading-6"
+          dynamicTypeRamp="body"
+        >
+          {storyLabels.afterCard}
+        </Text>
+      )}
     </View>
   );
 }

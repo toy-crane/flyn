@@ -34,6 +34,9 @@
 
 ## 경계
 
+스토리 만들기의 확정 버튼은 예외로 실제 생성 단계를 버튼 문구에 표시한다. 단계와 실패 시
+복원은 [스토리 만들기](story-creation.md)가 정한다. 다른 버튼의 문구 유지 규칙은 바꾸지 않는다.
+
 - Google, Apple과 이메일 로그인 버튼은 제공자 브랜드 규칙과 동일한 묶음 모양을 소유하는 기존 `SignInButton`을 유지한다. 진행 상태의 의미와 접근성 규칙만 공통 결정에 맞춘다. 이 버튼의 진행 표시는 테마 토큰이 아니라 제공자 브랜드 색을 쓰므로 `LoadingSpinner`를 쓰지 않는다.
 - 프로필 저장은 플랫폼의 헤더 방식을 유지한다. iOS는 `Stack.Toolbar.Button`의 실행 아이콘을, Android는 `Stack.Screen`의 헤더 저장 버튼을 같은 자리의 진행 표시로 바꾼다. Android 헤더는 헤더의 `tintColor`를 받는다. iOS 툴바는 `Stack.Toolbar.View`에 얹은 React Native 뷰라서 tint를 받지 못하므로 다른 자리와 같은 `LoadingSpinner`를 쓴다.
 - `@expo/ui` 화면의 진행 표시는 각 플랫폼이 제공하는 진행 컴포넌트가 그린다. 이를 위해 React Native UI 버튼을 `Host` 안에 넣지 않는다.

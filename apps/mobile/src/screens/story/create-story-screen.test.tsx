@@ -190,6 +190,10 @@ test("만들기에 실패하면 시작 실패와 같은 알림을 띄우고 카�
   expect(screen.getByTestId("story-outline-card")).toBeOnTheScreen();
   expect(screen.getByText("베를린 출장 일주일")).toBeOnTheScreen();
   expect(screen.getByTestId("story-outline-start")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "스토리 만들기" })).toBeEnabled();
+  expect(
+    screen.getByText("바꾸고 싶은 부분이 있으면 말해 주세요.")
+  ).toBeOnTheScreen();
 });
 
 // 두 번 눌러도 스토리가 둘 만들어지지 않는다.
@@ -207,6 +211,28 @@ test("만드는 동안 다시 눌러도 한 번만 저장한다", async () => {
   expect(mockSaveStory).toHaveBeenCalledTimes(1);
 });
 
+test.each([
+  { label: "각본을 쓰고 있어요", stage: "script" },
+  { label: "표지를 그리고 있어요", stage: "cover" },
+  { label: "거의 다 됐어요", stage: "saving" },
+] as const)("$stage 단계는 버튼 안에만 표시한다", async ({ stage, label }) => {
+  mockSaveStory.mockImplementation((_token, _outline, progress) => {
+    progress?.(stage);
+    return new Promise(() => undefined);
+  });
+  await renderWithHeroUI(<CreateStoryScreen onMade={jest.fn()} />);
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "스토리 만들기" }));
+  const button = screen.getByRole("button", { name: label });
+  expect(button).toBeBusy();
+  expect(button).toBeDisabled();
+  expect(button).toContainElement(screen.getByText(label));
+  expect(
+    screen.queryByText("바꾸고 싶은 부분이 있으면 말해 주세요.")
+  ).not.toBeOnTheScreen();
+});
+
 test("만드는 동안 버튼이 진행 중임을 알린다", async () => {
   mockSaveStory.mockImplementation((_token, _outline, progress) => {
     progress?.("cover");
@@ -220,7 +246,9 @@ test("만드는 동안 버튼이 진행 중임을 알린다", async () => {
   await user.press(screen.getByTestId("story-outline-start"));
 
   await waitFor(() => {
-    expect(screen.getByRole("button", { name: "스토리 만들기" })).toBeBusy();
+    expect(
+      screen.getByRole("button", { name: "표지를 그리고 있어요" })
+    ).toBeBusy();
   });
   expect(screen.getByText("표지를 그리고 있어요")).toBeOnTheScreen();
   expect(
