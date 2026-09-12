@@ -226,6 +226,11 @@ export async function judgeExpression({
       entries.push(entry);
     }
   }
+  if (
+    !(isKoreanText(trimmed) || onlyReplacesEntries(trimmed, fixed, entries))
+  ) {
+    throw new Error("Expression result changes text outside its entries.");
+  }
   return {
     correction: {
       entries,
@@ -237,6 +242,55 @@ export async function judgeExpression({
     messageId,
     status: "corrected",
   };
+}
+
+/** 같은 조각이 여러 번 나와도 실제로 바꾼 자리만 대응시킨다. */
+function onlyReplacesEntries(
+  original: string,
+  fixed: string,
+  entries: CorrectionEntry[]
+): boolean {
+  const pending: [number, number][] = [[0, 0]];
+  const seen = new Set<string>();
+  while (pending.length) {
+    const position = pending.pop();
+    if (!position) {
+      break;
+    }
+    let [left, right] = position;
+    const key = `${left}:${right}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    // 모호한 모델 출력 때문에 조합을 끝없이 검사하지 않는다.
+    if (seen.size > 10_000) {
+      return false;
+    }
+    while (left < original.length && right < fixed.length) {
+      const matches = entries.filter(
+        (entry) =>
+          entry.original !== entry.fixed &&
+          original.startsWith(entry.original, left) &&
+          fixed.startsWith(entry.fixed, right)
+      );
+      for (const entry of matches) {
+        pending.push([
+          left + entry.original.length,
+          right + entry.fixed.length,
+        ]);
+      }
+      if (original[left] !== fixed[right]) {
+        break;
+      }
+      left += 1;
+      right += 1;
+    }
+    if (left === original.length && right === fixed.length) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function readReviewContent(
