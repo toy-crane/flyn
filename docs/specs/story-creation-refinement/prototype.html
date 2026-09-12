@@ -334,12 +334,12 @@
       '<div class="card-top"><h2>'+escapeText(card.title)+'</h2><p class="hook">'+escapeText(card.hook)+'</p></div>'+
       '<div class="cast"><p class="cast-label">인물</p><p class="person">Emma · '+escapeText(role)+'</p></div>'+
       '<div class="episodes">'+card.episodes.map((e,i)=>'<div class="episode"><span class="number">'+(i+1)+'화</span><div><h3>'+escapeText(e.title)+'</h3><p class="preview">'+escapeText(e.preview)+'</p></div></div>').join('')+'</div>'+
-      (latest?'<div class="card-actions"><button class="secondary" data-component="Button" type="button" data-add'+(card.episodes.length>=5?' disabled':inactive)+'><span aria-hidden="true">＋ </span>에피소드 추가하기</button>'+(card.episodes.length>=5?'<p class="episode-limit">에피소드는 최대 5화까지 넣을 수 있어요.</p>':'')+'<button class="primary" data-component="Button" type="button" data-create'+inactive+'>스토리 만들기</button></div>':'')+'</article><p class="assistant after-card">고칠 게 있으면 말해 주세요.</p>';
+      (latest?'<div class="card-actions"><button class="secondary" data-component="Button" type="button" data-add'+(card.episodes.length>=5?' disabled':inactive)+'><span aria-hidden="true">＋ </span>에피소드 추가하기</button>'+(card.episodes.length>=5?'<p class="episode-limit">에피소드는 최대 5화까지 넣을 수 있어요.</p>':'')+'<button class="primary" data-component="Button" type="button" data-create'+inactive+'>스토리 만들기</button></div>':'')+'</article><p class="assistant after-card">바꾸고 싶은 부분이 있으면 말해 주세요.</p>';
   }
   function render() {
     const items=activeDemo.slice(0,turns);
     const latestCard=items.findLastIndex(item=>item.card);
-    chatEl.innerHTML='<p class="assistant">어떤 상황을 만들고 싶어요?</p>'+items.map((item,i)=>
+    chatEl.innerHTML='<p class="assistant">어떤 상황에서 영어로 대화해 보고 싶으세요?</p>'+items.map((item,i)=>
       '<p class="user">'+escapeText(item.user)+'</p>'+(item.answer?'<p class="assistant">'+escapeText(item.answer)+'</p>':cardMarkup(item.card,i===latestCard))
     ).join('');
     draftEl.value=activeDemo[turns].user;
