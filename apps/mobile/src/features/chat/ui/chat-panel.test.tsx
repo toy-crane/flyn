@@ -460,7 +460,7 @@ describe("ChatPanel", () => {
       />
     );
 
-    // 첫 메시지의 첫 서술은 각본이 쓴 도입이라 장면 서술 자리에 선다.
+    // 첫 메시지의 첫 서술은 대본이 쓴 도입이라 장면 서술 자리에 선다.
     const opening = screen.getByTestId("chat-scene-opening");
     // 첫 줄은 장소와 시각이라 굵게, 나머지는 한 단계 옅게 선다.
     expect(
@@ -596,7 +596,7 @@ describe("ChatPanel", () => {
     );
   });
 
-  test("장면 복사는 화자 이름이 살아 있는 각본으로 넣는다", async () => {
+  test("장면 복사는 화자 이름이 살아 있는 대본으로 넣는다", async () => {
     const message: UIMessage = {
       id: "assistant-1",
       parts: [

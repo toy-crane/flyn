@@ -2,7 +2,7 @@
  * Accessibility names double as the contract for tests and agent-device.
  * The same table lives in the repository README; change both together.
  *
- * 화의 제목, 예고, 상황 줄은 여기에 없다. 각본은 서버가 소유하고 앱은 받은
+ * 화의 제목, 예고, 상황 줄은 여기에 없다. 대본은 서버가 소유하고 앱은 받은
  * 글을 그대로 보여 준다. 여기 남는 것은 어느 화에서나 같은 말뿐이다.
  */
 export const episodeLabels = {

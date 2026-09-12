@@ -134,7 +134,7 @@ function PlainTextMessage({
 }) {
   // 장면 메시지는 화자 순서대로 자르고, 그 밖의 메시지는 지금까지처럼 텍스트
   // 하나로 읽는다. 복사도 같은 갈림을 따라서, 장면은 화자 이름이 살아 있는
-  // 각본으로 복사된다.
+  // 대본으로 복사된다.
   const scene = useMemo(
     () => (message.role === "assistant" ? sceneOfMessage(message) : undefined),
     [message]
@@ -894,7 +894,7 @@ export function ChatPanel({
         */
         isArriving={isBusy && index === messageCount - 1}
         isDoomed={doomedFromIndex >= 0 && index >= doomedFromIndex}
-        /* 각본이 쓴 도입은 첫 메시지 하나뿐이다. */
+        /* 대본이 쓴 도입은 첫 메시지 하나뿐이다. */
         isFirst={index === 0}
         isWaiting={isAnswerLate && index === messageCount - 1}
         MessageAddon={messageAddon}

@@ -212,7 +212,7 @@ test("만드는 동안 다시 눌러도 한 번만 저장한다", async () => {
 });
 
 test.each([
-  { label: "각본을 쓰고 있어요", stage: "script" },
+  { label: "대본을 쓰고 있어요", stage: "script" },
   { label: "표지를 그리고 있어요", stage: "cover" },
   { label: "거의 다 됐어요", stage: "saving" },
 ] as const)("$stage 단계는 버튼 안에만 표시한다", async ({ stage, label }) => {

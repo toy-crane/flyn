@@ -38,7 +38,7 @@ describe("readStoryOutline", () => {
       readStoryOutline({ outline: { ...card(), cover: undefined } })
     ).toEqual({ problem: "A story needs a cover description." });
   });
-  test("상세 상황이 빠진 카드는 각본 생성을 시작하지 않는다", () => {
+  test("상세 상황이 빠진 카드는 대본 생성을 시작하지 않는다", () => {
     const outline = card();
     expect(
       readStoryOutline({
@@ -86,7 +86,7 @@ describe("readStoryOutline", () => {
   });
 
   /*
-    화당 인물 셋과 스토리당 인물 넷은 데이터베이스가 거절하는 규칙이다. 각본을
+    화당 인물 셋과 스토리당 인물 넷은 데이터베이스가 거절하는 규칙이다. 대본을
     만드는 데 십수 초를 쓰고 저장에서 튕기는 대신, 요청을 받은 자리에서 센다.
   */
   test("한 화에 인물이 넷이면 받지 않는다", () => {
@@ -253,13 +253,13 @@ describe("scriptProblem", () => {
       scriptProblem(written({ episodes: [script({ number: 2 })] }), card())
     ).toBeDefined();
   });
-  test("형식을 지킨 각본은 지나간다", () => {
+  test("형식을 지킨 대본은 지나간다", () => {
     expect(scriptProblem(written())).toBeUndefined();
   });
 
   /*
     도입은 장면 서술 한 덩어리 뒤 대사만이다. 서술이 길어지면 화면의 첫 장면이
-    읽히지 않는 글 덩어리가 되고, 저장한 각본은 고칠 길이 없다.
+    읽히지 않는 글 덩어리가 되고, 저장한 대본은 고칠 길이 없다.
   */
   test("장면 서술이 네 줄이면 저장하지 않는다", () => {
     const long = written({
@@ -296,7 +296,7 @@ describe("scriptProblem", () => {
 });
 
 describe("storyToSave", () => {
-  test("각본 모델이 줄여도 합의한 상세 상황은 플레이 무대에 남는다", () => {
+  test("대본 모델이 줄여도 합의한 상세 상황은 플레이 무대에 남는다", () => {
     const saved = storyToSave(card(), written()) as {
       episodes: { stage: string }[];
     };
@@ -316,10 +316,10 @@ describe("storyToSave", () => {
     ).toBe(true);
   });
   /*
-    사용자가 카드에서 본 것과 저장되는 것이 같아야 한다. 각본을 쓰는 모델이
+    사용자가 카드에서 본 것과 저장되는 것이 같아야 한다. 대본을 쓰는 모델이
     제목이나 화 번호를 흘려도 그 자리는 개요가 채운다.
   */
-  test("제목과 화 목록은 카드에서, 각본은 모델에서 온다", () => {
+  test("제목과 화 목록은 카드에서, 대본은 모델에서 온다", () => {
     const saved = storyToSave(
       card(),
       written({
@@ -339,7 +339,7 @@ describe("storyToSave", () => {
     ]);
   });
 
-  test("각본이 인물 설명을 빠뜨리면 카드의 역할 줄을 쓴다", () => {
+  test("대본이 인물 설명을 빠뜨리면 카드의 역할 줄을 쓴다", () => {
     const saved = storyToSave(card(), written({ characters: [] })) as Record<
       string,
       unknown

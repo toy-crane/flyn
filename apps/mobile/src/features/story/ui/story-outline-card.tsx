@@ -19,7 +19,7 @@ export interface OutlineEpisode {
   title: string;
 }
 
-/** 플린이 내놓은 스토리 개요. 각본은 여기 없다. */
+/** 플린이 내놓은 스토리 개요. 대본은 여기 없다. */
 export interface StoryOutline {
   characters: OutlineCharacter[];
   cover: string;

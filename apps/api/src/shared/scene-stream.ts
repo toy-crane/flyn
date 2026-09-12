@@ -60,7 +60,7 @@ const LEADING_INDENT = /^[ \t]+/;
 const SPACE_AFTER_COLON = /^ /;
 
 /**
- * 화자 part를 모델이 읽을 각본의 줄 머리로 되살린다.
+ * 화자 part를 모델이 읽을 대본의 줄 머리로 되살린다.
  *
  * `convertToModelMessages`는 data part를 기본으로 버리므로, 지난 장면에서
  * 누가 무슨 말을 했는지는 이 변환이 없으면 다음 호출에 전달되지 않는다.

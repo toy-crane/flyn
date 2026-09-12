@@ -41,7 +41,7 @@ function baselineScriptSystem(): string {
   const template = source.match(OLD_SYSTEM)?.[1];
   const example = source.match(OLD_EXAMPLE)?.[1];
   if (!(template && example)) {
-    throw new Error("이전 각본 프롬프트를 찾지 못했습니다.");
+    throw new Error("이전 대본 프롬프트를 찾지 못했습니다.");
   }
   return template.replace(EXAMPLE_PLACEHOLDER, example);
 }
@@ -127,7 +127,7 @@ async function run(round: number) {
   const first = object.episodes.find((episode) => episode.number === 1);
   const next = object.episodes.find((episode) => episode.number === 2);
   if (!(first && next)) {
-    throw new Error("각본에 요청한 화가 없습니다.");
+    throw new Error("대본에 요청한 화가 없습니다.");
   }
   for (const word of ["영수증", "영상"]) {
     if (!first.stage.includes(word)) {
@@ -206,17 +206,17 @@ const failed = results.some(
 await writeFile(
   path,
   [
-    "# 각본과 다음 화 대화 평가",
+    "# 대본과 다음 화 대화 평가",
     "",
     `모델: ${model}`,
     `프롬프트: ${baseline ? BASE_REVISION : "현재 작업본"}`,
     `실행: ${new Date().toISOString()}`,
-    `각본 프롬프트 SHA-256: ${createHash("sha256")
+    `대본 프롬프트 SHA-256: ${createHash("sha256")
       .update(system + prompt)
       .digest("hex")}`,
     "기계 검사는 형식, 화 수와 자료 보존만 판정한다. 조건 변경, 결말 선확정, 도움과 설명의 차이는 아래 전문을 읽어 확인해야 한다. 기억은 비교용 고정 입력이며 실제 사용자의 플레이 기록이 아니다.",
     "",
-    "## 각본 입력",
+    "## 대본 입력",
     "```",
     system,
     prompt,

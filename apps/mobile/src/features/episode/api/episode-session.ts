@@ -21,7 +21,7 @@ export interface EpisodeCastMember {
   position: number;
 }
 
-/** 화면이 한 화를 여는 데 필요한 각본 조각. */
+/** 화면이 한 화를 여는 데 필요한 대본 조각. */
 export interface PlayingEpisode {
   cast?: EpisodeCastMember[];
   episodeId: string;

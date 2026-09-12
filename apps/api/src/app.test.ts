@@ -157,7 +157,7 @@ const TEST_EPISODES = [
 /**
  * 스토리가 소유한 인물. 화가 바뀌어도 같은 설명을 쓴다.
  *
- * `position`이 이름표 색의 번호이자 스토리 안의 순서다. 실제 각본처럼 Mia가 1,
+ * `position`이 이름표 색의 번호이자 스토리 안의 순서다. 실제 대본처럼 Mia가 1,
  * Owen이 2로 서서 어느 화에서 읽어도 같은 번호가 나온다.
  */
 const CHARACTER_ID = (position: number) =>
@@ -944,7 +944,7 @@ const MADE_OUTLINE = {
   title: "베를린 출장 일주일",
 };
 
-/** 형식을 지킨 각본 하나. 모델이 돌려주는 값을 대신한다. */
+/** 형식을 지킨 대본 하나. 모델이 돌려주는 값을 대신한다. */
 const WRITTEN_STORY = {
   characters: [{ name: "Lena", persona: "30대 호텔 직원이다.", position: 1 }],
   completionCopy: "호텔부터 미팅까지 영어로 지나왔어요.",
@@ -969,7 +969,7 @@ const WRITTEN_STORY = {
   intro: "첫 해외 출장으로 떠난 베를린에서 보내는 일주일.",
 };
 
-/** 각본을 한 번에 돌려주는 모델. 저장 경로만 시험한다. */
+/** 대본을 한 번에 돌려주는 모델. 저장 경로만 시험한다. */
 function createWritingModel(answer: unknown = WRITTEN_STORY) {
   return new MockLanguageModelV4({
     doGenerate: () =>
@@ -1448,7 +1448,7 @@ describe("POST /ai/episode", () => {
   });
 
   // 어떤 화가 열리는지는 계정의 진행이 정한다. 1화를 끝낸 사람이 에피소드를
-  // 열면 2화의 각본이 나온다.
+  // 열면 2화의 대본이 나온다.
   test("opens the episode the account's progress points at", async () => {
     const state = createSeasonState([
       { ending_kind: "성공", ending_outcome: "새 잔을 받아냈다.", episode: 1 },
@@ -4398,7 +4398,7 @@ describe("POST /ai/episode/stories", () => {
       );
     return parts.find((part) => part.type === "data-story-created")?.data;
   }
-  test("각본 뒤 표지를 기다리는 실제 단계를 보내고 모두 끝난 뒤 저장 결과를 보낸다", async () => {
+  test("대본 뒤 표지를 기다리는 실제 단계를 보내고 모두 끝난 뒤 저장 결과를 보낸다", async () => {
     let finishDrawing: (bytes: Uint8Array) => void = () => undefined;
     const drawing = new Promise<Uint8Array>((resolve) => {
       finishDrawing = resolve;
@@ -4485,7 +4485,7 @@ describe("POST /ai/episode/stories", () => {
     };
   }
 
-  test("각본을 만들어 저장하고 앱이 열 1화를 가리킨다", async () => {
+  test("대본을 만들어 저장하고 앱이 열 1화를 가리킨다", async () => {
     const { app, state } = savingApp();
     const response = await app.request(`${EPISODE_PATH}/stories`, {
       body: JSON.stringify({ outline: MADE_OUTLINE }),
@@ -4501,7 +4501,7 @@ describe("POST /ai/episode/stories", () => {
   });
 
   /*
-    사용자가 카드에서 본 것과 저장되는 것이 같아야 한다. 각본을 쓴 모델이
+    사용자가 카드에서 본 것과 저장되는 것이 같아야 한다. 대본을 쓴 모델이
     제목이나 화 번호를 흘려도 그 자리는 카드가 채운다.
   */
   test("저장 요청은 카드의 제목과 화 목록을 그대로 싣는다", async () => {
@@ -4535,10 +4535,10 @@ describe("POST /ai/episode/stories", () => {
   });
 
   /*
-    화 수와 인물 수는 데이터베이스가 거절하는 규칙이다. 각본을 만드는 데 십수
+    화 수와 인물 수는 데이터베이스가 거절하는 규칙이다. 대본을 만드는 데 십수
     초를 쓰기 전에 요청을 받은 자리에서 거른다.
   */
-  test("규칙을 넘는 개요는 각본을 만들기 전에 돌려보낸다", async () => {
+  test("규칙을 넘는 개요는 대본을 만들기 전에 돌려보낸다", async () => {
     const { app, state } = savingApp();
     const tooMany = {
       ...MADE_OUTLINE,
@@ -4582,10 +4582,10 @@ describe("POST /ai/episode/stories", () => {
   });
 
   /*
-    형식을 어긴 각본은 저장하지 않는다. 한 번 저장한 각본은 고칠 길이 없으므로,
+    형식을 어긴 대본은 저장하지 않는다. 한 번 저장한 대본은 고칠 길이 없으므로,
     장면 서술이 길거나 아무도 말하지 않는 도입은 여기서 막는다.
   */
-  test("장면 서술이 너무 긴 각본은 저장하지 않는다", async () => {
+  test("장면 서술이 너무 긴 대본은 저장하지 않는다", async () => {
     const { app, state } = savingApp(
       createWritingModel({
         ...WRITTEN_STORY,
@@ -4608,7 +4608,7 @@ describe("POST /ai/episode/stories", () => {
   });
 
   /*
-    표지는 각본과 나란히 만든다. 각본이 십수 초, 표지가 십 초쯤이라 보통은
+    표지는 대본과 나란히 만든다. 대본이 십수 초, 표지가 십 초쯤이라 보통은
     표지가 먼저 끝나고, 그때는 1화를 열어 주기 전에 달아 둔다. 탐색으로
     돌아왔을 때 표지가 이미 거기 있으려면 그래야 한다.
   */
@@ -4660,7 +4660,7 @@ describe("POST /ai/episode/stories", () => {
   });
 
   // 저장이 실패하면 붙일 스토리가 없다. 표지도 달지 않는다.
-  test("각본이 실패하면 표지를 달지 않는다", async () => {
+  test("대본이 실패하면 표지를 달지 않는다", async () => {
     const { app, state } = savingApp(
       createWritingModel({
         ...WRITTEN_STORY,

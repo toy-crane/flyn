@@ -20,7 +20,7 @@ const CAST_PER_EPISODE = 3;
 /** 사용자가 요청한 상황 수만큼 만들며 한 화도 허용한다. */
 const EPISODES_PER_STORY = 5;
 
-/** 카드에 적힌 인물 한 명. 설명은 한 줄이고 각본이 이것을 늘려 쓴다. */
+/** 카드에 적힌 인물 한 명. 설명은 한 줄이고 대본이 이것을 늘려 쓴다. */
 export interface OutlineCharacter {
   name: string;
   /** 스토리 안의 순서. 이름표 색의 번호가 된다. 1번이 이야기의 중심 상대다. */
@@ -33,7 +33,7 @@ export interface OutlineCharacter {
 export interface OutlineEpisode {
   /** 이 화에 나오는 인물의 이름. 카드의 인물 안에 있어야 한다. */
   cast: string[];
-  /** 카드에서 생략해도 각본까지 전달하는 목표와 합의한 세부 조건. */
+  /** 카드에서 생략해도 대본까지 전달하는 목표와 합의한 세부 조건. */
   details: string;
   number: number;
   /** 상세의 에피소드 목록에 보이는 상황 설명 한 줄. */
@@ -44,7 +44,7 @@ export interface OutlineEpisode {
 /**
  * 스토리 카드가 보여 주는 개요.
  *
- * 각본은 여기 없다. 사용자가 카드에서 판단하는 것은 개요뿐이고, 각본은
+ * 대본은 여기 없다. 사용자가 카드에서 판단하는 것은 개요뿐이고, 대본은
  * `스토리 만들기`에서 한 번 만든다.
  */
 export interface StoryOutline {
@@ -238,7 +238,7 @@ export function creationSystemPrompt(): string {
 - 이해를 구하고 싶다는 목표를 상대가 이해해 준다는 결과로 바꾸지 않는다. 화해, 도움, 성공과 실패는 실제 플레이에서 정해진다.
 - 다음 화에서는 앞 화의 실제 결과에 따라 인물의 반응, 받을 도움과 대화를 풀 방법이 달라진다. 이 인터뷰에서 그 결과를 만들어 넣거나 플레이 중에 다음 화를 다시 정하도록 안내하지 않는다.
 - 화마다 사건의 크기를 키우거나 상대를 바꾸려 하지 않는다. 사용자가 원한 상황이 다르면 같은 인물과 이어서 대화할 수 있다.
-- 각 화의 구체적인 상황과 목표, 합의한 세부 조건을 도구의 details에 함께 전달한다. 카드에 보이는 한 줄 설명으로 줄이면서 상대의 사정, 가진 자료, 피하고 싶은 상황을 버리지 않는다. 예시의 '상세 상황'은 각본까지 이어져야 하는 이 내용을 뜻한다.
+- 각 화의 구체적인 상황과 목표, 합의한 세부 조건을 도구의 details에 함께 전달한다. 카드에 보이는 한 줄 설명으로 줄이면서 상대의 사정, 가진 자료, 피하고 싶은 상황을 버리지 않는다. 예시의 '상세 상황'은 대본까지 이어져야 하는 이 내용을 뜻한다.
 
 ## 카드의 문구
 
@@ -257,7 +257,7 @@ export function creationSystemPrompt(): string {
 
 ## 예시
 
-아래는 사용자의 뜻을 확인하고 카드와 각본에 보존하는 예다. 문장 순서, 길이, 문단 수를 따르는 틀이 아니며 내용도 베끼지 않는다. 실제 결말의 예가 아니다.
+아래는 사용자의 뜻을 확인하고 카드와 대본에 보존하는 예다. 문장 순서, 길이, 문단 수를 따르는 틀이 아니며 내용도 베끼지 않는다. 실제 결말의 예가 아니다.
 
 ### 예시 1. 비행기의 한 사건만 만들기
 
@@ -348,7 +348,7 @@ function isText(value: unknown): value is string {
  * 앱이 보낸 개요를 읽는다.
  *
  * 카드는 모델이 만들었지만 요청은 앱이 보낸다. 화 수와 인물 수는 데이터베이스가
- * 거절하는 규칙이라, 각본을 만드는 데 시간을 쓰기 전에 여기서 먼저 가린다.
+ * 거절하는 규칙이라, 대본을 만드는 데 시간을 쓰기 전에 여기서 먼저 가린다.
  */
 export function readStoryOutline(
   body: unknown
@@ -450,7 +450,7 @@ export function readStoryOutline(
   };
 }
 
-/** 각본을 만들 때 모델이 채우는 한 화. */
+/** 대본을 만들 때 모델이 채우는 한 화. */
 interface WrittenEpisode {
   castNames: string[];
   endingCompromise: string;
@@ -465,7 +465,7 @@ interface WrittenEpisode {
   title: string;
 }
 
-/** 각본을 만들 때 모델이 채우는 스토리 전체. */
+/** 대본을 만들 때 모델이 채우는 스토리 전체. */
 export interface WrittenStory {
   characters: StoryCharacter[];
   completionCopy: string;
@@ -589,9 +589,9 @@ endingCompromise: 다른 음료나 보상으로 만족하고 정리했을 때
 endingFailure: 잘못 나온 커피를 그대로 든 채 물러났을 때
 </예시 화>`;
 
-/** 각본을 쓰는 자리의 지시. */
+/** 대본을 쓰는 자리의 지시. */
 export function scriptSystemPrompt(): string {
-  return `너는 영어 회화 연습용 상황극 각본을 쓰는 작가다. 한국어 사용자가 영어로 말해서 상황을 풀어 가는 이야기를 쓴다.
+  return `너는 영어 회화 연습용 상황극 대본을 쓰는 작가다. 한국어 사용자가 영어로 말해서 상황을 풀어 가는 이야기를 쓴다.
 
 ${FORMAT_EXAMPLE}
 
@@ -622,7 +622,7 @@ characters가 지켜야 할 것:
 - 사용자가 말한 실제 회사나 사람의 이름을 그대로 옮기지 않는다.`;
 }
 
-/** 확정한 개요를 각본을 쓰는 요청으로 바꾼다. */
+/** 확정한 개요를 대본을 쓰는 요청으로 바꾼다. */
 export function scriptPrompt(outline: StoryOutline): string {
   const people = outline.characters
     .map((person) => `${person.position}. ${person.name} — ${person.role}`)
@@ -634,7 +634,7 @@ export function scriptPrompt(outline: StoryOutline): string {
     )
     .join("\n");
 
-  return `아래 개요대로 각본을 써라.
+  return `아래 개요대로 대본을 써라.
 
 제목: ${outline.title}
 한 줄 소개: ${outline.hook}
@@ -645,7 +645,7 @@ ${chapters}`;
 }
 
 /**
- * 모델이 쓴 각본을 저장 요청으로 바꾼다.
+ * 모델이 쓴 대본을 저장 요청으로 바꾼다.
  *
  * 개요가 이미 정한 값은 개요에서 가져온다. 모델이 제목이나 화 번호를 흘려도
  * 저장되는 것은 사용자가 카드에서 본 그대로다.
@@ -693,7 +693,7 @@ export function storyToSave(
 }
 
 /**
- * 각본이 저장할 만한지 본다.
+ * 대본이 저장할 만한지 본다.
  *
  * 모델 출력이라 형식을 보장하지 않는다. 빈 글이나 장면 서술이 너무 긴 도입이
  * 저장되면 그 화는 영영 그 모습으로 남으므로, 저장 전에 한 번 센다.

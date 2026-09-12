@@ -106,7 +106,7 @@ async function* authoredScene(script: string): AsyncIterable<string> {
  *
  * 새 회차의 첫 장면은 두 번 만들어진다. 한 번은 사용자가 상세에서 들어왔을 때
  * 화면으로 흐르고(그때는 아무것도 저장하지 않는다), 한 번은 사용자가 처음 말해
- * 회차가 생길 때 그 회차의 대화 첫 줄로 저장된다. 첫 장면은 각본에 적힌 글이라
+ * 회차가 생길 때 그 회차의 대화 첫 줄로 저장된다. 첫 장면은 대본에 적힌 글이라
  * 두 번 만들어도 같은 글이 나온다.
  */
 const DISCARDING_WRITER = {
@@ -443,7 +443,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
         return result.toUIMessageStreamResponse();
       })
       /*
-      `대화 시작하기`. 확정한 개요로 각본을 만들고 저장한 뒤 1화를 가리킨다.
+      `대화 시작하기`. 확정한 개요로 대본을 만들고 저장한 뒤 1화를 가리킨다.
 
       저장이 이 시점에 처음 일어난다. 카드가 몇 번 바뀌어도 여기까지 오지
       않으면 어디에도 스토리가 생기지 않는다.
@@ -466,7 +466,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
               data: { stage: "script" },
               type: "data-story-progress",
             });
-            // 각본과 표지는 함께 시작한다. 실패한 표지는 없는 것으로 완료한다.
+            // 대본과 표지는 함께 시작한다. 실패한 표지는 없는 것으로 완료한다.
             let coverDone = false;
             const drawing = madeCover({
               bucket: c.var.supabaseContext.supabase.storage.from(COVER_BUCKET),

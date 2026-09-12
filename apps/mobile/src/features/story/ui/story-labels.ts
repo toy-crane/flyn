@@ -27,7 +27,7 @@ export const storyLabels = {
   creationProgress: {
     cover: "표지를 그리고 있어요",
     saving: "거의 다 됐어요",
-    script: "각본을 쓰고 있어요",
+    script: "대본을 쓰고 있어요",
   },
   episodeLimit: "에피소드는 최대 5화까지 넣을 수 있어요",
   /** 상세의 에피소드 목록 제목. */

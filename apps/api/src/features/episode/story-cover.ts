@@ -136,7 +136,7 @@ function previewHash(bytes: Uint8Array): string {
  * 그 폴더 밖에는 정책이 넣지 못하게 막는다.
  *
  * 실패하면 아무것도 돌려주지 않는다. 표지가 없는 스토리는 빈 색 상자로 보이고
- * 그것이 스펙이 정한 실패의 모습이다. 여기서 던지면 각본까지 함께 무너진다.
+ * 그것이 스펙이 정한 실패의 모습이다. 여기서 던지면 대본까지 함께 무너진다.
  */
 export async function madeCover({
   bucket,
