@@ -327,13 +327,19 @@ function keepsWordCase(original: string, fixed: string): boolean {
   const after: string[] = fixed.match(WORD) ?? [];
   const upper = (word: string) => UPPERCASE.test(word);
   if (before.length === after.length) {
-    return before.every(
-      (word, index) => upper(word) === upper(after[index] ?? "")
-    );
+    return before.every((word, index) => {
+      const replacement = after[index] ?? "";
+      // I는 원래 대문자로 쓰는 별개의 대명사다. me → I는 표기 교정이 아니다.
+      return (
+        word === "I" ||
+        replacement === "I" ||
+        wordCase(word) === wordCase(replacement)
+      );
+    });
   }
   // 관사 삽입처럼 낱말 수가 달라도 첫 낱말의 표기와 기존 이름은 유지한다.
   return (
-    upper(before[0] ?? "") === upper(after[0] ?? "") &&
+    wordCase(before[0] ?? "") === wordCase(after[0] ?? "") &&
     before
       .slice(1)
       .filter(upper)
@@ -343,6 +349,24 @@ function keepsWordCase(original: string, fixed: string): boolean {
       .filter(upper)
       .every((word) => before.includes(word))
   );
+}
+
+function wordCase(word: string): string {
+  if (word === word.toLowerCase()) {
+    return "lower";
+  }
+  if (word === word.toUpperCase()) {
+    return "upper";
+  }
+  if (
+    UPPERCASE.test(word[0] ?? "") &&
+    word.slice(1) === word.slice(1).toLowerCase()
+  ) {
+    return "title";
+  }
+  return Array.from(word)
+    .flatMap((letter, index) => (UPPERCASE.test(letter) ? [index] : []))
+    .join(":");
 }
 
 /** 같은 조각이 여러 번 나와도 실제로 바꾼 자리만 대응시킨다. */
