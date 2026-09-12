@@ -42,6 +42,8 @@ export interface CorrectionDraft {
 const KOREAN = /[가-힣ㄱ-ㅎㅏ-ㅣ]/;
 const CHANGED_NOTATION = /[.!?,'’";:\r\n\t]| {2,}/;
 const TRAILING_SPACE = /\s$/;
+const WORD = /\p{L}+(?:['’]\p{L}+)*/gu;
+const UPPERCASE = /\p{Lu}/u;
 const DISTINCT_APOSTROPHE_WORDS = new Map([
   ["its", "it's"],
   ["well", "we'll"],
@@ -300,8 +302,7 @@ function keepsEntryNotation(entry: CorrectionEntry): boolean {
   }
   const changedOriginal = original.slice(start, originalEnd);
   const changedFixed = fixed.slice(start, fixedEnd);
-  const uppercase = (value: string) => (value.match(/\p{Lu}/gu) ?? []).join("");
-  if (uppercase(changedOriginal) !== uppercase(changedFixed)) {
+  if (!keepsWordCase(original, fixed)) {
     return false;
   }
   // 같은 뒷말에 다른 표현을 붙일 때 그 사이의 공백을 없애지 않는다.
@@ -318,6 +319,29 @@ function keepsEntryNotation(entry: CorrectionEntry): boolean {
   return !(
     CHANGED_NOTATION.test(changedOriginal) ||
     CHANGED_NOTATION.test(changedFixed)
+  );
+}
+
+function keepsWordCase(original: string, fixed: string): boolean {
+  const before: string[] = original.match(WORD) ?? [];
+  const after: string[] = fixed.match(WORD) ?? [];
+  const upper = (word: string) => UPPERCASE.test(word);
+  if (before.length === after.length) {
+    return before.every(
+      (word, index) => upper(word) === upper(after[index] ?? "")
+    );
+  }
+  // 관사 삽입처럼 낱말 수가 달라도 첫 낱말의 표기와 기존 이름은 유지한다.
+  return (
+    upper(before[0] ?? "") === upper(after[0] ?? "") &&
+    before
+      .slice(1)
+      .filter(upper)
+      .every((word) => after.includes(word)) &&
+    after
+      .slice(1)
+      .filter(upper)
+      .every((word) => before.includes(word))
   );
 }
 
