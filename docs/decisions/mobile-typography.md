@@ -8,7 +8,7 @@
 - React Native UI는 공통 역할을 크기, 행간, 굵기와 `dynamicTypeRamp`에 매핑하되 `fontFamily`를 지정하지 않고 시스템 글자 크기 확대를 유지한다.
 - React Native UI의 텍스트 역할 층은 HeroUI Native의 `Typography`다. 앱은 별도 텍스트 래퍼나 역할 상수를 만들지 않고 `type`으로 역할을 고른다. `Typography`는 type마다 크기, 행간, 굵기와 `dynamicTypeRamp`를 함께 정하고, `Heading`은 접근성 헤더 역할을 붙인다.
 - 화면 코드는 `Text`나 `Typography`에 `text-*`, `leading-*`, `font-*` 클래스와 인라인 크기를 직접 쓰지 않는다. 색은 className으로 지정할 수 있다. 역할의 값을 바꿔야 하면 `apps/mobile/global.css`에서 해당 `Typography` 클래스를 한 번 재정의한다.
-- `Typography`의 크기, 행간, 굵기, 자간은 HeroUI 기본값을 그대로 쓴다. 본문 행간 28을 포함해 지금은 아무것도 재정의하지 않는다. 앱 역할과 type의 대응은 다음과 같다.
+- `Typography`의 크기, 행간, 굵기, 자간은 HeroUI 기본값을 그대로 쓴다. `Typography` 클래스는 본문 행간 28을 포함해 지금 아무것도 재정의하지 않는다. 버튼과 펼침 카드 트리거의 global.css 재정의 두 개는 [모바일 컴포넌트 선택](mobile-component-selection.md)이 정하며 글자 값이 아니다. 앱 역할과 type의 대응은 다음과 같다.
 
 | 앱 역할 | `Typography` type | 비고 |
 | --- | --- | --- |

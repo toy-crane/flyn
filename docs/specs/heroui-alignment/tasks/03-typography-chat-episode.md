@@ -22,7 +22,7 @@ None.
 
 ## Constraints
 
-- 이 task는 `features/chat`, `features/episode`, `screens/episode` 화면만 다룬다.
+- 이 task는 `features/chat`, `features/episode`, `screens/episode` 화면과, 실패 줄과 진행 표시의 줄 높이를 정하는 공용 파일 `shared/ui/status-line.tsx`, `shared/ui/progress-metrics.ts`만 다룬다. 이 두 파일은 배울 표현 재시도 테스트가 값을 검사하므로 04가 아니라 여기서 바꾼다.
 - 대화 중 배울 표현의 한 줄과 카드, 실패 줄, 메시지 아래 아이콘 줄, 상황 줄, 결말 카드의 구조는 바꾸지 않는다. 글자 역할만 바꾼다.
 - 토스트의 확대 상한과 인라인 줄 높이는 그대로 두되 기준값을 대응표의 값으로 맞춘다.
 - `Typography`의 값을 global.css에서 재정의하지 않는다.
