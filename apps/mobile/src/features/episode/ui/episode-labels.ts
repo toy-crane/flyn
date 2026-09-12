@@ -8,7 +8,7 @@
 export const episodeLabels = {
   /** Not shown: the episode header's back button. */
   back: "뒤로 가기",
-  /** Shown after reading one episode's saved conversation takes one second. */
+  /** Not shown: the name of the indicator standing in for the conversation. */
   conversationLoading: "대화를 불러오고 있어요.",
   /** Shown when one episode's saved conversation could not be read. */
   conversationUnavailable: "대화를 불러오지 못했어요.",
