@@ -278,14 +278,6 @@ function keepsEntryNotation(entry: CorrectionEntry): boolean {
   }
   const original = entry.original.replace(INTERNAL_APOSTROPHE, "");
   const fixed = entry.fixed.replace(INTERNAL_APOSTROPHE, "");
-  const before = entry.original.toLowerCase().replace(/’/g, "'");
-  const after = entry.fixed.toLowerCase().replace(/’/g, "'");
-  if (original === fixed) {
-    return (
-      DISTINCT_APOSTROPHE_WORDS.get(before) === after ||
-      DISTINCT_APOSTROPHE_WORDS.get(after) === before
-    );
-  }
   // 활용형을 바꾸며 생략했던 부호를 복원하지 않는다. 낱말 자체가 다른
   // your/you're, their/they're, whose/who's는 이 생략 규칙에 포함되지 않는다.
   if (
@@ -316,7 +308,7 @@ function keepsEntryNotation(entry: CorrectionEntry): boolean {
   }
   const changedOriginal = original.slice(start, originalEnd);
   const changedFixed = fixed.slice(start, fixedEnd);
-  if (!keepsWordCase(original, fixed)) {
+  if (!keepsWordNotation(entry.original, entry.fixed)) {
     return false;
   }
   // 같은 뒷말에 다른 표현을 붙일 때 그 사이의 공백을 없애지 않는다.
@@ -336,7 +328,7 @@ function keepsEntryNotation(entry: CorrectionEntry): boolean {
   );
 }
 
-function keepsWordCase(original: string, fixed: string): boolean {
+function keepsWordNotation(original: string, fixed: string): boolean {
   const before: string[] = original.match(WORD) ?? [];
   const after: string[] = fixed.match(WORD) ?? [];
   if ((before.length + 1) * (after.length + 1) > 10_000) {
@@ -348,16 +340,13 @@ function keepsWordCase(original: string, fixed: string): boolean {
     const nextCosts = [(costs[0] ?? 0) + 1];
     const nextValid = [valid[0] ?? true];
     for (const [index, replacement] of after.entries()) {
-      const sameWord = word.toLowerCase() === replacement.toLowerCase();
+      const sameWord = plainWord(word) === plainWord(replacement);
       const replace = (costs[index] ?? 0) + (sameWord ? 0 : 1);
       const remove = (costs[index + 1] ?? 0) + 1;
       const insert = (nextCosts[index] ?? 0) + 1;
       const best = Math.min(replace, remove, insert);
       // 최소 낱말 편집 경로에서만 표기를 비교한다. 관사 삽입을 치환으로 읽지 않는다.
-      const keepsCase =
-        word === "I" ||
-        replacement === "I" ||
-        wordCase(word) === wordCase(replacement);
+      const keepsCase = keepsWordPair(word, replacement);
       nextCosts.push(best);
       nextValid.push(
         (replace === best && !!valid[index] && keepsCase) ||
@@ -369,6 +358,34 @@ function keepsWordCase(original: string, fixed: string): boolean {
     valid = nextValid;
   }
   return valid[after.length] ?? false;
+}
+
+function plainWord(word: string): string {
+  return word.replace(INTERNAL_APOSTROPHE, "").toLowerCase();
+}
+
+function keepsWordPair(original: string, fixed: string): boolean {
+  return (
+    (original === "I" ||
+      fixed === "I" ||
+      wordCase(original) === wordCase(fixed)) &&
+    keepsWordApostrophe(original, fixed)
+  );
+}
+
+function keepsWordApostrophe(original: string, fixed: string): boolean {
+  if (plainWord(original) !== plainWord(fixed)) {
+    return true;
+  }
+  const before = original.toLowerCase();
+  const after = fixed.toLowerCase();
+  return (
+    before === after ||
+    DISTINCT_APOSTROPHE_WORDS.get(before.replace(/’/g, "'")) ===
+      after.replace(/’/g, "'") ||
+    DISTINCT_APOSTROPHE_WORDS.get(after.replace(/’/g, "'")) ===
+      before.replace(/’/g, "'")
+  );
 }
 
 function wordCase(word: string): string {

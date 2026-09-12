@@ -2052,6 +2052,12 @@ describe("메시지별 표현 확인 API", () => {
     ["Thanks sarah", "Thanks Sarah", "sarah", "Sarah"],
     ["Yes  I agree", "Yes I agree", "Yes  I", "Yes I"],
     ["I goed home", "I Went home", "goed", "Went"],
+    [
+      "I goed to Alexs house",
+      "I went to Alex's house",
+      "goed to Alexs",
+      "went to Alex's",
+    ],
     ["I goed (home)", "I went home", "goed (home)", "went home"],
     ["See you TOMMOROW", "See you Tomorrow", "TOMMOROW", "Tomorrow"],
     ["iPhnoe works", "Iphone works", "iPhnoe", "Iphone"],
