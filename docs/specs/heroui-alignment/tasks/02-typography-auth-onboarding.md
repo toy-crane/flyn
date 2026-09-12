@@ -25,7 +25,7 @@ None.
 
 ## Verification
 
-- 위 세 폴더에 대한 `grep -rnE "text-\[|text-(xs|sm|base|lg|[0-9]?xl)|leading-\[|leading-[0-9]|font-(bold|semibold|medium|extrabold)"`가 로그인 버튼의 예외를 빼고 0건이다.
+- 위 세 폴더에 대한 `grep -rnE "text-\[|text-(xs|sm|base|lg|[0-9]?xl)|leading-\[|leading-[0-9]|font-[a-z]"`가 로그인 버튼의 예외를 빼고 0건이다.
 - `bun run check`와 모바일 `bun run test`가 통과하고, 크기 클래스를 검사하던 테스트는 역할 `type`을 검사한다.
 - 기기 확인: `xcrun simctl ui <udid> content_size accessibility-extra-extra-extra-large`(iOS)와 `adb shell settings put system font_scale 2.0`(Android)로 바꾼 뒤 앱을 완전히 닫고 다시 시작해 일곱 화면(로그인 방법, 이메일, 코드, 닉네임, 아이디, 프로필을 불러오지 못한 화면, 설정이 필요한 화면)을 밝은·어두운 모드로 찍는다. 통과 조건은 잘림과 겹침이 없는 것이다.
 - `agent-device` 접근성 트리에서 화면 안 제목이 헤더 역할이다.
