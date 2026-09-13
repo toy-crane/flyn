@@ -66,6 +66,6 @@
 - 복원 중 Android가 빈 화면에 머물렀다. 앱 재실행만으로 돌아오지 않았지만 이 worktree의 Metro에서 번들을 다시 읽은 뒤 홈과 프로필이 열렸다. 원인은 확인하지 못했으며 제품 오류로 단정하지 않는다. 마지막에는 두 기기에서 로그아웃하고 `agent-device` 세션을 닫았다. API 3951과 Metro 8132는 실행 상태로 남겼다.
 - 별도로 표현 교정 한 건이 실패했다. [후속 확인](../../../../docs/follow-ups/episode-correction-invalid-entry.md)에 입력과 API 오류를 남겼다. 런타임 오류가 전혀 없었다고 판정하지 않는다.
 
-화면 근거는 [evidence 폴더](../../../../docs/specs/story-creation-refinement/evidence/)에 있다. `flyn-story-episode2-memory.png`는 실제 기억 반영, `flyn-story-completed.png`는 완주, `flyn-story-card-largest-settled.png`는 글자 잘림, `flyn-android-failure-restored.png`는 실패 뒤 복원이다.
+화면 근거는 [evidence 폴더](../../../../docs/follow-ups/evidence/story-creation-refinement/)에 있다. `flyn-story-episode2-memory.png`는 실제 기억 반영, `flyn-story-completed.png`는 완주, `flyn-story-card-largest-settled.png`는 글자 잘림, `flyn-android-failure-restored.png`는 실패 뒤 복원이다.
 
 **결론**: 두 화 연결의 성공 경로와 주요 화면 동작은 확인했다. 인터뷰 품질, 실시간 글자 크기 변경과 위에 적은 미검증 경로가 남아 전체 완료는 아니다.

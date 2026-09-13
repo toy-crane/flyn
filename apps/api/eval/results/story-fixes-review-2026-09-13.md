@@ -30,7 +30,7 @@
 - 이는 고정 기억 비교다. 서로 다른 결말로 실제 두 회차를 플레이한 증거는 아니다.
   첫 답의 차이만으로 재미를 통과시키지 않는다. 소개·완주 문구의 말투도 일부 흔들린다.
 - iOS 실제 생성 중 situation에 내부 stage 목록이 붙은 사례를 발견했다.
-  [실패 화면](../../../../docs/specs/story-creation-refinement/evidence/flyn-ios-visible-goal-invalid.png).
+  [실패 화면](../../../../docs/follow-ups/evidence/story-creation-refinement/flyn-ios-visible-goal-invalid.png).
   situation은 화면 목표, stage는 모델의 진행 지침이라는 역할을 설명하고, 기존 한 줄
   목표 계약에 어긋나는 출력은 저장 전에 거절한다. 출력이 잘못되면 기존 생성 실패
   경로로 간다. 이미 저장한 테스트 스토리는 자동 수정하거나 삭제하지 않았다.
@@ -77,15 +77,15 @@ natural로 바꾸지 않는다. 저장 범위는 원래 메시지의 표현 결�
   이메일 코드로 로그인했고 기기 초기화나 기존 데이터 삭제는 하지 않았다.
 - iOS에서 사고 카드가 나온 뒤 글자 크기를 large에서 최대 접근성 크기로 변경했다.
   카드의 두 버튼과 아래 안내가 잘리지 않았다. 카드 내부만 다시 만들어 인터뷰를 유지한다.
-  [수정 화면](../../../../docs/specs/story-creation-refinement/evidence/flyn-ios-font-change-fixed.png).
+  [수정 화면](../../../../docs/follow-ups/evidence/story-creation-refinement/flyn-ios-font-change-fixed.png).
 - Android font_scale=2.0에서 카드의 `1화`가 한 줄이고 더하기 아이콘·버튼·본문을 읽을 수
   있었다. 다크 모드로 전환해 입력 안내도 회색으로 보였다.
-  [카드](../../../../docs/specs/story-creation-refinement/evidence/flyn-android-font-dark-fixed.png),
-  [진행 문구](../../../../docs/specs/story-creation-refinement/evidence/flyn-android-progress-fixed.png).
+  [카드](../../../../docs/follow-ups/evidence/story-creation-refinement/flyn-android-font-dark-fixed.png),
+  [진행 문구](../../../../docs/follow-ups/evidence/story-creation-refinement/flyn-android-progress-fixed.png).
 - 두 기기에서 한 화 생성, 상세, 대화, 표현 판정, 종료와 `마지막 이야기까지 함께했어요`를
   확인했다. iOS의 최초 테스트 스토리에는 발견 당시 잘못된 목표가 남아 있다.
 - 목표 검사와 교정 재판정의 최종 수정 뒤 iOS에서 `카페 와이파이`를 새로 생성했다.
-  [새 목표 안내](../../../../docs/specs/story-creation-refinement/evidence/flyn-ios-visible-goal-fixed.png)는
+  [새 목표 안내](../../../../docs/follow-ups/evidence/story-creation-refinement/flyn-ios-visible-goal-fixed.png)는
   내부 무대 없이 표시됐다. 비밀번호를 묻자 Mia가 네트워크 이름과 비밀번호로 답했고
   원문은 natural로 표시됐다. Android의 생성은 목표 검사 추가 전이며, 새 검사가 있는
   최종 생성 경로를 Android에서 다시 실행한 것으로 보지 않는다.
