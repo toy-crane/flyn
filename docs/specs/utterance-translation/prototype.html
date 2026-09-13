@@ -215,10 +215,11 @@
   .meaning-line .chev { color: var(--muted); margin-top: 2px; }
   .meaning-line:focus-visible, .learn-line:focus-visible { outline: 2px solid var(--accent); }
 
-  .meaning-block { max-width: 92%; align-self: flex-start; border-radius: 16px; border-top-right-radius: 6px; background: var(--surface); margin-top: 4px; padding: 10px 14px 6px; }
+  .meaning-block { max-width: 92%; align-self: flex-start; border-radius: 16px; border-top-right-radius: 6px; background: var(--surface); margin-top: 4px; padding: 10px 14px 2px; }
   .meaning-block .row { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 20px; color: var(--foreground); }
   .meaning-block .row svg { width: 16px; height: 16px; flex: none; color: var(--muted); margin-top: 2px; }
-  .meaning-block .ask-link { display: inline-flex; align-items: center; gap: 2px; margin: 4px 0 0 24px; padding: 6px 0; border: 0; background: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; }
+  /* 공용 Button의 ghost 변형 sm 크기. 높이 40px와 좌우 30px 여백은 HeroUI 기본값이고, 글자가 뜻과 같은 24px 자리에서 시작하도록 6px만 왼쪽으로 당긴다. */
+  .meaning-block .ask-link { display: inline-flex; align-items: center; gap: 2px; min-height: 40px; margin: 0 0 0 -6px; padding: 0 30px; border: 0; border-radius: 999px; background: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; }
   .meaning-block .ask-link svg { width: 14px; height: 14px; }
   .meaning-block .ask-link:focus-visible { outline: 2px solid var(--accent); border-radius: 4px; }
   .meaning-card { max-width: 85%; align-self: flex-start; border-radius: 16px; border-top-right-radius: 6px; padding: 12px 14px; background: var(--surface); margin-top: 4px; }
@@ -308,7 +309,7 @@
         </div>
 
         <!-- 첫 장면의 대사. 회차가 없을 때는 복사와 번역만 선다. -->
-        <div class="utterance" data-utterance="u0" data-original="Next in line, please!" data-meaning="다음 손님, 오세요!" data-answer="미아가 줄에 선 다음 손님을 부르는 말이에요. 아직 내 커피가 잘못 나온 걸 모르고 있어요.&#10;&#10;Next in line은 줄에서 다음 차례라는 뜻이고, please를 붙여 가볍게 부르는 거예요. 지금 말을 걸지 않으면 다음 손님 차례로 넘어가니, 짧게라도 먼저 부르면 돼요.&#10;&#10;Excuse me, I think this is the wrong drink.">
+        <div class="utterance" data-utterance="u0" data-original="Next in line, please!" data-meaning="다음 손님, 오세요!" data-answer="미아가 줄에 선 다음 손님을 부르는 말이에요. 아직 내 커피 이야기는 나오지 않았어요.&#10;&#10;Next in line은 줄에서 다음 차례라는 뜻이고, please를 붙여 가볍게 부르는 거예요. 지금 말을 걸지 않으면 다음 손님 차례로 넘어가니, 짧게라도 먼저 부르면 돼요.&#10;&#10;Excuse me, I think this is the wrong drink.">
           <div class="cast-name">Mia</div>
           <div class="bubble cast">Next in line, please!</div>
           <div class="icon-row">
