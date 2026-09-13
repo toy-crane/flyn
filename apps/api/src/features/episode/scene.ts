@@ -4,7 +4,7 @@ import {
   type UIMessage,
   type UIMessageStreamWriter,
 } from "ai";
-import { EPISODE_ENDINGS } from "./episode";
+import { EPISODE_ENDINGS } from "./episode.js";
 import type { EpisodeScript } from "./story";
 
 export interface EpisodeScene {
