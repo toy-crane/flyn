@@ -13,6 +13,7 @@ import {
 } from "ai";
 import { Hono, type MiddlewareHandler } from "hono";
 
+import { keepWorking } from "../../shared/keep-working.js";
 import { resolveModelId } from "../../shared/model-id.js";
 import {
   logRequestAbort,
@@ -801,7 +802,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
                   body.meaning
                 );
           // 클라이언트가 나가도 서버가 결과를 저장한다. 요청의 취소 신호를 넘기지 않는다.
-          dependencies.waitUntil?.(work.catch(() => undefined));
+          keepWorking(dependencies.waitUntil, work);
           const meaning = await work;
           return c.json({
             meaning,
@@ -950,7 +951,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           const work = Promise.resolve(draftWork).then((draft) =>
             draft ? saveExpression(client, draft) : undefined
           );
-          dependencies.waitUntil?.(work.catch(() => undefined));
+          keepWorking(dependencies.waitUntil, work);
           const saved = await work;
           if (!saved) {
             return c.json({ error: "Expression is unavailable." }, 404);
