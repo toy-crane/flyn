@@ -1,3 +1,4 @@
+import { LinkButton } from "heroui-native/link-button";
 import { useCallback } from "react";
 import { Text, View } from "react-native";
 import {
@@ -8,7 +9,6 @@ import {
   type UtteranceSource,
   useMeaningView,
 } from "@/features/episode/state/utterance-meanings";
-import { Button } from "@/shared/ui/button";
 import { castTone } from "@/shared/ui/cast-tone";
 import { Icon } from "@/shared/ui/icon";
 import { IconRowButton } from "@/shared/ui/icon-row";
@@ -97,16 +97,17 @@ export function UtteranceMeaningLine({
           {state.meaning}
         </Text>
       </View>
-      <Button
+      <LinkButton
         accessibilityLabel={labels.ask}
-        className="-ml-1.5 self-start"
-        labelClassName="text-accent text-xs"
+        className="ml-6 min-h-11 gap-0.5 self-start"
         onPress={askAboutMeaning}
         size="sm"
-        variant="ghost"
       >
-        {`${labels.ask} ›`}
-      </Button>
+        <LinkButton.Label className="text-accent text-xs">
+          {labels.ask}
+        </LinkButton.Label>
+        <Icon name="forward" size="xs" tone="accent" />
+      </LinkButton>
     </View>
   );
 }
