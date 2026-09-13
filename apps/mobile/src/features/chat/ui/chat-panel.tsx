@@ -68,6 +68,18 @@ export { chatLabels } from "./chat-labels";
 
 const INPUT_MAX_HEIGHT = 120;
 const INPUT_MIN_HEIGHT = 48;
+
+function minimumInputHeight(fontScale: number) {
+  // Android 200%에서는 빈 입력칸 안내가 두 줄이다. 글이 없을 때는
+  // onContentSizeChange가 그 높이를 알려 주지 않아 둘째 줄이 잘린다.
+  const emptyInputLines =
+    Platform.OS === "android" && fontScale >= 1.75 ? 2 : 1;
+  return Math.max(
+    INPUT_MIN_HEIGHT,
+    Math.ceil(24 * fontScale * emptyInputLines + 20)
+  );
+}
+
 const KEYBOARD_INPUT_GAP = 8;
 const LATEST_OVERLAY_HEIGHT = 60;
 const USER_SCROLL_THRESHOLD = 24;
@@ -547,10 +559,7 @@ export function ChatPanel({
 }) {
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
-  const minInputHeight = Math.max(
-    INPUT_MIN_HEIGHT,
-    Math.ceil(24 * fontScale + 20)
-  );
+  const minInputHeight = minimumInputHeight(fontScale);
   const maxInputHeight = Math.max(INPUT_MAX_HEIGHT, minInputHeight);
   const isReducedMotion = useReducedMotion();
   const keyboardHeight = useKeyboardState((state) => state.height);
