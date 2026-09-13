@@ -600,6 +600,7 @@
   const askInput = document.getElementById('ask-input');
   const askSend = document.getElementById('ask-send');
   const asks = {}; // 대사마다 대화 하나
+  const drafts = {}; // 대사마다 쓰다 만 초안
   let askFor = null;
 
   function openAsk(u) {
@@ -607,12 +608,13 @@
     document.getElementById('src-original').textContent = u.dataset.original;
     document.getElementById('src-meaning').textContent = u.dataset.meaning;
     thread.innerHTML = asks[askFor] || '';
-    askInput.value = '';
-    askSend.classList.remove('ready');
+    // 같은 대사에서 다시 열면 나눈 말과 쓰던 초안이 그대로 있다.
+    askInput.value = drafts[askFor] || '';
+    askSend.classList.toggle('ready', askInput.value.trim().length > 0);
     overlay.hidden = false;
     setTimeout(() => askInput.focus(), 50);
   }
-  overlay.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', () => { overlay.hidden = true; }));
+  overlay.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', () => { drafts[askFor] = askInput.value; overlay.hidden = true; }));
   askInput.addEventListener('input', () => askSend.classList.toggle('ready', askInput.value.trim().length > 0));
   function sendAsk() {
     const q = askInput.value.trim();
@@ -626,6 +628,7 @@
     thread.insertAdjacentHTML('beforeend', mine + answer);
     asks[askFor] = thread.innerHTML;
     askInput.value = '';
+    drafts[askFor] = '';
     askSend.classList.remove('ready');
     thread.lastElementChild.scrollIntoView({ block: 'end' });
   }
