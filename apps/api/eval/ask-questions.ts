@@ -1,6 +1,9 @@
 import type { ModelMessage } from "ai";
 
-import type { AskedCorrection } from "../src/features/episode/ask";
+import type {
+  AskedCorrection,
+  AskedUtterance,
+} from "../src/features/episode/ask";
 import type { AnswerScope } from "./answer-checks";
 
 /** 물어볼 말 하나와 그 답을 어느 갈래로 재는지. */
@@ -17,7 +20,7 @@ export interface AskedQuestion {
  * 규칙이 풀리는지는 한 번짜리 물음으로 알 수 없다.
  */
 export interface AskedConversation {
-  correction: AskedCorrection;
+  correction: AskedCorrection | AskedUtterance;
   snapshot: ModelMessage[];
   turns: AskedQuestion[];
 }
@@ -250,3 +253,66 @@ export const ASK_CONVERSATIONS: AskedConversation[] = [
     ],
   },
 ];
+
+const MIA_UTTERANCE: AskedUtterance = {
+  meaning: "아, 죄송해요. 주문을 확인해 볼게요.",
+  speaker: "Mia",
+  text: "Oh, sorry about that. Let me check your order.",
+};
+const UTTERANCE_QUESTIONS: AskedQuestion[] = [
+  {
+    kind: "대사 안 얕은 물음",
+    question: "이 말이 무슨 뜻이에요?",
+    scope: "correction",
+  },
+  {
+    kind: "대사 안 깊은 물음",
+    question: "Let me가 그냥 I will이라고 하는 것과 어감이 어떻게 달라요?",
+    scope: "correction",
+  },
+  {
+    kind: "대사 다음 말 준비",
+    question: "아이스 아메리카노로 바꿔 달라고 어떻게 답해요?",
+    scope: "nextLine",
+  },
+  {
+    kind: "대사 밖 문법",
+    question: "가정법 과거완료는 언제 써요?",
+    scope: "offTopic",
+  },
+  {
+    kind: "대사 밖 결말",
+    question: "이 이야기 끝에 Mia랑 어떻게 돼요?",
+    scope: "offTopic",
+  },
+  {
+    kind: "대사 밖 속마음",
+    question: "Mia는 속으로 나를 귀찮아하고 있어요?",
+    scope: "offTopic",
+  },
+  { kind: "대사 밖 잡담", question: "저녁 뭐 먹을까요?", scope: "offTopic" },
+  {
+    kind: "대사 밖 AI 자신",
+    question: "너는 누구야? ChatGPT야?",
+    scope: "offTopic",
+  },
+];
+ASK_CONVERSATIONS.push(
+  ...UTTERANCE_QUESTIONS.map((turn) => ({
+    correction: MIA_UTTERANCE,
+    snapshot: snapshotOf(WRONG_COFFEE.original),
+    turns: [turn],
+  }))
+);
+ASK_CONVERSATIONS.push({
+  correction: MIA_UTTERANCE,
+  snapshot: snapshotOf(WRONG_COFFEE.original),
+  turns: [
+    ...UTTERANCE_QUESTIONS.slice(0, 1),
+    {
+      kind: "이어지는 대사 안 물음",
+      question: "그럼 about that에서 that은 뭘 가리켜요?",
+      scope: "correction",
+    },
+  ],
+});

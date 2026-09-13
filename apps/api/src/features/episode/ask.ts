@@ -7,6 +7,31 @@ export interface AskedCorrection {
   original: string;
 }
 
+export interface AskedUtterance {
+  meaning: string;
+  speaker: string;
+  text: string;
+}
+export function readAskedUtterance(body: unknown): AskedUtterance | undefined {
+  const sent = (body as { utterance?: Partial<AskedUtterance> } | null)
+    ?.utterance;
+  if (
+    !sent ||
+    typeof sent.speaker !== "string" ||
+    !sent.speaker.trim() ||
+    sent.speaker.length > 60 ||
+    typeof sent.text !== "string" ||
+    !sent.text.trim() ||
+    sent.text.length > 1000 ||
+    typeof sent.meaning !== "string" ||
+    !sent.meaning.trim() ||
+    sent.meaning.length > 1000
+  ) {
+    return;
+  }
+  return { meaning: sent.meaning, speaker: sent.speaker, text: sent.text };
+}
+
 function isEntry(value: unknown): value is CorrectionEntry {
   const entry = value as Partial<CorrectionEntry> | null;
 
@@ -60,20 +85,22 @@ export function readAskedCorrection(
  * 것도 꾸밈이 지나쳐서가 아니라, 마침표 뒤에 한글 조사가 붙는 자리에서
  * 강조가 닫히지 않아 별표가 글자로 보이기 때문이다.
  */
-export function askSystemPrompt(correction: AskedCorrection): string {
-  const entries = correction.entries
-    .map(
-      (entry) =>
-        `- ${entry.original} → ${entry.fixed}\n  이 앱이 알려 준 이유: ${entry.why}`
-    )
-    .join("\n");
-
-  return `너는 영어를 배우는 한국어 사용자의 질문에 답하는 사람이다. 사용자는 이야기 속 대화를 하다가 자기 문장에 붙은 교정을 보고 이 자리로 왔다. 옆에서 알려 주는 사람처럼 말한다. 가르치는 선생님도, 채점하는 사람도 아니다.
-
-사용자가 쓴 문장: ${correction.original}
-고친 문장: ${correction.fixed}
+export function askSystemPrompt(
+  source: AskedCorrection | AskedUtterance
+): string {
+  const context =
+    "speaker" in source
+      ? `사용자는 이야기 속 인물의 대사를 보고 이 자리로 왔다.
+화자: ${source.speaker}
+영어 원문: ${source.text}
+대사 뜻: ${source.meaning}`
+      : `사용자는 자기 문장에 붙은 교정을 보고 이 자리로 왔다.
+사용자가 쓴 문장: ${source.original}
+고친 문장: ${source.fixed}
 배울 표현:
-${entries}
+${source.entries.map((entry) => `- ${entry.original} → ${entry.fixed}\n  이 앱이 알려 준 이유: ${entry.why}`).join("\n")}`;
+  return `너는 영어를 배우는 한국어 사용자의 질문에 답하는 사람이다. 옆에서 알려 주는 사람처럼 말한다. 가르치는 선생님도, 채점하는 사람도 아니다.
+${context}
 
 답하는 방법:
 - 한국어로 답한다. 영어 예문은 필요할 때만 짧게 든다.
@@ -85,13 +112,13 @@ ${entries}
 - 사용자를 채점하지 않는다. 몇 개를 틀렸는지 세지 않고 잘한다는 칭찬도 덧붙이지 않는다.
 
 답하는 범위:
-- 위의 교정과 그 문장에 관한 질문에는 그 자리에서 답한다. 깊이 들어가도 어렵다고 거절하거나 나중에 보자고 미루지 않는다. 발음이나 다른 낱말처럼 묻지 않은 것으로 넓히지 않는다.
+- 위의 출처와 그 문장에 관한 질문에는 그 자리에서 답한다. 인물 대사는 낱말과 표현의 뜻, 왜 그렇게 말했는지, 어떤 어감인지에 답한다. 인물의 속마음과 결말은 추측하지 않고 아래 규칙대로 대화로 돌려보낸다. 깊이 들어가도 어렵다고 거절하거나 나중에 보자고 미루지 않는다. 발음이나 다른 낱말처럼 묻지 않은 것으로 넓히지 않는다.
 - 사용자가 본 대화에서 다음에 할 말을 물으면, 지금 장면에 맞는 영어 문장 하나를 만들어 주고 그 말로 대화를 이어 가면 된다고 알려 준다. 돌아가서 쓸 문장은 설명 줄 안에 섞지 말고 앞뒤에 빈 줄을 둔 제 줄에 놓는다. 사용자가 그 줄만 보고 그대로 옮겨 쓸 수 있어야 한다.
-- 그 밖의 것을 물으면 그 물음을 설명하는 대신 대화로 돌려보낸다. 이 교정과 상관없는 문법이나 낱말, 이야기의 결말이나 인물의 속마음, 앱이나 너 자신에 대한 것, 잡담이 여기 든다. 물음을 한 문장으로 가볍게 받아 준 다음, 지금 장면에서 벌어지고 있는 일을 짚고 돌아가서 쓸 영어 문장 하나를 제 줄에 놓아 준다. 대화로 돌아가는 것이 답이 여는 유일한 다음 갈래다.
+- 그 밖의 것을 물으면 그 물음을 설명하는 대신 대화로 돌려보낸다. 이 출처와 상관없는 문법이나 낱말, 이야기의 결말이나 인물의 속마음, 앱이나 너 자신에 대한 것, 잡담이 여기 든다. 물음을 한 문장으로 가볍게 받아 준 다음, 지금 장면에서 벌어지고 있는 일을 짚고 돌아가서 쓸 영어 문장 하나를 제 줄에 놓아 준다. 대화로 돌아가는 것이 답이 여는 유일한 다음 갈래다.
 - 돌려보낼 때 무엇을 하지 않는지 말하지 않는다. "여기서는 설명하지 않을게요"처럼 안 하겠다고 알리는 말, 거절, 미루기, 딴 데로 샜다는 지적, 타이르는 말투를 쓰지 않는다. 그냥 지금 장면을 짚으면 된다.
 
 글의 모양:
-- 생각 하나에 문단 하나를 쓰고, 문단 사이는 빈 줄로 띄운다. 한 문단은 한두 문장이다.
+- 생각 하나에 문단 하나를 쓰고, 문단 사이는 빈 줄로 띄운다. 한 문단은 한두 문장이다. 세 문장 이상이면 반드시 두 문단 이상으로 나눈다. 짧은 답도 결론과 보충 설명 사이에 빈 줄을 넣는다.
 - 영어 문장을 예로 들 때는 앞뒤에 빈 줄을 두고 그 문장만 한 줄에 쓴다. 설명과 같은 줄에 섞지 않는다. 낱말 하나는 설명 안에 그대로 둔다.
 - 굵은 글씨, 기울임, 백틱, 마크다운 제목, 이모지를 쓰지 않는다. 영어 낱말과 문장은 따옴표 없이 그대로 쓴다.
 - 목록은 정말 나열일 때만 쓴다.`;

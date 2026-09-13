@@ -23,7 +23,11 @@ import {
   streamOpeningScene,
 } from "../../shared/scene-stream.js";
 import { type AuthedEnv, createUserGuard } from "../../shared/user-guard.js";
-import { askSystemPrompt, readAskedCorrection } from "./ask.js";
+import {
+  askSystemPrompt,
+  readAskedCorrection,
+  readAskedUtterance,
+} from "./ask.js";
 import { storyDetailViewOf, storyListViewOf } from "./catalog.js";
 import { judgeExpression } from "./correction.js";
 import { episodeSystemPrompt } from "./episode.js";
@@ -77,6 +81,54 @@ import {
   readStoryPlays,
   startStoryPlay,
 } from "./story-plays.js";
+import {
+  ensureUtteranceMeaning,
+  isMeaning,
+  type UtteranceMeaning,
+} from "./utterance-meaning.js";
+
+interface MeaningBody {
+  episodeId: string;
+  meaning?: string;
+  messageId: string;
+  storyPlayId?: string;
+  utteranceAt: number;
+}
+function validMeaningRequest(body: unknown): body is MeaningBody {
+  const sent = body as Partial<MeaningBody> | null;
+  return (
+    typeof sent?.episodeId === "string" &&
+    typeof sent.messageId === "string" &&
+    typeof sent.utteranceAt === "number" &&
+    Number.isInteger(sent.utteranceAt) &&
+    sent.utteranceAt >= 0 &&
+    sent.utteranceAt <= 100 &&
+    (sent.storyPlayId === undefined || typeof sent.storyPlayId === "string") &&
+    (sent.meaning === undefined ||
+      (isMeaning(sent.meaning) && sent.storyPlayId !== undefined))
+  );
+}
+async function saveOpeningMeanings(
+  client: EpisodeClient,
+  opening: UIMessage,
+  meanings: UtteranceMeaning[]
+) {
+  const utterances = sceneUtterances(opening.parts);
+  await Promise.all(
+    meanings
+      .filter(
+        (item) => item.messageId === opening.id && utterances[item.utteranceAt]
+      )
+      .map((item) =>
+        ensureUtteranceMeaning(
+          client,
+          item,
+          () => Promise.resolve(item.meaning),
+          item.meaning
+        )
+      )
+  );
+}
 
 export interface EpisodeDependencies {
   authMiddleware?: MiddlewareHandler;
@@ -199,18 +251,20 @@ async function saveSceneBestEffort(
  * 다시 누르게 한다.
  */
 async function utteranceDraft({
+  client,
+  supplied,
   context,
   episodeId,
   message,
   model,
-  signal,
   utteranceAt,
 }: {
+  client: EpisodeClient;
+  supplied?: string;
   context: () => ModelMessage[] | Promise<ModelMessage[]>;
   episodeId: string;
   message: UIMessage;
   model: LanguageModel;
-  signal: AbortSignal;
   utteranceAt: number;
 }): Promise<SavedExpressionDraft | undefined> {
   if (message.role !== "assistant") {
@@ -230,13 +284,19 @@ async function utteranceDraft({
     entries: null,
     episodeId,
     kind: "utterance",
-    meaning: await writeKoreanMeaning({
-      context: await context(),
-      model,
-      signal,
-      speaker: utterance.speaker,
-      text: utterance.text,
-    }),
+    meaning: await ensureUtteranceMeaning(
+      client,
+      { messageId: message.id, utteranceAt },
+      async (signal) =>
+        writeKoreanMeaning({
+          context: await context(),
+          model,
+          signal,
+          speaker: utterance.speaker,
+          text: utterance.text,
+        }),
+      supplied
+    ),
     messageId: message.id,
     original: null,
     speaker: utterance.speaker,
@@ -255,6 +315,7 @@ interface TurnRequest {
   storyId: string | undefined;
   /** 이어갈 회차. 새 대화를 시작하는 요청에는 없다. */
   storyPlayId: string | undefined;
+  utteranceMeanings: UtteranceMeaning[];
 }
 
 function optionalString(value: unknown): { ok: false } | { ok: true } {
@@ -273,6 +334,7 @@ async function readTurnRequest(
   body: unknown
 ): Promise<TurnRequest | { error: string }> {
   const asked = body as {
+    utteranceMeanings?: unknown;
     episodeId?: unknown;
     keepThrough?: unknown;
     message?: unknown;
@@ -294,11 +356,27 @@ async function readTurnRequest(
     return refusal;
   }
 
+  const meanings = asked?.utteranceMeanings ?? [];
+  if (
+    !Array.isArray(meanings) ||
+    meanings.length > 101 ||
+    meanings.some(
+      (item) =>
+        typeof item?.messageId !== "string" ||
+        !Number.isInteger(item.utteranceAt) ||
+        item.utteranceAt < 0 ||
+        item.utteranceAt > 100 ||
+        !isMeaning(item.meaning)
+    )
+  ) {
+    return refusal;
+  }
   const shape = {
     episodeId: asked?.episodeId as string | undefined,
     keepThrough: asked?.keepThrough as string | null | undefined,
     storyId: asked?.storyId as string | undefined,
     storyPlayId: asked?.storyPlayId as string | undefined,
+    utteranceMeanings: meanings as UtteranceMeaning[],
   };
 
   if (shape.storyPlayId === undefined && shape.storyId === undefined) {
@@ -637,6 +715,96 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
 
         return c.json(session);
       })
+      .post(
+        "/utterance-meanings",
+        requireUser,
+        requireCurrentUser,
+        async (c) => {
+          const body = (await c.req.json().catch(() => null)) as {
+            episodeId?: unknown;
+            messageId?: unknown;
+            utteranceAt?: unknown;
+            storyPlayId?: unknown;
+            meaning?: unknown;
+          } | null;
+          if (!validMeaningRequest(body)) {
+            return c.json({ error: "Invalid request body." }, 400);
+          }
+          const client = c.var.supabaseContext.supabase;
+          const story = await readStoryOfEpisode(client, body.episodeId);
+          if (!story) {
+            return c.json({ error: "Message is unavailable." }, 404);
+          }
+          let messages: UIMessage[];
+          if (typeof body.storyPlayId === "string") {
+            const session = await readEpisodeSession(
+              client,
+              story,
+              body.storyPlayId,
+              body.episodeId
+            );
+            if (!session) {
+              return c.json({ error: "Message is unavailable." }, 404);
+            }
+            const at = session.messages.findIndex(
+              (message) =>
+                message.id === body.messageId && message.role === "assistant"
+            );
+            if (at < 0) {
+              return c.json({ error: "Message is unavailable." }, 404);
+            }
+            messages = session.messages.slice(0, at + 1);
+          } else {
+            const [script] = story.episodes;
+            if (!script || script.id !== body.episodeId) {
+              return c.json({ error: "Message is unavailable." }, 404);
+            }
+            messages = [
+              {
+                id: body.messageId,
+                parts: await openingSceneParts(script),
+                role: "assistant",
+              },
+            ];
+          }
+          const utterance = sceneUtterances(messages.at(-1)?.parts ?? [])[
+            body.utteranceAt
+          ];
+          if (!utterance) {
+            return c.json({ error: "Message is unavailable." }, 404);
+          }
+          const generate = async (signal: AbortSignal) =>
+            writeKoreanMeaning({
+              context: await convertToModelMessages(messages, {
+                convertDataPart: (part) =>
+                  part.type === "data-speaker"
+                    ? { text: speakerModelText(part.data), type: "text" }
+                    : undefined,
+              }),
+              model: dependencies.model ?? resolveModelId(),
+              signal,
+              speaker: utterance.speaker,
+              text: utterance.text,
+            });
+          const work =
+            body.storyPlayId === undefined
+              ? generate(AbortSignal.timeout(30_000))
+              : ensureUtteranceMeaning(
+                  client,
+                  { messageId: body.messageId, utteranceAt: body.utteranceAt },
+                  generate,
+                  body.meaning
+                );
+          // 클라이언트가 나가도 서버가 결과를 저장한다. 요청의 취소 신호를 넘기지 않는다.
+          dependencies.waitUntil?.(work.catch(() => undefined));
+          const meaning = await work;
+          return c.json({
+            meaning,
+            messageId: body.messageId,
+            utteranceAt: body.utteranceAt,
+          });
+        }
+      )
       .post("/correction", requireUser, requireCurrentUser, async (c) => {
         const body = (await c.req.json().catch(() => null)) as {
           episodeId?: unknown;
@@ -714,6 +882,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           const body = (await c.req.json().catch(() => null)) as {
             episodeId?: unknown;
             kind?: unknown;
+            meaning?: unknown;
             messageId?: unknown;
             storyPlayId?: unknown;
             utteranceAt?: unknown;
@@ -724,6 +893,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
             typeof body.messageId !== "string" ||
             typeof body.storyPlayId !== "string" ||
             (body.kind !== "utterance" && body.kind !== "learning") ||
+            (body.meaning !== undefined && !isMeaning(body.meaning)) ||
             (wantsUtterance &&
               (typeof body.utteranceAt !== "number" ||
                 !Number.isInteger(body.utteranceAt) ||
@@ -751,8 +921,9 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           if (!message) {
             return c.json({ error: "Message is unavailable." }, 404);
           }
-          const draft = wantsUtterance
-            ? await utteranceDraft({
+          const draftWork = wantsUtterance
+            ? utteranceDraft({
+                client,
                 context: () =>
                   convertToModelMessages(session.messages.slice(0, at + 1), {
                     convertDataPart: (part) =>
@@ -763,10 +934,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
                 episodeId: body.episodeId,
                 message,
                 model: dependencies.model ?? resolveModelId(),
-                signal: AbortSignal.any([
-                  c.req.raw.signal,
-                  AbortSignal.timeout(30_000),
-                ]),
+                supplied: body.meaning,
                 utteranceAt: body.utteranceAt as number,
               })
             : learningDraft({
@@ -774,10 +942,15 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
                 episodeId: body.episodeId,
                 message,
               });
-          if (!draft) {
+          const work = Promise.resolve(draftWork).then((draft) =>
+            draft ? saveExpression(client, draft) : undefined
+          );
+          dependencies.waitUntil?.(work.catch(() => undefined));
+          const saved = await work;
+          if (!saved) {
             return c.json({ error: "Expression is unavailable." }, 404);
           }
-          return c.json(await saveExpression(client, draft));
+          return c.json(saved);
         }
       )
       /*
@@ -813,7 +986,8 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
     */
       .post("/ask", requireUser, requireCurrentUser, async (c) => {
         const body: unknown = await c.req.json().catch(() => null);
-        const correction = readAskedCorrection(body);
+        const correction =
+          readAskedCorrection(body) ?? readAskedUtterance(body);
         const validatedMessages = await safeValidateUIMessages({
           messages: (body as { messages?: unknown } | null)?.messages,
         });
@@ -901,6 +1075,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
 
           await saveScene(opening);
           play.messages.push(opening);
+          await saveOpeningMeanings(client, opening, asked.utteranceMeanings);
         }
 
         if (sent) {

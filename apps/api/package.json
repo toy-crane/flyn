@@ -14,7 +14,8 @@
     "eval:story": "bun eval/story-creation.ts",
     "eval:story-play": "bun eval/story-play.ts",
     "fix": "ultracite fix .",
-    "test": "bun test"
+    "test": "bun test src eval",
+    "test:integration": "bun test integration"
   },
   "dependencies": {
     "@repo/supabase": "workspace:*",
