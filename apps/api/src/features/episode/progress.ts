@@ -11,7 +11,7 @@ import type { EpisodeClient, EpisodeScript, StoryContent } from "./story";
 import {
   readUtteranceMeanings,
   type UtteranceMeaning,
-} from "./utterance-meaning";
+} from "./utterance-meaning.js";
 
 /** 기록 한 줄이 데이터베이스에서 허용되는 길이. */
 const MEMORY_LINE_LIMIT = 300;
