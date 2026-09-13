@@ -781,3 +781,16 @@ comment on column public.saved_expressions.original is
 
 comment on column public.saved_expressions.entries is
   'Which parts were off, what replaced them and why, as one JSON array. Corrections and guidance only.';
+
+-- 뜻을 만드는 동안에도 같은 대사 자리를 선점한다. 메시지가 사라지면 뜻도 사라진다.
+create table public.utterance_meanings (
+  message_id uuid not null,
+  utterance_at smallint not null check (utterance_at between 0 and 100),
+  user_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  meaning text check (meaning is null or length(btrim(meaning)) between 1 and 1000),
+  claim_token uuid not null default gen_random_uuid(),
+  expires_at timestamptz not null default (clock_timestamp() + interval '30 seconds'),
+  primary key (message_id, utterance_at),
+  foreign key (message_id, user_id) references public.episode_messages(id, user_id) on delete cascade
+);
+create index utterance_meanings_user_id_idx on public.utterance_meanings(user_id);
