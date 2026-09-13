@@ -1,0 +1,512 @@
+[
+    {
+        "email": "scene-android-3215-0913@example.com",
+        "level": "짧고 분명한 문장으로 원하는 음료와 상황을 전달했다.",
+        "number": 1,
+        "messages": [
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "id": "speaker-1",
+                        "data": {
+                            "name": null
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "늘 오던 동네 카페, 계산대 앞이다.\n아이스 아메리카노를 시켰는데 받아 든 잔은 뜨겁고 우유 거품이 얹혀 있다.\n뒤로 줄이 길고, 잔을 쥔 손바닥이 점점 뜨거워진다.",
+                        "type": "text",
+                        "state": "done"
+                    },
+                    {
+                        "id": "speaker-2",
+                        "data": {
+                            "name": "Mia"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Next in line, please!",
+                        "type": "text",
+                        "state": "done"
+                    }
+                ]
+            },
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": "I order an iced Americano, but this is a latte. Can you change it?",
+                        "type": "text"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "id": "speaker-1",
+                        "data": {
+                            "name": "Mia"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Oh, I’m sorry. Your receipt says iced Americano.\nI’ll make a new one now.",
+                        "type": "text",
+                        "state": "done"
+                    }
+                ]
+            },
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": "얼음은 조금만 넣어 주세요. 기다릴게요.",
+                        "type": "text"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "id": "speaker-1",
+                        "data": {
+                            "name": "Mia"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Sure. I’ll use just a little ice. Thank you for waiting.",
+                        "type": "text",
+                        "state": "done"
+                    }
+                ]
+            },
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": "I waited a minute. Is my iced Americano ready now?",
+                        "type": "text"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "id": "speaker-1",
+                        "data": {
+                            "name": "Mia"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Almost. I’m making it now. It will be ready in one minute.",
+                        "type": "text",
+                        "state": "done"
+                    }
+                ]
+            },
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": "I waited one more minute. I need to leave now. Please give me the iced Americano.",
+                        "type": "text"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "id": "speaker-1",
+                        "data": {
+                            "name": "Mia"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Yes, it’s ready. I’m sorry for the wait. Here is your iced Americano with a little ice.",
+                        "type": "text",
+                        "state": "done"
+                    }
+                ]
+            }
+        ],
+        "ending_kind": "성공",
+        "memory_choice": "아이스 아메리카노를 받을 때까지 기다린 뒤 서둘러 음료를 요청했다.",
+        "ending_outcome": "주문한 아이스 아메리카노를 받아 사건이 해결되었다.",
+        "memory_question": "다음에는 주문이 늦어질 때 언제 다시 확인하는 것이 좋을까?",
+        "memory_relationship": "음료를 끝까지 확인해 받은 손님과 바리스타 사이가 다시 편안해졌다."
+    },
+    {
+        "email": "scene-android-3215-0913@example.com",
+        "level": "짧고 분명한 문장으로 원하는 음료와 상황을 전달했다.",
+        "number": 2,
+        "messages": [
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "id": "speaker-1",
+                        "data": {
+                            "name": null
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.",
+                        "type": "text",
+                        "state": "done"
+                    },
+                    {
+                        "id": "speaker-2",
+                        "data": {
+                            "name": "Mia"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Oh, hi again. Hmm, it still says declined. Do you have another card?",
+                        "type": "text",
+                        "state": "done"
+                    },
+                    {
+                        "id": "speaker-3",
+                        "data": {
+                            "name": "Owen"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Sorry, I have a meeting in ten minutes. Is this going to take long?",
+                        "type": "text",
+                        "state": "done"
+                    }
+                ]
+            },
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": "Can I pay with my phone? Do you remember how I wanted my coffee yesterday? Owen, sorry for the wait.",
+                        "type": "text"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "id": "speaker-1",
+                        "data": {
+                            "name": "Mia"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Yes, you can pay with your phone. Hold it near the reader when you are ready. And yes, you wanted an iced Americano yesterday.",
+                        "type": "text",
+                        "state": "done"
+                    },
+                    {
+                        "id": "speaker-2",
+                        "data": {
+                            "name": "Owen"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "That is okay. Please use your phone first.",
+                        "type": "text",
+                        "state": "done"
+                    }
+                ]
+            }
+        ],
+        "ending_kind": null,
+        "memory_choice": null,
+        "ending_outcome": null,
+        "memory_question": null,
+        "memory_relationship": null
+    },
+    {
+        "email": "scene-ios-3215-0913@example.com",
+        "level": "간단한 문장으로 주문 오류를 설명하고 원하는 조건을 분명히 말했다.",
+        "number": 1,
+        "messages": [
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "id": "speaker-1",
+                        "data": {
+                            "name": null
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "늘 오던 동네 카페, 계산대 앞이다.\n아이스 아메리카노를 시켰는데 받아 든 잔은 뜨겁고 우유 거품이 얹혀 있다.\n뒤로 줄이 길고, 잔을 쥔 손바닥이 점점 뜨거워진다.",
+                        "type": "text",
+                        "state": "done"
+                    },
+                    {
+                        "id": "speaker-2",
+                        "data": {
+                            "name": "Mia"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Next in line, please!",
+                        "type": "text",
+                        "state": "done"
+                    }
+                ]
+            },
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": "I order an iced Americano, but this is hot latte. Could you change it?",
+                        "type": "text"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "id": "speaker-1",
+                        "data": {
+                            "name": "Mia"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Oh, I’m sorry. Your receipt says iced Americano. I’ll make it now.\nPlease wait one minute.",
+                        "type": "text",
+                        "state": "done"
+                    }
+                ]
+            },
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": "얼음은 조금만 넣어 주세요. 기다릴게요.",
+                        "type": "text"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "id": "speaker-1",
+                        "data": {
+                            "name": "Mia"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Sure. I’ll use less ice. Thank you for waiting.",
+                        "type": "text",
+                        "state": "done"
+                    }
+                ]
+            },
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": "Thank you. I can wait a minute for the iced Americano.",
+                        "type": "text"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "id": "speaker-1",
+                        "data": {
+                            "name": "Mia"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Thanks. I’ll make it with a little ice. I’ll call you when it’s ready.",
+                        "type": "text",
+                        "state": "done"
+                    }
+                ]
+            },
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": "I waited a minute. Is my iced Americano ready now?",
+                        "type": "text"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "id": "speaker-1",
+                        "data": {
+                            "name": "Mia"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Yes, it’s ready. Here is your iced Americano with a little ice. I’m sorry again for the mistake.",
+                        "type": "text",
+                        "state": "done"
+                    }
+                ]
+            }
+        ],
+        "ending_kind": "성공",
+        "memory_choice": "잘못 나온 라떼를 알리고 얼음을 조금만 넣은 아이스 아메리카노를 기다렸다.",
+        "ending_outcome": "주문한 아이스 아메리카노를 얼음 조금만 넣어 다시 받았다.",
+        "memory_question": "다음에는 주문을 받을 때 음료를 바로 확인할 수 있을까?",
+        "memory_relationship": "실수를 차분히 해결해 단골 카페 직원과의 신뢰가 유지되었다."
+    },
+    {
+        "email": "scene-ios-3215-0913@example.com",
+        "level": "간단한 문장으로 주문 오류를 설명하고 원하는 조건을 분명히 말했다.",
+        "number": 2,
+        "messages": [
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "id": "speaker-1",
+                        "data": {
+                            "name": null
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.",
+                        "type": "text",
+                        "state": "done"
+                    },
+                    {
+                        "id": "speaker-2",
+                        "data": {
+                            "name": "Mia"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Oh, hi again. Hmm, it still says declined. Do you have another card?",
+                        "type": "text",
+                        "state": "done"
+                    },
+                    {
+                        "id": "speaker-3",
+                        "data": {
+                            "name": "Owen"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Sorry, I have a meeting in ten minutes. Is this going to take long?",
+                        "type": "text",
+                        "state": "done"
+                    }
+                ]
+            },
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": "I have no other card. Can I pay with my phone? Owen, I am sorry for the wait.",
+                        "type": "text"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "id": "speaker-1",
+                        "data": {
+                            "name": "Mia"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Yes, you can pay with your phone. Please open your payment app and tap it here.",
+                        "type": "text",
+                        "state": "done"
+                    },
+                    {
+                        "id": "speaker-2",
+                        "data": {
+                            "name": "Owen"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "That is okay. Please try your phone.",
+                        "type": "text",
+                        "state": "done"
+                    }
+                ]
+            },
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": "Before I pay, do you remember how I wanted my coffee yesterday?",
+                        "type": "text"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "id": "speaker-1",
+                        "data": {
+                            "name": "Mia"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "Yes. You wanted your iced Americano with only a little ice yesterday. I remember.",
+                        "type": "text",
+                        "state": "done"
+                    },
+                    {
+                        "id": "speaker-2",
+                        "data": {
+                            "name": "Owen"
+                        },
+                        "type": "data-speaker"
+                    },
+                    {
+                        "text": "That sounds good, but please pay with your phone now. I really need to go.",
+                        "type": "text",
+                        "state": "done"
+                    }
+                ]
+            }
+        ],
+        "ending_kind": null,
+        "memory_choice": null,
+        "ending_outcome": null,
+        "memory_question": null,
+        "memory_relationship": null
+    }
+]

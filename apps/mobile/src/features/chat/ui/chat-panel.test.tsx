@@ -469,7 +469,6 @@ describe("ChatPanel", () => {
     expect(
       within(opening).getByText("국물 김이 오른다.").props.className
     ).toContain("text-scene");
-    expect(screen.queryByTestId("chat-scene-narration")).not.toBeOnTheScreen();
     expect(
       within(screen.getByTestId("chat-scene-utterance")).getByText("만복")
     ).toBeOnTheScreen();
@@ -479,9 +478,8 @@ describe("ChatPanel", () => {
     ).not.toBeOnTheScreen();
   });
 
-  // 모델이 형식을 어겨 보낸 이름 없는 줄은 장면 서술의 모양을 받지 않는다.
-  // 감추지도 않아서 내용을 잃지 않는다.
-  test("대화 중간의 이름 없는 줄은 지금까지의 작은 줄로 남는다", async () => {
+  // 옛 개발 기록은 보존하되 도입 밖의 이름 없는 줄은 화면에 그리지 않는다.
+  test("옛 기록의 도입 밖 이름 없는 줄은 보이지 않는다", async () => {
     const messages: UIMessage[] = [
       {
         id: "assistant-1",
@@ -508,9 +506,7 @@ describe("ChatPanel", () => {
 
     await renderWithHeroUI(<ChatPanel chat={chatSession({ messages })} />);
 
-    expect(screen.getByTestId("chat-scene-narration")).toHaveTextContent(
-      "국물 김이 오른다."
-    );
+    expect(screen.queryByText("국물 김이 오른다.")).not.toBeOnTheScreen();
     expect(screen.queryByTestId("chat-scene-opening")).not.toBeOnTheScreen();
   });
 

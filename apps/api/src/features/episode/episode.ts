@@ -1,27 +1,7 @@
-import type { SceneTags } from "../../shared/scene-stream";
 import type { EpisodeScript } from "./story";
 
-/**
- * 결말 판정에 쓰는 세 낱말. 화가 달라도 같다.
- *
- * 이 낱말은 줄 머리로 오면 말풍선이 아니라 사건이 끝났다는 판정이 된다.
- * 화면에도 이 세 낱말이 그대로 보인다.
- */
+/** 에피소드 결말의 세 종류. 화면과 저장도 같은 낱말을 쓴다. */
 export const EPISODE_ENDINGS = ["성공", "타협", "실패"] as const;
-
-/**
- * 장면을 닫은 모델이 결말 뒤에 남기는 기록의 줄 머리.
- *
- * 화면에 흐르지 않고 다음 화가 읽는다. 결말과 같은 한 번의 출력에서 나오므로
- * 장면과 기억이 서로 어긋날 여지가 없다. 앞의 셋은 이야기 기억이 되어 스토리에
- * 붙고, `level`은 계정에 붙는 사용자 속성이다.
- */
-export const EPISODE_NOTES = {
-  choice: "선택",
-  level: "수준",
-  question: "질문",
-  relationship: "관계",
-} as const;
 
 /** 지난 화가 남긴 것. 다음 화의 프롬프트에 들어간다. */
 export interface StoryMemory {
@@ -32,20 +12,6 @@ export interface StoryMemory {
   question: string | null;
   relationship: string | null;
   title: string;
-}
-
-/**
- * 한 화의 줄 머리 목록.
- *
- * `cast`는 화이트리스트다. 목록에 없는 이름은 화자가 되지 못하고 지문으로
- * 남으므로, 모델이 형식을 어겨도 인물이 멋대로 늘어나지 않는다.
- */
-export function episodeTags(script: EpisodeScript): SceneTags {
-  return {
-    cast: script.cast.map((person) => person.name),
-    endings: EPISODE_ENDINGS,
-    notes: Object.values(EPISODE_NOTES),
-  };
 }
 
 /** 세 명까지 세는 우리말. 한 화의 인물은 셋을 넘지 못한다. */
@@ -149,9 +115,9 @@ ${castBlock(script.cast)}
 ${script.stage}
 ${pastStoryBlock(memories)}
 
-출력 형식:
-- 장면은 등장인물의 대사만으로 쓴다. 줄 처음에 "이름: "을 붙여 한 줄로 쓰고, 대사는 영어로만 쓴다.
-- 이름 없는 줄을 쓰지 않는다. 행동이나 상황을 따로 묘사하는 줄을 만들지 않는다.
+장면:
+- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.
+- 행동이나 상황을 따로 묘사하지 않는다.
 - 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.
 - 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.
 - 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 "I hand you the cup" 같은 문장도 쓰지 않는다.
@@ -171,19 +137,18 @@ ${pastStoryBlock(memories)}
 - 한 번에 발화 한두 개로 짧게 이어 간다.
 
 결말:
-- 사건이 마무리됐다고 판단되면 장면의 마지막 줄에 결말을 쓴다.
+- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.
 - 성공: ${script.endings.success}
 - 타협: ${script.endings.compromise}
 - 실패: ${script.endings.failure}
-- 형식은 "성공: 새 아이스 아메리카노를 받아냈다."처럼 종류 뒤에 사건의 결과를 한국어 한 줄로 쓴다.
-- 사건이 아직 진행 중이면 결말 줄을 쓰지 않는다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.
+- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.
+- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.
 
 기록:
-- 결말 줄을 썼을 때만, 그 뒤에 아래 네 줄을 이 순서로 쓴다. 화면에는 보이지 않고 다음 화가 읽는 기록이다.
-- ${EPISODE_NOTES.choice}: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.
-- ${EPISODE_NOTES.relationship}: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.
-- ${EPISODE_NOTES.question}: 이 사건이 새로 연 질문 하나를 한국어 한 줄.
-- ${EPISODE_NOTES.level}: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.
-- 네 줄 모두 사용자를 주어로 삼되 "사용자"라는 말은 쓰지 않는다. 각 줄은 한 문장으로 끝낸다.
-- 이 네 줄을 쓴 뒤에는 아무것도 쓰지 않는다.`;
+- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.
+- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.
+- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.
+- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.
+- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.
+- 네 기록 모두 사용자를 주어로 삼되 "사용자"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.`;
 }

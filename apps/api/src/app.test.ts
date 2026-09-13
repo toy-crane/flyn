@@ -9,6 +9,7 @@ import type { MiddlewareHandler } from "hono";
 import finalCorrectionEvaluation from "../eval/results/correction-candidate-1789228066622.json";
 
 import deployedApp, { createApp } from "./app";
+import type { EpisodeScene } from "./features/episode/scene";
 
 const EPISODE_PATH = "/ai/episode";
 
@@ -994,6 +995,20 @@ function createWritingModel(answer: unknown = WRITTEN_STORY) {
   });
 }
 
+/** 모델 서비스 경계의 응답. 장면 테스트는 실제 응답 객체를 명시한다. */
+function createSceneModel(
+  dialogue: EpisodeScene["dialogue"],
+  ending: EpisodeScene["ending"] = null,
+  correction: CorrectionAnswer = NO_CORRECTION,
+  meaning = "다음 분이요!"
+): MockLanguageModelV4 {
+  return createMockModel(
+    [JSON.stringify({ dialogue, ending })],
+    correction,
+    meaning
+  );
+}
+
 function createMockModel(
   text: string[],
   correction: CorrectionAnswer = NO_CORRECTION,
@@ -1251,7 +1266,10 @@ describe("제거한 일반 채팅", () => {
 
 describe("POST /ai/episode", () => {
   test("rejects a request with no access token before calling the model", async () => {
-    const model = createMockModel(["Mia: Sorry about that."]);
+    const model = createSceneModel(
+      [{ speaker: "Mia", text: "Sorry about that." }],
+      null
+    );
     const app = createApp({
       authMiddleware: createUserAuthMiddleware(),
       model,
@@ -1268,7 +1286,10 @@ describe("POST /ai/episode", () => {
   // 입력하기 전에 상대가 먼저 말한다. 정해 둔 장면이라 기다림도 없고, 다시
   // 들어와도 같은 카페가 열린다.
   test("opens the first scene itself, without calling the model", async () => {
-    const model = createMockModel(["Mia: Sorry about that."]);
+    const model = createSceneModel(
+      [{ speaker: "Mia", text: "Sorry about that." }],
+      null
+    );
     const app = createApp({ authMiddleware: bypassAuth, model });
 
     const response = await app.request(createEpisodeRequest({ messages: [] }));
@@ -1286,10 +1307,11 @@ describe("POST /ai/episode", () => {
     expect(body).not.toContain("Mia:");
   });
 
-  test("turns the model's scene into speaker parts and narration", async () => {
+  test("구조화된 장면의 완성된 화자와 대사 조각을 같은 말풍선으로 흘린다", async () => {
     const model = createMockModel([
-      "Mia: Oh, I am sorry.\n",
-      "직원이 잔을 내려놓는다.",
+      '{"dialogue":[{"speaker":"M',
+      'ia","text":"Oh,',
+      ' I am sorry."}],"ending":null}',
     ]);
     const app = createApp({ authMiddleware: bypassAuth, model });
 
@@ -1305,18 +1327,185 @@ describe("POST /ai/episode", () => {
 
     expect(body).toContain('"type":"data-speaker"');
     expect(body).toContain('"name":"Mia"');
-    expect(body).toContain("Oh, I am sorry.");
-    expect(body).toContain("직원이 잔을 내려놓는다.");
-    expect(body).not.toContain("Mia:");
+    expect(body).toContain('"delta":"Oh,"');
+    expect(body).toContain('"delta":" I am sorry."');
+    expect(body).not.toContain('"name":"M"');
+    expect(body).not.toContain('"name":null');
+    expect(body).not.toContain('"type":"error"');
+    expect(model.doStreamCalls[0]?.responseFormat).toMatchObject({
+      type: "json",
+    });
   });
 
-  // 결말은 사용자의 말이 만든다. 모델이 사건을 닫았다고 쓰면 그 줄은 말풍선이
-  // 아니라 에피소드를 닫는 판정으로 내려간다.
-  test("closes the episode when the model writes an ending", async () => {
-    const model = createMockModel([
-      "Mia: Here is your iced americano.\n",
-      "성공: 원하던 커피를 새로 받아냈다.",
+  test("화에 없는 화자의 응답은 화면에 흘리거나 저장하지 않는다", async () => {
+    const state = createSeasonState();
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([
+        JSON.stringify({
+          dialogue: [{ speaker: "Owen", text: "This is my coffee." }],
+          ending: null,
+        }),
+      ]),
+    });
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Excuse me.")] })
+    );
+    const body = await response.text();
+    expect(body).toContain('"type":"error"');
+    expect(body).not.toContain('"name":"Owen"');
+    expect(body).not.toContain("This is my coffee.");
+    expect(
+      state.messages.filter((message) => message.role === "assistant")
+    ).toHaveLength(0);
+    expect(state.recorded).toHaveLength(0);
+  });
+
+  test.each(["outcome", "choice", "relationship", "question", "level"])(
+    "결말의 %s가 공백뿐이면 결말과 장면을 저장하지 않고 오류로 끝낸다",
+    async (field) => {
+      const state = createSeasonState();
+      const app = createApp({
+        authMiddleware: signedInWith(state),
+        model: createMockModel([
+          JSON.stringify({
+            dialogue: [{ speaker: "Mia", text: "Here is your coffee." }],
+            ending: {
+              choice: "교환을 요청했다.",
+              kind: "성공",
+              level: "짧은 문장을 쓴다.",
+              outcome: "커피를 받았다.",
+              question: "다음에도 올까.",
+              relationship: "신뢰가 생겼다.",
+              [field]: " \n\t ",
+            },
+          }),
+        ]),
+      });
+      const response = await app.request(
+        createEpisodeRequest({ messages: [createUserMessage("Thanks.")] })
+      );
+      const body = await response.text();
+      expect(body).toContain('"type":"error"');
+      expect(body).not.toContain('"type":"data-ending"');
+      expect(body).not.toContain('"type":"data-next-up"');
+      expect(state.recorded).toHaveLength(0);
+      expect(
+        state.messages.filter((message) => message.role === "assistant")
+      ).toHaveLength(0);
+    }
+  );
+
+  test("공백뿐인 대사는 건너뛰고 같은 인물의 연속 대사를 한 말풍선에 잇는다", async () => {
+    const state = createSeasonState();
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([
+        '{"dialogue":[{"speaker":"Mia","text":" \\n\\t "},{"speaker":"Mia","text":"Hello.',
+        '"},{"speaker":"Mia","text":"What did',
+        ' you order?"}],"ending":null}',
+      ]),
+    });
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Excuse me.")] })
+    );
+    const body = await response.text();
+    expect(body.match(/"type":"data-speaker"/g)).toHaveLength(1);
+    expect(body).not.toContain('"type":"error"');
+    expect(
+      state.messages.find((message) => message.role === "assistant")?.parts
+    ).toEqual([
+      { data: { name: "Mia" }, id: "speaker-1", type: "data-speaker" },
+      { state: "done", text: "Hello.\nWhat did you order?", type: "text" },
     ]);
+  });
+
+  test.each([
+    ["빈 장면", { dialogue: [], ending: null }],
+    [
+      "공백 대사만 있는 장면",
+      { dialogue: [{ speaker: "Mia", text: " \t " }], ending: null },
+    ],
+    ["결말 필드 누락", { dialogue: [{ speaker: "Mia", text: "Hello." }] }],
+    [
+      "잘못된 결말 종류",
+      {
+        dialogue: [{ speaker: "Mia", text: "Hello." }],
+        ending: {
+          choice: "요청했다.",
+          kind: "완료",
+          level: "중급이다.",
+          outcome: "끝났다.",
+          question: "다음은.",
+          relationship: "친해졌다.",
+        },
+      },
+    ],
+    [
+      "결말 없는 기록",
+      {
+        choice: "요청했다.",
+        dialogue: [{ speaker: "Mia", text: "Hello." }],
+        ending: null,
+      },
+    ],
+    [
+      "네 기록 없는 결말",
+      {
+        dialogue: [{ speaker: "Mia", text: "Hello." }],
+        ending: { kind: "성공", outcome: "끝났다." },
+      },
+    ],
+  ])("%s은 오류로 끝내고 저장하지 않는다", async (_name, output) => {
+    const state = createSeasonState();
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([JSON.stringify(output)]),
+    });
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Hello.")] })
+    );
+    const body = await response.text();
+    expect(body).toContain('"type":"error"');
+    expect(body).not.toContain('"type":"data-ending"');
+    expect(state.recorded).toHaveLength(0);
+    expect(
+      state.messages.filter((message) => message.role === "assistant")
+    ).toHaveLength(0);
+  });
+
+  test.each([
+    "Mia: I can help you.",
+    '{"dialogue":[{"speaker":"Mia","text":"I can help you.',
+  ])("완성되지 않은 JSON 응답을 저장하지 않는다: %s", async (output) => {
+    const state = createSeasonState();
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([output]),
+    });
+    const response = await app.request(
+      createEpisodeRequest({ messages: [createUserMessage("Hello.")] })
+    );
+    expect(await response.text()).toContain('"type":"error"');
+    expect(state.recorded).toHaveLength(0);
+    expect(
+      state.messages.filter((message) => message.role === "assistant")
+    ).toHaveLength(0);
+  });
+
+  // 결말과 기록을 모두 검증한 뒤 화면에는 결말만 보낸다.
+  test("closes the episode when the model writes an ending", async () => {
+    const model = createSceneModel(
+      [{ speaker: "Mia", text: "Here is your iced americano." }],
+      {
+        choice: "교환을 요청했다.",
+        kind: "성공",
+        level: "짧은 문장을 쓴다.",
+        outcome: "원하던 커피를 새로 받아냈다.",
+        question: "다음에도 올까.",
+        relationship: "서로 신뢰하게 됐다.",
+      }
+    );
     const app = createApp({ authMiddleware: bypassAuth, model });
 
     const response = await app.request(
@@ -1336,7 +1525,10 @@ describe("POST /ai/episode", () => {
   });
 
   test("leaves a scene that is still running without an ending", async () => {
-    const model = createMockModel(["Mia: What did you order?"]);
+    const model = createSceneModel(
+      [{ speaker: "Mia", text: "What did you order?" }],
+      null
+    );
     const app = createApp({ authMiddleware: bypassAuth, model });
 
     const response = await app.request(
@@ -1352,7 +1544,10 @@ describe("POST /ai/episode", () => {
 
   // 지난 장면은 앱이 되돌려 보내지 않는다. 서버가 자기 기록에서 읽어 붙인다.
   test("restores the scene so far as screenplay lines for the model", async () => {
-    const model = createMockModel(["Mia: Let me check."]);
+    const model = createSceneModel(
+      [{ speaker: "Mia", text: "Let me check." }],
+      null
+    );
     const state = createSeasonState();
 
     state.messages.push({
@@ -1388,7 +1583,10 @@ describe("POST /ai/episode", () => {
   // 기록은 서버가 가진 것이 전부다. 앱이 지난 장면을 고쳐 실어 보내도 들어올
   // 자리가 없다.
   test("ignores a past scene the app rewrites and sends back", async () => {
-    const model = createMockModel(["Mia: Let me check."]);
+    const model = createSceneModel(
+      [{ speaker: "Mia", text: "Let me check." }],
+      null
+    );
     const state = createSeasonState();
 
     state.messages.push({
@@ -1424,7 +1622,7 @@ describe("POST /ai/episode", () => {
   });
 
   test("rejects a message that is not an AI SDK message", async () => {
-    const model = createMockModel(["Mia: Sorry."]);
+    const model = createSceneModel([{ speaker: "Mia", text: "Sorry." }], null);
     const app = createApp({ authMiddleware: bypassAuth, model });
 
     const response = await app.request(
@@ -1436,7 +1634,7 @@ describe("POST /ai/episode", () => {
   });
 
   test("rejects a keepThrough that is not a message id", async () => {
-    const model = createMockModel(["Mia: Sorry."]);
+    const model = createSceneModel([{ speaker: "Mia", text: "Sorry." }], null);
     const app = createApp({ authMiddleware: bypassAuth, model });
 
     const response = await app.request(
@@ -1455,7 +1653,7 @@ describe("POST /ai/episode", () => {
     ]);
     const app = createApp({
       authMiddleware: signedInWith(state),
-      model: createMockModel(["Mia: Sorry."]),
+      model: createSceneModel([{ speaker: "Mia", text: "Sorry." }], null),
     });
 
     const response = await app.request(createEpisodeRequest({ messages: [] }));
@@ -1472,7 +1670,7 @@ describe("POST /ai/episode", () => {
     const state = createSeasonState([
       { ending_kind: "성공", ending_outcome: "새 잔을 받아냈다.", episode: 1 },
     ]);
-    const model = createMockModel(["Mia: Sorry."]);
+    const model = createSceneModel([{ speaker: "Mia", text: "Sorry." }], null);
     const app = createApp({ authMiddleware: signedInWith(state), model });
 
     const response = await app.request(
@@ -1484,7 +1682,7 @@ describe("POST /ai/episode", () => {
   });
 
   test("refuses to open anything once the season is finished", async () => {
-    const model = createMockModel(["Mia: Sorry."]);
+    const model = createSceneModel([{ speaker: "Mia", text: "Sorry." }], null);
     const app = createApp({
       authMiddleware: signedInWith(createSeasonState(finishedSeason())),
       model,
@@ -1502,10 +1700,17 @@ describe("POST /ai/episode", () => {
     const state = createSeasonState();
     const app = createApp({
       authMiddleware: signedInWith(state),
-      model: createMockModel([
-        "Mia: Here is your iced americano.\n",
-        "성공: 원하던 커피를 새로 받아냈다.",
-      ]),
+      model: createSceneModel(
+        [{ speaker: "Mia", text: "Here is your iced americano." }],
+        {
+          choice: "교환을 요청했다.",
+          kind: "성공",
+          level: "짧은 문장을 쓴다.",
+          outcome: "원하던 커피를 새로 받아냈다.",
+          question: "다음에도 올까.",
+          relationship: "서로 신뢰하게 됐다.",
+        }
+      ),
     });
 
     const response = await app.request(
@@ -1520,10 +1725,10 @@ describe("POST /ai/episode", () => {
       {
         episode_id: episodeId(1),
         kind: "성공",
-        language_level: undefined,
-        memory_choice: undefined,
-        memory_question: undefined,
-        memory_relationship: undefined,
+        language_level: "짧은 문장을 쓴다.",
+        memory_choice: "교환을 요청했다.",
+        memory_question: "다음에도 올까.",
+        memory_relationship: "서로 신뢰하게 됐다.",
         outcome: "원하던 커피를 새로 받아냈다.",
         story_play_id: STORY_PLAY_ID,
       },
@@ -1537,12 +1742,17 @@ describe("POST /ai/episode", () => {
     const app = createApp({
       authMiddleware: signedInWith(state),
       model: createMockModel([
-        "Mia: Here is your iced americano.\n",
-        "성공: 원하던 커피를 새로 받아냈다.\n",
-        "선택: 영수증을 보여 주며 침착하게 요구했다.\n",
-        "관계: Mia가 실수를 인정했다.\n",
-        "질문: 내일도 이 카페에 들를지.\n",
-        "수준: 중급 초반. 짧고 분명한 문장을 쓴다.",
+        JSON.stringify({
+          dialogue: [{ speaker: "Mia", text: "Here is your iced americano." }],
+          ending: {
+            choice: "영수증을 보여 주며 침착하게 요구했다.",
+            kind: "성공",
+            level: "중급 초반. 짧고 분명한 문장을 쓴다.",
+            outcome: "원하던 커피를 새로 받아냈다.",
+            question: "내일도 이 카페에 들를지.",
+            relationship: "Mia가 실수를 인정했다.",
+          },
+        }),
       ]),
     });
 
@@ -1571,7 +1781,10 @@ describe("POST /ai/episode", () => {
   // 지난 선택이 다음 화에 돌아오는 길은 프롬프트 하나다. 사건은 그대로 두고
   // 대사와 관계와 지문만 달라진다.
   test("carries the memory of finished episodes into the next episode's prompt", async () => {
-    const model = createMockModel(["Mia: Morning."]);
+    const model = createSceneModel(
+      [{ speaker: "Mia", text: "Morning." }],
+      null
+    );
     const app = createApp({
       authMiddleware: signedInWith(
         createSeasonState([
@@ -1608,7 +1821,7 @@ describe("POST /ai/episode", () => {
   // 인물 설명이 스토리에 한 벌만 있으므로, 어느 화를 열어도 같은 문장이 들어간다.
   // 등장인물을 부르는 문장도 손으로 쓴 무대가 아니라 그 데이터에서 나온다.
   test("names the cast and its personas from the story's own characters", async () => {
-    const model = createMockModel(["Mia: Sure."]);
+    const model = createSceneModel([{ speaker: "Mia", text: "Sure." }], null);
     const app = createApp({ authMiddleware: bypassAuth, model });
 
     await (
@@ -1641,7 +1854,7 @@ describe("POST /ai/episode", () => {
   // 두 인물이 서는 화는 그 화의 목록 차례로 이름을 부른다. 우리말 조사는 앞
   // 이름의 마지막 글자를 따른다.
   test("calls two characters in the order the episode lists them", async () => {
-    const model = createMockModel(["Owen: Sorry."]);
+    const model = createSceneModel([{ speaker: "Owen", text: "Sorry." }], null);
     const app = createApp({
       authMiddleware: signedInWith(
         createSeasonState([
@@ -1676,7 +1889,10 @@ describe("POST /ai/episode", () => {
   // 콘텐츠는 스키마와 API보다 늦게 운영에 올라간다. 그 사이 인물 행이 없어도
   // 화자 판정이 무너지지 않도록 이전 화자 목록으로 선다. 설명만 빠진다.
   test("falls back to the old speaker list until the characters land", async () => {
-    const model = createMockModel(["Mia: Sorry about that."]);
+    const model = createSceneModel(
+      [{ speaker: "Mia", text: "Sorry about that." }],
+      null
+    );
     const app = createApp({
       authMiddleware: signedInWith(createSeasonState(), {
         withoutCharacters: true,
@@ -1710,7 +1926,7 @@ describe("POST /ai/episode", () => {
               },
             ])
           ),
-          model: createMockModel(["Mia: Morning."]),
+          model: createSceneModel([{ speaker: "Mia", text: "Morning." }], null),
         });
         const response = await app.request(
           createEpisodeRequest({ messages: [] })
@@ -1730,41 +1946,23 @@ describe("POST /ai/episode", () => {
     expect(openings[0]).toBe(openings[1]);
   });
 
-  // 줄 머리만 쓰고 내용을 다음 줄로 넘긴 기록은 데이터베이스가 거절한다. 그
-  // 실패가 결말 기록 전체를 무너뜨리면 사건이 끝났는데도 화면이 닫히지 않는다.
-  test("drops a note line that came in empty instead of failing the ending", async () => {
-    const state = createSeasonState();
-    const app = createApp({
-      authMiddleware: signedInWith(state),
-      model: createMockModel([
-        "성공: 받아냈다.\n",
-        "선택: 분명하게 요구했다.\n",
-        "수준:\n",
-      ]),
-    });
-
-    const response = await app.request(
-      createEpisodeRequest({ messages: [createUserMessage("Excuse me.")] })
-    );
-    const body = await response.text();
-
-    expect(body).toContain('"type":"data-ending"');
-    expect(state.recorded[0]).toMatchObject({
-      language_level: undefined,
-      memory_choice: "분명하게 요구했다.",
-    });
-  });
-
   // 관찰을 길게 쓰면 열의 길이 제약에 걸린다. 기억이 조금 잘리는 편이 사건이
   // 끝나지 않는 것보다 낫다.
   test("shortens a note line that is too long for the column", async () => {
     const state = createSeasonState();
     const app = createApp({
       authMiddleware: signedInWith(state),
-      model: createMockModel([
-        "성공: 받아냈다.\n",
-        `선택: ${"가".repeat(400)}`,
-      ]),
+      model: createSceneModel(
+        [{ speaker: "Mia", text: "Here is your coffee." }],
+        {
+          choice: "가".repeat(400),
+          kind: "성공",
+          level: "짧은 문장을 쓴다.",
+          outcome: "받아냈다.",
+          question: "다음에도 올까.",
+          relationship: "서로 신뢰하게 됐다.",
+        }
+      ),
     });
 
     const response = await app.request(
@@ -1776,31 +1974,21 @@ describe("POST /ai/episode", () => {
     expect(state.recorded[0]?.memory_choice).toHaveLength(300);
   });
 
-  // 기록 줄이 오지 않아도 그 화는 끝난다. 기억만 비고 다음 화는 열린다.
-  test("finishes an episode whose closing scene left no memory", async () => {
-    const state = createSeasonState();
-    const app = createApp({
-      authMiddleware: signedInWith(state),
-      model: createMockModel(["성공: 원하던 커피를 새로 받아냈다."]),
-    });
-
-    const response = await app.request(
-      createEpisodeRequest({ messages: [createUserMessage("Excuse me.")] })
-    );
-    const body = await response.text();
-
-    expect(body).toContain('"type":"data-ending"');
-    expect(state.recorded[0]).toMatchObject({
-      episode_id: episodeId(1),
-      memory_choice: undefined,
-    });
-  });
-
   // 결말이 보인 즉시 표현 돌아보기를 열어도 다음 화 예고가 준비되어 있어야 한다.
   test("종료 표시 전에 다음 화 예고를 보내 즉시 표현 돌아보기를 열 수 있다", async () => {
     const app = createApp({
       authMiddleware: signedInWith(createSeasonState()),
-      model: createMockModel(["성공: 원하던 커피를 새로 받아냈다."]),
+      model: createSceneModel(
+        [{ speaker: "Mia", text: "Here is your coffee." }],
+        {
+          choice: "교환을 요청했다.",
+          kind: "성공",
+          level: "짧은 문장을 쓴다.",
+          outcome: "원하던 커피를 새로 받아냈다.",
+          question: "다음에도 올까.",
+          relationship: "서로 신뢰하게 됐다.",
+        }
+      ),
     });
 
     const response = await app.request(
@@ -1821,7 +2009,17 @@ describe("POST /ai/episode", () => {
     const state = createSeasonState(finishedSeason().slice(0, 4));
     const app = createApp({
       authMiddleware: signedInWith(state),
-      model: createMockModel(["성공: 제대로 인사를 건넸다."]),
+      model: createSceneModel(
+        [{ speaker: "Mia", text: "Here is your coffee." }],
+        {
+          choice: "교환을 요청했다.",
+          kind: "성공",
+          level: "짧은 문장을 쓴다.",
+          outcome: "제대로 인사를 건넸다.",
+          question: "다음에도 올까.",
+          relationship: "서로 신뢰하게 됐다.",
+        }
+      ),
     });
 
     const response = await app.request(
@@ -1842,10 +2040,14 @@ describe("POST /ai/episode", () => {
 
     const app = createApp({
       authMiddleware: signedInWith(state),
-      model: createMockModel([
-        "Mia: Here you go.\n",
-        "성공: 원하던 커피를 새로 받아냈다.",
-      ]),
+      model: createSceneModel([{ speaker: "Mia", text: "Here you go." }], {
+        choice: "교환을 요청했다.",
+        kind: "성공",
+        level: "짧은 문장을 쓴다.",
+        outcome: "원하던 커피를 새로 받아냈다.",
+        question: "다음에도 올까.",
+        relationship: "서로 신뢰하게 됐다.",
+      }),
     });
 
     const response = await app.request(
@@ -1865,10 +2067,14 @@ describe("POST /ai/episode", () => {
 
     const app = createApp({
       authMiddleware: signedInWith(state),
-      model: createMockModel([
-        "Mia: Here you go.\n",
-        "실패: 다른 기기보다 늦게 끝났다.",
-      ]),
+      model: createSceneModel([{ speaker: "Mia", text: "Here you go." }], {
+        choice: "교환을 요청했다.",
+        kind: "실패",
+        level: "짧은 문장을 쓴다.",
+        outcome: "다른 기기보다 늦게 끝났다.",
+        question: "다음에도 올까.",
+        relationship: "서로 신뢰하게 됐다.",
+      }),
     });
     const response = await app.request(
       createEpisodeRequest({ messages: [createUserMessage("Excuse me.")] })
@@ -1936,7 +2142,7 @@ test("표현만 다시 확인하면 문제없음을 명시하고 대화는 바�
 
 test("장면 응답은 교정을 기다리지 않고 저장된 사용자 메시지의 확인 시작을 알린다", async () => {
   const state = createSeasonState();
-  const model = createMockModel(["Mia: Sure."]);
+  const model = createSceneModel([{ speaker: "Mia", text: "Sure." }], null);
   const app = createApp({ authMiddleware: signedInWith(state), model });
   const response = await app.request(
     createEpisodeRequest({ messages: [createUserMessage("I wants coffee.")] })
@@ -3029,7 +3235,10 @@ describe("POST /ai/episode/ask", () => {
   });
 
   test("restores speaker parts as screenplay lines for the model", async () => {
-    const model = createMockModel(["Mia: Welcome back."]);
+    const model = createSceneModel(
+      [{ speaker: "Mia", text: "Welcome back." }],
+      null
+    );
     const app = createApp({ authMiddleware: bypassAuth, model });
 
     const response = await app.request(
@@ -3776,7 +3985,10 @@ describe("story content database contract", () => {
     const state = createSeasonState();
     const app = createApp({
       authMiddleware: signedInWith(state),
-      model: createMockModel(["Mia: What did you order?"]),
+      model: createSceneModel(
+        [{ speaker: "Mia", text: "What did you order?" }],
+        null
+      ),
     });
 
     const response = await app.request(
@@ -3818,7 +4030,10 @@ describe("story content database contract", () => {
 
     const app = createApp({
       authMiddleware: signedInWith(state),
-      model: createMockModel(["Mia: Sorry, here is the right one."]),
+      model: createSceneModel(
+        [{ speaker: "Mia", text: "Sorry, here is the right one." }],
+        null
+      ),
     });
     const response = await app.request(
       createEpisodeRequest({ episodeId: episodeId(1), keepThrough: "m1" })
@@ -4026,7 +4241,10 @@ describe("story content database contract", () => {
 
     state.saveError = "connection refused";
 
-    const model = createMockModel(["Mia: What did you order?"]);
+    const model = createSceneModel(
+      [{ speaker: "Mia", text: "What did you order?" }],
+      null
+    );
     const app = createApp({ authMiddleware: signedInWith(state), model });
     const response = await app.request(
       createEpisodeRequest({
@@ -4073,7 +4291,10 @@ describe("story content database contract", () => {
 
     const app = createApp({
       authMiddleware: signedInWith(state),
-      model: createMockModel(["Mia: Let me look again."]),
+      model: createSceneModel(
+        [{ speaker: "Mia", text: "Let me look again." }],
+        null
+      ),
     });
     const response = await app.request(
       createEpisodeRequest({ keepThrough: "asked" })
@@ -4130,7 +4351,7 @@ describe("story content database contract", () => {
 
     const app = createApp({
       authMiddleware: signedInWith(state),
-      model: createMockModel(["Mia: Sure."]),
+      model: createSceneModel([{ speaker: "Mia", text: "Sure." }], null),
     });
     const response = await app.request(
       createEpisodeRequest({
@@ -4156,7 +4377,7 @@ describe("story content database contract", () => {
     const play = (text: string) =>
       createApp({
         authMiddleware,
-        model: createMockModel([`Mia: ${text}`]),
+        model: createSceneModel([{ speaker: "Mia", text }]),
       });
 
     state.saveError = "connection refused";
@@ -4212,7 +4433,10 @@ describe("story content database contract", () => {
 
     const app = createApp({
       authMiddleware: signedInWith(state),
-      model: createMockModel(["Mia: Let me look again."]),
+      model: createSceneModel(
+        [{ speaker: "Mia", text: "Let me look again." }],
+        null
+      ),
     });
 
     await (
@@ -4232,7 +4456,17 @@ describe("story content database contract", () => {
 
     const app = createApp({
       authMiddleware: signedInWith(state),
-      model: createMockModel(["성공: 원하던 커피를 새로 받아냈다."]),
+      model: createSceneModel(
+        [{ speaker: "Mia", text: "Here is your coffee." }],
+        {
+          choice: "교환을 요청했다.",
+          kind: "성공",
+          level: "짧은 문장을 쓴다.",
+          outcome: "원하던 커피를 새로 받아냈다.",
+          question: "다음에도 올까.",
+          relationship: "서로 신뢰하게 됐다.",
+        }
+      ),
     });
     const response = await app.request(
       createEpisodeRequest({
@@ -4253,10 +4487,14 @@ describe("story content database contract", () => {
     const state = createSeasonState();
     const app = createApp({
       authMiddleware: signedInWith(state),
-      model: createMockModel([
-        "Mia: Here you go.\n",
-        "성공: 원하던 커피를 새로 받아냈다.",
-      ]),
+      model: createSceneModel([{ speaker: "Mia", text: "Here you go." }], {
+        choice: "교환을 요청했다.",
+        kind: "성공",
+        level: "짧은 문장을 쓴다.",
+        outcome: "원하던 커피를 새로 받아냈다.",
+        question: "다음에도 올까.",
+        relationship: "서로 신뢰하게 됐다.",
+      }),
     });
 
     const response = await app.request(
@@ -4323,7 +4561,10 @@ describe("새 대화 시작", () => {
 
   test("처음 말하면 회차가 생기고 첫 장면과 그 말이 함께 남는다", async () => {
     const state = createEmptyState();
-    const model = createMockModel(["Mia: Sure, let me remake it."]);
+    const model = createSceneModel(
+      [{ speaker: "Mia", text: "Sure, let me remake it." }],
+      null
+    );
     const app = createApp({ authMiddleware: signedInWith(state), model });
 
     const response = await app.request(
@@ -4365,7 +4606,10 @@ describe("새 대화 시작", () => {
 
   test("새 대화는 완주한 스토리에서도 1화에서 시작한다", async () => {
     const state = createSeasonState(finishedSeason());
-    const model = createMockModel(["Mia: Next in line!"]);
+    const model = createSceneModel(
+      [{ speaker: "Mia", text: "Next in line!" }],
+      null
+    );
     const app = createApp({ authMiddleware: signedInWith(state), model });
 
     const response = await app.request(

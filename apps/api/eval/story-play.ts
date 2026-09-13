@@ -16,6 +16,7 @@ import {
   WRITTEN_STORY_SCHEMA,
 } from "../src/features/episode/story-creation";
 import { resolveModelId } from "../src/shared/model-id";
+import { sceneAnswer } from "./scene-answer";
 import {
   loadBaselineEpisodePrompt,
   STORY_BASELINE_REVISION,
@@ -152,32 +153,39 @@ async function run(round: number) {
   const reactions = await Promise.all(
     memories.map(async (memory) => {
       const playSystem = playPrompt(script, [memory]);
-      const answer = await generateText({
-        abortSignal: AbortSignal.timeout(120_000),
-        messages: [
-          { content: next.opening, role: "assistant" },
-          { content: question, role: "user" },
-        ],
-        model,
-        system: playSystem,
-      });
+      const messages = [
+        { content: next.opening, role: "assistant" as const },
+        { content: question, role: "user" as const },
+      ];
+      const answer = baseline
+        ? await generateText({
+            abortSignal: AbortSignal.timeout(120_000),
+            messages,
+            model,
+            system: playSystem,
+          })
+        : await sceneAnswer(script, messages, [memory]);
       const followUpQuestion =
         "Can you adapt these instructions to the machine I brought last time, or do you need me to explain it again?";
-      const followUp = await generateText({
-        abortSignal: AbortSignal.timeout(120_000),
-        messages: [
-          { content: next.opening, role: "assistant" },
-          { content: question, role: "user" },
-          { content: answer.text, role: "assistant" },
-          { content: followUpQuestion, role: "user" },
-        ],
-        model,
-        system: playSystem,
-      });
+      const followUpMessages = [
+        ...messages,
+        { content: answer.text, role: "assistant" as const },
+        { content: followUpQuestion, role: "user" as const },
+      ];
+      const followUp = baseline
+        ? await generateText({
+            abortSignal: AbortSignal.timeout(120_000),
+            messages: followUpMessages,
+            model,
+            system: playSystem,
+          })
+        : await sceneAnswer(script, followUpMessages, [memory]);
       return {
         followUp: followUp.text,
         followUpQuestion,
+        followUpStructured: "scene" in followUp ? followUp : undefined,
         memory,
+        structured: "scene" in answer ? answer : undefined,
         system: playSystem,
         text: answer.text,
       };
