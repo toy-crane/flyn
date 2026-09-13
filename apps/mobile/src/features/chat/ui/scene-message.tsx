@@ -1,5 +1,5 @@
 import { type ComponentType, memo, type ReactNode } from "react";
-import { Text, useWindowDimensions, View } from "react-native";
+import { Text, View } from "react-native";
 import { castTone } from "@/shared/ui/cast-tone";
 
 import { MarkdownAnswer } from "./markdown-answer";
@@ -42,13 +42,11 @@ const SceneOpening = memo(function SceneOpeningContent({
 }: {
   text: string;
 }) {
-  const { fontScale } = useWindowDimensions();
   const [lead, ...rest] = text.split("\n");
 
   return (
     <View
       className="mt-1 mb-3 max-w-[92%] gap-1 px-1"
-      key={fontScale}
       testID="chat-scene-opening"
     >
       <Text className="font-semibold text-base text-foreground leading-6">
@@ -82,7 +80,6 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
   messageId: string;
   UtteranceSlot: UtteranceAddon | undefined;
 }) {
-  const { fontScale } = useWindowDimensions();
   if (name === null) {
     return isOpening ? <SceneOpening text={text} /> : null;
   }
@@ -95,7 +92,6 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
     <View className="w-full items-start" testID="chat-scene-utterance">
       <Text
         className={`mb-1 px-1 font-semibold text-sm leading-4 ${castTone(castPosition)}`}
-        key={fontScale}
       >
         {name}
       </Text>

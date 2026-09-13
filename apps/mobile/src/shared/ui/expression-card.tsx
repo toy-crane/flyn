@@ -3,7 +3,6 @@ import {
   type GestureResponderEvent,
   Pressable,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -79,8 +78,6 @@ export function ExpressionCard({
   meaning: string | null;
   testID?: string;
 }) {
-  // 글자 크기가 바뀌면 카드 안의 이전 측정값을 버리고 다시 배치한다.
-  const { fontScale } = useWindowDimensions();
   const [isExpanded, setIsExpanded] = useState(false);
   const touchedAt = useRef({ x: 0, y: 0 });
   const rememberTouch = useCallback((event: GestureResponderEvent) => {
@@ -190,7 +187,6 @@ export function ExpressionCard({
   return (
     <View
       className="rounded-[18px] bg-surface px-4 pt-4 pb-3.5"
-      key={fontScale}
       testID={testID}
     >
       {detail === undefined ? (

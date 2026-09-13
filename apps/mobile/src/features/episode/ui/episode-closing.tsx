@@ -125,7 +125,7 @@ export function EpisodeClosing({
   // autoPlay가 켜져 있으면 멈춘 애니메이션을 처음부터 다시 돌린다.
   const [finished, setFinished] = useState(false);
   const finish = useCallback(() => setFinished(true), []);
-  const { fontScale, height } = useWindowDimensions();
+  const { height } = useWindowDimensions();
   useEffect(() => {
     if (!requested) {
       return;
@@ -204,7 +204,6 @@ export function EpisodeClosing({
               <Text
                 className="font-semibold text-accent text-sm"
                 dynamicTypeRamp="footnote"
-                key={`success-${fontScale}`}
               >
                 해냈어요!
               </Text>
@@ -215,7 +214,6 @@ export function EpisodeClosing({
               accessibilityRole="header"
               className="text-center font-bold text-[22px] text-foreground leading-[30px]"
               dynamicTypeRamp="title2"
-              key={`outcome-${fontScale}`}
               testID="episode-closing-outcome"
             >
               {ending.outcome.replace(TRAILING_PERIOD, "")}
@@ -223,11 +221,7 @@ export function EpisodeClosing({
           </Animated.View>
         </ScrollView>
         <Animated.View entering={playing ? settle : undefined}>
-          <Button
-            accessibilityLabel="표현 돌아보기"
-            key={`review-${fontScale}`}
-            onPress={onReview}
-          >
+          <Button accessibilityLabel="표현 돌아보기" onPress={onReview}>
             표현 돌아보기
           </Button>
         </Animated.View>

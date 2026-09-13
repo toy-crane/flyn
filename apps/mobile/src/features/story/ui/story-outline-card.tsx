@@ -1,4 +1,4 @@
-import { Text, useWindowDimensions, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { Button } from "@/shared/ui/button";
@@ -57,14 +57,12 @@ export function StoryOutlineCard({
   outline: StoryOutline;
   progress?: string;
 }) {
-  const { fontScale } = useWindowDimensions();
   const startLabel = isStarting
     ? (progress ?? storyLabels.creationProgress.script)
     : storyLabels.createStory;
   return (
     <View
       className="w-full gap-3.5 rounded-2xl bg-surface p-4"
-      key={fontScale}
       testID="story-outline-card"
     >
       <View>
@@ -184,7 +182,6 @@ export function StoryOutlineTurn({
   outline: StoryOutline;
   progress?: string;
 }) {
-  const { fontScale } = useWindowDimensions();
   return (
     <View className="w-full gap-3">
       <StoryOutlineCard
@@ -199,7 +196,6 @@ export function StoryOutlineTurn({
         <Text
           className="px-1 text-[16px] text-foreground leading-6"
           dynamicTypeRamp="body"
-          key={fontScale}
         >
           {storyLabels.afterCard}
         </Text>

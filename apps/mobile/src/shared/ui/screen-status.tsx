@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Text, useWindowDimensions, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { Button } from "@/shared/ui/button";
 import { Icon, type IconName } from "@/shared/ui/icon";
@@ -106,8 +106,6 @@ export function ScreenEmpty({
   testID: string;
   title: string;
 }) {
-  const { fontScale } = useWindowDimensions();
-
   return (
     <View
       className="grow items-center justify-center gap-4 px-6 py-9"
@@ -120,12 +118,7 @@ export function ScreenEmpty({
       >
         {title}
       </Text>
-      {/* 글자 크기가 바뀌면 버튼의 이전 측정값도 버리고 다시 배치한다. */}
-      {action ? (
-        <View className="mt-2 max-w-full" key={fontScale}>
-          {action}
-        </View>
-      ) : null}
+      {action ? <View className="mt-2 max-w-full">{action}</View> : null}
     </View>
   );
 }
