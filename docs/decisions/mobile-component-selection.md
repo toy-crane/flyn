@@ -2,7 +2,7 @@
 
 ## 결정
 
-- React Native UI에서 누를 수 있는 것과 표면은 HeroUI Native 컴포넌트나 그것을 감싼 저장소 공용 컴포넌트로 만든다. 버튼은 공용 `Button`, 눌리지 않는 라벨 알약은 `Chip`, 누르는 작은 알약은 `Button`의 `sm` 크기, 목록은 `ListGroup`과 항목 사이 `Separator`, 펼치지 않는 카드는 `Card`, 펼침 카드는 `Accordion`의 표면 변형, 구분선은 `Separator`, 입력의 오류 문구는 `FieldError`를 쓴다. HeroUI `Chip`은 눌림 반응과 비활성 표현이 없으므로 누르는 자리에 쓰지 않는다.
+- React Native UI에서 누를 수 있는 것과 표면은 HeroUI Native 컴포넌트나 그것을 감싼 저장소 공용 컴포넌트로 만든다. 버튼은 공용 `Button`, 눌리지 않는 라벨 알약은 `Chip`, 누르는 작은 알약은 `Button`의 `sm` 크기, 글자만 있는 작은 링크는 `Button`의 `ghost` 변형 `sm` 크기, 목록은 `ListGroup`과 항목 사이 `Separator`, 펼치지 않는 카드는 `Card`, 펼침 카드는 `Accordion`의 표면 변형, 구분선은 `Separator`, 입력의 오류 문구는 `FieldError`를 쓴다. HeroUI `Chip`은 눌림 반응과 비활성 표현이 없으므로 누르는 자리에 쓰지 않는다.
 - 목록 행의 눌림 반응은 HeroUI 문서대로 `PressableFeedback`으로 행을 감싸고 `onPress`를 그쪽에 두며 `ListGroup.Item`은 `disabled`로 둔다. 행의 버튼 역할은 감싼 쪽에 넘긴다.
 - 아이콘만 있는 버튼은 저장소 공용 아이콘 버튼으로 만든다. `PressableFeedback`의 축소 반응만 쓰고, 비활성은 HeroUI의 `element-disabled` 유틸리티(투명도 0.5)로 표현한다. `PressableFeedback` 자체에는 비활성 표현이 없다.
 - 원시 `Pressable`은 이 계약의 예외 목록에 이름과 이유가 적힌 자리에서만 쓴다. 새 자리에 필요하면 먼저 이 목록에 줄을 더하고 쓴다. 목록에 없는 `Pressable`은 UI 일관성 검토의 finding이다.

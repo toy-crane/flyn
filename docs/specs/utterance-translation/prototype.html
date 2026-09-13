@@ -1,0 +1,649 @@
+<!--
+  prototype shell: the review chrome every prototype starts from.
+
+  Keep this comment in the prototype you grow from here: it is the contract,
+  and later turns work from that file rather than from this one.
+
+  Contract (extend product screens; keep the review shell):
+  - Product:  .sh-stage contains only end-user product UI. Keep review notes,
+               rationale, instructions, and approval controls in conversation.
+  - Screens:  <section data-screen="slug" data-title="Label"> inside .sh-stage.
+               The selector, arrow keys, and #hash routing build themselves.
+               Use one option per product destination or distinct surface,
+               named by its product role. Keep baselines, variants, comparison
+               labels, steps, indexes, and progress out of names and states.
+               Links may use href="#slug".
+  - States:   "Default" is automatic. A screen declares only representative
+               presets in data-states="Empty,Error". Use natural, screen-specific
+               names. Reserve presets for important multi-step results, forced
+               data or errors, or materially different structure; keep one-click
+               and transient states as interactions. Use data-when="Empty" on
+               preset-only elements. Call prototypeShell.setState("Name") on
+               entry and setState("Default") on exit, including when repeated
+               actions cross a preset condition.
+  - Viewport: "vp (m)" cycles full / 390 / 768. The 390 preset is a
+               fixed-height, internally scrolling phone frame. Start a
+               mobile-first prototype by adding class="sh-vp-390" to <body>
+               (or a bootstrap classList.add before the chrome script runs).
+  - Pinning:  keep in-frame bars (tab bars, CTAs) inside the phone with
+               position: sticky; position: fixed pins to the browser window.
+  - Tokens:   replace the project-tokens block with project tokens copied
+               verbatim. Map differing names to --background, --foreground, and
+               --font afterwards; replace network fonts with a system stack and
+               note that substitution. Without a design system, keep this
+               palette as the finished style. When the project ships dark
+               tokens, copy them under .sh-theme-dark, which the shell sets
+               on both the root element and body, so :root.sh-theme-dark and
+               body.sh-theme-dark work too. A .dark class or a
+               prefers-color-scheme media query copied verbatim would follow
+               the reviewer's system instead of the toggle.
+  - Theme:    the light / dark switch (t) changes the product surface only.
+               It appears only when a .sh-theme-dark rule declares dark tokens,
+               so a prototype without them carries no theme control. Prototypes
+               always load light; the review bar keeps its own dark styling in
+               both themes so it still reads as chrome.
+  - Placeholders: .wf-pic stands in for pictures the prototype has no real
+               files for. Use real text everywhere text belongs.
+
+  - Chrome:   Keep exactly the screen selector, selected-screen state selector,
+               viewport cycle, and theme toggle.
+
+  Self-contained by design: no build, no framework, no network.
+-->
+<meta charset="utf-8">
+<title>인물 대사 번역</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /* ── project tokens: apps/mobile/global.css + heroui-native variables.css (light) ── */
+  :root {
+    --background: #f4f4f6;
+    --foreground: #111114;
+    --surface: #ffffff;
+    --surface-foreground: var(--foreground);
+    --surface-secondary: oklch(0.9524 0.0013 286.37);
+    --muted: oklch(0.5517 0.0138 285.94);
+    --accent: oklch(0.6204 0.195 253.83);
+    --accent-foreground: #ffffff;
+    --accent-soft: color-mix(in oklch, var(--accent) 12%, transparent);
+    --border: oklch(90% 0.004 286.32);
+    --danger-soft-foreground: oklch(0.577 0.245 27.325);
+    --success-soft-foreground: oklch(0.527 0.154 150.069);
+    --expression: #0f766e;
+    --expression-surface: #e5f3ef;
+    --learn: oklch(0.54 0.19 300);
+    --learn-foreground: oklch(0.9911 0 0);
+    --learn-surface: oklch(0.945 0.022 300);
+    --scene: #3c3c43;
+    --cast-1: #b4552f;
+    --cast-2: #2f6f4e;
+    --cast-3: #8a5a10;
+    --cast-4: #a8386a;
+    --radius: 6px;
+    --font: -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", sans-serif;
+  }
+  .sh-theme-dark {
+    --background: #0b0b0d;
+    --foreground: #ffffff;
+    --surface: #1a1a1e;
+    --surface-secondary: oklch(0.257 0.0037 286.14);
+    --muted: oklch(70.5% 0.015 286.067);
+    --accent: oklch(0.6204 0.195 253.83);
+    --accent-foreground: #ffffff;
+    --accent-soft: color-mix(in oklch, var(--accent) 20%, transparent);
+    --border: oklch(28% 0.006 286.033);
+    --danger-soft-foreground: oklch(0.704 0.191 22.216);
+    --success-soft-foreground: oklch(0.723 0.219 149.579);
+    --expression: #76d6c9;
+    --expression-surface: #152f2c;
+    --learn: oklch(0.78 0.15 300);
+    --learn-foreground: oklch(0.21 0.03 300);
+    --learn-surface: oklch(0.27 0.045 300);
+    --scene: #c7c7cc;
+    --cast-1: #f0997b;
+    --cast-2: #97c459;
+    --cast-3: #e0b063;
+    --cast-4: #ee93b1;
+  }
+
+  /* ── review chrome (sh-*): keep; extend product styles elsewhere ── */
+  * { box-sizing: border-box }
+  body {
+    margin: 0; padding: 0 0 40px;
+    background: var(--background, #f6f6f6); color: var(--foreground, #3a3a3a);
+    font-family: var(--font, system-ui, sans-serif);
+  }
+  .sh-bar {
+    position: sticky; top: 0; z-index: 999;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    padding: 8px 12px; background: #191a1c; color: #d7d7d7;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .sh-bar b, .sh-control-label { color: #8a8f98; font-weight: 500 }
+  .sh-control { display: inline-flex; gap: 5px; align-items: center }
+  .sh-bar button {
+    border: 1px solid #3a3d42; background: none; color: inherit;
+    font: inherit; padding: 2px 9px; border-radius: 99px; cursor: pointer;
+  }
+  .sh-bar select {
+    width: 170px; border: 1px solid #3a3d42; background: #232428; color: inherit;
+    font: inherit; padding: 3px 28px 3px 9px; border-radius: 7px; cursor: pointer;
+    color-scheme: dark;
+  }
+  #sh-screen { width: 190px }
+  .sh-bar button.on { background: #d7d7d7; color: #191a1c; border-color: #d7d7d7 }
+  .sh-theme { display: inline-flex; border: 1px solid #3a3d42; border-radius: 99px; overflow: hidden }
+  .sh-theme button { border: 0; border-radius: 0; padding: 2px 10px }
+  .sh-spacer { flex: 1 }
+  .sh-stage { max-width: 960px; margin: 0 auto; padding: 12px 16px 0 }
+  [hidden] { display: none !important }
+
+  /* viewport presets */
+  .sh-vp-390 .sh-stage {
+    max-width: 390px; background: var(--background, #f6f6f6);
+    border: 10px solid #191a1c; border-radius: 28px;
+    padding: 16px 12px; height: min(844px, calc(100dvh - 52px));
+    overflow-y: auto; margin-top: 12px;
+  }
+  .sh-vp-768 .sh-stage {
+    max-width: 768px; border: 1px solid #c4c4c4; border-radius: 12px;
+    padding: 16px; margin-top: 12px;
+  }
+
+  /* placeholders */
+  .wf-pic  { border-radius: 4px; background:
+             repeating-linear-gradient(45deg, #e9e9e9, #e9e9e9 6px, #f2f2f2 6px, #f2f2f2 12px) }
+  .sh-theme-dark .wf-pic { background: repeating-linear-gradient(45deg,
+             color-mix(in srgb, var(--foreground) 16%, transparent) 0 6px,
+             color-mix(in srgb, var(--foreground) 8%, transparent) 6px 12px) }
+
+  /* ── product ── */
+  .sh-vp-390 .sh-stage { padding: 0; position: relative; }
+  .screen { position: relative; min-height: 100%; display: flex; flex-direction: column; }
+  .sh-vp-390 .screen { min-height: calc(min(844px, 100dvh - 52px) - 20px); }
+  button { font-family: inherit; }
+
+  .nav-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 14px 12px 8px; }
+  .nav-back { display: inline-flex; align-items: center; gap: 2px; color: var(--accent); font-size: 17px; text-decoration: none; }
+  .nav-back svg { width: 22px; height: 22px; margin-left: -6px; }
+  .nav-title { font-size: 17px; font-weight: 600; text-align: center; white-space: nowrap; }
+
+  .situation { border-bottom: 1px solid var(--border); background: var(--background); }
+  .situation-inner { display: flex; gap: 6px; align-items: flex-start; padding: 8px 20px; background: var(--accent-soft); font-size: 14px; line-height: 20px; }
+
+  .chat { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px 16px; flex: 1; }
+  .scene-opening { max-width: 92%; padding: 0 4px; margin: 4px 0 12px; display: flex; flex-direction: column; gap: 4px; font-size: 16px; line-height: 24px; }
+  .scene-opening .lead { font-weight: 600; }
+  .scene-opening .rest { color: var(--scene); }
+
+  .utterance { display: flex; flex-direction: column; align-items: flex-start; width: 100%; }
+  .utterance .slot { width: 100%; display: flex; flex-direction: column; align-items: flex-start; }
+  .chat { padding-bottom: 24px; }
+  .cast-name { font-size: 14px; line-height: 16px; font-weight: 600; padding: 0 4px; margin-bottom: 4px; color: var(--cast-1); }
+  .bubble { max-width: 85%; border-radius: 16px; padding: 12px 16px; font-size: 16px; line-height: 24px; }
+  .bubble.cast { background: var(--surface); color: var(--foreground); }
+  .bubble.mine { background: var(--accent); color: var(--accent-foreground); align-self: flex-end; }
+  .mine-wrap { display: flex; flex-direction: column; align-items: flex-end; width: 100%; }
+
+  .icon-row { display: flex; margin: 6px 0 0 -4px; }
+  .icon-row.end { margin: 6px -4px 0 0; align-self: flex-end; }
+  .icon-btn { width: 28px; height: 28px; margin: 0 -2px; border: 0; background: none; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); cursor: pointer; border-radius: 6px; position: relative; }
+  /* 보이는 크기는 28px이고 위아래 누름 범위만 6px씩 넓혀 세로 40px이 된다. */
+  .icon-btn::before { content: ''; position: absolute; left: 0; right: 0; top: -6px; bottom: -6px; }
+  .icon-btn:active { transform: scale(.92); }
+  .icon-btn svg { width: 16px; height: 16px; }
+  .icon-btn.on { color: var(--accent); }
+  .icon-btn.on svg.fillable { fill: currentColor; }
+  .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--muted) 30%, transparent); border-top-color: var(--muted); animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg) } }
+
+  .status-line { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12px; line-height: 16px; color: var(--muted); max-width: 85%; }
+  .status-line.danger { color: var(--danger-soft-foreground); }
+  .status-line.success { color: var(--success-soft-foreground); }
+  .status-line svg { width: 14px; height: 14px; }
+  .status-line .retry { width: 44px; height: 44px; margin: -14px -14px -14px -15px; border: 0; background: none; padding: 0; color: inherit; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+
+  /* 배울 표현 한 줄과 카드 (기존, 오른쪽) */
+  .learn-line { max-width: 92%; display: flex; gap: 8px; align-items: flex-start; align-self: flex-end; border-radius: 16px; border-top-left-radius: 6px; padding: 10px 14px; background: var(--learn-surface); border: 0; text-align: left; cursor: pointer; margin-top: 4px; color: var(--foreground); font-size: 14px; line-height: 20px; }
+  .learn-line svg { width: 16px; height: 16px; flex: none; }
+  .learn-line .mark { color: var(--learn); margin-top: 2px; }
+  .learn-line .chev { color: var(--muted); margin-top: 2px; }
+  .learn-line b { color: var(--learn); font-weight: 600; }
+
+  /* 대사 뜻 한 줄과 카드 (새로, 왼쪽) */
+  .meaning-line { max-width: 92%; display: flex; gap: 8px; align-items: flex-start; align-self: flex-start; border-radius: 16px; border-top-right-radius: 6px; padding: 10px 14px; background: var(--surface); border: 0; text-align: left; cursor: pointer; margin-top: 4px; color: var(--foreground); font-size: 14px; line-height: 20px; }
+  .meaning-line svg { width: 16px; height: 16px; flex: none; }
+  .meaning-line .mark { color: var(--muted); margin-top: 2px; }
+  .meaning-line .chev { color: var(--muted); margin-top: 2px; }
+  .meaning-line:focus-visible, .learn-line:focus-visible { outline: 2px solid var(--accent); }
+
+  .meaning-block { max-width: 92%; align-self: flex-start; border-radius: 16px; border-top-right-radius: 6px; background: var(--surface); margin-top: 4px; padding: 10px 14px 2px; }
+  .meaning-block .row { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 20px; color: var(--foreground); }
+  .meaning-block .row svg { width: 16px; height: 16px; flex: none; color: var(--muted); margin-top: 2px; }
+  /* 공용 Button의 ghost 변형 sm 크기. 높이 40px와 좌우 30px 여백은 HeroUI 기본값이고, 글자가 뜻과 같은 24px 자리에서 시작하도록 6px만 왼쪽으로 당긴다. */
+  .meaning-block .ask-link { display: inline-flex; align-items: center; gap: 2px; min-height: 40px; margin: 0 0 0 -6px; padding: 0 30px; border: 0; border-radius: 999px; background: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; }
+  .meaning-block .ask-link svg { width: 14px; height: 14px; }
+  .meaning-block .ask-link:focus-visible { outline: 2px solid var(--accent); border-radius: 4px; }
+  .meaning-card { max-width: 85%; align-self: flex-start; border-radius: 16px; border-top-right-radius: 6px; padding: 12px 14px; background: var(--surface); margin-top: 4px; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 8px; }
+  .card-head .title { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+  .card-head .title svg { width: 16px; height: 16px; }
+  .fold { width: 44px; height: 44px; margin: -8px -8px -8px 0; border: 0; background: none; padding: 0; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+  .fold svg { width: 16px; height: 16px; }
+  .card-original { font-size: 14px; line-height: 20px; color: var(--muted); margin-bottom: 2px; }
+  .card-meaning { font-size: 16px; line-height: 24px; font-weight: 600; color: var(--foreground); }
+  .ask-btn { margin-top: 12px; width: 100%; min-height: 40px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--foreground); font-size: 14px; font-weight: 600; cursor: pointer; }
+  .ask-btn:active { opacity: .7; }
+
+  .composer { position: sticky; bottom: 0; padding: 8px 12px 14px; background: linear-gradient(to bottom, transparent, var(--background) 30%); }
+  .composer-box { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 70%, transparent); backdrop-filter: blur(12px); border-radius: 999px; padding: 6px 6px 6px 16px; }
+  .composer-box .ph { flex: 1; color: var(--muted); font-size: 16px; line-height: 24px; }
+  .composer-box input { flex: 1; border: 0; background: none; font: inherit; font-size: 16px; line-height: 24px; color: var(--foreground); outline: none; min-width: 0; }
+  .send { width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--surface-secondary); color: var(--muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+  .send.ready { background: var(--accent); color: var(--accent-foreground); }
+  .send svg { width: 18px; height: 18px; }
+
+  /* AI에게 물어보기 시트 */
+  .sheet-dim { position: absolute; inset: 0; background: rgba(0,0,0,.35); z-index: 20; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; top: 24px; background: var(--background); border-radius: 12px 12px 0 0; z-index: 21; display: flex; flex-direction: column; box-shadow: 0 -8px 30px rgba(0,0,0,.2); }
+  .sheet-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 14px 12px 10px; }
+  .sheet-close { justify-self: end; width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--surface-secondary); color: var(--muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+  .sheet-close svg { width: 16px; height: 16px; }
+  .sheet-body { flex: 1; overflow-y: auto; padding: 4px 16px 8px; display: flex; flex-direction: column; gap: 8px; }
+  .source { border-radius: 16px; padding: 12px 14px; background: var(--surface); margin-bottom: 8px; }
+  .source .title { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+  .source .title svg { width: 16px; height: 16px; }
+  .source .speaker { font-size: 12px; line-height: 16px; font-weight: 600; color: var(--cast-1); margin-bottom: 2px; }
+  .source .original { font-size: 14px; line-height: 20px; color: var(--muted); margin-bottom: 2px; }
+  .source .meaning { font-size: 16px; line-height: 24px; font-weight: 600; }
+  .answer { max-width: 100%; font-size: 16px; line-height: 24px; padding: 4px 4px; display: flex; flex-direction: column; gap: 12px; }
+  .answer p { margin: 0; }
+  .answer .example { font-weight: 600; }
+  .sheet .composer { padding-bottom: 20px; }
+
+  .toast { position: absolute; top: 96px; left: 50%; transform: translateX(-50%); background: var(--foreground); color: var(--background); border-radius: 999px; padding: 8px 14px; font-size: 14px; line-height: 20px; display: inline-flex; gap: 6px; align-items: center; z-index: 30; white-space: nowrap; }
+  .toast svg { width: 16px; height: 16px; }
+</style>
+
+<header class="sh-bar">
+  <b>proto</b>
+  <label class="sh-control"><span class="sh-control-label">screen</span><select id="sh-screen"></select></label>
+  <span class="sh-spacer"></span>
+  <label class="sh-control"><span class="sh-control-label">state</span><select id="sh-state"></select></label>
+  <button id="sh-vp">vp: full (m)</button>
+  <div class="sh-theme" id="sh-theme" role="group" aria-label="theme (t)" hidden>
+    <button data-theme="light">light</button><button data-theme="dark">dark</button>
+  </div>
+</header>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+    <symbol id="i-bookmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></symbol>
+    <symbol id="i-languages" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-forward" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol>
+  </defs>
+</svg>
+
+<main class="sh-stage">
+  <section data-screen="episode" data-title="에피소드" data-states="번역 실패,첫 장면">
+    <div class="screen" id="episode-screen">
+      <div class="nav-head">
+        <a class="nav-back" href="#episode" aria-label="뒤로 가기"><svg><use href="#i-left"/></svg></a>
+        <div class="nav-title">1화 · 잘못 나온 첫 잔</div>
+        <span></span>
+      </div>
+      <div class="situation"><div class="situation-inner"><span aria-hidden="true">☕</span><span>잘못 나온 커피를 원하는 커피로 바꿔 보세요</span></div></div>
+
+      <div class="chat" id="chat">
+        <div class="scene-opening">
+          <div class="lead">늘 오던 동네 카페, 계산대 앞이다.</div>
+          <div class="rest">아이스 아메리카노를 시켰는데 받아 든 잔은 뜨겁고 우유 거품이 얹혀 있다.</div>
+          <div class="rest">뒤로 줄이 길고, 잔을 쥔 손바닥이 점점 뜨거워진다.</div>
+        </div>
+
+        <!-- 첫 장면의 대사. 회차가 없을 때는 복사와 번역만 선다. -->
+        <div class="utterance" data-utterance="u0" data-original="Next in line, please!" data-meaning="다음 손님, 오세요!" data-answer="미아가 줄에 선 다음 손님을 부르는 말이에요. 아직 내 커피 이야기는 나오지 않았어요.&#10;&#10;Next in line은 줄에서 다음 차례라는 뜻이고, please를 붙여 가볍게 부르는 거예요." data-next="지금 말을 걸지 않으면 다음 손님 차례로 넘어가니, 짧게라도 먼저 부르면 돼요.&#10;&#10;Excuse me, I think this is the wrong drink.">
+          <div class="cast-name">Mia</div>
+          <div class="bubble cast">Next in line, please!</div>
+          <div class="icon-row">
+            <button class="icon-btn translate" aria-label="대사 뜻 보기" aria-pressed="false"><svg><use href="#i-languages"/></svg></button>
+            <button class="icon-btn bookmark needs-play" aria-label="표현 저장" aria-pressed="false"><svg class="fillable"><use href="#i-bookmark"/></svg></button>
+            <button class="icon-btn copy" aria-label="대사 복사"><svg><use href="#i-copy"/></svg></button>
+          </div>
+          <div class="slot"></div>
+        </div>
+
+        <div class="after-play" style="display: contents">
+          <div class="mine-wrap">
+            <div class="bubble mine">Excuse me, I ordered iced americano but this is hot latte.</div>
+            <button class="learn-line" aria-label="더 자연스러운 영어 표현 보기">
+              <svg class="mark"><use href="#i-sparkles"/></svg>
+              <span>I ordered <b>an</b> iced americano, but this is <b>a</b> hot latte.</span>
+              <svg class="chev"><use href="#i-down"/></svg>
+            </button>
+            <div class="icon-row end">
+              <button class="icon-btn bookmark" aria-label="표현 저장" aria-pressed="false"><svg class="fillable"><use href="#i-bookmark"/></svg></button>
+              <button class="icon-btn copy" aria-label="표현 복사"><svg><use href="#i-copy"/></svg></button>
+            </div>
+          </div>
+
+          <div class="utterance" data-utterance="u1"
+               data-original="Oh no, I'm so sorry about that! Let me remake it for you right away. Iced americano, right? It'll just take a minute."
+               data-meaning="어머, 정말 죄송해요! 바로 다시 만들어 드릴게요. 아이스 아메리카노 맞죠? 금방 될 거예요."
+               data-answer="미아가 잘못 나온 커피를 사과하면서 바로 다시 만들어 주겠다고 하는 말이에요.&#10;&#10;remake는 만든 걸 다시 만든다는 뜻이고, right away는 지금 바로예요. 끝의 right?는 내가 이해한 게 맞는지 가볍게 확인하는 말이에요." data-next="아이스 아메리카노가 맞으면 짧게 답하면 돼요.&#10;&#10;Yes, iced americano. Thank you!">
+            <div class="cast-name">Mia</div>
+            <div class="bubble cast">Oh no, I'm so sorry about that! Let me remake it for you right away. Iced americano, right? It'll just take a minute.</div>
+            <div class="icon-row">
+              <button class="icon-btn translate" aria-label="대사 뜻 보기" aria-pressed="false"><svg><use href="#i-languages"/></svg></button>
+              <button class="icon-btn bookmark" aria-label="표현 저장" aria-pressed="false"><svg class="fillable"><use href="#i-bookmark"/></svg></button>
+              <button class="icon-btn copy" aria-label="대사 복사"><svg><use href="#i-copy"/></svg></button>
+            </div>
+            <div class="slot"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="composer-box">
+          <span class="ph">영어나 한국어로 적어 주세요</span>
+          <button class="send" aria-label="보내기"><svg><use href="#i-arrow-up"/></svg></button>
+        </div>
+      </div>
+
+      <div class="toast" id="toast" hidden></div>
+
+      <!-- AI에게 물어보기 시트. 대사 뜻 카드에서 열리고 에피소드 화면 위에 선다. -->
+      <div id="ask-overlay" hidden>
+        <div class="sheet-dim" data-close></div>
+        <div class="sheet" role="dialog" aria-label="AI에게 물어보기">
+          <div class="sheet-head">
+            <span></span>
+            <div class="nav-title">AI에게 물어보기</div>
+            <button class="sheet-close" data-close aria-label="AI에게 물어보기 닫기"><svg><use href="#i-x"/></svg></button>
+          </div>
+          <div class="sheet-body" id="ask-body">
+            <div class="source">
+              <div class="title"><svg><use href="#i-languages"/></svg>대사 뜻</div>
+              <div class="speaker" id="src-speaker">Mia</div>
+              <div class="original" id="src-original"></div>
+              <div class="meaning" id="src-meaning"></div>
+            </div>
+            <div id="ask-thread" style="display: contents"></div>
+          </div>
+          <div class="composer">
+            <div class="composer-box">
+              <input id="ask-input" placeholder="궁금한 것을 한국어로 물어보세요" aria-label="궁금한 것을 한국어로 물어보세요">
+              <button class="send" id="ask-send" aria-label="보내기"><svg><use href="#i-arrow-up"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const stage = document.querySelector('.sh-stage');
+  const screens = [...stage.querySelectorAll('[data-screen]')];
+  const screenSelect = document.getElementById('sh-screen');
+  const stateSelect = document.getElementById('sh-state');
+  const vpBtn = document.getElementById('sh-vp');
+  const themeCtl = document.getElementById('sh-theme');
+  const themeBtns = [...themeCtl.querySelectorAll('button')];
+  let current = null;
+  let currentStates = [];
+
+  screens.forEach(s => {
+    const option = document.createElement('option');
+    option.textContent = s.dataset.title || s.dataset.screen;
+    option.value = s.dataset.screen;
+    screenSelect.append(option);
+  });
+  screenSelect.onchange = () => show(screenSelect.value);
+
+  function show(slug) {
+    current = screens.find(s => s.dataset.screen === slug) || screens[0];
+    screens.forEach(s => s.hidden = s !== current);
+    screenSelect.value = current.dataset.screen;
+    history.replaceState(null, '', '#' + current.dataset.screen);
+    buildStates();
+  }
+
+  function buildStates() {
+    const declared = (current.dataset.states || '').split(',').map(x => x.trim()).filter(Boolean);
+    currentStates = ['Default', ...declared.filter(name => name !== 'Default')];
+    stateSelect.innerHTML = '';
+    currentStates.forEach(name => {
+      const option = document.createElement('option');
+      option.textContent = name;
+      option.value = name;
+      stateSelect.append(option);
+    });
+    applyState('Default');
+  }
+
+  function applyState(name) {
+    const active = currentStates.includes(name) ? name : 'Default';
+    current.querySelectorAll('[data-when]').forEach(el => {
+      el.hidden = !el.dataset.when.split(',').map(x => x.trim()).includes(active);
+    });
+    stateSelect.value = active;
+    document.dispatchEvent(new CustomEvent('sh-state', { detail: active }));
+  }
+  stateSelect.onchange = () => applyState(stateSelect.value);
+
+  window.prototypeShell = {
+    showScreen: show,
+    setState: applyState,
+    getScreen: () => current?.dataset.screen,
+    getState: () => stateSelect.value
+  };
+
+  const VPS = ['full', '390', '768'];
+  let vp = VPS.find(v => document.body.classList.contains('sh-vp-' + v)) || 'full';
+  function applyVp() {
+    VPS.forEach(v => document.body.classList.toggle('sh-vp-' + v, v === vp && v !== 'full'));
+    vpBtn.textContent = 'vp: ' + vp + ' (m)';
+    vpBtn.classList.toggle('on', vp !== 'full');
+  }
+  vpBtn.onclick = () => { vp = VPS[(VPS.indexOf(vp) + 1) % VPS.length]; applyVp(); };
+  document.body.classList.add('sh-vp-390'); vp = '390';
+  applyVp();
+
+  const hasDark = [...document.styleSheets].some(sheet => {
+    try {
+      return [...sheet.cssRules].some(rule => (rule.selectorText || '')
+        .split(',').some(part => /\.sh-theme-dark$/.test(part.trim())));
+    } catch { return false }
+  });
+  let dark = false;
+  function applyTheme() {
+    document.documentElement.classList.toggle('sh-theme-dark', dark);
+    document.body.classList.toggle('sh-theme-dark', dark);
+    themeBtns.forEach(b => b.classList.toggle('on', (b.dataset.theme === 'dark') === dark));
+  }
+  themeCtl.hidden = !hasDark;
+  themeBtns.forEach(b => b.onclick = () => { dark = b.dataset.theme === 'dark'; applyTheme(); });
+  applyTheme();
+
+  addEventListener('keydown', e => {
+    if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    const i = screens.indexOf(current);
+    if (e.key === 'ArrowRight') show(screens[(i + 1) % screens.length].dataset.screen);
+    if (e.key === 'ArrowLeft') show(screens[(i - 1 + screens.length) % screens.length].dataset.screen);
+    if (e.key === 'm') vpBtn.click();
+    if (e.key === 't' && !themeCtl.hidden) { dark = !dark; applyTheme(); }
+  });
+
+  addEventListener('hashchange', () => show(location.hash.slice(1)));
+  show(location.hash.slice(1));
+
+  /* ── product behavior ── */
+  const svg = id => `<svg><use href="#${id}"/></svg>`;
+  const toast = document.getElementById('toast');
+  let toastTimer;
+  function showToast(text, icon) {
+    toast.innerHTML = svg(icon) + text;
+    toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.hidden = true; }, 2500);
+  }
+
+  // 복사: 1.5초 동안 체크로 바뀐다. 알림은 없다.
+  document.querySelectorAll('.icon-btn.copy').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.innerHTML = svg('i-check');
+      setTimeout(() => { btn.innerHTML = svg('i-copy'); }, 1500);
+    });
+  });
+
+  // 책갈피: 담기와 취소를 오간다.
+  document.querySelectorAll('.icon-btn.bookmark').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const on = !btn.classList.contains('on');
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', String(on));
+      btn.setAttribute('aria-label', on ? '저장 취소' : '표현 저장');
+      showToast(on ? '표현을 저장했어요' : '저장을 취소했어요', 'i-bookmark');
+    });
+  });
+
+  // 번역: 처음 누르면 요청하고, 그 뒤로는 보였다 감췄다 한다.
+  let failNext = false;
+  const meaningState = {}; // id → { known: bool, shown: bool, open: bool }
+
+  function renderSlot(u) {
+    const id = u.dataset.utterance;
+    const st = meaningState[id] || (meaningState[id] = { known: false, shown: false, open: false, error: false });
+    const slot = u.querySelector('.slot');
+    const btn = u.querySelector('.translate');
+    btn.classList.toggle('on', st.shown && st.known);
+    btn.setAttribute('aria-pressed', String(st.shown && st.known));
+    btn.setAttribute('aria-label', st.shown && st.known ? '대사 뜻 닫기' : '대사 뜻 보기');
+    if (st.error) {
+      slot.innerHTML = `<div class="status-line danger"><span>대사를 번역하지 못했어요</span><button class="retry" aria-label="번역 다시 시도">${svg('i-refresh')}</button></div>`;
+      slot.querySelector('.retry').addEventListener('click', () => requestMeaning(u));
+      return;
+    }
+    if (!(st.shown && st.known)) { slot.innerHTML = ''; return; }
+    slot.innerHTML = `<div class="meaning-block" role="group" aria-label="대사 뜻">
+        <div class="row"><svg><use href="#i-languages"/></svg><span>${u.dataset.meaning}</span></div>
+        <button class="ask-link" aria-label="AI에게 물어보기">AI에게 물어보기<svg><use href="#i-forward"/></svg></button>
+      </div>`;
+    slot.querySelector('.ask-link').addEventListener('click', () => openAsk(u));
+    slot.firstElementChild.scrollIntoView({ block: 'nearest' });
+  }
+
+  function requestMeaning(u) {
+    const st = meaningState[u.dataset.utterance];
+    const btn = u.querySelector('.translate');
+    st.error = false;
+    u.querySelector('.slot').innerHTML = '';
+    btn.innerHTML = '<span class="spinner"></span>';
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+    setTimeout(() => {
+      btn.innerHTML = svg('i-languages');
+      btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+      if (failNext) { st.error = true; failNext = false; }
+      else { st.known = true; st.shown = true; if (prototypeShell.getState() === '번역 실패') prototypeShell.setState('Default'); }
+      renderSlot(u);
+    }, 900);
+  }
+
+  document.querySelectorAll('.utterance').forEach(u => {
+    renderSlot(u);
+    u.querySelector('.translate').addEventListener('click', () => {
+      const st = meaningState[u.dataset.utterance];
+      if (st.error || !st.known) { requestMeaning(u); return; }
+      st.shown = !st.shown;
+      renderSlot(u);
+    });
+  });
+
+  // 배울 표현 한 줄은 기존 동작. 이 프로토타입에서는 펼치지 않는다.
+  document.querySelector('.learn-line').addEventListener('click', () => {});
+
+  // 상태 프리셋
+  document.addEventListener('sh-state', e => {
+    const name = e.detail;
+    const afterPlay = document.querySelector('.after-play');
+    const firstBookmark = document.querySelector('.needs-play');
+    if (name === '첫 장면') {
+      afterPlay.hidden = true;
+      firstBookmark.hidden = true;
+    } else {
+      afterPlay.hidden = false;
+      firstBookmark.hidden = false;
+    }
+    if (name === '번역 실패') {
+      failNext = true;
+      const u = document.querySelector('[data-utterance="u1"]');
+      const st = meaningState.u1;
+      st.known = false; st.shown = false;
+      requestMeaning(u);
+    }
+    if (name === 'Default') {
+      failNext = false;
+      // 강제로 만든 실패 화면은 Default로 돌아올 때 함께 지운다.
+      document.querySelectorAll('.utterance').forEach(u => {
+        const st = meaningState[u.dataset.utterance];
+        if (st?.error) { st.error = false; renderSlot(u); }
+      });
+    }
+  });
+
+  // AI에게 물어보기 시트
+  const overlay = document.getElementById('ask-overlay');
+  const thread = document.getElementById('ask-thread');
+  const askInput = document.getElementById('ask-input');
+  const askSend = document.getElementById('ask-send');
+  const asks = {}; // 대사마다 대화 하나
+  const drafts = {}; // 대사마다 쓰다 만 초안
+  let askFor = null;
+  let askSource = null;
+
+  function openAsk(u) {
+    askFor = u.dataset.utterance;
+    askSource = u;
+    document.getElementById('src-original').textContent = u.dataset.original;
+    document.getElementById('src-meaning').textContent = u.dataset.meaning;
+    thread.innerHTML = asks[askFor] || '';
+    // 같은 대사에서 다시 열면 나눈 말과 쓰던 초안이 그대로 있다.
+    askInput.value = drafts[askFor] || '';
+    askSend.classList.toggle('ready', askInput.value.trim().length > 0);
+    overlay.hidden = false;
+    setTimeout(() => askInput.focus(), 50);
+  }
+  overlay.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', () => { drafts[askFor] = askInput.value; overlay.hidden = true; }));
+  askInput.addEventListener('input', () => askSend.classList.toggle('ready', askInput.value.trim().length > 0));
+  function sendAsk() {
+    const q = askInput.value.trim();
+    if (!q) return;
+    const mine = `<div class="mine-wrap"><div class="bubble mine">${q.replace(/</g, '&lt;')}</div></div>`;
+    // 답은 출처인 대사마다 다르다. 다음 말을 물었을 때만 돌아가서 쓸 영어 문장을 붙인다.
+    const wantsNext = /뭐라고|어떻게\s*(답|대답)|무슨\s*말을\s*(해|하)|다음에\s*(뭐|무슨)/.test(q);
+    const body = (wantsNext ? askSource?.dataset.next : askSource?.dataset.answer) || '';
+    const paragraphs = body.split('\n\n');
+    const answer = `<div class="answer">${paragraphs.map((text, at) =>
+        `<p${wantsNext && at === paragraphs.length - 1 ? ' class="example"' : ''}>${text}</p>`).join('')}</div>`;
+    thread.insertAdjacentHTML('beforeend', mine + answer);
+    asks[askFor] = thread.innerHTML;
+    askInput.value = '';
+    drafts[askFor] = '';
+    askSend.classList.remove('ready');
+    thread.lastElementChild.scrollIntoView({ block: 'end' });
+  }
+  askSend.addEventListener('click', sendAsk);
+  askInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendAsk(); });
+</script>
