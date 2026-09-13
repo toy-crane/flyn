@@ -354,3 +354,24 @@ grant insert (
   original, entries
 ) on table public.saved_expressions to authenticated;
 grant all on table public.saved_expressions to service_role;
+
+alter table public.utterance_meanings enable row level security;
+create policy utterance_meanings_read_own on public.utterance_meanings
+  for select to authenticated using ((select auth.uid()) = user_id);
+create policy utterance_meanings_insert_own on public.utterance_meanings
+  for insert to authenticated with check (
+    (select auth.uid()) = user_id and exists (
+      select 1 from public.episode_messages m where m.id = message_id and m.role = 'assistant'
+    )
+  );
+-- 완료된 뜻은 고치거나 지우지 않는다. 실패한 선점만 비울 수 있다.
+create policy utterance_meanings_update_pending on public.utterance_meanings
+  for update to authenticated using ((select auth.uid()) = user_id and meaning is null)
+  with check ((select auth.uid()) = user_id);
+create policy utterance_meanings_delete_pending on public.utterance_meanings
+  for delete to authenticated using ((select auth.uid()) = user_id and meaning is null);
+revoke insert, update on public.utterance_meanings from authenticated;
+grant select, delete on public.utterance_meanings to authenticated;
+grant insert(message_id, utterance_at, meaning, claim_token) on public.utterance_meanings to authenticated;
+grant update(meaning, claim_token, expires_at) on public.utterance_meanings to authenticated;
+grant all on public.utterance_meanings to service_role;

@@ -563,6 +563,48 @@ export type Database = {
           },
         ]
       }
+      utterance_meanings: {
+        Row: {
+          claim_token: string
+          expires_at: string
+          meaning: string | null
+          message_id: string
+          user_id: string
+          utterance_at: number
+        }
+        Insert: {
+          claim_token?: string
+          expires_at?: string
+          meaning?: string | null
+          message_id: string
+          user_id?: string
+          utterance_at: number
+        }
+        Update: {
+          claim_token?: string
+          expires_at?: string
+          meaning?: string | null
+          message_id?: string
+          user_id?: string
+          utterance_at?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "utterance_meanings_message_id_user_id_fkey"
+            columns: ["message_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "episode_messages"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "utterance_meanings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
