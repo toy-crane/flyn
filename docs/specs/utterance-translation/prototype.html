@@ -553,8 +553,8 @@
       btn.innerHTML = svg('i-languages');
       btn.disabled = false;
       btn.removeAttribute('aria-busy');
-      if (failNext) { st.error = true; failNext = false; prototypeShell.setState('Default'); }
-      else { st.known = true; st.shown = true; }
+      if (failNext) { st.error = true; failNext = false; }
+      else { st.known = true; st.shown = true; if (prototypeShell.getState() === '번역 실패') prototypeShell.setState('Default'); }
       renderSlot(u);
     }, 900);
   }
@@ -593,6 +593,11 @@
     }
     if (name === 'Default') {
       failNext = false;
+      // 강제로 만든 실패 화면은 Default로 돌아올 때 함께 지운다.
+      document.querySelectorAll('.utterance').forEach(u => {
+        const st = meaningState[u.dataset.utterance];
+        if (st?.error) { st.error = false; renderSlot(u); }
+      });
     }
   });
 
