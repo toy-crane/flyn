@@ -630,7 +630,7 @@
     if (!q) return;
     const mine = `<div class="mine-wrap"><div class="bubble mine">${q.replace(/</g, '&lt;')}</div></div>`;
     // 답은 출처인 대사마다 다르다. 다음 말을 물었을 때만 돌아가서 쓸 영어 문장을 붙인다.
-    const wantsNext = /다음|뭐라고|무슨 말|어떻게 말|어떻게 답|대답|뭐라|말해/.test(q);
+    const wantsNext = /뭐라고|어떻게\s*(답|대답)|무슨\s*말을\s*(해|하)|다음에\s*(뭐|무슨)/.test(q);
     const body = (wantsNext ? askSource?.dataset.next : askSource?.dataset.answer) || '';
     const paragraphs = body.split('\n\n');
     const answer = `<div class="answer">${paragraphs.map((text, at) =>
