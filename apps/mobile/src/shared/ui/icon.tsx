@@ -9,6 +9,7 @@ import ChevronRight from "lucide-react-native/icons/chevron-right";
 import ChevronUp from "lucide-react-native/icons/chevron-up";
 import CloudOff from "lucide-react-native/icons/cloud-off";
 import Copy from "lucide-react-native/icons/copy";
+import Languages from "lucide-react-native/icons/languages";
 import Lock from "lucide-react-native/icons/lock";
 import MessagesSquare from "lucide-react-native/icons/messages-square";
 import Pencil from "lucide-react-native/icons/pencil";
@@ -44,6 +45,7 @@ const icons = {
   regenerate: RefreshCw,
   send: ArrowUp,
   stop: Square,
+  translate: Languages,
   /** 담아 둔 표현을 지우는 자리. 확인창을 연다. */
   trash: Trash2,
 } as const;

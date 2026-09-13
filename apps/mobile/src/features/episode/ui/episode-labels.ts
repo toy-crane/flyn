@@ -66,3 +66,12 @@ export const savedExpressionLabels = {
   /** Shown after a saved bookmark empties. */
   unsaved: "저장을 취소했어요",
 } as const;
+
+export const utteranceMeaningLabels = {
+  ask: "AI에게 물어보기",
+  failed: "대사를 번역하지 못했어요",
+  hide: "대사 뜻 닫기",
+  retry: "번역 다시 시도",
+  show: "대사 뜻 보기",
+  title: "대사 뜻",
+} as const;

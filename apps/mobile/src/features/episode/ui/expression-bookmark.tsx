@@ -1,6 +1,5 @@
 import { type ReactNode, useCallback, useMemo } from "react";
 import { View } from "react-native";
-
 import type { SavedExpressionSpot } from "@/features/episode/api/saved-expression";
 import { spotKey } from "@/features/episode/api/saved-expression";
 import { useSavedExpressions } from "@/features/episode/state/saved-expressions";
@@ -14,6 +13,10 @@ import {
 import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { StatusLine } from "@/shared/ui/status-line";
 import { episodeLabels, savedExpressionLabels } from "./episode-labels";
+import {
+  UtteranceMeaningLine,
+  UtteranceTranslationButton,
+} from "./utterance-meaning";
 
 /**
  * 메시지 아래 아이콘 줄에 서는 책갈피.
@@ -116,6 +119,7 @@ export function UtteranceExpressionSlot({
   children,
   isArriving,
   messageId,
+  speaker = "",
   text,
 }: {
   at: number;
@@ -131,6 +135,7 @@ export function UtteranceExpressionSlot({
   children: ReactNode;
   isArriving: boolean;
   messageId: string;
+  speaker?: string;
   text: string;
 }) {
   const spot = useMemo(
@@ -146,7 +151,7 @@ export function UtteranceExpressionSlot({
         riseIndex={at}
         testID="utterance-actions"
       >
-        <IconRowCopyButton label={episodeLabels.copyUtterance} text={text} />
+        <UtteranceTranslationButton spot={spot} />
         <IconRowJoin
           isPresent={canSave}
           riseIndex={at}
@@ -154,7 +159,9 @@ export function UtteranceExpressionSlot({
         >
           <ExpressionBookmark spot={spot} />
         </IconRowJoin>
+        <IconRowCopyButton label={episodeLabels.copyUtterance} text={text} />
       </IconRow>
+      <UtteranceMeaningLine speaker={speaker} spot={spot} text={text} />
       <ExpressionSaveFailure align="start" spot={spot} />
     </View>
   );
@@ -175,8 +182,8 @@ export function LearningExpressionActions({
 }) {
   return (
     <IconRow align="end" testID="learning-actions">
-      <IconRowCopyButton label={episodeLabels.copyExpression} text={text} />
       <ExpressionBookmark spot={spot} />
+      <IconRowCopyButton label={episodeLabels.copyExpression} text={text} />
     </IconRow>
   );
 }

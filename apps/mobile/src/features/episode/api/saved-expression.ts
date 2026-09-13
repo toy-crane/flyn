@@ -58,13 +58,15 @@ export async function saveExpression(
   storyPlayId: string,
   episodeId: string,
   spot: SavedExpressionSpot,
-  signal: AbortSignal
+  signal: AbortSignal,
+  meaning?: string
 ): Promise<SavedExpressionRef> {
   const response = await fetch(aiUrl(SAVED_PATH), {
     body: JSON.stringify({
       episodeId,
       storyPlayId,
       ...spot,
+      ...(meaning === undefined ? {} : { meaning }),
     }),
     headers: {
       "Content-Type": "application/json",

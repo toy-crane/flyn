@@ -1,10 +1,10 @@
 import type { UIMessage } from "ai";
-
 import type {
   EpisodeCorrection,
   ExpressionResult,
 } from "@/features/episode/api/episode-correction";
 import type { SavedExpressionRef } from "@/features/episode/api/saved-expression";
+import type { UtteranceMeaning } from "@/features/episode/api/utterance-meaning";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
 import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { aiUrl } from "@/shared/ai/request-options";
@@ -61,6 +61,7 @@ export interface EpisodeSession {
    */
   saved?: SavedExpressionRef[];
   story: { id: string; title: string };
+  utteranceMeanings?: UtteranceMeaning[];
 }
 
 /**

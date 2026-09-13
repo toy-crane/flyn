@@ -9,7 +9,6 @@ import {
   useRef,
   useState,
 } from "react";
-
 import type { ExpressionResult } from "@/features/episode/api/episode-correction";
 import { checkEpisodeExpression } from "@/features/episode/api/episode-correction";
 import { createEpisodeTransport } from "@/features/episode/api/episode-transport";
@@ -17,6 +16,10 @@ import type {
   SavedExpressionRef,
   SavedExpressionSpot,
 } from "@/features/episode/api/saved-expression";
+import {
+  requestUtteranceMeaning,
+  type UtteranceMeaning,
+} from "@/features/episode/api/utterance-meaning";
 import {
   type EpisodeCorrectionStore,
   useEpisodeCorrections,
@@ -27,6 +30,7 @@ import {
   type SavedExpressions,
   useEpisodeSavedExpressions,
 } from "./saved-expressions";
+import { useUtteranceMeanings } from "./utterance-meanings";
 
 /** How often a scene is let through to React, in milliseconds. */
 export const SCENE_UPDATE_INTERVAL_MS = 50;
@@ -38,6 +42,7 @@ export interface EpisodeRun {
   corrections: EpisodeCorrectionStore;
   /** Set once the incident is over. Until then the episode is still running. */
   ending: EpisodeEnding | undefined;
+  meanings: ReturnType<typeof useUtteranceMeanings>;
   /** What follows the ending: the next episode's preview, or the story's end. */
   nextUp: EpisodeNextUp | undefined;
   /** Asks for the first scene again after it failed to arrive. */
@@ -74,7 +79,8 @@ export function useEpisodeStoryPlay(
   savedResults?: readonly ExpressionResult[],
   savedExpressions?: readonly SavedExpressionRef[],
   /** 담긴 것이 바뀌었을 때 화면이 할 일. 할 것이 없는 자리는 넘기지 않는다. */
-  onExpressionChanged: (isSaved: boolean) => void = () => undefined
+  onExpressionChanged: (isSaved: boolean) => void = () => undefined,
+  savedMeanings?: readonly UtteranceMeaning[]
 ): EpisodeRun {
   const currentToken = useRef(accessToken);
   const currentEpisodeId = useRef(episodeId);
@@ -82,6 +88,21 @@ export function useEpisodeStoryPlay(
   // 새 대화는 회차 없이 시작해 첫 응답에서 회차를 받는다. 그 뒤의 턴과 표현
   // 확인은 이 ref가 가리키는 회차를 쓴다.
   const currentStoryPlayId = useRef(storyPlayId);
+  const meanings = useUtteranceMeanings(
+    savedMeanings,
+    storyPlayId,
+    (spot, run, meaning, signal) =>
+      requestUtteranceMeaning(
+        currentToken.current,
+        currentEpisodeId.current,
+        spot,
+        run,
+        meaning,
+        signal
+      )
+  );
+  const currentMeanings = useRef(meanings);
+  currentMeanings.current = meanings;
   const corrections = useEpisodeCorrections(
     savedResults,
     (messageId, signal) =>
@@ -130,8 +151,13 @@ export function useEpisodeStoryPlay(
     채우면 빈 책갈피가 한 프레임 비쳤다가 채워진다.
   */
   useLayoutEffect(() => {
-    hydrate({ episodeId, saved: savedExpressions, storyPlayId });
-  }, [episodeId, hydrate, savedExpressions, storyPlayId]);
+    hydrate({
+      episodeId,
+      meaningFor: meanings.forSave,
+      saved: savedExpressions,
+      storyPlayId,
+    });
+  }, [episodeId, hydrate, savedExpressions, storyPlayId, meanings.forSave]);
   // 대화는 한 번만 만들어지므로 그때의 함수가 그대로 붙잡힌다. 지금 상태를
   // 읽는 자리는 ref 하나로 남겨 둔다.
   const currentCorrections = useRef(corrections);
@@ -154,7 +180,8 @@ export function useEpisodeStoryPlay(
         () => currentToken.current,
         () => currentEpisodeId.current,
         () => currentStoryPlayId.current,
-        () => currentStoryId.current
+        () => currentStoryId.current,
+        () => currentMeanings.current.openingMeanings()
       ),
     []
   );
@@ -170,6 +197,7 @@ export function useEpisodeStoryPlay(
         const data = part.data as { storyPlayId?: unknown } | null;
         if (typeof data?.storyPlayId === "string") {
           currentStoryPlayId.current = data.storyPlayId;
+          currentMeanings.current.attachPlay(data.storyPlayId);
           startedStoryPlay.current(data.storyPlayId);
         }
         return;
@@ -204,6 +232,7 @@ export function useEpisodeStoryPlay(
     // 담아 둔 표현은 항목으로 남지만 책갈피는 그 메시지의 것이다. 다시 받기로
     // 사라진 메시지의 표시까지 들고 있으면 새 장면에 남의 자리 표시가 붙는다.
     retain(new Set(chat.messages.map((message) => message.id)));
+    meanings.retain(new Set(chat.messages.map((message) => message.id)));
     knownMessages.current = new Set(chat.messages.map((message) => message.id));
     const wasSending =
       previousStatus.current === "submitted" ||
@@ -220,6 +249,7 @@ export function useEpisodeStoryPlay(
     corrections.retain,
     readOnly,
     retain,
+    meanings.retain,
   ]);
   const open = useCallback(() => {
     if (readOnly) {
@@ -249,6 +279,7 @@ export function useEpisodeStoryPlay(
     chat,
     corrections,
     ending: endingOfEpisode(chat.messages) ?? recordedEnding,
+    meanings,
     nextUp: nextUpOfEpisode(chat.messages) ?? recordedNextUp,
     open,
     saved,

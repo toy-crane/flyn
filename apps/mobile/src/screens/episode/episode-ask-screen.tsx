@@ -3,7 +3,6 @@ import { useHeaderHeight } from "expo-router/react-navigation";
 import { useEffect } from "react";
 import type { TextInput } from "react-native";
 import { Platform } from "react-native";
-
 import { useAuthSession } from "@/features/auth/state/auth-session";
 import {
   STREAM_UPDATE_INTERVAL_MS,
@@ -17,6 +16,7 @@ import {
 } from "@/features/episode/state/episode-asks";
 import { CorrectionSource } from "@/features/episode/ui/correction-source";
 import { correctionLabels } from "@/features/episode/ui/episode-labels";
+import { UtteranceMeaningSource } from "@/features/episode/ui/utterance-meaning";
 import { useFocusOnArrival } from "@/shared/navigation/use-screen-arrival";
 
 function AskConversation({ ask }: { ask: EpisodeAsk }) {
@@ -33,7 +33,13 @@ function AskConversation({ ask }: { ask: EpisodeAsk }) {
       inputRef={inputRef}
       placeholder={correctionLabels.askPlaceholder}
       // 표현을 이해하는 대화다. 시트를 닫아도 본 채팅과 교정 카드는 그대로 남는다.
-      source={<CorrectionSource correction={ask.correction} />}
+      source={
+        ask.utterance ? (
+          <UtteranceMeaningSource source={ask.utterance} />
+        ) : (
+          <CorrectionSource correction={ask.correction} />
+        )
+      }
       topInset={Platform.OS === "ios" ? headerHeight : 0}
     />
   );

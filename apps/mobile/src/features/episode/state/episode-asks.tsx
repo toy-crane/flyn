@@ -14,17 +14,21 @@ import {
 import { createEpisodeAskTransport } from "@/features/episode/api/ask-transport";
 import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
 
+import type { UtteranceSource } from "./utterance-meanings";
+
 /** 배울 표현 하나를 두고 여는 한국어 대화. */
-export interface EpisodeAsk {
+export type AskSource =
+  | { correction: EpisodeCorrection; utterance?: never }
+  | { utterance: UtteranceSource; correction?: never };
+export type EpisodeAsk = AskSource & {
   /**
    * 대화 자체. 시트 밖에 둔다. 시트는 열리고 닫히지만 이미 오고 있는 답변은
    * 시트 없이도 계속 와야 한다.
    */
   chat: Chat<UIMessage>;
   /** 이 대화가 시작한 교정. 시트 머리에 출처로 보인다. */
-  correction: EpisodeCorrection;
   id: string;
-}
+};
 
 interface DraftState {
   draft: string;
@@ -48,10 +52,7 @@ export interface EpisodeAskDrafts {
 interface EpisodeAsksValue {
   askOf: (id: string) => EpisodeAsk | undefined;
   /** 이 교정의 대화를 열고 그 ID를 답한다. 이미 있으면 그 대화를 그대로 준다. */
-  openAsk: (input: {
-    correction: EpisodeCorrection;
-    snapshot: UIMessage[];
-  }) => string;
+  openAsk: (input: AskSource & { snapshot: UIMessage[] }) => string;
 }
 
 const NO_ASKS: EpisodeAsksValue = {
@@ -100,8 +101,10 @@ export function EpisodeAsksProvider({
   currentToken.current = accessToken;
 
   const openAsk = useCallback<EpisodeAsksValue["openAsk"]>(
-    ({ correction, snapshot }) => {
-      const id = `ask-${correction.messageId}`;
+    ({ correction, utterance, snapshot }) => {
+      const id = utterance
+        ? `ask-utterance-${utterance.messageId}-${utterance.utteranceAt}`
+        : `ask-${correction.messageId}`;
       const existing = asksRef.current.find((ask) => ask.id === id);
 
       if (existing) {
@@ -113,15 +116,16 @@ export function EpisodeAsksProvider({
           id,
           transport: createEpisodeAskTransport(
             () => currentToken.current,
-            correction,
+            utterance ?? correction,
             snapshot
           ),
         }),
-        correction,
+        ...(utterance ? { utterance } : { correction }),
         id,
       };
 
-      setAsks((current) => [opened, ...current]);
+      asksRef.current = [opened, ...asksRef.current];
+      setAsks(asksRef.current);
 
       return id;
     },
