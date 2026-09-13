@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 import ts from "typescript";
 
 const root = import.meta.dir;
@@ -47,7 +47,15 @@ test("운영 API의 실행 시 상대 import는 Node가 찾을 수 있는 .js �
         continue;
       }
       const specifier = statement.moduleSpecifier.text;
-      if (specifier.startsWith(".") && !specifier.endsWith(".js")) {
+      if (!specifier.startsWith(".")) {
+        continue;
+      }
+      if (
+        !(
+          specifier.endsWith(".js") &&
+          existsSync(join(dirname(path), `${specifier.slice(0, -3)}.ts`))
+        )
+      ) {
         invalid.push(`${relative(root, path)}: ${specifier}`);
       }
     }
