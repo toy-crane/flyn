@@ -41,7 +41,6 @@ export function useUtteranceMeanings(
   const known = useRef(
     new Map((initial ?? []).map((item) => [meaningKey(item), item]))
   );
-  const sent = useRef(new Set<string>());
   const persisted = useRef(new Set((initial ?? []).map(meaningKey)));
   const running = useRef(
     new Map<
@@ -154,10 +153,6 @@ export function useUtteranceMeanings(
   const attachPlay = useCallback(
     (id: string) => {
       play.current = id;
-      for (const key of sent.current) {
-        persisted.current.add(key);
-      }
-      sent.current.clear();
       for (const [key, item] of known.current) {
         if (!(persisted.current.has(key) || running.current.has(key))) {
           start(item, item.meaning).catch(() => undefined);
@@ -178,7 +173,6 @@ export function useUtteranceMeanings(
       pending?.controller.abort();
       known.current.delete(key);
       persisted.current.delete(key);
-      sent.current.delete(key);
       delete next[key];
       changed = true;
     }
@@ -187,11 +181,7 @@ export function useUtteranceMeanings(
       setStates(next);
     }
   }, []);
-  const openingMeanings = useCallback(() => {
-    const items = [...known.current.values()];
-    sent.current = new Set(items.map(meaningKey));
-    return items;
-  }, []);
+  const openingMeanings = useCallback(() => [...known.current.values()], []);
   useEffect(
     () => () => {
       const pending = [...running.current.values()];
