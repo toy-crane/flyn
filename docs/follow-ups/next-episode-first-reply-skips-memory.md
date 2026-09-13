@@ -2,7 +2,7 @@
 
 **Symptom**: 지난 화의 기억이 있어도 다음 화의 첫 모델 응답에서 그 기억을 드러내지 않는 경우가 있다.
 
-**Observed evidence**: 2026-09-13 구조화 출력 검증의 iOS 카페 회차에서 1화의 얼음을 적게 넣은 주문이 DB에 저장됐다. 2화 첫 요청은 휴대폰 결제 방법과 Owen에게 하는 사과였고 Mia와 Owen은 결제 안내만 했다. 다음 요청에서 어제의 주문을 묻자 Mia는 얼음을 적게 넣은 아이스 아메리카노를 정확히 기억했다. 명세 근거는 `docs/specs/episode-scene-structured-output/evidence/ios-memory.png`와 해당 검증 계정의 2화 기록이다.
+**Observed evidence**: 2026-09-13 구조화 출력 검증의 iOS 카페 회차에서 1화의 얼음을 적게 넣은 주문이 DB에 저장됐다. 2화 첫 요청은 휴대폰 결제 방법과 Owen에게 하는 사과였고 Mia와 Owen은 결제 안내만 했다. 다음 요청에서 어제의 주문을 묻자 Mia는 얼음을 적게 넣은 아이스 아메리카노를 정확히 기억했다. 화면 근거는 `docs/follow-ups/evidence/next-episode-first-reply-skips-memory/ios-memory.png`와 해당 검증 계정의 2화 기록이다.
 
 **Suspected cause**: 기억은 모델 입력에 전달되지만 현재 사건의 요청을 처리하는 동안 첫 응답의 기억 반영 지시를 놓친 것으로 추정한다.
 
