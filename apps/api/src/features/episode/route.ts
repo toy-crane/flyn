@@ -20,13 +20,13 @@ import {
 } from "../../shared/request-log.js";
 import {
   speakerModelText,
-  streamSceneText,
+  streamOpeningScene,
 } from "../../shared/scene-stream.js";
 import { type AuthedEnv, createUserGuard } from "../../shared/user-guard.js";
 import { askSystemPrompt, readAskedCorrection } from "./ask.js";
 import { storyDetailViewOf, storyListViewOf } from "./catalog.js";
 import { judgeExpression } from "./correction.js";
-import { episodeSystemPrompt, episodeTags } from "./episode.js";
+import { episodeSystemPrompt } from "./episode.js";
 import { saveExpressionResult } from "./expression-results.js";
 import {
   appendEpisodeMessage,
@@ -49,6 +49,7 @@ import {
   textOfMessage,
   writeKoreanMeaning,
 } from "./saved-expression.js";
+import { episodeSceneOutput, streamEpisodeScene } from "./scene.js";
 import {
   type EpisodeClient,
   type EpisodeScript,
@@ -118,9 +119,9 @@ const DISCARDING_WRITER = {
 async function openingSceneParts(
   script: EpisodeScript
 ): Promise<UIMessage["parts"]> {
-  const { parts } = await streamSceneText(
+  const { parts } = await streamOpeningScene(
     authoredScene(script.opening),
-    episodeTags(script),
+    { cast: script.cast.map(({ name }) => name) },
     DISCARDING_WRITER
   );
 
@@ -153,16 +154,19 @@ function sceneResponse({
   responseMessageId,
   write,
 }: SceneResponseOptions): Response {
+  let isComplete = false;
   return createUIMessageStreamResponse({
     consumeSseStream: consumeStream,
     stream: createUIMessageStream({
       execute: async ({ writer }) => {
         writer.write({ type: "start" });
         await write(writer);
+        isComplete = true;
         writer.write({ type: "finish" });
       },
       generateId: () => responseMessageId ?? crypto.randomUUID(),
-      onEnd: ({ responseMessage }) => onEnd(responseMessage),
+      onEnd: ({ responseMessage }) =>
+        isComplete ? onEnd(responseMessage) : Promise.resolve(),
       originalMessages,
     }),
   });
@@ -858,7 +862,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
         }
 
         const { memories, script, story } = resolved;
-        const tags = episodeTags(script);
+        const tags = { cast: script.cast.map(({ name }) => name) };
 
         // 아직 회차가 없고 사용자가 말하지도 않았다. 첫 장면만 보여 주고 아무것도
         // 남기지 않는다. 여기서 나가면 기록에 아무 줄도 생기지 않는다.
@@ -867,7 +871,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
             onEnd: () => Promise.resolve(),
             originalMessages: [],
             write: (writer) =>
-              streamSceneText(authoredScene(script.opening), tags, writer),
+              streamOpeningScene(authoredScene(script.opening), tags, writer),
           });
         }
 
@@ -912,7 +916,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
             onEnd: saveScene,
             originalMessages: [],
             write: (writer) =>
-              streamSceneText(authoredScene(script.opening), tags, writer),
+              streamOpeningScene(authoredScene(script.opening), tags, writer),
           });
         }
 
@@ -932,6 +936,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           onError: ({ error }) => {
             logRequestFailure(c.req.method, c.req.path, error);
           },
+          output: episodeSceneOutput(script),
           system: episodeSystemPrompt(script, memories),
         });
         // 결말이 난 플레이에는 더 이상 메시지를 넣을 수 없다. 그래서 닫는 장면은
@@ -968,32 +973,36 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
                 type: "data-expression-ready",
               });
             }
-            await streamSceneText(
-              result.textStream,
-              tags,
-              writer,
-              async (closed) => {
-                await saveScene({
-                  id: sceneId,
-                  parts: closed.parts,
-                  role: "assistant",
-                });
-                isSceneSaved = true;
-                await recordEpisodeEnding(
-                  client,
-                  storyPlayId,
-                  script.id,
-                  closed
-                );
-                // 종료 버튼을 누르는 순간 예고도 준비되어 있어야 한다.
-                // 결말 확정 뒤, data-ending보다 먼저 다음 화 정보를 보낸다.
-                writer.write({
-                  data: nextUpAfter(story, script.id),
-                  id: "next-up",
-                  type: "data-next-up",
-                });
-              }
-            );
+            const closed = await streamEpisodeScene(result, writer, script);
+            if (closed.ending) {
+              await saveScene({
+                id: sceneId,
+                parts: closed.parts,
+                role: "assistant",
+              });
+              isSceneSaved = true;
+              await recordEpisodeEnding(
+                client,
+                storyPlayId,
+                script.id,
+                closed.ending
+              );
+              // 종료 버튼을 누르는 순간 예고도 준비되어 있어야 한다.
+              // 결말 확정 뒤, data-ending보다 먼저 다음 화 정보를 보낸다.
+              writer.write({
+                data: nextUpAfter(story, script.id),
+                id: "next-up",
+                type: "data-next-up",
+              });
+              writer.write({
+                data: {
+                  kind: closed.ending.kind,
+                  outcome: closed.ending.outcome,
+                },
+                id: "ending",
+                type: "data-ending",
+              });
+            }
           },
         });
       })

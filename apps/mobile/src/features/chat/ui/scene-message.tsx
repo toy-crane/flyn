@@ -94,22 +94,7 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
 }) {
   const { fontScale } = useWindowDimensions();
   if (name === null) {
-    /*
-      대본이 쓴 도입의 서술과, 모델이 형식을 어겨 보낸 이름 없는 줄은 다른
-      것이다. 앞의 것만 장면 서술의 모양을 받는다. 뒤의 것은 지금까지의 작은
-      회색 줄로 두어 내용을 잃지 않게 하고, 그 처리는 별도 결정으로 정한다.
-    */
-    return isOpening ? (
-      <SceneOpening text={text} />
-    ) : (
-      <Text
-        className="px-1 text-muted text-sm leading-5"
-        key={fontScale}
-        testID="chat-scene-narration"
-      >
-        {text}
-      </Text>
-    );
+    return isOpening ? <SceneOpening text={text} /> : null;
   }
   const bubble = (
     <View className="max-w-[85%] shrink rounded-2xl bg-surface px-4 py-3">
@@ -142,7 +127,7 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
 });
 
 /**
- * 한 장면: 인물별 말풍선과 지문이 도착한 순서대로 쌓인다.
+ * 한 장면: 도입 서술과 인물별 말풍선이 도착한 순서대로 쌓인다.
  *
  * 이 자리의 다시 받기와 복사는 장면 전체에 걸린다. 대사 하나에 걸리는 동작은
  * 말풍선 아래 자리를 채우는 쪽이 따로 붙인다. 조각은 스트리밍 중에 뒤로만
