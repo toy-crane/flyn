@@ -235,10 +235,15 @@ async function saveSceneBestEffort(
   play: EpisodePlay,
   message: UIMessage,
   method: string,
-  path: string
+  path: string,
+  meanings?: UtteranceMeaning[]
 ): Promise<void> {
   try {
     await appendEpisodeMessage(client, play, message);
+    if (meanings) {
+      // 뜻은 저장된 장면에만 붙인다. 어느 저장이 실패해도 대화는 이어 간다.
+      await saveOpeningMeanings(client, message, meanings);
+    }
   } catch (error) {
     logRequestFailure(method, path, error);
   }
@@ -1073,9 +1078,15 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
             role: "assistant",
           };
 
-          await saveScene(opening);
+          await saveSceneBestEffort(
+            client,
+            play,
+            opening,
+            c.req.method,
+            c.req.path,
+            asked.utteranceMeanings
+          );
           play.messages.push(opening);
-          await saveOpeningMeanings(client, opening, asked.utteranceMeanings);
         }
 
         if (sent) {

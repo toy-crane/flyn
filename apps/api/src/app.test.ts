@@ -343,7 +343,7 @@ type Row = Record<string, unknown>;
 function signedInWith(
   state: SeasonState,
   /** 인물 행이 아직 없는 DB. 콘텐츠가 API보다 늦게 올라간 사이를 흉내 낸다. */
-  fixtures: { withoutCharacters?: boolean } = {}
+  fixtures: { withoutCharacters?: boolean; failOpeningSave?: boolean } = {}
 ): MiddlewareHandler {
   const meaningRows: Row[] = [];
   const openedPlays = new Set<string>();
@@ -670,6 +670,9 @@ function signedInWith(
             const added = Array.isArray(payload) ? payload : [payload];
             if (table === "utterance_meanings") {
               const [row] = added;
+              if (fixtures.failOpeningSave && row?.message_id === "opening-1") {
+                throw new Error("utterance_meanings_message_id_fkey");
+              }
               if (!row) {
                 throw new Error("Missing meaning insert");
               }
@@ -763,6 +766,9 @@ function signedInWith(
             }
 
             if (table === "episode_messages") {
+              if (fixtures.failOpeningSave && added[0]?.id === "opening-1") {
+                return { error: { message: "connection refused" } };
+              }
               if (state.saveError) {
                 return writeResult(null);
               }
@@ -4671,6 +4677,39 @@ describe("새 대화 시작", () => {
     // 앱은 이 회차가 생긴 것을 응답에서 처음 안다.
     expect(body).toContain('"type":"data-story-play-started"');
     expect(body).toContain(NEW_RUN_ID);
+  });
+
+  test("첫 장면 저장이 실패해도 번역 저장을 건너뛰고 대화를 이어 간다", async () => {
+    const state = createEmptyState();
+    const model = createSceneModel(
+      [{ speaker: "Mia", text: "Sure, let me remake it." }],
+      null
+    );
+    const app = createApp({
+      authMiddleware: signedInWith(state, { failOpeningSave: true }),
+      model,
+    });
+    const response = await app.request(
+      createEpisodeRequest({
+        keepThrough: "opening-1",
+        messages: [createUserMessage("This is not my coffee.")],
+        storyId: STORY_ID,
+        utteranceMeanings: [
+          {
+            meaning: "다음 손님, 오세요!",
+            messageId: "opening-1",
+            utteranceAt: 0,
+          },
+        ],
+      })
+    );
+    const body = await response.text();
+    expect(response.status).toBe(200);
+    expect(body).toContain("Sure, let me remake it.");
+    expect(state.messages.map((row) => row.role)).toEqual([
+      "user",
+      "assistant",
+    ]);
   });
 
   test("첫 메시지에 실은 대사 뜻이 회차에 그대로 남아 다음 조회로 돌아온다", async () => {
