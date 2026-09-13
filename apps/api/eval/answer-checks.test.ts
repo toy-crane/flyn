@@ -177,3 +177,10 @@ describe("실제로 받은 답", () => {
     }
   );
 });
+
+test("다음 말 준비는 출처 안 답처럼 320자까지 받는다", () => {
+  const answer = `${"이 장면에 맞는 말이에요. ".repeat(15).trim()}\n\nYes, please.`;
+  expect(answer.length).toBeGreaterThan(200);
+  expect(answer.length).toBeLessThanOrEqual(320);
+  expect(answerViolations(answer, "nextLine")).not.toContain("길이 넘침");
+});

@@ -58,7 +58,7 @@ const CROWDED_SENTENCES = 3;
  */
 const LENGTH_LIMIT: Record<AnswerScope, number> = {
   correction: 320,
-  nextLine: 200,
+  nextLine: 320,
   offTopic: 200,
 };
 

@@ -345,6 +345,7 @@ function signedInWith(
   /** 인물 행이 아직 없는 DB. 콘텐츠가 API보다 늦게 올라간 사이를 흉내 낸다. */
   fixtures: { withoutCharacters?: boolean } = {}
 ): MiddlewareHandler {
+  const meaningRows: Row[] = [];
   const openedPlays = new Set<string>();
   /** 이번 요청이 연 플레이가 어느 회차에 붙었는지. */
   const openedStoryPlays = new Map<string, string>();
@@ -410,6 +411,9 @@ function signedInWith(
       const value = (row: Row, column: string) => row[column];
 
       function source(): Row[] {
+        if (table === "utterance_meanings") {
+          return meaningRows;
+        }
         if (table === "stories") {
           return [STORY_ROW, ...(state.madeStories ?? [])] as unknown as Row[];
         }
@@ -611,7 +615,15 @@ function signedInWith(
 
               const doomed = new Set(rows().map((row) => String(row.id)));
 
-              if (table === "saved_expressions") {
+              if (table === "utterance_meanings") {
+                const doomedMeanings = new Set(rows());
+                for (let i = meaningRows.length - 1; i >= 0; i -= 1) {
+                  const row = meaningRows[i];
+                  if (row && doomedMeanings.has(row)) {
+                    meaningRows.splice(i, 1);
+                  }
+                }
+              } else if (table === "saved_expressions") {
                 state.saved = state.saved.filter((row) => !doomed.has(row.id));
               } else {
                 state.messages = state.messages.filter(
@@ -635,6 +647,10 @@ function signedInWith(
 
                   return Promise.resolve(remove());
                 },
+                is: (column: string, wanted: unknown) => {
+                  equals.set(column, wanted);
+                  return removal;
+                },
               }
             );
 
@@ -652,6 +668,33 @@ function signedInWith(
           },
           insert: (payload: Row | Row[]) => {
             const added = Array.isArray(payload) ? payload : [payload];
+            if (table === "utterance_meanings") {
+              const [row] = added;
+              if (!row) {
+                throw new Error("Missing meaning insert");
+              }
+              const duplicate = meaningRows.some(
+                (saved) =>
+                  saved.message_id === row.message_id &&
+                  saved.utterance_at === row.utterance_at
+              );
+              if (duplicate) {
+                return {
+                  select: () => ({
+                    maybeSingle: async () => ({
+                      data: null,
+                      error: { code: "23505" },
+                    }),
+                  }),
+                };
+              }
+              const stored = {
+                expires_at: new Date(Date.now() + 30_000).toISOString(),
+                ...row,
+              };
+              meaningRows.push(stored);
+              return writeResult(stored);
+            }
 
             if (table === "saved_expressions") {
               const row = added[0] as unknown as SavedRow;
@@ -813,6 +856,27 @@ function signedInWith(
           },
           single: () =>
             Promise.resolve({ data: rows()[0] ?? null, error: null }),
+          update: (payload: Row) => {
+            const changed = () => {
+              const selected = rows().filter((row) => row.meaning === null);
+              for (const row of selected) {
+                Object.assign(row, payload);
+              }
+              return { data: selected.at(0) ?? null, error: null };
+            };
+            const update: object = {
+              eq: (column: string, wanted: unknown) => {
+                equals.set(column, wanted);
+                return update;
+              },
+              is: (column: string, wanted: unknown) => {
+                equals.set(column, wanted);
+                return update;
+              },
+              select: () => ({ maybeSingle: async () => changed() }),
+            };
+            return update;
+          },
         }
       );
 
@@ -1108,6 +1172,11 @@ function createEpisodeRequest(
   body: {
     episodeId?: string;
     keepThrough?: string | null;
+    utteranceMeanings?: {
+      messageId: string;
+      utteranceAt: number;
+      meaning: string;
+    }[];
     message?: unknown;
     messages?: unknown[];
     storyPlayId?: string | null;
@@ -4604,6 +4673,33 @@ describe("새 대화 시작", () => {
     expect(body).toContain(NEW_RUN_ID);
   });
 
+  test("첫 메시지에 실은 대사 뜻이 회차에 그대로 남아 다음 조회로 돌아온다", async () => {
+    const state = createEmptyState();
+    const model = createSceneModel(
+      [{ speaker: "Mia", text: "Sure, let me remake it." }],
+      null
+    );
+    const app = createApp({ authMiddleware: signedInWith(state), model });
+    const translated = {
+      meaning: "다음 손님, 오세요!",
+      messageId: "opening-1",
+      utteranceAt: 0,
+    };
+    const response = await app.request(
+      createEpisodeRequest({
+        keepThrough: "opening-1",
+        messages: [createUserMessage("This is not my coffee.")],
+        storyId: STORY_ID,
+        utteranceMeanings: [translated],
+      })
+    );
+    await response.text();
+    expect(response.status).toBe(200);
+    const restored = await app.request(episodeSessionPath(1, NEW_RUN_ID));
+    expect(restored.status).toBe(200);
+    expect((await restored.json()).utteranceMeanings).toEqual([translated]);
+  });
+
   test("새 대화는 완주한 스토리에서도 1화에서 시작한다", async () => {
     const state = createSeasonState(finishedSeason());
     const model = createSceneModel(
@@ -5035,4 +5131,60 @@ describe("POST /ai/episode/create", () => {
     expect(state.messages).toHaveLength(0);
     expect(state.runs.flatMap((run) => run.id)).toEqual([STORY_PLAY_ID]);
   });
+});
+
+describe("회차 없는 첫 장면의 대사 뜻", () => {
+  test("대본에서 대사를 읽고 뜻만 답하며 회차는 만들지 않는다", async () => {
+    const state = createSeasonState();
+    const model = createMockModel([], NO_CORRECTION, "다음 손님, 오세요!");
+    const app = createApp({ authMiddleware: signedInWith(state), model });
+    const response = await app.request("/ai/episode/utterance-meanings", {
+      body: JSON.stringify({
+        episodeId: episodeId(1),
+        messageId: "opening",
+        utteranceAt: 0,
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      meaning: "다음 손님, 오세요!",
+      messageId: "opening",
+      utteranceAt: 0,
+    });
+    expect(model.doGenerateCalls).toHaveLength(1);
+    expect(state.messages).toHaveLength(0);
+  });
+});
+
+test("대사를 출처로 AI에게 물어보면 대사와 뜻을 문맥으로 받는다", async () => {
+  const model = createMockModel(["줄의 다음 손님을 부르는 말이에요."]);
+  const app = createApp({
+    authMiddleware: signedInWith(createSeasonState()),
+    model,
+  });
+  const response = await app.request("/ai/episode/ask", {
+    body: JSON.stringify({
+      messages: [
+        {
+          id: "q",
+          parts: [{ text: "이 말이 무슨 뜻이에요?", type: "text" }],
+          role: "user",
+        },
+      ],
+      utterance: {
+        meaning: "다음 손님, 오세요!",
+        speaker: "Mia",
+        text: "Next in line, please!",
+      },
+    }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
+  expect(response.status).toBe(200);
+  await response.text();
+  expect(JSON.stringify(model.doStreamCalls[0])).toContain(
+    "대사 뜻: 다음 손님, 오세요!"
+  );
 });

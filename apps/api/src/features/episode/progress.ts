@@ -8,6 +8,10 @@ import type {
 } from "./saved-expression";
 import type { EpisodeScene } from "./scene";
 import type { EpisodeClient, EpisodeScript, StoryContent } from "./story";
+import {
+  readUtteranceMeanings,
+  type UtteranceMeaning,
+} from "./utterance-meaning";
 
 /** 기록 한 줄이 데이터베이스에서 허용되는 길이. */
 const MEMORY_LINE_LIMIT = 300;
@@ -90,6 +94,7 @@ export interface EpisodeSessionView {
    */
   saved: SavedExpressionRef[];
   story: { id: string; title: string };
+  utteranceMeanings: UtteranceMeaning[];
 }
 
 /**
@@ -767,5 +772,9 @@ export async function readEpisodeSession(
     readOnly: Boolean(ending),
     saved,
     story: { id: story.id, title: story.title },
+    utteranceMeanings: await readUtteranceMeanings(
+      client,
+      messages.map((message) => message.id)
+    ),
   };
 }
