@@ -1,7 +1,6 @@
 import type { UIMessage } from "ai";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import type { TextInput } from "react-native";
-
 import { useAuthSession } from "@/features/auth/state/auth-session";
 import {
   useConversation,
@@ -14,6 +13,7 @@ import type {
 } from "@/features/episode/api/episode-correction";
 import type { EpisodeCastMember } from "@/features/episode/api/episode-session";
 import type { SavedExpressionRef } from "@/features/episode/api/saved-expression";
+import type { UtteranceMeaning } from "@/features/episode/api/utterance-meaning";
 import { useEpisodeAsks } from "@/features/episode/state/episode-asks";
 import { EpisodeCorrectionsProvider } from "@/features/episode/state/episode-corrections";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
@@ -21,6 +21,10 @@ import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { prepareEpisodeMessage } from "@/features/episode/state/episode-notation";
 import { SavedExpressionsProvider } from "@/features/episode/state/saved-expressions";
 import { useEpisodeStoryPlay } from "@/features/episode/state/use-episode-story-play";
+import {
+  UtteranceMeaningsProvider,
+  type UtteranceSource,
+} from "@/features/episode/state/utterance-meanings";
 import { EpisodeCorrectionNote } from "@/features/episode/ui/correction-note";
 import { EpisodeClosing } from "@/features/episode/ui/episode-closing";
 import {
@@ -65,6 +69,7 @@ export function EpisodeScreen({
   recordedNextUp,
   storyPlayId,
   savedExpressions,
+  savedMeanings,
   savedResults,
   situation,
   situationEmoji,
@@ -86,6 +91,7 @@ export function EpisodeScreen({
   /** 이 화에서 이미 담아 둔 자리. 책갈피가 그 말풍선 곁으로 돌아온다. */
   savedExpressions?: readonly SavedExpressionRef[];
   savedResults?: readonly ExpressionResult[];
+  savedMeanings?: readonly UtteranceMeaning[];
   situation: string;
   situationEmoji: string;
   /** 새 대화가 시작할 스토리. 이어가는 회차에는 필요 없다. */
@@ -107,7 +113,7 @@ export function EpisodeScreen({
     },
     [announce, refreshNote]
   );
-  const { chat, corrections, ending, nextUp, open, saved } =
+  const { chat, corrections, ending, nextUp, open, saved, meanings } =
     useEpisodeStoryPlay(
       accessToken,
       episodeId,
@@ -120,7 +126,8 @@ export function EpisodeScreen({
       recordedNextUp,
       savedResults,
       savedExpressions,
-      changed
+      changed,
+      savedMeanings
     );
   const drafts = useLocalChatDrafts();
   const conversation = useConversation(
@@ -161,6 +168,35 @@ export function EpisodeScreen({
       );
     },
     [messages, onOpenAsk, openAsk]
+  );
+  const askAboutUtterance = useCallback(
+    (utterance: UtteranceSource) => {
+      const at = messages.findIndex(
+        (message) => message.id === utterance.messageId
+      );
+      if (at < 0) {
+        return;
+      }
+      onOpenAsk(
+        openAsk({
+          snapshot: messages.slice(0, at + 1),
+          utterance: {
+            ...utterance,
+            position: cast?.find((person) => person.name === utterance.speaker)
+              ?.position,
+          },
+        })
+      );
+    },
+    [cast, messages, onOpenAsk, openAsk]
+  );
+  const meaningsView = useMemo(
+    () => ({
+      ask: askAboutUtterance,
+      states: meanings.states,
+      toggle: meanings.toggle,
+    }),
+    [meanings.states, meanings.toggle, askAboutUtterance]
   );
   const correctionsView = useMemo(
     () => ({
@@ -223,12 +259,13 @@ export function EpisodeScreen({
 
   return (
     <EpisodeCorrectionsProvider value={correctionsView}>
-      <SavedExpressionsProvider value={saved}>
-        <ChatPanel
-          banner={
-            <EpisodeSituationBanner emoji={situationEmoji} text={situation} />
-          }
-          /*
+      <UtteranceMeaningsProvider value={meaningsView}>
+        <SavedExpressionsProvider value={saved}>
+          <ChatPanel
+            banner={
+              <EpisodeSituationBanner emoji={situationEmoji} text={situation} />
+            }
+            /*
             회차가 생기기 전의 첫 장면에는 책갈피를 두지 않는다.
 
             회차는 사용자가 처음 말할 때 생기고, 그전의 첫 장면은 계정에 남지
@@ -237,19 +274,20 @@ export function EpisodeScreen({
             선다. 처음 말하는 순간 회차가 생기고 그 장면도 대화의 첫 줄로 남으므로,
             책갈피는 그때 복사 옆에 합류한다.
           */
-          canSaveUtterances={storyPlayId !== undefined}
-          cast={castOrder}
-          chat={conversationRun}
-          closing={closing}
-          hasMessageActions={false}
-          inputRef={inputRef}
-          key={panelKey}
-          messageAddon={EpisodeCorrectionNote}
-          placeholder={episodeLabels.placeholder}
-          toast={toast}
-          utteranceAddon={UtteranceExpressionSlot}
-        />
-      </SavedExpressionsProvider>
+            canSaveUtterances={storyPlayId !== undefined}
+            cast={castOrder}
+            chat={conversationRun}
+            closing={closing}
+            hasMessageActions={false}
+            inputRef={inputRef}
+            key={panelKey}
+            messageAddon={EpisodeCorrectionNote}
+            placeholder={episodeLabels.placeholder}
+            toast={toast}
+            utteranceAddon={UtteranceExpressionSlot}
+          />
+        </SavedExpressionsProvider>
+      </UtteranceMeaningsProvider>
     </EpisodeCorrectionsProvider>
   );
 }

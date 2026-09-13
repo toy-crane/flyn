@@ -1,0 +1,188 @@
+import { expect, jest, test } from "@jest/globals";
+import { act, renderHook } from "@testing-library/react-native";
+import { useUtteranceMeanings } from "./utterance-meanings";
+
+test("뜻을 숨겼다 켜도 다시 요청하지 않는다", async () => {
+  const request = jest.fn(async () => ({
+    meaning: "다음 손님, 오세요!",
+    messageId: "s1",
+    utteranceAt: 0,
+  }));
+  const { result } = await renderHook(() =>
+    useUtteranceMeanings([], undefined, request)
+  );
+  await act(() => {
+    result.current.toggle({ messageId: "s1", utteranceAt: 0 });
+  });
+  expect(result.current.states["s1:0"]).toMatchObject({
+    shown: true,
+    status: "ready",
+  });
+  await act(() => {
+    result.current.toggle({ messageId: "s1", utteranceAt: 0 });
+  });
+  expect(result.current.states["s1:0"]).toMatchObject({ shown: false });
+  await act(() => {
+    result.current.toggle({ messageId: "s1", utteranceAt: 0 });
+  });
+  expect(request).toHaveBeenCalledTimes(1);
+});
+
+test("첫 장면의 번역을 기다리는 중 회차가 생기면 늦은 뜻을 저장하고 담기도 함께 기다린다", async () => {
+  let finish!: (value: {
+    messageId: string;
+    utteranceAt: number;
+    meaning: string;
+  }) => void;
+  const pending = new Promise<{
+    messageId: string;
+    utteranceAt: number;
+    meaning: string;
+  }>((resolve) => {
+    finish = resolve;
+  });
+  const request = jest.fn(async (_spot: unknown, play?: string) =>
+    play
+      ? { meaning: "다음 손님, 오세요!", messageId: "s1", utteranceAt: 0 }
+      : pending
+  );
+  const { result } = await renderHook(() =>
+    useUtteranceMeanings([], undefined, request)
+  );
+  const spot = { messageId: "s1", utteranceAt: 0 };
+  await act(() => {
+    result.current.toggle(spot);
+  });
+  let saved: Promise<string | undefined> = Promise.resolve(undefined);
+  await act(() => {
+    result.current.attachPlay("play-1");
+    saved = result.current.forSave(spot);
+  });
+  expect(request).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    finish({ ...spot, meaning: "다음 손님, 오세요!" });
+    await saved;
+  });
+  expect(await saved).toBe("다음 손님, 오세요!");
+  expect(request.mock.calls[1]?.slice(0, 3)).toEqual([
+    spot,
+    "play-1",
+    "다음 손님, 오세요!",
+  ]);
+});
+
+test("첫 메시지에 이미 끝난 뜻을 싣고 회차를 받으면 저장 요청을 되풀이하지 않는다", async () => {
+  const request = jest.fn(async () => ({
+    meaning: "다음 손님, 오세요!",
+    messageId: "s1",
+    utteranceAt: 0,
+  }));
+  const { result } = await renderHook(() =>
+    useUtteranceMeanings([], undefined, request)
+  );
+  await act(() => {
+    result.current.toggle({ messageId: "s1", utteranceAt: 0 });
+  });
+  expect(result.current.openingMeanings()).toEqual([
+    { meaning: "다음 손님, 오세요!", messageId: "s1", utteranceAt: 0 },
+  ]);
+  await act(() => {
+    result.current.attachPlay("play-1");
+  });
+  expect(request).toHaveBeenCalledTimes(1);
+});
+
+test("버린 장면에 늦게 온 뜻은 다시 붙지 않는다", async () => {
+  let finish!: (value: {
+    messageId: string;
+    utteranceAt: number;
+    meaning: string;
+  }) => void;
+  const request = jest.fn(
+    () =>
+      new Promise<{ messageId: string; utteranceAt: number; meaning: string }>(
+        (resolve) => {
+          finish = resolve;
+        }
+      )
+  );
+  const { result } = await renderHook(() =>
+    useUtteranceMeanings([], undefined, request)
+  );
+  await act(() => {
+    result.current.toggle({ messageId: "s1", utteranceAt: 0 });
+  });
+  await act(() => {
+    result.current.retain(new Set());
+    finish({ meaning: "늦은 뜻", messageId: "s1", utteranceAt: 0 });
+  });
+  expect(result.current.states).toEqual({});
+  expect(result.current.openingMeanings()).toEqual([]);
+});
+
+test("계정에서 돌아온 뜻은 처음부터 보이고 모델을 부르지 않는다", async () => {
+  const request = jest.fn(() =>
+    Promise.reject(new Error("unexpected request"))
+  );
+  const { result } = await renderHook(() =>
+    useUtteranceMeanings(
+      [{ meaning: "다음 손님, 오세요!", messageId: "s1", utteranceAt: 0 }],
+      "play-1",
+      request
+    )
+  );
+  expect(result.current.states["s1:0"]).toEqual({
+    meaning: "다음 손님, 오세요!",
+    shown: true,
+    status: "ready",
+  });
+  expect(request).not.toHaveBeenCalled();
+});
+
+test("35초가 지나면 대기를 끝내고 실패한 번역을 다시 요청할 수 있다", async () => {
+  jest.useFakeTimers();
+  try {
+    const request = jest.fn(() => new Promise<never>(() => undefined));
+    const { result, unmount } = await renderHook(() =>
+      useUtteranceMeanings([], undefined, request)
+    );
+    await act(() => result.current.toggle({ messageId: "s1", utteranceAt: 0 }));
+    expect(result.current.states["s1:0"]).toEqual({ status: "pending" });
+    await act(() => jest.advanceTimersByTimeAsync(35_000));
+    expect(result.current.states["s1:0"]).toEqual({ status: "error" });
+    expect(
+      await result.current.forSave({ messageId: "s1", utteranceAt: 0 })
+    ).toBeUndefined();
+    await act(() => result.current.toggle({ messageId: "s1", utteranceAt: 0 }));
+    expect(request).toHaveBeenCalledTimes(2);
+    await unmount();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test("네이티브 AbortSignal에 throwIfAborted가 없어도 받은 뜻을 표시한다", async () => {
+  const request = jest.fn(
+    (
+      _spot: unknown,
+      _play: unknown,
+      _meaning: unknown,
+      signal?: AbortSignal
+    ) => {
+      Object.defineProperty(signal, "throwIfAborted", { value: undefined });
+      return Promise.resolve({
+        meaning: "다음 손님, 오세요!",
+        messageId: "s1",
+        utteranceAt: 0,
+      });
+    }
+  );
+  const { result } = await renderHook(() =>
+    useUtteranceMeanings([], undefined, request)
+  );
+  await act(() => result.current.toggle({ messageId: "s1", utteranceAt: 0 }));
+  expect(result.current.states["s1:0"]).toMatchObject({
+    meaning: "다음 손님, 오세요!",
+    status: "ready",
+  });
+});

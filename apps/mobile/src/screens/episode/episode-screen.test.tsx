@@ -126,7 +126,7 @@ jest.mock("@/features/episode/state/use-episode-story-play", () => {
       ..._rest: unknown[]
     ) => {
       // 담고 도로 놓았다고 알리는 자리. 화면이 마지막 인자로 넘긴다.
-      mockSavedChanged = _rest.at(-1) as SavedChanged;
+      mockSavedChanged = _rest.at(-2) as SavedChanged;
       React.useEffect(() => {
         mockOpenedStoryPlays(
           accessToken,
@@ -140,6 +140,7 @@ jest.mock("@/features/episode/state/use-episode-story-play", () => {
         chat: { tag: "episode-chat" },
         corrections: mockCorrections,
         ending: mockEnding,
+        meanings: { states: {}, toggle: jest.fn() },
         nextUp: mockNextUp,
         open: jest.fn(),
         saved: mockSaved,

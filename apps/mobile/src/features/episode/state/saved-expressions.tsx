@@ -34,6 +34,10 @@ export type SavedExpressionState =
 /** 지금 담고 있는 대화. 담는 길이 이 둘로 정해진다. */
 export interface SavedExpressionSource {
   episodeId: string;
+  meaningFor?: (spot: {
+    messageId: string;
+    utteranceAt: number;
+  }) => Promise<string | undefined>;
   /** 이 화에서 이미 담아 둔 자리. 서버가 들고 있는 진실이다. */
   saved: readonly SavedExpressionRef[] | undefined;
   /** 아직 첫 메시지를 보내지 않은 대화에는 없다. */
@@ -349,13 +353,16 @@ export function EpisodeSavedExpressionsProvider({
 
   const store = useSavedExpressionStore(
     useCallback(
-      (spot, source, signal) =>
+      async (spot, source, signal) =>
         saveExpression(
           token.current ?? "",
           source.storyPlayId ?? "",
           source.episodeId,
           spot,
-          signal
+          signal,
+          spot.kind === "utterance"
+            ? await source.meaningFor?.(spot)
+            : undefined
         ),
       []
     ),

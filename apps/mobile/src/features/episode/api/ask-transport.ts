@@ -1,6 +1,6 @@
 import { DefaultChatTransport, type UIMessage } from "ai";
-
 import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
+import type { UtteranceSource } from "@/features/episode/state/utterance-meanings";
 import { aiRequestOptions } from "@/shared/ai/request-options";
 
 export const EPISODE_ASK_API_PATH = "/ai/episode/ask";
@@ -14,7 +14,7 @@ export const EPISODE_ASK_API_PATH = "/ai/episode/ask";
  */
 export function createEpisodeAskTransport(
   getAccessToken: () => string | undefined,
-  correction: EpisodeCorrection,
+  source: EpisodeCorrection | UtteranceSource,
   snapshot: UIMessage[]
 ): DefaultChatTransport<UIMessage> {
   return new DefaultChatTransport<UIMessage>({
@@ -28,11 +28,21 @@ export function createEpisodeAskTransport(
     }) => ({
       body: {
         ...body,
-        correction: {
-          entries: correction.entries,
-          fixed: correction.fixed,
-          original: correction.original,
-        },
+        ...("speaker" in source
+          ? {
+              utterance: {
+                meaning: source.meaning,
+                speaker: source.speaker,
+                text: source.text,
+              },
+            }
+          : {
+              correction: {
+                entries: source.entries,
+                fixed: source.fixed,
+                original: source.original,
+              },
+            }),
         id,
         messageId,
         messages: [...snapshot, ...messages],

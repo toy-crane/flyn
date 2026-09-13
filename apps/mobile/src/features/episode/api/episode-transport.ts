@@ -1,4 +1,5 @@
 import { DefaultChatTransport, type UIMessage } from "ai";
+import type { UtteranceMeaning } from "@/features/episode/api/utterance-meaning";
 
 import { aiRequestOptions } from "@/shared/ai/request-options";
 
@@ -36,7 +37,8 @@ export function createEpisodeTransport(
   getAccessToken: () => string | undefined,
   getEpisodeId: () => string | undefined,
   getStoryPlayId: () => string | undefined,
-  getStoryId: () => string | undefined
+  getStoryId: () => string | undefined,
+  getOpeningMeanings: () => UtteranceMeaning[] = () => []
 ): DefaultChatTransport<UIMessage> {
   return new DefaultChatTransport<UIMessage>({
     ...aiRequestOptions(EPISODE_API_PATH, getAccessToken),
@@ -62,6 +64,9 @@ export function createEpisodeTransport(
           episodeId,
           keepThrough: messages.at(-2)?.id ?? null,
           message: messages.at(-1),
+          ...(storyPlayId === undefined && messages.at(-1)?.role === "user"
+            ? { utteranceMeanings: getOpeningMeanings() }
+            : {}),
         },
       };
     },

@@ -1,5 +1,6 @@
 import { type ComponentType, memo, type ReactNode } from "react";
 import { Text, useWindowDimensions, View } from "react-native";
+import { castTone } from "@/shared/ui/cast-tone";
 
 import { MarkdownAnswer } from "./markdown-answer";
 import { MessageActions } from "./message-actions";
@@ -12,6 +13,7 @@ import type { SceneSegment } from "./scene";
  * 아래에 무엇을 두는지는 이 자리를 채우는 쪽이 정한다.
  */
 export type UtteranceAddon = ComponentType<{
+  speaker: string;
   at: number;
   /** 이 대사를 담아 둘 수 있는지. 붙는 쪽이 무엇을 세울지 정한다. */
   canSave: boolean;
@@ -22,18 +24,6 @@ export type UtteranceAddon = ComponentType<{
   /** 이 대사 하나의 원문. 장면 전체가 아니라 말풍선에 보이는 그 글이다. */
   text: string;
 }>;
-
-/** 이름표 색. 인물의 스토리 안 순서를 받아 어느 화에서나 같은 색이 된다. */
-const CAST_TONES = [
-  "text-cast-1",
-  "text-cast-2",
-  "text-cast-3",
-  "text-cast-4",
-] as const;
-
-function castTone(position: number | undefined): string {
-  return CAST_TONES[((position ?? 1) - 1) % CAST_TONES.length] ?? CAST_TONES[0];
-}
 
 /**
  * 에피소드를 여는 장면 서술.
@@ -115,6 +105,7 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
           canSave={canSave}
           isArriving={isArriving}
           messageId={messageId}
+          speaker={name}
           text={text}
         >
           {bubble}
