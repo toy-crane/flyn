@@ -5,7 +5,7 @@ import { readExpressionResults } from "./expression-results.js";
 import type {
   SavedExpressionKind,
   SavedExpressionRef,
-} from "./saved-expression";
+} from "./saved-expression.js";
 import type { EpisodeScene } from "./scene";
 import type { EpisodeClient, EpisodeScript, StoryContent } from "./story";
 import {
