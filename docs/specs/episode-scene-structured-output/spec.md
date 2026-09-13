@@ -146,3 +146,39 @@ API와 Metro는 이 worktree에서 계속 실행한다.
 [Android 설치 상태 불일치](../../follow-ups/android-session-ready-without-app.md)는 검증 환경에서 우회했다.
 [첫 응답의 기억 생략](../../follow-ups/next-episode-first-reply-skips-memory.md)은 기존 내용 규칙의
 문제이며, 이번 명세가 유지하기로 한 기억 프롬프트는 바꾸지 않았다.
+
+## 여러 인물 대화 추가 확인
+
+2026-09-13 사용자의 추가 요청으로 `d0bc711`의 제품 코드를 확인했다. 제품
+프롬프트와 스트림 코드는 바꾸지 않고 평가 명령 `eval:multi-cast`를 추가했다.
+
+- 두 명과 세 명의 고정 카페 상황에서 세 턴씩 대화하고 각각 세 번 실행했다.
+  앞 응답을 다음 요청의 대화 기록에 넣었다. 운영 모델과 구조화 변환을 쓴
+  [18개 응답 전문](../../../apps/api/eval/results/multi-cast-1789293088734.json)을 읽었다.
+  목록 밖 화자, 한국어 대사, 대표적인 행동 서술과 이른 결말 검사에는 모두
+  통과했다. 이 검사는 자연스러움이나 발화 수의 통과를 뜻하지 않는다.
+- 두 인물은 주문 순서를 지키려는 Mia와 회의에 급한 Owen의 입장을 구분했다.
+  세 명에게 각각 물으면 세 번 모두 세 사람이 답했고, Nora만 물으면 세 번 모두
+  Nora만 답했다. 다만 세 사람의 응답은 현재 한두 발화 규칙을 넘는다.
+- iOS `flyn-slot-1`, Metro `8092`에서 앞 검증 계정으로 로그인하고 카페 2화를
+  이어서 플레이했다. Owen에게 기다릴 수 있는지 질문, Mia에게 폰을 대는 위치
+  질문, 실제로 폰을 댔다는 입력의 세 턴을 확인했다. 질문만 할 때 결제를 완료하지
+  않았고, 폰을 댔다고 말한 뒤 결제 성공과 결말을 표시했다. Mia와 Owen의 이름표
+  색, 말풍선 분리, 화자 전환과 텍스트 증가를 [종료 녹화](evidence/multi-cast-closing.mp4)의
+  프레임에서 확인했다. API·Metro 로그에 관련 실행 오류는 없었다.
+- 화면에서도 내용 문제를 확인했다. Mia의 `Thanks, Owen. Your drink is ready...`는
+  누구의 음료인지 모호하다. 종료 시 Owen은 `I hope you make your meeting.`이라고
+  말했다. 도입의 회의 일정은 Owen의 것이고 사용자 대화와 지난 기억에는 사용자
+  회의가 없다. 이름표가 정확해도 대사의 사정이 다른 사람에게 옮겨갈 수 있다.
+  [한 사람에게 질문](evidence/multi-cast-one-target.png),
+  [두 사람에게 질문](evidence/multi-cast-two-targets.png),
+  [종료](evidence/multi-cast-ending.png),
+  [앞 대화와 추가 세 턴](evidence/multi-cast-runtime-dialogue.json)을 남겼다.
+- [인물의 사정과 상대 혼동](../../follow-ups/multi-person-dialogue-role-confusion.md),
+  [세 발화와 제한의 불일치](../../follow-ups/three-person-dialogue-exceeds-turn-limit.md)를
+  후속 작업으로 남겼다. 구조화 형식 검증만으로 대사의 자연스러움을 보장하지 않는다.
+  이번 추가 화면 확인은 iOS의 두 인물 대화다. 세 인물은 모델 평가만 했으며,
+  Android를 이번 추가 확인에서 다시 실행하지 않았다.
+
+추가 평가 코드의 API 타입 검사와 정적 검사를 통과했다. 이번 요청은 내용과
+화면 확인이므로 전체 제품 테스트나 전체 변경 리뷰를 다시 실행하지 않았다.

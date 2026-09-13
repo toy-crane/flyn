@@ -7,6 +7,7 @@ API의 `.env.local`에 설정한 `AI_GATEWAY_MODEL`과 `AI_GATEWAY_API_KEY`를 �
 bun run --cwd apps/api eval:ask
 bun run --cwd apps/api eval:correction
 bun run --cwd apps/api eval:scene
+bun run --cwd apps/api eval:multi-cast
 ```
 
 장면 평가는 환승 체크인의 첫 요청, 한국어 요청, 종료와 두 인물 대화를 세 번씩
@@ -15,6 +16,11 @@ bun run --cwd apps/api eval:scene
 프롬프트와 응답 전문을 기록한다. 행동 서술 검사는 일부 표현만 찾으므로 전문도
 읽어야 한다. `eval:story-play`의 현재 후보도 같은 구조화 경로로 다음 화의 기억
 반영을 확인한다. 이 명령의 `--baseline`은 고정된 이전 커밋의 텍스트 호출을 쓴다.
+
+여러 인물 평가는 두 명과 세 명의 상황을 각각 세 번 실행한다. 실제 앞 응답을
+다음 입력 기록에 넣어, 여러 사람 지목, 한 사람 지목, 의견 조율의 세 턴을 확인한다.
+같은 구조화 스트림과 기계 검사를 쓰고 대사 전문을 남긴다. 기계 검사는 발화 수,
+대사의 자연스러움, 누구에게 말하는지까지 판정하지 않으므로 전문을 따로 읽는다.
 
 표현 확인 평가는 같은 21개 문장을 세 번 확인한다. 표기와 채팅 말투를 그대로
 두는지, 철자와 문법 오류는 고치는지, 고친 문장과 항목에 표기 수정이 섞이지
