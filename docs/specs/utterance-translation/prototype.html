@@ -309,7 +309,7 @@
         </div>
 
         <!-- 첫 장면의 대사. 회차가 없을 때는 복사와 번역만 선다. -->
-        <div class="utterance" data-utterance="u0" data-original="Next in line, please!" data-meaning="다음 손님, 오세요!" data-answer="미아가 줄에 선 다음 손님을 부르는 말이에요. 아직 내 커피 이야기는 나오지 않았어요.&#10;&#10;Next in line은 줄에서 다음 차례라는 뜻이고, please를 붙여 가볍게 부르는 거예요. 지금 말을 걸지 않으면 다음 손님 차례로 넘어가니, 짧게라도 먼저 부르면 돼요.&#10;&#10;Excuse me, I think this is the wrong drink.">
+        <div class="utterance" data-utterance="u0" data-original="Next in line, please!" data-meaning="다음 손님, 오세요!" data-answer="미아가 줄에 선 다음 손님을 부르는 말이에요. 아직 내 커피 이야기는 나오지 않았어요.&#10;&#10;Next in line은 줄에서 다음 차례라는 뜻이고, please를 붙여 가볍게 부르는 거예요." data-next="지금 말을 걸지 않으면 다음 손님 차례로 넘어가니, 짧게라도 먼저 부르면 돼요.&#10;&#10;Excuse me, I think this is the wrong drink.">
           <div class="cast-name">Mia</div>
           <div class="bubble cast">Next in line, please!</div>
           <div class="icon-row">
@@ -337,7 +337,7 @@
           <div class="utterance" data-utterance="u1"
                data-original="Oh no, I'm so sorry about that! Let me remake it for you right away. Iced americano, right? It'll just take a minute."
                data-meaning="어머, 정말 죄송해요! 바로 다시 만들어 드릴게요. 아이스 아메리카노 맞죠? 금방 될 거예요."
-               data-answer="미아가 잘못 나온 커피를 사과하면서 바로 다시 만들어 주겠다고 하는 말이에요.&#10;&#10;remake는 만든 걸 다시 만든다는 뜻이고, right away는 지금 바로예요. 끝의 right?는 내가 이해한 게 맞는지 가볍게 확인하는 말이라, 아이스 아메리카노가 맞으면 짧게 답하면 돼요.&#10;&#10;Yes, iced americano. Thank you!">
+               data-answer="미아가 잘못 나온 커피를 사과하면서 바로 다시 만들어 주겠다고 하는 말이에요.&#10;&#10;remake는 만든 걸 다시 만든다는 뜻이고, right away는 지금 바로예요. 끝의 right?는 내가 이해한 게 맞는지 가볍게 확인하는 말이에요." data-next="아이스 아메리카노가 맞으면 짧게 답하면 돼요.&#10;&#10;Yes, iced americano. Thank you!">
             <div class="cast-name">Mia</div>
             <div class="bubble cast">Oh no, I'm so sorry about that! Let me remake it for you right away. Iced americano, right? It'll just take a minute.</div>
             <div class="icon-row">
@@ -629,10 +629,12 @@
     const q = askInput.value.trim();
     if (!q) return;
     const mine = `<div class="mine-wrap"><div class="bubble mine">${q.replace(/</g, '&lt;')}</div></div>`;
-    // 답은 출처인 대사마다 다르다. 마지막 문단은 돌아가서 쓸 영어 문장이다.
-    const paragraphs = (askSource?.dataset.answer || '').split('\n\n');
+    // 답은 출처인 대사마다 다르다. 다음 말을 물었을 때만 돌아가서 쓸 영어 문장을 붙인다.
+    const wantsNext = /다음|뭐라고|무슨 말|어떻게 말|어떻게 답|대답|뭐라|말해/.test(q);
+    const body = (wantsNext ? askSource?.dataset.next : askSource?.dataset.answer) || '';
+    const paragraphs = body.split('\n\n');
     const answer = `<div class="answer">${paragraphs.map((text, at) =>
-        `<p${at === paragraphs.length - 1 ? ' class="example"' : ''}>${text}</p>`).join('')}</div>`;
+        `<p${wantsNext && at === paragraphs.length - 1 ? ' class="example"' : ''}>${text}</p>`).join('')}</div>`;
     thread.insertAdjacentHTML('beforeend', mine + answer);
     asks[askFor] = thread.innerHTML;
     askInput.value = '';
