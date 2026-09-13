@@ -1,6 +1,6 @@
 # 인물 대사 번역
 
-상태: 설계 확정. 사용자가 2026-09-13에 번역의 자리와 모양, 실패 문구, 대사 뜻이 펼치지 않는 한 줄이라는 것과 물어보기 입구의 모양을 확정했다. 승인한 화면은 [prototype.html](prototype.html)이다. 구현은 아직 시작하지 않았다.
+상태: 구현 완료. 사용자가 2026-09-13에 번역의 자리와 모양, 실패 문구, 대사 뜻이 펼치지 않는 한 줄이라는 것과 물어보기 입구의 모양을 확정했다. 승인한 화면은 [prototype.html](prototype.html)이다. 번역과 공유 저장, 대사 질문을 구현했다. iOS·Android의 전체 흐름과 API 검증, 전체 변경 리뷰를 마쳤다.
 
 ## 배경
 
@@ -115,3 +115,25 @@
 - [모바일 작업 진행 표시](../../decisions/mobile-action-progress.md): 버튼 안 진행 표시와 실패 줄의 크기, 색, 간격.
 - [모바일 컴포넌트 선택](../../decisions/mobile-component-selection.md): 물어보기 링크를 만드는 공용 `Button`의 변형과 크기, 원시 `Pressable`의 예외 목록.
 - [UX 라이팅 원칙](../../decisions/ux-writing.md): 화면 문구.
+
+
+## 구현 확인 (2026-09-13)
+
+Codex 기본 리뷰어가 `376609b..e66f19c` 전체 구현, 이 명세와 승인 시안·실제 화면 증거를 한 차례 검토했다. 수정이 필요한 구체적인 결함은 없었다.
+
+- `bun run check`, `bun run check-types`, `bun run test` 통과. 모바일 91개 묶음 670개, API 312개, 개발 스크립트 330개 테스트가 통과했다. 외부 실행이 필요한 기존 스크립트 통합 테스트 7개는 기본 테스트에서 제외된다.
+- `bun run --cwd apps/api test:integration`: 실제 로컬 Auth·PostgREST·DB에서 6개 테스트, 26개 단언 통과. 동시 번역·담기 한 번 생성, 다른 계정 차단, 기존 저장 뜻 재사용, 실패 정리, 만료 선점 회수, 장면 삭제 뒤 노트 보존을 확인했다.
+- `bun scripts/ci/database.ts verify`: 격리 DB에 전체 마이그레이션과 seed 재생, pgTAP 466개, lint, 생성 타입과 선언형 스키마 일치 확인. 별도 Supabase 리뷰는 수정 요청 없이 통과했다.
+- 실제 모델 답변을 3회 평가해 [75개 모두 통과](../../../apps/api/eval/results/ask-1789297118720.md)했다.
+- iOS `flyn-slot-1`과 Android `flyn dev 2`에서 로컬 이메일 로그인부터 각자 검증했다. 번역 진행·실패·재시도, 숨김·표시, 첫 메시지 전 이탈, 회차 생성 후 뜻 유지, 숨긴 뜻의 재접속 복원, 노트와 같은 뜻, 질문의 출처·답변·초안 유지를 확인했다. 두 기기 모두 영어 대화·교정·성공 결말·표현 돌아보기·다음 화 예고·홈 복귀를 완료했다.
+- 실제 기기에서 React Native의 AbortSignal에 `throwIfAborted`가 없어 정상 응답을 실패로 처리하는 문제를 발견했다. 메서드가 없는 환경의 재현 테스트를 추가하고 취소 상태를 직접 검사하도록 수정한 뒤 양쪽 기기에서 다시 확인했다.
+- 장면 전체 다시 받기는 [현재 화면 계약](../../decisions/mobile-chat-message-actions.md)에 따라 에피소드 UI에 추가하지 않았다. 실행 중인 API 3911에 실제 모델 요청을 보내 번역·담기·조회·다시 받기를 차례로 실행했다. 이전 메시지 `1b21f8f6-b250-4f39-9bb2-097bd1eb7b3d`와 그 뜻이 사라지고, 새 메시지 `95e4649d-e7e9-42b5-b1d2-c27f18fae895`의 뜻은 비어 있으며, 노트의 뜻은 메시지 연결 없이 남는 것을 확인했다.
+- 기기의 네트워크 수집은 모든 요청을 기록하지 못했다. 토글의 추가 요청 없음은 상태 테스트와 API 통합 검증으로 확인했고, 기기에서는 즉시 표시 전환을 확인했다.
+- Android 화면 전환의 Reanimated 경고는 [후속 조사](../../follow-ups/android-navigation-reanimated-missing-surface.md)에 남겼다. 수정 후 번역 흐름에 관련 JS 오류나 앱 종료는 없었다.
+
+승인한 `prototype.html`과 첫 장면, 대사 뜻, 실패 줄, 질문 출처를 비교했다. 기기별 화면 증거는 다음과 같다.
+
+| 기기 | 대사 뜻 | 질문 출처 | 표현 돌아보기·다음 화 |
+| --- | --- | --- | --- |
+| iOS | [화면](evidence/ios-meaning.png) | [화면](evidence/ios-ask.png) | [화면](evidence/ios-review.png) |
+| Android | [화면](evidence/android-meaning.png) | [화면](evidence/android-ask.png) | [화면](evidence/android-review.png) |
