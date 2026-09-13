@@ -1,6 +1,6 @@
 # 에피소드 장면의 구조화 출력
 
-상태: 준비. 사용자가 2026-09-13에 장면 호출을 구조화 출력으로 바꾸는 방향을 검토했고, 실제 플레이에서 이름 없는 줄이 나온 화면을 근거로 냈다. 같은 날 지문과 얽힌 남은 코드를 함께 지우기로 했다. 구현 전이다.
+상태: 완료. 2026-09-13 구조화 장면과 기존 part 변환을 구현했다. 자동 검사, 실제 모델 평가, iOS와 Android 실제 플레이, 전체 변경 리뷰를 마쳤다.
 
 ## 배경
 
@@ -89,3 +89,96 @@
 - [모바일 에피소드 장면 표시](../../decisions/mobile-episode-scene-display.md): 이름표와 도입 서술의 모양. 이 작업은 그 모양을 바꾸지 않고, 형식을 어긴 이름 없는 줄의 대체 표시만 지운다.
 - [AI 프롬프트 평가](../../decisions/ai-prompt-evaluation.md): 장면 평가의 모양.
 - [AI 모델 라우팅](../../decisions/ai-model-routing.md): 같은 모델과 Gateway를 쓴다.
+
+## 구현과 검증 근거
+
+2026-09-13, 기준 커밋 `77ceba0`, 브랜치 `codex/episode-scene-structured-output`에서 확인했다.
+
+- `streamText`의 `Output.object`와 부분 객체 스트림을 사용한다. 화자 이름이 완성된
+  뒤 기존 `data-speaker`와 텍스트 델타로 바꾼다. 완성된 객체 검사에 실패하면
+  `onEnd`에서도 장면을 저장하지 않는다. 결말 확정 전 닫는 장면 저장, 다음 화
+  정보 전송, 결말 전송의 순서는 유지했다.
+- 기존 모델 줄 머리 파서와 결말·기록 판정을 지웠다. 첫 장면 전용 파서와
+  저장된 part의 모델 입력 변환은 유지했다. 모바일은 도입 밖의 이름 없는 줄만 숨긴다.
+- `bun run test`: API 308개, 모바일 89개 묶음의 661개, 개발 스크립트 330개 통과.
+  `bun run check`, `bun run check-types`, `git diff --check` 통과.
+  가짜 모델은 잘린 화자와 텍스트 조각, 공백 원소, 같은 화자의 연속 대사,
+  잘못된 화자, 빈 결말·기록, 누락 필드, 이전 텍스트 응답과 잘린 JSON을 검사한다.
+- [실제 모델 장면 평가](../../../apps/api/eval/results/scene-1789292057300.json):
+  서버 설정의 `openai/gpt-5.6-luna`, AI SDK 7.0.58로 4사례 × 3회 모두 통과했다.
+  첫 글자 1,551~2,696ms, 중앙값 1,671ms, 응답당 텍스트 델타 9~17개였다.
+  전문에서 영어 대사, 행동 서술 없음, 두 인물의 분리, 진행 중과 종료 시점을 확인했다.
+  화자 열거형은 유지했다. 숫자는 이 로컬 실행의 측정값이다.
+- [대본과 다음 화 평가](../../../apps/api/eval/results/story-play-candidate-1789292051316.md):
+  후보도 구조화 스트림으로 바꿨다. 세 번의 대본과 성공·실패 기억별 첫 응답 및
+  후속 응답을 읽었다. 과거 교환 성공과 미확인의 차이를 각각 반영했다.
+- iOS `flyn-slot-1`과 Android `flyn_dev_2`에서 이메일 코드 로그인 후 각각 카페
+  1화를 네 번의 사용자 입력으로 성공 종료했다. 영어 교정, 한국어 입력 안내,
+  결말 카드, 표현 돌아보기와 2화 예고를 확인했다. 진행 중 기록과 종료 기록을
+  나갔다 다시 열어 같은 대화와 교정을 확인했고, 종료 기록에는 입력창이 없었다.
+- 2화의 Mia와 Owen이 각자 이름표 아래에서 답했다. iOS는 어제의 적은 얼음 주문을,
+  Android는 어제의 아이스 아메리카노 주문을 기억했다. 두 계정의 1화 결말, 기억
+  세 값, 계정 수준과 기존 모양의 대화 part는 [DB 조회 결과](evidence/runtime-records.json)에 남겼다.
+  이름 없는 part는 각 화의 첫 장면에만 있었고 모델 응답에는 없었다.
+- 화면 근거: [iOS 도입](evidence/ios-opening.png), [Android 도입](evidence/android-opening.png),
+  [iOS 종료](evidence/ios-ending.png), [Android 종료](evidence/android-ending.png),
+  [iOS 다시 열기](evidence/ios-reopened.png), [Android 다시 열기](evidence/android-reopened.png),
+  [iOS 두 화자](evidence/ios-two-speakers.png), [iOS 기억](evidence/ios-memory.png),
+  [Android 기억](evidence/android-memory.png). 말풍선의 텍스트가 늘어나는 모습은
+  [iOS 녹화](evidence/ios-stream.mp4)와 [Android 녹화](evidence/android-stream.mp4)를
+  프레임으로 나누어 확인했다. 원래 문제 화면은 새 화면 디자인의 승인안으로 쓰지 않았다.
+- 전체 검사 뒤 같은 실행 코드로 위 제품 흐름을 확인했다. API 로그에 요청 오류가
+  없었고 Metro에는 실행 오류 없이 색상 환경 변수 경고만 있었다. 서버는 이 worktree의
+  API `http://127.0.0.1:3911`, Metro `http://127.0.0.1:8092`를 썼다.
+
+두 플랫폼 모두 확인용 계정에서 로그아웃한 뒤 기기 도구 세션을 닫았다.
+API와 Metro는 이 worktree에서 계속 실행한다.
+
+2026-09-13 OpenAI Codex 리뷰어가 기준 커밋 `77ceba0` 이후 전체 변경과 새 파일,
+이 명세와 연결 계약, 테스트 로그, 모델 응답 전문, DB 기록, 화면과 녹화 프레임을
+검토하고 수정할 문제 없음으로 마쳤다. 별도 모바일 UI 리뷰도 수정할 문제 없이
+`PASS_WITH_GAPS`로 마쳤다. 다크 모드, 최대 시스템 글자 크기, VoiceOver·TalkBack,
+구조화 응답 오류 뒤 재시도·중지의 기기 실행은 확인하지 않았다. 오류 응답 경로는
+코드와 자동 테스트로 확인했다. 이번 변경은 도입 밖의 이름 없는 줄을 숨기며,
+글자 크기나 화면 스타일은 바꾸지 않는다. 이 검증 범위는 남은 기능 결함으로 판정하지 않았다.
+
+범위 밖 발견은 후속 작업으로 남겼다. [기기 도구의 오래된 소유권](../../follow-ups/agent-device-unlisted-default-owns-device.md),
+[Android 설치 상태 불일치](../../follow-ups/android-session-ready-without-app.md)는 검증 환경에서 우회했다.
+[첫 응답의 기억 생략](../../follow-ups/next-episode-first-reply-skips-memory.md)은 기존 내용 규칙의
+문제이며, 이번 명세가 유지하기로 한 기억 프롬프트는 바꾸지 않았다.
+
+## 여러 인물 대화 추가 확인
+
+2026-09-13 사용자의 추가 요청으로 `d0bc711`의 제품 코드를 확인했다. 제품
+프롬프트와 스트림 코드는 바꾸지 않고 평가 명령 `eval:multi-cast`를 추가했다.
+
+- 두 명과 세 명의 고정 카페 상황에서 세 턴씩 대화하고 각각 세 번 실행했다.
+  앞 응답을 다음 요청의 대화 기록에 넣었다. 운영 모델과 구조화 변환을 쓴
+  [18개 응답 전문](../../../apps/api/eval/results/multi-cast-1789293088734.json)을 읽었다.
+  목록 밖 화자, 한국어 대사, 대표적인 행동 서술과 이른 결말 검사에는 모두
+  통과했다. 이 검사는 자연스러움이나 발화 수의 통과를 뜻하지 않는다.
+- 두 인물은 주문 순서를 지키려는 Mia와 회의에 급한 Owen의 입장을 구분했다.
+  세 명에게 각각 물으면 세 번 모두 세 사람이 답했고, Nora만 물으면 세 번 모두
+  Nora만 답했다. 다만 세 사람의 응답은 현재 한두 발화 규칙을 넘는다.
+- iOS `flyn-slot-1`, Metro `8092`에서 앞 검증 계정으로 로그인하고 카페 2화를
+  이어서 플레이했다. Owen에게 기다릴 수 있는지 질문, Mia에게 폰을 대는 위치
+  질문, 실제로 폰을 댔다는 입력의 세 턴을 확인했다. 질문만 할 때 결제를 완료하지
+  않았고, 폰을 댔다고 말한 뒤 결제 성공과 결말을 표시했다. Mia와 Owen의 이름표
+  색, 말풍선 분리, 화자 전환과 텍스트 증가를 [종료 녹화](evidence/multi-cast-closing.mp4)의
+  프레임에서 확인했다. API·Metro 로그에 관련 실행 오류는 없었다.
+- 화면에서도 내용 문제를 확인했다. Mia의 `Thanks, Owen. Your drink is ready...`는
+  누구의 음료인지 모호하다. 종료 시 Owen은 `I hope you make your meeting.`이라고
+  말했다. 도입의 회의 일정은 Owen의 것이고 사용자 대화와 지난 기억에는 사용자
+  회의가 없다. 이름표가 정확해도 대사의 사정이 다른 사람에게 옮겨갈 수 있다.
+  [한 사람에게 질문](evidence/multi-cast-one-target.png),
+  [두 사람에게 질문](evidence/multi-cast-two-targets.png),
+  [종료](evidence/multi-cast-ending.png),
+  [앞 대화와 추가 세 턴](evidence/multi-cast-runtime-dialogue.json)을 남겼다.
+- [인물의 사정과 상대 혼동](../../follow-ups/multi-person-dialogue-role-confusion.md),
+  [세 발화와 제한의 불일치](../../follow-ups/three-person-dialogue-exceeds-turn-limit.md)를
+  후속 작업으로 남겼다. 구조화 형식 검증만으로 대사의 자연스러움을 보장하지 않는다.
+  이번 추가 화면 확인은 iOS의 두 인물 대화다. 세 인물은 모델 평가만 했으며,
+  Android를 이번 추가 확인에서 다시 실행하지 않았다.
+
+추가 평가 코드의 API 타입 검사와 정적 검사를 통과했다. 이번 요청은 내용과
+화면 확인이므로 전체 제품 테스트나 전체 변경 리뷰를 다시 실행하지 않았다.

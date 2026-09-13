@@ -9,6 +9,8 @@
     "dev": "BUN_PORT=3901 bun run --hot src/index.ts",
     "eval:ask": "bun eval/ask.ts",
     "eval:correction": "bun eval/correction.ts",
+    "eval:multi-cast": "bun eval/multi-cast.ts",
+    "eval:scene": "bun eval/scene.ts",
     "eval:story": "bun eval/story-creation.ts",
     "eval:story-play": "bun eval/story-play.ts",
     "fix": "ultracite fix .",

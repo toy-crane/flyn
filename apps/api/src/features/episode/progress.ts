@@ -1,13 +1,12 @@
 import type { UIMessage } from "ai";
-
-import type { SceneOutcome } from "../../shared/scene-stream";
 import type { EpisodeCorrection, ExpressionResult } from "./correction";
-import { EPISODE_NOTES, type StoryMemory } from "./episode.js";
+import type { StoryMemory } from "./episode.js";
 import { readExpressionResults } from "./expression-results.js";
 import type {
   SavedExpressionKind,
   SavedExpressionRef,
 } from "./saved-expression";
+import type { EpisodeScene } from "./scene";
 import type { EpisodeClient, EpisodeScript, StoryContent } from "./story";
 
 /** 기록 한 줄이 데이터베이스에서 허용되는 길이. */
@@ -18,16 +17,6 @@ const STORED_ROLES = new Set(["assistant", "user"]);
 
 /** 같은 자리를 두 번 담았을 때 Postgres가 돌려주는 코드. */
 const UNIQUE_VIOLATION = "23505";
-
-function usableNote(text: string | undefined): string | undefined {
-  const trimmed = text?.trim();
-
-  if (!trimmed) {
-    return;
-  }
-
-  return trimmed.slice(0, MEMORY_LINE_LIMIT);
-}
 
 /** 끝난 에피소드 한 줄. 제목과 번호는 현재 콘텐츠에서 합친다. */
 export interface FinishedEpisodeRow {
@@ -167,21 +156,16 @@ export async function recordEpisodeEnding(
   client: EpisodeClient,
   storyPlayId: string,
   episodeId: string,
-  outcome: SceneOutcome
+  ending: NonNullable<EpisodeScene["ending"]>
 ): Promise<void> {
-  if (!outcome.ending) {
-    return;
-  }
-
-  const { notes } = outcome;
   const { data: recorded, error } = await client.rpc("finish_episode", {
     episode_id: episodeId,
-    kind: outcome.ending.kind,
-    language_level: usableNote(notes[EPISODE_NOTES.level]),
-    memory_choice: usableNote(notes[EPISODE_NOTES.choice]),
-    memory_question: usableNote(notes[EPISODE_NOTES.question]),
-    memory_relationship: usableNote(notes[EPISODE_NOTES.relationship]),
-    outcome: outcome.ending.outcome,
+    kind: ending.kind,
+    language_level: ending.level.trim().slice(0, MEMORY_LINE_LIMIT),
+    memory_choice: ending.choice.trim().slice(0, MEMORY_LINE_LIMIT),
+    memory_question: ending.question.trim().slice(0, MEMORY_LINE_LIMIT),
+    memory_relationship: ending.relationship.trim().slice(0, MEMORY_LINE_LIMIT),
+    outcome: ending.outcome,
     story_play_id: storyPlayId,
   });
 
