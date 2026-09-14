@@ -375,3 +375,11 @@ grant select, delete on public.utterance_meanings to authenticated;
 grant insert(message_id, utterance_at, meaning, claim_token) on public.utterance_meanings to authenticated;
 grant update(meaning, claim_token, expires_at) on public.utterance_meanings to authenticated;
 grant all on public.utterance_meanings to service_role;
+
+-- 로그인 여부와 관계없이 현재 배포 대상의 정책을 읽는다. Dashboard 운영자만 바꾼다.
+alter table public.app_version_policies enable row level security;
+create policy app_version_policies_read on public.app_version_policies
+  for select to anon, authenticated using (true);
+revoke insert, update, delete on public.app_version_policies from anon, authenticated;
+grant select on public.app_version_policies to anon, authenticated;
+grant all on public.app_version_policies to service_role;

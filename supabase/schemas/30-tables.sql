@@ -794,3 +794,28 @@ create table public.utterance_meanings (
   foreign key (message_id, user_id) references public.episode_messages(id, user_id) on delete cascade
 );
 create index utterance_meanings_user_id_idx on public.utterance_meanings(user_id);
+-- 운영자가 Dashboard에서 바꾸는 설치 버전 정책. 배포 대상별로 최소값은 하나뿐이다.
+-- 앱은 다른 대상의 값을 읽지 않아 내부 테스터와 공개 사용자를 따로 관리한다.
+create table public.app_version_policies (
+  platform text not null check (platform in ('ios', 'android')),
+  distribution text not null check (distribution in ('internal', 'public')),
+  minimum_version text check (
+    minimum_version is null
+    or minimum_version ~ '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+  ),
+  install_url text check (
+    install_url is null
+    or (length(install_url) <= 2048 and install_url ~ '^https://[^[:space:]/]+/[^[:space:]]+$')
+  ),
+  primary key (platform, distribution),
+  constraint app_version_policies_install_url_required check (
+    minimum_version is null or install_url is not null
+  )
+);
+
+comment on table public.app_version_policies is
+  'Minimum installed app version and installation URL for each platform and distribution. Edit in Dashboard after verifying the destination.';
+comment on column public.app_version_policies.minimum_version is
+  'Set x.y.z to block older installed apps; set NULL to disable the block.';
+comment on column public.app_version_policies.install_url is
+  'Verified TestFlight or public store HTTPS URL. Required before enabling minimum_version.';
