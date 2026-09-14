@@ -1,6 +1,6 @@
 # 검증과 내부 테스트 배포
 
-## 결정
+## Decisions
 
 - PR에서 코드·타입·테스트를 검사하고, 모바일 네이티브 구성 차이는 fingerprint 라벨로 알린다. 라벨은 merge 전 검토 정보이며 배포 판정을 대신하지 않는다.
 - 필요한 검사를 통과한 `main` 변경의 배포 순서는 GitHub Actions가 관리한다. Supabase 마이그레이션, 필요한 Edge Function, Hono의 Vercel 배포를 확인한 뒤 같은 커밋의 EAS Workflows를 실행한다.
@@ -10,8 +10,6 @@
 - 이전 앱의 API·DB 접근과 데이터를 보존하는 변경을 먼저 배포한다. DB를 자동 롤백하지 않는다.
 - 운영 배포의 사람 승인은 PR을 `main`에 합치는 것 하나다. `main`에 들어간 커밋은 다시 묻지 않고 끝까지 배포한다. 파괴적 마이그레이션의 승인은 merge 전에 PR에서 받으며, 그 방식은 [Supabase 스키마 작업 방식](supabase-schema-workflow.md)이 정한다.
 - 운영 배포의 유일한 복구 경로는 실패한 실행을 다시 실행하거나 새 커밋을 합치는 것이다. 사람이나 에이전트가 CLI로 운영 서비스를 직접 올리지 않는다. 손으로 올린 배포는 요청 ID가 없어 파이프라인이 이어받지 못한다.
-- `main`은 PR을 거치지 않은 push를 받지 않는다. 운영 배포는 필수 승인자 없이
-  보호된 브랜치만 허용하는 `production` 환경 하나를 쓴다.
 
 ### 워크플로 구조
 
@@ -42,7 +40,7 @@
 - 빌드·fingerprint·업데이트는 같은 대상의 환경 설정을 명시적으로 쓴다. 개발자의 로컬 환경 파일이나 설정 검증 우회값을 배포에 쓰지 않는다.
 - EAS 환경과 업데이트 채널은 다른 개념이다. 채널을 나눈다고 DB가 격리되지 않는다. GitHub 환경 `production`과 EAS 환경 `production`도 이름만 같은 다른 것이다.
 
-## 경계
+## Boundaries
 
 - DB PR 검증 범위는 [Supabase 스키마 작업 방식](supabase-schema-workflow.md)이 소유한다. 임시 DB의 검증에는 운영 비밀값이나 데이터를 사용하지 않는다.
 - CI 코드 리뷰 도구는 [CI 코드 리뷰](ci-code-review.md)가 정한다.
@@ -51,9 +49,10 @@
 - 새 빌드 전에 EAS Update 설정이 필요하고, 테스터가 그 빌드를 설치해야 후속 OTA를 받을 수 있다. OTA와 TestFlight는 같은 배포 채널이 아니다. EAS Update는 모든 기기에 즉시 적용되는 강제 업데이트가 아니다.
 - 운영 공개 환경 변수는 EAS production 환경과 GitHub 저장소 변수에 따로 있고 자동으로 맞춰지지 않는다. 한쪽을 바꾸면 다른 쪽도 함께 바꾼다.
 - Vercel·Supabase·EAS의 독립적인 자동 실행이 전체 순서를 우회하거나 같은 대상을 중복 배포하지 않게 한다.
-- 공개 출시, Android 스토어 배포, 강제 업데이트, 원격 CI E2E와 외부 알림 채널은 별도 결정이다. 공개 출시 전에는 내부·일반 사용자 업데이트 채널을 분리한다.
+- 공개 출시, Android 스토어 배포와 원격 CI E2E는 별도 범위다. 공개 출시 전에는 내부·일반 사용자 업데이트 채널을 분리한다.
+- 강제 업데이트는 [모바일 업데이트 경험](mobile-update-experience.md), 자동 모바일 배포 결과의 Slack 알림은 [배포 알림 명세](../specs/eas-slack-notifications/spec.md)를 따른다.
 
-## 이유
+## Why
 
 EAS Update를 일상 배포에 사용하면 호환 빌드 조회와 새 빌드 분기를 반복하게 된다. 모바일 작업은 EAS에 맡기고, DB와 API 준비 상태는 GitHub에서 먼저 확인하면 앱이 아직 없는 서버 기능을 호출하는 순서 오류를 막을 수 있다. PR 라벨은 같은 변경의 검증 부담과 OTA 가능성을 합치기 전에 검토하도록 돕는다.
 
@@ -63,7 +62,7 @@ EAS Update를 일상 배포에 사용하면 호환 빌드 조회와 새 빌드 �
 
 merge 뒤의 승인은 새 정보 없이 한 번 더 묻는 클릭이다. PR 검사와 `main` 검사가 같은 워크플로이고 브랜치 보호가 PR을 `main`과 최신 상태로 유지하므로, 검사한 트리와 합쳐진 커밋이 같다. 승인 화면에는 SQL이 보이지 않아 읽을 자리는 어차피 PR이다. 조사한 기준선(Supabase 공식 환경 가이드와 Branching, squawk, Atlas, strong_migrations)도 모두 PR을 게이트로 두고 merge 뒤에는 자동 배포한다.
 
-## 재검토 조건
+## Reconsider when
 
 - 공개 App Store 출시 또는 Android 배포를 시작할 때
 - 내부 테스트가 운영 데이터와 분리된 원격 환경을 요구할 때
@@ -72,7 +71,7 @@ merge 뒤의 승인은 새 정보 없이 한 번 더 묻는 클릭이다. PR 검
 - 어떤 서비스가 자신에게 올라간 커밋을 더 이상 알려 주지 못할 때
 - 운영 배포를 승인하는 사람이 둘 이상이 될 때
 
-## 계속 제외하는 대안
+## Still-rejected alternatives
 
 - 서비스마다 `main`에서 독립 자동 배포: 서버 준비 전에 앱이 배포될 수 있다.
 - PR 라벨만으로 OTA 결정: 실제 대상 빌드의 존재·배포 상태를 확인하지 못한다.
@@ -86,7 +85,7 @@ merge 뒤의 승인은 새 정보 없이 한 번 더 묻는 클릭이다. PR 검
 - `fingerprint.yml`을 `ci.yml`에 합치기: PR 제목이나 base가 바뀔 때도 다시 계산해야 하고, 라벨 워크플로가 이 워크플로의 이름과 아티팩트를 보고 동작하며, 계산과 라벨 쓰기의 권한 분리가 깨진다.
 - `concurrency.queue`를 식으로 만든 `group`과 함께 쓰기: GitHub이 워크플로 파일을 읽지 못해 잡 하나 없이 실패했다.
 
-## 보존할 근거
+## Evidence worth preserving
 
 - 공식 문서: [EAS Workflows 배포 예제](https://docs.expo.dev/eas/workflows/examples/deploy-to-production/), [EAS Workflows 외부 실행](https://docs.expo.dev/eas/workflows/rest-api/), [Supabase 배포](https://supabase.com/docs/guides/deployment/managing-environments), [Vercel 배포](https://vercel.com/docs/cli/deploy)
 - 2026-09-11 기준선 조사. Supabase 공식 [환경 관리](https://supabase.com/docs/guides/deployment/managing-environments)와 [GitHub 연동](https://supabase.com/docs/guides/deployment/branching/github-integration)은 PR 필수 검사와 merge 뒤 자동 `db push`만 두고 별도 승인이 없다. 파괴적 변경은 린터가 잡는다. [squawk](https://squawkhq.com/docs/rules)는 무료이고 PR 댓글을 남기며 문장별 무시 주석을 둔다. [Atlas](https://atlasgo.io/lint/analyzers)는 같은 구조에 `-- atlas:nolint` 주석을 쓰고 2025년 10월부터 유료다. Bytebase만 rollout 이슈와 DBA 승인을 merge 앞에 둔다. 배포 뒤 승인은 어디에도 없었다.

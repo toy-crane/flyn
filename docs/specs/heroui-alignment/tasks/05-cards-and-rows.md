@@ -38,7 +38,7 @@
 - 회차 카드의 `Card` 본문은 `PressableFeedback`으로 누름을 처리하고, 오른쪽 `···`를 독립된 컨트롤로 둔다. Sheet 표시는 [모바일 UI 렌더러 경계](../../../decisions/mobile-ui-renderer-boundaries.md), 화 선택 동작은 [회차 선택·삭제 명세](../../story-record-deletion/spec.md)를 따른다. 두 작업이 겹치면 먼저 구현한 쪽을 재사용한다. 실제 삭제와 학습 기록 보존은 회차 선택·삭제 명세의 범위다.
 - 표현 카드의 접근성 이름은 [표현 노트](../../../decisions/expression-note.md)대로 직접 넘기고, 옆으로 민 판정은 트리거의 누름 속성으로 유지한다. 유지할 수 없으면 그 카드만 되돌리고 그 계약의 보존할 근거에 적는다.
 - 펼침 카드 트리거의 첫 줄 맞춤은 global.css의 재정의 하나로 한다. 화면 코드에서 className으로 덮지 않는다.
-- 배율 재생성 처치 제거는 [글자 크기 스펙](../../text-size-after-relaunch/spec.md)과 겹친다. 이 task를 시작할 때 남아 있는 것만 없앤다.
+- 배율 재생성 처치 제거는 [모바일 타이포그래피](../../../decisions/mobile-typography.md)를 따른다. 이 task를 시작할 때 남아 있는 것만 없앤다.
 - 대화 중 배울 표현의 한 줄과 카드는 계약의 예외라 손대지 않는다. 카드와 행의 내용과 동작은 [표현 노트](../../../decisions/expression-note.md), [에피소드 종료와 표현 돌아보기](../../../decisions/episode-ending-and-review.md), [모바일 스토리 탐색](../../../decisions/mobile-story-browsing.md)이 소유한다.
 - 동작 줄이기 처리는 [에피소드 종료와 표현 돌아보기](../../../decisions/episode-ending-and-review.md)의 규칙을 따른다.
 
