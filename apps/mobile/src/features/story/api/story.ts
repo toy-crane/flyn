@@ -84,6 +84,7 @@ export interface StoryPlay {
   /** 이어갈 화. 이 회차를 완주했으면 없다. */
   next: {
     episodeId: string;
+    hasTranscript: boolean;
     number: number;
     title: string;
   } | null;
@@ -152,4 +153,22 @@ export function readStoryPlays(
     accessToken,
     "the conversations"
   );
+}
+
+export async function deleteStoryPlay(
+  accessToken: string,
+  storyId: string,
+  storyPlayId: string
+): Promise<void> {
+  const response = await fetch(
+    aiUrl(`${STORIES_API_PATH}/${storyId}/plays/${storyPlayId}`),
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      method: "DELETE",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Deleting the conversation failed with ${response.status}`);
+  }
 }

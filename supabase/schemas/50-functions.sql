@@ -450,6 +450,72 @@ create trigger episode_messages_touch_story_play
   for each row
   execute function public.touch_story_play();
 
+-- 사용자의 영어 메시지를 한 번만 기록한다. 한국어가 섞인 입력은 영어 횟수에
+-- 넣지 않는다. 원본을 지우더라도 이 행에는 본문을 저장하지 않는다.
+create function public.record_english_message()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  spoken text;
+begin
+  if new.role <> 'user' then
+    return new;
+  end if;
+
+  select string_agg(part->>'text', ' ') into spoken
+  from jsonb_array_elements(new.parts) part
+  where part->>'type' = 'text';
+
+  if spoken ~ '[A-Za-z]' and spoken !~ '[가-힣ㄱ-ㅎㅏ-ㅣ]' then
+    insert into public.learning_events (kind, source_id, user_id, occurred_at)
+    values ('english_message', new.id, new.user_id, new.created_at)
+    on conflict do nothing;
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.record_english_message() from public, anon, authenticated, service_role;
+
+create trigger episode_messages_record_english
+  after insert on public.episode_messages
+  for each row execute function public.record_english_message();
+
+-- 완료 날짜는 회차가 삭제된 뒤에도 남는다. 이미 끝난 플레이의 중복 완료
+-- 요청에는 새 사실을 더하지 않는다.
+create function public.record_episode_completion()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.finished_at is null then
+    return new;
+  end if;
+  if tg_op = 'UPDATE' and old.finished_at is not null then
+    return new;
+  end if;
+
+  if new.finished_at is not null then
+    insert into public.learning_events (kind, source_id, user_id, occurred_at)
+    values ('episode_completed', new.id, new.user_id, new.finished_at)
+    on conflict do nothing;
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.record_episode_completion() from public, anon, authenticated, service_role;
+
+create trigger episode_plays_record_completion
+  after insert or update of finished_at on public.episode_plays
+  for each row execute function public.record_episode_completion();
+
 -- 끝난 에피소드를 기록하는 유일한 길.
 --
 -- 결말이 한 번만 난다는 규칙과 이야기 기억, 언어 수준이 한 트랜잭션에 함께

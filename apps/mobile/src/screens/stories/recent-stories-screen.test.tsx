@@ -139,3 +139,22 @@ test("불러오지 못하면 다시 시도할 수 있다", async () => {
   expect(screen.getByText("다시 시도하기")).toBeVisible();
   expect(screen.queryByTestId("recent-empty")).toBeNull();
 });
+
+test("최근 대화를 기다리는 동안 빈 상태 대신 이름 있는 스피너를 표시한다", async () => {
+  const { rendered } = renderRecent({ isLoading: true, stories: undefined });
+  await rendered;
+
+  expect(screen.queryByTestId("recent-empty")).toBeNull();
+  expect(screen.queryByTestId("recent-unavailable")).toBeNull();
+  expect(screen.queryByTestId("recent-loading")).toBeNull();
+  const loading = await screen.findByTestId(
+    "recent-loading",
+    {},
+    {
+      timeout: 2000,
+    }
+  );
+  expect(loading.props.accessibilityRole).toBe("progressbar");
+  expect(loading.props.accessibilityLabel).toBe("불러오는 중");
+  expect(screen.queryByText("대화를 불러오고 있어요")).toBeNull();
+});

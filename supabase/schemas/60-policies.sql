@@ -153,7 +153,7 @@ create policy story_plays_start_own on public.story_plays
   to authenticated
   with check ((select auth.uid()) = user_id);
 
--- update와 delete 정책이 없다. 회차 삭제와 이름 변경은 제품에서 제외한 기능이고,
+-- update 정책이 없다. 이름 변경은 제품에서 제외한 기능이고,
 -- `last_user_message_at`은 `public.touch_story_play`이 소유자 권한으로 쓴다.
 -- `user_id`는 `episode_plays`와 같은 이유로 insert grant에서 빠져 있다.
 -- `started_at`과 `last_user_message_at`도 없다. 시각을 클라이언트가 실어 보내면
@@ -161,6 +161,10 @@ create policy story_plays_start_own on public.story_plays
 grant select on table public.story_plays to authenticated;
 revoke insert on table public.story_plays from authenticated;
 grant insert (story_id) on table public.story_plays to authenticated;
+create policy story_plays_delete_own on public.story_plays
+  for delete to authenticated
+  using ((select auth.uid()) = user_id);
+grant delete on table public.story_plays to authenticated;
 grant all on table public.story_plays to service_role;
 
 alter table public.episode_plays enable row level security;
@@ -237,6 +241,13 @@ revoke insert on table public.episode_messages from authenticated;
 grant insert (id, episode_play_id, role, parts)
   on table public.episode_messages to authenticated;
 grant all on table public.episode_messages to service_role;
+
+alter table public.learning_events enable row level security;
+create policy learning_events_select_own on public.learning_events
+  for select to authenticated
+  using ((select auth.uid()) = user_id);
+grant select on table public.learning_events to authenticated;
+grant all on table public.learning_events to service_role;
 
 -- Access control for public.language_levels.
 --

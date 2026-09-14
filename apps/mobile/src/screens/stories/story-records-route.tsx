@@ -1,9 +1,16 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useCallback } from "react";
-import { Platform } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import { Alert, Platform } from "react-native";
 
 import { useAuthSession } from "@/features/auth/state/auth-session";
-import { useStoryPlays } from "@/features/story/query/story";
+import {
+  deleteStoryPlay,
+  type StoryDetail,
+  type StoryPlay,
+  type StoryPlays,
+} from "@/features/story/api/story";
+import { storyQueryKey, useStoryPlays } from "@/features/story/query/story";
 import { useStartConversation } from "@/features/story/state/use-start-conversation";
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { NewConversationAction } from "@/screens/stories/new-conversation-action";
@@ -19,6 +26,17 @@ export function StoryRecordsRoute() {
   const { session } = useAuthSession();
   const params = useLocalSearchParams<{ storyId?: string | string[] }>();
   const storyId = firstParam(params.storyId);
+  const queryClient = useQueryClient();
+  const knownIntro =
+    session?.user.id && storyId
+      ? queryClient.getQueryData<StoryDetail>([
+          ...storyQueryKey(session.user.id),
+          "detail",
+          storyId,
+        ])
+      : undefined;
+  const deleting = useRef<{ storyPlayId?: string }>({});
+  const [deletingStoryPlayId, setDeletingStoryPlayId] = useState<string>();
   const storyPlays = useStoryPlays(
     session?.user.id,
     session?.access_token,
@@ -30,21 +48,94 @@ export function StoryRecordsRoute() {
     session?.access_token,
     storyId
   );
-  const openEpisode = useCallback((storyPlayId: string, episodeId: string) => {
-    router.push({
-      params: { episodeId, storyPlayId },
-      pathname: "/episode",
-    });
-  }, []);
+  const openEpisodes = useCallback(
+    (storyPlay: StoryPlay) => {
+      const rows = storyPlay.episodes.length + (storyPlay.next ? 1 : 0);
+      router.push({
+        params: {
+          storyId: storyId ?? "",
+          storyPlayId: storyPlay.storyPlayId,
+        },
+        pathname: rows <= 2 ? "/record-episodes-short" : "/record-episodes",
+      });
+    },
+    [storyId]
+  );
+  const confirmDelete = useCallback(
+    (storyPlayId: string) => {
+      const showConfirmation = (failed: boolean) => {
+        Alert.alert(
+          storyLabels.deleteRunTitle,
+          failed
+            ? `${storyLabels.deleteRunDescription}\n\n${storyLabels.deleteRunFailed}`
+            : storyLabels.deleteRunDescription,
+          [
+            { style: "cancel", text: storyLabels.cancel },
+            {
+              onPress: async () => {
+                if (
+                  deleting.current.storyPlayId ||
+                  !session?.access_token ||
+                  !session.user.id ||
+                  !storyId
+                ) {
+                  return;
+                }
+                deleting.current.storyPlayId = storyPlayId;
+                setDeletingStoryPlayId(storyPlayId);
+                try {
+                  await deleteStoryPlay(
+                    session.access_token,
+                    storyId,
+                    storyPlayId
+                  );
+                  const key = [
+                    ...storyQueryKey(session.user.id),
+                    "plays",
+                    storyId,
+                  ];
+                  await queryClient.cancelQueries({ queryKey: key });
+                  queryClient.setQueryData<StoryPlays>(key, (current) =>
+                    current
+                      ? {
+                          ...current,
+                          plays: current.plays.filter(
+                            (play) => play.storyPlayId !== storyPlayId
+                          ),
+                        }
+                      : current
+                  );
+                  await queryClient.invalidateQueries({
+                    queryKey: storyQueryKey(session.user.id),
+                  });
+                } catch {
+                  showConfirmation(true);
+                } finally {
+                  deleting.current.storyPlayId = undefined;
+                  setDeletingStoryPlayId(undefined);
+                }
+              },
+              style: "destructive",
+              text: storyLabels.deleteRun,
+            },
+          ]
+        );
+      };
+      showConfirmation(false);
+    },
+    [queryClient, session?.access_token, session?.user.id, storyId]
+  );
 
   return (
     <>
       <StoryRecordsScreen
+        deletingStoryPlayId={deletingStoryPlayId}
         isLoading={storyPlays.isPending && !isRetrying}
         isRetrying={isRetrying}
-        onOpenEpisode={openEpisode}
-        onResume={openEpisode}
+        onDelete={confirmDelete}
+        onOpen={openEpisodes}
         onRetry={retry}
+        storyIntro={knownIntro}
         storyPlays={storyPlays.data}
       />
       <Stack.Toolbar placement="right">

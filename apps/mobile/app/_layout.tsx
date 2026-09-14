@@ -130,6 +130,24 @@ function ThemedRootLayout() {
               options={{ ...storyScreenOptions, title: storyScreen.title }}
             />
           ))}
+          <Stack.Screen
+            name="record-episodes"
+            options={{
+              headerShown: false,
+              presentation: "formSheet",
+              sheetAllowedDetents: [0.78, 0.92],
+              sheetGrabberVisible: true,
+            }}
+          />
+          <Stack.Screen
+            name="record-episodes-short"
+            options={{
+              headerShown: false,
+              presentation: "formSheet",
+              sheetAllowedDetents: [0.4, 0.85],
+              sheetGrabberVisible: true,
+            }}
+          />
           {/* 에피소드는 화면 전체를 쓰므로 탭과 루트 헤더 위에 push한다. */}
           <Stack.Screen name="episode" />
           {/* 설정 계층은 같은 루트 Stack에서 네이티브 뒤로 가기를 공유한다. */}

@@ -1,204 +1,134 @@
 import { Card } from "heroui-native/card";
-import { ListGroup } from "heroui-native/list-group";
+import { Menu, type MenuTriggerRef } from "heroui-native/menu";
+import { PressableFeedback } from "heroui-native/pressable-feedback";
 import { Separator } from "heroui-native/separator";
 import { Typography } from "heroui-native/text";
-import { Fragment, useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { ScrollView, View } from "react-native";
 
-import type {
-  StoryPlay,
-  StoryPlayEpisode,
-  StoryPlays,
-} from "@/features/story/api/story";
+import type { StoryPlay, StoryPlays } from "@/features/story/api/story";
 import { StoryCover } from "@/features/story/ui/story-cover";
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { formatStoryPlayStart } from "@/features/story/ui/story-play-time";
 import { StoryProgress } from "@/features/story/ui/story-progress";
-import { Button } from "@/shared/ui/button";
-import { ExpandableCard } from "@/shared/ui/expandable-card";
-import { PressableListRow, StaticListRow } from "@/shared/ui/list-row";
+import { DelayedLoading } from "@/shared/ui/delayed-loading";
+import { IconButton } from "@/shared/ui/icon-button";
+import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { ScreenEmpty, ScreenUnavailable } from "@/shared/ui/screen-status";
 import { useScreenContentHeight } from "@/shared/ui/use-screen-content-height";
 
-/** 펼친 카드 안의 끝낸 화 한 줄. */
-function StoryPlayEpisodeRow({
-  episode,
-  onOpenEpisode,
-  storyPlayId,
-}: {
-  episode: StoryPlayEpisode;
-  onOpenEpisode: (storyPlayId: string, episodeId: string) => void;
-  storyPlayId: string;
-}) {
-  const open = useCallback(() => {
-    onOpenEpisode(storyPlayId, episode.episodeId);
-  }, [episode.episodeId, onOpenEpisode, storyPlayId]);
-  const body = (
-    <>
-      {/* 최소 폭만 둔다. 고정 폭이면 큰 글자에서 `5화`가 두 줄로 갈라진다. */}
-      <ListGroup.ItemPrefix>
-        <Typography.Paragraph
-          className="min-w-9"
-          color="muted"
-          type="body-sm"
-          weight="semibold"
-        >
-          {storyLabels.episodeNumber(episode.number)}
-        </Typography.Paragraph>
-      </ListGroup.ItemPrefix>
-      <ListGroup.ItemContent>
-        <ListGroup.ItemTitle>{episode.title}</ListGroup.ItemTitle>
-        <ListGroup.ItemDescription>{episode.outcome}</ListGroup.ItemDescription>
-      </ListGroup.ItemContent>
-    </>
-  );
-
-  // 결말만 남고 대화가 없는 화는 열어도 볼 것이 없다. 결과 한 줄은 남기고 여는
-  // 것만 막는다.
-  if (!episode.hasTranscript) {
-    return <StaticListRow>{body}</StaticListRow>;
-  }
-
-  return (
-    <PressableListRow
-      accessibilityLabel={storyLabels.reviewEpisode(
-        episode.number,
-        episode.title,
-        episode.outcome
-      )}
-      onPress={open}
-      testID={`story-play-episode-${episode.number}`}
-    >
-      {body}
-      <ListGroup.ItemSuffix />
-    </PressableListRow>
-  );
-}
-
-/** 카드 제목 줄: 시작한 날짜와 시간, 진행 바, 현재 위치. */
-function StoryPlaySummary({
-  next,
-  progress,
-  startedAt,
-  storyPlay,
-  total,
-}: {
-  next: StoryPlay["next"];
-  progress: string;
-  startedAt: string;
-  storyPlay: StoryPlay;
-  total: number;
-}) {
-  return (
-    <View className="gap-2">
-      <Typography.Heading type="h6">{startedAt}</Typography.Heading>
-      <StoryProgress
-        current={next?.number}
-        finished={storyPlay.finished}
-        total={total}
-      />
-      <Typography.Paragraph color="muted" type="body-sm">
-        {progress}
-      </Typography.Paragraph>
-    </View>
-  );
-}
-
-/**
- * 회차 카드 하나.
- *
- * 제목은 이 회차를 시작한 날짜와 시간이다. 회차 번호를 붙이지 않고, `현재 플레이`
- * 같은 대표 표시도 두지 않는다. 미완료 회차가 여럿이어도 각각 이어갈 수 있으므로
- * 하나를 앞세울 이유가 없다.
- */
 function StoryPlayCard({
-  onOpenEpisode,
-  onResume,
+  isDeleting,
+  onDelete,
+  onOpen,
   storyPlay,
   total,
 }: {
-  onOpenEpisode: (storyPlayId: string, episodeId: string) => void;
-  onResume: (storyPlayId: string, episodeId: string) => void;
+  isDeleting: boolean;
+  onDelete: (storyPlayId: string) => void;
+  onOpen: (storyPlay: StoryPlay) => void;
   storyPlay: StoryPlay;
   total: number;
 }) {
   const startedAt = formatStoryPlayStart(storyPlay.startedAt);
-  const { next, storyPlayId } = storyPlay;
-  const resume = useCallback(() => {
-    if (next) {
-      onResume(storyPlayId, next.episodeId);
-    }
-  }, [next, onResume, storyPlayId]);
-  const progress = storyLabels.runProgress(storyPlay.finished, total, next);
-  const summary = (
-    <StoryPlaySummary
-      next={next}
-      progress={progress}
-      startedAt={startedAt}
-      storyPlay={storyPlay}
-      total={total}
-    />
+  const progress = storyLabels.runProgress(
+    storyPlay.finished,
+    total,
+    storyPlay.next
   );
-  const resumeButton = next ? (
-    <Button
-      accessibilityLabel={storyLabels.resumeRun(startedAt)}
-      onPress={resume}
-      testID={`story-play-resume-${storyPlayId}`}
-      variant="outline"
-    >
-      {storyLabels.resume}
-    </Button>
-  ) : null;
-
-  // 끝낸 화가 없으면 펼칠 것이 없다. 사용자 메시지만 보낸 첫 화의 회차가
-  // 그렇다. 펼치지 않는 카드로 두고 이어서 하기만 붙인다.
-  if (storyPlay.episodes.length === 0) {
-    return (
-      <Card className="gap-3" testID={`story-play-card-${storyPlayId}`}>
-        {summary}
-        {resumeButton}
-      </Card>
-    );
-  }
+  const open = useCallback(() => onOpen(storyPlay), [onOpen, storyPlay]);
+  const remove = useCallback(
+    () => onDelete(storyPlay.storyPlayId),
+    [onDelete, storyPlay.storyPlayId]
+  );
+  const triggerRef = useRef<MenuTriggerRef>(null);
+  const openMenu = useCallback(() => triggerRef.current?.open(), []);
 
   return (
-    <ExpandableCard
-      accessibilityLabel={storyLabels.runCard(startedAt, progress, false)}
-      expandedAccessibilityLabel={storyLabels.runCard(
-        startedAt,
-        progress,
-        true
-      )}
-      footer={
-        resumeButton === null ? null : (
-          <View className="px-5 pb-4">{resumeButton}</View>
-        )
-      }
-      summary={summary}
-      testID={`story-play-card-${storyPlayId}`}
-      triggerTestID={`story-play-toggle-${storyPlayId}`}
+    <Card
+      className="overflow-visible p-0"
+      testID={`story-play-card-${storyPlay.storyPlayId}`}
     >
-      <Separator className="mx-4" />
-      <ListGroup
-        testID={`story-play-episodes-${storyPlayId}`}
-        variant="transparent"
+      <PressableFeedback
+        accessibilityLabel={storyLabels.runCard(startedAt, progress)}
+        accessibilityRole="button"
+        accessibilityState={{ busy: isDeleting, disabled: isDeleting }}
+        className="gap-2 px-4 py-4"
+        isDisabled={isDeleting}
+        onPress={open}
+        testID={`story-play-open-${storyPlay.storyPlayId}`}
       >
-        {storyPlay.episodes.map((episode, index) => (
-          <Fragment key={episode.episodeId}>
-            {index === 0 ? null : <Separator className="mx-4" />}
-            <StoryPlayEpisodeRow
-              episode={episode}
-              onOpenEpisode={onOpenEpisode}
-              storyPlayId={storyPlayId}
+        <Typography.Heading className="pr-10" type="h6">
+          {startedAt}
+        </Typography.Heading>
+        <StoryProgress
+          current={storyPlay.next?.number}
+          finished={storyPlay.finished}
+          total={total}
+        />
+        <Typography.Paragraph color="muted" type="body-sm">
+          {progress}
+        </Typography.Paragraph>
+      </PressableFeedback>
+      <View className="absolute top-1 right-1 z-10">
+        {isDeleting ? (
+          <IconButton
+            accessibilityLabel={storyLabels.runMenu(startedAt)}
+            accessibilityState={{ busy: true }}
+            className="rounded-full"
+            isDisabled
+            size="lg"
+            testID={`story-play-menu-${storyPlay.storyPlayId}`}
+          >
+            <LoadingSpinner
+              sizeRole="control"
+              testID="story-play-delete-progress"
             />
-          </Fragment>
-        ))}
-      </ListGroup>
-    </ExpandableCard>
+          </IconButton>
+        ) : (
+          <Menu>
+            <Menu.Trigger asChild ref={triggerRef}>
+              <View>
+                <IconButton
+                  accessibilityLabel={storyLabels.runMenu(startedAt)}
+                  accessibilityState={{ busy: false }}
+                  className="rounded-full"
+                  onPress={openMenu}
+                  size="lg"
+                  testID={`story-play-menu-${storyPlay.storyPlayId}`}
+                >
+                  <Typography.Paragraph type="body" weight="semibold">
+                    ···
+                  </Typography.Paragraph>
+                </IconButton>
+              </View>
+            </Menu.Trigger>
+            <Menu.Portal>
+              <Menu.Overlay />
+              <Menu.Content
+                align="end"
+                placement="bottom"
+                presentation="popover"
+                width={144}
+              >
+                <Menu.Item onPress={remove}>
+                  <Menu.ItemTitle>{storyLabels.deleteRun}</Menu.ItemTitle>
+                </Menu.Item>
+              </Menu.Content>
+            </Menu.Portal>
+          </Menu>
+        )}
+      </View>
+    </Card>
   );
 }
 
-function StoryHeader({ storyPlays }: { storyPlays: StoryPlays }) {
+type StoryIntro = Pick<
+  StoryPlays,
+  "coverBlurhash" | "coverImagePath" | "intro" | "title"
+>;
+
+function StoryHeader({ storyPlays }: { storyPlays: StoryIntro }) {
   return (
     <View className="flex-row items-center gap-3.5 px-1">
       <StoryCover
@@ -215,29 +145,27 @@ function StoryHeader({ storyPlays }: { storyPlays: StoryPlays }) {
   );
 }
 
-/**
- * 한 스토리의 회차를 모아 보는 자리.
- *
- * 위에 스토리 소개가 있고 아래에 회차 카드가 시작한 순서의 역순으로 선다. 새
- * 대화는 헤더 오른쪽의 텍스트 버튼이 열고, 하단 CTA는 두지 않는다.
- */
 export function StoryRecordsScreen({
+  deletingStoryPlayId,
   isLoading,
   isRetrying,
-  onOpenEpisode,
-  onResume,
+  onDelete,
+  onOpen,
   onRetry,
+  storyIntro,
   storyPlays,
 }: {
+  deletingStoryPlayId?: string;
   isLoading: boolean;
   isRetrying: boolean;
-  onOpenEpisode: (storyPlayId: string, episodeId: string) => void;
-  onResume: (storyPlayId: string, episodeId: string) => void;
+  onDelete: (storyPlayId: string) => void;
+  onOpen: (storyPlay: StoryPlay) => void;
   onRetry: () => void;
+  storyIntro?: StoryIntro;
   storyPlays: StoryPlays | undefined;
 }) {
-  const hasStoryPlays = storyPlays !== undefined && storyPlays.plays.length > 0;
   const contentHeight = useScreenContentHeight();
+  const intro = storyPlays ?? storyIntro;
 
   return (
     <ScrollView
@@ -247,10 +175,10 @@ export function StoryRecordsScreen({
       contentInsetAdjustmentBehavior="automatic"
       testID="story-records-scroll"
     >
-      {storyPlays ? (
+      {intro ? (
         <>
           <View className="pb-6">
-            <StoryHeader storyPlays={storyPlays} />
+            <StoryHeader storyPlays={intro} />
           </View>
           <Separator testID="story-records-divider" />
           <View className="grow pt-6">
@@ -263,28 +191,44 @@ export function StoryRecordsScreen({
             >
               {storyLabels.recentHeading}
             </Typography.Paragraph>
-            {hasStoryPlays ? (
+            {storyPlays && storyPlays.plays.length > 0 ? (
               <View className="gap-4">
                 {storyPlays.plays.map((storyPlay) => (
                   <StoryPlayCard
+                    isDeleting={deletingStoryPlayId === storyPlay.storyPlayId}
                     key={storyPlay.storyPlayId}
-                    onOpenEpisode={onOpenEpisode}
-                    onResume={onResume}
+                    onDelete={onDelete}
+                    onOpen={onOpen}
                     storyPlay={storyPlay}
                     total={storyPlays.total}
                   />
                 ))}
               </View>
-            ) : (
+            ) : null}
+            {storyPlays && storyPlays.plays.length === 0 ? (
               <ScreenEmpty
                 testID="story-records-empty"
                 title={storyLabels.recordsEmptyTitle}
+              />
+            ) : null}
+            {!storyPlays && isLoading ? (
+              <DelayedLoading testID="story-records-loading" />
+            ) : null}
+            {storyPlays || isLoading ? null : (
+              <ScreenUnavailable
+                isRetrying={isRetrying}
+                onRetry={onRetry}
+                testID="story-records-unavailable"
+                title={storyLabels.unavailable}
               />
             )}
           </View>
         </>
       ) : null}
-      {storyPlays || isLoading ? null : (
+      {!intro && isLoading ? (
+        <DelayedLoading testID="story-records-loading" />
+      ) : null}
+      {intro || isLoading ? null : (
         <ScreenUnavailable
           isRetrying={isRetrying}
           onRetry={onRetry}

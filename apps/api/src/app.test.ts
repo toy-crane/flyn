@@ -263,6 +263,7 @@ interface StoryPlayRow {
 interface SeasonState {
   /** 교정을 남기는 문장만 실패시킨다. 장면 저장은 그대로 성공한다. */
   correctionSaveError?: string;
+  deleteError?: string;
   expressionResults: Record<string, unknown>[];
   finished: FinishedRow[];
   /** `set_story_cover`가 받은 표지 요청. */
@@ -649,9 +650,26 @@ function signedInWith(
 
               done = true;
 
+              if (table === "story_plays" && state.deleteError) {
+                return { error: { message: state.deleteError } };
+              }
+
               const doomed = new Set(rows().map((row) => String(row.id)));
 
-              if (table === "expressions") {
+              if (table === "story_plays") {
+                const doomedPlays = new Set(
+                  playRows()
+                    .filter((play) => doomed.has(String(play.story_play_id)))
+                    .map((play) => String(play.id))
+                );
+                state.runs = state.runs.filter((run) => !doomed.has(run.id));
+                state.messages = state.messages.filter(
+                  (message) => !doomedPlays.has(message.episode_play_id)
+                );
+                if (doomed.has(STORY_PLAY_ID)) {
+                  state.finished = [];
+                }
+              } else if (table === "expressions") {
                 for (let i = meaningRows.length - 1; i >= 0; i -= 1) {
                   if (doomed.has(String(meaningRows[i]?.id))) {
                     meaningRows.splice(i, 1);
@@ -666,25 +684,30 @@ function signedInWith(
               return { error: null };
             }
 
-            const removal: object = Object.assign(
-              Promise.resolve().then(() => remove()),
-              {
-                eq: (column: string, wanted: unknown) => {
-                  equals.set(column, wanted);
+            const removalPromise = Promise.resolve().then(() => remove());
+            const removal: object = Object.assign(removalPromise, {
+              eq: (column: string, wanted: unknown) => {
+                equals.set(column, wanted);
 
-                  return removal;
-                },
-                gt: (column: string, wanted: string) => {
-                  after = { column, value: wanted };
+                return removal;
+              },
+              gt: (column: string, wanted: string) => {
+                after = { column, value: wanted };
 
-                  return Promise.resolve(remove());
-                },
-                is: (column: string, wanted: unknown) => {
-                  equals.set(column, wanted);
-                  return removal;
-                },
-              }
-            );
+                return Promise.resolve(remove());
+              },
+              is: (column: string, wanted: unknown) => {
+                equals.set(column, wanted);
+                return removal;
+              },
+              throwOnError: () =>
+                removalPromise.then((result) => {
+                  if (result.error) {
+                    throw new Error(result.error.message);
+                  }
+                  return result;
+                }),
+            });
 
             return removal;
           },
@@ -3621,7 +3644,12 @@ interface StoryPlaysViewBody {
       title: string;
     }[];
     finished: number;
-    next: { episodeId: string; number: number; title: string } | null;
+    next: {
+      episodeId: string;
+      hasTranscript: boolean;
+      number: number;
+      title: string;
+    } | null;
     storyPlayId: string;
     startedAt: string;
   }[];
@@ -3832,8 +3860,67 @@ describe("GET /ai/episode/stories/:storyId/plays", () => {
     expect(view.plays[0]).toMatchObject({
       episodes: [],
       finished: 0,
-      next: { number: 1 },
+      next: { hasTranscript: true, number: 1 },
     });
+  });
+
+  test("marks an untouched current episode as startable", async () => {
+    const app = createApp({
+      authMiddleware: signedInWith(createSeasonState()),
+    });
+    const response = await app.request(
+      `${EPISODE_PATH}/stories/${STORY_ID}/plays`
+    );
+    const view = (await response.json()) as StoryPlaysViewBody;
+
+    expect(view.plays[0]?.next).toMatchObject({
+      hasTranscript: false,
+      number: 1,
+    });
+  });
+});
+
+describe("DELETE /ai/episode/stories/:storyId/plays/:storyPlayId", () => {
+  const path = `${EPISODE_PATH}/stories/${STORY_ID}/plays/${STORY_PLAY_ID}`;
+
+  test("removes just the selected run and its messages, and repeating is safe", async () => {
+    const state = createSeasonState(finishedSeason());
+    const otherId = "1a000000-0000-4000-8000-000000000002";
+    state.runs.push({
+      id: otherId,
+      last_user_message_at: "2026-08-30T00:05:00.000Z",
+      started_at: "2026-08-30T00:00:00.000Z",
+      story_id: STORY_ID,
+    });
+    state.messages.push({
+      created_at: "2026-08-29T00:05:00.000Z",
+      episode_play_id: playIdOf(episodeId(1)),
+      id: "delete-me",
+      parts: [{ text: "Hello", type: "text" }],
+      role: "user",
+    });
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    expect((await app.request(path, { method: "DELETE" })).status).toBe(204);
+    expect(state.runs.map((run) => run.id)).toEqual([otherId]);
+    expect(state.messages).toEqual([]);
+    expect(state.finished).toEqual([]);
+    expect((await app.request(path, { method: "DELETE" })).status).toBe(204);
+    expect(state.runs.map((run) => run.id)).toEqual([otherId]);
+  });
+
+  test("does not remove a run after a database failure", async () => {
+    const state = createSeasonState();
+    state.deleteError = "connection refused";
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    expect((await app.request(path, { method: "DELETE" })).status).toBe(500);
+    expect(state.runs).toHaveLength(1);
+  });
+
+  test("rejects a request without a user", async () => {
+    const app = createApp({ authMiddleware: createUserAuthMiddleware() });
+    expect((await app.request(path, { method: "DELETE" })).status).toBe(401);
   });
 });
 
