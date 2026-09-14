@@ -25,7 +25,19 @@ const failureLabels: Record<string, string> = {
   verify_submitted: "설치 가능 확인 실패",
 };
 
-const failureOrder = Object.keys(failureLabels);
+const failureOrder = [
+  "identity",
+  "fingerprint",
+  "get_build",
+  "check_existing",
+  "build_ios",
+  "submit_ios",
+  "verify_new",
+  "submit_existing",
+  "verify_submitted",
+  "update_ios",
+  "update_submitted",
+];
 const EXPO_URL = /^https:\/\/expo\.dev\//;
 
 function job(input: ReleaseNotificationInput, key: string) {

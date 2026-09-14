@@ -98,3 +98,16 @@ test("준비와 배포 단계의 실패는 해당 단계를 가리킨다", () =>
     expect(message).not.toContain("TestFlight 설치 가능");
   }
 });
+
+test("준비와 빌드가 함께 실패하면 먼저 막힌 준비 단계를 알린다", () => {
+  const message = renderReleaseNotification({
+    ...base,
+    jobs: {
+      build_ios: { status: "failure" },
+      fingerprint: { status: "failure" },
+      get_build: { status: "failure" },
+    },
+  });
+  expect(message).toContain("빌드 호환성 확인 실패");
+  expect(message).not.toContain("빌드 실패");
+});
