@@ -187,9 +187,10 @@
   .loader { width: 25px; height: 25px; border: 3px solid color-mix(in srgb, var(--foreground) 16%, transparent); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .retry { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); font: 600 15px/22px var(--font); border: 0; background: transparent; padding: 8px 12px; cursor: pointer; }
+  .retry::before { content: ''; width: 14px; height: 14px; border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent); border-top-color: var(--accent); border-radius: 50%; visibility: hidden; }
   .retry:disabled { cursor: default; }
-  .retry:disabled::before { content: ''; width: 14px; height: 14px; border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
-  .review-footer { position: sticky; bottom: 0; z-index: 2; margin-top: auto; display: grid; gap: 12px; padding: 12px 24px max(12px, env(safe-area-inset-bottom)); background: var(--background); }
+  .retry:disabled::before { visibility: visible; animation: spin 1s linear infinite; }
+  .review-footer { position: sticky; bottom: 0; z-index: 2; margin-top: auto; display: grid; gap: 12px; padding: 12px 24px max(12px, env(safe-area-inset-bottom)); }
   .review-footer > div { display: grid; gap: 12px; }
   .teaser { display: grid; gap: 4px; background: var(--surface); border-radius: 18px; padding: 16px; }
   .teaser-label { margin: 0; color: var(--muted); font-size: 12px; line-height: 18px; }
@@ -463,14 +464,12 @@
     if (retry && !retry.disabled) {
       retry.disabled = true;
       retry.setAttribute('aria-busy', 'true');
-      retry.textContent = '다시 불러오는 중';
       await new Promise(resolve => setTimeout(resolve, 900));
       if (prototypeShell.getScreen() === 'review' && prototypeShell.getState() === '불러오기 실패') {
         prototypeShell.setState('Default');
       }
       retry.disabled = false;
       retry.removeAttribute('aria-busy');
-      retry.textContent = '다시 시도하기';
     }
   });
   const initialState = new URLSearchParams(location.search).get('state');
