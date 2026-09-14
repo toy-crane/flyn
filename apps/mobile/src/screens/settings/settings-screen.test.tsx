@@ -8,7 +8,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react-native";
-import Constants from "expo-constants";
+import { setStringAsync } from "expo-clipboard";
 import { openURL } from "expo-linking";
 import type { PropsWithChildren } from "react";
 import { AccessibilityInfo, Alert, Platform } from "react-native";
@@ -30,7 +30,39 @@ const BACKGROUND = "#f4f4f6";
 const DANGER = "#dc2626";
 const MUTED = "#6b7280";
 const SURFACE = "#ffffff";
-const APP_VERSION = Constants.expoConfig?.version ?? "Unknown";
+let mockNativeApplicationVersion: string | null = "2.4.0";
+let mockUpdateId: string | null = null;
+let mockIsEmbeddedLaunch = false;
+let mockUpdatesEnabled = false;
+
+jest.mock("expo-application", () => ({
+  get nativeApplicationVersion() {
+    return mockNativeApplicationVersion;
+  },
+}));
+
+jest.mock("expo-updates", () => ({
+  get isEmbeddedLaunch() {
+    return mockIsEmbeddedLaunch;
+  },
+  get isEnabled() {
+    return mockUpdatesEnabled;
+  },
+  get updateId() {
+    return mockUpdateId;
+  },
+}));
+
+jest.mock("expo-clipboard", () => ({
+  setStringAsync: jest.fn(() => Promise.resolve(true)),
+}));
+
+jest.mock("@env", () => ({
+  getMobileEnv: () => ({
+    EXPO_PUBLIC_SUPPORT_EMAIL: "support@example.com",
+    EXPO_PUBLIC_WEB_URL: "https://example.com",
+  }),
+}));
 
 jest.mock("expo-linking", () => ({
   openURL: jest.fn(() => Promise.resolve(true)),
@@ -143,6 +175,17 @@ const mockUseAuthSession = jest.mocked(useAuthSession);
 const mockOpenURL = jest.mocked(openURL);
 
 beforeEach(() => {
+  Object.defineProperty(globalThis, "__DEV__", {
+    configurable: true,
+    value: true,
+    writable: true,
+  });
+  mockNativeApplicationVersion = "2.4.0";
+  mockUpdateId = null;
+  mockIsEmbeddedLaunch = false;
+  mockUpdatesEnabled = false;
+  jest.mocked(setStringAsync).mockReset();
+  jest.mocked(setStringAsync).mockResolvedValue(true);
   mockOpenURL.mockReset();
   mockOpenURL.mockResolvedValue(true);
   resetFakeSupabase({ session: createFakeSession() });
@@ -478,13 +521,120 @@ test("iOS 설정 텍스트는 네이티브 기본 색상을 그대로 쓴다", a
   expect(view.getByText("버전").props.style).toBeUndefined();
 });
 
-test("버전 행은 값만 보여 주고 누를 수 없다", async () => {
+test("개발 중에는 기기에 설치된 앱 버전과 개발 중을 한 행에 보여 준다", async () => {
   await renderSettings();
 
   const versionRow = screen.getByTestId("version-row");
 
-  expect(within(versionRow).getByText(APP_VERSION)).toBeOnTheScreen();
+  expect(within(versionRow).getByText("2.4.0 · 개발 중")).toBeOnTheScreen();
   expect(versionRow.props.accessibilityRole).toBeUndefined();
+});
+
+test("실행 중인 업데이트의 짧은 ID를 보여 주고 전체 ID를 복사한다", async () => {
+  Object.defineProperty(globalThis, "__DEV__", { value: false });
+  mockUpdatesEnabled = true;
+  mockUpdateId = "8b4c3f17-26a1-4d78-94c2-72a9dc771a42";
+  const user = userEvent.setup();
+
+  await renderSettings();
+
+  const versionRow = screen.getByTestId("version-row");
+  expect(within(versionRow).getByText("2.4.0 · 8b4c3f17")).toBeOnTheScreen();
+
+  await user.press(versionRow);
+
+  expect(setStringAsync).toHaveBeenCalledWith(mockUpdateId);
+  expect(screen.getByText("업데이트 정보를 복사했어요")).toBeOnTheScreen();
+});
+
+test("빌드에 포함된 코드를 실행하면 기본 버전만 알리고 복사하지 않는다", async () => {
+  Object.defineProperty(globalThis, "__DEV__", { value: false });
+  mockUpdatesEnabled = true;
+  mockIsEmbeddedLaunch = true;
+  mockUpdateId = "8b4c3f17-26a1-4d78-94c2-72a9dc771a42";
+
+  await renderSettings();
+
+  const versionRow = screen.getByTestId("version-row");
+  expect(within(versionRow).getByText("2.4.0 · 기본 버전")).toBeOnTheScreen();
+  expect(versionRow.props.accessibilityRole).toBeUndefined();
+  expect(setStringAsync).not.toHaveBeenCalled();
+});
+
+test("업데이트 ID를 읽지 못하면 잘못된 값을 보여 주지 않는다", async () => {
+  Object.defineProperty(globalThis, "__DEV__", { value: false });
+  mockUpdatesEnabled = true;
+  mockUpdateId = "잘못된 ID";
+
+  await renderSettings();
+  expect(
+    within(screen.getByTestId("version-row")).getByText("2.4.0 · 정보 없음")
+  ).toBeOnTheScreen();
+});
+
+test("업데이트 기능이 꺼져 있으면 기본 버전으로 추측하지 않는다", async () => {
+  Object.defineProperty(globalThis, "__DEV__", { value: false });
+  mockIsEmbeddedLaunch = true;
+
+  await renderSettings();
+  const versionRow = screen.getByTestId("version-row");
+  expect(within(versionRow).getByText("2.4.0 · 정보 없음")).toBeOnTheScreen();
+  expect(setStringAsync).not.toHaveBeenCalled();
+});
+
+test("설치된 앱 버전을 읽지 못하면 버전 정보 없음을 보여 준다", async () => {
+  Object.defineProperty(globalThis, "__DEV__", { value: false });
+  mockNativeApplicationVersion = null;
+  mockUpdatesEnabled = true;
+  mockUpdateId = "8b4c3f17-26a1-4d78-94c2-72a9dc771a42";
+  await renderSettings();
+  const versionRow = screen.getByTestId("version-row");
+  expect(within(versionRow).getByText("버전 정보 없음")).toBeOnTheScreen();
+  expect(versionRow.props.accessibilityRole).toBeUndefined();
+  expect(setStringAsync).not.toHaveBeenCalled();
+});
+
+test("다른 업데이트를 실행하면 해당 ID가 화면과 복사 결과에 쓰인다", async () => {
+  Object.defineProperty(globalThis, "__DEV__", { value: false });
+  mockUpdatesEnabled = true;
+  mockUpdateId = "c72a49e0-8b11-489c-8f36-a9bf9422c303";
+  const user = userEvent.setup();
+
+  await renderSettings();
+  const versionRow = screen.getByTestId("version-row");
+  expect(within(versionRow).getByText("2.4.0 · c72a49e0")).toBeOnTheScreen();
+  await user.press(versionRow);
+  expect(setStringAsync).toHaveBeenLastCalledWith(mockUpdateId);
+});
+
+test("Android에서도 같은 버전 값과 복사 동작을 제공한다", async () => {
+  Object.defineProperty(globalThis, "__DEV__", { value: false });
+  mockUpdatesEnabled = true;
+  mockUpdateId = "8b4c3f17-26a1-4d78-94c2-72a9dc771a42";
+  const platform = jest.replaceProperty(Platform, "OS", "android");
+
+  try {
+    await renderSettings();
+    const versionRow = screen.getByTestId("version-row");
+    expect(within(versionRow).getByText("2.4.0 · 8b4c3f17")).toBeOnTheScreen();
+    fireEvent.press(versionRow);
+    expect(setStringAsync).toHaveBeenCalledWith(mockUpdateId);
+  } finally {
+    platform.restore();
+  }
+});
+
+test("클립보드가 복사를 거절하면 성공했다고 말하지 않는다", async () => {
+  Object.defineProperty(globalThis, "__DEV__", { value: false });
+  mockUpdatesEnabled = true;
+  mockUpdateId = "8b4c3f17-26a1-4d78-94c2-72a9dc771a42";
+  jest.mocked(setStringAsync).mockResolvedValue(false);
+
+  await renderSettings();
+  fireEvent.press(screen.getByTestId("version-row"));
+
+  expect(await screen.findByText("복사하지 못했어요")).toBeOnTheScreen();
+  expect(screen.queryByText("업데이트 정보를 복사했어요")).toBeNull();
 });
 
 test("Android 설정은 헤더 높이만큼 여백을 더하지 않는다", async () => {

@@ -23,8 +23,10 @@ export const profileLabels = {
   contactEmailUnknown: "이메일 정보 없음",
   contactSupport: "문의하기",
   deletePhoto: "현재 사진 삭제",
+  developmentVersion: "개발 중",
   /** The pill under the picture. Its accessible name stays the fuller 사진 편집. */
   edit: "편집",
+  embeddedVersion: "기본 버전",
   /** Said when the device has no mail app to hand the address to. */
   mailAppUnavailable: "메일 앱을 열지 못했습니다",
   nickname: "닉네임",
@@ -52,8 +54,12 @@ export const profileLabels = {
     with a different title reads as two settings.
   */
   themeMode: "화면 모드",
+  updateCopied: "업데이트 정보를 복사했어요",
+  updateCopyFailed: "복사하지 못했어요",
+  updateUnknown: "정보 없음",
   username: "아이디",
   version: "버전",
+  versionUnknown: "버전 정보 없음",
 } as const;
 
 /**
