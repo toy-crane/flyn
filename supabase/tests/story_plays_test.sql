@@ -5,7 +5,7 @@
 -- 메시지가 앉을 때 트리거가 밀고, 클라이언트는 그 열에 닿지 못한다. 기록을 열어
 -- 보는 것만으로 스토리 탭의 순서가 바뀌지 않는다는 약속이 그 좁은 길에서 나온다.
 BEGIN;
-SELECT plan(22);
+SELECT plan(29);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -31,8 +31,8 @@ SELECT ok(
 
 SELECT policies_are(
   'public', 'story_plays',
-  ARRAY['story_plays_select_own', 'story_plays_start_own'],
-  'a person may read their own runs and start one, and nothing else'
+  ARRAY['story_plays_select_own', 'story_plays_start_own', 'story_plays_delete_own'],
+  'a person may read, start, and delete only their own runs'
 );
 
 SELECT ok(
@@ -45,15 +45,25 @@ SELECT ok(
 
 SELECT ok(
   (SELECT has_table_privilege('authenticated', 'public.story_plays', 'SELECT'))
+  AND (SELECT has_table_privilege('authenticated', 'public.story_plays', 'DELETE'))
   AND NOT (
     SELECT bool_or(has_table_privilege('authenticated', 'public.story_plays', p))
-    FROM unnest(ARRAY['UPDATE', 'DELETE']) AS p
+    FROM unnest(ARRAY['UPDATE']) AS p
   ),
-  'authenticated may read runs and neither rewrite nor remove one'
+  'authenticated may read and delete runs but not rewrite one'
 );
 
--- 회차 삭제와 이름 변경은 제품에서 제외한 기능이다. UPDATE 권한이 없으므로
+-- 회차 이름 변경은 제품에서 제외한 기능이다. UPDATE 권한이 없으므로
 -- `last_user_message_at`을 클라이언트가 고쳐 순서를 앞당길 길도 함께 닫힌다.
+SELECT ok(
+  has_table_privilege('authenticated', 'public.learning_events', 'SELECT')
+  AND NOT (
+    SELECT bool_or(has_table_privilege('authenticated', 'public.learning_events', p))
+    FROM unnest(ARRAY['INSERT', 'UPDATE', 'DELETE']) AS p
+  ),
+  'a person may read study facts but cannot rewrite or delete them'
+);
+
 SELECT ok(
   NOT (SELECT has_table_privilege('authenticated', 'public.story_plays', 'INSERT'))
   AND (
@@ -198,6 +208,63 @@ SET LOCAL request.jwt.claims TO '{"sub":"22222222-2222-4222-8222-222222222222","
 SELECT is(
   (SELECT count(*) FROM public.story_plays), 0::bigint,
   'another account sees none of those runs'
+);
+
+SELECT is(
+  (SELECT count(*) FROM public.learning_events), 0::bigint,
+  'another account cannot read the English message fact'
+);
+
+WITH removed AS (
+  DELETE FROM public.story_plays
+  WHERE user_id = '11111111-1111-4111-8111-111111111111'
+  RETURNING id
+)
+SELECT is(
+  (SELECT count(*) FROM removed),
+  0::bigint,
+  'another account cannot delete either run'
+);
+
+SET LOCAL request.jwt.claims TO '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}';
+
+SELECT is(
+  (SELECT count(*) FROM public.story_plays), 2::bigint,
+  'both runs still exist after the other account tried to delete them'
+);
+
+WITH removed AS (
+  DELETE FROM public.story_plays
+  WHERE id IN (
+    SELECT story_play_id FROM public.episode_plays
+    WHERE id = '1c000000-0000-4000-8000-000000000001'
+  )
+  RETURNING id
+)
+SELECT is(
+  (SELECT count(*) FROM removed),
+  1::bigint,
+  'the owner may delete the run they spoke in'
+);
+
+SELECT results_eq(
+  $$SELECT
+      (SELECT count(*) FROM public.story_plays),
+      (SELECT count(*) FROM public.episode_plays),
+      (SELECT count(*) FROM public.episode_messages),
+      (SELECT count(*) FROM public.learning_events)$$,
+  'VALUES (1::bigint, 0::bigint, 0::bigint, 1::bigint)',
+  'only the chosen run and its conversation disappear; the other run and study fact remain'
+);
+
+WITH removed AS (
+  DELETE FROM public.story_plays WHERE last_user_message_at IS NOT NULL
+  RETURNING id
+)
+SELECT is(
+  (SELECT count(*) FROM removed),
+  0::bigint,
+  'repeating deletion does not remove another run'
 );
 
 SELECT * FROM finish();
