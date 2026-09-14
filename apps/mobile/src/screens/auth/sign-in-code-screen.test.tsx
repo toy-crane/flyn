@@ -105,6 +105,13 @@ test("코드가 맞지 않으면 다시 입력하라고 알린다", async () => 
   expect(await screen.findByTestId("sign-in-error-code")).toHaveTextContent(
     "코드를 다시 입력해 주세요"
   );
+  expect(screen.getByRole("alert")).toBe(
+    screen.getByTestId("sign-in-error-code")
+  );
+  // 칸의 빨간 표시는 앱이 그린 테두리가 아니라 HeroUI의 무효 상태다.
+  const tree = JSON.stringify(screen.toJSON());
+  expect(tree).toContain("input-otp__slot--is-invalid");
+  expect(tree).not.toContain("border-danger");
 });
 
 test("코드가 맞지 않으면 칸을 비워 바로 다시 넣게 한다", async () => {

@@ -1,3 +1,6 @@
+import { FieldError } from "heroui-native/field-error";
+import { Separator } from "heroui-native/separator";
+import { Typography } from "heroui-native/text";
 import type { ReactNode } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
@@ -94,6 +97,10 @@ export function AuthSubtitle({ children }: { children: ReactNode }) {
   return <Text className="text-base text-muted leading-6">{children}</Text>;
 }
 
+/**
+ * An error on a screen with no input to attach it to: the sign-in method
+ * screen. It takes the error role from the typography table.
+ */
 export function AuthError({
   children,
   testID,
@@ -102,13 +109,40 @@ export function AuthError({
   testID: string;
 }) {
   return (
-    <Text
+    <Typography.Paragraph
       accessibilityRole="alert"
-      className="font-medium text-danger text-sm"
+      className="text-danger"
       testID={testID}
+      type="body-sm"
     >
       {children}
-    </Text>
+    </Typography.Paragraph>
+  );
+}
+
+/**
+ * The error under an input, drawn by HeroUI's `FieldError`.
+ *
+ * Inside a `TextField` it follows the field's invalid state; the code screen
+ * has no `TextField` and passes `isInvalid` itself. `FieldError` gives the text
+ * no role, so the alert role a screen reader announces is added here.
+ */
+export function AuthFieldError({
+  children,
+  isInvalid,
+  testID,
+}: {
+  children?: string;
+  isInvalid?: boolean;
+  testID: string;
+}) {
+  return (
+    <FieldError
+      isInvalid={isInvalid}
+      textProps={{ accessibilityRole: "alert", testID }}
+    >
+      {children}
+    </FieldError>
   );
 }
 
@@ -122,9 +156,9 @@ export function AuthError({
 export function AuthDivider() {
   return (
     <View className="flex-row items-center gap-3 py-1">
-      <View className="h-px flex-1 bg-border" />
+      <Separator className="flex-1" />
       <Text className="text-muted text-sm">또는</Text>
-      <View className="h-px flex-1 bg-border" />
+      <Separator className="flex-1" />
     </View>
   );
 }

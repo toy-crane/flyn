@@ -27,6 +27,12 @@
   --color-cast-4: var(--cast-4);
 }
 
+/*
+  `overlay`(메뉴, 다이얼로그, 시트 배경)와 `field-background`(입력 배경)는
+  HeroUI가 `surface`와 같은 리터럴로 둔 역할이다. 앱이 `surface`를 바꿨으므로
+  두 역할도 같은 값으로 함께 등재한다. 빠뜨리면 다크 모드에서 메뉴와 입력 칸만
+  HeroUI의 원래 표면색으로 남아 카드와 색이 갈린다.
+*/
 @layer theme {
   :root {
     @variant light {
@@ -34,6 +40,8 @@
       --foreground: #111114;
       --surface: #ffffff;
       --surface-foreground: var(--foreground);
+      --overlay: #ffffff;
+      --field-background: #ffffff;
       --expression: #0f766e;
       --expression-surface: #e5f3ef;
       --learn: oklch(0.54 0.19 300);
@@ -53,6 +61,8 @@
       --foreground: #ffffff;
       --surface: #1a1a1e;
       --surface-foreground: var(--foreground);
+      --overlay: #1a1a1e;
+      --field-background: #1a1a1e;
       --expression: #76d6c9;
       --expression-surface: #152f2c;
       --learn: oklch(0.78 0.15 300);
@@ -65,4 +75,30 @@
       --cast-4: #ee93b1;
     }
   }
+}
+
+/*
+  HeroUI 컴포넌트 재정의는 모바일 컴포넌트 선택 계약이 적은 것만 여기에 둔다.
+
+  버튼: HeroUI는 크기마다 높이를 고정한다. 큰 시스템 글자 크기에서 라벨이
+  고정 높이를 넘으면 잘리므로, 높이를 최소 높이로 바꾸고 같은 기본 높이가 나오는
+  위아래 여백을 준다. 기본 글자에서는 라벨 줄 높이와 여백의 합이 HeroUI의 원래
+  높이(sm 40, md 48, lg 56)와 같다.
+*/
+.button__root--size-sm {
+  height: auto;
+  min-height: calc(var(--spacing) * 10);
+  padding-block: calc(var(--spacing) * 2.5);
+}
+
+.button__root--size-md {
+  height: auto;
+  min-height: calc(var(--spacing) * 12);
+  padding-block: calc(var(--spacing) * 3);
+}
+
+.button__root--size-lg {
+  height: auto;
+  min-height: calc(var(--spacing) * 14);
+  padding-block: calc(var(--spacing) * 3.5);
 }

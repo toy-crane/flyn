@@ -88,6 +88,10 @@ test("형식이 잘못되면 보내지 않고 입력 옆에 알린다", async ()
   await press("인증 코드 받기");
 
   expect(await screen.findByTestId("sign-in-error-email")).toBeOnTheScreen();
+  // `FieldError`는 알림 역할을 붙이지 않으므로 화면이 넘긴 역할로 읽힌다.
+  expect(screen.getByRole("alert")).toBe(
+    screen.getByTestId("sign-in-error-email")
+  );
   expect(fake.auth.signInWithOtp).not.toHaveBeenCalled();
   expect(onSent).not.toHaveBeenCalled();
 });

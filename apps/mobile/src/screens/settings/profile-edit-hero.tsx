@@ -1,6 +1,7 @@
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { profileLabels } from "@/features/auth/ui/profile-labels";
+import { Button } from "@/shared/ui/button";
 import { UserAvatar } from "@/shared/ui/user-avatar";
 
 export interface ProfileEditHeroProps {
@@ -40,17 +41,15 @@ export function ProfileEditHero({
         On screen the picture above it supplies the subject; a screen reader
         arrives at the control alone and needs to hear what it edits.
       */}
-      <Pressable
+      <Button
         accessibilityLabel={profileLabels.changePhoto}
-        accessibilityRole="button"
-        className="rounded-full bg-surface px-4 py-1.5"
         onPress={onEditPhoto}
+        size="sm"
         testID="profile-edit-photo-label"
+        variant="tertiary"
       >
-        <Text className="font-semibold text-base text-foreground">
-          {profileLabels.edit}
-        </Text>
-      </Pressable>
+        {profileLabels.edit}
+      </Button>
     </View>
   );
 }

@@ -24,6 +24,9 @@ import type { ChatSession } from "@/features/chat/state/use-conversation";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { ChatPanel, chatLabels } from "./chat-panel";
 
+/** 앱이 스스로 그리던 비활성 투명도 클래스. HeroUI의 표현으로 바뀌었다. */
+const OWN_OPACITY = /opacity-\d/;
+
 const mockScrollToEnd = jest.fn<
   (options?: { animated?: boolean }) => Promise<void>
 >(() => Promise.resolve());
@@ -46,6 +49,13 @@ test("서버 작업 중에는 대화 대기 표시 없이 전송만 막는다", 
     />
   );
   expect(screen.getByTestId("chat-send")).toBeDisabled();
+  // 자체 투명도가 아니라 HeroUI의 비활성 표현이다.
+  expect(screen.getByTestId("chat-send").props.className).toContain(
+    "element-disabled"
+  );
+  expect(screen.getByTestId("chat-send").props.className).not.toMatch(
+    OWN_OPACITY
+  );
   await userEvent.setup().press(screen.getByTestId("chat-send"));
   expect(send).not.toHaveBeenCalled();
 });
@@ -1823,8 +1833,14 @@ describe("ChatPanel", () => {
       />
     );
 
-    const retryButton = screen.getByLabelText(chatLabels.retry);
+    const retryButton = screen.getByRole("button", { name: chatLabels.retry });
 
+    // 누르는 작은 알약은 HeroUI `Button`의 작은 외곽선 변형이다.
+    expect(retryButton.props.className).toContain("button__root--size-sm");
+    expect(retryButton.props.className).toContain(
+      "button__root--variant-outline"
+    );
+    expect(retryButton.props.className).not.toMatch(OWN_OPACITY);
     expect(retryButton).toBeDisabled();
     await user.press(retryButton);
     expect(retry).not.toHaveBeenCalled();
@@ -1861,6 +1877,11 @@ describe("ChatPanel", () => {
     expect(
       rows.map((row) => StyleSheet.flatten(row.props.style).opacity)
     ).toEqual([1, 1, 0.38, 0.38]);
+
+    // 공용 아이콘 버튼의 28pt 원이다.
+    expect(
+      screen.getByRole("button", { name: chatLabels.endEdit }).props.className
+    ).toContain("size-7");
 
     await user.press(screen.getByLabelText(chatLabels.endEdit));
 

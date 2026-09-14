@@ -19,8 +19,11 @@ import { signInLabels } from "@/features/auth/ui/sign-in-labels";
  */
 export function SignInMethodScreen({
   onChooseEmail,
+  scheme,
 }: {
   onChooseEmail: () => void;
+  /** The mode the app is drawing, which the provider buttons follow. */
+  scheme: "dark" | "light";
 }) {
   const provider = useProviderSignIn();
   const appName = Constants.expoConfig?.name ?? "앱";
@@ -35,6 +38,7 @@ export function SignInMethodScreen({
             label={signInLabels.google}
             method="google"
             onPress={provider.startGoogle}
+            scheme={scheme}
             testID="sign-in-google"
           />
 
@@ -45,6 +49,7 @@ export function SignInMethodScreen({
               label={signInLabels.apple}
               method="apple"
               onPress={provider.startApple}
+              scheme={scheme}
               testID="sign-in-apple"
             />
           ) : null}
@@ -56,6 +61,7 @@ export function SignInMethodScreen({
             label={signInLabels.emailMethod}
             method="email"
             onPress={onChooseEmail}
+            scheme={scheme}
             testID="sign-in-email-method"
           />
 

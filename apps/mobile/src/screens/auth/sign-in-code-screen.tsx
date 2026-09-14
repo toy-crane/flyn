@@ -10,7 +10,7 @@ import {
 } from "@/features/auth/state/email-code";
 import { useCodeVerify } from "@/features/auth/state/use-code-verify";
 import {
-  AuthError,
+  AuthFieldError,
   AuthLayout,
   AuthSubtitle,
 } from "@/features/auth/ui/auth-layout";
@@ -38,21 +38,13 @@ function pastedCode(pasted: string): string {
 }
 
 /**
- * `flex-1` on each slot is what makes the six boxes fill the content width.
- * The component's own slot is a fixed 44pt, which left the group short of the
- * screen and reading as accidentally left-aligned.
+ * HeroUI's own slot: its default size, gathered at the start of the line, and
+ * its own invalid outline when the code was wrong.
  */
-function slotRenderer(isInvalid: boolean) {
-  const outline = isInvalid ? "border-2 border-danger" : "";
-
-  return ({ slots }: { slots: { index: number }[] }) =>
-    slots.map((slot) => (
-      <InputOTP.Slot
-        className={`h-14 w-auto flex-1 ${outline}`}
-        index={slot.index}
-        key={slot.index}
-      />
-    ));
+function renderSlots({ slots }: { slots: { index: number }[] }) {
+  return slots.map((slot) => (
+    <InputOTP.Slot index={slot.index} key={slot.index} />
+  ));
 }
 
 function CodeInputTarget({
@@ -83,9 +75,9 @@ function CodeInputTarget({
   const showsProgress = isVerifying && visibleAttempt === attempt;
 
   return (
-    <View className="min-h-14 justify-center">
+    <View className="min-h-12 justify-center">
       {showsProgress ? (
-        <View className="min-h-14 items-center justify-center px-2">
+        <View className="min-h-12 items-center justify-center px-2">
           <StatusLine
             label={signInLabels.verifying}
             loading
@@ -130,6 +122,7 @@ export function SignInCodeScreen({ email }: { email: string }) {
         >
           <InputOTP
             isDisabled={form.isBusy}
+            isInvalid={form.failure !== undefined}
             // Remounting clears the wrong code. The ref focuses the new input.
             key={form.resetCount}
             maxLength={OTP_LENGTH}
@@ -143,17 +136,17 @@ export function SignInCodeScreen({ email }: { email: string }) {
             }}
             value={form.code}
           >
-            <InputOTP.Group className="w-full">
-              {slotRenderer(form.failure !== undefined)}
-            </InputOTP.Group>
+            <InputOTP.Group>{renderSlots}</InputOTP.Group>
           </InputOTP>
         </CodeInputTarget>
 
-        {form.failure ? (
-          <AuthError testID="sign-in-error-code">
-            {form.failure.message}
-          </AuthError>
-        ) : null}
+        {/* No `TextField` here to hold the state, so the error takes it directly. */}
+        <AuthFieldError
+          isInvalid={form.failure !== undefined}
+          testID="sign-in-error-code"
+        >
+          {form.failure?.message}
+        </AuthFieldError>
       </View>
     </AuthLayout>
   );

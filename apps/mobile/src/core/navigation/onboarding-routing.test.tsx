@@ -251,6 +251,9 @@ test("닉네임이 비었거나 30자를 넘으면 다음으로 갈 수 없다",
   expect(screen.getByTestId("onboarding-error-nickname")).toHaveTextContent(
     "30자 이하로 입력해 주세요"
   );
+  expect(screen.getByRole("alert")).toBe(
+    screen.getByTestId("onboarding-error-nickname")
+  );
 
   await type("onboarding-nickname", "김민서");
 
@@ -438,7 +441,17 @@ test("확인 요청이 실패하면 입력값을 지우지 않고 다시 확인�
   expect(screen.getByTestId("onboarding-username")).toHaveDisplayValue(
     "toycrane"
   );
-  expect(screen.getByLabelText("아이디 다시 확인하기")).toBeOnTheScreen();
+  expect(screen.getByRole("alert")).toBe(
+    screen.getByTestId("onboarding-error-username")
+  );
+  // 오류 문구 전체가 아니라 옆의 작은 버튼이 다시 확인한다. 이름은 전과 같다.
+  const retry = screen.getByRole("button", { name: "아이디 다시 확인하기" });
+  expect(retry).toHaveTextContent("다시 시도");
+  expect(retry.props.className).toContain("button__root--size-sm");
+  expect(retry.props.className).toContain("button__root--variant-tertiary");
+  expect(retry).not.toContainElement(
+    screen.getByTestId("onboarding-error-username")
+  );
   expect(screen.getByLabelText("시작하기")).toBeDisabled();
 });
 

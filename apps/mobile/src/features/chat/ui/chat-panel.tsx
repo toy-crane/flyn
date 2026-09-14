@@ -26,7 +26,6 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Platform,
-  Pressable,
   Text,
   TextInput,
   useWindowDimensions,
@@ -49,7 +48,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
 
 import type { ChatSession } from "@/features/chat/state/use-conversation";
+import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
+import { IconButton } from "@/shared/ui/icon-button";
 import { copyToClipboard } from "@/shared/ui/icon-row";
 import { AssistantMessage } from "./assistant-message";
 import { chatLabels } from "./chat-labels";
@@ -351,67 +352,58 @@ function Composer({
   placeholder: string;
 }) {
   let action = (
-    <Pressable
+    <IconButton
       accessibilityLabel={chatLabels.send}
-      accessibilityRole="button"
-      accessibilityState={{ disabled: !canSend }}
-      className={
-        canSend
-          ? "h-11 w-11 items-center justify-center rounded-full bg-accent"
-          : "h-11 w-11 items-center justify-center rounded-full bg-accent opacity-40"
-      }
-      disabled={!canSend}
+      className="rounded-full bg-accent"
+      isDisabled={!canSend}
       onPress={onSend}
+      size="lg"
       testID="chat-send"
     >
       <Icon name="send" tone="accentForeground" />
-    </Pressable>
+    </IconButton>
   );
 
   if (chat.isBusy && canStop) {
     action = (
-      <Pressable
+      <IconButton
         accessibilityLabel={chatLabels.stop}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: false }}
-        className="h-11 w-11 items-center justify-center rounded-full bg-accent"
-        disabled={false}
+        className="rounded-full bg-accent"
         onPress={onStop}
+        size="lg"
         testID="chat-send"
       >
         <Icon filled name="stop" size="sm" tone="accentForeground" />
-      </Pressable>
+      </IconButton>
     );
   }
 
   return (
     <>
       {chat.error ? (
-        <View className="flex-row items-center gap-2">
+        // 큰 글자에서는 알약이 문구 옆에 설 자리가 없다. 문구를 한 글자 폭으로
+        // 누르지 않도록 알약이 다음 줄로 내려간다. 문구에 줄어드는 성질을 주면
+        // 줄을 나누기 전에 문구부터 줄어들어 한 줄에 남으므로 주지 않는다.
+        <View className="flex-row flex-wrap items-center gap-2">
           <Text
             accessibilityLiveRegion="assertive"
             accessibilityRole="alert"
-            className="flex-1 text-danger text-sm"
+            className="grow text-danger text-sm"
             testID="chat-error"
           >
             {chatLabels.errorAnnouncement}
           </Text>
-          <Pressable
+          <Button
             accessibilityLabel={chatLabels.retry}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: chat.isBusy }}
-            className={
-              chat.isBusy
-                ? "flex-row items-center gap-1 rounded-full border border-border px-3 py-1.5 opacity-40"
-                : "flex-row items-center gap-1 rounded-full border border-border px-3 py-1.5"
-            }
-            disabled={chat.isBusy}
+            isDisabled={chat.isBusy}
             onPress={chat.retry}
+            size="sm"
+            startContent={<Icon name="regenerate" size="sm" />}
             testID="chat-retry"
+            variant="outline"
           >
-            <Icon name="regenerate" size="sm" />
-            <Text className="text-foreground text-sm">{chatLabels.retry}</Text>
-          </Pressable>
+            {chatLabels.retry}
+          </Button>
         </View>
       ) : null}
 
@@ -421,15 +413,15 @@ function Composer({
           <Text className="flex-1 text-muted text-xs leading-5">
             {chatLabels.editNotice}
           </Text>
-          <Pressable
+          <IconButton
             accessibilityLabel={chatLabels.endEdit}
-            accessibilityRole="button"
             hitSlop={8}
             onPress={chat.cancelEdit}
+            size="sm"
             testID="chat-edit-cancel"
           >
             <Icon name="close" size="sm" tone="muted" />
-          </Pressable>
+          </IconButton>
         </View>
       ) : null}
 

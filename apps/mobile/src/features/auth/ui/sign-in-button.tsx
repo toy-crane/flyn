@@ -1,10 +1,5 @@
 import { useCallback } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  useColorScheme,
-} from "react-native";
+import { ActivityIndicator, Pressable, Text } from "react-native";
 
 import { AppleMark, GoogleMark } from "./brand-marks";
 
@@ -46,6 +41,7 @@ export function SignInButton({
   label,
   onPress,
   method,
+  scheme,
   testID,
 }: {
   /** True while THIS button's sign-in is running, not any sibling's. */
@@ -54,9 +50,14 @@ export function SignInButton({
   label: string;
   onPress: () => void;
   method: SignInMethod;
+  /**
+   * The mode the app is drawing, from the theme bridge's `useAppTheme`. The
+   * system's own mode is not enough: the person may have chosen another one,
+   * and reading the system left these buttons light under a chosen dark mode.
+   */
+  scheme: "dark" | "light";
   testID?: string;
 }) {
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const colors = COLORS[scheme];
   const backgroundColor = method === "apple" ? colors.appleFill : colors.fill;
   const style = useCallback(

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { beforeEach, expect, jest, test } from "@jest/globals";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { signInAsync } from "expo-apple-authentication";
-import { Platform } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import {
   GoogleOneTapSignIn,
   type OneTapResponse,
@@ -85,9 +85,22 @@ async function press(label: string) {
   });
 }
 
-function renderMethods() {
-  return renderWithHeroUI(<SignInMethodScreen onChooseEmail={chooseEmail} />);
+function renderMethods(scheme: "dark" | "light" = "light") {
+  return renderWithHeroUI(
+    <SignInMethodScreen onChooseEmail={chooseEmail} scheme={scheme} />
+  );
 }
+
+test("제공자 버튼은 앱이 그리는 화면 모드를 따른다", async () => {
+  // 테스트 환경의 운영체제 화면 모드는 밝은 화면이다. 앱이 넘긴 모드가 이긴다.
+  await renderMethods("dark");
+
+  expect(
+    StyleSheet.flatten(
+      screen.getByRole("button", { name: "이메일로 계속하기" }).props.style
+    )
+  ).toMatchObject({ backgroundColor: "#131314" });
+});
 
 beforeEach(() => {
   // The provider stand-ins live in jest.setup and are shared across tests, so
@@ -239,6 +252,11 @@ test("Google이 자격 정보를 찾지 못하면 취소와 달리 안내를 보
   expect(await screen.findByTestId("sign-in-error-provider")).toHaveTextContent(
     noGoogleAccountMessage
   );
+  // 입력이 없는 화면이라 필드 오류가 아니라 대응표의 오류 역할로 그린다.
+  const error = screen.getByRole("alert");
+  expect(error).toBe(screen.getByTestId("sign-in-error-provider"));
+  expect(error.props.className).toContain("text__root--type-body-sm");
+  expect(error.props.className).toContain("text-danger");
   expect(fake.auth.signInWithIdToken).not.toHaveBeenCalled();
 });
 
