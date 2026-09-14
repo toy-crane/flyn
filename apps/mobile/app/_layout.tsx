@@ -5,7 +5,7 @@ import { hide as hideSplashScreen } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { HeroUINativeProvider } from "heroui-native/provider";
 import { type ReactNode, useEffect } from "react";
-import { Modal } from "react-native";
+import { BackHandler, Modal, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
@@ -62,6 +62,16 @@ function ThemedRootLayout() {
       hideSplashScreen();
     }
   }, [area, versionGate.status]);
+  useEffect(() => {
+    if (versionGate.status !== "blocked") {
+      return;
+    }
+    const listener = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => true
+    );
+    return () => listener.remove();
+  }, [versionGate.status]);
 
   if (versionGate.status === "checking") {
     return (
@@ -91,6 +101,7 @@ function ThemedRootLayout() {
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: background },
+          gestureEnabled: versionGate.status !== "blocked",
           headerShown: false,
         }}
       >
@@ -130,7 +141,16 @@ function ThemedRootLayout() {
 
   return (
     <>
-      {content}
+      <View
+        accessibilityElementsHidden={versionGate.status === "blocked"}
+        importantForAccessibility={
+          versionGate.status === "blocked" ? "no-hide-descendants" : "auto"
+        }
+        pointerEvents={versionGate.status === "blocked" ? "none" : "auto"}
+        style={{ flex: 1 }}
+      >
+        {content}
+      </View>
       <Modal
         animationType="none"
         onRequestClose={keepUpdateScreenOpen}
