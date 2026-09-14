@@ -454,8 +454,9 @@ create trigger episode_messages_touch_story_play
   for each row
   execute function public.touch_story_play();
 
--- 표현 판정이 끝난 사용자의 영어 메시지를 한 번만 기록한다. 판정이 실패하거나
--- 한국어가 섞인 입력은 영어 횟수에 넣지 않는다. 원본을 지워도 본문은 남기지 않는다.
+-- 표현 판정이 끝난 사용자의 영어 메시지를 한 번만 기록한다. 판정 전에
+-- 회차를 지워도 같은 입력 기준으로 발언을 남긴다. 계정 삭제는 보존하지 않는다.
+-- 원본을 지워도 본문은 남기지 않는다.
 create function public.record_english_message()
 returns trigger
 language plpgsql
@@ -464,21 +465,43 @@ set search_path = ''
 as $$
 declare
   spoken text;
+  message_row public.episode_messages%rowtype;
 begin
-  if new.role <> 'user' or new.expression_status is null then
+  if tg_op = 'DELETE' then
+    -- 계정 삭제의 연쇄 삭제 중에는 학습 사실을 새로 만들지 않는다.
+    if not exists (select 1 from public.profiles where id = old.user_id) then
+      return old;
+    end if;
+    message_row := old;
+  else
+    if new.expression_status is null then
+      return new;
+    end if;
+    message_row := new;
+  end if;
+
+  if message_row.role <> 'user' then
+    if tg_op = 'DELETE' then
+      return old;
+    end if;
     return new;
   end if;
 
   select string_agg(part->>'text', ' ') into spoken
-  from jsonb_array_elements(new.parts) part
+  from jsonb_array_elements(message_row.parts) part
   where part->>'type' = 'text';
 
   if spoken ~ '[A-Za-z]' and spoken !~ '[가-힣ㄱ-ㅎㅏ-ㅣ]' then
     insert into public.learning_events (kind, source_id, user_id, occurred_at)
-    values ('english_message', new.id, new.user_id, new.created_at)
+    values (
+      'english_message', message_row.id, message_row.user_id, message_row.created_at
+    )
     on conflict do nothing;
   end if;
 
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
   return new;
 end;
 $$;
@@ -487,6 +510,10 @@ revoke all on function public.record_english_message() from public, anon, authen
 
 create trigger episode_messages_record_english
   after insert or update of expression_status on public.episode_messages
+  for each row execute function public.record_english_message();
+
+create trigger episode_messages_preserve_english
+  before delete on public.episode_messages
   for each row execute function public.record_english_message();
 
 -- 완료 날짜는 회차가 삭제된 뒤에도 남는다. 이미 끝난 플레이의 중복 완료

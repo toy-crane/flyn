@@ -5,7 +5,7 @@
 -- 메시지가 앉을 때 트리거가 밀고, 클라이언트는 그 열에 닿지 못한다. 기록을 열어
 -- 보는 것만으로 스토리 탭의 순서가 바뀌지 않는다는 약속이 그 좁은 길에서 나온다.
 BEGIN;
-SELECT plan(36);
+SELECT plan(39);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -251,6 +251,34 @@ SELECT is(
   'editing and resending one English message keeps exactly one study fact'
 );
 
+SELECT lives_ok(
+  $$insert into public.episode_messages (id, episode_play_id, role, parts)
+    values (
+      '1d000000-0000-4000-8000-000000000003',
+      '1c000000-0000-4000-8000-000000000001',
+      'user',
+      '[{"type":"text","text":"I am still learning."}]'::jsonb
+    )$$,
+  'an English message may be waiting for its expression result'
+);
+
+SELECT lives_ok(
+  $$insert into public.episode_messages (id, episode_play_id, role, parts)
+    values (
+      '1d000000-0000-4000-8000-000000000004',
+      '1c000000-0000-4000-8000-000000000001',
+      'user',
+      '[{"type":"text","text":"한국어로 말해요."}]'::jsonb
+    )$$,
+  'a Korean message may also be waiting for its expression result'
+);
+
+SELECT is(
+  (SELECT count(*) FROM public.learning_events),
+  1::bigint,
+  'pending messages are not counted while their run exists'
+);
+
 -- 다른 회차는 움직이지 않았다. 한 회차에서 말한 것이 다른 회차의 순서를 바꾸지
 -- 않는다.
 SELECT is(
@@ -309,8 +337,8 @@ SELECT results_eq(
       (SELECT count(*) FROM public.episode_plays),
       (SELECT count(*) FROM public.episode_messages),
       (SELECT count(*) FROM public.learning_events)$$,
-  'VALUES (1::bigint, 0::bigint, 0::bigint, 1::bigint)',
-  'only the chosen run and its conversation disappear; the other run and study fact remain'
+  'VALUES (1::bigint, 0::bigint, 0::bigint, 2::bigint)',
+  'the chosen run disappears while both English facts, including the pending one, remain'
 );
 
 WITH removed AS (
