@@ -24,8 +24,7 @@ const BOTTOM_PADDING = 12;
 function EpisodeRow({ episode }: { episode: StoryEpisode }) {
   return (
     <StaticListRow testID={`story-episode-${episode.number}`}>
-      {/* 화 번호는 제목 첫 줄에 붙는다. 상황 설명이 길어도 가운데로 내려오지 않는다. */}
-      <ListGroup.ItemPrefix className="self-start">
+      <ListGroup.ItemPrefix>
         <Typography.Paragraph
           className="w-9"
           color="muted"

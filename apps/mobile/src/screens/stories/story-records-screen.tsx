@@ -35,8 +35,7 @@ function StoryPlayEpisodeRow({
   }, [episode.episodeId, onOpenEpisode, storyPlayId]);
   const body = (
     <>
-      {/* 화 번호는 제목 첫 줄에 붙는다. 결과가 길어도 가운데로 내려오지 않는다. */}
-      <ListGroup.ItemPrefix className="self-start">
+      <ListGroup.ItemPrefix>
         <Typography.Paragraph
           className="w-9"
           color="muted"
@@ -164,9 +163,6 @@ function StoryPlayCard({
   return (
     <ExpandableCard
       accessibilityLabel={storyLabels.runCard(startedAt, progress, false)}
-      // 끝낸 화 목록은 카드 가장자리까지 닿는 HeroUI 행이다. 행이 제 여백을
-      // 가지므로 내용 슬롯의 여백을 겹쳐 두지 않는다.
-      contentClassName="px-0 pb-0"
       expandedAccessibilityLabel={storyLabels.runCard(
         startedAt,
         progress,

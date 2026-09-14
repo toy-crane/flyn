@@ -166,8 +166,13 @@ export function ExpressionCard({
       accessibilityLabel={cardLabel}
       contentTestID={inner("detail")}
       footer={
+        // 트리거가 이미 아래 여백을 가지므로 아이콘 줄의 윗여백을 덜어 낸다. 둘이
+        // 겹치면 뜻과 아이콘 사이가 카드 위쪽 여백의 두 배로 벌어진다. 덜어 낸
+        // 만큼 이 줄이 트리거 아래 끝을 덮으므로, 빈 자리의 터치는 트리거로 흘린다.
         actions === undefined ? null : (
-          <View className="px-5 pb-3.5">{actions}</View>
+          <View className="-mt-1.5 px-5 pb-3.5" pointerEvents="box-none">
+            {actions}
+          </View>
         )
       }
       indicatorTestID={inner("chevron")}
