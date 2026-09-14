@@ -1,4 +1,5 @@
-import { ScrollView, Text, View } from "react-native";
+import { Typography } from "heroui-native/text";
+import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "@/shared/ui/button";
@@ -49,26 +50,27 @@ export function UpdateRequiredScreen({
       testID="update-required"
     >
       <View className="flex-1 justify-center gap-4">
-        <Text
-          accessibilityRole="header"
-          className="font-bold text-2xl text-foreground"
-        >
+        <Typography.Heading className="text-foreground" type="h3" weight="bold">
           업데이트가 필요해요
-        </Text>
-        <Text className="text-base text-muted leading-6">
+        </Typography.Heading>
+        <Typography.Paragraph className="text-muted" type="body">
           플린을 계속 사용하려면 최신 버전으로 업데이트해 주세요
-        </Text>
+        </Typography.Paragraph>
         {notice ? (
           <View
             accessibilityLiveRegion="polite"
             className="rounded-2xl border border-border bg-surface p-4"
           >
-            <Text className="font-semibold text-foreground text-sm">
+            <Typography.Paragraph
+              className="text-foreground"
+              type="body-sm"
+              weight="medium"
+            >
               {notice.title}
-            </Text>
-            <Text className="mt-1 text-muted text-sm leading-5">
+            </Typography.Paragraph>
+            <Typography.Paragraph className="mt-1 text-muted" type="body-sm">
               {notice.body}
-            </Text>
+            </Typography.Paragraph>
           </View>
         ) : null}
       </View>
