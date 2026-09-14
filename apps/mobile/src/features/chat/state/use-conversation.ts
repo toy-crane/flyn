@@ -101,16 +101,8 @@ export function useConversation(
   currentToken.current = accessToken;
   currentDraft.current = draft;
 
-  const {
-    clearError,
-    error,
-    messages,
-    regenerate,
-    sendMessage,
-    setMessages,
-    status,
-    stop,
-  } = chat;
+  const { clearError, error, messages, regenerate, sendMessage, status, stop } =
+    chat;
   const isBusy = status === "submitted" || status === "streaming";
   const localSending = useRef(false);
   // 카드 저장 등 대화 밖의 요청도 같은 잠금을 확인할 수 있다.
@@ -152,35 +144,23 @@ export function useConversation(
 
     setDraft("");
 
-    // Sending from the edit state rewrites history first: the message being
-    // edited and everything after it go, and the edited words arrive as a new
-    // question. `setMessages` writes straight through to the chat store, so
-    // the request below already carries the shortened conversation.
+    // The SDK replaces this user message in place and drops everything after
+    // it. Keeping its id lets the stored study fact still name the same act.
     if (editingMessageId) {
-      const editedIndex = messages.findIndex(
-        (message) => message.id === editingMessageId
-      );
-
-      if (editedIndex >= 0) {
-        setMessages(messages.slice(0, editedIndex));
-      }
-
       setEditingMessageId(undefined);
       stashedDraft.current = "";
     }
 
-    runRequest(sendMessage({ text }));
+    runRequest(sendMessage({ messageId: editingMessageId, text }));
   }, [
     canStartRequest,
     draft,
     editingMessageId,
-    messages,
     prepareMessage,
     runRequest,
     sendMessage,
     setDraft,
     setEditingMessageId,
-    setMessages,
     stashedDraft,
   ]);
 

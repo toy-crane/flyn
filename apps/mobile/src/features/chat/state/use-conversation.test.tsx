@@ -515,8 +515,12 @@ describe("useConversation", () => {
     });
     expect(result.current.editingMessageId).toBeUndefined();
     expect(result.current.draft).toBe("");
+    expect(result.current.messages[2]?.id).toBe(secondQuestionId);
     expect(
       transport.sendMessages.mock.calls[2][0].messages.map(messageText)
     ).toEqual(["첫 질문", "첫 답변", "고친 질문"]);
+    expect(transport.sendMessages.mock.calls[2][0].messages[2]?.id).toBe(
+      secondQuestionId
+    );
   });
 });
