@@ -35,9 +35,10 @@ function StoryPlayEpisodeRow({
   }, [episode.episodeId, onOpenEpisode, storyPlayId]);
   const body = (
     <>
+      {/* 최소 폭만 둔다. 고정 폭이면 큰 글자에서 `5화`가 두 줄로 갈라진다. */}
       <ListGroup.ItemPrefix>
         <Typography.Paragraph
-          className="w-9"
+          className="min-w-9"
           color="muted"
           type="body-sm"
           weight="semibold"
