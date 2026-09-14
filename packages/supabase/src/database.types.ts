@@ -63,25 +63,31 @@ export type Database = {
       }
       characters: {
         Row: {
+          created_at: string
           id: string
           name: string
           persona: string
           position: number
           story_id: string
+          updated_at: string
         }
         Insert: {
+          created_at?: string
           id?: string
           name: string
           persona: string
           position: number
           story_id: string
+          updated_at?: string
         }
         Update: {
+          created_at?: string
           id?: string
           name?: string
           persona?: string
           position?: number
           story_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -97,20 +103,26 @@ export type Database = {
         Row: {
           at: number
           character_id: string
+          created_at: string
           episode_id: string
           story_id: string
+          updated_at: string
         }
         Insert: {
           at: number
           character_id: string
+          created_at?: string
           episode_id: string
           story_id: string
+          updated_at?: string
         }
         Update: {
           at?: number
           character_id?: string
+          created_at?: string
           episode_id?: string
           story_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -180,6 +192,7 @@ export type Database = {
           parts: Json
           play_id: string
           role: string
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -188,6 +201,7 @@ export type Database = {
           parts: Json
           play_id: string
           role: string
+          updated_at?: string
           user_id?: string
         }
         Update: {
@@ -196,6 +210,7 @@ export type Database = {
           parts?: Json
           play_id?: string
           role?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -210,6 +225,7 @@ export type Database = {
       }
       episode_plays: {
         Row: {
+          created_at: string
           ending_kind: string | null
           ending_outcome: string | null
           episode_id: string
@@ -220,9 +236,11 @@ export type Database = {
           memory_relationship: string | null
           started_at: string
           story_play_id: string
+          updated_at: string
           user_id: string
         }
         Insert: {
+          created_at?: string
           ending_kind?: string | null
           ending_outcome?: string | null
           episode_id: string
@@ -233,9 +251,11 @@ export type Database = {
           memory_relationship?: string | null
           started_at?: string
           story_play_id: string
+          updated_at?: string
           user_id?: string
         }
         Update: {
+          created_at?: string
           ending_kind?: string | null
           ending_outcome?: string | null
           episode_id?: string
@@ -246,6 +266,7 @@ export type Database = {
           memory_relationship?: string | null
           started_at?: string
           story_play_id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -275,6 +296,7 @@ export type Database = {
       episodes: {
         Row: {
           cast_names: string[]
+          created_at: string
           ending_compromise: string
           ending_failure: string
           ending_success: string
@@ -287,9 +309,11 @@ export type Database = {
           stage: string
           story_id: string
           title: string
+          updated_at: string
         }
         Insert: {
           cast_names: string[]
+          created_at?: string
           ending_compromise: string
           ending_failure: string
           ending_success: string
@@ -302,9 +326,11 @@ export type Database = {
           stage: string
           story_id: string
           title: string
+          updated_at?: string
         }
         Update: {
           cast_names?: string[]
+          created_at?: string
           ending_compromise?: string
           ending_failure?: string
           ending_success?: string
@@ -317,6 +343,7 @@ export type Database = {
           stage?: string
           story_id?: string
           title?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -330,18 +357,24 @@ export type Database = {
       }
       language_levels: {
         Row: {
+          created_at: string
           level: string
           observed_at: string
+          updated_at: string
           user_id: string
         }
         Insert: {
+          created_at?: string
           level: string
           observed_at?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
+          created_at?: string
           level?: string
           observed_at?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -398,21 +431,27 @@ export type Database = {
       }
       retired_usernames: {
         Row: {
+          created_at: string
           protected_until: string
           retired_at: string
           retired_by: string
+          updated_at: string
           username: string
         }
         Insert: {
+          created_at?: string
           protected_until: string
           retired_at?: string
           retired_by: string
+          updated_at?: string
           username: string
         }
         Update: {
+          created_at?: string
           protected_until?: string
           retired_at?: string
           retired_by?: string
+          updated_at?: string
           username?: string
         }
         Relationships: [
@@ -508,6 +547,7 @@ export type Database = {
           slug: string | null
           target_language: string
           title: string
+          updated_at: string
         }
         Insert: {
           completion_copy: string
@@ -524,6 +564,7 @@ export type Database = {
           slug?: string | null
           target_language: string
           title: string
+          updated_at?: string
         }
         Update: {
           completion_copy?: string
@@ -540,6 +581,7 @@ export type Database = {
           slug?: string | null
           target_language?: string
           title?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -553,24 +595,30 @@ export type Database = {
       }
       story_plays: {
         Row: {
+          created_at: string
           id: string
           last_user_message_at: string | null
           started_at: string
           story_id: string
+          updated_at: string
           user_id: string
         }
         Insert: {
+          created_at?: string
           id?: string
           last_user_message_at?: string | null
           started_at?: string
           story_id: string
+          updated_at?: string
           user_id?: string
         }
         Update: {
+          created_at?: string
           id?: string
           last_user_message_at?: string | null
           started_at?: string
           story_id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [

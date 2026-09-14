@@ -99,6 +99,8 @@ comment on column public.profiles.username_locked_until is
 -- The trigger fills it and the availability functions read it, both as owner. A
 -- client that could select here would have a list of ids to sit and wait for.
 create table public.retired_usernames (
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
   username text primary key,
   -- The account that gave the id up. `on delete cascade` releases it when the
   -- account is gone: nobody is left to be confused with.
@@ -125,6 +127,7 @@ create index retired_usernames_protected_until_idx
 -- 화면에서 이 단위의 이름은 아직 쓰지 않지만, 데이터에서는 공유 가능한
 -- 자기 완결 단위가 된다.
 create table public.stories (
+  updated_at timestamptz not null default clock_timestamp(),
   id uuid primary key default gen_random_uuid(),
   -- 이 스토리를 만든 사람. 공식 콘텐츠는 비어 있고, 사용자가 만든 스토리에만
   -- 이름이 들어간다. 탐색에서 무엇이 보이는지를 이 한 열이 가른다.
@@ -211,6 +214,8 @@ create index stories_owner_id_created_at_idx
 -- 안에서 겹치지 않게 하면, 스토리에 다섯째 인물이 생기는 일도 세는 트리거 없이
 -- 막힌다. 한 모델이 여러 인물을 연기하므로 넷을 넘으면 인물이 흐려진다.
 create table public.characters (
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
   id uuid primary key default gen_random_uuid(),
   -- 스토리가 인물을 소유하므로 스토리가 사라지면 인물도 사라진다. 계정을
   -- 지우면 그 사람이 만든 스토리가 지워지는데, 여기가 `restrict`면 그 연쇄가
@@ -243,6 +248,8 @@ create table public.characters (
 
 -- 사람이 쓴 대본 한 편. 번호는 스토리 안의 순서이고, 참조에는 안정된 id를 쓴다.
 create table public.episodes (
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
   id uuid primary key default gen_random_uuid(),
   -- `characters.story_id`와 같은 이유로 함께 지운다. 대본은 스토리의 일부다.
   story_id uuid not null references public.stories (id) on delete cascade,
@@ -307,6 +314,8 @@ create table public.episodes (
 -- `story_id`를 함께 들고 두 부모를 그 쌍으로 참조한다. 열 하나가 늘지만, 다른
 -- 스토리의 인물을 이 화에 세우는 문장이 애플리케이션에 닿기 전에 막힌다.
 create table public.episode_characters (
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
   episode_id uuid not null,
   character_id uuid not null,
   story_id uuid not null,
@@ -347,6 +356,8 @@ create index episode_characters_character_idx
 -- 않는다. 두 기기가 동시에 처음 말하면 회차도 둘로 갈린다. 서로 다른 대화를
 -- 한 회차로 합치면 그 회차의 이야기 기억이 두 흐름을 섞어 읽게 된다.
 create table public.story_plays (
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
   id uuid primary key default gen_random_uuid(),
   -- `episode_plays`와 같은 이유로 부르는 사람이 채운다. insert grant에서 빠져
   -- 있어 남의 이름으로 회차를 여는 문장은 정책에 닿기 전에 권한에서 막힌다.
@@ -400,6 +411,8 @@ comment on column public.story_plays.last_user_message_at is
 -- 진행 중과 끝남은 `finished_at`이 가른다. 대화 쪽에 완료 표시를 따로 두지
 -- 않는다. 한 화의 결말은 한 번만 나고, `public.finish_episode`가 그 규칙을 지킨다.
 create table public.episode_plays (
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
   -- 메시지와 교정이 참조할 안정된 키. (user_id, episode_id)를 그대로 물려주면
   -- 자식 테이블마다 두 열을 나르게 되고, 교정은 그 위에 message_id까지 얹어
   -- 세 열이 된다.
@@ -526,6 +539,7 @@ comment on column public.episode_plays.finished_at is
 -- 판올림마다 바꾸는 계약이라 여기까지 펴면 SDK를 올릴 때마다 데이터 구조를 함께
 -- 고쳐야 한다. Vercel이 자기 제품에서 긋는 선도 같은 자리다.
 create table public.episode_messages (
+  updated_at timestamptz not null default clock_timestamp(),
   -- AI SDK가 이 메시지에 붙인 식별자를 그대로 쓴다. 앱과 서버와 데이터베이스가
   -- 같은 이름으로 같은 메시지를 가리켜야, 다시 받기가 "이 메시지부터"를 말할 수
   -- 있다. uuid로 좁혀 두면 앱이 아무 문자열이나 실어 보낼 수 없다.
@@ -627,6 +641,8 @@ create index episode_expression_results_user_id_idx
 -- 같은 행에 두지 않고 계정마다 한 줄로 둔다. 화가 끝날 때마다 그 시점의 관찰로
 -- 덮어쓴다. 지난 수준의 역사는 남기지 않는다.
 create table public.language_levels (
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
   user_id uuid primary key references public.profiles (id) on delete cascade,
   -- 모델이 쓴 한국어 한 줄. 점수나 등급이 아니라 관찰이다.
   level text not null,

@@ -27,11 +27,11 @@ SELECT is(
   'handle_new_user is owned by the owner of public.profiles'
 );
 
--- set_updated_at only rewrites a column of the row the caller is already
+-- set_row_timestamps only rewrites a column of the row the caller is already
 -- updating, so it must not carry the owner's privileges.
 SELECT isnt_definer(
-  'public', 'set_updated_at', ARRAY[]::name[],
-  'set_updated_at runs as the caller'
+  'public', 'set_row_timestamps', ARRAY[]::name[],
+  'set_row_timestamps runs as the caller'
 );
 
 -- The pin above is only half the protection: with an empty search_path in
@@ -89,11 +89,11 @@ VALUES ('22222222-2222-4222-8222-222222222222', 'trigger-b@example.test');
 -- Backdate through a disabled trigger so the next two updates have something
 -- other than now() to move away from. Both statements are inside the
 -- transaction this file rolls back.
-ALTER TABLE public.profiles DISABLE TRIGGER profiles_set_updated_at;
+ALTER TABLE public.profiles DISABLE TRIGGER profiles_set_timestamps;
 UPDATE public.profiles
 SET updated_at = '2000-01-01T00:00:00Z'
 WHERE id = '22222222-2222-4222-8222-222222222222';
-ALTER TABLE public.profiles ENABLE TRIGGER profiles_set_updated_at;
+ALTER TABLE public.profiles ENABLE TRIGGER profiles_set_timestamps;
 
 UPDATE public.profiles
 SET display_name = display_name
@@ -109,9 +109,9 @@ UPDATE public.profiles
 SET display_name = 'Chosen name'
 WHERE id = '22222222-2222-4222-8222-222222222222';
 
-SELECT is(
-  (SELECT updated_at FROM public.profiles WHERE id = '22222222-2222-4222-8222-222222222222'),
-  now(),
+SELECT ok(
+  (SELECT updated_at > now() AND updated_at <= clock_timestamp()
+   FROM public.profiles WHERE id = '22222222-2222-4222-8222-222222222222'),
   'a real change stamps updated_at'
 );
 

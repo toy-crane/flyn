@@ -30,7 +30,7 @@ SELECT is(
 FROM (VALUES
   ('public.is_reserved_username(text)', true, true),
   ('public.handle_new_user()', false, false),
-  ('public.set_updated_at()', false, false),
+  ('public.set_row_timestamps()', false, false),
   ('public.username_change_interval()', false, false),
   ('public.is_protected_username(text,uuid)', false, false),
   ('public.username_status(text)', true, false),
