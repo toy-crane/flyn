@@ -182,7 +182,7 @@
   .praise-space, .interim-empty { flex: 1; min-height: 230px; display: grid; place-items: center; }
   .praise-copy { max-width: 250px; margin: 0; text-align: center; color: var(--foreground); font-size: 22px; font-weight: 750; line-height: 31px; }
   .interim-empty p { margin: 0; text-align: center; color: var(--muted); font-size: 16px; line-height: 24px; }
-  .status-block { min-height: 200px; display: grid; place-content: center; justify-items: center; gap: 16px; }
+  .status-block { flex: 1; min-height: 200px; display: grid; place-content: center; justify-items: center; gap: 16px; }
   .status-block p { margin: 0; font-size: 16px; line-height: 24px; color: var(--muted); text-align: center; }
   .loader { width: 25px; height: 25px; border: 3px solid color-mix(in srgb, var(--foreground) 16%, transparent); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -278,7 +278,7 @@
       </div>
       <div class="praise-space" data-when="완벽한 대화"><p class="praise-copy">이번 대화, 완벽했어요!</p></div>
       <div class="interim-empty" data-when="확인 실패"><p>이번 대화에는 안내한 표현이 없어요</p></div>
-      <div class="status-block" data-when="읽는 중"><span class="loader" aria-hidden="true"></span><p>표현을 불러오고 있어요</p></div>
+      <div class="status-block" data-when="읽는 중" role="status" aria-label="표현을 불러오는 중"><span class="loader" aria-hidden="true"></span></div>
       <div class="status-block" data-when="불러오기 실패"><p>표현을 불러오지 못했어요</p><button class="retry" data-retry>다시 시도하기</button></div>
     </div>
     <footer class="review-footer">
