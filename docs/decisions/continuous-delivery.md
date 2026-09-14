@@ -1,6 +1,6 @@
 # 검증과 내부 테스트 배포
 
-## Decisions
+## 결정
 
 - PR에서 코드·타입·테스트를 검사하고, 모바일 네이티브 구성 차이는 fingerprint 라벨로 알린다. 라벨은 merge 전 검토 정보이며 배포 판정을 대신하지 않는다.
 - 필요한 검사를 통과한 `main` 변경의 배포 순서는 GitHub Actions가 관리한다. Supabase 마이그레이션, 필요한 Edge Function, Hono의 Vercel 배포를 확인한 뒤 같은 커밋의 EAS Workflows를 실행한다.
@@ -53,7 +53,7 @@
 - 실행 끝에 한 채널로 결과를 한 번 보낸다. 시작·대기·단계별 성공 알림과 개인·채널 전체 멘션은 두지 않는다. 같은 실행의 여러 경로에서 결과를 중복해서 만들지 않고, 새 재시도는 별도 실행 링크로 구분한다.
 - Slack 전송 실패는 배포 결과와 구분해 로그와 실행 화면에 남긴다. 알림 실패 때문에 완료된 배포를 취소하거나 빌드·제출·OTA를 다시 실행하지 않는다.
 
-## Boundaries
+## 경계
 
 - DB PR 검증 범위는 [Supabase 스키마 작업 방식](supabase-schema-workflow.md)이 소유한다. 임시 DB의 검증에는 운영 비밀값이나 데이터를 사용하지 않는다.
 - CI 코드 리뷰 도구는 [CI 코드 리뷰](ci-code-review.md)가 정한다.
@@ -67,7 +67,7 @@
 - Slack 알림에는 수동 EAS 실행, PR 미리보기, Android, 다른 프로젝트와 EAS 이전의 GitHub·DB·API 실패를 포함하지 않는다. 실행 전체 취소나 EAS 장애로 알림 작업이 시작되지 않는 경우의 외부 감시는 별도 범위다. 메시지가 없다고 배포 성공으로 판단하지 않는다.
 - Slack의 정확히 한 번 수신, 메시지 수정과 스레드 추적은 보장하지 않는다. 응답 유실에 따른 중복은 같은 실행 링크로 구분한다.
 
-## Why
+## 이유
 
 기존 EAS 실행에서 결과를 알리면 별도 서버 없이 설치 가능 여부와 OTA 게시, 실패 지점을 확인할 수 있다. 배포 결과와 알림 결과를 나누면 알림 장애가 불필요한 재배포를 만들지 않는다.
 
@@ -79,7 +79,7 @@ EAS Update를 일상 배포에 사용하면 호환 빌드 조회와 새 빌드 �
 
 merge 뒤의 승인은 새 정보 없이 한 번 더 묻는 클릭이다. PR 검사와 `main` 검사가 같은 워크플로이고 브랜치 보호가 PR을 `main`과 최신 상태로 유지하므로, 검사한 트리와 합쳐진 커밋이 같다. 승인 화면에는 SQL이 보이지 않아 읽을 자리는 어차피 PR이다. 조사한 기준선(Supabase 공식 환경 가이드와 Branching, squawk, Atlas, strong_migrations)도 모두 PR을 게이트로 두고 merge 뒤에는 자동 배포한다.
 
-## Reconsider when
+## 재검토 조건
 
 - 공개 App Store 출시 또는 Android 배포를 시작할 때
 - 내부 테스트가 운영 데이터와 분리된 원격 환경을 요구할 때
@@ -88,7 +88,7 @@ merge 뒤의 승인은 새 정보 없이 한 번 더 묻는 클릭이다. PR 검
 - 어떤 서비스가 자신에게 올라간 커밋을 더 이상 알려 주지 못할 때
 - 운영 배포를 승인하는 사람이 둘 이상이 될 때
 
-## Still-rejected alternatives
+## 계속 제외하는 대안
 
 - 서비스마다 `main`에서 독립 자동 배포: 서버 준비 전에 앱이 배포될 수 있다.
 - PR 라벨만으로 OTA 결정: 실제 대상 빌드의 존재·배포 상태를 확인하지 못한다.
@@ -102,7 +102,7 @@ merge 뒤의 승인은 새 정보 없이 한 번 더 묻는 클릭이다. PR 검
 - `fingerprint.yml`을 `ci.yml`에 합치기: PR 제목이나 base가 바뀔 때도 다시 계산해야 하고, 라벨 워크플로가 이 워크플로의 이름과 아티팩트를 보고 동작하며, 계산과 라벨 쓰기의 권한 분리가 깨진다.
 - `concurrency.queue`를 식으로 만든 `group`과 함께 쓰기: GitHub이 워크플로 파일을 읽지 못해 잡 하나 없이 실패했다.
 
-## Evidence worth preserving
+## 보존할 근거
 
 - 공식 문서: [EAS Workflows 배포 예제](https://docs.expo.dev/eas/workflows/examples/deploy-to-production/), [EAS Workflows 외부 실행](https://docs.expo.dev/eas/workflows/rest-api/), [Supabase 배포](https://supabase.com/docs/guides/deployment/managing-environments), [Vercel 배포](https://vercel.com/docs/cli/deploy)
 - 2026-09-11 기준선 조사. Supabase 공식 [환경 관리](https://supabase.com/docs/guides/deployment/managing-environments)와 [GitHub 연동](https://supabase.com/docs/guides/deployment/branching/github-integration)은 PR 필수 검사와 merge 뒤 자동 `db push`만 두고 별도 승인이 없다. 파괴적 변경은 린터가 잡는다. [squawk](https://squawkhq.com/docs/rules)는 무료이고 PR 댓글을 남기며 문장별 무시 주석을 둔다. [Atlas](https://atlasgo.io/lint/analyzers)는 같은 구조에 `-- atlas:nolint` 주석을 쓰고 2025년 10월부터 유료다. Bytebase만 rollout 이슈와 DBA 승인을 merge 앞에 둔다. 배포 뒤 승인은 어디에도 없었다.
