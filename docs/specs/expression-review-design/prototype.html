@@ -185,7 +185,8 @@
   .interim-empty p { margin: 0; text-align: center; color: var(--muted); font-size: 16px; line-height: 24px; }
   .status-block { flex: 1; min-height: 200px; display: grid; place-content: center; justify-items: center; gap: 16px; }
   .status-block p { margin: 0; font-size: 16px; line-height: 24px; color: var(--muted); text-align: center; }
-  .loader { width: 25px; height: 25px; border: 3px solid color-mix(in srgb, var(--foreground) 16%, transparent); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+  .loader { width: 36px; height: 36px; color: var(--muted); animation: spin 1s steps(12) infinite; }
+  .loader path { fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .retry { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); font: 600 15px/22px var(--font); border: 0; background: transparent; padding: 8px 12px; cursor: pointer; }
   .retry::before { content: ''; width: 14px; height: 14px; border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent); border-top-color: var(--accent); border-radius: 50%; visibility: hidden; }
@@ -279,7 +280,22 @@
       </div>
       <div class="praise-space" data-when="완벽한 대화"><p class="praise-copy">이번 대화, 완벽했어요!</p></div>
       <div class="interim-empty" data-when="확인 실패"><p>이번 대화에는 안내한 표현이 없어요</p></div>
-      <div class="status-block" data-when="읽는 중" role="status" aria-label="표현을 불러오는 중"><span class="loader" aria-hidden="true"></span></div>
+      <div class="status-block" data-when="읽는 중" role="status" aria-label="표현을 불러오는 중">
+        <svg class="loader" viewBox="0 0 36 36" aria-hidden="true">
+          <path d="M18 3v6" opacity="1"/>
+          <path d="M18 3v6" opacity=".92" transform="rotate(30 18 18)"/>
+          <path d="M18 3v6" opacity=".84" transform="rotate(60 18 18)"/>
+          <path d="M18 3v6" opacity=".76" transform="rotate(90 18 18)"/>
+          <path d="M18 3v6" opacity=".68" transform="rotate(120 18 18)"/>
+          <path d="M18 3v6" opacity=".60" transform="rotate(150 18 18)"/>
+          <path d="M18 3v6" opacity=".52" transform="rotate(180 18 18)"/>
+          <path d="M18 3v6" opacity=".44" transform="rotate(210 18 18)"/>
+          <path d="M18 3v6" opacity=".36" transform="rotate(240 18 18)"/>
+          <path d="M18 3v6" opacity=".28" transform="rotate(270 18 18)"/>
+          <path d="M18 3v6" opacity=".20" transform="rotate(300 18 18)"/>
+          <path d="M18 3v6" opacity=".12" transform="rotate(330 18 18)"/>
+        </svg>
+      </div>
       <div class="status-block" data-when="불러오기 실패"><p>표현을 불러오지 못했어요</p><button class="retry" data-retry>다시 시도하기</button></div>
     </div>
     <footer class="review-footer">
