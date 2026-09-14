@@ -74,3 +74,4 @@ HeroUI `Typography`를 역할 층으로 쓰는 이유는 이 계약이 요구한
 - HeroUI Native 1.0.8과 1.0.9는 글자 확대 상한을 두지 않는다. Provider의 `config.textProps.maxFontSizeMultiplier`로 HeroUI 컴포넌트 전체에 상한을 걸 수 있고 문서 예시는 1.5다. 자체 상한은 Avatar 안의 글자(1.4)와 InputOTP(1.6)뿐이다. 이 설정은 저장소가 직접 쓰는 RN `Text`에는 미치지 않는다.
 
 - 글자 배율 강제 재생성을 제거한 뒤 iOS 최대 크기와 Android 200%에서 앱을 재시작해 주요 화면의 잘림·겹침이 없음을 확인했다. 토스트의 인라인 줄 높이에 배율을 미리 곱하면 React Native가 다시 곱해 글이 잘렸다. 인라인 줄 높이는 역할의 기준값을 넘기고 확대는 React Native에 맡긴다.
+- HeroUI 이전의 iOS 최대 크기·Android 200% 화면 검증과 접근성 노드 검사는 실제 VoiceOver·TalkBack 낭독 검증이 아니다. iOS 도구가 내보내지 않는 헤더 특성과 Android 펼침 상태는 테스트로만 확인했다. 상세한 검증 범위와 한계는 Git의 `c0fd302:docs/specs/heroui-alignment/tasks/`에 남는다. 업데이트 정보의 Android 접근성은 [후속 작업](../follow-ups/android-settings-update-accessibility.md)에서 확인한다.
