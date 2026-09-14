@@ -122,8 +122,8 @@ Android에서 Material 3 Expressive의 `LoadingIndicator`를 쓰지 않는 이�
 
 ## 보존할 근거
 
-- 아래 라이브러리 내부 동작은 `@expo/ui` 57.0.x, React Native 0.86, HeroUI Native 1.0.8에서 읽었다. 올린 뒤에는 다시 확인한다.
-- 설치된 HeroUI Native `1.0.8`의 `Button`은 별도 진행 중 속성이 없고 자식으로 `Spinner`를 조합한다. 버튼 기본 스타일은 높이와 가로 여백을 정하지만 너비는 정하지 않는다.
+- 아래 라이브러리 내부 동작은 `@expo/ui` 57.0.x, React Native 0.86, HeroUI Native 1.0.8에서 읽었고, 2026-09-14 1.0.9로 올린 뒤 HeroUI 부분을 다시 확인했다. 올린 뒤에는 다시 확인한다.
+- 설치된 HeroUI Native `1.0.9`의 `Button`은 별도 진행 중 속성이 없고 자식으로 `Spinner`를 조합한다. 버튼 기본 스타일은 높이와 가로 여백을 정하지만 너비는 정하지 않는다.
 - `@expo/ui`의 범용 `Button`은 `disabled`와 사용자 지정 자식을 지원하지만 진행 중 또는 `busy` 속성을 제공하지 않는다. `ButtonProps`는 `children`, `label`, `onPress`, `variant`만 선언하고 `disabled`는 `UniversalBaseProps`에서 온다.
 - 20px, 28px, 36px을 폰 너비의 빈 화면 중앙에 나란히 놓고 iOS 스포크와 Android 원호, 밝은 화면과 어두운 화면에서 비교했다. 20px은 옆에 설 글자가 없으면 배경에 묻힌다.
 - [Apple 진행 표시 지침](https://developer.apple.com/design/human-interface-guidelines/progress-indicators)은 진행 표시를 일관된 자리에 두라고 안내한다. 컨트롤 바로 옆에 두라는 문장은 macOS 절에 있으므로 iOS 규칙으로 인용하지 않는다.
@@ -145,6 +145,6 @@ Android에서 Material 3 Expressive의 `LoadingIndicator`를 쓰지 않는 이�
 - Expo의 `primaryColor` 설정은 `colorPrimary`만 정하고 `colorAccent`에 닿지 않는다(`@expo/config-plugins`의 `PrimaryColor.js`). `colorAccent`를 정하려면 `withAndroidStyles`로 config plugin을 직접 써야 한다.
 - [Expo 참조 저장소 색인](../references/expo-reference-repos.md)의 다섯 저장소 모두 `colorAccent`를 정하지 않는다. `ActivityIndicator`를 쓰는 clarity와 amber는 배경이 있는 컨트롤 안이면 대비색을 주고 화면 한가운데 뜨는 첫 로딩이면 색을 생략한다. clarity는 눈에 띄는 자리에 Lottie를 쓴다.
 - React Native Paper의 `ActivityIndicator`는 React Native의 것을 쓰지 않고 `Animated.View` 두 겹을 직접 돌리며 색을 `theme.colors.primary`에서 얻는다.
-- HeroUI Native 1.0.8의 `Spinner`는 react-native-svg로 mingcute 로딩 아이콘을 그리고 Reanimated로 1000ms 등속 회전한다. 크기는 sm 16, md 24, lg 32이고 기본색은 `accent`다. 링의 지름은 sm에서 14px이라 `ActivityIndicator`의 `small`이 그리는 15dp와 거의 같다.
+- HeroUI Native 1.0.9의 `Spinner`는 react-native-svg로 mingcute 로딩 아이콘을 그리고 Reanimated로 1000ms 등속 회전한다. 크기는 sm 16, md 24, lg 32이고 기본색은 `accent`다. 링의 지름은 sm에서 14px이라 `ActivityIndicator`의 `small`이 그리는 15dp와 거의 같다.
 - 진행 표시와 그것을 이어받는 표시를 트리의 같은 자리에 두면 React가 네이티브 뷰 하나를 고쳐 쓴다. Android는 이때 사라진 `busy`를 지우지 않는다. 아이디 확인 자리에서 확인이 끝난 뒤에도 화면 읽기가 `사용할 수 있는 아이디, busy`로 읽었고, 두 상태에 값을 적자 잔상이 사라졌다. 같은 전환에서 `accessibilityRole`은 정상으로 돌아왔으므로 `busy`만 이렇게 남는다. iOS에서는 이 잔상이 없었다.
 - 인증 코드 확인, 대화 불러오기, 진행 저장의 진행 표시는 1초 지연 뒤에 나타나는데 로컬 스택에서는 세 작업이 모두 1초 안에 끝난다. 이 세 자리는 로컬에서 화면으로 확인할 수 없다.

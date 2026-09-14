@@ -70,4 +70,4 @@ HeroUI `Typography`를 역할 층으로 쓰는 이유는 이 계약이 요구한
 
 - 2026-09-11 iOS 시뮬레이터에서 확인했다. `accessibility-extra-extra-extra-large`로 설정하고 앱을 완전히 닫고 다시 시작하면 HeroUI `TagGroup` 칩과 스토리 행이 손질 없이 온전히 그려진다. 같은 화면에서 앱을 연 채 `large`로 내리거나 다시 올리면 글자만 바뀌고 상자는 이전 크기에 남는다. 이전에 "고정 줄 높이 때문"으로 적었던 잘림은 이 경우였다.
 - React Native 0.86의 iOS `RCTAttributedTextUtils.mm`와 Android `TextAttributes.kt`는 `lineHeight`에 글자 배율을 곱한다. 고정 px 줄 높이는 잘림의 원인이 아니다.
-- HeroUI Native 1.0.8은 글자 확대 상한을 두지 않는다. Provider의 `config.textProps.maxFontSizeMultiplier`로 HeroUI 컴포넌트 전체에 상한을 걸 수 있고 문서 예시는 1.5다. 자체 상한은 Avatar 안의 글자(1.4)와 InputOTP(1.6)뿐이다. 이 설정은 저장소가 직접 쓰는 RN `Text`에는 미치지 않는다.
+- HeroUI Native 1.0.8과 1.0.9는 글자 확대 상한을 두지 않는다. Provider의 `config.textProps.maxFontSizeMultiplier`로 HeroUI 컴포넌트 전체에 상한을 걸 수 있고 문서 예시는 1.5다. 자체 상한은 Avatar 안의 글자(1.4)와 InputOTP(1.6)뿐이다. 이 설정은 저장소가 직접 쓰는 RN `Text`에는 미치지 않는다.

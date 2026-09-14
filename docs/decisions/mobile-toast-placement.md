@@ -31,4 +31,4 @@ HeroUI Native의 토스트는 화면 전체 위 별도 창에 그려지고 위�
 
 ## 보존할 근거
 
-- 설치된 HeroUI Native 1.0.8의 토스트 컨테이너는 iOS에서 `FullWindowOverlay`에 `absolute inset-0`으로 그려지고, 위쪽 여백은 전역 `insets` 설정 하나뿐이다. 토스트 하나에 다른 자리를 주는 속성은 없다.
+- 설치된 HeroUI Native 1.0.9의 토스트 컨테이너는(1.0.8에서 읽고 2026-09-14 올린 뒤 다시 확인했다) iOS에서 `FullWindowOverlay`에 `absolute inset-0`으로 그려지고, 위쪽 여백은 전역 `insets` 설정 하나뿐이다. 토스트 하나에 다른 자리를 주는 속성은 없다.
