@@ -283,11 +283,12 @@ app.onclick=e=>{const chip=e.target.closest('button[data-question]');if(chip){se
 [data-app="c"] .found.replay{animation:fade 2.8s ease-out both}
 @keyframes wash{0%,65%{background:color-mix(in srgb,var(--accent) 14%,var(--surface))}100%{background:var(--surface)}}
 @keyframes fade{0%,65%{opacity:1}100%{opacity:0}}
-@media(prefers-reduced-motion:reduce){[data-app] .selected.replay,[data-app] .selected.replay:after,[data-app] .found.replay{animation-duration:0s}}
+@media(prefers-reduced-motion:reduce){[data-app] .selected.replay,[data-app] .selected.replay:after,[data-app] .found.replay{animation:none}}
 </style><script>
 for(const app of document.querySelectorAll('[data-app]')) {app.querySelector('[data-action="goto"]').click();app.querySelector('.episode [data-action="back"]').hidden=true;app.querySelector('.found').innerHTML='노트에서 저장한 표현';}
 const replayButton=document.createElement('button');replayButton.textContent='강조 다시 보기';document.querySelector('.sh-bar').append(replayButton);
-function playHighlight(){for(const el of document.querySelectorAll('.selected,.found'))el.classList.remove('replay');requestAnimationFrame(()=>requestAnimationFrame(()=>{for(const el of document.querySelectorAll('.selected,.found'))el.classList.add('replay')}));}
+let highlightTimer;
+function playHighlight(){clearTimeout(highlightTimer);for(const el of document.querySelectorAll('.selected,.found'))el.classList.remove('replay');requestAnimationFrame(()=>requestAnimationFrame(()=>{for(const el of document.querySelectorAll('.selected,.found'))el.classList.add('replay');highlightTimer=setTimeout(()=>{for(const el of document.querySelectorAll('.selected,.found'))el.classList.remove('replay')},2800)}));}
 replayButton.onclick=playHighlight;document.querySelector('#sh-variant').addEventListener('change',playHighlight);playHighlight();
 </script><script>
 const sourceState = document.querySelector('#sh-state');
