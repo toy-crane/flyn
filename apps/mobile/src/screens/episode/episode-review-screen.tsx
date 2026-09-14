@@ -175,16 +175,20 @@ export function EpisodeReviewScreen({
             <Typography.Paragraph color="muted" type="body-xs">
               {hasNext ? "다음 이야기" : story.title}
             </Typography.Paragraph>
-            <Typography.Heading type="h6">
-              {hasNext
-                ? `${nextNumber}화 · ${nextUp.title}`
-                : "마지막 이야기까지 함께했어요"}
-            </Typography.Heading>
             {hasNext ? (
-              <Typography.Paragraph color="muted" type="body-sm">
-                {nextUp.copy}
+              <>
+                <Typography.Heading type="h6">
+                  {`${nextNumber}화 · ${nextUp.title}`}
+                </Typography.Heading>
+                <Typography.Paragraph color="muted" type="body-sm">
+                  {nextUp.copy}
+                </Typography.Paragraph>
+              </>
+            ) : (
+              <Typography.Paragraph weight="semibold">
+                마지막 이야기까지 함께했어요
               </Typography.Paragraph>
-            ) : null}
+            )}
           </ScrollView>
           <Button accessibilityLabel={action} onPress={onContinue}>
             {action}

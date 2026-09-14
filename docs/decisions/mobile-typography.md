@@ -23,7 +23,7 @@
 | 캡션, 메타, 출처, 채널 라벨, 인물 이름표 | `Paragraph` `body-xs` | 강조는 `weight`, 색은 className |
 | 버튼, 칩, 목록 행의 제목과 설명, 입력 오류(`FieldError`) | HeroUI 컴포넌트가 소유 | 앱이 지정하지 않는다 |
 
-- 본문 계열은 `Typography.Paragraph`, 제목 계열은 `Typography.Heading`으로 쓴다. 루트 `Typography`는 `dynamicTypeRamp`를 붙이지 않으므로 직접 쓰지 않는다. 헤더가 아닌 줄의 강조(장면 서술의 첫 줄, 대사 뜻 카드의 뜻, 결말 카드의 작은 머리말)는 본문 계열 type에 `weight`를 더해 그린다.
+- 본문 계열은 `Typography.Paragraph`, 제목 계열은 `Typography.Heading`으로 쓴다. 루트 `Typography`는 `dynamicTypeRamp`를 붙이지 않으므로 직접 쓰지 않는다. 헤더가 아닌 줄의 강조(장면 서술의 첫 줄, 대사 뜻 카드의 뜻, 결말 카드의 작은 머리말, 표현 돌아보기의 회차 줄과 마지막 화 인사)는 본문 계열 type에 `weight`를 더해 그린다.
 - 부분 강조가 필요한 문장은 `Paragraph`나 `Heading` 안에 RN `Text`를 중첩한다. 중첩 `Text`에는 색과 배경 클래스만 두고 크기와 굵기 클래스를 두지 않는다. 강조 굵기는 바깥 `weight`가 정한다.
 - 글자를 className으로 받지 못하고 숫자만 받는 네이티브 렌더러(AI 답변 Markdown)에는 대응표 type의 크기와 행간을 숫자로 넘긴다. 이 자리만 인라인 숫자의 예외다.
 - 확대 상한을 둔 크롬(토스트, 제공자 로그인 버튼)은 상한 계산 때문에 인라인 줄 높이나 크기를 가질 수 있다. 그 자리는 대응표의 값을 숫자의 기준으로 쓴다.
