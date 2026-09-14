@@ -145,9 +145,9 @@ export function UtteranceMeaningSource({
       >
         {source.text}
       </Typography.Paragraph>
-      <Typography.Heading selectable={false} type="h6">
+      <Typography.Paragraph selectable={false} weight="semibold">
         {source.meaning}
-      </Typography.Heading>
+      </Typography.Paragraph>
     </View>
   );
 }
