@@ -12,8 +12,8 @@ None.
 
 ## Acceptance criteria
 
-- [ ] 인증, 온보딩, 세션 화면 폴더에 `text-[Npx]`, `leading-[Npx]`가 없고, `Text`에 `text-*`(색 제외), `leading-*`, `font-*` 클래스가 없다. 제공자 로그인 버튼의 인라인 크기는 계약의 예외다.
-- [ ] 쓰인 `Typography` `type`이 모두 [모바일 타이포그래피](../../../decisions/mobile-typography.md) 대응표에 있고, 본문 계열은 `Paragraph`, 제목 계열은 `Heading`이다.
+- [x] 인증, 온보딩, 세션 화면 폴더에 `text-[Npx]`, `leading-[Npx]`가 없고, `Text`에 `text-*`(색 제외), `leading-*`, `font-*` 클래스가 없다. 제공자 로그인 버튼의 인라인 크기는 계약의 예외다.
+- [x] 쓰인 `Typography` `type`이 모두 [모바일 타이포그래피](../../../decisions/mobile-typography.md) 대응표에 있고, 본문 계열은 `Paragraph`, 제목 계열은 `Heading`이다.
 - [ ] 화면 안 제목이 접근성 트리에서 헤더 역할이다.
 - [ ] 다섯 인증·온보딩 화면과 세션 안내 화면 두 개(프로필을 불러오지 못한 화면, 설정이 필요한 화면)를 계약의 절차로 기본 크기와 최대 글자 크기, 밝은 화면과 어두운 화면으로 열어 잘림과 겹침이 없다.
 
@@ -37,10 +37,10 @@ None.
 
 ## Status
 
-in-progress
+blocked
 
 ## Execution
 
-- Verification: —
-- Blocker: —
-- Revision: —
+- Verification: 코드 기준은 통과했다. 세 폴더 grep은 테스트 주석 한 줄 말고 0건이고, `bun run check`, `check-types`, 모바일 테스트 93개 묶음 682개가 통과했다. 헤더 역할은 jest의 `getByRole("header")`와 `text__root--type-h3` 검사로만 확인했다. `mobile-ui-consistency-reviewer`(범위 `259225d..237ec54`)는 PASS_WITH_GAPS다. 고칠 것은 없고, 제공자 로그인 버튼의 줄 높이 24와 `adjustsFontSizeToFit` 조합, 일곱 화면의 크기·모드 확인, 기기 접근성 트리를 UNVERIFIED로 남겼다. 기기 확인은 아래 막힘 때문에 시작하지 않았다.
+- Blocker: HeroUI Native 1.0.8의 `Typography`는 굵기를 `font-family: var(--font-semibold)`처럼 글꼴 변수로만 준다. 앱은 계약대로 커스텀 폰트와 `--font-*` 변수를 두지 않으므로, Metro가 컴파일한 global.css에서 `text__root--type-h3`, `--type-h6`, `--weight-semibold`의 `fontFamily`가 정의되지 않은 변수를 읽고 `fontWeight`는 없다(`"--font-semibold":` 정의 0건). 그래서 `Heading`과 `weight`가 모두 보통 굵기로 그려진다. 2026-09-14 iOS 표현 돌아보기에서 `기억해 둘 표현`(h6)과 회차 줄(semibold)이 보통 굵기이고, 아직 크기 클래스를 쓰는 카드 문장만 굵게 보였다. 인증 제목은 30 bold에서 24 semibold가 아니라 24 보통 굵기가 된다. 대응표의 굵기 위계와 "Typography는 type마다 굵기를 정한다"는 계약 전제가 이 버전에서 성립하지 않는다. 1.0.9(2026-08-31)는 같은 자리를 `@apply font-semibold`로 바꿔 시스템 폰트에 숫자 굵기를 준다. 고치는 길(1.0.9로 올리기, global.css 세 번째 재정의, 보통 굵기 수용)이 모두 스펙의 재정의 둘 기준이나 1.0.8을 근거로 둔 계약을 바꾸므로 사용자 결정을 기다린다.
+- Revision: 대응표에 세션 오류 화면을 화면 안 제목 행의 예로 더했다(ef5dc3b).
