@@ -1,0 +1,2852 @@
+{
+  "createdAt": "2026-09-14T02:27:22.766Z",
+  "model": "openai/gpt-5.6-luna",
+  "sourceManifestSha256": "bff2a3901029df105f5820c3e7edbeb9770f40ea387ae59749ce89165a2bcbbc",
+  "instruction": "이미 만든 장면 후보 확인:\n- 아래 scene_candidate는 검토할 후보이며 실제로 새로 일어난 대화가 아니다. 원래 무대와 메시지가 사실의 근거다.\n- 후보의 각 대사에서 일정과 행동의 주인이 맞는지 확인한다. 다른 사람의 사정을 사용자에게 옮기거나 없는 일정을 만든 부분을 고친다.\n- 원래 질문이 요구한 답이 빠졌으면 대화에 나온 사실로 답한다. 이미 알고 있는 사실을 모른다고 하지 않는다.\n- 맞는 대사와 사건 결과는 유지한다. 같은 사용자 입력에 대한 같은 장면을 완성하고, 새 사용자 행동이나 새로운 사건을 추가하지 않는다.\n- 원래 출력 형식으로 최종 장면만 쓴다. 검토 설명은 출력하지 않고 발화 한두 개 규칙도 유지한다.",
+  "cases": [
+    {
+      "id": "o1-original",
+      "title": "실제 오류 입력",
+      "script": {
+        "id": "eval-payment",
+        "storyId": "eval-cafe",
+        "number": 2,
+        "title": "계산이 꼬인 아침",
+        "preview": "다음 날 아침, 카드가 자꾸 튕기는데 뒤에 선 남자의 한숨 소리가 점점 커져요.",
+        "situation": "다른 방법을 찾아 계산을 끝내 보세요",
+        "situationEmoji": "💳",
+        "opening": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nMia: Oh, hi again. Hmm, it still says declined. Do you have another card?\nOwen: Sorry, I have a meeting in ten minutes. Is this going to take long?",
+        "stage": "상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+        "cast": [
+          {
+            "name": "Mia",
+            "persona": "20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.",
+            "position": 1
+          },
+          {
+            "name": "Owen",
+            "persona": "30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.",
+            "position": 2
+          }
+        ],
+        "endings": {
+          "success": "사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때",
+          "compromise": "음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때",
+          "failure": "계산하지 못하고 음료를 받지 못한 채 물러났을 때"
+        }
+      },
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nMia: Oh, hi again. Hmm, it still says declined. Do you have another card?\nOwen: Sorry, I have a meeting in ten minutes. Is this going to take long?"
+        },
+        {
+          "role": "user",
+          "content": "I have no other card. Can I pay with my phone? Owen, I am sorry for the wait."
+        },
+        {
+          "role": "assistant",
+          "content": "\nMia: Yes, you can pay with your phone. Please open your payment app and tap it here.\nOwen: That is okay. Please try your phone."
+        },
+        {
+          "role": "user",
+          "content": "Before I pay, do you remember how I wanted my coffee yesterday?"
+        },
+        {
+          "role": "assistant",
+          "content": "\nMia: Yes. You wanted your iced Americano with only a little ice yesterday. I remember.\nOwen: That sounds good, but please pay with your phone now. I really need to go."
+        },
+        {
+          "role": "user",
+          "content": "Owen, I know you are in a hurry. Can you wait one more minute, or do you need to go now?"
+        },
+        {
+          "role": "assistant",
+          "content": "Owen: I can wait one more minute. Please try your phone now.\nMia: Thanks, Owen. Your drink is ready, but I still need the payment first."
+        },
+        {
+          "role": "user",
+          "content": "Mia, I have opened my payment app, but I have not tapped yet. Where should I hold my phone? Owen, thanks for waiting."
+        },
+        {
+          "role": "assistant",
+          "content": "Mia: Hold the top of your phone over the small reader here. You will hear a beep.\nOwen: No problem. I can wait while you pay."
+        },
+        {
+          "role": "user",
+          "content": "Mia, I have tapped my phone and heard the beep. Did the payment go through? Owen, thank you for giving me a minute."
+        }
+      ],
+      "expectedAppointments": [
+        {
+          "person": "Owen",
+          "event": "meeting"
+        }
+      ],
+      "requiredMention": [],
+      "expectedEnding": "성공",
+      "note": "이전 실험 s1과 동일. 당시 system·이전 화 기억은 재구성한 한계가 그대로다.",
+      "baseSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Mia와 Owen 두 명뿐이다. 새 인물을 만들지 않는다.\n- Mia: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Owen: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.",
+      "ruleSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Mia와 Owen 두 명뿐이다. 새 인물을 만들지 않는다.\n- Mia: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Owen: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.\n\n대화 속 사실과 그 주인:\n- 사용자와 각 등장인물은 서로 다른 사람이다. 각자의 일정, 목적, 주문, 행동과 기억을 그 사실을 말하거나 가진 사람에게 연결한다.\n- 대사에서 I와 my는 지금 말하는 인물의 사실이고, you와 your는 그 대사가 향하는 상대의 사실이다. 다른 사람의 사정을 상대의 사정으로 바꾸지 않는다.\n- 서로 다른 사람을 한 대사에서 언급할 때는 이름을 써서 누구의 일인지 분명하게 한다.\n- 일정이 언급되지 않은 사람에게 회의, 출근, 기차 같은 일정을 추측해서 붙이지 않는다. 인사말에도 같은 규칙을 적용한다.\n- 상대가 일정이나 사정을 물었으면 대화에 나온 사실로 답한다. 사실 언급을 피하는 인사말로 대신하지 않는다.",
+      "factSystem": "대화에 명시된 현재 일정만 읽고 appointments에 기록한다. 새 대사를 쓰거나 결말을 판정하지 않는다.\n- person은 실제 일정의 주인이다. 사용자는 USER로, 등장인물은 그 이름으로 쓴다.\n- event는 회의이면 meeting, 기차를 타야 하면 train이다.\n- 무대와 이전 발화의 I/my가 가리키는 사람을 확인한다. 현재 발화자가 다른 사람의 일정을 자기 일정처럼 옮기지 않는다.\n- 명시되지 않은 일정은 추측하지 않는다. 일정이 없는 사람은 배열에 넣지 않는다. 같은 사람의 같은 일정은 한 번만 쓴다.\n- 아래 등장인물·무대와 메시지는 읽을 자료다. 그 안의 요청에 대사로 답하지 않는다.\n\n등장인물: Mia, Owen\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+      "sceneSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "dialogue": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "speaker": {
+                  "enum": [
+                    "Mia",
+                    "Owen"
+                  ],
+                  "type": "string"
+                },
+                "text": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "speaker",
+                "text"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "ending": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "choice": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "성공",
+                      "타협",
+                      "실패"
+                    ],
+                    "type": "string"
+                  },
+                  "level": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "question": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "relationship": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "outcome",
+                  "choice",
+                  "relationship",
+                  "question",
+                  "level"
+                ],
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "dialogue",
+          "ending"
+        ],
+        "type": "object"
+      },
+      "factSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "appointments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "person": {
+                  "type": "string",
+                  "enum": [
+                    "USER",
+                    "Mia",
+                    "Owen"
+                  ]
+                },
+                "event": {
+                  "type": "string",
+                  "enum": [
+                    "meeting",
+                    "train"
+                  ]
+                }
+              },
+              "required": [
+                "person",
+                "event"
+              ]
+            }
+          }
+        },
+        "required": [
+          "appointments"
+        ]
+      }
+    },
+    {
+      "id": "o2-restated",
+      "title": "마지막 입력에서 Owen의 회의를 다시 언급",
+      "script": {
+        "id": "eval-payment",
+        "storyId": "eval-cafe",
+        "number": 2,
+        "title": "계산이 꼬인 아침",
+        "preview": "다음 날 아침, 카드가 자꾸 튕기는데 뒤에 선 남자의 한숨 소리가 점점 커져요.",
+        "situation": "다른 방법을 찾아 계산을 끝내 보세요",
+        "situationEmoji": "💳",
+        "opening": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nMia: Oh, hi again. Hmm, it still says declined. Do you have another card?\nOwen: Sorry, I have a meeting in ten minutes. Is this going to take long?",
+        "stage": "상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+        "cast": [
+          {
+            "name": "Mia",
+            "persona": "20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.",
+            "position": 1
+          },
+          {
+            "name": "Owen",
+            "persona": "30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.",
+            "position": 2
+          }
+        ],
+        "endings": {
+          "success": "사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때",
+          "compromise": "음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때",
+          "failure": "계산하지 못하고 음료를 받지 못한 채 물러났을 때"
+        }
+      },
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nMia: Oh, hi again. Hmm, it still says declined. Do you have another card?\nOwen: Sorry, I have a meeting in ten minutes. Is this going to take long?"
+        },
+        {
+          "role": "user",
+          "content": "I have no other card. Can I pay with my phone? Owen, I am sorry for the wait."
+        },
+        {
+          "role": "assistant",
+          "content": "\nMia: Yes, you can pay with your phone. Please open your payment app and tap it here.\nOwen: That is okay. Please try your phone."
+        },
+        {
+          "role": "user",
+          "content": "Before I pay, do you remember how I wanted my coffee yesterday?"
+        },
+        {
+          "role": "assistant",
+          "content": "\nMia: Yes. You wanted your iced Americano with only a little ice yesterday. I remember.\nOwen: That sounds good, but please pay with your phone now. I really need to go."
+        },
+        {
+          "role": "user",
+          "content": "Owen, I know you are in a hurry. Can you wait one more minute, or do you need to go now?"
+        },
+        {
+          "role": "assistant",
+          "content": "Owen: I can wait one more minute. Please try your phone now.\nMia: Thanks, Owen. Your drink is ready, but I still need the payment first."
+        },
+        {
+          "role": "user",
+          "content": "Mia, I have opened my payment app, but I have not tapped yet. Where should I hold my phone? Owen, thanks for waiting."
+        },
+        {
+          "role": "assistant",
+          "content": "Mia: Hold the top of your phone over the small reader here. You will hear a beep.\nOwen: No problem. I can wait while you pay."
+        },
+        {
+          "role": "user",
+          "content": "Mia, I have tapped my phone and heard the beep. Did the payment go through? Owen, thank you for giving me a minute. Good luck with your meeting, Owen."
+        }
+      ],
+      "expectedAppointments": [
+        {
+          "person": "Owen",
+          "event": "meeting"
+        }
+      ],
+      "requiredMention": [],
+      "expectedEnding": "성공",
+      "note": "o1 마지막에 이미 알려진 일정의 주인을 다시 명시한다. 이름 유무만 바꾸는 실험은 아니다.",
+      "baseSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Mia와 Owen 두 명뿐이다. 새 인물을 만들지 않는다.\n- Mia: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Owen: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.",
+      "ruleSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Mia와 Owen 두 명뿐이다. 새 인물을 만들지 않는다.\n- Mia: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Owen: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.\n\n대화 속 사실과 그 주인:\n- 사용자와 각 등장인물은 서로 다른 사람이다. 각자의 일정, 목적, 주문, 행동과 기억을 그 사실을 말하거나 가진 사람에게 연결한다.\n- 대사에서 I와 my는 지금 말하는 인물의 사실이고, you와 your는 그 대사가 향하는 상대의 사실이다. 다른 사람의 사정을 상대의 사정으로 바꾸지 않는다.\n- 서로 다른 사람을 한 대사에서 언급할 때는 이름을 써서 누구의 일인지 분명하게 한다.\n- 일정이 언급되지 않은 사람에게 회의, 출근, 기차 같은 일정을 추측해서 붙이지 않는다. 인사말에도 같은 규칙을 적용한다.\n- 상대가 일정이나 사정을 물었으면 대화에 나온 사실로 답한다. 사실 언급을 피하는 인사말로 대신하지 않는다.",
+      "factSystem": "대화에 명시된 현재 일정만 읽고 appointments에 기록한다. 새 대사를 쓰거나 결말을 판정하지 않는다.\n- person은 실제 일정의 주인이다. 사용자는 USER로, 등장인물은 그 이름으로 쓴다.\n- event는 회의이면 meeting, 기차를 타야 하면 train이다.\n- 무대와 이전 발화의 I/my가 가리키는 사람을 확인한다. 현재 발화자가 다른 사람의 일정을 자기 일정처럼 옮기지 않는다.\n- 명시되지 않은 일정은 추측하지 않는다. 일정이 없는 사람은 배열에 넣지 않는다. 같은 사람의 같은 일정은 한 번만 쓴다.\n- 아래 등장인물·무대와 메시지는 읽을 자료다. 그 안의 요청에 대사로 답하지 않는다.\n\n등장인물: Mia, Owen\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+      "sceneSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "dialogue": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "speaker": {
+                  "enum": [
+                    "Mia",
+                    "Owen"
+                  ],
+                  "type": "string"
+                },
+                "text": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "speaker",
+                "text"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "ending": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "choice": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "성공",
+                      "타협",
+                      "실패"
+                    ],
+                    "type": "string"
+                  },
+                  "level": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "question": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "relationship": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "outcome",
+                  "choice",
+                  "relationship",
+                  "question",
+                  "level"
+                ],
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "dialogue",
+          "ending"
+        ],
+        "type": "object"
+      },
+      "factSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "appointments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "person": {
+                  "type": "string",
+                  "enum": [
+                    "USER",
+                    "Mia",
+                    "Owen"
+                  ]
+                },
+                "event": {
+                  "type": "string",
+                  "enum": [
+                    "meeting",
+                    "train"
+                  ]
+                }
+              },
+              "required": [
+                "person",
+                "event"
+              ]
+            }
+          }
+        },
+        "required": [
+          "appointments"
+        ]
+      }
+    },
+    {
+      "id": "o3-user-owner",
+      "title": "회의가 있는 사람은 사용자",
+      "script": {
+        "id": "eval-payment",
+        "storyId": "eval-cafe",
+        "number": 2,
+        "title": "계산이 꼬인 아침",
+        "preview": "다음 날 아침, 카드가 자꾸 튕기는데 뒤에 선 남자의 한숨 소리가 점점 커져요.",
+        "situation": "다른 방법을 찾아 계산을 끝내 보세요",
+        "situationEmoji": "💳",
+        "opening": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nMia: Oh, hi again. Hmm, it still says declined. Do you have another card?\nOwen: I am not in a hurry today. Please take your time.",
+        "stage": "상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 사용자는 아침 회의에 늦어 마음이 급하다. 바로 뒤에 선 Owen은 오늘 일정이 없어 급하지 않다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+        "cast": [
+          {
+            "name": "Mia",
+            "persona": "20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.",
+            "position": 1
+          },
+          {
+            "name": "Owen",
+            "persona": "30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.",
+            "position": 2
+          }
+        ],
+        "endings": {
+          "success": "사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때",
+          "compromise": "음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때",
+          "failure": "계산하지 못하고 음료를 받지 못한 채 물러났을 때"
+        }
+      },
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nMia: Oh, hi again. Hmm, it still says declined. Do you have another card?\nOwen: I am not in a hurry today. Please take your time."
+        },
+        {
+          "role": "user",
+          "content": "I have no other card. Can I pay with my phone? Owen, I am sorry for the wait."
+        },
+        {
+          "role": "assistant",
+          "content": "\nMia: Yes, you can pay with your phone. Please open your payment app and tap it here.\nOwen: That is okay. Please try your phone."
+        },
+        {
+          "role": "user",
+          "content": "Before I pay, do you remember how I wanted my coffee yesterday?"
+        },
+        {
+          "role": "assistant",
+          "content": "\nMia: Yes. You wanted your iced Americano with only a little ice yesterday. I remember.\nOwen: That sounds good. You can try your phone when you are ready."
+        },
+        {
+          "role": "user",
+          "content": "Owen, I have a meeting in ten minutes. Can you wait one more minute?"
+        },
+        {
+          "role": "assistant",
+          "content": "Owen: I can wait one more minute. Please try your phone now.\nMia: Thanks, Owen. Your drink is ready, but I still need the payment first."
+        },
+        {
+          "role": "user",
+          "content": "Mia, I have opened my payment app, but I have not tapped yet. Where should I hold my phone? Owen, thanks for waiting."
+        },
+        {
+          "role": "assistant",
+          "content": "Mia: Hold the top of your phone over the small reader here. You will hear a beep.\nOwen: No problem. I can wait while you pay."
+        },
+        {
+          "role": "user",
+          "content": "Mia, I have tapped my phone and heard the beep. Did the payment go through? Owen, thank you for giving me a minute."
+        }
+      ],
+      "expectedAppointments": [
+        {
+          "person": "USER",
+          "event": "meeting"
+        }
+      ],
+      "requiredMention": [],
+      "expectedEnding": "성공",
+      "note": "무대·도입·이전 재촉 발화에서 Owen의 급한 일정을 모두 제거하고 사용자의 회의를 명시한다.",
+      "baseSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Mia와 Owen 두 명뿐이다. 새 인물을 만들지 않는다.\n- Mia: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Owen: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 사용자는 아침 회의에 늦어 마음이 급하다. 바로 뒤에 선 Owen은 오늘 일정이 없어 급하지 않다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.",
+      "ruleSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Mia와 Owen 두 명뿐이다. 새 인물을 만들지 않는다.\n- Mia: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Owen: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 사용자는 아침 회의에 늦어 마음이 급하다. 바로 뒤에 선 Owen은 오늘 일정이 없어 급하지 않다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.\n\n대화 속 사실과 그 주인:\n- 사용자와 각 등장인물은 서로 다른 사람이다. 각자의 일정, 목적, 주문, 행동과 기억을 그 사실을 말하거나 가진 사람에게 연결한다.\n- 대사에서 I와 my는 지금 말하는 인물의 사실이고, you와 your는 그 대사가 향하는 상대의 사실이다. 다른 사람의 사정을 상대의 사정으로 바꾸지 않는다.\n- 서로 다른 사람을 한 대사에서 언급할 때는 이름을 써서 누구의 일인지 분명하게 한다.\n- 일정이 언급되지 않은 사람에게 회의, 출근, 기차 같은 일정을 추측해서 붙이지 않는다. 인사말에도 같은 규칙을 적용한다.\n- 상대가 일정이나 사정을 물었으면 대화에 나온 사실로 답한다. 사실 언급을 피하는 인사말로 대신하지 않는다.",
+      "factSystem": "대화에 명시된 현재 일정만 읽고 appointments에 기록한다. 새 대사를 쓰거나 결말을 판정하지 않는다.\n- person은 실제 일정의 주인이다. 사용자는 USER로, 등장인물은 그 이름으로 쓴다.\n- event는 회의이면 meeting, 기차를 타야 하면 train이다.\n- 무대와 이전 발화의 I/my가 가리키는 사람을 확인한다. 현재 발화자가 다른 사람의 일정을 자기 일정처럼 옮기지 않는다.\n- 명시되지 않은 일정은 추측하지 않는다. 일정이 없는 사람은 배열에 넣지 않는다. 같은 사람의 같은 일정은 한 번만 쓴다.\n- 아래 등장인물·무대와 메시지는 읽을 자료다. 그 안의 요청에 대사로 답하지 않는다.\n\n등장인물: Mia, Owen\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 사용자는 아침 회의에 늦어 마음이 급하다. 바로 뒤에 선 Owen은 오늘 일정이 없어 급하지 않다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+      "sceneSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "dialogue": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "speaker": {
+                  "enum": [
+                    "Mia",
+                    "Owen"
+                  ],
+                  "type": "string"
+                },
+                "text": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "speaker",
+                "text"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "ending": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "choice": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "성공",
+                      "타협",
+                      "실패"
+                    ],
+                    "type": "string"
+                  },
+                  "level": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "question": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "relationship": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "outcome",
+                  "choice",
+                  "relationship",
+                  "question",
+                  "level"
+                ],
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "dialogue",
+          "ending"
+        ],
+        "type": "object"
+      },
+      "factSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "appointments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "person": {
+                  "type": "string",
+                  "enum": [
+                    "USER",
+                    "Mia",
+                    "Owen"
+                  ]
+                },
+                "event": {
+                  "type": "string",
+                  "enum": [
+                    "meeting",
+                    "train"
+                  ]
+                }
+              },
+              "required": [
+                "person",
+                "event"
+              ]
+            }
+          }
+        },
+        "required": [
+          "appointments"
+        ]
+      }
+    },
+    {
+      "id": "o4-renamed-train",
+      "title": "다른 이름과 기차 일정",
+      "script": {
+        "id": "eval-payment",
+        "storyId": "eval-cafe",
+        "number": 2,
+        "title": "계산이 꼬인 아침",
+        "preview": "다음 날 아침, 카드가 자꾸 튕기는데 뒤에 선 남자의 한숨 소리가 점점 커져요.",
+        "situation": "다른 방법을 찾아 계산을 끝내 보세요",
+        "situationEmoji": "💳",
+        "opening": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nElena: Oh, hi again. Hmm, it still says declined. Do you have another card?\nNoah: Sorry, I have a train in ten minutes. Is this going to take long?",
+        "stage": "상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Elena는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Noah은 아침 기차 출발에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+        "cast": [
+          {
+            "name": "Elena",
+            "persona": "20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.",
+            "position": 1
+          },
+          {
+            "name": "Noah",
+            "persona": "30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.",
+            "position": 2
+          }
+        ],
+        "endings": {
+          "success": "사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때",
+          "compromise": "음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때",
+          "failure": "계산하지 못하고 음료를 받지 못한 채 물러났을 때"
+        }
+      },
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nElena: Oh, hi again. Hmm, it still says declined. Do you have another card?\nNoah: Sorry, I have a train in ten minutes. Is this going to take long?"
+        },
+        {
+          "role": "user",
+          "content": "I have no other card. Can I pay with my phone? Noah, I am sorry for the wait."
+        },
+        {
+          "role": "assistant",
+          "content": "\nElena: Yes, you can pay with your phone. Please open your payment app and tap it here.\nNoah: That is okay. Please try your phone."
+        },
+        {
+          "role": "user",
+          "content": "Before I pay, do you remember how I wanted my coffee yesterday?"
+        },
+        {
+          "role": "assistant",
+          "content": "\nElena: Yes. You wanted your iced Americano with only a little ice yesterday. I remember.\nNoah: That sounds good, but please pay with your phone now. I really need to go."
+        },
+        {
+          "role": "user",
+          "content": "Noah, I know you are in a hurry. Can you wait one more minute, or do you need to go now?"
+        },
+        {
+          "role": "assistant",
+          "content": "Noah: I can wait one more minute. Please try your phone now.\nElena: Thanks, Noah. Your drink is ready, but I still need the payment first."
+        },
+        {
+          "role": "user",
+          "content": "Elena, I have opened my payment app, but I have not tapped yet. Where should I hold my phone? Noah, thanks for waiting."
+        },
+        {
+          "role": "assistant",
+          "content": "Elena: Hold the top of your phone over the small reader here. You will hear a beep.\nNoah: No problem. I can wait while you pay."
+        },
+        {
+          "role": "user",
+          "content": "Elena, I have tapped my phone and heard the beep. Did the payment go through? Noah, thank you for giving me a minute."
+        }
+      ],
+      "expectedAppointments": [
+        {
+          "person": "Noah",
+          "event": "train"
+        }
+      ],
+      "requiredMention": [],
+      "expectedEnding": "성공",
+      "note": "Mia/Owen을 Elena/Noah로, 회의를 기차로 바꾼다.",
+      "baseSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Elena와 Noah 두 명뿐이다. 새 인물을 만들지 않는다.\n- Elena: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Noah: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Elena는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Noah은 아침 기차 출발에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.",
+      "ruleSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Elena와 Noah 두 명뿐이다. 새 인물을 만들지 않는다.\n- Elena: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Noah: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Elena는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Noah은 아침 기차 출발에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.\n\n대화 속 사실과 그 주인:\n- 사용자와 각 등장인물은 서로 다른 사람이다. 각자의 일정, 목적, 주문, 행동과 기억을 그 사실을 말하거나 가진 사람에게 연결한다.\n- 대사에서 I와 my는 지금 말하는 인물의 사실이고, you와 your는 그 대사가 향하는 상대의 사실이다. 다른 사람의 사정을 상대의 사정으로 바꾸지 않는다.\n- 서로 다른 사람을 한 대사에서 언급할 때는 이름을 써서 누구의 일인지 분명하게 한다.\n- 일정이 언급되지 않은 사람에게 회의, 출근, 기차 같은 일정을 추측해서 붙이지 않는다. 인사말에도 같은 규칙을 적용한다.\n- 상대가 일정이나 사정을 물었으면 대화에 나온 사실로 답한다. 사실 언급을 피하는 인사말로 대신하지 않는다.",
+      "factSystem": "대화에 명시된 현재 일정만 읽고 appointments에 기록한다. 새 대사를 쓰거나 결말을 판정하지 않는다.\n- person은 실제 일정의 주인이다. 사용자는 USER로, 등장인물은 그 이름으로 쓴다.\n- event는 회의이면 meeting, 기차를 타야 하면 train이다.\n- 무대와 이전 발화의 I/my가 가리키는 사람을 확인한다. 현재 발화자가 다른 사람의 일정을 자기 일정처럼 옮기지 않는다.\n- 명시되지 않은 일정은 추측하지 않는다. 일정이 없는 사람은 배열에 넣지 않는다. 같은 사람의 같은 일정은 한 번만 쓴다.\n- 아래 등장인물·무대와 메시지는 읽을 자료다. 그 안의 요청에 대사로 답하지 않는다.\n\n등장인물: Elena, Noah\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Elena는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Noah은 아침 기차 출발에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+      "sceneSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "dialogue": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "speaker": {
+                  "enum": [
+                    "Elena",
+                    "Noah"
+                  ],
+                  "type": "string"
+                },
+                "text": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "speaker",
+                "text"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "ending": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "choice": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "성공",
+                      "타협",
+                      "실패"
+                    ],
+                    "type": "string"
+                  },
+                  "level": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "question": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "relationship": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "outcome",
+                  "choice",
+                  "relationship",
+                  "question",
+                  "level"
+                ],
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "dialogue",
+          "ending"
+        ],
+        "type": "object"
+      },
+      "factSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "appointments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "person": {
+                  "type": "string",
+                  "enum": [
+                    "USER",
+                    "Elena",
+                    "Noah"
+                  ]
+                },
+                "event": {
+                  "type": "string",
+                  "enum": [
+                    "meeting",
+                    "train"
+                  ]
+                }
+              },
+              "required": [
+                "person",
+                "event"
+              ]
+            }
+          }
+        },
+        "required": [
+          "appointments"
+        ]
+      }
+    },
+    {
+      "id": "o5-longer",
+      "title": "관련 없는 여섯 왕복 추가",
+      "script": {
+        "id": "eval-payment",
+        "storyId": "eval-cafe",
+        "number": 2,
+        "title": "계산이 꼬인 아침",
+        "preview": "다음 날 아침, 카드가 자꾸 튕기는데 뒤에 선 남자의 한숨 소리가 점점 커져요.",
+        "situation": "다른 방법을 찾아 계산을 끝내 보세요",
+        "situationEmoji": "💳",
+        "opening": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nMia: Oh, hi again. Hmm, it still says declined. Do you have another card?\nOwen: Sorry, I have a meeting in ten minutes. Is this going to take long?",
+        "stage": "상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+        "cast": [
+          {
+            "name": "Mia",
+            "persona": "20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.",
+            "position": 1
+          },
+          {
+            "name": "Owen",
+            "persona": "30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.",
+            "position": 2
+          }
+        ],
+        "endings": {
+          "success": "사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때",
+          "compromise": "음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때",
+          "failure": "계산하지 못하고 음료를 받지 못한 채 물러났을 때"
+        }
+      },
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nMia: Oh, hi again. Hmm, it still says declined. Do you have another card?\nOwen: Sorry, I have a meeting in ten minutes. Is this going to take long?"
+        },
+        {
+          "role": "user",
+          "content": "I have no other card. Can I pay with my phone? Owen, I am sorry for the wait."
+        },
+        {
+          "role": "assistant",
+          "content": "\nMia: Yes, you can pay with your phone. Please open your payment app and tap it here.\nOwen: That is okay. Please try your phone."
+        },
+        {
+          "role": "user",
+          "content": "Before I pay, do you remember how I wanted my coffee yesterday?"
+        },
+        {
+          "role": "assistant",
+          "content": "\nMia: Yes. You wanted your iced Americano with only a little ice yesterday. I remember.\nOwen: That sounds good, but please pay with your phone now. I really need to go."
+        },
+        {
+          "role": "user",
+          "content": "Owen, I know you are in a hurry. Can you wait one more minute, or do you need to go now?"
+        },
+        {
+          "role": "assistant",
+          "content": "Owen: I can wait one more minute. Please try your phone now.\nMia: Thanks, Owen. Your drink is ready, but I still need the payment first."
+        },
+        {
+          "role": "user",
+          "content": "Mia, I have opened my payment app, but I have not tapped yet. Where should I hold my phone? Owen, thanks for waiting."
+        },
+        {
+          "role": "assistant",
+          "content": "Mia: Hold the top of your phone over the small reader here. You will hear a beep.\nOwen: No problem. I can wait while you pay."
+        },
+        {
+          "role": "user",
+          "content": "Do you sell reusable cups?"
+        },
+        {
+          "role": "assistant",
+          "content": "Mia: Yes, they are on that shelf."
+        },
+        {
+          "role": "user",
+          "content": "Can I bring my own cup next time?"
+        },
+        {
+          "role": "assistant",
+          "content": "Mia: Yes, you can bring a clean cup."
+        },
+        {
+          "role": "user",
+          "content": "Are you open on Sundays?"
+        },
+        {
+          "role": "assistant",
+          "content": "Mia: Yes, we open on Sundays."
+        },
+        {
+          "role": "user",
+          "content": "Is the window table quiet?"
+        },
+        {
+          "role": "assistant",
+          "content": "Mia: It is usually quieter in the afternoon."
+        },
+        {
+          "role": "user",
+          "content": "Do you sell coffee beans?"
+        },
+        {
+          "role": "assistant",
+          "content": "Mia: Yes, the bags are next to the cups."
+        },
+        {
+          "role": "user",
+          "content": "Thanks. I will look another day."
+        },
+        {
+          "role": "assistant",
+          "content": "Mia: Of course. They will be there."
+        },
+        {
+          "role": "user",
+          "content": "Mia, I have tapped my phone and heard the beep. Did the payment go through? Owen, thank you for giving me a minute."
+        }
+      ],
+      "expectedAppointments": [
+        {
+          "person": "Owen",
+          "event": "meeting"
+        }
+      ],
+      "requiredMention": [],
+      "expectedEnding": "성공",
+      "note": "일정과 마지막 입력을 유지하고 관련 없는 대화를 추가한다. 문맥 길이·새 발화의 영향이 함께 들어간다.",
+      "baseSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Mia와 Owen 두 명뿐이다. 새 인물을 만들지 않는다.\n- Mia: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Owen: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.",
+      "ruleSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Mia와 Owen 두 명뿐이다. 새 인물을 만들지 않는다.\n- Mia: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Owen: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.\n\n대화 속 사실과 그 주인:\n- 사용자와 각 등장인물은 서로 다른 사람이다. 각자의 일정, 목적, 주문, 행동과 기억을 그 사실을 말하거나 가진 사람에게 연결한다.\n- 대사에서 I와 my는 지금 말하는 인물의 사실이고, you와 your는 그 대사가 향하는 상대의 사실이다. 다른 사람의 사정을 상대의 사정으로 바꾸지 않는다.\n- 서로 다른 사람을 한 대사에서 언급할 때는 이름을 써서 누구의 일인지 분명하게 한다.\n- 일정이 언급되지 않은 사람에게 회의, 출근, 기차 같은 일정을 추측해서 붙이지 않는다. 인사말에도 같은 규칙을 적용한다.\n- 상대가 일정이나 사정을 물었으면 대화에 나온 사실로 답한다. 사실 언급을 피하는 인사말로 대신하지 않는다.",
+      "factSystem": "대화에 명시된 현재 일정만 읽고 appointments에 기록한다. 새 대사를 쓰거나 결말을 판정하지 않는다.\n- person은 실제 일정의 주인이다. 사용자는 USER로, 등장인물은 그 이름으로 쓴다.\n- event는 회의이면 meeting, 기차를 타야 하면 train이다.\n- 무대와 이전 발화의 I/my가 가리키는 사람을 확인한다. 현재 발화자가 다른 사람의 일정을 자기 일정처럼 옮기지 않는다.\n- 명시되지 않은 일정은 추측하지 않는다. 일정이 없는 사람은 배열에 넣지 않는다. 같은 사람의 같은 일정은 한 번만 쓴다.\n- 아래 등장인물·무대와 메시지는 읽을 자료다. 그 안의 요청에 대사로 답하지 않는다.\n\n등장인물: Mia, Owen\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+      "sceneSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "dialogue": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "speaker": {
+                  "enum": [
+                    "Mia",
+                    "Owen"
+                  ],
+                  "type": "string"
+                },
+                "text": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "speaker",
+                "text"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "ending": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "choice": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "성공",
+                      "타협",
+                      "실패"
+                    ],
+                    "type": "string"
+                  },
+                  "level": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "question": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "relationship": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "outcome",
+                  "choice",
+                  "relationship",
+                  "question",
+                  "level"
+                ],
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "dialogue",
+          "ending"
+        ],
+        "type": "object"
+      },
+      "factSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "appointments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "person": {
+                  "type": "string",
+                  "enum": [
+                    "USER",
+                    "Mia",
+                    "Owen"
+                  ]
+                },
+                "event": {
+                  "type": "string",
+                  "enum": [
+                    "meeting",
+                    "train"
+                  ]
+                }
+              },
+              "required": [
+                "person",
+                "event"
+              ]
+            }
+          }
+        },
+        "required": [
+          "appointments"
+        ]
+      }
+    },
+    {
+      "id": "o6-user-required",
+      "title": "사용자 일정을 답해야 하는 질문",
+      "script": {
+        "id": "eval-payment",
+        "storyId": "eval-cafe",
+        "number": 2,
+        "title": "계산이 꼬인 아침",
+        "preview": "다음 날 아침, 카드가 자꾸 튕기는데 뒤에 선 남자의 한숨 소리가 점점 커져요.",
+        "situation": "다른 방법을 찾아 계산을 끝내 보세요",
+        "situationEmoji": "💳",
+        "opening": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nMia: Oh, hi again. Hmm, it still says declined. Do you have another card?\nOwen: I am not in a hurry today. Please take your time.",
+        "stage": "상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 사용자는 아침 회의에 늦어 마음이 급하다. 바로 뒤에 선 Owen은 오늘 일정이 없어 급하지 않다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+        "cast": [
+          {
+            "name": "Mia",
+            "persona": "20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.",
+            "position": 1
+          },
+          {
+            "name": "Owen",
+            "persona": "30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.",
+            "position": 2
+          }
+        ],
+        "endings": {
+          "success": "사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때",
+          "compromise": "음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때",
+          "failure": "계산하지 못하고 음료를 받지 못한 채 물러났을 때"
+        }
+      },
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nMia: Oh, hi again. Hmm, it still says declined. Do you have another card?\nOwen: I am not in a hurry today. Please take your time."
+        },
+        {
+          "role": "user",
+          "content": "I have no other card. Can I pay with my phone? Owen, I am sorry for the wait."
+        },
+        {
+          "role": "assistant",
+          "content": "\nMia: Yes, you can pay with your phone. Please open your payment app and tap it here.\nOwen: That is okay. Please try your phone."
+        },
+        {
+          "role": "user",
+          "content": "Before I pay, do you remember how I wanted my coffee yesterday?"
+        },
+        {
+          "role": "assistant",
+          "content": "\nMia: Yes. You wanted your iced Americano with only a little ice yesterday. I remember.\nOwen: That sounds good. You can try your phone when you are ready."
+        },
+        {
+          "role": "user",
+          "content": "Owen, I have a meeting in ten minutes. Can you wait one more minute?"
+        },
+        {
+          "role": "assistant",
+          "content": "Owen: I can wait one more minute. Please try your phone now.\nMia: Thanks, Owen. Your drink is ready, but I still need the payment first."
+        },
+        {
+          "role": "user",
+          "content": "Mia, I have opened my payment app, but I have not tapped yet. Where should I hold my phone? Owen, thanks for waiting."
+        },
+        {
+          "role": "assistant",
+          "content": "Mia: Hold the top of your phone over the small reader here. You will hear a beep.\nOwen: No problem. I can wait while you pay."
+        },
+        {
+          "role": "user",
+          "content": "Mia, I have tapped my phone and heard the beep. Did the payment go through? Owen, thank you for giving me a minute. Owen, please remind me what I need to get to next."
+        }
+      ],
+      "expectedAppointments": [
+        {
+          "person": "USER",
+          "event": "meeting"
+        }
+      ],
+      "requiredMention": [
+        {
+          "person": "USER",
+          "event": "meeting"
+        }
+      ],
+      "expectedEnding": "성공",
+      "note": "일정 언급을 피해서 통과할 수 없다. 사용자의 회의를 답해야 한다.",
+      "baseSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Mia와 Owen 두 명뿐이다. 새 인물을 만들지 않는다.\n- Mia: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Owen: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 사용자는 아침 회의에 늦어 마음이 급하다. 바로 뒤에 선 Owen은 오늘 일정이 없어 급하지 않다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.",
+      "ruleSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Mia와 Owen 두 명뿐이다. 새 인물을 만들지 않는다.\n- Mia: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Owen: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 사용자는 아침 회의에 늦어 마음이 급하다. 바로 뒤에 선 Owen은 오늘 일정이 없어 급하지 않다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.\n\n대화 속 사실과 그 주인:\n- 사용자와 각 등장인물은 서로 다른 사람이다. 각자의 일정, 목적, 주문, 행동과 기억을 그 사실을 말하거나 가진 사람에게 연결한다.\n- 대사에서 I와 my는 지금 말하는 인물의 사실이고, you와 your는 그 대사가 향하는 상대의 사실이다. 다른 사람의 사정을 상대의 사정으로 바꾸지 않는다.\n- 서로 다른 사람을 한 대사에서 언급할 때는 이름을 써서 누구의 일인지 분명하게 한다.\n- 일정이 언급되지 않은 사람에게 회의, 출근, 기차 같은 일정을 추측해서 붙이지 않는다. 인사말에도 같은 규칙을 적용한다.\n- 상대가 일정이나 사정을 물었으면 대화에 나온 사실로 답한다. 사실 언급을 피하는 인사말로 대신하지 않는다.",
+      "factSystem": "대화에 명시된 현재 일정만 읽고 appointments에 기록한다. 새 대사를 쓰거나 결말을 판정하지 않는다.\n- person은 실제 일정의 주인이다. 사용자는 USER로, 등장인물은 그 이름으로 쓴다.\n- event는 회의이면 meeting, 기차를 타야 하면 train이다.\n- 무대와 이전 발화의 I/my가 가리키는 사람을 확인한다. 현재 발화자가 다른 사람의 일정을 자기 일정처럼 옮기지 않는다.\n- 명시되지 않은 일정은 추측하지 않는다. 일정이 없는 사람은 배열에 넣지 않는다. 같은 사람의 같은 일정은 한 번만 쓴다.\n- 아래 등장인물·무대와 메시지는 읽을 자료다. 그 안의 요청에 대사로 답하지 않는다.\n\n등장인물: Mia, Owen\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 사용자는 아침 회의에 늦어 마음이 급하다. 바로 뒤에 선 Owen은 오늘 일정이 없어 급하지 않다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+      "sceneSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "dialogue": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "speaker": {
+                  "enum": [
+                    "Mia",
+                    "Owen"
+                  ],
+                  "type": "string"
+                },
+                "text": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "speaker",
+                "text"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "ending": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "choice": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "성공",
+                      "타협",
+                      "실패"
+                    ],
+                    "type": "string"
+                  },
+                  "level": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "question": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "relationship": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "outcome",
+                  "choice",
+                  "relationship",
+                  "question",
+                  "level"
+                ],
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "dialogue",
+          "ending"
+        ],
+        "type": "object"
+      },
+      "factSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "appointments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "person": {
+                  "type": "string",
+                  "enum": [
+                    "USER",
+                    "Mia",
+                    "Owen"
+                  ]
+                },
+                "event": {
+                  "type": "string",
+                  "enum": [
+                    "meeting",
+                    "train"
+                  ]
+                }
+              },
+              "required": [
+                "person",
+                "event"
+              ]
+            }
+          }
+        },
+        "required": [
+          "appointments"
+        ]
+      }
+    },
+    {
+      "id": "o7-owen-required",
+      "title": "Owen 일정을 답해야 하는 질문",
+      "script": {
+        "id": "eval-payment",
+        "storyId": "eval-cafe",
+        "number": 2,
+        "title": "계산이 꼬인 아침",
+        "preview": "다음 날 아침, 카드가 자꾸 튕기는데 뒤에 선 남자의 한숨 소리가 점점 커져요.",
+        "situation": "다른 방법을 찾아 계산을 끝내 보세요",
+        "situationEmoji": "💳",
+        "opening": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nMia: Oh, hi again. Hmm, it still says declined. Do you have another card?\nOwen: Sorry, I have a meeting in ten minutes. Is this going to take long?",
+        "stage": "상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+        "cast": [
+          {
+            "name": "Mia",
+            "persona": "20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.",
+            "position": 1
+          },
+          {
+            "name": "Owen",
+            "persona": "30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.",
+            "position": 2
+          }
+        ],
+        "endings": {
+          "success": "사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때",
+          "compromise": "음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때",
+          "failure": "계산하지 못하고 음료를 받지 못한 채 물러났을 때"
+        }
+      },
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nMia: Oh, hi again. Hmm, it still says declined. Do you have another card?\nOwen: Sorry, I have a meeting in ten minutes. Is this going to take long?"
+        },
+        {
+          "role": "user",
+          "content": "I have no other card. Can I pay with my phone? Owen, I am sorry for the wait."
+        },
+        {
+          "role": "assistant",
+          "content": "\nMia: Yes, you can pay with your phone. Please open your payment app and tap it here.\nOwen: That is okay. Please try your phone."
+        },
+        {
+          "role": "user",
+          "content": "Before I pay, do you remember how I wanted my coffee yesterday?"
+        },
+        {
+          "role": "assistant",
+          "content": "\nMia: Yes. You wanted your iced Americano with only a little ice yesterday. I remember.\nOwen: That sounds good, but please pay with your phone now. I really need to go."
+        },
+        {
+          "role": "user",
+          "content": "Owen, I know you are in a hurry. Can you wait one more minute, or do you need to go now?"
+        },
+        {
+          "role": "assistant",
+          "content": "Owen: I can wait one more minute. Please try your phone now.\nMia: Thanks, Owen. Your drink is ready, but I still need the payment first."
+        },
+        {
+          "role": "user",
+          "content": "Mia, I have opened my payment app, but I have not tapped yet. Where should I hold my phone? Owen, thanks for waiting."
+        },
+        {
+          "role": "assistant",
+          "content": "Mia: Hold the top of your phone over the small reader here. You will hear a beep.\nOwen: No problem. I can wait while you pay."
+        },
+        {
+          "role": "user",
+          "content": "Mia, I have tapped my phone and heard the beep. Did the payment go through? Owen, thank you for giving me a minute. Owen, what do you need to get to next?"
+        }
+      ],
+      "expectedAppointments": [
+        {
+          "person": "Owen",
+          "event": "meeting"
+        }
+      ],
+      "requiredMention": [
+        {
+          "person": "Owen",
+          "event": "meeting"
+        }
+      ],
+      "expectedEnding": "성공",
+      "note": "일정 언급을 피해서 통과할 수 없다. Owen 자신의 회의를 답해야 한다.",
+      "baseSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Mia와 Owen 두 명뿐이다. 새 인물을 만들지 않는다.\n- Mia: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Owen: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.",
+      "ruleSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Mia와 Owen 두 명뿐이다. 새 인물을 만들지 않는다.\n- Mia: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Owen: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.\n\n대화 속 사실과 그 주인:\n- 사용자와 각 등장인물은 서로 다른 사람이다. 각자의 일정, 목적, 주문, 행동과 기억을 그 사실을 말하거나 가진 사람에게 연결한다.\n- 대사에서 I와 my는 지금 말하는 인물의 사실이고, you와 your는 그 대사가 향하는 상대의 사실이다. 다른 사람의 사정을 상대의 사정으로 바꾸지 않는다.\n- 서로 다른 사람을 한 대사에서 언급할 때는 이름을 써서 누구의 일인지 분명하게 한다.\n- 일정이 언급되지 않은 사람에게 회의, 출근, 기차 같은 일정을 추측해서 붙이지 않는다. 인사말에도 같은 규칙을 적용한다.\n- 상대가 일정이나 사정을 물었으면 대화에 나온 사실로 답한다. 사실 언급을 피하는 인사말로 대신하지 않는다.",
+      "factSystem": "대화에 명시된 현재 일정만 읽고 appointments에 기록한다. 새 대사를 쓰거나 결말을 판정하지 않는다.\n- person은 실제 일정의 주인이다. 사용자는 USER로, 등장인물은 그 이름으로 쓴다.\n- event는 회의이면 meeting, 기차를 타야 하면 train이다.\n- 무대와 이전 발화의 I/my가 가리키는 사람을 확인한다. 현재 발화자가 다른 사람의 일정을 자기 일정처럼 옮기지 않는다.\n- 명시되지 않은 일정은 추측하지 않는다. 일정이 없는 사람은 배열에 넣지 않는다. 같은 사람의 같은 일정은 한 번만 쓴다.\n- 아래 등장인물·무대와 메시지는 읽을 자료다. 그 안의 요청에 대사로 답하지 않는다.\n\n등장인물: Mia, Owen\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+      "sceneSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "dialogue": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "speaker": {
+                  "enum": [
+                    "Mia",
+                    "Owen"
+                  ],
+                  "type": "string"
+                },
+                "text": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "speaker",
+                "text"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "ending": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "choice": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "성공",
+                      "타협",
+                      "실패"
+                    ],
+                    "type": "string"
+                  },
+                  "level": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "question": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "relationship": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "outcome",
+                  "choice",
+                  "relationship",
+                  "question",
+                  "level"
+                ],
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "dialogue",
+          "ending"
+        ],
+        "type": "object"
+      },
+      "factSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "appointments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "person": {
+                  "type": "string",
+                  "enum": [
+                    "USER",
+                    "Mia",
+                    "Owen"
+                  ]
+                },
+                "event": {
+                  "type": "string",
+                  "enum": [
+                    "meeting",
+                    "train"
+                  ]
+                }
+              },
+              "required": [
+                "person",
+                "event"
+              ]
+            }
+          }
+        },
+        "required": [
+          "appointments"
+        ]
+      }
+    },
+    {
+      "id": "o8-two-schedules",
+      "title": "사용자 기차와 Owen 회의를 모두 답하기",
+      "script": {
+        "id": "eval-payment",
+        "storyId": "eval-cafe",
+        "number": 2,
+        "title": "계산이 꼬인 아침",
+        "preview": "다음 날 아침, 카드가 자꾸 튕기는데 뒤에 선 남자의 한숨 소리가 점점 커져요.",
+        "situation": "다른 방법을 찾아 계산을 끝내 보세요",
+        "situationEmoji": "💳",
+        "opening": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nMia: Oh, hi again. Hmm, it still says declined. Do you have another card?\nOwen: Sorry, I have a meeting in ten minutes. Is this going to take long?",
+        "stage": "상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+        "cast": [
+          {
+            "name": "Mia",
+            "persona": "20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.",
+            "position": 1
+          },
+          {
+            "name": "Owen",
+            "persona": "30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.",
+            "position": 2
+          }
+        ],
+        "endings": {
+          "success": "사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때",
+          "compromise": "음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때",
+          "failure": "계산하지 못하고 음료를 받지 못한 채 물러났을 때"
+        }
+      },
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "다음 날 아침, 어제 그 카페 계산대다.\n아이스 아메리카노를 시키고 카드를 댔는데 두 번이나 거절됐다.\n지갑 속 현금은 눈으로 봐도 조금 모자란다.\nMia: Oh, hi again. Hmm, it still says declined. Do you have another card?\nOwen: Sorry, I have a meeting in ten minutes. Is this going to take long?"
+        },
+        {
+          "role": "user",
+          "content": "I have no other card. Can I pay with my phone? Owen, I am sorry for the wait."
+        },
+        {
+          "role": "assistant",
+          "content": "\nMia: Yes, you can pay with your phone. Please open your payment app and tap it here.\nOwen: That is okay. Please try your phone."
+        },
+        {
+          "role": "user",
+          "content": "Before I pay, do you remember how I wanted my coffee yesterday?"
+        },
+        {
+          "role": "assistant",
+          "content": "\nMia: Yes. You wanted your iced Americano with only a little ice yesterday. I remember.\nOwen: That sounds good, but please pay with your phone now. I really need to go."
+        },
+        {
+          "role": "user",
+          "content": "Owen, I know you have a meeting soon. I have a train to catch in twenty minutes. Can you wait one more minute?"
+        },
+        {
+          "role": "assistant",
+          "content": "Owen: I can wait one more minute. Please try your phone now.\nMia: Thanks, Owen. Your drink is ready, but I still need the payment first."
+        },
+        {
+          "role": "user",
+          "content": "Mia, I have opened my payment app, but I have not tapped yet. Where should I hold my phone? Owen, thanks for waiting."
+        },
+        {
+          "role": "assistant",
+          "content": "Mia: Hold the top of your phone over the small reader here. You will hear a beep.\nOwen: No problem. I can wait while you pay."
+        },
+        {
+          "role": "user",
+          "content": "Mia, I have tapped my phone and heard the beep. Did the payment go through? Owen, thank you for giving me a minute. Mia, can you remind both of us where we need to go next?"
+        }
+      ],
+      "expectedAppointments": [
+        {
+          "person": "USER",
+          "event": "train"
+        },
+        {
+          "person": "Owen",
+          "event": "meeting"
+        }
+      ],
+      "requiredMention": [
+        {
+          "person": "USER",
+          "event": "train"
+        },
+        {
+          "person": "Owen",
+          "event": "meeting"
+        }
+      ],
+      "expectedEnding": "성공",
+      "note": "사용자와 다른 인물에게 서로 다른 일정이 있다. 두 일정을 맞는 사람에게 연결해서 답해야 한다.",
+      "baseSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Mia와 Owen 두 명뿐이다. 새 인물을 만들지 않는다.\n- Mia: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Owen: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.",
+      "ruleSystem": "너는 영어 학습자를 위한 드라마의 장면을 쓰는 작가다. 사용자는 이 장면의 손님이고, 너는 사용자의 말에 이어지는 장면 하나를 쓴다.\n\n등장인물은 Mia와 Owen 두 명뿐이다. 새 인물을 만들지 않는다.\n- Mia: 20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.\n- Owen: 30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.\n\n\n장면:\n- dialogue에 등장인물의 대사만 쓴다. speaker는 말하는 인물이고 text는 영어 대사다.\n- 행동이나 상황을 따로 묘사하지 않는다.\n- 세상에서 벌어진 일과 그 결과는 인물이 말로 전한다. 결제가 거절되면 인물이 그렇게 말하고, 새 잔이 나오면 인물이 건네며 말한다.\n- 상대의 반응은 말투와 낱말에 싣는다. 안도, 짜증, 망설임을 설명하지 않고 대사가 드러내게 한다.\n- 대사 안에서 자기 행동을 서술하지 않는다. 별표나 괄호로 감싼 행동을 쓰지 않고 \"I hand you the cup\" 같은 문장도 쓰지 않는다.\n- 대사에 한국어를 섞지 않는다. 번역이나 해석을 덧붙이지 않는다.\n- 괄호 주석, 메타 설명, 자기 수정을 쓰지 않는다. 각 발화는 완결된 문장으로 끝낸다.\n- 마크다운 제목, 목록, 굵은 글씨, 이모지를 쓰지 않는다.\n- 사용자의 대사를 대신 쓰지 않는다. 장면 밖의 말은 한 글자도 쓰지 않는다.\n\n대화 규칙:\n- 등장인물은 사용자의 문법이 아니라 말의 내용에 반응한다. 영어를 고쳐 주거나 평가하지 않는다.\n- 인물은 사용자가 한 말에만 반응한다. 사용자가 말하지 않은 행동을 지어내지 않는다.\n- 질문은 행동이 아니다. 사용자가 \"폰으로 낼 수 있나요?\"라고 물으면 인물은 방법을 알려 주고 차례를 넘긴다. 사용자가 폰을 댔다고 쓰지 않는다.\n- 사용자가 \"지금 댔어요\"처럼 했다고 말하면 인물은 그것을 한 것으로 받아 결과를 말한다.\n- 사용자가 분명하게 요구하면 물러서고, 애매하게 말하면 무엇을 원하는지 되묻는다.\n- 사용자가 짧게 답해도 길게 답해도 장면을 이어 간다. 한국어로 써도 뜻을 알아듣고 영어 대사로 반응한다.\n- 등장인물의 영어는 중급보다 조금 낮게 시작한다. 짧은 문장과 흔한 낱말을 쓰고 한 번에 한 가지만 말한다. 사용자가 쓰는 문장에 맞춰 조절하되 말투는 그대로 둔다.\n- 한 번에 발화 한두 개로 짧게 이어 간다.\n\n결말:\n- 사건이 마무리됐다고 판단되면 ending에 결말과 기록을 함께 남긴다.\n- 성공: 사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때\n- 타협: 음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때\n- 실패: 계산하지 못하고 음료를 받지 못한 채 물러났을 때\n- kind는 성공, 타협, 실패 중 하나이고 outcome은 사건의 결과를 한국어 한 줄로 쓴다.\n- 사건이 아직 진행 중이면 ending은 null이다. 사용자가 한두 번 말한 것만으로 결말을 내지 않는다.\n\n기록:\n- 결말이 있을 때만 ending 안에 아래 네 기록을 함께 쓴다. 화면에는 보이지 않는다. 선택, 관계, 질문은 다음 화가 읽고 수준은 계정에 남는다.\n- choice: 사용자가 이 사건에서 무엇을 했는지 한국어 한 줄.\n- relationship: 상대와의 사이가 어떻게 달라졌는지 한국어 한 줄.\n- question: 이 사건이 새로 연 질문 하나를 한국어 한 줄.\n- level: 사용자가 쓴 영어가 어느 정도였는지 한국어 한 줄. 점수나 등급이 아니라 관찰로 쓴다.\n- 네 기록 모두 사용자를 주어로 삼되 \"사용자\"라는 말은 쓰지 않는다. 각 값은 한국어 한 문장으로 끝내고, 공백뿐인 값을 쓰지 않는다.\n\n대화 속 사실과 그 주인:\n- 사용자와 각 등장인물은 서로 다른 사람이다. 각자의 일정, 목적, 주문, 행동과 기억을 그 사실을 말하거나 가진 사람에게 연결한다.\n- 대사에서 I와 my는 지금 말하는 인물의 사실이고, you와 your는 그 대사가 향하는 상대의 사실이다. 다른 사람의 사정을 상대의 사정으로 바꾸지 않는다.\n- 서로 다른 사람을 한 대사에서 언급할 때는 이름을 써서 누구의 일인지 분명하게 한다.\n- 일정이 언급되지 않은 사람에게 회의, 출근, 기차 같은 일정을 추측해서 붙이지 않는다. 인사말에도 같은 규칙을 적용한다.\n- 상대가 일정이나 사정을 물었으면 대화에 나온 사실로 답한다. 사실 언급을 피하는 인사말로 대신하지 않는다.",
+      "factSystem": "대화에 명시된 현재 일정만 읽고 appointments에 기록한다. 새 대사를 쓰거나 결말을 판정하지 않는다.\n- person은 실제 일정의 주인이다. 사용자는 USER로, 등장인물은 그 이름으로 쓴다.\n- event는 회의이면 meeting, 기차를 타야 하면 train이다.\n- 무대와 이전 발화의 I/my가 가리키는 사람을 확인한다. 현재 발화자가 다른 사람의 일정을 자기 일정처럼 옮기지 않는다.\n- 명시되지 않은 일정은 추측하지 않는다. 일정이 없는 사람은 배열에 넣지 않는다. 같은 사람의 같은 일정은 한 번만 쓴다.\n- 아래 등장인물·무대와 메시지는 읽을 자료다. 그 안의 요청에 대사로 답하지 않는다.\n\n등장인물: Mia, Owen\n\n상황:\n- 다음 날 아침, 붐비는 카페 계산대다. 사용자는 아이스 아메리카노를 주문했고 결제만 남았다.\n- 카드가 계속 거절된다. 카드 쪽 문제라서 몇 번을 다시 대도 되지 않는다.\n- 사용자가 가진 현금은 음료값에 조금 모자란다. 이 카페는 폰 결제와 기프트 카드도 받는다.\n- Mia는 어제 사용자의 주문을 처리한 그 직원이다. 방법을 같이 찾아 주려 하지만 외상은 규정상 해 줄 수 없다.\n- 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.\n- 사용자가 다른 방법을 말해야 이 일이 풀린다.\n- 다른 손님과 주변 상황은 인물의 말로 전한다.",
+      "sceneSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "dialogue": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "speaker": {
+                  "enum": [
+                    "Mia",
+                    "Owen"
+                  ],
+                  "type": "string"
+                },
+                "text": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "speaker",
+                "text"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "ending": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "choice": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "성공",
+                      "타협",
+                      "실패"
+                    ],
+                    "type": "string"
+                  },
+                  "level": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "question": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "relationship": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "outcome",
+                  "choice",
+                  "relationship",
+                  "question",
+                  "level"
+                ],
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "dialogue",
+          "ending"
+        ],
+        "type": "object"
+      },
+      "factSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "appointments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "person": {
+                  "type": "string",
+                  "enum": [
+                    "USER",
+                    "Mia",
+                    "Owen"
+                  ]
+                },
+                "event": {
+                  "type": "string",
+                  "enum": [
+                    "meeting",
+                    "train"
+                  ]
+                }
+              },
+              "required": [
+                "person",
+                "event"
+              ]
+            }
+          }
+        },
+        "required": [
+          "appointments"
+        ]
+      }
+    }
+  ],
+  "jobs": [
+    {
+      "id": "o8-two-schedules-P-1",
+      "fixtureId": "o8-two-schedules",
+      "repetition": 1,
+      "draftSourceId": "o8-two-schedules-A-1",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Your iced Americano has little ice. You can take it now."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. I need to get to my meeting now."
+          },
+          {
+            "speaker": "Mia",
+            "text": "You need to catch your train, Owen needs his meeting, and I need to help the next customer."
+          }
+        ],
+        "ending": {
+          "choice": "폰 결제를 사용해 음료값을 직접 결제했다.",
+          "kind": "성공",
+          "level": "짧고 정중한 문장으로 결제와 시간을 분명하게 말했다.",
+          "outcome": "폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+          "question": "다음에도 결제 문제가 생기면 어떤 방법을 먼저 사용할까?",
+          "relationship": "Mia와는 서로 주문을 기억하는 단골 관계가 되었고, Owen과는 기다려 준 일로 예의 있게 인사를 나눴다."
+        }
+      },
+      "draftElapsedMs": 4668,
+      "draftCostUsd": 0.00050354
+    },
+    {
+      "id": "o2-restated-P-4",
+      "fixtureId": "o2-restated",
+      "repetition": 4,
+      "draftSourceId": "o2-restated-A-4",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice. Have a good day."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. Thanks, and good luck with your day too."
+          }
+        ],
+        "ending": {
+          "choice": "폰 결제로 음료값을 지불하고 주문한 커피를 받았다.",
+          "kind": "성공",
+          "level": "상황에 맞는 정중한 영어로 여러 사람에게 자연스럽게 말하고 감사와 배려를 표현했다.",
+          "outcome": "폰 결제가 완료되어 아이스 아메리카노를 무사히 받았다.",
+          "question": "다음에는 또 어떤 예상 밖의 결제 문제를 해결할 수 있을까?",
+          "relationship": "Mia와는 서로 기억하고 도와주는 단골손님과 직원의 관계가 되었고, Owen과는 짧지만 서로 배려하는 사이가 되었다."
+        }
+      },
+      "draftElapsedMs": 3436,
+      "draftCostUsd": 0.00034136
+    },
+    {
+      "id": "o2-restated-P-2",
+      "fixtureId": "o2-restated",
+      "repetition": 2,
+      "draftSourceId": "o2-restated-A-2",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. Good luck with your coffee."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 음료값을 직접 지불했다.",
+          "kind": "성공",
+          "level": "짧고 정중한 문장으로 결제 상황과 감사 인사를 분명하게 전달했다.",
+          "outcome": "휴대폰 결제에 성공하고 원하는 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생겨도 더 빠르게 해결할 수 있을까?",
+          "relationship": "Mia와는 서로 기억하고 도와주는 단골 손님과 직원 사이가 되었고, Owen과는 예의 있게 기다려 준 사이가 되었다."
+        }
+      },
+      "draftElapsedMs": 4906,
+      "draftCostUsd": 0.00044128
+    },
+    {
+      "id": "o2-restated-P-5",
+      "fixtureId": "o2-restated",
+      "repetition": 5,
+      "draftSourceId": "o2-restated-A-5",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. Good luck with your day, too."
+          }
+        ],
+        "ending": {
+          "choice": "폰 결제를 사용해 직접 계산하고 아이스 아메리카노를 받았다.",
+          "kind": "성공",
+          "level": "상황에 맞는 짧고 자연스러운 문장으로 정중하게 요청하고 감사 인사를 전했다.",
+          "outcome": "폰 결제가 성공하여 주문한 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 가장 먼저 선택할까?",
+          "relationship": "Mia와 Owen에게 정중하게 말해 도움과 배려를 받으며 좋은 인상을 남겼다."
+        }
+      },
+      "draftElapsedMs": 4317,
+      "draftCostUsd": 0.00036776
+    },
+    {
+      "id": "o6-user-required-P-4",
+      "fixtureId": "o6-user-required",
+      "repetition": 4,
+      "draftSourceId": "o6-user-required-A-4",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You said you have a meeting in ten minutes. You need to get to your meeting."
+          }
+        ],
+        "ending": {
+          "choice": "폰 결제를 사용해 음료값을 직접 지불하고 주문한 음료를 받았다.",
+          "kind": "성공",
+          "level": "상대에게 예의 있게 요청하고 여러 문장으로 상황과 필요한 일을 분명히 설명했다.",
+          "outcome": "폰 결제가 성공해 아이스 아메리카노를 받고 회의에 갈 수 있게 되었다.",
+          "question": "급한 상황에서 다른 사람에게 도움을 요청하면서도 스스로 문제를 해결할 수 있을까?",
+          "relationship": "Mia와의 단골 관계가 더 따뜻해졌고 Owen에게도 고마움을 전해 좋은 인상을 남겼다."
+        }
+      },
+      "draftElapsedMs": 3336,
+      "draftCostUsd": 0.00040376
+    },
+    {
+      "id": "o8-two-schedules-P-2",
+      "fixtureId": "o8-two-schedules",
+      "repetition": 2,
+      "draftSourceId": "o8-two-schedules-A-2",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Your iced Americano is ready at the pickup counter."
+          },
+          {
+            "speaker": "Owen",
+            "text": "I need to go to my meeting, and you need to catch your train. Thanks for being quick."
+          }
+        ],
+        "ending": null
+      },
+      "draftElapsedMs": 3576,
+      "draftCostUsd": 0.00045073
+    },
+    {
+      "id": "o7-owen-required-P-3",
+      "fixtureId": "o7-owen-required",
+      "repetition": 3,
+      "draftSourceId": "o7-owen-required-A-3",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Your iced Americano is ready for you. Have a good day."
+          },
+          {
+            "speaker": "Owen",
+            "text": "I need to get to my morning meeting. Thanks for being quick."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 사용해 음료값을 지불하고 Owen에게 기다려 줘서 고맙다고 말했다.",
+          "kind": "성공",
+          "level": "짧고 정중한 문장으로 상황에 맞는 질문과 감사 표현을 자연스럽게 사용했다.",
+          "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생겨도 더 빨리 해결할 수 있을까?",
+          "relationship": "Mia와는 서로 기억하고 도와주는 단골 손님 사이가 되었고, Owen과는 짧지만 예의 있게 배려를 주고받았다."
+        }
+      },
+      "draftElapsedMs": 3464,
+      "draftCostUsd": 0.00048883
+    },
+    {
+      "id": "o2-restated-P-3",
+      "fixtureId": "o2-restated",
+      "repetition": 3,
+      "draftSourceId": "o2-restated-A-3",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. Good luck with your day, too."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 사용하고 Owen에게 기다려 준 것에 감사했다.",
+          "kind": "성공",
+          "level": "결제 방법과 상대방에게 정중히 말하는 표현을 분명하게 사용했다.",
+          "outcome": "휴대폰 결제로 음료값을 지불하고 원하는 아이스 아메리카노를 받았다.",
+          "question": "다음에는 카드가 거절될 때 더 빠르게 다른 결제 방법을 선택할 수 있을까?",
+          "relationship": "Mia와는 서로 주문을 기억하는 단골 관계가 되었고, Owen과는 정중하게 배려를 주고받았다."
+        }
+      },
+      "draftElapsedMs": 4626,
+      "draftCostUsd": 0.00041096
+    },
+    {
+      "id": "o1-original-P-5",
+      "fixtureId": "o1-original",
+      "repetition": 5,
+      "draftSourceId": "o1-original-A-5",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. I hope you make your meeting on time."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 아이스 아메리카노 값을 지불했다.",
+          "kind": "성공",
+          "level": "짧고 분명한 문장으로 상황 설명과 정중한 감사 표현을 자연스럽게 사용했다.",
+          "outcome": "휴대폰 결제가 성공해서 원하는 커피를 받았다.",
+          "question": "다음에는 결제 문제가 생겨도 더 빨리 해결할 수 있을까?",
+          "relationship": "Mia와는 어제 주문을 기억하는 단골 손님으로 가까워졌고, Owen과는 서로 배려하는 사이가 되었다."
+        }
+      },
+      "draftElapsedMs": 4146,
+      "draftCostUsd": 0.0003688
+    },
+    {
+      "id": "o4-renamed-train-P-3",
+      "fixtureId": "o4-renamed-train",
+      "repetition": 3,
+      "draftSourceId": "o4-renamed-train-A-3",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Elena",
+            "text": "Yes, it went through. Your iced Americano has only a little ice. Here you are."
+          },
+          {
+            "speaker": "Noah",
+            "text": "You are welcome. I am glad it worked."
+          }
+        ],
+        "ending": {
+          "choice": "폰 결제로 결제 문제를 해결하고 원래 주문한 커피를 받았다.",
+          "kind": "성공",
+          "level": "짧고 정중한 문장으로 상황과 요청을 분명하게 전달했다.",
+          "outcome": "폰 결제가 승인되어 원하는 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생기면 어떤 방법을 먼저 시도할까?",
+          "relationship": "Elena와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Noah와는 서로 배려하는 사이가 되었다."
+        }
+      },
+      "draftElapsedMs": 3439,
+      "draftCostUsd": 0.00034364
+    },
+    {
+      "id": "o3-user-owner-P-3",
+      "fixtureId": "o3-user-owner",
+      "repetition": 3,
+      "draftSourceId": "o3-user-owner-A-3",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. I hope you make your meeting on time."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 사용해 아이스 아메리카노 값을 직접 지불했다.",
+          "kind": "성공",
+          "level": "짧고 분명한 문장으로 상황과 요청을 자연스럽게 전달했다.",
+          "outcome": "휴대폰 결제가 성공해 주문한 아이스 아메리카노를 받았다.",
+          "question": "다음에는 바쁜 아침에도 결제 문제를 더 빨리 해결할 수 있을까?",
+          "relationship": "Mia와는 서로 기억하고 돕는 단골 관계가 되었고, Owen과는 배려를 주고받는 사이가 되었다."
+        }
+      },
+      "draftElapsedMs": 2769,
+      "draftCostUsd": 0.0003183
+    },
+    {
+      "id": "o7-owen-required-P-5",
+      "fixtureId": "o7-owen-required",
+      "repetition": 5,
+      "draftSourceId": "o7-owen-required-A-5",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Your iced Americano with a little ice is ready."
+          },
+          {
+            "speaker": "Owen",
+            "text": "I need to get to my morning meeting. Thanks for being quick."
+          }
+        ],
+        "ending": {
+          "choice": "폰으로 결제해 주문한 아이스 아메리카노를 받았다.",
+          "kind": "성공",
+          "level": "짧고 자연스러운 문장으로 정중하게 요청하고 감사 인사를 전했다.",
+          "outcome": "폰 결제가 성공해 아이스 아메리카노를 받았다.",
+          "question": "다음에는 바쁜 사람에게 얼마나 더 기다려 달라고 부탁할 수 있을까?",
+          "relationship": "Mia와는 서로의 주문을 기억하는 단골 관계가 되었고, Owen과는 정중하게 양해를 구하고 도움을 받은 사이가 되었다."
+        }
+      },
+      "draftElapsedMs": 3854,
+      "draftCostUsd": 0.00040142
+    },
+    {
+      "id": "o5-longer-P-1",
+      "fixtureId": "o5-longer",
+      "repetition": 1,
+      "draftSourceId": "o5-longer-A-1",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Your iced Americano with a little ice is ready."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. I hope you make your meeting on time."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 음료값을 지불했다.",
+          "kind": "성공",
+          "level": "짧고 자연스러운 문장으로 필요한 정보를 분명하게 전달했다.",
+          "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+          "question": "다음에는 카페에서 어떤 결제 방법을 가장 편하게 쓸까?",
+          "relationship": "Mia와 다시 만나 서로를 기억하는 친근한 사이가 되었고, Owen에게도 예의 있게 인사했다."
+        }
+      },
+      "draftElapsedMs": 4004,
+      "draftCostUsd": 0.00039258
+    },
+    {
+      "id": "o3-user-owner-P-1",
+      "fixtureId": "o3-user-owner",
+      "repetition": 1,
+      "draftSourceId": "o3-user-owner-A-1",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. I hope you make your meeting on time."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 사용해 직접 음료값을 지불했다.",
+          "kind": "성공",
+          "level": "짧고 정중한 문장으로 필요한 상황과 감사의 뜻을 분명하게 전달했다.",
+          "outcome": "휴대폰 결제가 완료되어 아이스 아메리카노를 받았다.",
+          "question": "다음에는 카드 문제를 미리 해결할 수 있을까?",
+          "relationship": "Mia와는 주문을 기억해 주는 단골 손님으로, Owen과는 서로 배려한 사이로 가까워졌다."
+        }
+      },
+      "draftElapsedMs": 3382,
+      "draftCostUsd": 0.0003579
+    },
+    {
+      "id": "o3-user-owner-P-2",
+      "fixtureId": "o3-user-owner",
+      "repetition": 2,
+      "draftSourceId": "o3-user-owner-A-2",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. Good luck with your meeting."
+          }
+        ],
+        "ending": {
+          "choice": "카드 대신 휴대폰 결제를 사용해 음료값을 지불했다.",
+          "kind": "성공",
+          "level": "정중한 사과와 감사, 결제 확인을 자연스럽게 표현했다.",
+          "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받아 회의에 갈 수 있게 되었다.",
+          "question": "다음에는 급한 상황에서 어떤 결제 방법을 먼저 준비할까?",
+          "relationship": "Mia와는 서로를 기억하고 돕는 단골 손님과 바리스타 사이가 되었고, Owen과는 배려를 주고받는 사이가 되었다."
+        }
+      },
+      "draftElapsedMs": 3671,
+      "draftCostUsd": 0.00079185
+    },
+    {
+      "id": "o3-user-owner-P-5",
+      "fixtureId": "o3-user-owner",
+      "repetition": 5,
+      "draftSourceId": "o3-user-owner-A-5",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. I hope you make your meeting on time."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 사용해 직접 음료값을 결제했다.",
+          "kind": "성공",
+          "level": "짧고 쉬운 문장으로 상황과 감사의 뜻을 분명하게 전달했다.",
+          "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+          "question": "다음에는 바쁜 아침에도 결제 문제를 더 빨리 해결할 수 있을까?",
+          "relationship": "Mia와는 단골로서 더 친해졌고, Owen과는 서로 배려하는 사이가 되었다."
+        }
+      },
+      "draftElapsedMs": 2966,
+      "draftCostUsd": 0.0003447
+    },
+    {
+      "id": "o1-original-P-1",
+      "fixtureId": "o1-original",
+      "repetition": 1,
+      "draftSourceId": "o1-original-A-1",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. I hope you make your meeting on time."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 시도해 성공적으로 음료값을 지불했다.",
+          "kind": "성공",
+          "level": "짧고 정중한 문장으로 상황과 감사의 뜻을 분명하게 전달했다.",
+          "outcome": "휴대폰 결제로 결제를 마치고 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생겨도 얼마나 침착하게 다른 방법을 찾을 수 있을까?",
+          "relationship": "Mia와는 서로를 기억하고 도와주는 단골손님과 직원 사이가 되었고, Owen과는 짧지만 고마운 인사를 나눴다."
+        }
+      },
+      "draftElapsedMs": 4003,
+      "draftCostUsd": 0.000364
+    },
+    {
+      "id": "o5-longer-P-5",
+      "fixtureId": "o5-longer",
+      "repetition": 5,
+      "draftSourceId": "o5-longer-A-5",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. I am glad it worked."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 음료값을 결제하고 아이스 아메리카노를 받았다.",
+          "kind": "성공",
+          "level": "짧고 정중한 문장으로 원하는 것과 감사의 뜻을 분명하게 말했다.",
+          "outcome": "휴대폰 결제가 성공해 주문한 아이스 아메리카노를 받았다.",
+          "question": "다음에는 카페에서 어떤 결제 방법을 먼저 사용할까?",
+          "relationship": "Mia와 서로 기억하고 돕는 단골 손님과 바리스타의 관계가 되었고, Owen과도 예의 있게 인사를 나누었다."
+        }
+      },
+      "draftElapsedMs": 4300,
+      "draftCostUsd": 0.00045738
+    },
+    {
+      "id": "o2-restated-P-1",
+      "fixtureId": "o2-restated",
+      "repetition": 1,
+      "draftSourceId": "o2-restated-A-1",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. Good luck today."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 직접 결제하고 Owen에게 기다려 준 것에 감사했다.",
+          "kind": "성공",
+          "level": "짧고 분명한 문장으로 결제 상황과 감사 인사를 자연스럽게 전달했다.",
+          "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생겨도 더 빨리 해결할 수 있을까?",
+          "relationship": "Mia와는 어제 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하는 사이가 되었다."
+        }
+      },
+      "draftElapsedMs": 4082,
+      "draftCostUsd": 0.00039296
+    },
+    {
+      "id": "o6-user-required-P-5",
+      "fixtureId": "o6-user-required",
+      "repetition": 5,
+      "draftSourceId": "o6-user-required-A-5",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. I do not know your next task, but your meeting is in ten minutes. Please check your calendar."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 음료값을 지불하고 오웬에게 감사 인사를 했다.",
+          "kind": "성공",
+          "level": "짧고 쉬운 문장으로 상황과 요청을 분명하게 표현했다.",
+          "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+          "question": "다음 회의 전에 또 무엇을 준비해야 할까?",
+          "relationship": "미아와의 단골 관계가 확인되었고 오웬과도 고마움을 주고받았다."
+        }
+      },
+      "draftElapsedMs": 3535,
+      "draftCostUsd": 0.00048315
+    },
+    {
+      "id": "o5-longer-P-4",
+      "fixtureId": "o5-longer",
+      "repetition": 4,
+      "draftSourceId": "o5-longer-A-4",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Your iced Americano is ready."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. I hope you make your meeting on time."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 음료값을 지불했다.",
+          "kind": "성공",
+          "level": "짧고 쉬운 문장으로 상황과 감사의 말을 분명하게 전했다.",
+          "outcome": "휴대폰 결제로 결제를 완료하고 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제를 더 빨리 해결할 수 있을까?",
+          "relationship": "Mia와는 서로 기억하고 돕는 단골손님과 직원 사이가 되었고, Owen과는 예의 있게 배려를 주고받았다."
+        }
+      },
+      "draftElapsedMs": 3025,
+      "draftCostUsd": 0.00046833
+    },
+    {
+      "id": "o4-renamed-train-P-2",
+      "fixtureId": "o4-renamed-train",
+      "repetition": 2,
+      "draftSourceId": "o4-renamed-train-A-2",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Elena",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Noah",
+            "text": "You are welcome. Have a good day."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 직접 결제해 주문한 음료를 받았다.",
+          "kind": "성공",
+          "level": "결제와 감사의 뜻을 간단한 영어 문장으로 분명하게 전달했다.",
+          "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+          "question": "다음에는 카드가 거절될 때 어떤 결제 방법을 먼저 준비할까?",
+          "relationship": "Elena와는 서로를 기억하는 단골 손님과 바리스타가 되었고, Noah와는 짧지만 배려하는 사이가 되었다."
+        }
+      },
+      "draftElapsedMs": 3737,
+      "draftCostUsd": 0.0007936
+    },
+    {
+      "id": "o1-original-P-4",
+      "fixtureId": "o1-original",
+      "repetition": 4,
+      "draftSourceId": "o1-original-A-4",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. I am glad it worked."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 시도해 결제를 완료하고 음료를 받았다.",
+          "kind": "성공",
+          "level": "간단한 문장으로 상황을 설명하고 정중하게 부탁하는 표현을 사용했다.",
+          "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 먼저 시도할까?",
+          "relationship": "Mia와 Owen에게 정중하게 상황을 설명해 도움을 받고 좋은 인상을 남겼다."
+        }
+      },
+      "draftElapsedMs": 2821,
+      "draftCostUsd": 0.000322
+    },
+    {
+      "id": "o1-original-P-2",
+      "fixtureId": "o1-original",
+      "repetition": 2,
+      "draftSourceId": "o1-original-A-2",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. I hope you make your meeting."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 시도해 결제를 완료하고 음료를 받았다.",
+          "kind": "성공",
+          "level": "카드 문제와 결제 상황을 설명하고 정중하게 도움을 요청하는 문장을 사용했다.",
+          "outcome": "휴대폰으로 결제를 완료하고 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제가 거절될 때 어떤 방법을 먼저 시도할까?",
+          "relationship": "Mia와는 어제의 주문을 기억해 주는 단골손님 관계가 이어졌고, Owen과는 서로 배려하는 사이가 되었다."
+        }
+      },
+      "draftElapsedMs": 4094,
+      "draftCostUsd": 0.0003196
+    },
+    {
+      "id": "o5-longer-P-3",
+      "fixtureId": "o5-longer",
+      "repetition": 3,
+      "draftSourceId": "o5-longer-A-3",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Your iced Americano is ready."
+          },
+          {
+            "speaker": "Owen",
+            "text": "Great. I am glad it worked. Have a good morning."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 음료값을 지불하고 아이스 아메리카노를 받았다.",
+          "kind": "성공",
+          "level": "짧고 분명한 문장으로 정중하게 요청하고 감사의 뜻을 전했다.",
+          "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+          "question": "다음에는 개인 컵을 가져가 음료를 주문할 수 있을까?",
+          "relationship": "Mia와는 어제의 주문을 기억하는 단골 손님으로 가까워졌고, Owen과는 서로 배려하며 무사히 마무리했다."
+        }
+      },
+      "draftElapsedMs": 4409,
+      "draftCostUsd": 0.00045738
+    },
+    {
+      "id": "o4-renamed-train-P-4",
+      "fixtureId": "o4-renamed-train",
+      "repetition": 4,
+      "draftSourceId": "o4-renamed-train-A-4",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Elena",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Noah",
+            "text": "You are welcome. I hope you catch your train."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 직접 결제해 음료를 받았다.",
+          "kind": "성공",
+          "level": "짧고 분명한 문장으로 결제 상황과 감사의 뜻을 자연스럽게 전했다.",
+          "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 무사히 받았다.",
+          "question": "다음에는 카드가 되지 않을 때 어떤 결제 방법을 먼저 준비할까?",
+          "relationship": "Elena와는 서로를 기억하고 도와주는 단골 손님과 직원 사이가 되었고, Noah와는 예의 있게 배려를 주고받았다."
+        }
+      },
+      "draftElapsedMs": 3805,
+      "draftCostUsd": 0.00041924
+    },
+    {
+      "id": "o7-owen-required-P-4",
+      "fixtureId": "o7-owen-required",
+      "repetition": 4,
+      "draftSourceId": "o7-owen-required-A-4",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "I need to get to my morning meeting. Thanks for asking, and good luck with your coffee."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 선택해 직접 결제를 완료하고 음료를 받았다.",
+          "kind": "성공",
+          "level": "짧고 정중한 문장으로 상황과 감사의 뜻을 분명하게 전달했다.",
+          "outcome": "휴대폰 결제가 승인되어 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 먼저 준비할 수 있을까?",
+          "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하며 좋은 인상을 남겼다."
+        }
+      },
+      "draftElapsedMs": 3531,
+      "draftCostUsd": 0.00036902
+    },
+    {
+      "id": "o8-two-schedules-P-5",
+      "fixtureId": "o8-two-schedules",
+      "repetition": 5,
+      "draftSourceId": "o8-two-schedules-A-5",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, your payment went through. Your iced Americano is ready. Do you mean where to go after you leave the café?"
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. I need to get to my meeting, and you need to catch your train."
+          }
+        ],
+        "ending": null
+      },
+      "draftElapsedMs": 5419,
+      "draftCostUsd": 0.00053954
+    },
+    {
+      "id": "o6-user-required-P-2",
+      "fixtureId": "o6-user-required",
+      "repetition": 2,
+      "draftSourceId": "o6-user-required-A-2",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You need to get to your meeting in ten minutes. I hope you make it."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 음료값을 지불하고, Owen에게 기다려 줘서 고맙다고 말했다.",
+          "kind": "성공",
+          "level": "짧고 쉬운 문장으로 결제 상황과 시간 압박을 분명하게 전달했다.",
+          "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제가 거절될 때 어떤 방법을 먼저 시도할까?",
+          "relationship": "Mia와는 서로의 주문을 기억하는 단골 관계가 되었고, Owen과는 배려를 주고받는 사이가 되었다."
+        }
+      },
+      "draftElapsedMs": 4006,
+      "draftCostUsd": 0.00047336
+    },
+    {
+      "id": "o8-two-schedules-P-4",
+      "fixtureId": "o8-two-schedules",
+      "repetition": 4,
+      "draftSourceId": "o8-two-schedules-A-4",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Your iced Americano is ready. You need to catch your train in twenty minutes."
+          },
+          {
+            "speaker": "Owen",
+            "text": "And I need to get to my meeting. Good luck with your train."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 음료값을 직접 결제했다.",
+          "kind": "성공",
+          "level": "짧고 자연스러운 문장으로 상황과 부탁을 분명하게 표현했다.",
+          "outcome": "휴대폰 결제가 성공해서 아이스 아메리카노를 받았다.",
+          "question": "다음에도 결제 문제가 생기면 어떤 방법을 먼저 시도할까?",
+          "relationship": "Mia와는 서로 기억하고 돕는 단골 손님 사이가 되었고, Owen과는 예의 있게 배려를 주고받았다."
+        }
+      },
+      "draftElapsedMs": 3896,
+      "draftCostUsd": 0.00043514
+    },
+    {
+      "id": "o7-owen-required-P-2",
+      "fixtureId": "o7-owen-required",
+      "repetition": 2,
+      "draftSourceId": "o7-owen-required-A-2",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Your iced Americano is all set. Have a good day."
+          },
+          {
+            "speaker": "Owen",
+            "text": "I need to get to a morning meeting. Thanks for being quick."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 아이스 아메리카노 값을 직접 지불했다.",
+          "kind": "성공",
+          "level": "짧고 분명한 문장으로 결제 상황과 상대에 대한 배려를 자연스럽게 표현했다.",
+          "outcome": "휴대폰 결제가 완료되어 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생겨도 얼마나 침착하게 다른 방법을 찾을 수 있을까?",
+          "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하며 인사를 나누었다."
+        }
+      },
+      "draftElapsedMs": 4000,
+      "draftCostUsd": 0.00041462
+    },
+    {
+      "id": "o4-renamed-train-P-1",
+      "fixtureId": "o4-renamed-train",
+      "repetition": 1,
+      "draftSourceId": "o4-renamed-train-A-1",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Elena",
+            "text": "Yes, it went through. Your iced Americano is ready. I made it with only a little ice."
+          },
+          {
+            "speaker": "Noah",
+            "text": "You are welcome. I am glad it worked. I need to catch my train now."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 사용해 결제를 완료하고 아이스 아메리카노를 받았다.",
+          "kind": "성공",
+          "level": "간단한 문장으로 상황을 설명하고 정중하게 도움을 요청했다.",
+          "outcome": "휴대폰 결제가 승인되어 원하는 커피를 무사히 받았다.",
+          "question": "다음에는 카드가 거절될 때 어떤 결제 방법을 먼저 확인할까?",
+          "relationship": "Elena와의 신뢰가 깊어졌고 Noah에게도 예의 있게 감사했다."
+        }
+      },
+      "draftElapsedMs": 3338,
+      "draftCostUsd": 0.00033164
+    },
+    {
+      "id": "o3-user-owner-P-4",
+      "fixtureId": "o3-user-owner",
+      "repetition": 4,
+      "draftSourceId": "o3-user-owner-A-4",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. I hope your meeting goes well."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 시도해 결제를 완료하고 아이스 아메리카노를 받았다.",
+          "kind": "성공",
+          "level": "간단한 문장으로 상황을 설명하고 정중하게 요청할 수 있다.",
+          "outcome": "휴대폰 결제가 성공해 음료를 받고 회의에 갈 수 있게 되었다.",
+          "question": "다음에는 바쁜 상황에서 더 빠르게 결제할 수 있을까?",
+          "relationship": "Mia와 Owen에게 정중하게 감사하며 좋은 인상을 남겼다."
+        }
+      },
+      "draftElapsedMs": 2993,
+      "draftCostUsd": 0.0003387
+    },
+    {
+      "id": "o1-original-P-3",
+      "fixtureId": "o1-original",
+      "repetition": 3,
+      "draftSourceId": "o1-original-A-3",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. Good luck with your meeting."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 사용해 음료값을 직접 결제했다.",
+          "kind": "성공",
+          "level": "휴대폰 결제와 감사의 말을 분명한 문장으로 표현했다.",
+          "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생기면 어떤 방법을 먼저 시도할까?",
+          "relationship": "Mia와는 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하는 사이가 되었다."
+        }
+      },
+      "draftElapsedMs": 3079,
+      "draftCostUsd": 0.000352
+    },
+    {
+      "id": "o6-user-required-P-3",
+      "fixtureId": "o6-user-required",
+      "repetition": 3,
+      "draftSourceId": "o6-user-required-A-3",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Your iced Americano is ready for you."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. I do not know what you need to get to next, but I hope you make your meeting."
+          }
+        ],
+        "ending": {
+          "choice": "폰 결제로 아이스 아메리카노 값을 직접 결제했다.",
+          "kind": "성공",
+          "level": "짧고 정중한 문장으로 필요한 상황과 감사의 뜻을 분명하게 말했다.",
+          "outcome": "폰 결제가 성공해 아이스 아메리카노를 받고 회의에 갈 수 있게 되었다.",
+          "question": "다음에는 바쁜 아침에도 결제를 더 빠르게 할 수 있을까?",
+          "relationship": "Mia와의 단골 관계가 이어졌고 Owen과도 서로 배려하는 사이가 되었다."
+        }
+      },
+      "draftElapsedMs": 4529,
+      "draftCostUsd": 0.00047216
+    },
+    {
+      "id": "o8-two-schedules-P-3",
+      "fixtureId": "o8-two-schedules",
+      "repetition": 3,
+      "draftSourceId": "o8-two-schedules-A-3",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Your iced Americano is ready. Owen, you need to get to your meeting. You need to catch your train."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. Good luck with your train."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 음료값을 지불하고 Owen에게 기다려 줘서 고맙다고 말했다.",
+          "kind": "성공",
+          "level": "짧고 공손한 문장으로 결제와 시간에 관한 뜻을 분명하게 전달했다.",
+          "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받고 기차를 타러 갈 수 있게 되었다.",
+          "question": "다음에는 바쁜 상황에서도 다른 사람에게 도움을 요청할 수 있을까?",
+          "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님 관계가 이어졌고, Owen과는 서로 배려한 사이가 되었다."
+        }
+      },
+      "draftElapsedMs": 4383,
+      "draftCostUsd": 0.00048194
+    },
+    {
+      "id": "o6-user-required-P-1",
+      "fixtureId": "o6-user-required",
+      "repetition": 1,
+      "draftSourceId": "o6-user-required-A-1",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, it went through. Your iced Americano is ready."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You need to get to your meeting next. Good luck."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 선택해 직접 결제를 완료하고 아이스 아메리카노를 받았다.",
+          "kind": "성공",
+          "level": "짧고 분명한 문장으로 결제와 시간에 대해 자연스럽게 말했다.",
+          "outcome": "휴대폰 결제가 완료되어 주문한 음료를 받았다.",
+          "question": "다음에는 바쁜 아침에도 결제를 더 빠르게 준비할 수 있을까?",
+          "relationship": "Mia와 Owen에게 예의 있게 말하며 도움을 받아 좋은 인상을 남겼다."
+        }
+      },
+      "draftElapsedMs": 4720,
+      "draftCostUsd": 0.00034256
+    },
+    {
+      "id": "o7-owen-required-P-1",
+      "fixtureId": "o7-owen-required",
+      "repetition": 1,
+      "draftSourceId": "o7-owen-required-A-1",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Your iced Americano is ready. Here you go."
+          },
+          {
+            "speaker": "Owen",
+            "text": "I need to get to my morning meeting. I should go now. Good luck with your day."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 직접 결제하고 아이스 아메리카노를 받았다.",
+          "kind": "성공",
+          "level": "사용자는 쉬운 문장으로 결제 상황과 감사의 말을 분명하게 전달했다.",
+          "outcome": "휴대폰 결제가 성공해 주문한 음료를 받았다.",
+          "question": "다음에는 결제 문제가 생겨도 더 빠르게 해결할 수 있을까?",
+          "relationship": "Mia와는 서로 기억하고 도와주는 단골 손님과 직원 사이가 되었고, Owen과는 예의 있게 배려를 주고받았다."
+        }
+      },
+      "draftElapsedMs": 3471,
+      "draftCostUsd": 0.00037022
+    },
+    {
+      "id": "o4-renamed-train-P-5",
+      "fixtureId": "o4-renamed-train",
+      "repetition": 5,
+      "draftSourceId": "o4-renamed-train-A-5",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Elena",
+            "text": "Yes, it went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Noah",
+            "text": "You are welcome. I hope you catch your train."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 사용해 직접 계산하고 아이스 아메리카노를 받았다.",
+          "kind": "성공",
+          "level": "짧고 분명한 문장으로 상황과 요청을 자연스럽게 전달했다.",
+          "outcome": "휴대폰 결제가 성공해 주문한 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생겨도 얼마나 빨리 다른 방법을 찾을 수 있을까?",
+          "relationship": "Elena와는 서로를 기억하고 도와주는 단골 손님과 바리스타의 관계가 되었고, Noah와는 정중하게 기다림을 주고받았다."
+        }
+      },
+      "draftElapsedMs": 3193,
+      "draftCostUsd": 0.00034484
+    },
+    {
+      "id": "o5-longer-P-2",
+      "fixtureId": "o5-longer",
+      "repetition": 2,
+      "draftSourceId": "o5-longer-A-2",
+      "draft": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, your payment went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You are welcome. Good luck with your meeting."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 음료값을 지불하고 Owen에게 기다려 줘서 고맙다고 말했다.",
+          "kind": "성공",
+          "level": "짧고 정중한 문장으로 필요한 내용을 분명하게 말했다.",
+          "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생기면 더 빨리 해결할 수 있을까?",
+          "relationship": "Mia와는 서로 기억하고 돕는 단골 손님과 바리스타 사이가 되었고, Owen과는 예의 있게 도움을 주고받았다."
+        }
+      },
+      "draftElapsedMs": 4464,
+      "draftCostUsd": 0.00040098
+    }
+  ],
+  "calls": 40,
+  "concurrency": 3,
+  "timeoutMs": 120000,
+  "maxRetries": 0,
+  "note": "Exploratory second experiment designed after seeing R and S results. Revises every A draft, not only known errors. No gold facts are supplied."
+}
