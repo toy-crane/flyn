@@ -9,20 +9,20 @@ describe("결말 마크", () => {
     ]);
   });
 
-  test("원은 40ms, 체크는 180ms에 시작하고 600ms에 끝난다", () => {
+  test("원과 체크를 차례로 보여 주고 정지 프레임을 남긴다", () => {
     const mark = buildClosingMark();
     const startsAt = Object.fromEntries(
       mark.layers.map((layer) => [layer.nm, (layer.ip * 1000) / mark.fr])
     );
-    expect(startsAt).toEqual({ Check: 180, Disc: 40 });
-    expect((mark.op * 1000) / mark.fr).toBe(600);
+    expect(startsAt).toEqual({ Check: 480, Disc: 150 });
+    expect((mark.op * 1000) / mark.fr).toBe(1100);
     // 마지막 프레임을 정지 상태로 쓰므로 그 프레임에서 모든 레이어가 살아 있어야 한다.
     for (const layer of mark.layers) {
       expect(layer.op).toBeGreaterThan(mark.op);
     }
   });
 
-  test("원은 300ms 동안 튀고 8%만 넘친다", () => {
+  test("원은 800ms 동안 나타나고 8%만 넘친다", () => {
     const disc = buildClosingMark().layers.find((layer) => layer.nm === "Disc");
     if (disc === undefined || disc.ks.s.a !== 1) {
       throw new Error("Disc 레이어의 크기가 움직이지 않습니다.");
@@ -32,9 +32,9 @@ describe("결말 마크", () => {
       value: keyframe.s[0],
     }));
     expect(scale).toEqual([
-      { at: 40, value: 40 },
-      { at: 220, value: 108 },
-      { at: 340, value: 100 },
+      { at: 150, value: 40 },
+      { at: 630, value: 108 },
+      { at: 950, value: 100 },
     ]);
   });
 
@@ -88,7 +88,7 @@ describe("결말 효과", () => {
     expect(count(half.layers)).toEqual({ Accent: 5, Expression: 5 });
   });
 
-  test("고리는 240ms에 시작하고 두 배로 커져도 상자 안에 든다", () => {
+  test("고리는 마크와 같은 중심에서 퍼지고 두 배로 커져도 상자 안에 든다", () => {
     const full = buildClosingBurst({ half: false });
     const positionOf = (name: string) => {
       const found = full.layers.find((layer) => layer.nm === name);
@@ -98,10 +98,10 @@ describe("결말 효과", () => {
       return { ip: found.ip, position: (found.ks.p as { k: number[] }).k };
     };
     const ring = positionOf("Ring");
-    expect((ring.ip * 1000) / full.fr).toBe(240);
-    // 원 64의 1.9배 반지름 61이 고리 중심(세로 가운데에서 14 아래)부터 상자 끝까지 들어간다.
-    expect(ring.position).toEqual([160, 134, 0]);
-    expect(full.h - 134).toBeGreaterThanOrEqual(61);
+    expect((ring.ip * 1000) / full.fr).toBe(350);
+    // 원 64의 1.9배 반지름 61이 고리 중심(세로 가운데)부터 상자 끝까지 들어간다.
+    expect(ring.position).toEqual([160, 120, 0]);
+    expect(full.h - 120).toBeGreaterThanOrEqual(61);
     // 출발점은 상자의 세로 가운데라 앱이 상자 높이의 절반으로 자리를 잡는다.
     expect(positionOf("Accent").position).toEqual([160, full.h / 2, 0]);
   });

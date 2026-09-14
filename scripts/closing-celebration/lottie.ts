@@ -251,21 +251,14 @@ const HALO_WIDTH = 5;
 /** 마크 상자. 원 64에 5짜리 후광이 붙고 튀는 순간 114%까지 커지므로 88로 잡는다. */
 const MARK_SIZE = 88;
 const MARK_CENTER = MARK_SIZE / 2;
-const MARK_DURATION = 600;
-/** 원이 튀는 때. 시안은 `pop-hero 520ms ... 40ms`였고, 300ms로 줄였다. */
-const POP = { duration: 300, start: 40 };
-/** 원이 제자리보다 커지는 정도. 시안은 114%였고, 성공 표시의 넘침 5–10%에 맞춰 108%다. */
+const MARK_DURATION = 1100;
+/** 승인한 대화 시안의 순서와 시간. 카드 진입은 앱이 같은 시작점을 사용한다. */
+const POP = { duration: 800, start: 150 };
 const POP_PEAK = { rotation: 2, scale: 108 };
-/** 체크가 그려지는 때. 시안은 `draw 360ms ... 260ms`였고, 200ms를 원이 다 커질 즈음 시작한다. */
-const DRAW = { duration: 200, start: 180 };
-/** 고리가 퍼지는 때. 시안은 `ring 620ms ... 360ms`였고, 원이 가장 커진 직후 420ms 동안 퍼진다. */
-const RING = { duration: 420, start: 240 };
+const DRAW = { duration: 550, start: 480 };
+const RING = { duration: 1400, start: 350 };
 
-/**
- * 파란 원이 튀어나오고(40ms부터 300ms) 안에서 체크가 그려진다(180ms부터
- * 200ms). 마지막 프레임은 정지 상태라 동작 줄이기와 기록 재방문이 같은 그림을
- * 쓴다. 고리는 원의 두 배 가까이 커져 이 상자를 넘으므로 조각 파일에 둔다.
- */
+/** 마지막 프레임은 동작 줄이기에서도 보여 줄 정지된 완료 마크다. */
 export function buildClosingMark(): LottieDocument {
   const end = frame(MARK_DURATION);
   // 마지막 프레임에서도 레이어가 살아 있도록 레이어의 끝은 문서의 끝 너머에 둔다.
@@ -370,14 +363,10 @@ export function buildClosingMark(): LottieDocument {
 const BURST_SIZE: [number, number] = [320, 240];
 /** 조각이 터져 나오는 자리. 시안은 카드 위에서 46pt 아래, 가로 가운데다. */
 const BURST_ORIGIN: [number, number] = [BURST_SIZE[0] / 2, BURST_SIZE[1] / 2];
-/**
- * 고리의 중심은 마크의 중심이다. 시안에서 마크 중심은 카드 위에서 60pt(안쪽 여백
- * 20, 제목 영역 여백 4, 마크 상자 절반 36)라 조각 출발점보다 14pt 아래다.
- */
-const RING_CENTER: [number, number] = [BURST_ORIGIN[0], BURST_ORIGIN[1] + 14];
-/** 조각이 터지는 때. 시안은 320ms였고, 고리가 퍼지기 시작한 40ms 뒤로 당겼다. */
-const BURST_DELAY = 280;
-const BURST_DURATION = 1150;
+/** 고리와 조각은 같은 마크 중심에서 시작한다. */
+const RING_CENTER: [number, number] = BURST_ORIGIN;
+const BURST_DELAY = 250;
+const BURST_DURATION = 2100;
 const BURST_STAGGER = 30;
 type Channel = "accent" | "expression" | "learn";
 const CHANNEL_LAYERS: { channel: Channel; name: string }[] = [
@@ -411,7 +400,7 @@ const pieceShapes: readonly Shape[] = [
   }),
 ];
 
-/** 원 둘레로 한 번 퍼지는 고리. 240ms부터 420ms 동안 0.9배에서 1.9배로 커지며 사라진다. */
+/** 원 둘레로 한 번 퍼지는 고리. 350ms부터 1400ms 동안 커지며 사라진다. */
 function ringLayer(index: number, op: number): Layer {
   const start = frame(RING.start);
   const end = frame(RING.start + RING.duration);
@@ -439,8 +428,8 @@ function ringLayer(index: number, op: number): Layer {
 
 /**
  * 시안의 `burst()`. 성공은 고리와 함께 세 색 26조각이 넓게, 목표를 이루지 못한
- * 결말은 고리 없이 파랑과 청록 10조각이 0.6배로 퍼진다. 조각마다 280ms 뒤
- * 30ms씩 엇갈려 1150ms 동안 날아오르고 떨어지며 사라진다.
+ * 결말은 고리 없이 파랑과 청록 10조각이 0.6배로 퍼진다. 조각마다 250ms 뒤
+ * 30ms씩 엇갈려 2100ms 동안 날아오르고 떨어지며 사라진다.
  */
 export function buildClosingBurst({ half }: { half: boolean }): LottieDocument {
   const count = half ? 10 : 26;
