@@ -1,4 +1,4 @@
-import { Text, useWindowDimensions, View } from "react-native";
+import { Text, View } from "react-native";
 
 /**
  * 헤더 아래 상시로 보이는 사건과 목표.
@@ -18,11 +18,9 @@ export function EpisodeSituationBanner({
   emoji: string;
   text: string;
 }) {
-  const { fontScale } = useWindowDimensions();
   return (
     <View
       className="border-border border-b bg-background"
-      key={fontScale}
       testID="episode-situation-banner"
     >
       <View className="flex-row items-start gap-1.5 bg-accent-soft px-5 py-2">

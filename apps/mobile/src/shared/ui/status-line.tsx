@@ -34,8 +34,7 @@ export function StatusLine({
   retry?: { label: string; onPress: () => void; testID?: string };
   testID?: string;
 }) {
-  const { fontScale, gap, indicator, lineHeight } =
-    useProgressMetrics(sizeRole);
+  const { gap, indicator, lineHeight } = useProgressMetrics(sizeRole);
   const touchSize = Math.max(44, indicator, lineHeight);
   const rowHeight = retry ? touchSize : lineHeight;
   const baseSize = sizeRole === "supporting" ? 14 : 20;
@@ -72,7 +71,6 @@ export function StatusLine({
       accessibilityRole={loading && !retry ? "progressbar" : undefined}
       accessibilityState={{ busy: loading }}
       accessible={!retry}
-      key={fontScale}
       style={{
         alignItems: "flex-start",
         flexDirection: "row",

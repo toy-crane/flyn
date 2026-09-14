@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, useWindowDimensions, View } from "react-native";
 
 import { profileLabels } from "@/features/auth/ui/profile-labels";
 import { UserAvatar } from "@/shared/ui/user-avatar";
@@ -31,8 +31,14 @@ export function SettingsProfileHero({
   onPress,
   username,
 }: SettingsProfileHeroProps) {
+  const { width } = useWindowDimensions();
+  // SectionHeader의 RNHostView는 자식의 너비만큼 커진다. 양옆 자리를 남겨
+  // 긴 닉네임과 아이디도 화면 안에서 줄바꿈한다.
   return (
-    <View className="w-full items-center gap-3 pt-2 pb-5">
+    <View
+      className="items-center gap-3 pt-2 pb-5"
+      style={{ width: width - 64 }}
+    >
       <Pressable
         accessibilityLabel={profileLabels.profile}
         accessibilityRole="button"

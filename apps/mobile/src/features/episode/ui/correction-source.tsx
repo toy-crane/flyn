@@ -1,4 +1,4 @@
-import { Text, useWindowDimensions, View } from "react-native";
+import { Text, View } from "react-native";
 
 import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
 import { Icon } from "@/shared/ui/icon";
@@ -16,12 +16,10 @@ export function CorrectionSource({
 }: {
   correction: EpisodeCorrection;
 }) {
-  const { fontScale } = useWindowDimensions();
   const appearance = correctionPresentation(correction.original);
   return (
     <View
       className={`mb-4 rounded-2xl px-3.5 py-3 ${appearance.surface}`}
-      key={fontScale}
       testID="correction-source"
     >
       <View className="mb-1 flex-row items-center gap-1.5">

@@ -1,6 +1,6 @@
 import type { UIMessage } from "ai";
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import type {
   CorrectionEntry,
@@ -102,8 +102,6 @@ export function CorrectionNote({
   onAsk: (correction: EpisodeCorrection) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  // iOS 글자 크기가 바뀌면 내부 배치를 새로 만들고 펼침 상태는 유지한다.
-  const { fontScale } = useWindowDimensions();
   const open = useCallback(() => setIsOpen(true), []);
   const fold = useCallback(() => setIsOpen(false), []);
   const ask = useCallback(() => onAsk(correction), [correction, onAsk]);
@@ -118,7 +116,6 @@ export function CorrectionNote({
       {isOpen ? (
         <View
           className={`max-w-[85%] self-end rounded-2xl rounded-tl-md px-3.5 py-3 ${appearance.surface}`}
-          key={fontScale}
           testID="correction-card"
         >
           <View className="mb-2 flex-row items-center justify-between gap-1">
@@ -158,7 +155,6 @@ export function CorrectionNote({
           accessibilityLabel={`${appearance.title} 보기`}
           accessibilityRole="button"
           className={`max-w-[92%] flex-row items-start gap-2 self-end rounded-2xl rounded-tl-md px-3.5 py-2.5 ${appearance.surface}`}
-          key={fontScale}
           onPress={open}
           testID="correction-line"
         >

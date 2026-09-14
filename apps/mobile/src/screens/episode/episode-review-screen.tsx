@@ -41,7 +41,7 @@ export function EpisodeReviewScreen({
   savedExpressions?: readonly SavedExpressionRef[];
 }) {
   const insets = useSafeAreaInsets();
-  const { fontScale, height } = useWindowDimensions();
+  const { height } = useWindowDimensions();
   const { episode, nextUp, story } = context;
   const { announce, toast } = useExpressionToast();
   const refreshNote = useExpressionNoteRefresh();
@@ -110,7 +110,7 @@ export function EpisodeReviewScreen({
           contentContainerClassName="gap-5 px-6 pt-5 pb-6"
           testID="expression-review-scroll"
         >
-          <View className="gap-1" key={`context-${fontScale}`}>
+          <View className="gap-1">
             <Text className="text-muted text-xs" dynamicTypeRamp="caption1">
               {story.title}
             </Text>
@@ -136,7 +136,6 @@ export function EpisodeReviewScreen({
                 accessibilityRole="header"
                 className="font-bold text-base text-foreground"
                 dynamicTypeRamp="headline"
-                key={`heading-${fontScale}`}
               >
                 기억해 둘 표현
               </Text>
@@ -152,10 +151,7 @@ export function EpisodeReviewScreen({
             </View>
           ) : null}
           {!(isLoading || isRetrying) && cards?.length === 0 ? (
-            <View
-              className="items-center gap-4 rounded-2xl bg-surface px-5 py-9"
-              key={`empty-${fontScale}`}
-            >
+            <View className="items-center gap-4 rounded-2xl bg-surface px-5 py-9">
               <Icon name="expressions" size="lg" tone="muted" />
               <Text
                 className="text-center text-base text-muted leading-6"
@@ -168,7 +164,6 @@ export function EpisodeReviewScreen({
           {isRetrying || !(isLoading || cards) ? (
             <ScreenUnavailable
               isRetrying={isRetrying}
-              key={`error-${fontScale}`}
               onRetry={onRetry}
               testID="expression-review-unavailable"
               title="표현을 불러오지 못했어요"
@@ -177,7 +172,6 @@ export function EpisodeReviewScreen({
         </ScrollView>
         <View
           className="gap-3 px-6 pt-3"
-          key={`next-${fontScale}`}
           style={{
             maxHeight: height * 0.48,
             paddingBottom: Math.max(insets.bottom, 12),
