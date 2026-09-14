@@ -1,3 +1,4 @@
+import { Typography } from "heroui-native/text";
 import {
   type ReactNode,
   useCallback,
@@ -7,7 +8,6 @@ import {
 } from "react";
 import {
   type LayoutChangeEvent,
-  Text,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -44,8 +44,11 @@ const LAYER_TOP_GAP = 10;
  */
 const LAYER_MIN_HEIGHT = 62;
 
-/** 기본 글자 크기에서 문구 한 줄의 높이. 실제 줄높이는 여기에 배율을 곱한다. */
-const LINE_HEIGHT = 20;
+/**
+ * 기본 글자 크기에서 문구 한 줄의 높이. 실제 줄높이는 여기에 배율을 곱한다.
+ * 문구는 타이포그래피 대응표의 `body`이므로 그 행간 28이 기준이다.
+ */
+const LINE_HEIGHT = 28;
 
 /**
  * 문구가 커지는 한도.
@@ -197,8 +200,7 @@ function ScreenToast({
           줄높이를 클래스에 못 박지 않고 배율을 곱한다. 클래스의 줄높이는
           고정값이라 글자만 커지고 줄은 그대로여서 문구의 위아래가 잘린다.
         */}
-        <Text
-          className="text-base text-foreground"
+        <Typography.Paragraph
           maxFontSizeMultiplier={MAX_FONT_SCALE}
           style={{
             flexShrink: 1,
@@ -206,7 +208,7 @@ function ScreenToast({
           }}
         >
           {content.text}
-        </Text>
+        </Typography.Paragraph>
       </Animated.View>
     </View>
   );

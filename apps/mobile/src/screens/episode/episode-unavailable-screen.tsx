@@ -1,4 +1,5 @@
-import { Text, View } from "react-native";
+import { Typography } from "heroui-native/text";
+import { View } from "react-native";
 
 import { episodeLabels } from "@/features/episode/ui/episode-labels";
 import { Button } from "@/shared/ui/button";
@@ -17,9 +18,9 @@ export function EpisodeUnavailableScreen({
       testID="episode-unavailable"
     >
       <View className="gap-3 rounded-2xl bg-surface px-5 py-6">
-        <Text className="text-base text-muted leading-6">
+        <Typography.Paragraph color="muted">
           {episodeLabels.conversationUnavailable}
-        </Text>
+        </Typography.Paragraph>
         <Button
           accessibilityLabel={episodeLabels.retry}
           isPending={isRetrying}

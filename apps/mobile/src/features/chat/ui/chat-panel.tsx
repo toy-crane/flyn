@@ -8,6 +8,7 @@ import type {
   LegendListRenderItemProps,
 } from "@legendapp/list/react-native";
 import type { UIMessage } from "ai";
+import { Typography } from "heroui-native/text";
 import {
   type ComponentType,
   type ReactElement,
@@ -26,7 +27,6 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Platform,
-  Text,
   TextInput,
   useWindowDimensions,
   View,
@@ -385,14 +385,15 @@ function Composer({
         // 누르지 않도록 알약이 다음 줄로 내려간다. 문구에 줄어드는 성질을 주면
         // 줄을 나누기 전에 문구부터 줄어들어 한 줄에 남으므로 주지 않는다.
         <View className="flex-row flex-wrap items-center gap-2">
-          <Text
+          <Typography.Paragraph
             accessibilityLiveRegion="assertive"
             accessibilityRole="alert"
-            className="grow text-danger text-sm"
+            className="grow text-danger"
             testID="chat-error"
+            type="body-sm"
           >
             {chatLabels.errorAnnouncement}
-          </Text>
+          </Typography.Paragraph>
           <Button
             accessibilityLabel={chatLabels.retry}
             isDisabled={chat.isBusy}
@@ -410,9 +411,9 @@ function Composer({
       {chat.editingMessageId ? (
         <View className="flex-row items-center gap-2" testID="chat-edit-notice">
           <Icon name="edit" size="sm" tone="muted" />
-          <Text className="flex-1 text-muted text-xs leading-5">
+          <Typography.Paragraph className="flex-1" color="muted" type="body-xs">
             {chatLabels.editNotice}
-          </Text>
+          </Typography.Paragraph>
           <IconButton
             accessibilityLabel={chatLabels.endEdit}
             hitSlop={8}

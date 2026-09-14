@@ -1,4 +1,5 @@
-import { Text, View } from "react-native";
+import { Typography } from "heroui-native/text";
+import { View } from "react-native";
 
 import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
 import { Icon } from "@/shared/ui/icon";
@@ -24,27 +25,31 @@ export function CorrectionSource({
     >
       <View className="mb-1 flex-row items-center gap-1.5">
         <Icon name="learn" size="sm" tone={appearance.tone} />
-        <Text
-          className={`shrink font-semibold text-xs ${appearance.text}`}
+        <Typography.Paragraph
+          className={`shrink ${appearance.text}`}
           selectable={false}
+          type="body-xs"
+          weight="semibold"
         >
           {appearance.title}
-        </Text>
+        </Typography.Paragraph>
       </View>
-      <Text
-        className="mb-0.5 text-muted text-sm leading-5"
+      <Typography.Paragraph
+        className="mb-0.5"
+        color="muted"
         selectable={false}
         testID="correction-source-original"
+        type="body-sm"
       >
         {correction.original}
-      </Text>
-      <Text
-        className="font-semibold text-base text-foreground leading-6"
+      </Typography.Paragraph>
+      <Typography.Heading
         selectable={false}
         testID="correction-source-fixed"
+        type="h6"
       >
         {correction.fixed}
-      </Text>
+      </Typography.Heading>
     </View>
   );
 }

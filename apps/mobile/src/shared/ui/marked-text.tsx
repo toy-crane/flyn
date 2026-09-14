@@ -1,3 +1,8 @@
+import {
+  Typography,
+  type TypographyColor,
+  type TypographyWeight,
+} from "heroui-native/text";
 import { Text } from "react-native";
 
 /** 강조할 조각과 그대로 둘 조각. */
@@ -84,31 +89,66 @@ export function markedParts(
  * 문장은 한 줄로 이어지고 짚은 조각만 다른 모양을 입는다. 어떻게 짚을지는
  * 부르는 쪽이 정한다. 대화 곁에서는 색으로, 표현 노트에서는 형광펜으로 짚지만
  * 자르는 규칙은 하나다.
+ *
+ * 문장의 크기와 굵기는 타이포그래피 역할이 정한다. 짚은 조각은 그 안에 중첩된
+ * 글이라 색과 배경 같은 모양만 입고 크기와 굵기는 바깥 문장을 따른다.
  */
 export function MarkedSentence({
   className,
+  color,
   marks,
   markClassName,
   testID,
   text,
+  type = "body",
+  weight,
 }: {
-  className: string;
+  /** 색과 여백. 크기, 행간, 굵기는 `type`과 `weight`가 정한다. */
+  className?: string;
+  color?: TypographyColor;
   markClassName: string;
   marks: readonly string[];
   testID?: string;
   text: string;
+  /** 영어 문장은 `h6`, 그 밖의 문장은 본문 계열이다. */
+  type?: "body" | "body-sm" | "body-xs" | "h6";
+  weight?: TypographyWeight;
 }) {
+  const parts = markedParts(text, marks).map((part) =>
+    part.isMarked ? (
+      <Text className={markClassName} key={part.at}>
+        {part.text}
+      </Text>
+    ) : (
+      part.text
+    )
+  );
+
+  if (type === "h6") {
+    return (
+      <Typography.Heading
+        className={className}
+        color={color}
+        selectable={false}
+        testID={testID}
+        type="h6"
+        weight={weight}
+      >
+        {parts}
+      </Typography.Heading>
+    );
+  }
+
   return (
-    <Text className={className} selectable={false} testID={testID}>
-      {markedParts(text, marks).map((part) =>
-        part.isMarked ? (
-          <Text className={markClassName} key={part.at}>
-            {part.text}
-          </Text>
-        ) : (
-          part.text
-        )
-      )}
-    </Text>
+    <Typography.Paragraph
+      className={className}
+      color={color}
+      selectable={false}
+      testID={testID}
+      type={type}
+      weight={weight}
+    >
+      {parts}
+    </Typography.Paragraph>
   );
 }

@@ -1,6 +1,7 @@
 import { LinkButton } from "heroui-native/link-button";
+import { Typography } from "heroui-native/text";
 import { useCallback } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import {
   meaningKey,
   type UtteranceSpot,
@@ -90,12 +91,13 @@ export function UtteranceMeaningLine({
         <View className="mt-1">
           <Icon name="translate" size="sm" tone="muted" />
         </View>
-        <Text
-          className="shrink text-foreground text-sm leading-5"
+        <Typography.Paragraph
+          className="shrink"
           selectable={false}
+          type="body-sm"
         >
           {state.meaning}
-        </Text>
+        </Typography.Paragraph>
       </View>
       <LinkButton
         accessibilityLabel={labels.ask}
@@ -103,7 +105,7 @@ export function UtteranceMeaningLine({
         onPress={askAboutMeaning}
         size="sm"
       >
-        <LinkButton.Label className="text-accent text-xs">
+        <LinkButton.Label className="text-accent">
           {labels.ask}
         </LinkButton.Label>
         <Icon name="forward" size="xs" tone="accent" />
@@ -124,22 +126,28 @@ export function UtteranceMeaningSource({
     >
       <View className="mb-1 flex-row items-center gap-1.5">
         <Icon name="translate" size="sm" tone="muted" />
-        <Text className="font-semibold text-muted text-xs">{labels.title}</Text>
+        <Typography.Paragraph color="muted" type="body-xs" weight="semibold">
+          {labels.title}
+        </Typography.Paragraph>
       </View>
-      <Text
-        className={`mb-0.5 font-semibold text-xs ${castTone(source.position)}`}
+      <Typography.Paragraph
+        className={`mb-0.5 ${castTone(source.position)}`}
+        type="body-xs"
+        weight="semibold"
       >
         {source.speaker}
-      </Text>
-      <Text className="mb-0.5 text-muted text-sm leading-5" selectable={false}>
-        {source.text}
-      </Text>
-      <Text
-        className="font-semibold text-base text-foreground leading-6"
+      </Typography.Paragraph>
+      <Typography.Paragraph
+        className="mb-0.5"
+        color="muted"
         selectable={false}
+        type="body-sm"
       >
+        {source.text}
+      </Typography.Paragraph>
+      <Typography.Heading selectable={false} type="h6">
         {source.meaning}
-      </Text>
+      </Typography.Heading>
     </View>
   );
 }

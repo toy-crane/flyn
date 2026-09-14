@@ -1,14 +1,9 @@
 import { afterEach, beforeEach, expect, jest, test } from "@jest/globals";
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from "@testing-library/react-native";
+import { act, fireEvent, screen, within } from "@testing-library/react-native";
 import { useCallback } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { Icon } from "./icon";
 import { useScreenToast } from "./screen-toast";
 
@@ -64,13 +59,13 @@ afterEach(() => {
 });
 
 test("알리기 전에는 아무 문구도 서 있지 않는다", async () => {
-  await render(<ToastHarness />);
+  await renderWithHeroUI(<ToastHarness />);
 
   expect(screen.queryByTestId("screen-toast")).toBeNull();
 });
 
 test("알린 문구가 위쪽 띠 아래 자리에 선다", async () => {
-  await render(<ToastHarness />);
+  await renderWithHeroUI(<ToastHarness />);
 
   await act(() => {
     fireEvent.press(screen.getByTestId("save"));
@@ -86,8 +81,26 @@ test("알린 문구가 위쪽 띠 아래 자리에 선다", async () => {
   ).toBeNull();
 });
 
+test("문구는 본문 역할이고 확대 상한 안의 줄 높이는 본문 행간 28을 기준으로 한다", async () => {
+  const window = Dimensions.get("window");
+  Dimensions.set({ window: { ...window, fontScale: 1 } });
+  await renderWithHeroUI(<ToastHarness />);
+
+  await act(() => {
+    fireEvent.press(screen.getByTestId("save"));
+  });
+
+  const text = screen.getByText("표현을 저장했어요");
+  expect(text.props.className).toContain("text__root--type-body");
+  expect(text.props.maxFontSizeMultiplier).toBe(1.6);
+  expect(StyleSheet.flatten(text.props.style)).toMatchObject({
+    lineHeight: 28,
+  });
+  Dimensions.set({ window });
+});
+
 test("2.5초가 지나면 문구가 사라진다", async () => {
-  await render(<ToastHarness />);
+  await renderWithHeroUI(<ToastHarness />);
 
   await act(() => {
     fireEvent.press(screen.getByTestId("save"));
@@ -106,7 +119,7 @@ test("2.5초가 지나면 문구가 사라진다", async () => {
 });
 
 test("연달아 알리면 문구 하나만 서 있고 시간을 새로 센다", async () => {
-  await render(<ToastHarness />);
+  await renderWithHeroUI(<ToastHarness />);
 
   await act(() => {
     fireEvent.press(screen.getByTestId("save"));
@@ -136,7 +149,7 @@ test("연달아 알리면 문구 하나만 서 있고 시간을 새로 센다", 
 });
 
 test("화면 읽기가 뜬 문구를 읽는다", async () => {
-  await render(<ToastHarness />);
+  await renderWithHeroUI(<ToastHarness />);
 
   await act(() => {
     fireEvent.press(screen.getByTestId("save"));
@@ -151,7 +164,7 @@ test("화면 읽기가 뜬 문구를 읽는다", async () => {
 });
 
 test("알약이 커지면 층도 그만큼 높아진다", async () => {
-  await render(<ToastHarness />);
+  await renderWithHeroUI(<ToastHarness />);
 
   await act(() => {
     fireEvent.press(screen.getByTestId("save"));

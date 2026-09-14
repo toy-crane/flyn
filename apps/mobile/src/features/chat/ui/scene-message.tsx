@@ -1,5 +1,6 @@
+import { Typography } from "heroui-native/text";
 import { type ComponentType, memo, type ReactNode } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { castTone } from "@/shared/ui/cast-tone";
 
 import { MarkdownAnswer } from "./markdown-answer";
@@ -49,13 +50,11 @@ const SceneOpening = memo(function SceneOpeningContent({
       className="mt-1 mb-3 max-w-[92%] gap-1 px-1"
       testID="chat-scene-opening"
     >
-      <Text className="font-semibold text-base text-foreground leading-6">
-        {lead}
-      </Text>
+      <Typography.Paragraph weight="semibold">{lead}</Typography.Paragraph>
       {rest.map((line) => (
-        <Text className="text-base text-scene leading-6" key={line}>
+        <Typography.Paragraph className="text-scene" key={line}>
           {line}
-        </Text>
+        </Typography.Paragraph>
       ))}
     </View>
   );
@@ -90,11 +89,13 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
   );
   return (
     <View className="w-full items-start" testID="chat-scene-utterance">
-      <Text
-        className={`mb-1 px-1 font-semibold text-sm leading-4 ${castTone(castPosition)}`}
+      <Typography.Paragraph
+        className={`mb-1 px-1 ${castTone(castPosition)}`}
+        type="body-xs"
+        weight="semibold"
       >
         {name}
-      </Text>
+      </Typography.Paragraph>
       {UtteranceSlot ? (
         <UtteranceSlot
           at={at}

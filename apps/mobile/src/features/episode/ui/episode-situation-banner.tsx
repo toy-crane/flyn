@@ -1,4 +1,5 @@
-import { Text, View } from "react-native";
+import { Typography } from "heroui-native/text";
+import { View } from "react-native";
 
 /**
  * 헤더 아래 상시로 보이는 사건과 목표.
@@ -28,14 +29,16 @@ export function EpisodeSituationBanner({
           장면을 가리키는 장식이라 낭독에서는 뺀다. 남겨 두면 문장 앞에서
           이모지 이름이 따로 한 번 읽힌다.
         */}
-        <Text
+        <Typography.Paragraph
           accessibilityElementsHidden
-          className="text-sm leading-5"
           importantForAccessibility="no-hide-descendants"
+          type="body-sm"
         >
           {emoji}
-        </Text>
-        <Text className="flex-1 text-foreground text-sm leading-5">{text}</Text>
+        </Typography.Paragraph>
+        <Typography.Paragraph className="flex-1" type="body-sm">
+          {text}
+        </Typography.Paragraph>
       </View>
     </View>
   );
