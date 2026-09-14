@@ -1,0 +1,130 @@
+V001 o2-restated | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your day.
+V002 o1-original | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I hope you get where you need to go.
+V003 o3-user-owner | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I hope you make your meeting on time.
+V004 o3-user-owner | Mia: Yes, it went through. Your iced Americano with a little ice is ready. | Owen: You are welcome. I hope your meeting goes well.
+V005 s4-success | Mia: Great, the payment went through. Here is your iced Americano with a little ice. Have a good morning. | Owen: You are welcome. I am glad it worked. I need to get to my meeting now.
+V006 o3-user-owner | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I hope you make your meeting on time.
+V007 o2-restated | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your day.
+V008 o2-restated | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your coffee.
+V009 s5-compromise | Mia: You are welcome. I am glad we found a way. | Owen: No problem. I hope your morning gets better.
+V010 s5-compromise | Mia: You’re welcome. I’m glad that worked. | Owen: No problem. I hope your morning gets better.
+V011 o8-two-schedules | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You need to catch your train in twenty minutes, and I need to get to my meeting. Thanks for being quick.
+V012 s4-success | Mia: Great, it went through. Here is your iced Americano with a little ice. Have a good day. | Owen: You are welcome. I hope you make it to your meeting on time.
+V013 o3-user-owner | Mia: Yes, it went through. Your iced Americano with a little ice is ready. Here you go. | Owen: You are welcome. I hope your meeting goes well.
+V014 o1-original | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I hope you have a good day.
+V015 o8-two-schedules | Mia: Yes, the payment went through. Your iced Americano is ready. | Mia: Do you mean where to pick up your drink, or where to go after the café?
+V016 s2-addressee | Owen: Yes, I can wait one more minute. Please make it quick. | Mia: Open your phone payment app. Then tap your phone on the reader.
+V017 o8-two-schedules | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You need to catch your train, and I need to get to my meeting. Thanks for being quick.
+V018 o3-user-owner | Mia: Yes, it went through. Your iced Americano with a little ice is ready. | Owen: You are welcome. I hope you make your meeting on time.
+V019 s5-compromise | Mia: You are welcome. I am glad that worked. | Owen: You are welcome. I hope you make your meeting on time.
+V020 o2-restated | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your day.
+V021 o8-two-schedules | Mia: Yes, the payment went through. Your iced Americano is ready. | Owen: You need to catch your train, and I need to get to my meeting. We do not know the exact places from here.
+V022 s4-success | Mia: Great, the payment went through. Here is your iced Americano with a little ice. Have a good morning. | Owen: You are welcome. I am glad it worked. Have a good day.
+V023 o1-original | Mia: Yes, it went through. Your iced Americano is paid for. Here is your drink. | Owen: You are welcome. I hope you make your meeting on time.
+V024 s4-success | Mia: Great, it went through. Here is your iced Americano with a little ice. Have a good day. | Owen: You are welcome. I hope you get to work on time.
+V025 s5-compromise | Owen: You are welcome. I am glad it worked. | Mia: You are welcome. I hope the latte helps this morning.
+V026 o4-renamed-train | Elena: Yes, it went through. Here is your iced Americano with a little ice. | Noah: You are welcome. I hope you catch your train.
+V027 s6-failure | Mia: I am sorry it did not work today. I hope you can come back tomorrow. | Owen: Thanks. I hope your payment works next time. Take care.
+V028 o2-restated | Mia: Yes, it went through. Here is your iced Americano with a little ice. Thanks for waiting. | Owen: You are welcome. Thanks, and good luck with your day.
+V029 s2-addressee | Owen: Yes, I can wait one more minute. Please be quick. | Mia: Open your payment app, choose your card, and tap your phone on the reader.
+V030 s4-success | Mia: Great. Your payment went through. Here is your iced Americano with a little ice. Have a good day. | Owen: You are welcome. I am glad it worked.
+V031 o7-owen-required | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: I need to get to my morning meeting. You are welcome.
+V032 o7-owen-required | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I need to get to my meeting next.
+V033 o4-renamed-train | Elena: Yes, it went through. Here is your iced Americano with a little ice. | Noah: You are welcome. I am glad it worked.
+V034 o5-longer | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I am glad it worked.
+V035 s5-compromise | Mia: You are welcome. I am glad we found a way. | Owen: You are welcome. I hope your morning gets better.
+V036 o7-owen-required | Mia: Yes, it went through. Your iced Americano has only a little ice. Here you go. | Owen: I need to get to my morning meeting. Thanks for being quick and for saying sorry.
+V037 o3-user-owner | Mia: Yes, the payment went through. Your iced Americano is ready. Here you go. | Owen: You are welcome. I hope your meeting goes well.
+V038 o7-owen-required | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: I need to get to my morning meeting. I am glad it worked out. Have a good day.
+V039 o1-original | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I hope you have a good day.
+V040 o7-owen-required | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: I need to get to my meeting. You are welcome.
+V041 s2-addressee | Owen: One more minute is fine. Please make it quick. | Mia: Open your phone’s payment app. Then hold it near the card reader.
+V042 o1-original | Mia: Yes, it went through. Your iced Americano has only a little ice. Here you go. | Owen: You are welcome. I hope you make your meeting.
+V043 o7-owen-required | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: I need to get to my meeting. Thanks for asking, and enjoy your coffee.
+V044 s6-failure | Mia: You are welcome. I am sorry it did not work today. | Owen: Thank you. I hope your payment works next time.
+V045 s4-success | Mia: Great. The payment went through. Here is your iced Americano with a little ice. Have a good day. | Owen: You are welcome. I hope you get to work on time.
+V046 o8-two-schedules | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. Owen, you need to go to your meeting, and you need to catch your train in twenty minutes. | Owen: Thanks, Mia. Have a good day, and good luck catching your train.
+V047 o4-renamed-train | Elena: Yes, it went through. Your iced Americano is ready with only a little ice. | Noah: You are welcome. I hope you catch your train.
+V048 s2-addressee | Mia: Sure. Open your wallet app, then hold your phone near the reader. | Owen: I can wait one more minute. Please try that now.
+V049 s4-success | Mia: Great. Your payment went through. Thank you for coming back, and enjoy your iced Americano. | Owen: You are welcome. I am glad it worked out.
+V050 o5-longer | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I am glad it worked. I need to go now.
+V051 o5-longer | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I am glad it worked out.
+V052 o8-two-schedules | Mia: Yes, it went through. Your iced Americano is ready. You need to catch your train, and Owen needs to go to his meeting. | Owen: You are welcome. I hope you catch your train.
+V053 s5-compromise | Mia: You are welcome. I am glad we found a way. | Owen: No problem. I hope your morning gets better.
+V054 o6-user-required | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You need to get to your meeting next. I hope you make it on time.
+V055 o2-restated | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Thanks for keeping me updated. Good luck with your day.
+V056 o3-user-owner | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your meeting.
+V057 o6-user-required | Mia: Yes, it went through. Your iced Americano with a little ice is ready. Here you go. | Owen: You are welcome. You need to get to your meeting next.
+V058 o6-user-required | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You said you have a meeting in ten minutes. I do not know what you need to do next.
+V059 o5-longer | Mia: Yes, it went through. Your iced Americano is ready. Here you go. | Owen: You are welcome. I am glad it worked.
+V060 s3-not-done | Mia: Hold your phone near the black reader, right here. Keep it there until you hear a beep. | Owen: Thanks. I can wait a little longer. Please try it now.
+V061 s6-failure | Mia: You are welcome. I am sorry we could not make it work. Have a good day. | Owen: Thank you. I will try to make it on time. Take care.
+V062 o6-user-required | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You need to get to your meeting next. I hope you make it on time.
+V063 o3-user-owner | Mia: Yes, it went through. Your iced Americano is ready for you. | Owen: You are welcome. I hope you make it to your meeting on time.
+V064 s3-not-done | Mia: Hold the top of your phone near the small card reader. You can tap it now. | Owen: Thanks. I will wait while you try it.
+V065 o4-renamed-train | Elena: Yes, it went through. Here is your iced Americano with a little ice. | Noah: You are welcome. I am glad it worked. I need to catch my train now.
+V066 s6-failure | Mia: You’re welcome. I’m sorry we could not make it work. Have a good day. | Owen: Thanks. I hope your payment works next time. Take care.
+V067 s2-addressee | Owen: Okay, I can wait one more minute. Please be quick. | Mia: Open your payment app, choose your card, and hold your phone near the reader.
+V068 s5-compromise | Mia: You’re welcome. I’m glad we found a way. | Owen: You’re welcome. I hope your meeting goes well.
+V069 o7-owen-required | Mia: Yes, it went through. Your iced Americano has only a little ice. Here you are. | Owen: I need to get to my morning meeting at the office. You are welcome, and good luck with your coffee.
+V070 s3-not-done | Mia: Hold the top of your phone over the reader. Tap it when you are ready. | Owen: Sure. I can wait a little longer.
+V071 o4-renamed-train | Elena: Yes, it went through. Here is your iced Americano with a little ice. | Noah: You are welcome. I hope you get where you need to go.
+V072 o3-user-owner | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I hope your meeting goes well.
+V073 s3-not-done | Mia: Hold your phone over the small reader beside the screen. Tap it there when you are ready. | Owen: Thanks. I will wait a little longer.
+V074 s6-failure | Mia: You are welcome. I am sorry it did not work today. I hope to see you again. | Owen: Thank you. I hope your next coffee goes better. I should get to my meeting.
+V075 o5-longer | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I am glad it worked.
+V076 o2-restated | Mia: Yes, it went through. Here is your iced Americano with a little ice. Have a good day. | Owen: You are welcome. Thanks, and I hope you have a good day too.
+V077 o7-owen-required | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I need to get to my morning meeting. Have a good day.
+V078 o1-original | Mia: Yes, it went through. Your iced Americano with a little ice is ready. | Owen: You are welcome. I hope you make your meeting on time.
+V079 o6-user-required | Mia: Yes, the payment went through. Your iced Americano is ready. | Owen: You need to get to your meeting in ten minutes. I hope you make it.
+V080 s3-not-done | Mia: Hold the top of your phone near the small card reader. You will hear a beep. | Owen: Sure. Please take your time, but I need to leave soon.
+V081 s6-failure | Mia: You are welcome. I am sorry it did not work today. I hope you can get coffee soon. | Owen: Thank you. I hope your next payment works. I need to get to my meeting now.
+V082 s2-addressee | Mia: Open your payment app, then hold your phone near the reader. | Owen: I can wait one more minute. Please make it quick.
+V083 o6-user-required | Mia: Yes, it went through. Your iced Americano is ready, with a little ice. | Owen: You need to get to your meeting next. I hope you make it on time.
+V084 o5-longer | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I am glad it worked.
+V085 o6-user-required | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. You need to get to your meeting in ten minutes. That is all I know.
+V086 o6-user-required | Mia: Yes, your payment went through. Here is your iced Americano with a little ice. | Owen: You need to get to your meeting in ten minutes. Good luck.
+V087 s6-failure | Mia: You are welcome. I am sorry we could not find a way today. I hope you can come back tomorrow. | Owen: Thank you. I hope things work out for you too.
+V088 o5-longer | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I am glad it worked.
+V089 s2-addressee | Owen: Yes, I can wait one more minute. Please be quick. | Mia: Open your payment app, choose your card, and hold your phone near the reader.
+V090 o2-restated | Mia: Yes, the payment went through. Your iced Americano with a little ice is ready. | Owen: You are welcome. Good luck with your day, too.
+V091 o8-two-schedules | Mia: Yes, the payment went through. Your iced Americano is ready. Please take it from the pickup end. | Owen: You are welcome. Now you can catch your train, and I can get to my meeting.
+V092 o1-original | Mia: Yes, it went through. Your iced Americano with a little ice is ready. | Owen: You are welcome. I am glad it worked.
+V093 o8-two-schedules | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. Owen, you need to get to your meeting, and you need to catch your train in twenty minutes. | Owen: Thanks for reminding us. I hope you catch your train.
+V094 o4-renamed-train | Elena: Yes, it went through. Here is your iced Americano with a little ice. | Noah: You are welcome. I am glad it worked.
+V095 o7-owen-required | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: I need to get to my meeting. Thanks for asking, and enjoy your coffee.
+V096 o4-renamed-train | Elena: Yes, it went through. Here is your iced Americano with a little ice. | Noah: You are welcome. I am glad it worked.
+V097 o1-original | Mia: Yes, it went through. Your iced Americano with a little ice is ready. | Owen: Good. You are all set now. Have a good day.
+V098 s4-success | Mia: Great, it went through. Here is your iced Americano with a little ice. Have a good day. | Owen: You are welcome. I am glad it worked.
+V099 o5-longer | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: Good. You are all set. I hope your meeting goes well.
+V100 s3-not-done | Mia: Hold your phone near the small reader on the counter. It has a contactless symbol. | Owen: Thanks. Please tap it when you are ready.
+V101 o6-user-required | Mia: Yes, it went through. Your iced Americano is ready. | Owen: You need to get to your meeting in ten minutes. I hope you make it.
+V102 o2-restated | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your coffee.
+V103 s2-addressee | Mia: Open your payment app and choose your card. Then tap your phone on the reader. | Owen: Okay, I can wait one more minute. Please try it now.
+V104 o1-original | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I am glad it worked out.
+V105 o4-renamed-train | Elena: Yes, the payment went through. Your iced Americano with a little ice is ready. | Noah: You are welcome. I am glad it worked.
+V106 s5-compromise | Mia: You’re welcome. I’m glad we found a way. | Owen: No problem. I hope you get to work on time.
+V107 o5-longer | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I hope you have a good day.
+V108 s2-addressee | Owen: One more minute, please. I can wait, but I need to leave soon. | Mia: Open your payment app, then tap your phone on the reader.
+V109 s4-success | Mia: Great, your payment went through. Here is your iced Americano with a little ice. Thank you for coming back. | Owen: You are welcome. I am glad it worked out.
+V110 o4-renamed-train | Elena: Yes, it went through. Your iced Americano with a little ice is ready. Here you are. | Noah: You are welcome. I hope you get to work on time.
+V111 o3-user-owner | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I hope your meeting goes well.
+V112 o8-two-schedules | Mia: Yes, the payment went through. Your iced Americano is ready. You said you have a train in twenty minutes, and Owen said he has a meeting in ten. | Owen: Right. You should catch your train, and I should get to my meeting. Thanks for paying quickly.
+V113 o4-renamed-train | Elena: Yes, it went through. Here is your iced Americano with a little ice. | Noah: You are welcome. I hope you make your train.
+V114 o2-restated | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your day, too.
+V115 s3-not-done | Mia: Hold the top of your phone over the reader. Please keep it there until you hear a beep. | Owen: Sure. I can wait a little longer.
+V116 o7-owen-required | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: I need to get to my morning meeting. Thanks for being quick.
+V117 s5-compromise | Mia: You are welcome. I am glad we found a way. | Owen: You are welcome. I hope the latte works for you.
+V118 s6-failure | Mia: You are welcome. I am sorry we could not make it work today. | Owen: Thank you. I hope your card works next time.
+V119 s3-not-done | Mia: Hold the top of your phone over the card reader. Please tap it when you are ready. | Owen: Sure. I will wait, but please try it now.
+V120 o5-longer | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I am glad it worked out.
+V121 s6-failure | Mia: You are welcome. I am sorry it did not work today. | Owen: Thank you. I hope you can get your coffee next time.
+V122 s5-compromise | Mia: You’re welcome. I’m glad we found a way. | Owen: You’re welcome. I hope your morning gets better.
+V123 s2-addressee | Owen: Yes, I can wait one more minute. Please make it quick. | Mia: Open your phone wallet first. Then hold your phone near the reader.
+V124 s3-not-done | Mia: Hold your phone near the small card reader on the counter. Please tap it when you are ready. | Owen: Thanks. I will wait a little longer.
+V125 o1-original | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Have a good day.
+V126 o8-two-schedules | Mia: Yes, the payment went through. Your iced Americano is ready. | Mia: You need to catch your train in twenty minutes. Owen needs to get to his meeting in ten minutes. | Owen: Thanks. Now we can both go.
+V127 s3-not-done | Mia: Hold your phone near the small card reader. The screen should face you. | Owen: Thanks. I hope it works this time.
+V128 s6-failure | Mia: You are welcome. I am sorry we could not make it work today. Take care. | Owen: Thank you. I hope your morning gets better.
+V129 s4-success | Mia: You are welcome. Your payment went through, and that is your iced Americano with a little ice. | Owen: You are welcome. I am glad it worked.
+V130 o6-user-required | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You need to get to your meeting next. You still have ten minutes.

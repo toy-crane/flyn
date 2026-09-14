@@ -1,0 +1,116 @@
+{
+  "reviewer": "Codex가 원래 초안 번호와 반복 번호를 가린 출력 40개를 읽었다. 수정 방식 하나만 읽어 방법 자체를 숨긴 검토는 아니며 사람의 독립 검토도 아니다.",
+  "reviewedIds": [
+    "P001",
+    "P002",
+    "P003",
+    "P004",
+    "P005",
+    "P006",
+    "P007",
+    "P008",
+    "P009",
+    "P010",
+    "P011",
+    "P012",
+    "P013",
+    "P014",
+    "P015",
+    "P016",
+    "P017",
+    "P018",
+    "P019",
+    "P020",
+    "P021",
+    "P022",
+    "P023",
+    "P024",
+    "P025",
+    "P026",
+    "P027",
+    "P028",
+    "P029",
+    "P030",
+    "P031",
+    "P032",
+    "P033",
+    "P034",
+    "P035",
+    "P036",
+    "P037",
+    "P038",
+    "P039",
+    "P040"
+  ],
+  "observations": [
+    {
+      "reviewId": "P010",
+      "fixtureId": "o5-longer",
+      "categories": [
+        "wrong-owner"
+      ],
+      "quote": "Mia: Yes, it went through. Your iced Americano with a little ice is ready. | Owen: You are welcome. I hope you make your meeting on time.",
+      "reason": "사용자에게 명시되지 않은 회의 또는 기차 일정을 붙인다. 그 일정은 Owen 또는 Noah의 것이다."
+    },
+    {
+      "reviewId": "P020",
+      "fixtureId": "o4-renamed-train",
+      "categories": [
+        "wrong-owner"
+      ],
+      "quote": "Elena: Yes, it went through. Here is your iced Americano with a little ice. | Noah: You are welcome. I hope you catch your train.",
+      "reason": "사용자에게 명시되지 않은 회의 또는 기차 일정을 붙인다. 그 일정은 Owen 또는 Noah의 것이다."
+    },
+    {
+      "reviewId": "P021",
+      "fixtureId": "o1-original",
+      "categories": [
+        "wrong-owner"
+      ],
+      "quote": "Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I hope you make your meeting.",
+      "reason": "사용자에게 명시되지 않은 회의 또는 기차 일정을 붙인다. 그 일정은 Owen 또는 Noah의 것이다."
+    },
+    {
+      "reviewId": "P031",
+      "fixtureId": "o2-restated",
+      "categories": [
+        "wrong-owner"
+      ],
+      "quote": "Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your meeting.",
+      "reason": "사용자에게 명시되지 않은 회의 또는 기차 일정을 붙인다. 그 일정은 Owen 또는 Noah의 것이다."
+    },
+    {
+      "reviewId": "P034",
+      "fixtureId": "o4-renamed-train",
+      "categories": [
+        "wrong-owner"
+      ],
+      "quote": "Elena: Yes, it went through. Here is your iced Americano with a little ice. | Noah: You are welcome. I hope you catch your train.",
+      "reason": "사용자에게 명시되지 않은 회의 또는 기차 일정을 붙인다. 그 일정은 Owen 또는 Noah의 것이다."
+    },
+    {
+      "reviewId": "P036",
+      "fixtureId": "o1-original",
+      "categories": [
+        "wrong-owner"
+      ],
+      "quote": "Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your meeting.",
+      "reason": "사용자에게 명시되지 않은 회의 또는 기차 일정을 붙인다. 그 일정은 Owen 또는 Noah의 것이다."
+    },
+    {
+      "reviewId": "P038",
+      "fixtureId": "o5-longer",
+      "categories": [
+        "wrong-owner"
+      ],
+      "quote": "Mia: Yes, your payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your meeting.",
+      "reason": "사용자에게 명시되지 않은 회의 또는 기차 일정을 붙인다. 그 일정은 Owen 또는 Noah의 것이다."
+    }
+  ],
+  "otherObservations": [
+    "P002는 사용자의 회의까지 약 9분 남았다고 쓴다. 입력의 마지막 명시 시간은 10분이며, 사용자가 한 번 더 기다려 달라고 요청한 대화로 경과를 추정했을 수 있다. 역할 오류에 합치지 않되 확인되지 않은 시간 추정으로 기록한다.",
+    "일정을 꼭 답해야 하는 o6~o8에서 필요한 사람과 일정을 모두 언급했다.",
+    "P003은 Mia가 불필요하게 되물은 뒤 Owen이 두 일정을 맞게 답한다. 답 누락으로 세지 않는다.",
+    "P008의 회의 다음 일은 모른다는 말은 덧붙일 필요는 없지만 확인된 일정을 틀리지는 않는다."
+  ]
+}

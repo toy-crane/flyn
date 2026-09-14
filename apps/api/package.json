@@ -10,6 +10,7 @@
     "eval:ask": "bun eval/ask.ts",
     "eval:correction": "bun eval/correction.ts",
     "eval:multi-cast": "bun eval/multi-cast.ts",
+    "eval:role-ownership": "bun eval/role-ownership.ts",
     "eval:scene": "bun eval/scene.ts",
     "eval:story": "bun eval/story-creation.ts",
     "eval:story-play": "bun eval/story-play.ts",

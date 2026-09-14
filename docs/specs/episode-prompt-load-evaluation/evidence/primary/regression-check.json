@@ -1,0 +1,38 @@
+{
+  "scope": "Six fixtures where Owen alone has a meeting. A phrase flag, not a general ownership judge.",
+  "knownOldErrorDetected": true,
+  "flagMatchesRecordedObservations": true,
+  "currentMeetingErrorIds": [
+    "s1-owner-A-1",
+    "s1-owner-A-4",
+    "s1-owner-A-5",
+    "s1-owner-B-2",
+    "s1-owner-C-2",
+    "s1-owner-C-4",
+    "s1-owner-D-1",
+    "s1-owner-D-2",
+    "s1-owner-D-3",
+    "s4-success-A-1",
+    "s4-success-A-3",
+    "s4-success-A-5",
+    "s4-success-B-1",
+    "s4-success-B-4",
+    "s4-success-B-5",
+    "s4-success-C-2",
+    "s4-success-C-5",
+    "s4-success-D-1",
+    "s4-success-D-2",
+    "s4-success-D-5",
+    "s5-compromise-A-2",
+    "s5-compromise-A-3",
+    "s5-compromise-A-4",
+    "s5-compromise-A-5",
+    "s5-compromise-B-3",
+    "s5-compromise-B-5",
+    "s5-compromise-C-1",
+    "s5-compromise-C-2"
+  ],
+  "forbiddenUserWordInRecords": [
+    "s5-compromise-A-4"
+  ]
+}

@@ -1,0 +1,325 @@
+{
+  "source": "docs/specs/episode-prompt-load-evaluation/simple-rules/data/responses.jsonl",
+  "acceptedSceneNote": "검사를 확인하려고 작성한 수정 예시다. 새로운 모델 응답이나 프롬프트 개선 결과가 아니다. 기존 검사 범위 밖의 기록 문구는 그대로 보존한다.",
+  "cases": [
+    {
+      "sourceTrialId": "o4-renamed-train-after-1",
+      "scenarioId": "o4-renamed-train",
+      "title": "없는 출근 일정 추가",
+      "expectedProblem": "사용자에게 없는 출근 일정 언급",
+      "rejectedScene": {
+        "dialogue": [
+          {
+            "speaker": "Elena",
+            "text": "Yes, it went through. Your iced Americano with a little ice is ready. Here you are."
+          },
+          {
+            "speaker": "Noah",
+            "text": "You are welcome. I hope you get to work on time."
+          }
+        ],
+        "ending": {
+          "choice": "폰 결제로 결제하고 주문한 아이스 아메리카노를 받았다.",
+          "kind": "성공",
+          "level": "짧고 정중한 문장으로 원하는 결제 방법과 감사의 뜻을 분명하게 말했다.",
+          "outcome": "폰 결제가 승인되어 원하는 음료를 무사히 받았다.",
+          "question": "다음에는 카드 문제에 대비해 어떤 결제 방법을 준비할까?",
+          "relationship": "Elena와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Noah와는 서로 배려하는 사이가 되었다."
+        }
+      },
+      "acceptedScene": {
+        "dialogue": [
+          {
+            "speaker": "Elena",
+            "text": "Yes, it went through. Your iced Americano with a little ice is ready. Here you are."
+          },
+          {
+            "speaker": "Noah",
+            "text": "You are welcome. I need to catch my train now."
+          }
+        ],
+        "ending": {
+          "choice": "폰 결제로 결제하고 주문한 아이스 아메리카노를 받았다.",
+          "kind": "성공",
+          "level": "짧고 정중한 문장으로 원하는 결제 방법과 감사의 뜻을 분명하게 말했다.",
+          "outcome": "폰 결제가 승인되어 원하는 음료를 무사히 받았다.",
+          "question": "다음에는 카드 문제에 대비해 어떤 결제 방법을 준비할까?",
+          "relationship": "Elena와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Noah와는 서로 배려하는 사이가 되었다."
+        }
+      }
+    },
+    {
+      "sourceTrialId": "o4-renamed-train-after-2",
+      "scenarioId": "o4-renamed-train",
+      "title": "Noah의 기차를 사용자 일정으로 바꿈",
+      "expectedProblem": "사용자에게 없는 train 일정 언급",
+      "rejectedScene": {
+        "dialogue": [
+          {
+            "speaker": "Elena",
+            "text": "Yes, it went through. Your iced Americano is ready with only a little ice."
+          },
+          {
+            "speaker": "Noah",
+            "text": "You are welcome. I hope you catch your train."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 음료값을 지불했다.",
+          "kind": "성공",
+          "level": "짧고 분명한 문장으로 결제 상황과 감사의 뜻을 자연스럽게 표현했다.",
+          "outcome": "휴대폰 결제가 성공해 원하는 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생기면 어떤 방법을 먼저 시도할까?",
+          "relationship": "Elena와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Noah와는 서로 배려하는 사이가 되었다."
+        }
+      },
+      "acceptedScene": {
+        "dialogue": [
+          {
+            "speaker": "Elena",
+            "text": "Yes, it went through. Your iced Americano is ready with only a little ice."
+          },
+          {
+            "speaker": "Noah",
+            "text": "You are welcome. I need to catch my train now."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 음료값을 지불했다.",
+          "kind": "성공",
+          "level": "짧고 분명한 문장으로 결제 상황과 감사의 뜻을 자연스럽게 표현했다.",
+          "outcome": "휴대폰 결제가 성공해 원하는 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생기면 어떤 방법을 먼저 시도할까?",
+          "relationship": "Elena와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Noah와는 서로 배려하는 사이가 되었다."
+        }
+      }
+    },
+    {
+      "sourceTrialId": "o4-renamed-train-after-4",
+      "scenarioId": "o4-renamed-train",
+      "title": "결제 뒤 기대한 결말 누락",
+      "expectedProblem": "결말 시점",
+      "rejectedScene": {
+        "dialogue": [
+          {
+            "speaker": "Elena",
+            "text": "Yes, the payment went through. Your iced Americano with a little ice is ready."
+          },
+          {
+            "speaker": "Noah",
+            "text": "You are welcome. I am glad it worked."
+          }
+        ],
+        "ending": null
+      },
+      "acceptedScene": {
+        "dialogue": [
+          {
+            "speaker": "Elena",
+            "text": "Yes, the payment went through. Your iced Americano with a little ice is ready."
+          },
+          {
+            "speaker": "Noah",
+            "text": "You are welcome. I am glad it worked."
+          }
+        ],
+        "ending": {
+          "choice": "폰 결제를 선택해 결제를 완료하고 음료를 받았다.",
+          "kind": "성공",
+          "level": "짧고 정중한 문장으로 상황과 요청을 분명하게 전달했다.",
+          "outcome": "폰 결제로 음료값을 내고 아이스 아메리카노를 받았다.",
+          "question": "다음에는 카드가 거절될 때 어떤 결제 방법을 먼저 시도할까?",
+          "relationship": "Elena와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고 Noah와는 서로 배려하는 사이가 되었다."
+        }
+      }
+    },
+    {
+      "sourceTrialId": "o6-user-required-after-4",
+      "scenarioId": "o6-user-required",
+      "title": "아는 다음 일정을 말한 뒤 모르겠다고 부정",
+      "expectedProblem": "알고 있는 다음 일정을 모른다고 답함",
+      "rejectedScene": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You said you have a meeting in ten minutes. I do not know what you need to do next."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 직접 결제하고 아이스 아메리카노를 받았다.",
+          "kind": "성공",
+          "level": "사용자는 결제와 시간에 관한 뜻을 분명한 영어 문장으로 전달했다.",
+          "outcome": "휴대폰 결제가 승인되어 원하는 음료를 받았다.",
+          "question": "다음에는 급한 상황에서 누구에게 어떤 도움을 요청하게 될까?",
+          "relationship": "Mia와의 친분을 확인했고 Owen에게 고마움을 전하며 편안한 관계를 유지했다."
+        }
+      },
+      "acceptedScene": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+          },
+          {
+            "speaker": "Owen",
+            "text": "You need to get to your meeting in ten minutes."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 직접 결제하고 아이스 아메리카노를 받았다.",
+          "kind": "성공",
+          "level": "사용자는 결제와 시간에 관한 뜻을 분명한 영어 문장으로 전달했다.",
+          "outcome": "휴대폰 결제가 승인되어 원하는 음료를 받았다.",
+          "question": "다음에는 급한 상황에서 누구에게 어떤 도움을 요청하게 될까?",
+          "relationship": "Mia와의 친분을 확인했고 Owen에게 고마움을 전하며 편안한 관계를 유지했다."
+        }
+      }
+    },
+    {
+      "sourceTrialId": "o8-two-schedules-after-1",
+      "scenarioId": "o8-two-schedules",
+      "title": "Owen을 부른 뒤 사용자로 바뀌는 표시 누락",
+      "expectedProblem": "말을 듣는 사람 전환이 모호함",
+      "rejectedScene": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Here is your iced Americano with a little ice. Owen, you need to get to your meeting, and you need to catch your train in twenty minutes."
+          },
+          {
+            "speaker": "Owen",
+            "text": "Thanks for reminding us. I hope you catch your train."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 아이스 아메리카노 값을 지불했다.",
+          "kind": "성공",
+          "level": "짧고 정중한 문장으로 원하는 결제 방법과 상황을 분명히 전달했다.",
+          "outcome": "휴대폰 결제가 완료되어 원하는 음료를 받았다.",
+          "question": "다음에는 결제가 거절될 때 어떤 방법을 가장 먼저 확인할까?",
+          "relationship": "Mia와 Owen에게 정중하게 상황을 설명해 도움과 배려를 받았다."
+        }
+      },
+      "acceptedScene": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Here is your iced Americano with a little ice. You need to catch your train in twenty minutes, and Owen needs to get to his meeting."
+          },
+          {
+            "speaker": "Owen",
+            "text": "Thanks for reminding us. I hope you catch your train."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제로 아이스 아메리카노 값을 지불했다.",
+          "kind": "성공",
+          "level": "짧고 정중한 문장으로 원하는 결제 방법과 상황을 분명히 전달했다.",
+          "outcome": "휴대폰 결제가 완료되어 원하는 음료를 받았다.",
+          "question": "다음에는 결제가 거절될 때 어떤 방법을 가장 먼저 확인할까?",
+          "relationship": "Mia와 Owen에게 정중하게 상황을 설명해 도움과 배려를 받았다."
+        }
+      }
+    },
+    {
+      "sourceTrialId": "o8-two-schedules-after-2",
+      "scenarioId": "o8-two-schedules",
+      "title": "두 일정에 같은 you를 써서 상대가 모호함",
+      "expectedProblem": "말을 듣는 사람 전환이 모호함",
+      "rejectedScene": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Here is your iced Americano with a little ice. Owen, you need to go to your meeting, and you need to catch your train in twenty minutes."
+          },
+          {
+            "speaker": "Owen",
+            "text": "Thanks, Mia. Have a good day, and good luck catching your train."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 사용해 음료값을 직접 계산하고, Owen에게 기다려 달라고 정중하게 부탁했다.",
+          "kind": "성공",
+          "level": "사용자는 시간 사정과 결제 상황을 쉬운 문장으로 분명하게 설명하고 정중하게 요청했다.",
+          "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제가 거절될 때 얼마나 빨리 다른 방법을 선택할 수 있을까?",
+          "relationship": "사용자는 Mia와 서로 기억하는 단골 손님이 되었고, Owen과도 예의 있게 도움을 주고받았다."
+        }
+      },
+      "acceptedScene": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Here is your iced Americano with a little ice. You need to catch your train in twenty minutes, and Owen needs to get to his meeting."
+          },
+          {
+            "speaker": "Owen",
+            "text": "Thanks, Mia. Have a good day, and good luck catching your train."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 사용해 음료값을 직접 계산하고, Owen에게 기다려 달라고 정중하게 부탁했다.",
+          "kind": "성공",
+          "level": "사용자는 시간 사정과 결제 상황을 쉬운 문장으로 분명하게 설명하고 정중하게 요청했다.",
+          "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제가 거절될 때 얼마나 빨리 다른 방법을 선택할 수 있을까?",
+          "relationship": "사용자는 Mia와 서로 기억하는 단골 손님이 되었고, Owen과도 예의 있게 도움을 주고받았다."
+        }
+      }
+    },
+    {
+      "sourceTrialId": "o8-two-schedules-after-3",
+      "scenarioId": "o8-two-schedules",
+      "title": "두 발화 상한을 넘은 답",
+      "expectedProblem": "발화가 두 개를 넘음",
+      "rejectedScene": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Your iced Americano is ready."
+          },
+          {
+            "speaker": "Mia",
+            "text": "You need to catch your train in twenty minutes. Owen needs to get to his meeting in ten minutes."
+          },
+          {
+            "speaker": "Owen",
+            "text": "Thanks. Now we can both go."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 사용해 음료값을 직접 지불하고 아이스 아메리카노를 받았다.",
+          "kind": "성공",
+          "level": "상황에 맞는 짧고 정중한 영어 문장으로 요청과 감사를 분명하게 표현했다.",
+          "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 먼저 준비할까?",
+          "relationship": "Mia와는 서로 기억하고 도와주는 단골손님과 바리스타의 관계가 되었고, Owen과도 예의 있게 기다림을 부탁하고 감사하는 사이가 되었다."
+        }
+      },
+      "acceptedScene": {
+        "dialogue": [
+          {
+            "speaker": "Mia",
+            "text": "Yes, the payment went through. Your iced Americano is ready. You need to catch your train in twenty minutes. Owen needs to get to his meeting in ten minutes."
+          },
+          {
+            "speaker": "Owen",
+            "text": "Thanks. Now we can both go."
+          }
+        ],
+        "ending": {
+          "choice": "휴대폰 결제를 사용해 음료값을 직접 지불하고 아이스 아메리카노를 받았다.",
+          "kind": "성공",
+          "level": "상황에 맞는 짧고 정중한 영어 문장으로 요청과 감사를 분명하게 표현했다.",
+          "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+          "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 먼저 준비할까?",
+          "relationship": "Mia와는 서로 기억하고 도와주는 단골손님과 바리스타의 관계가 되었고, Owen과도 예의 있게 기다림을 부탁하고 감사하는 사이가 되었다."
+        }
+      }
+    }
+  ]
+}

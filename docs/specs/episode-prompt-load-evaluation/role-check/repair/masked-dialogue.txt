@@ -1,0 +1,40 @@
+P001 o7-owen-required | Mia: Yes, it went through. Your iced Americano is ready for you. Have a good day. | Owen: I need to get to my morning meeting. Thanks for being quick.
+P002 o6-user-required | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You need to get to your meeting next. You have about nine minutes now.
+P003 o8-two-schedules | Mia: Yes, your payment went through. Your iced Americano is ready. Do you mean where to go after you leave the café? | Owen: I need to get to my meeting, and you need to catch your train in twenty minutes.
+P004 o3-user-owner | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I hope your meeting goes well.
+P005 o7-owen-required | Mia: Yes, the payment went through. Your iced Americano with a little ice is ready. | Owen: I need to get to my morning meeting. Thanks for being quick.
+P006 o2-restated | Mia: Yes, it went through. Here is your iced Americano with a little ice. Have a good day. | Owen: You are welcome. Thanks, and good luck with your day too.
+P007 o8-two-schedules | Mia: Yes, the payment went through. Your iced Americano is ready at the pickup counter. | Mia: Owen needs to go to his meeting, and you need to catch your train in twenty minutes. I need to stay here and serve customers.
+P008 o6-user-required | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Your meeting is in ten minutes. I do not know what you need after that.
+P009 o2-restated | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your day, too.
+P010 o5-longer | Mia: Yes, it went through. Your iced Americano with a little ice is ready. | Owen: You are welcome. I hope you make your meeting on time.
+P011 o4-renamed-train | Elena: Yes, it went through. Your iced Americano is ready. I made it with only a little ice. | Noah: You are welcome. I am glad it worked. I need to catch my train now.
+P012 o7-owen-required | Mia: Yes, it went through. Your iced Americano is all set. Have a good day. | Owen: I need to get to a morning meeting. Thanks for being quick.
+P013 o4-renamed-train | Elena: Yes, it went through. Your iced Americano has only a little ice. Here you are. | Noah: You are welcome. I am glad it worked.
+P014 o6-user-required | Mia: Yes, the payment went through. Your iced Americano is ready. | Owen: You need to get to your meeting in ten minutes. I hope you make it.
+P015 o2-restated | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your day, too.
+P016 o2-restated | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your coffee.
+P017 o4-renamed-train | Elena: Yes, it went through. Here is your iced Americano with a little ice. | Noah: You are welcome. Have a good day.
+P018 o6-user-required | Mia: Yes, it went through. Your iced Americano with a little ice is ready. | Owen: You need to get to your meeting in ten minutes.
+P019 o7-owen-required | Mia: Yes, the payment went through. Your iced Americano with a little ice is ready. Here you go. | Owen: I need to get to my morning meeting in ten minutes. Thanks for understanding.
+P020 o4-renamed-train | Elena: Yes, it went through. Here is your iced Americano with a little ice. | Noah: You are welcome. I hope you catch your train.
+P021 o1-original | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I hope you make your meeting.
+P022 o8-two-schedules | Mia: Yes, the payment went through. Your iced Americano has little ice. You can take it now. You need to catch your train in twenty minutes, and Owen needs to get to his meeting soon. | Owen: You are welcome. I need to get to my meeting now.
+P023 o3-user-owner | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your meeting.
+P024 o7-owen-required | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: I need to get to my morning meeting. Thanks for asking, and good luck with your coffee.
+P025 o5-longer | Mia: Yes, it went through. Your iced Americano is ready. | Owen: Great. I am glad it worked. Have a good morning.
+P026 o3-user-owner | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I hope you make your meeting on time.
+P027 o1-original | Mia: Yes, the payment went through. Here is your iced Americano with only a little ice. | Owen: You are welcome. I hope I make my meeting on time.
+P028 o3-user-owner | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I hope you make your meeting on time.
+P029 o8-two-schedules | Mia: Yes, the payment went through. Your iced Americano with a little ice is ready. You need to catch your train in twenty minutes, and Owen needs to get to his meeting in ten minutes. | Owen: You are welcome. Good luck with your train.
+P030 o6-user-required | Mia: Yes, it went through. Your iced Americano is ready. | Owen: You need to get to your meeting next. Good luck.
+P031 o2-restated | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your meeting.
+P032 o5-longer | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I am glad it worked.
+P033 o5-longer | Mia: Yes, the payment went through. Your iced Americano with a little ice is ready. | Owen: You are welcome. I hope I make my meeting on time.
+P034 o4-renamed-train | Elena: Yes, it went through. Here is your iced Americano with a little ice. | Noah: You are welcome. I hope you catch your train.
+P035 o1-original | Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I hope your morning goes well.
+P036 o1-original | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your meeting.
+P037 o1-original | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I am glad it worked.
+P038 o5-longer | Mia: Yes, your payment went through. Here is your iced Americano with a little ice. | Owen: You are welcome. Good luck with your meeting.
+P039 o8-two-schedules | Mia: Yes, the payment went through. Your iced Americano is ready. You need to catch your train in twenty minutes, and Owen needs to get to his meeting. | Owen: And I need to get to my meeting. Good luck with your train.
+P040 o3-user-owner | Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: You are welcome. I hope you make your meeting on time.

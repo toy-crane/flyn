@@ -1,0 +1,110 @@
+[
+  {
+    "id": "s1-owner-D-5",
+    "lineInResponses": 3,
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you get to work on time."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 아이스 아메리카노 값을 직접 결제했다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 원하는 바와 상황을 자연스럽게 설명했다.",
+        "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겨도 더 빠르게 해결할 수 있을까?",
+        "relationship": "Mia와 서로 기억해 주는 단골 손님 관계가 되었고, Owen과도 예의 있게 배려를 주고받았다."
+      }
+    }
+  },
+  {
+    "id": "s1-owner-A-1",
+    "lineInResponses": 56,
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you make your meeting on time."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 결제를 완료하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 원하는 방법과 감사의 말을 전달했다.",
+        "outcome": "휴대폰 결제가 성공해 주문한 음료를 받았다.",
+        "question": "다음에는 카드 문제에 대비해 어떤 결제 방법을 준비할까?",
+        "relationship": "Mia와는 서로의 주문을 기억하는 단골 손님 관계가 되었고, Owen과는 짧지만 배려하는 사이가 되었다."
+      }
+    }
+  },
+  {
+    "id": "s5-compromise-A-4",
+    "lineInResponses": 69,
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. I am glad we found a way."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you get to your meeting on time."
+        }
+      ],
+      "ending": {
+        "choice": "현금으로 살 수 있는 더 싼 핫 소이 라테로 바꾸어 결제했다.",
+        "kind": "타협",
+        "level": "사용자는 짧고 분명한 문장으로 상황을 설명하고 정중하게 대안을 요청했다.",
+        "outcome": "현금에 맞는 더 싼 음료로 바꾸어 결제하고 음료를 받았다.",
+        "question": "다음에는 결제 문제가 생기면 어떤 방법을 먼저 준비할까?",
+        "relationship": "Mia와는 문제를 함께 해결하며 편안한 단골 관계가 되었고, Owen과는 짧지만 예의 있게 도움을 주고받았다."
+      }
+    }
+  },
+  {
+    "id": "s5-compromise-B-1",
+    "lineInResponses": 72,
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You’re welcome. I’m glad we found a way."
+        },
+        {
+          "speaker": "Owen",
+          "text": "No problem. I hope your morning gets better."
+        }
+      ],
+      "ending": {
+        "kind": "성공",
+        "outcome": "현금으로 살 수 있는 더 저렴한 음료로 바꾸어 결제하고 음료를 받았다."
+      }
+    }
+  },
+  {
+    "id": "s1-owner-C-2",
+    "lineInResponses": 85,
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you make your meeting on time."
+        }
+      ]
+    }
+  }
+]

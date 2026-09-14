@@ -1,0 +1,3102 @@
+[
+  {
+    "reviewId": "V001",
+    "scenarioId": "o2-restated",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. Good luck with your day."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 직접 음료값을 결제했다.",
+        "kind": "성공",
+        "level": "짧고 자연스러운 문장으로 정중하게 요청하고 감사와 작별 인사를 표현했다.",
+        "outcome": "휴대폰 결제가 성공해 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 카드가 거절될 때 어떤 결제 방법을 먼저 선택할까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 관계가 되었고, Owen과는 서로 배려하는 관계로 마무리되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V002",
+    "scenarioId": "o1-original",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you get where you need to go."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 직접 음료값을 지불했다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 원하는 바와 상황을 분명하게 전달했다.",
+        "outcome": "휴대폰 결제가 완료되어 아이스 아메리카노를 받았다.",
+        "question": "다음에도 카드 결제가 되지 않으면 어떤 결제 방법을 먼저 사용할까?",
+        "relationship": "Mia와는 서로 기억해 주는 단골 손님과 직원의 관계가 되었고, Owen과는 배려를 주고받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V003",
+    "scenarioId": "o3-user-owner",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you make your meeting on time."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 음료값을 지불하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 결제 상황과 감사의 뜻을 자연스럽게 전달했다.",
+        "outcome": "휴대폰 결제가 성공해 원하는 아이스 아메리카노를 받고 회의에 갈 수 있게 되었다.",
+        "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 가장 먼저 사용할까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고 Owen과는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V004",
+    "scenarioId": "o3-user-owner",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano with a little ice is ready."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope your meeting goes well."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용하고 Owen에게 기다려 줘서 고맙다고 말했다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 필요한 결제 방법과 감사의 뜻을 분명하게 말했다.",
+        "outcome": "휴대폰 결제가 완료되어 아이스 아메리카노를 받았다.",
+        "question": "다음에는 카드가 거절될 때 어떤 결제 방법을 먼저 준비할까?",
+        "relationship": "Mia와는 서로 기억하는 단골 손님으로 가까워졌고 Owen과는 배려를 주고받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V005",
+    "scenarioId": "s4-success",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Great, the payment went through. Here is your iced Americano with a little ice. Have a good morning."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked. I need to get to my meeting now."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 직접 음료값을 지불했다.",
+        "kind": "성공",
+        "level": "상대방에게 정중하게 사과하고 감사하며, 결제 상황을 분명한 문장으로 설명했다.",
+        "outcome": "휴대폰 결제가 승인되어 아이스 아메리카노를 무사히 받았다.",
+        "question": "다음에도 카드 문제가 생기면 어떤 결제 방법을 먼저 사용할까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골손님으로 가까워졌고, Owen과는 서로 예의를 지키며 헤어졌다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V006",
+    "scenarioId": "o3-user-owner",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you make your meeting on time."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰으로 결제해 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "상황에 맞는 짧고 정중한 영어로 결제와 감사의 뜻을 분명히 전달했다.",
+        "outcome": "휴대폰 결제가 성공해 주문한 음료를 받았다.",
+        "question": "다음에는 바쁜 아침에 결제 문제가 생기면 어떻게 더 빨리 해결할 수 있을까?",
+        "relationship": "Mia와의 단골 관계가 확인되었고 Owen과도 고마움을 주고받으며 좋은 인상을 남겼다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V007",
+    "scenarioId": "o2-restated",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. Good luck with your day."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 직접 결제해 주문한 커피를 받았다.",
+        "kind": "성공",
+        "level": "결제 방법과 상대방에게 정중하게 말하는 표현을 자연스럽게 사용했다.",
+        "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제가 거절될 때 어떤 방법을 먼저 시도할까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하며 헤어졌다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V008",
+    "scenarioId": "o2-restated",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. Good luck with your coffee."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 직접 계산해 주문한 음료를 받았다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 결제 상황과 감사 인사를 자연스럽게 표현했다.",
+        "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+        "question": "다음에도 카드가 거절되면 어떤 결제 방법을 먼저 시도할까?",
+        "relationship": "Mia와는 서로를 기억하는 단골 손님과 직원이 되었고, Owen과는 배려를 주고받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V009",
+    "scenarioId": "s5-compromise",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. I am glad we found a way."
+        },
+        {
+          "speaker": "Owen",
+          "text": "No problem. I hope your morning gets better."
+        }
+      ],
+      "ending": {
+        "choice": "현금으로 살 수 있는 더 싼 핫 소이 라테로 음료를 바꾸어 결제했다.",
+        "kind": "타협",
+        "level": "짧고 분명한 문장으로 결제 방법과 원하는 음료를 설명했다.",
+        "outcome": "아이스 아메리카노 대신 현금으로 살 수 있는 핫 소이 라테를 받아 결제를 마쳤다.",
+        "question": "다음에는 카드나 폰 결제가 되지 않을 때 어떤 방법을 먼저 준비할까?",
+        "relationship": "Mia와는 문제를 함께 해결하며 신뢰가 깊어졌고, Owen과는 정중하게 기다림을 부탁하고 도움을 받아 무난하게 헤어졌다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V010",
+    "scenarioId": "s5-compromise",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You’re welcome. I’m glad that worked."
+        },
+        {
+          "speaker": "Owen",
+          "text": "No problem. I hope your morning gets better."
+        }
+      ],
+      "ending": {
+        "choice": "카드와 폰 결제가 되지 않자 현금으로 살 수 있는 뜨거운 두유 라테로 음료를 바꾸었다.",
+        "kind": "타협",
+        "level": "쉬운 문장으로 원하는 음료와 결제 문제를 분명하게 설명했다.",
+        "outcome": "현금에 맞춰 더 저렴한 음료로 바꾸어 결제를 마쳤다.",
+        "question": "다음에는 결제 문제가 생겨도 어떤 다른 방법을 먼저 시도할까?",
+        "relationship": "Mia와는 서로의 주문을 기억하는 단골 손님 사이가 되었고, Owen과는 예의 있게 기다리고 배려받은 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V011",
+    "scenarioId": "o8-two-schedules",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You need to catch your train in twenty minutes, and I need to get to my meeting. Thanks for being quick."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 직접 계산하고 주문한 음료를 받았다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 원하는 결제 방법과 상황을 분명하게 전달했다.",
+        "outcome": "휴대폰 결제가 완료되어 아이스 아메리카노를 받았다.",
+        "question": "급한 상황에서도 서로의 시간을 배려하며 결제를 마칠 수 있을까?",
+        "relationship": "Mia와는 지난 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 시간을 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V012",
+    "scenarioId": "s4-success",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Great, it went through. Here is your iced Americano with a little ice. Have a good day."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you make it to your meeting on time."
+        }
+      ],
+      "ending": {
+        "choice": "카드 대신 폰 결제를 사용해 음료값을 지불했다.",
+        "kind": "성공",
+        "level": "정중한 표현과 구체적인 문장을 사용해 상황을 자연스럽게 설명했다.",
+        "outcome": "폰 결제가 승인되어 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겼을 때 얼마나 침착하게 다른 방법을 찾을 수 있을까?",
+        "relationship": "Mia와 Owen에게 정중하게 사정을 설명해 신뢰와 좋은 인상을 남겼다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V013",
+    "scenarioId": "o3-user-owner",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano with a little ice is ready. Here you go."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope your meeting goes well."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 직접 음료값을 지불했다.",
+        "kind": "성공",
+        "level": "카페에서 결제와 감사의 뜻을 짧고 분명하게 영어로 말했다.",
+        "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+        "question": "다음에는 바쁜 상황에서도 다른 결제 방법을 빠르게 선택할 수 있을까?",
+        "relationship": "Mia와는 서로 기억해 주는 단골 손님과 바리스타의 관계가 되었고, Owen과는 배려를 주고받는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V014",
+    "scenarioId": "o1-original",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you have a good day."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 직접 음료값을 결제했다.",
+        "kind": "성공",
+        "level": "간단한 문장으로 요청과 감사의 뜻을 자연스럽게 전달했다.",
+        "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생기면 더 빨리 다른 방법을 찾을 수 있을까?",
+        "relationship": "Mia와는 서로 주문을 기억하는 단골 관계가 되었고, Owen과는 짧지만 예의 있게 도움을 주고받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V015",
+    "scenarioId": "o8-two-schedules",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Your iced Americano is ready."
+        },
+        {
+          "speaker": "Mia",
+          "text": "Do you mean where to pick up your drink, or where to go after the café?"
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V016",
+    "scenarioId": "s2-addressee",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Owen",
+          "text": "Yes, I can wait one more minute. Please make it quick."
+        },
+        {
+          "speaker": "Mia",
+          "text": "Open your phone payment app. Then tap your phone on the reader."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V017",
+    "scenarioId": "o8-two-schedules",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You need to catch your train, and I need to get to my meeting. Thanks for being quick."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 결제하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "결제와 간단한 요청을 자연스럽게 영어로 표현했다.",
+        "outcome": "휴대폰 결제가 완료되어 원하는 음료를 무사히 받았다.",
+        "question": "다음에는 더 바쁜 상황에서 어떻게 짧게 도움을 요청할까?",
+        "relationship": "Mia와는 어제에 이어 서로 기억하고 배려하는 단골 손님 사이가 되었고, Owen과는 짧지만 예의 있게 양보를 주고받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V018",
+    "scenarioId": "o3-user-owner",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano with a little ice is ready."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you make your meeting on time."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 결제를 완료하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 결제와 감사의 뜻을 자연스럽게 전달했다.",
+        "outcome": "휴대폰 결제가 성공해 주문한 음료를 받고 회의에 갈 수 있게 되었다.",
+        "question": "다음에는 카드가 작동하지 않을 때 어떤 결제 방법을 먼저 확인할까?",
+        "relationship": "Mia와는 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V019",
+    "scenarioId": "s5-compromise",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. I am glad that worked."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you make your meeting on time."
+        }
+      ],
+      "ending": {
+        "choice": "카드와 폰 결제가 되지 않아 현금으로 더 저렴한 핫 소이 라테를 샀다.",
+        "kind": "타협",
+        "level": "짧고 정중한 영어로 원하는 음료와 결제 방법을 분명하게 말했다.",
+        "outcome": "결제 문제를 해결했지만 원래 주문 대신 더 저렴한 음료를 받았다.",
+        "question": "다음에는 결제 문제가 생겨도 아이스 아메리카노를 그대로 살 수 있을까?",
+        "relationship": "Mia와는 서로 기억하고 돕는 단골 관계가 되었고, Owen과는 예의 있게 상황을 마무리했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V020",
+    "scenarioId": "o2-restated",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. Good luck with your day."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 시도해 음료값을 직접 지불했다.",
+        "kind": "성공",
+        "level": "결제와 감사의 뜻을 분명한 짧은 영어 문장으로 전달했다.",
+        "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 카드 문제가 생겼을 때 어떤 결제 방법을 먼저 사용할 수 있을까?",
+        "relationship": "Mia와는 서로 주문을 기억하는 단골 손님과 직원의 관계가 이어졌고, Owen과는 배려를 주고받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V021",
+    "scenarioId": "o8-two-schedules",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Your iced Americano is ready."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You need to catch your train, and I need to get to my meeting. We do not know the exact places from here."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 시도해 주문한 음료값을 직접 지불했다.",
+        "kind": "성공",
+        "level": "시간과 상황을 설명하고 여러 사람에게 자연스럽게 질문했다.",
+        "outcome": "휴대폰 결제가 완료되어 아이스 아메리카노를 받았다.",
+        "question": "바쁜 순간에도 낯선 사람에게 도움을 청하고 배려를 주고받을 수 있을까?",
+        "relationship": "Mia와는 단골로서의 친근함이 깊어졌고, Owen과는 서로의 사정을 이해하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V022",
+    "scenarioId": "s4-success",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Great, the payment went through. Here is your iced Americano with a little ice. Have a good morning."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked. Have a good day."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 선택해 결제를 완료하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "결제와 감사 인사를 자연스러운 짧은 영어 문장으로 표현했다.",
+        "outcome": "휴대폰 결제가 승인되어 음료를 무사히 받았다.",
+        "question": "다음에는 카드가 거절될 때 어떤 결제 방법을 먼저 선택할까?",
+        "relationship": "Mia와 Owen에게 정중하게 감사하며 좋은 인상을 남겼다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V023",
+    "scenarioId": "o1-original",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano is paid for. Here is your drink."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you make your meeting on time."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 아이스 아메리카노 값을 지불했다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 상황과 요청을 분명하게 말했다.",
+        "outcome": "휴대폰 결제가 성공해 주문한 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겨도 얼마나 침착하게 다른 방법을 찾을 수 있을까?",
+        "relationship": "Mia와는 서로 기억하고 돕는 단골손님과 바리스타 사이가 되었고, Owen과는 예의 있게 배려를 주고받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V024",
+    "scenarioId": "s4-success",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Great, it went through. Here is your iced Americano with a little ice. Have a good day."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you get to work on time."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 결제하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "결제와 감사 인사를 자연스럽게 영어로 표현했다.",
+        "outcome": "휴대폰 결제가 승인되어 주문한 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 먼저 시도할까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V025",
+    "scenarioId": "s5-compromise",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked."
+        },
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. I hope the latte helps this morning."
+        }
+      ],
+      "ending": {
+        "choice": "현금으로 살 수 있는 더 싼 핫 소이 라테로 음료를 바꾸어 구매했다.",
+        "kind": "타협",
+        "level": "짧고 자연스러운 문장으로 원하는 음료와 결제 방법을 분명하게 말했다.",
+        "outcome": "카드와 폰 결제가 되지 않아 현금으로 살 수 있는 핫 소이 라테를 받아 갔다.",
+        "question": "다음에는 결제 문제가 생기면 어떤 방법을 먼저 준비할까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님으로 더 가까워졌고, Owen과는 예의 있게 양해를 구하고 도움을 받은 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V026",
+    "scenarioId": "o4-renamed-train",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Elena",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Noah",
+          "text": "You are welcome. I hope you catch your train."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 직접 음료값을 지불했다.",
+        "kind": "성공",
+        "level": "간단하고 자연스러운 문장으로 상황과 감사의 뜻을 분명하게 전달했다.",
+        "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 먼저 확인할까?",
+        "relationship": "Elena와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Noah와는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V027",
+    "scenarioId": "s6-failure",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "I am sorry it did not work today. I hope you can come back tomorrow."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thanks. I hope your payment works next time. Take care."
+        }
+      ],
+      "ending": {
+        "choice": "카드와 폰 결제가 되지 않아 주문을 취소하고 음료 없이 떠났다.",
+        "kind": "실패",
+        "level": "간단한 문장으로 상황과 의사를 분명하게 전달했다.",
+        "outcome": "결제할 방법을 찾지 못해 주문을 취소하고 음료를 받지 못했다.",
+        "question": "다음에는 결제가 되지 않을 때 어떤 다른 방법을 준비할 수 있을까?",
+        "relationship": "Mia와는 서로 기억하고 배려하는 단골 관계를 유지했고, Owen과는 짧지만 예의 있게 작별했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V028",
+    "scenarioId": "o2-restated",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice. Thanks for waiting."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. Thanks, and good luck with your day."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 시도해 음료값을 지불하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "상황에 맞는 짧고 자연스러운 영어로 요청과 감사의 뜻을 분명하게 전했다.",
+        "outcome": "휴대폰 결제가 성공해 주문한 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겼을 때 어떤 다른 방법을 먼저 시도할까?",
+        "relationship": "Mia와의 신뢰가 이어졌고 Owen과도 예의 있게 인사를 나누었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V029",
+    "scenarioId": "s2-addressee",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Owen",
+          "text": "Yes, I can wait one more minute. Please be quick."
+        },
+        {
+          "speaker": "Mia",
+          "text": "Open your payment app, choose your card, and tap your phone on the reader."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V030",
+    "scenarioId": "s4-success",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Great. Your payment went through. Here is your iced Americano with a little ice. Have a good day."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 아이스 아메리카노 값을 직접 결제했다.",
+        "kind": "성공",
+        "level": "결제 상황과 상대방에게 정중하게 말하는 내용을 분명한 문장으로 표현했다.",
+        "outcome": "휴대폰 결제가 승인되어 주문한 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겨도 어떤 방법으로 빠르게 해결할 수 있을까?",
+        "relationship": "Mia와는 서로 기억하고 도와주는 단골손님과 직원의 관계가 되었고, Owen과는 배려를 주고받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V031",
+    "scenarioId": "o7-owen-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "I need to get to my morning meeting. You are welcome."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 음료값을 직접 지불했다.",
+        "kind": "성공",
+        "level": "결제 상황에서 정중하게 질문하고 감사의 뜻을 자연스럽게 전했다.",
+        "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 먼저 준비할까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하며 대화했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V032",
+    "scenarioId": "o7-owen-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I need to get to my meeting next."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 직접 음료값을 지불했다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 원하는 것과 감사의 말을 자연스럽게 전달했다.",
+        "outcome": "휴대폰 결제가 완료되어 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생기면 어떤 방법을 먼저 시도할까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님 관계가 이어졌고, Owen과는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V033",
+    "scenarioId": "o4-renamed-train",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Elena",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Noah",
+          "text": "You are welcome. I am glad it worked."
+        }
+      ],
+      "ending": {
+        "choice": "폰 결제를 선택해 결제를 완료하고 음료를 받았다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 상황과 요청을 분명하게 전달했다.",
+        "outcome": "폰 결제로 음료값을 내고 아이스 아메리카노를 받았다.",
+        "question": "다음에는 카드가 거절될 때 어떤 결제 방법을 먼저 시도할까?",
+        "relationship": "Elena와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고 Noah와는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V034",
+    "scenarioId": "o5-longer",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked."
+        }
+      ],
+      "ending": {
+        "choice": "폰으로 결제해서 주문한 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "카드 결제와 감사 인사를 자연스럽게 영어로 표현했다.",
+        "outcome": "폰 결제가 성공해 원하는 커피를 무사히 받았다.",
+        "question": "다음에는 결제 문제가 생겨도 더 빨리 해결할 수 있을까?",
+        "relationship": "Mia와는 어제 주문까지 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V035",
+    "scenarioId": "s5-compromise",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. I am glad we found a way."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope your morning gets better."
+        }
+      ],
+      "ending": {
+        "choice": "현금으로 살 수 있는 더 저렴한 핫 소이 라테로 음료를 바꾸어 결제했다.",
+        "kind": "타협",
+        "level": "카드와 폰 결제 문제를 설명하고 정중하게 대안을 요청하는 짧고 자연스러운 영어를 사용했다.",
+        "outcome": "아이스 아메리카노 대신 현금으로 살 수 있는 핫 소이 라테를 받아 결제를 마쳤다.",
+        "question": "다음에는 결제 문제가 생겨도 다른 결제 방법을 미리 준비할 수 있을까?",
+        "relationship": "Mia와는 문제를 함께 해결한 단골 손님으로 가까워졌고, Owen과는 정중하게 양해를 구하고 도움을 받은 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V036",
+    "scenarioId": "o7-owen-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano has only a little ice. Here you go."
+        },
+        {
+          "speaker": "Owen",
+          "text": "I need to get to my morning meeting. Thanks for being quick and for saying sorry."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 아이스 아메리카노 값을 직접 지불했다.",
+        "kind": "성공",
+        "level": "짧고 공손한 문장으로 결제와 상대방에 대한 배려를 분명하게 표현했다.",
+        "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 먼저 시도할까?",
+        "relationship": "정중하게 사과하고 결제해 Mia와 Owen 모두에게 좋은 인상을 남겼다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V037",
+    "scenarioId": "o3-user-owner",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Your iced Americano is ready. Here you go."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope your meeting goes well."
+        }
+      ],
+      "ending": {
+        "choice": "폰 결제로 직접 음료값을 결제했다.",
+        "kind": "성공",
+        "level": "결제 방법과 감사 인사를 짧고 분명하게 말했다.",
+        "outcome": "폰 결제가 완료되어 아이스 아메리카노를 받았다.",
+        "question": "다음에도 카드가 거절되면 어떤 결제 방법을 먼저 쓸까?",
+        "relationship": "Mia와의 단골 관계가 더 편안해졌고 Owen에게도 고마움을 전했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V038",
+    "scenarioId": "o7-owen-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "I need to get to my morning meeting. I am glad it worked out. Have a good day."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 시도해 음료값을 직접 결제했다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 상황과 요청을 분명하게 전달했다.",
+        "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+        "question": "다음에도 결제 문제가 생기면 어떤 방법을 먼저 시도할까?",
+        "relationship": "Mia와는 서로를 기억하는 단골 손님과 직원의 관계가 되었고, Owen과는 짧지만 배려 있는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V039",
+    "scenarioId": "o1-original",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you have a good day."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 직접 결제해 주문한 커피를 받았다.",
+        "kind": "성공",
+        "level": "결제와 감사에 관한 짧고 분명한 문장을 사용했다.",
+        "outcome": "휴대폰 결제가 완료되어 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겨도 더 빨리 다른 방법을 찾을 수 있을까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님 사이가 되었고, Owen과는 서로 배려하는 관계가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V040",
+    "scenarioId": "o7-owen-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "I need to get to my meeting. You are welcome."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 직접 음료값을 지불했다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 결제와 감사의 뜻을 자연스럽게 전달했다.",
+        "outcome": "휴대폰 결제가 완료되어 주문한 아이스 아메리카노를 받았다.",
+        "question": "다음에는 카드가 거절될 때 어떤 결제 방법을 먼저 선택할까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V041",
+    "scenarioId": "s2-addressee",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Owen",
+          "text": "One more minute is fine. Please make it quick."
+        },
+        {
+          "speaker": "Mia",
+          "text": "Open your phone’s payment app. Then hold it near the card reader."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V042",
+    "scenarioId": "o1-original",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano has only a little ice. Here you go."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you make your meeting."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 직접 계산하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 자연스러운 문장으로 상황에 맞게 정중하게 의사소통했다.",
+        "outcome": "휴대폰 결제가 성공해 주문한 음료를 무사히 받았다.",
+        "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 가장 먼저 선택할까?",
+        "relationship": "Mia와는 서로 기억하고 돕는 단골손님과 직원 사이가 되었고, Owen과는 예의 있게 배려를 주고받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V043",
+    "scenarioId": "o7-owen-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "I need to get to my meeting. Thanks for asking, and enjoy your coffee."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 직접 음료값을 지불했다.",
+        "kind": "성공",
+        "level": "짧고 자연스러운 문장으로 요청과 감사의 뜻을 분명하게 전했다.",
+        "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+        "question": "카드가 안 될 때 기프트 카드도 사용할 수 있을까?",
+        "relationship": "Mia와의 신뢰가 깊어졌고 Owen과도 예의 있게 대화를 나누었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V044",
+    "scenarioId": "s6-failure",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. I am sorry it did not work today."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thank you. I hope your payment works next time."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 시도했지만 실패하자 주문을 취소하고 음료 없이 떠났다.",
+        "kind": "실패",
+        "level": "짧고 쉬운 문장으로 자신의 상황과 결정을 분명하게 전달했다.",
+        "outcome": "결제할 방법을 찾지 못해 주문을 취소하고 음료를 받지 못했다.",
+        "question": "다음에는 결제 문제를 미리 피할 수 있을까?",
+        "relationship": "Mia와는 서로 기억하고 배려하는 단골 손님 관계를 유지했고, Owen과는 짧지만 예의 있게 헤어졌다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V045",
+    "scenarioId": "s4-success",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Great. The payment went through. Here is your iced Americano with a little ice. Have a good day."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you get to work on time."
+        }
+      ],
+      "ending": {
+        "choice": "폰 결제를 사용해 아이스 아메리카노 값을 직접 결제했다.",
+        "kind": "성공",
+        "level": "짧고 자연스러운 문장으로 상황과 감사의 말을 분명하게 전달했다.",
+        "outcome": "폰 결제가 승인되어 주문한 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 가장 먼저 사용할까?",
+        "relationship": "Mia와는 서로를 기억하는 단골 관계가 되었고, Owen과는 예의 있게 배려를 주고받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V046",
+    "scenarioId": "o8-two-schedules",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice. Owen, you need to go to your meeting, and you need to catch your train in twenty minutes."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thanks, Mia. Have a good day, and good luck catching your train."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 음료값을 직접 계산하고, Owen에게 기다려 달라고 정중하게 부탁했다.",
+        "kind": "성공",
+        "level": "사용자는 시간 사정과 결제 상황을 쉬운 문장으로 분명하게 설명하고 정중하게 요청했다.",
+        "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제가 거절될 때 얼마나 빨리 다른 방법을 선택할 수 있을까?",
+        "relationship": "사용자는 Mia와 서로 기억하는 단골 손님이 되었고, Owen과도 예의 있게 도움을 주고받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V047",
+    "scenarioId": "o4-renamed-train",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Elena",
+          "text": "Yes, it went through. Your iced Americano is ready with only a little ice."
+        },
+        {
+          "speaker": "Noah",
+          "text": "You are welcome. I hope you catch your train."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 음료값을 지불했다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 결제 상황과 감사의 뜻을 자연스럽게 표현했다.",
+        "outcome": "휴대폰 결제가 성공해 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생기면 어떤 방법을 먼저 시도할까?",
+        "relationship": "Elena와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Noah와는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V048",
+    "scenarioId": "s2-addressee",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Sure. Open your wallet app, then hold your phone near the reader."
+        },
+        {
+          "speaker": "Owen",
+          "text": "I can wait one more minute. Please try that now."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V049",
+    "scenarioId": "s4-success",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Great. Your payment went through. Thank you for coming back, and enjoy your iced Americano."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked out."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 아이스 아메리카노 값을 직접 결제했다.",
+        "kind": "성공",
+        "level": "결제와 양해를 표현하는 짧고 자연스러운 문장을 사용했다.",
+        "outcome": "휴대폰 결제가 승인되어 아이스 아메리카노를 받았다.",
+        "question": "다음에도 카드 문제가 생기면 어떤 결제 방법을 먼저 사용할까?",
+        "relationship": "Mia와의 단골 관계가 이어졌고 Owen에게 예의를 지켰다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V050",
+    "scenarioId": "o5-longer",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked. I need to go now."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 직접 결제하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "결제와 감사 인사를 자연스럽게 영어로 말하고, 여러 가지 카페 관련 질문을 했다.",
+        "outcome": "휴대폰 결제가 성공해 주문한 음료를 무사히 받았다.",
+        "question": "다음에는 결제 문제가 생기면 어떤 방법을 먼저 선택할까?",
+        "relationship": "Mia와는 서로의 주문을 기억하는 단골 관계가 되었고, Owen과는 배려를 주고받는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V051",
+    "scenarioId": "o5-longer",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked out."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 시도해 음료값을 직접 결제했다.",
+        "kind": "성공",
+        "level": "간단한 질문과 감사 표현을 자연스럽게 사용했다.",
+        "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 카드를 쓰지 못할 때 어떤 결제 방법을 먼저 선택할까?",
+        "relationship": "Mia와의 단골 관계가 이어졌고 Owen에게 고마움을 전했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V052",
+    "scenarioId": "o8-two-schedules",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano is ready. You need to catch your train, and Owen needs to go to his meeting."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you catch your train."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 아이스 아메리카노 값을 지불하고 음료를 받았다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 결제와 감사의 뜻을 분명하게 전했다.",
+        "outcome": "휴대폰 결제가 승인되어 아이스 아메리카노를 무사히 받았다.",
+        "question": "다음에는 결제 문제가 생겨도 더 빠르게 해결할 수 있을까?",
+        "relationship": "Mia와는 서로 기억하고 돕는 단골 관계가 되었고, Owen과는 정중하게 배려를 주고받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V053",
+    "scenarioId": "s5-compromise",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. I am glad we found a way."
+        },
+        {
+          "speaker": "Owen",
+          "text": "No problem. I hope your morning gets better."
+        }
+      ],
+      "ending": {
+        "choice": "현금으로 살 수 있는 더 저렴한 핫 소이 라테로 음료를 바꾸어 결제했다.",
+        "kind": "타협",
+        "level": "짧고 분명한 문장으로 결제 방법과 원하는 음료를 설명했다.",
+        "outcome": "현금에 맞춰 음료를 바꾸고 결제를 마쳐 따뜻한 라테를 받았다.",
+        "question": "다음에는 결제 문제가 생겨도 어떤 다른 방법을 먼저 시도할 수 있을까?",
+        "relationship": "Mia와는 문제를 함께 해결하며 신뢰가 유지되었고, Owen과는 정중하게 양해를 구해 무난한 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V054",
+    "scenarioId": "o6-user-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You need to get to your meeting next. I hope you make it on time."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 음료값을 직접 지불하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 결제와 감사의 뜻을 자연스럽게 전했다.",
+        "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겨도 더 빠르게 해결할 수 있을까?",
+        "relationship": "Mia와 Owen에게 예의 있게 상황을 설명하고 도움에 감사해 좋은 인상을 남겼다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V055",
+    "scenarioId": "o2-restated",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. Thanks for keeping me updated. Good luck with your day."
+        }
+      ],
+      "ending": {
+        "choice": "폰 결제로 음료값을 지불하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 자연스러운 문장으로 요청과 감사의 뜻을 분명하게 전했다.",
+        "outcome": "폰 결제가 성공해 주문한 아이스 아메리카노를 무사히 받았다.",
+        "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 먼저 시도할까?",
+        "relationship": "Mia와는 서로의 주문을 기억하는 단골 손님과 바리스타 사이의 친근함이 깊어졌고, Owen과는 배려를 주고받으며 예의 있는 관계를 유지했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V056",
+    "scenarioId": "o3-user-owner",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. Good luck with your meeting."
+        }
+      ],
+      "ending": {
+        "choice": "폰 결제를 사용해 음료값을 지불하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "결제 상황에서 정중하고 구체적으로 영어로 요청했다.",
+        "outcome": "폰 결제가 성공해 주문한 아이스 아메리카노를 받았다.",
+        "question": "다음에는 급한 상황에서 어떤 결제 방법을 먼저 준비할까?",
+        "relationship": "Mia와의 신뢰가 이어졌고 Owen에게 고마움을 전하며 좋은 인상을 남겼다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V057",
+    "scenarioId": "o6-user-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano with a little ice is ready. Here you go."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. You need to get to your meeting next."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 음료값을 지불하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "상대에게 정중하게 부탁하고 결제 상황과 다음 일정을 짧고 분명하게 설명했다.",
+        "outcome": "휴대폰 결제로 결제를 마치고 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겨도 더 빨리 다른 방법을 찾을 수 있을까?",
+        "relationship": "Mia와의 단골 관계가 확인되었고 Owen에게도 고마운 인상을 남겼다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V058",
+    "scenarioId": "o6-user-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You said you have a meeting in ten minutes. I do not know what you need to do next."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 직접 결제하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "사용자는 결제와 시간에 관한 뜻을 분명한 영어 문장으로 전달했다.",
+        "outcome": "휴대폰 결제가 승인되어 원하는 음료를 받았다.",
+        "question": "다음에는 급한 상황에서 누구에게 어떤 도움을 요청하게 될까?",
+        "relationship": "Mia와의 친분을 확인했고 Owen에게 고마움을 전하며 편안한 관계를 유지했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V059",
+    "scenarioId": "o5-longer",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano is ready. Here you go."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 음료값을 지불하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "쉬운 문장으로 필요한 결제 방법을 묻고 감사의 뜻을 분명하게 전했다.",
+        "outcome": "휴대폰 결제가 완료되어 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제 없이 더 여유롭게 주문할 수 있을까?",
+        "relationship": "Mia와는 서로 기억하고 돕는 단골 관계가 되었고, Owen과는 배려를 주고받으며 무사히 헤어졌다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V060",
+    "scenarioId": "s3-not-done",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Hold your phone near the black reader, right here. Keep it there until you hear a beep."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thanks. I can wait a little longer. Please try it now."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V061",
+    "scenarioId": "s6-failure",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. I am sorry we could not make it work. Have a good day."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thank you. I will try to make it on time. Take care."
+        }
+      ],
+      "ending": {
+        "choice": "카드와 폰 결제가 모두 되지 않아 주문을 취소하고 음료 없이 떠났다.",
+        "kind": "실패",
+        "level": "짧고 쉬운 문장으로 상황과 의사를 분명하게 전달했다.",
+        "outcome": "결제할 방법을 찾지 못해 음료를 받지 못하고 카페를 나섰다.",
+        "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 미리 준비할 수 있을까?",
+        "relationship": "Mia와는 서로 도우려 했던 따뜻한 인사를 나누었고, Owen과도 예의 있게 헤어졌다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V062",
+    "scenarioId": "o6-user-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You need to get to your meeting next. I hope you make it on time."
+        }
+      ],
+      "ending": {
+        "choice": "폰으로 결제해 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 필요한 내용을 분명하게 말했다.",
+        "outcome": "폰 결제가 성공해 주문한 음료를 받았다.",
+        "question": "다음에는 결제 문제가 생겨도 더 빨리 해결할 수 있을까?",
+        "relationship": "Mia와의 친분이 이어졌고 Owen에게 고마운 마음을 전했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V063",
+    "scenarioId": "o3-user-owner",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano is ready for you."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you make it to your meeting on time."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 음료값을 직접 결제했다.",
+        "kind": "성공",
+        "level": "카드와 시간 상황을 설명하고 정중하게 결제를 요청할 수 있다.",
+        "outcome": "휴대폰 결제가 완료되어 아이스 아메리카노를 받았다.",
+        "question": "다음에는 카드 문제가 생겨도 더 빠르게 결제할 방법을 준비할 수 있을까?",
+        "relationship": "Mia와 Owen에게 예의 있게 상황을 설명해 좋은 인상을 남겼다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V064",
+    "scenarioId": "s3-not-done",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Hold the top of your phone near the small card reader. You can tap it now."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thanks. I will wait while you try it."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V065",
+    "scenarioId": "o4-renamed-train",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Elena",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Noah",
+          "text": "You are welcome. I am glad it worked. I need to catch my train now."
+        }
+      ],
+      "ending": {
+        "choice": "폰 결제를 선택해 직접 결제하고 음료를 받았다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 결제 상황과 감사의 뜻을 분명하게 전달했다.",
+        "outcome": "폰 결제가 성공해 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 카드가 거절될 때 어떤 결제 방법을 먼저 준비할까?",
+        "relationship": "Elena와는 서로를 기억하고 도와주는 단골 관계가 되었고, Noah와는 배려를 주고받으며 헤어졌다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V066",
+    "scenarioId": "s6-failure",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You’re welcome. I’m sorry we could not make it work. Have a good day."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thanks. I hope your payment works next time. Take care."
+        }
+      ],
+      "ending": {
+        "choice": "다른 결제 방법을 시도했지만 모두 실패하자 주문을 취소하고 음료 없이 떠났다.",
+        "kind": "실패",
+        "level": "짧고 정중한 문장으로 상황과 감사의 뜻을 분명하게 표현했다.",
+        "outcome": "결제하지 못해 주문을 취소하고 음료를 받지 못한 채 카페를 떠났다.",
+        "question": "다음에는 결제 문제에 대비해 어떤 방법을 준비할 수 있을까?",
+        "relationship": "Mia와는 서로 배려하며 문제를 해결하려 한 사이로 남았고, Owen과는 짧지만 예의 있게 인사를 나누었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V067",
+    "scenarioId": "s2-addressee",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Owen",
+          "text": "Okay, I can wait one more minute. Please be quick."
+        },
+        {
+          "speaker": "Mia",
+          "text": "Open your payment app, choose your card, and hold your phone near the reader."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V068",
+    "scenarioId": "s5-compromise",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You’re welcome. I’m glad we found a way."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You’re welcome. I hope your meeting goes well."
+        }
+      ],
+      "ending": {
+        "choice": "현금으로 살 수 있는 더 저렴한 핫 소이 라테로 음료를 바꾸어 구매했다.",
+        "kind": "타협",
+        "level": "간단한 문장으로 결제 문제와 음료 변경을 자연스럽게 설명했다.",
+        "outcome": "카드와 폰 결제가 되지 않아 더 저렴한 핫 소이 라테로 바꾸어 현금으로 계산했다.",
+        "question": "다음에는 결제 수단이 모두 안 될 때 어떻게 도움을 요청할까?",
+        "relationship": "직원과 손님에게 정중하게 사과하고 도움을 받아 서로 편안하게 마무리했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V069",
+    "scenarioId": "o7-owen-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano has only a little ice. Here you are."
+        },
+        {
+          "speaker": "Owen",
+          "text": "I need to get to my morning meeting at the office. You are welcome, and good luck with your coffee."
+        }
+      ],
+      "ending": {
+        "choice": "폰 결제로 아이스 아메리카노 값을 직접 결제했다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 상황과 질문을 분명하게 표현했다.",
+        "outcome": "폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제가 거절될 때 어떤 방법을 가장 먼저 시도할까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V070",
+    "scenarioId": "s3-not-done",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Hold the top of your phone over the reader. Tap it when you are ready."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Sure. I can wait a little longer."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V071",
+    "scenarioId": "o4-renamed-train",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Elena",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Noah",
+          "text": "You are welcome. I hope you get where you need to go."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 직접 결제하고 음료를 받았다.",
+        "kind": "성공",
+        "level": "짧고 정중한 영어로 결제 상황과 감사의 뜻을 분명하게 말했다.",
+        "outcome": "휴대폰 결제가 승인되어 아이스 아메리카노를 받았다.",
+        "question": "다음에는 카드 문제에 대비해 어떤 결제 방법을 준비할까?",
+        "relationship": "Elena와 Noah에게 정중하게 상황을 설명해 도움과 배려를 얻었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V072",
+    "scenarioId": "o3-user-owner",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope your meeting goes well."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 선택해 직접 결제를 완료했다.",
+        "kind": "성공",
+        "level": "짧고 자연스러운 문장으로 정중하게 요청하고 감사의 뜻을 전했다.",
+        "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+        "question": "다음에는 카드 결제 문제가 생기면 어떤 방법을 먼저 선택할까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V073",
+    "scenarioId": "s3-not-done",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Hold your phone over the small reader beside the screen. Tap it there when you are ready."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thanks. I will wait a little longer."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V074",
+    "scenarioId": "s6-failure",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. I am sorry it did not work today. I hope to see you again."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thank you. I hope your next coffee goes better. I should get to my meeting."
+        }
+      ],
+      "ending": {
+        "choice": "카드와 폰 결제가 모두 되지 않자 주문을 취소하고 음료 없이 떠났다.",
+        "kind": "실패",
+        "level": "짧고 분명한 문장으로 자신의 상황과 의사를 자연스럽게 전달했다.",
+        "outcome": "결제할 방법을 찾지 못해 주문을 취소하고 음료를 받지 못했다.",
+        "question": "다음에는 다른 결제 수단을 미리 준비할 수 있을까?",
+        "relationship": "Mia와는 서로 기억하고 배려하는 단골 관계가 되었고, Owen과는 예의 있게 상황을 마무리했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V075",
+    "scenarioId": "o5-longer",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 직접 음료값을 지불했다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 결제 상황과 감사의 뜻을 표현했다.",
+        "outcome": "휴대폰 결제가 완료되어 아이스 아메리카노를 받았다.",
+        "question": "다음에는 다른 결제 방법도 문제없이 사용할 수 있을까?",
+        "relationship": "Mia와는 어제의 주문을 기억하는 단골 손님으로 가까워졌고, Owen과는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V076",
+    "scenarioId": "o2-restated",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice. Have a good day."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. Thanks, and I hope you have a good day too."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 직접 음료값을 지불하고 Owen에게 감사했다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 상황과 요청을 자연스럽게 전달했다.",
+        "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겼을 때 더 빠르게 해결할 수 있을까?",
+        "relationship": "Mia와는 서로 기억하고 돕는 단골손님과 바리스타 사이가 되었고, Owen과는 배려를 주고받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V077",
+    "scenarioId": "o7-owen-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I need to get to my morning meeting. Have a good day."
+        }
+      ],
+      "ending": {
+        "choice": "폰 결제를 시도해 결제를 완료하고 주문한 커피를 받았다.",
+        "kind": "성공",
+        "level": "짧고 자연스러운 문장으로 상황과 질문을 분명하게 표현했다.",
+        "outcome": "폰 결제가 성공해 아이스 아메리카노를 받았다.",
+        "question": "다음에도 결제에 문제가 생기면 어떤 방법을 먼저 써야 할까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V078",
+    "scenarioId": "o1-original",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano with a little ice is ready."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you make your meeting on time."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 아이스 아메리카노 값을 직접 결제했다.",
+        "kind": "성공",
+        "level": "정중한 표현과 여러 절이 있는 질문을 자연스럽게 사용했다.",
+        "outcome": "휴대폰 결제가 성공해 주문한 아이스 아메리카노를 받았다.",
+        "question": "카페에서 다른 결제 방법을 요청해야 할 때 어떻게 말할까?",
+        "relationship": "Owen에게 기다려 줘서 고맙다고 말하며 정중한 관계를 유지했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V079",
+    "scenarioId": "o6-user-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Your iced Americano is ready."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You need to get to your meeting in ten minutes. I hope you make it."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 아이스 아메리카노 값을 직접 결제했다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 결제와 감사의 뜻을 전달했다.",
+        "outcome": "휴대폰 결제가 성공해 주문한 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겨도 더 빨리 해결할 방법은 무엇일까?",
+        "relationship": "Mia와 Owen의 도움을 받아 서로 편하게 인사하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V080",
+    "scenarioId": "s3-not-done",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Hold the top of your phone near the small card reader. You will hear a beep."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Sure. Please take your time, but I need to leave soon."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V081",
+    "scenarioId": "s6-failure",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. I am sorry it did not work today. I hope you can get coffee soon."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thank you. I hope your next payment works. I need to get to my meeting now."
+        }
+      ],
+      "ending": {
+        "choice": "카드와 폰 결제가 되지 않자 주문을 취소하고 음료 없이 떠났다.",
+        "kind": "실패",
+        "level": "짧고 정중한 문장으로 상황과 의사를 분명하게 전달했다.",
+        "outcome": "결제할 수 없어 주문을 취소했고 음료를 받지 못했다.",
+        "question": "다음에는 결제 문제에 대비해 어떤 방법을 준비할까?",
+        "relationship": "Mia와는 서로 배려하며 대화를 마쳤고, Owen과도 정중하게 인사를 나눴다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V082",
+    "scenarioId": "s2-addressee",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Open your payment app, then hold your phone near the reader."
+        },
+        {
+          "speaker": "Owen",
+          "text": "I can wait one more minute. Please make it quick."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V083",
+    "scenarioId": "o6-user-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano is ready, with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You need to get to your meeting next. I hope you make it on time."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 음료값을 지불했다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 결제와 감사의 뜻을 분명하게 전했다.",
+        "outcome": "휴대폰 결제가 성공해 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 카드 문제에 어떻게 대비할 수 있을까?",
+        "relationship": "Mia와의 친분이 이어졌고 Owen에게 고마움을 전하며 좋은 인상을 남겼다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V084",
+    "scenarioId": "o5-longer",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 음료값을 직접 지불했다.",
+        "kind": "성공",
+        "level": "결제와 감사에 관한 짧고 분명한 문장을 사용했다.",
+        "outcome": "휴대폰 결제가 완료되어 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생기면 더 빨리 해결할 수 있을까?",
+        "relationship": "Mia와는 서로 주문을 기억하는 단골 관계가 되었고, Owen과는 배려를 주고받는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V085",
+    "scenarioId": "o6-user-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. You need to get to your meeting in ten minutes. That is all I know."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 음료값을 지불하고 Owen에게 기다려 달라고 정중히 부탁했다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 결제 상황과 감사의 뜻을 자연스럽게 전달했다.",
+        "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 카드가 거절될 때 어떤 결제 방법을 먼저 준비할 수 있을까?",
+        "relationship": "Mia는 주문을 기억해 주었고 Owen은 기다려 주어 두 사람과의 사이가 더 편안해졌다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V086",
+    "scenarioId": "o6-user-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, your payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You need to get to your meeting in ten minutes. Good luck."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 음료값을 지불하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 결제와 시간에 관한 뜻을 분명하게 전달했다.",
+        "outcome": "휴대폰 결제에 성공해 주문한 음료를 무사히 받았다.",
+        "question": "다음에는 결제가 거절될 때 얼마나 빨리 다른 방법을 선택할 수 있을까?",
+        "relationship": "Mia와의 신뢰가 이어졌고 Owen에게도 고마운 손님으로 남았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V087",
+    "scenarioId": "s6-failure",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. I am sorry we could not find a way today. I hope you can come back tomorrow."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thank you. I hope things work out for you too."
+        }
+      ],
+      "ending": {
+        "choice": "카드와 폰 결제가 모두 되지 않아 주문을 취소하고 음료 없이 떠났다.",
+        "kind": "실패",
+        "level": "짧고 정중한 문장으로 상황과 의사를 분명하게 전달했다.",
+        "outcome": "결제할 방법을 찾지 못해 주문을 취소했고 음료를 받지 못했다.",
+        "question": "다음에는 결제 문제에 대비해 어떤 방법을 준비할까?",
+        "relationship": "Mia와는 서로 기억하고 배려하는 단골 관계가 유지되었고, Owen과는 짧지만 예의 있는 인사를 나누었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V088",
+    "scenarioId": "o5-longer",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 결제하고 주문한 음료를 받았다.",
+        "kind": "성공",
+        "level": "결제와 감사 인사를 자연스럽게 영어로 표현했다.",
+        "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제를 더 빨리 해결할 수 있을까?",
+        "relationship": "Mia와는 서로 주문을 기억하는 단골 관계가 되었고, Owen과는 짧지만 고마운 인사를 나눴다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V089",
+    "scenarioId": "s2-addressee",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Owen",
+          "text": "Yes, I can wait one more minute. Please be quick."
+        },
+        {
+          "speaker": "Mia",
+          "text": "Open your payment app, choose your card, and hold your phone near the reader."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V090",
+    "scenarioId": "o2-restated",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Your iced Americano with a little ice is ready."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. Good luck with your day, too."
+        }
+      ],
+      "ending": {
+        "choice": "폰 결제로 결제하고 주문한 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 필요한 내용을 분명하게 전달했다.",
+        "outcome": "폰 결제가 성공해 아이스 아메리카노를 무사히 받았다.",
+        "question": "다음에는 결제 문제가 생기면 어떤 방법을 먼저 준비할까?",
+        "relationship": "Mia와는 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V091",
+    "scenarioId": "o8-two-schedules",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Your iced Americano is ready. Please take it from the pickup end."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. Now you can catch your train, and I can get to my meeting."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 아이스 아메리카노 값을 지불했다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 결제 상황과 감사의 말을 분명하게 전달했다.",
+        "outcome": "휴대폰 결제가 완료되어 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겨도 더 빠르게 해결할 수 있을까?",
+        "relationship": "Mia와는 서로를 기억하는 단골 사이가 되었고, Owen과는 짧지만 배려를 주고받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V092",
+    "scenarioId": "o1-original",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano with a little ice is ready."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked."
+        }
+      ],
+      "ending": {
+        "choice": "폰 결제를 사용해 직접 결제를 완료했다.",
+        "kind": "성공",
+        "level": "상황에 맞는 정중한 질문과 감사 표현을 자연스럽게 사용했다.",
+        "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겨도 더 빨리 해결할 수 있을까?",
+        "relationship": "Mia와의 단골 관계가 이어졌고 Owen에게도 예의를 보여 좋은 인상을 남겼다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V093",
+    "scenarioId": "o8-two-schedules",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice. Owen, you need to get to your meeting, and you need to catch your train in twenty minutes."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thanks for reminding us. I hope you catch your train."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 아이스 아메리카노 값을 지불했다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 원하는 결제 방법과 상황을 분명히 전달했다.",
+        "outcome": "휴대폰 결제가 완료되어 원하는 음료를 받았다.",
+        "question": "다음에는 결제가 거절될 때 어떤 방법을 가장 먼저 확인할까?",
+        "relationship": "Mia와 Owen에게 정중하게 상황을 설명해 도움과 배려를 받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V094",
+    "scenarioId": "o4-renamed-train",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Elena",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Noah",
+          "text": "You are welcome. I am glad it worked."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 음료값을 직접 결제했다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 결제 상황과 감사의 뜻을 분명하게 표현했다.",
+        "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+        "question": "다음에도 카드가 거절되면 어떤 결제 방법을 먼저 써야 할까?",
+        "relationship": "Elena와는 서로 기억하고 돕는 단골 관계가 되었고, Noah와는 배려를 주고받으며 무난하게 헤어졌다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V095",
+    "scenarioId": "o7-owen-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "I need to get to my meeting. Thanks for asking, and enjoy your coffee."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 선택하고 결제가 완료될 때까지 기다렸다.",
+        "kind": "성공",
+        "level": "상황에 맞는 정중한 질문과 감사 표현을 자연스럽게 사용했다.",
+        "outcome": "휴대폰으로 결제해 주문한 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제가 거절될 때 어떤 방법을 먼저 시도할까?",
+        "relationship": "Mia와는 어제의 주문을 기억하는 단골로 가까워졌고, Owen과는 서로의 사정을 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V096",
+    "scenarioId": "o4-renamed-train",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Elena",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Noah",
+          "text": "You are welcome. I am glad it worked."
+        }
+      ],
+      "ending": {
+        "choice": "폰 결제로 직접 결제해 음료를 받았다.",
+        "kind": "성공",
+        "level": "결제 상황을 설명하고 정중하게 질문과 감사를 자연스럽게 표현했다.",
+        "outcome": "폰 결제가 성공해 아이스 아메리카노를 무사히 받았다.",
+        "question": "다음에는 카드 문제에 대비해 어떤 결제 방법을 준비할까?",
+        "relationship": "Elena와는 서로의 주문을 기억하는 단골 관계가 되었고, Noah와는 배려를 주고받는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V097",
+    "scenarioId": "o1-original",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano with a little ice is ready."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Good. You are all set now. Have a good day."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 아이스 아메리카노 값을 지불하고 Owen에게 기다려 줘서 고맙다고 말했다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 결제 방법을 묻고 감사의 뜻을 분명하게 전했다.",
+        "outcome": "휴대폰 결제가 성공해 주문한 아이스 아메리카노를 받았다.",
+        "question": "다음에도 결제가 되지 않으면 어떤 방법을 먼저 시도할까?",
+        "relationship": "Mia와는 서로의 주문을 기억하는 단골 관계가 되었고, Owen과는 배려를 주고받으며 무난하게 인사를 나눴다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V098",
+    "scenarioId": "s4-success",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Great, it went through. Here is your iced Americano with a little ice. Have a good day."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 선택해 결제를 완료하고 음료를 받았다.",
+        "kind": "성공",
+        "level": "결제와 감사에 관한 짧고 분명한 문장으로 의사를 전했다.",
+        "outcome": "휴대폰 결제가 승인되어 아이스 아메리카노를 무사히 받았다.",
+        "question": "다음에는 카드가 거절될 때 어떤 결제 방법을 가장 먼저 선택할까?",
+        "relationship": "Mia와 Owen에게 예의 있게 감사하며 서로 편안하게 마무리했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V099",
+    "scenarioId": "o5-longer",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Good. You are all set. I hope your meeting goes well."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 음료값을 직접 지불했다.",
+        "kind": "성공",
+        "level": "짧고 자연스러운 문장으로 결제 상황과 감사의 말을 분명하게 전달했다.",
+        "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+        "question": "다음에는 카드를 다시 사용할 수 있을까?",
+        "relationship": "Mia와 Owen에게 예의 있게 말하며 서로 편안하게 일을 마무리했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V100",
+    "scenarioId": "s3-not-done",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Hold your phone near the small reader on the counter. It has a contactless symbol."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thanks. Please tap it when you are ready."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V101",
+    "scenarioId": "o6-user-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Your iced Americano is ready."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You need to get to your meeting in ten minutes. I hope you make it."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 아이스 아메리카노 값을 직접 지불했다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 결제 결과와 감사의 뜻을 전달했다.",
+        "outcome": "휴대폰 결제가 성공해 주문한 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겨도 더 빨리 해결할 수 있을까?",
+        "relationship": "Mia와는 서로의 주문을 기억하는 단골 관계가 되었고, Owen과는 배려를 주고받았다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V102",
+    "scenarioId": "o2-restated",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. Good luck with your coffee."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 결제하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 상황과 요청을 분명하게 전달했다.",
+        "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에도 결제 문제가 생기면 어떤 방법을 먼저 시도할까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하며 기다려 준 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V103",
+    "scenarioId": "s2-addressee",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Open your payment app and choose your card. Then tap your phone on the reader."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Okay, I can wait one more minute. Please try it now."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V104",
+    "scenarioId": "o1-original",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked out."
+        }
+      ],
+      "ending": {
+        "choice": "폰 결제로 결제해 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 결제 상황과 감사의 뜻을 분명하게 말했다.",
+        "outcome": "폰 결제가 성공해 주문한 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생기면 어떤 방법을 먼저 시도할까?",
+        "relationship": "Mia와는 서로를 기억하는 단골 손님과 직원 사이가 되었고, Owen과는 배려를 주고받으며 좋은 인상을 남겼다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V105",
+    "scenarioId": "o4-renamed-train",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Elena",
+          "text": "Yes, the payment went through. Your iced Americano with a little ice is ready."
+        },
+        {
+          "speaker": "Noah",
+          "text": "You are welcome. I am glad it worked."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V106",
+    "scenarioId": "s5-compromise",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You’re welcome. I’m glad we found a way."
+        },
+        {
+          "speaker": "Owen",
+          "text": "No problem. I hope you get to work on time."
+        }
+      ],
+      "ending": {
+        "choice": "카드와 폰 결제가 되지 않아 현금으로 살 수 있는 더 저렴한 따뜻한 소이 라테로 바꾸었다.",
+        "kind": "타협",
+        "level": "짧고 분명한 문장으로 원하는 음료와 결제 상황을 자연스럽게 설명했다.",
+        "outcome": "아이스 아메리카노 대신 현금으로 살 수 있는 따뜻한 소이 라테를 받아 결제를 마쳤다.",
+        "question": "다음에는 결제 문제가 생겨도 원하는 음료를 지킬 다른 방법을 찾을 수 있을까?",
+        "relationship": "Mia와는 단골로 기억되고 도움을 주고받는 사이가 되었고, Owen과는 예의 있게 양해를 구하고 도움을 받은 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V107",
+    "scenarioId": "o5-longer",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope you have a good day."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 결제를 완료하고 음료를 받았다.",
+        "kind": "성공",
+        "level": "짧고 쉬운 문장으로 필요한 질문과 감사의 말을 분명하게 전했다.",
+        "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 무사히 받았다.",
+        "question": "다음에는 카드를 다시 사용할 수 있을까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하며 좋은 인상을 남겼다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V108",
+    "scenarioId": "s2-addressee",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Owen",
+          "text": "One more minute, please. I can wait, but I need to leave soon."
+        },
+        {
+          "speaker": "Mia",
+          "text": "Open your payment app, then tap your phone on the reader."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V109",
+    "scenarioId": "s4-success",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Great, your payment went through. Here is your iced Americano with a little ice. Thank you for coming back."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked out."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 아이스 아메리카노 값을 직접 결제했다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 필요한 상황과 결제 방법을 자연스럽게 표현했다.",
+        "outcome": "휴대폰 결제가 승인되어 주문한 음료를 받았다.",
+        "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 먼저 확인할까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 기다려 준 것에 감사하며 예의 있게 인사를 나눴다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V110",
+    "scenarioId": "o4-renamed-train",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Elena",
+          "text": "Yes, it went through. Your iced Americano with a little ice is ready. Here you are."
+        },
+        {
+          "speaker": "Noah",
+          "text": "You are welcome. I hope you get to work on time."
+        }
+      ],
+      "ending": {
+        "choice": "폰 결제로 결제하고 주문한 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 원하는 결제 방법과 감사의 뜻을 분명하게 말했다.",
+        "outcome": "폰 결제가 승인되어 원하는 음료를 무사히 받았다.",
+        "question": "다음에는 카드 문제에 대비해 어떤 결제 방법을 준비할까?",
+        "relationship": "Elena와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Noah와는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V111",
+    "scenarioId": "o3-user-owner",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope your meeting goes well."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제로 음료값을 직접 결제했다.",
+        "kind": "성공",
+        "level": "간단한 문장으로 상황과 요청을 분명하게 전달했다.",
+        "outcome": "휴대폰 결제가 성공해서 아이스 아메리카노를 받았다.",
+        "question": "다음에는 카드가 거절될 때 어떤 결제 방법을 먼저 써 볼까?",
+        "relationship": "Mia와 Owen의 도움을 받아 고마운 마음으로 문제를 해결했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V112",
+    "scenarioId": "o8-two-schedules",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Your iced Americano is ready. You said you have a train in twenty minutes, and Owen said he has a meeting in ten."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Right. You should catch your train, and I should get to my meeting. Thanks for paying quickly."
+        }
+      ],
+      "ending": {
+        "choice": "폰으로 결제해 음료값을 스스로 지불하고, Owen에게 기다려 달라고 정중히 부탁했다.",
+        "kind": "성공",
+        "level": "짧고 자연스러운 문장으로 결제와 시간 사정을 분명하게 말했다.",
+        "outcome": "폰 결제가 성공해 아이스 아메리카노를 받았다.",
+        "question": "다음에는 카드가 거절될 때 어떤 결제 방법을 먼저 준비할까?",
+        "relationship": "Mia와는 서로 기억하는 단골 손님이 되었고, Owen과는 서로의 급한 사정을 배려했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V113",
+    "scenarioId": "o4-renamed-train",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Elena",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Noah",
+          "text": "You are welcome. I hope you make your train."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 직접 결제하고 음료를 받았다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 상황과 감사의 뜻을 분명하게 전달했다.",
+        "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+        "question": "다음에도 카드 문제가 생기면 어떤 결제 방법을 먼저 사용할까?",
+        "relationship": "Elena와는 어제의 주문을 기억해 주는 단골 손님으로 가까워졌고, Noah와는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V114",
+    "scenarioId": "o2-restated",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. Good luck with your day, too."
+        }
+      ],
+      "ending": {
+        "choice": "폰으로 결제해 주문한 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 정중하게 부탁하고 감사의 뜻을 전했다.",
+        "outcome": "휴대폰 결제가 성공해 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 먼저 선택할까?",
+        "relationship": "Mia와는 어제 주문을 기억해 주는 단골 손님으로 가까워졌고, Owen과는 서로 배려하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V115",
+    "scenarioId": "s3-not-done",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Hold the top of your phone over the reader. Please keep it there until you hear a beep."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Sure. I can wait a little longer."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V116",
+    "scenarioId": "o7-owen-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "I need to get to my morning meeting. Thanks for being quick."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 음료값을 지불하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 상황과 요청을 분명하게 전달했다.",
+        "outcome": "휴대폰 결제가 성공해 주문한 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 먼저 시도할까?",
+        "relationship": "Mia와의 단골 관계가 확인되었고 Owen과도 예의 있게 대화했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V117",
+    "scenarioId": "s5-compromise",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. I am glad we found a way."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I hope the latte works for you."
+        }
+      ],
+      "ending": {
+        "choice": "현금으로 살 수 있는 더 저렴한 핫 소이 라테로 주문을 바꾸었다.",
+        "kind": "타협",
+        "level": "짧고 분명한 문장으로 원하는 결제 방법과 주문 변경을 표현했다.",
+        "outcome": "아이스 아메리카노 대신 현금으로 살 수 있는 핫 소이 라테를 받아 문제를 해결했다.",
+        "question": "다음에는 결제 문제가 생겨도 어떤 다른 방법을 먼저 준비할 수 있을까?",
+        "relationship": "Mia와는 어제의 주문을 기억해 주는 단골 손님으로 더 가까워졌고, Owen과는 정중하게 기다려 준 관계가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V118",
+    "scenarioId": "s6-failure",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. I am sorry we could not make it work today."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thank you. I hope your card works next time."
+        }
+      ],
+      "ending": {
+        "choice": "카드와 폰 결제가 모두 되지 않아 주문을 취소하고 음료 없이 떠났다.",
+        "kind": "실패",
+        "level": "짧고 쉬운 문장으로 상황과 의사를 분명하게 전달했다.",
+        "outcome": "결제에 실패해 주문을 취소하고 음료를 받지 못한 채 떠났다.",
+        "question": "다음에는 다른 결제 방법을 미리 준비할 수 있을까?",
+        "relationship": "Mia와는 서로 도우려 했던 친절한 사이로 남았고 Owen과는 짧지만 예의 있게 헤어졌다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V119",
+    "scenarioId": "s3-not-done",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Hold the top of your phone over the card reader. Please tap it when you are ready."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Sure. I will wait, but please try it now."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V120",
+    "scenarioId": "o5-longer",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked out."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용하고 Owen에게 기다려 달라고 정중히 부탁했다.",
+        "kind": "성공",
+        "level": "짧고 쉬운 문장으로 결제 상황과 감사의 뜻을 분명하게 말했다.",
+        "outcome": "휴대폰 결제로 음료값을 지불하고 주문한 아이스 아메리카노를 받았다.",
+        "question": "다음에는 문제가 생겼을 때 어떤 결제 방법을 먼저 준비할까?",
+        "relationship": "Mia와의 신뢰가 이어졌고 Owen과도 예의 있게 관계를 맺었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V121",
+    "scenarioId": "s6-failure",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. I am sorry it did not work today."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thank you. I hope you can get your coffee next time."
+        }
+      ],
+      "ending": {
+        "choice": "카드와 폰 결제가 모두 되지 않아 주문을 취소하고 음료 없이 떠났다.",
+        "kind": "실패",
+        "level": "짧고 분명한 문장으로 결제 문제와 원하는 조치를 전달했다.",
+        "outcome": "결제하지 못해 아이스 아메리카노를 받지 못하고 카페를 떠났다.",
+        "question": "다음에는 다른 결제 방법을 미리 준비할 수 있을까?",
+        "relationship": "Mia와는 서로 기억하고 배려하는 단골손님과 직원의 관계가 유지되었고, Owen과는 짧지만 예의 있게 작별했다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V122",
+    "scenarioId": "s5-compromise",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You’re welcome. I’m glad we found a way."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You’re welcome. I hope your morning gets better."
+        }
+      ],
+      "ending": {
+        "choice": "카드와 폰 결제가 되지 않자 현금으로 살 수 있는 더 싼 음료로 바꾸었다.",
+        "kind": "타협",
+        "level": "짧고 분명한 문장으로 원하는 결제 방법과 음료 변경을 표현했다.",
+        "outcome": "아이스 아메리카노 대신 현금으로 살 수 있는 핫 소이 라테를 받아 계산을 마쳤다.",
+        "question": "다음에는 결제 문제가 생겨도 원하는 음료를 지킬 수 있을까?",
+        "relationship": "Mia와는 문제를 함께 해결한 단골 손님으로 가까워졌고, Owen과는 짧지만 친절하게 인사를 나눴다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V123",
+    "scenarioId": "s2-addressee",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Owen",
+          "text": "Yes, I can wait one more minute. Please make it quick."
+        },
+        {
+          "speaker": "Mia",
+          "text": "Open your phone wallet first. Then hold your phone near the reader."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V124",
+    "scenarioId": "s3-not-done",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Hold your phone near the small card reader on the counter. Please tap it when you are ready."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thanks. I will wait a little longer."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V125",
+    "scenarioId": "o1-original",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. Have a good day."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 음료값을 지불하고 Owen에게 감사를 전했다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 결제와 감사의 뜻을 자연스럽게 전달했다.",
+        "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에도 카드가 거절되면 어떤 결제 방법을 먼저 사용할까?",
+        "relationship": "Owen의 기다림에 감사를 전해 서로 예의 있게 헤어졌다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V126",
+    "scenarioId": "o8-two-schedules",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, the payment went through. Your iced Americano is ready."
+        },
+        {
+          "speaker": "Mia",
+          "text": "You need to catch your train in twenty minutes. Owen needs to get to his meeting in ten minutes."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thanks. Now we can both go."
+        }
+      ],
+      "ending": {
+        "choice": "휴대폰 결제를 사용해 음료값을 직접 지불하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "상황에 맞는 짧고 정중한 영어 문장으로 요청과 감사를 분명하게 표현했다.",
+        "outcome": "휴대폰 결제가 완료되어 원하는 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제 문제가 생겼을 때 어떤 방법을 먼저 준비할까?",
+        "relationship": "Mia와는 서로 기억하고 도와주는 단골손님과 바리스타의 관계가 되었고, Owen과도 예의 있게 기다림을 부탁하고 감사하는 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V127",
+    "scenarioId": "s3-not-done",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Hold your phone near the small card reader. The screen should face you."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thanks. I hope it works this time."
+        }
+      ],
+      "ending": null
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V128",
+    "scenarioId": "s6-failure",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. I am sorry we could not make it work today. Take care."
+        },
+        {
+          "speaker": "Owen",
+          "text": "Thank you. I hope your morning gets better."
+        }
+      ],
+      "ending": {
+        "choice": "다른 결제 방법을 시도했지만 결제되지 않아 주문을 취소하고 음료 없이 떠났다.",
+        "kind": "실패",
+        "level": "짧고 정중한 문장으로 상황과 의사를 분명하게 전달했다.",
+        "outcome": "결제에 실패해 주문을 취소했고 음료를 받지 못한 채 떠났다.",
+        "question": "다음에는 결제 문제가 생겼을 때 어떤 다른 방법을 준비할 수 있을까?",
+        "relationship": "Mia와는 서로 기억하고 배려하는 단골손님과 직원의 관계를 유지했고, Owen과는 짧지만 예의 있게 인사를 나눴다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V129",
+    "scenarioId": "s4-success",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "You are welcome. Your payment went through, and that is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You are welcome. I am glad it worked."
+        }
+      ],
+      "ending": {
+        "choice": "폰 결제로 결제를 완료하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 분명한 문장으로 상황과 감사의 뜻을 자연스럽게 전했다.",
+        "outcome": "폰 결제가 승인되어 주문한 아이스 아메리카노를 받았다.",
+        "question": "다음에는 결제가 다시 거절되면 어떤 다른 방법을 먼저 시도할까?",
+        "relationship": "Mia와는 어제의 주문을 기억하는 단골 손님으로 더 가까워졌고, Owen과는 서로 배려하며 기다린 사이가 되었다."
+      }
+    },
+    "error": null
+  },
+  {
+    "reviewId": "V130",
+    "scenarioId": "o6-user-required",
+    "scene": {
+      "dialogue": [
+        {
+          "speaker": "Mia",
+          "text": "Yes, it went through. Here is your iced Americano with a little ice."
+        },
+        {
+          "speaker": "Owen",
+          "text": "You need to get to your meeting next. You still have ten minutes."
+        }
+      ],
+      "ending": {
+        "choice": "폰 결제를 사용해 직접 결제를 완료하고 아이스 아메리카노를 받았다.",
+        "kind": "성공",
+        "level": "짧고 정중한 문장으로 결제와 시간에 관한 뜻을 분명하게 전달했다.",
+        "outcome": "폰 결제가 성공해 주문한 음료를 받고 회의에 갈 수 있게 되었다.",
+        "question": "다음에는 결제 문제를 더 빨리 해결할 수 있을까?",
+        "relationship": "Mia와는 서로의 주문을 기억하는 단골 관계가 되었고, Owen과는 배려를 주고받는 사이가 되었다."
+      }
+    },
+    "error": null
+  }
+]
