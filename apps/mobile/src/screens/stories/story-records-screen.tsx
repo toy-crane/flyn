@@ -1,6 +1,9 @@
+import { Card } from "heroui-native/card";
+import { ListGroup } from "heroui-native/list-group";
+import { Separator } from "heroui-native/separator";
 import { Typography } from "heroui-native/text";
-import { useCallback, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Fragment, useCallback } from "react";
+import { ScrollView, View } from "react-native";
 
 import type {
   StoryPlay,
@@ -12,7 +15,8 @@ import { storyLabels } from "@/features/story/ui/story-labels";
 import { formatStoryPlayStart } from "@/features/story/ui/story-play-time";
 import { StoryProgress } from "@/features/story/ui/story-progress";
 import { Button } from "@/shared/ui/button";
-import { Icon } from "@/shared/ui/icon";
+import { ExpandableCard } from "@/shared/ui/expandable-card";
+import { PressableListRow, StaticListRow } from "@/shared/ui/list-row";
 import { ScreenEmpty, ScreenUnavailable } from "@/shared/ui/screen-status";
 import { useScreenContentHeight } from "@/shared/ui/use-screen-content-height";
 
@@ -31,45 +35,72 @@ function StoryPlayEpisodeRow({
   }, [episode.episodeId, onOpenEpisode, storyPlayId]);
   const body = (
     <>
-      <Typography.Paragraph
-        className="w-9"
-        color="muted"
-        type="body-sm"
-        weight="semibold"
-      >
-        {storyLabels.episodeNumber(episode.number)}
-      </Typography.Paragraph>
-      <View className="flex-1 gap-0.5">
-        <Typography.Paragraph>{episode.title}</Typography.Paragraph>
-        <Typography.Paragraph color="muted" type="body-sm">
-          {episode.outcome}
+      {/* 화 번호는 제목 첫 줄에 붙는다. 결과가 길어도 가운데로 내려오지 않는다. */}
+      <ListGroup.ItemPrefix className="self-start">
+        <Typography.Paragraph
+          className="w-9"
+          color="muted"
+          type="body-sm"
+          weight="semibold"
+        >
+          {storyLabels.episodeNumber(episode.number)}
         </Typography.Paragraph>
-      </View>
-      {episode.hasTranscript ? (
-        <Icon name="forward" size="md" tone="muted" />
-      ) : null}
+      </ListGroup.ItemPrefix>
+      <ListGroup.ItemContent>
+        <ListGroup.ItemTitle>{episode.title}</ListGroup.ItemTitle>
+        <ListGroup.ItemDescription>{episode.outcome}</ListGroup.ItemDescription>
+      </ListGroup.ItemContent>
     </>
   );
 
   // 결말만 남고 대화가 없는 화는 열어도 볼 것이 없다. 결과 한 줄은 남기고 여는
   // 것만 막는다.
   if (!episode.hasTranscript) {
-    return <View className="flex-row gap-3 py-3">{body}</View>;
+    return <StaticListRow>{body}</StaticListRow>;
   }
 
   return (
-    <Pressable
+    <PressableListRow
       accessibilityLabel={storyLabels.reviewEpisode(
         episode.number,
-        episode.title
+        episode.title,
+        episode.outcome
       )}
-      accessibilityRole="button"
-      className="flex-row gap-3 py-3"
       onPress={open}
       testID={`story-play-episode-${episode.number}`}
     >
       {body}
-    </Pressable>
+      <ListGroup.ItemSuffix />
+    </PressableListRow>
+  );
+}
+
+/** 카드 제목 줄: 시작한 날짜와 시간, 진행 바, 현재 위치. */
+function StoryPlaySummary({
+  next,
+  progress,
+  startedAt,
+  storyPlay,
+  total,
+}: {
+  next: StoryPlay["next"];
+  progress: string;
+  startedAt: string;
+  storyPlay: StoryPlay;
+  total: number;
+}) {
+  return (
+    <View className="gap-2">
+      <Typography.Heading type="h6">{startedAt}</Typography.Heading>
+      <StoryProgress
+        current={next?.number}
+        finished={storyPlay.finished}
+        total={total}
+      />
+      <Typography.Paragraph color="muted" type="body-sm">
+        {progress}
+      </Typography.Paragraph>
+    </View>
   );
 }
 
@@ -91,84 +122,82 @@ function StoryPlayCard({
   storyPlay: StoryPlay;
   total: number;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
   const startedAt = formatStoryPlayStart(storyPlay.startedAt);
-  const { next } = storyPlay;
-  const toggle = useCallback(() => {
-    setIsOpen((open) => !open);
-  }, []);
+  const { next, storyPlayId } = storyPlay;
   const resume = useCallback(() => {
     if (next) {
-      onResume(storyPlay.storyPlayId, next.episodeId);
+      onResume(storyPlayId, next.episodeId);
     }
-  }, [next, onResume, storyPlay.storyPlayId]);
-  const canExpand = storyPlay.episodes.length > 0 || next !== null;
+  }, [next, onResume, storyPlayId]);
   const progress = storyLabels.runProgress(storyPlay.finished, total, next);
+  const summary = (
+    <StoryPlaySummary
+      next={next}
+      progress={progress}
+      startedAt={startedAt}
+      storyPlay={storyPlay}
+      total={total}
+    />
+  );
+  const resumeButton = next ? (
+    <Button
+      accessibilityLabel={storyLabels.resumeRun(startedAt)}
+      onPress={resume}
+      testID={`story-play-resume-${storyPlayId}`}
+      variant="outline"
+    >
+      {storyLabels.resume}
+    </Button>
+  ) : null;
+
+  // 끝낸 화가 없으면 펼칠 것이 없다. 사용자 메시지만 보낸 첫 화의 회차가
+  // 그렇다. 펼치지 않는 카드로 두고 이어서 하기만 붙인다.
+  if (storyPlay.episodes.length === 0) {
+    return (
+      <Card className="gap-3" testID={`story-play-card-${storyPlayId}`}>
+        {summary}
+        {resumeButton}
+      </Card>
+    );
+  }
 
   return (
-    <View
-      className="gap-3 rounded-2xl bg-surface p-4"
-      testID={`story-play-card-${storyPlay.storyPlayId}`}
-    >
-      {canExpand ? (
-        <Pressable
-          accessibilityLabel={storyLabels.runCard(startedAt, progress, isOpen)}
-          accessibilityRole="button"
-          accessibilityState={{ expanded: isOpen }}
-          className="flex-row items-center gap-3"
-          onPress={toggle}
-          testID={`story-play-toggle-${storyPlay.storyPlayId}`}
-        >
-          <View className="flex-1 gap-2">
-            <Typography.Heading type="h6">{startedAt}</Typography.Heading>
-            <StoryProgress
-              current={next?.number}
-              finished={storyPlay.finished}
-              total={total}
-            />
-            <Typography.Paragraph color="muted" type="body-sm">
-              {progress}
-            </Typography.Paragraph>
-          </View>
-          <Icon name={isOpen ? "collapse" : "expand"} size="md" tone="muted" />
-        </Pressable>
-      ) : (
-        <View className="gap-2">
-          <Typography.Heading type="h6">{startedAt}</Typography.Heading>
-          <StoryProgress finished={storyPlay.finished} total={total} />
-          <Typography.Paragraph color="muted" type="body-sm">
-            {progress}
-          </Typography.Paragraph>
-        </View>
+    <ExpandableCard
+      accessibilityLabel={storyLabels.runCard(startedAt, progress, false)}
+      // 끝낸 화 목록은 카드 가장자리까지 닿는 HeroUI 행이다. 행이 제 여백을
+      // 가지므로 내용 슬롯의 여백을 겹쳐 두지 않는다.
+      contentClassName="px-0 pb-0"
+      expandedAccessibilityLabel={storyLabels.runCard(
+        startedAt,
+        progress,
+        true
       )}
-
-      {isOpen && storyPlay.episodes.length > 0 ? (
-        <View
-          className="border-border border-t pt-1"
-          testID={`story-play-episodes-${storyPlay.storyPlayId}`}
-        >
-          {storyPlay.episodes.map((episode) => (
+      footer={
+        resumeButton === null ? null : (
+          <View className="px-5 pb-4">{resumeButton}</View>
+        )
+      }
+      summary={summary}
+      testID={`story-play-card-${storyPlayId}`}
+      triggerTestID={`story-play-toggle-${storyPlayId}`}
+    >
+      <Separator className="mx-4" />
+      <ListGroup
+        testID={`story-play-episodes-${storyPlayId}`}
+        variant="transparent"
+      >
+        {storyPlay.episodes.map((episode, index) => (
+          <Fragment key={episode.episodeId}>
+            {index === 0 ? null : <Separator className="mx-4" />}
             <StoryPlayEpisodeRow
               episode={episode}
-              key={episode.episodeId}
               onOpenEpisode={onOpenEpisode}
-              storyPlayId={storyPlay.storyPlayId}
+              storyPlayId={storyPlayId}
             />
-          ))}
-        </View>
-      ) : null}
-
-      {isOpen && next ? (
-        <Button
-          accessibilityLabel={storyLabels.resumeRun(startedAt)}
-          onPress={resume}
-          testID={`story-play-resume-${storyPlay.storyPlayId}`}
-          variant="outline"
-        >
-          {storyLabels.resume}
-        </Button>
-      ) : null}
-    </View>
+          </Fragment>
+        ))}
+      </ListGroup>
+    </ExpandableCard>
   );
 }
 
@@ -223,9 +252,10 @@ export function StoryRecordsScreen({
     >
       {storyPlays ? (
         <>
-          <View className="border-border border-b pb-6">
+          <View className="pb-6">
             <StoryHeader storyPlays={storyPlays} />
           </View>
+          <Separator testID="story-records-divider" />
           <View className="grow pt-6">
             <Typography.Paragraph
               accessibilityRole="header"

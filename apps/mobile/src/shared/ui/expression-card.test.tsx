@@ -1,10 +1,41 @@
-import { expect, jest, test } from "@jest/globals";
-import { screen, userEvent } from "@testing-library/react-native";
-import { Text } from "react-native";
+import { beforeEach, expect, jest, test } from "@jest/globals";
+import {
+  act,
+  fireEvent,
+  screen,
+  userEvent,
+} from "@testing-library/react-native";
+import { AccessibilityInfo, Text } from "react-native";
 
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
-import { ExpressionCard, isTap } from "./expression-card";
+import { isTap } from "./expandable-card";
+import { ExpressionCard } from "./expression-card";
 import { IconRow, IconRowButton } from "./icon-row";
+
+beforeEach(() => {
+  jest
+    .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+    .mockResolvedValue(false);
+});
+
+/**
+ * 카드 뿌리의 HeroUI `Accordion`이 받은 속성.
+ *
+ * 화면에 그려진 것만으로는 애니메이션 설정이 보이지 않는다. 테스트 공급자가 이미
+ * 모든 애니메이션을 끄므로, 카드가 넘긴 값을 컴포넌트 트리에서 직접 읽는다.
+ */
+function accordionRootProps(testID: string): Record<string, unknown> {
+  let fiber = screen.getByTestId(testID).unstable_fiber;
+
+  while (fiber) {
+    if (fiber.type?.displayName === "HeroUINative.Accordion.Root") {
+      return fiber.memoizedProps;
+    }
+    fiber = fiber.return;
+  }
+
+  throw new Error(`${testID} 위에 Accordion이 없다`);
+}
 
 const UTTERANCE = {
   english: "Next in line, please!",
@@ -120,6 +151,93 @@ test("펼치면 내가 쓴 문장과 이렇게 쓰는 이유가 그 자리에서
   expect(
     screen.getByTestId("card-body").props.accessibilityState
   ).toMatchObject({ expanded: true });
+});
+
+test("제목 줄을 다시 누르면 접힌다", async () => {
+  await renderWithHeroUI(<ExpressionCard {...CORRECTION} />);
+
+  await userEvent.press(screen.getByTestId("card-body"));
+  await userEvent.press(screen.getByTestId("card-body"));
+
+  expect(screen.queryByTestId("card-detail")).toBeNull();
+  expect(
+    screen.getByTestId("card-body").props.accessibilityState
+  ).toMatchObject({ expanded: false });
+});
+
+test("옆으로 12pt 넘게 밀다 뗀 손가락은 카드를 펼치지 않는다", async () => {
+  await renderWithHeroUI(<ExpressionCard {...CORRECTION} />);
+  const body = screen.getByTestId("card-body");
+
+  await fireEvent(body, "pressIn", {
+    nativeEvent: { pageX: 330, pageY: 300 },
+  });
+  await fireEvent(body, "pressOut", {
+    nativeEvent: { pageX: 110, pageY: 304 },
+  });
+  await fireEvent.press(body, { nativeEvent: { pageX: 110, pageY: 304 } });
+
+  expect(screen.queryByTestId("card-detail")).toBeNull();
+  expect(
+    screen.getByTestId("card-body").props.accessibilityState
+  ).toMatchObject({ expanded: false });
+
+  await fireEvent(body, "pressIn", {
+    nativeEvent: { pageX: 330, pageY: 300 },
+  });
+  await fireEvent(body, "pressOut", {
+    nativeEvent: { pageX: 333, pageY: 302 },
+  });
+  await fireEvent.press(body, { nativeEvent: { pageX: 333, pageY: 302 } });
+
+  expect(screen.getByTestId("card-detail")).toBeOnTheScreen();
+});
+
+// 화면 읽기의 두 번 탭은 누르기 시작과 끝 없이 누름만 보낸다.
+test("손가락 위치 없이 온 누름은 카드를 펼친다", async () => {
+  await renderWithHeroUI(<ExpressionCard {...CORRECTION} />);
+
+  await fireEvent.press(screen.getByTestId("card-body"));
+
+  expect(screen.getByTestId("card-detail")).toBeOnTheScreen();
+});
+
+test("펼치는 카드는 카드마다 하나인 HeroUI Accordion 표면 변형이다", async () => {
+  await renderWithHeroUI(<ExpressionCard {...CORRECTION} />);
+
+  expect(screen.getByTestId("card").props.className).toContain(
+    "accordion__root-container--variant-surface"
+  );
+  expect(accordionRootProps("card")).toMatchObject({
+    isCollapsible: true,
+    selectionMode: "single",
+    variant: "surface",
+  });
+  expect(
+    screen.getByRole("button", {
+      name: "우리 동네 카페 · 1화, I ordered a hot americano., 저는 뜨거운 아메리카노를 시켰어요.",
+    })
+  ).toBe(screen.getByTestId("card-body"));
+});
+
+test("동작 줄이기가 켜져 있으면 펼침 애니메이션을 끈다", async () => {
+  jest
+    .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+    .mockResolvedValue(true);
+  await renderWithHeroUI(<ExpressionCard {...CORRECTION} />);
+  await act(async () => {
+    await Promise.resolve();
+  });
+
+  expect(accordionRootProps("card").animation).toBe("disable-all");
+});
+
+test("펼치지 않는 인물 대사 카드는 HeroUI Card다", async () => {
+  await renderWithHeroUI(<ExpressionCard {...UTTERANCE} />);
+
+  const card = screen.getByTestId("card").props.className;
+  expect(card).toContain("surface__root");
+  expect(card).not.toContain("accordion__root-container");
 });
 
 test("아이콘을 눌러도 카드가 함께 펼쳐지지 않는다", async () => {

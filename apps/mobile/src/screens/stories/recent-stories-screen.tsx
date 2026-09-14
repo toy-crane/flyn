@@ -1,6 +1,8 @@
+import { ListGroup } from "heroui-native/list-group";
+import { Separator } from "heroui-native/separator";
 import { Typography } from "heroui-native/text";
-import { useCallback } from "react";
-import { ScrollView, View } from "react-native";
+import { Fragment, useCallback } from "react";
+import { ScrollView } from "react-native";
 
 import type { RecentStory } from "@/features/story/api/story";
 import { storyLabels } from "@/features/story/ui/story-labels";
@@ -10,11 +12,9 @@ import { ScreenEmpty, ScreenUnavailable } from "@/shared/ui/screen-status";
 import { useScreenContentHeight } from "@/shared/ui/use-screen-content-height";
 
 function RecentRow({
-  hasBorder,
   onOpenRecords,
   story,
 }: {
-  hasBorder: boolean;
   onOpenRecords: (storyId: string) => void;
   story: RecentStory;
 }) {
@@ -26,7 +26,6 @@ function RecentRow({
     <StoryRow
       coverBlurhash={story.coverBlurhash}
       coverImagePath={story.coverImagePath}
-      hasBorder={hasBorder}
       hook={story.hook}
       onPress={open}
       testID={`recent-row-${story.storyId}`}
@@ -82,16 +81,14 @@ export function RecentStoriesScreen({
           >
             {storyLabels.recentHeading}
           </Typography.Paragraph>
-          <View className="rounded-2xl bg-surface px-4">
+          <ListGroup testID="recent-stories">
             {stories.map((story, index) => (
-              <RecentRow
-                hasBorder={index !== stories.length - 1}
-                key={story.storyId}
-                onOpenRecords={onOpenRecords}
-                story={story}
-              />
+              <Fragment key={story.storyId}>
+                {index === 0 ? null : <Separator className="mx-4" />}
+                <RecentRow onOpenRecords={onOpenRecords} story={story} />
+              </Fragment>
             ))}
-          </View>
+          </ListGroup>
         </>
       ) : null}
       {stories && !hasStories ? (

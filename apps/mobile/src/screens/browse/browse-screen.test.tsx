@@ -66,6 +66,22 @@ function renderBrowse(
   };
 }
 
+test("스토리 행은 HeroUI ListGroup 안에 서고 행 사이에 Separator가 있다", async () => {
+  const { rendered } = renderBrowse();
+
+  await rendered;
+
+  const list = screen.getByTestId("browse-stories");
+  expect(list.props.className).toContain("list-group__root");
+  expect(
+    list.children.filter(
+      (child) =>
+        typeof child !== "string" &&
+        String(child.props.className).includes("separator__root")
+    )
+  ).toHaveLength(1);
+});
+
 test("전체는 만든 스토리를 위에, 공식 스토리를 아래에 둔다", async () => {
   const { rendered } = renderBrowse();
 

@@ -102,3 +102,12 @@
   min-height: calc(var(--spacing) * 14);
   padding-block: calc(var(--spacing) * 3.5);
 }
+
+/*
+  펼침 카드 트리거: HeroUI는 트리거 안의 글과 쉐브론을 세로 가운데로 맞춘다. 큰
+  시스템 글자 크기에서 제목 줄이 여러 줄로 늘면 쉐브론이 글의 한가운데로 떠올라
+  무엇에 붙은 표시인지 읽히지 않으므로, 첫 줄에 맞춘다.
+*/
+.accordion__trigger {
+  align-items: flex-start;
+}

@@ -1,5 +1,11 @@
-import { expect, jest, test } from "@jest/globals";
-import { screen, userEvent } from "@testing-library/react-native";
+import { beforeEach, expect, jest, test } from "@jest/globals";
+import {
+  act,
+  fireEvent,
+  screen,
+  userEvent,
+} from "@testing-library/react-native";
+import { AccessibilityInfo } from "react-native";
 
 import type { StoryPlay, StoryPlays } from "@/features/story/api/story";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
@@ -97,6 +103,12 @@ jest.mock("expo-router/react-navigation", () => ({
   useHeaderHeight: () => 103,
 }));
 
+beforeEach(() => {
+  jest
+    .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+    .mockResolvedValue(false);
+});
+
 test("표지 소개와 최근 대화 아래에 회차 카드를 시작한 날짜와 시간으로 보여 준다", async () => {
   const { rendered } = renderRecords();
 
@@ -148,10 +160,9 @@ test("현재 플레이 배지를 붙이지 않고 회차마다 진행 바를 둔
 
   expect(screen.queryByText("현재 플레이")).toBeNull();
   expect(screen.getAllByTestId("story-progress")).toHaveLength(2);
-  expect(screen.queryByText("이어서 하기")).toBeNull();
 });
 
-test("접힌 회차는 현재 위치와 화 제목 또는 완료를 보여 준다", async () => {
+test("접힌 회차는 현재 위치와 화 제목 또는 완료를 보여 주고 이어서 하기가 보인다", async () => {
   const { rendered } = renderRecords({
     storyPlays: records([unfinishedRun(), finishedRun()]),
   });
@@ -160,7 +171,38 @@ test("접힌 회차는 현재 위치와 화 제목 또는 완료를 보여 준�
 
   expect(screen.getByText("2/5화 · 계산이 꼬인 아침")).toBeVisible();
   expect(screen.getByText("5/5화 · 완료")).toBeVisible();
-  expect(screen.queryByText("이어서 하기")).toBeNull();
+  expect(screen.getAllByText("이어서 하기")).toHaveLength(1);
+  expect(
+    screen.getByTestId(`story-play-toggle-${storyPlayId(1)}`).props
+      .accessibilityState
+  ).toMatchObject({ expanded: false });
+});
+
+test("회차 카드는 카드마다 하나인 HeroUI Accordion 표면 변형이다", async () => {
+  const { rendered } = renderRecords({
+    storyPlays: records([unfinishedRun()]),
+  });
+
+  await rendered;
+
+  expect(
+    screen.getByTestId(`story-play-card-${storyPlayId(1)}`).props.className
+  ).toContain("accordion__root-container--variant-surface");
+  expect(
+    screen.getByRole("button", {
+      name: "9월 8일 오후 3:42, 2/5화 · 계산이 꼬인 아침, 대화 기록 펼치기",
+    })
+  ).toBe(screen.getByTestId(`story-play-toggle-${storyPlayId(1)}`));
+});
+
+test("소개와 최근 대화 사이의 구분선은 HeroUI Separator다", async () => {
+  const { rendered } = renderRecords();
+
+  await rendered;
+
+  expect(screen.getByTestId("story-records-divider").props.className).toContain(
+    "separator__root"
+  );
 });
 
 test("완주한 회차에는 이어서 하기가 없다", async () => {
@@ -179,10 +221,11 @@ test("미완료 회차의 이어서 하기는 그 회차의 다음 화를 연다
   await rendered;
   const user = userEvent.setup();
 
-  await user.press(screen.getByTestId(`story-play-toggle-${storyPlayId(1)}`));
+  // 접힌 카드에서 바로 누른다.
   await user.press(screen.getByTestId(`story-play-resume-${storyPlayId(1)}`));
 
   expect(onResume).toHaveBeenCalledWith(storyPlayId(1), episodeId(2));
+  expect(screen.queryByText("원하는 커피로 바꿔냈어요.")).toBeNull();
 });
 
 test("카드를 펼치면 그 회차에서 끝낸 화의 결과가 보이고 눌러서 열 수 있다", async () => {
@@ -199,25 +242,94 @@ test("카드를 펼치면 그 회차에서 끝낸 화의 결과가 보이고 눌
     "accessibilityLabel",
     "9월 8일 오후 3:42, 2/5화 · 계산이 꼬인 아침, 대화 기록 펼치기"
   );
-  expect(toggle).toHaveProp("accessibilityState", { expanded: false });
+  expect(toggle.props.accessibilityState).toMatchObject({ expanded: false });
 
   await user.press(toggle);
 
+  const opened = screen.getByTestId(`story-play-toggle-${storyPlayId(1)}`);
   expect(screen.getByText("원하는 커피로 바꿔냈어요.")).toBeVisible();
-  expect(toggle).toHaveProp(
+  expect(opened).toHaveProp(
     "accessibilityLabel",
     "9월 8일 오후 3:42, 2/5화 · 계산이 꼬인 아침, 대화 기록 접기"
   );
-  expect(toggle).toHaveProp("accessibilityState", { expanded: true });
+  expect(opened.props.accessibilityState).toMatchObject({ expanded: true });
 
   await user.press(screen.getByTestId("story-play-episode-1"));
 
   expect(onOpenEpisode).toHaveBeenCalledWith(storyPlayId(1), episodeId(1));
+
+  await user.press(opened);
+
+  expect(screen.queryByText("원하는 커피로 바꿔냈어요.")).toBeNull();
 });
 
-// 첫 화를 끝내지 않았어도 사용자 메시지가 있으면 기록에 선다. 이때는 펼칠 것이
-// 없으므로 펼친 뒤 이어서 하기만 나타난다.
-test("아직 아무 화도 끝내지 않은 회차도 펼쳐서 이어간다", async () => {
+test("끝낸 화 행은 HeroUI ListGroup 행이고 제목과 결과를 잇는 이름의 버튼이다", async () => {
+  const { rendered } = renderRecords({
+    storyPlays: records([unfinishedRun()]),
+  });
+
+  await rendered;
+  const user = userEvent.setup();
+
+  await user.press(screen.getByTestId(`story-play-toggle-${storyPlayId(1)}`));
+
+  expect(
+    screen.getByRole("button", {
+      name: "1화 카페에서 생긴 일, 원하는 커피로 바꿔냈어요., 대화 보기",
+    })
+  ).toBe(screen.getByTestId("story-play-episode-1"));
+  expect(screen.getByText("카페에서 생긴 일").props.className).toContain(
+    "list-group__item-title"
+  );
+  expect(
+    screen.getByTestId(`story-play-episodes-${storyPlayId(1)}`).props.className
+  ).toContain("list-group__root");
+});
+
+test("회차 카드를 옆으로 12pt 넘게 밀다 떼면 펼치지 않는다", async () => {
+  const { rendered } = renderRecords({
+    storyPlays: records([unfinishedRun()]),
+  });
+
+  await rendered;
+  const toggle = screen.getByTestId(`story-play-toggle-${storyPlayId(1)}`);
+
+  await fireEvent(toggle, "pressIn", {
+    nativeEvent: { pageX: 330, pageY: 300 },
+  });
+  await fireEvent(toggle, "pressOut", {
+    nativeEvent: { pageX: 100, pageY: 300 },
+  });
+  await fireEvent.press(toggle, { nativeEvent: { pageX: 100, pageY: 300 } });
+
+  expect(screen.queryByText("원하는 커피로 바꿔냈어요.")).toBeNull();
+});
+
+test("동작 줄이기가 켜져 있으면 회차 카드의 펼침 애니메이션을 끈다", async () => {
+  jest
+    .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+    .mockResolvedValue(true);
+  const { rendered } = renderRecords({
+    storyPlays: records([unfinishedRun()]),
+  });
+
+  await rendered;
+  await act(async () => {
+    await Promise.resolve();
+  });
+
+  let fiber = screen.getByTestId(
+    `story-play-card-${storyPlayId(1)}`
+  ).unstable_fiber;
+  while (fiber && fiber.type?.displayName !== "HeroUINative.Accordion.Root") {
+    fiber = fiber.return;
+  }
+  expect(fiber?.memoizedProps.animation).toBe("disable-all");
+});
+
+// 첫 화를 끝내지 않았어도 사용자 메시지가 있으면 기록에 선다. 펼칠 끝낸 화가
+// 없으므로 펼치지 않는 카드이고, 이어서 하기는 처음부터 보인다.
+test("아직 아무 화도 끝내지 않은 회차는 펼치지 않고 바로 이어간다", async () => {
   const started: StoryPlay = {
     episodes: [],
     finished: 0,
@@ -228,24 +340,19 @@ test("아직 아무 화도 끝내지 않은 회차도 펼쳐서 이어간다", a
   const { rendered } = renderRecords({ storyPlays: records([started]) });
 
   await rendered;
-  const user = userEvent.setup();
 
   expect(
-    screen.getByTestId(`story-play-toggle-${storyPlayId(3)}`)
-  ).toBeVisible();
+    screen.queryByTestId(`story-play-toggle-${storyPlayId(3)}`)
+  ).toBeNull();
+  expect(
+    screen.getByTestId(`story-play-card-${storyPlayId(3)}`).props.className
+  ).toContain("surface__root");
   expect(screen.getByTestId("story-progress")).toBeVisible();
   expect(screen.getByText("1/5화 · 카페에서 생긴 일")).toBeVisible();
   expect(screen.getByTestId("story-progress-step-1")).toHaveProp(
     "className",
     expect.stringContaining("border-accent")
   );
-  expect(screen.queryByText("이어서 하기")).toBeNull();
-
-  await user.press(screen.getByTestId(`story-play-toggle-${storyPlayId(3)}`));
-
-  expect(
-    screen.queryByTestId(`story-play-episodes-${storyPlayId(3)}`)
-  ).toBeNull();
   expect(screen.getByText("이어서 하기")).toBeVisible();
 });
 

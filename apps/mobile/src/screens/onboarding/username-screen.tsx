@@ -1,10 +1,12 @@
 import { InputGroup } from "heroui-native/input-group";
 import { Label } from "heroui-native/label";
+import { ListGroup } from "heroui-native/list-group";
+import { Separator } from "heroui-native/separator";
 import { Typography } from "heroui-native/text";
 import { TextField } from "heroui-native/text-field";
-import { useCallback } from "react";
+import { Fragment, useCallback } from "react";
 import type { TextInput } from "react-native";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 import { useUsernameStep } from "@/features/auth/state/use-username-step";
 import { AuthFieldError, AuthLayout } from "@/features/auth/ui/auth-layout";
@@ -12,6 +14,7 @@ import { onboardingLabels } from "@/features/auth/ui/onboarding-labels";
 import { useFocusOnArrival } from "@/shared/navigation/use-screen-arrival";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
+import { PressableListRow } from "@/shared/ui/list-row";
 import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 
 /**
@@ -198,15 +201,14 @@ function UsernameSuggestions({
       >
         {onboardingLabels.suggestions}
       </Typography.Paragraph>
-      <View className="gap-2">
-        {suggestions.map((candidate) => (
-          <UsernameSuggestion
-            candidate={candidate}
-            key={candidate}
-            onChoose={onChoose}
-          />
+      <ListGroup testID="onboarding-username-suggestions">
+        {suggestions.map((candidate, index) => (
+          <Fragment key={candidate}>
+            {index === 0 ? null : <Separator className="mx-4" />}
+            <UsernameSuggestion candidate={candidate} onChoose={onChoose} />
+          </Fragment>
         ))}
-      </View>
+      </ListGroup>
     </View>
   );
 }
@@ -223,14 +225,14 @@ function UsernameSuggestion({
   }, [candidate, onChoose]);
 
   return (
-    <Pressable
+    <PressableListRow
       accessibilityLabel={candidate}
-      accessibilityRole="button"
-      className="rounded-xl bg-surface px-3.5 py-3"
       onPress={choose}
       testID="onboarding-username-suggestion"
     >
-      <Typography.Paragraph weight="semibold">{candidate}</Typography.Paragraph>
-    </Pressable>
+      <ListGroup.ItemContent>
+        <ListGroup.ItemTitle>{candidate}</ListGroup.ItemTitle>
+      </ListGroup.ItemContent>
+    </PressableListRow>
   );
 }

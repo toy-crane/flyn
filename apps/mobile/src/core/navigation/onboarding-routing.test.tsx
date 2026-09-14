@@ -400,6 +400,18 @@ test("이미 쓰는 아이디면 후보 세 개를 보여주고 고르면 다시
   );
   expect(suggestionsTitle.props.className).toContain("text__root--color-muted");
 
+  // 추천 아이디는 HeroUI ListGroup의 누르는 행이고, 아이디를 이름으로 한 버튼 하나다.
+  expect(
+    screen.getByTestId("onboarding-username-suggestions").props.className
+  ).toContain("list-group__root");
+  const [first] = suggestions;
+  expect(
+    screen.getByRole("button", { name: first?.props.accessibilityLabel })
+  ).toBe(first);
+  expect(
+    screen.getByText(first?.props.accessibilityLabel).props.className
+  ).toContain("list-group__item-title");
+
   await act(() => {
     fireEvent.press(suggestions[0]);
   });
