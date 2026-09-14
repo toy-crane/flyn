@@ -1,0 +1,284 @@
+<!--
+  prototype shell: the review chrome every prototype starts from.
+
+  Keep this comment in the prototype you grow from here: it is the contract,
+  and later turns work from that file rather than from this one.
+
+  Contract (extend product screens; keep the review shell):
+  - Product:  .sh-stage contains only end-user product UI. Keep review notes,
+               rationale, instructions, and approval controls in conversation.
+  - Screens:  <section data-screen="slug" data-title="Label"> inside .sh-stage.
+               The selector, arrow keys, and #hash routing build themselves.
+               Use one option per product destination or distinct surface,
+               named by its product role. Keep baselines, variants, comparison
+               labels, steps, indexes, and progress out of names and states.
+               Links may use href="#slug".
+  - States:   "Default" is automatic. A screen declares only representative
+               presets in data-states="Empty,Error". Use natural, screen-specific
+               names. Reserve presets for important multi-step results, forced
+               data or errors, or materially different structure; keep one-click
+               and transient states as interactions. Use data-when="Empty" on
+               preset-only elements. Call prototypeShell.setState("Name") on
+               entry and setState("Default") on exit, including when repeated
+               actions cross a preset condition.
+  - Viewport: "vp (m)" cycles full / 390 / 768. The 390 preset is a
+               fixed-height, internally scrolling phone frame. Start a
+               mobile-first prototype by adding class="sh-vp-390" to <body>
+               (or a bootstrap classList.add before the chrome script runs).
+  - Pinning:  keep in-frame bars (tab bars, CTAs) inside the phone with
+               position: sticky; position: fixed pins to the browser window.
+  - Tokens:   replace the project-tokens block with project tokens copied
+               verbatim. Map differing names to --background, --foreground, and
+               --font afterwards; replace network fonts with a system stack and
+               note that substitution. Without a design system, keep this
+               palette as the finished style. When the project ships dark
+               tokens, copy them under .sh-theme-dark, which the shell sets
+               on both the root element and body, so :root.sh-theme-dark and
+               body.sh-theme-dark work too. A .dark class or a
+               prefers-color-scheme media query copied verbatim would follow
+               the reviewer's system instead of the toggle.
+  - Theme:    the light / dark switch (t) changes the product surface only.
+               It appears only when a .sh-theme-dark rule declares dark tokens,
+               so a prototype without them carries no theme control. Prototypes
+               always load light; the review bar keeps its own dark styling in
+               both themes so it still reads as chrome.
+  - Placeholders: .wf-pic stands in for pictures the prototype has no real
+               files for. Use real text everywhere text belongs.
+
+  - Chrome:   Keep exactly the screen selector, selected-screen state selector,
+               viewport cycle, and theme toggle.
+
+  Self-contained by design: no build, no framework, no network.
+-->
+<meta charset="utf-8">
+<title>플린 · 에피소드 챗</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /* ── project tokens: the project's own, or this minimal set as-is ── */
+  :root {
+    --background: #f6f6f6;
+    --surface: #ffffff;
+    --foreground: #3a3a3a;
+    --muted: #9a9a9a;
+    --line: #dcdcdc;
+    --accent: #6b6b6b;
+    --radius: 6px;
+    --font: system-ui, sans-serif;
+  }
+
+  /* ── review chrome (sh-*): keep; extend product styles elsewhere ── */
+  * { box-sizing: border-box }
+  body {
+    margin: 0; padding: 0 0 40px;
+    background: var(--background, #f6f6f6); color: var(--foreground, #3a3a3a);
+    font-family: var(--font, system-ui, sans-serif);
+  }
+  .sh-bar {
+    position: sticky; top: 0; z-index: 999;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    padding: 8px 12px; background: #191a1c; color: #d7d7d7;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .sh-bar b, .sh-control-label { color: #8a8f98; font-weight: 500 }
+  .sh-control { display: inline-flex; gap: 5px; align-items: center }
+  .sh-bar button {
+    border: 1px solid #3a3d42; background: none; color: inherit;
+    font: inherit; padding: 2px 9px; border-radius: 99px; cursor: pointer;
+  }
+  .sh-bar select {
+    width: 170px; border: 1px solid #3a3d42; background: #232428; color: inherit;
+    font: inherit; padding: 3px 28px 3px 9px; border-radius: 7px; cursor: pointer;
+    color-scheme: dark;
+  }
+  #sh-screen { width: 190px }
+  .sh-bar button.on { background: #d7d7d7; color: #191a1c; border-color: #d7d7d7 }
+  .sh-theme { display: inline-flex; border: 1px solid #3a3d42; border-radius: 99px; overflow: hidden }
+  .sh-theme button { border: 0; border-radius: 0; padding: 2px 10px }
+  .sh-spacer { flex: 1 }
+  .sh-stage { max-width: 960px; margin: 0 auto; padding: 12px 16px 0 }
+  [hidden] { display: none !important }
+
+  /* viewport presets */
+  .sh-vp-390 .sh-stage {
+    max-width: 390px; background: var(--background, #f6f6f6);
+    border: 10px solid #191a1c; border-radius: 28px;
+    padding: 16px 12px; height: min(844px, calc(100dvh - 52px));
+    overflow-y: auto; margin-top: 12px;
+  }
+  .sh-vp-768 .sh-stage {
+    max-width: 768px; border: 1px solid #c4c4c4; border-radius: 12px;
+    padding: 16px; margin-top: 12px;
+  }
+
+  /* placeholders */
+  .wf-pic  { border-radius: 4px; background:
+             repeating-linear-gradient(45deg, #e9e9e9, #e9e9e9 6px, #f2f2f2 6px, #f2f2f2 12px) }
+  .sh-theme-dark .wf-pic { background: repeating-linear-gradient(45deg,
+             color-mix(in srgb, var(--foreground) 16%, transparent) 0 6px,
+             color-mix(in srgb, var(--foreground) 8%, transparent) 6px 12px) }
+
+:root {--background:#f4f4f6;--foreground:#111114;--surface:#ffffff;--surface-foreground:var(--foreground);--expression:#0f766e;--expression-surface:#e5f3ef;--learn:oklch(0.54 0.19 300);--learn-foreground:oklch(0.9911 0 0);--learn-surface:oklch(0.945 0.022 300);--scene:#3c3c43;--cast-1:#b4552f;--cast-2:#2f6f4e;--cast-3:#8a5a10;--cast-4:#a8386a;--accent:#0087ff;--muted:#72727b;--line:#ddddE3;--font:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--ease:cubic-bezier(.22,1,.36,1)}
+.sh-theme-dark {--background:#0b0b0d;--foreground:#ffffff;--surface:#1a1a1e;--surface-foreground:var(--foreground);--expression:#76d6c9;--expression-surface:#152f2c;--learn:oklch(0.78 0.15 300);--learn-foreground:oklch(0.21 0.03 300);--learn-surface:oklch(0.27 0.045 300);--scene:#c7c7cc;--cast-1:#f0997b;--cast-2:#97c459;--cast-3:#e0b063;--cast-4:#ee93b1;--muted:#aaaab4;--line:#333338}
+body{background:#e8e8ec} body.sh-theme-dark{background:#242428}
+.sh-stage{padding:0!important;overflow:hidden!important;background:var(--background)}
+.sh-vp-390 .sh-stage{height:min(844px,calc(100dvh - 95px));min-height:500px}
+.sh-vp-768 .sh-stage{height:844px}.sh-stage{height:844px}
+[data-screen]{height:100%;position:relative} .phone{display:flex;flex-direction:column;height:100%;min-height:0;position:relative;overflow:hidden;background:var(--background);font-size:16px;line-height:24px}
+button,input,textarea{font:inherit}button{cursor:pointer;border:0}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}button:active{transform:scale(.96)} button{transition:background .18s,transform .18s}
+.status{padding:10px 25px 3px;display:flex;justify-content:space-between;font-size:14px;font-weight:600;flex-shrink:0;height:38px}.island{width:100px;height:22px;background:#080808;border-radius:20px}
+.nav{padding:8px 16px;min-height:56px;display:flex;align-items:center;gap:12px;flex-shrink:0;background:var(--background)}.nav h1{font-size:16px;text-align:center;flex:1;margin:0;line-height:23px}.nav .spacer{width:40px}.round{width:40px;height:40px;border-radius:50%;background:var(--surface);color:var(--foreground);display:grid;place-items:center;flex-shrink:0}
+svg.icon{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.situation{font-size:14px;line-height:20px;padding:8px 20px;background:color-mix(in srgb,var(--accent) 13%,var(--background));display:flex;gap:7px;flex-shrink:0}
+.messages{flex:1;min-height:0;overflow:auto;padding:18px 20px 24px;overscroll-behavior:contain;overflow-anchor:none;scrollbar-width:none}.opening{color:var(--scene);margin:0 2px 22px;line-height:24px}.opening strong{display:block;color:var(--foreground);margin-bottom:4px}.utterance{margin-bottom:18px}.speaker{font-size:14px;font-weight:600;color:var(--cast-1);padding:0 4px;margin-bottom:3px}.bubble{background:var(--surface);border-radius:17px;padding:12px 16px;max-width:85%;width:fit-content;overflow-wrap:anywhere}.user{display:flex;flex-direction:column;align-items:flex-end;margin:16px 0}.user .bubble{background:var(--accent);color:#fff}.actions{display:flex;align-items:center;gap:0;min-height:38px;margin-left:-8px}.iconbtn{display:grid;place-items:center;width:40px;height:40px;background:transparent;color:var(--muted);border-radius:12px}.iconbtn[aria-pressed=true]{color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.reveal{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .48s var(--ease),opacity .3s ease}.reveal.open{grid-template-rows:1fr;opacity:1}.reveal>.clip{min-height:0;overflow:hidden}.meaning{max-width:92%;background:var(--surface);border-radius:16px;padding:11px 14px 2px;margin-top:6px;line-height:24px}.meaning p{margin:0}.link{background:transparent;color:var(--accent);min-height:44px;padding:6px 0;display:flex;align-items:center;gap:3px;text-decoration:none;font-size:13px;width:fit-content}.link svg{width:13px}.learning{width:92%;align-self:flex-end;margin-top:6px}.learning-card{background:var(--learn-surface);border-radius:16px;padding:12px 14px;color:var(--foreground)}.learn-toggle{background:none;padding:0;text-align:left;width:100%;color:inherit}.learn-label{color:var(--learn);font-size:12px;line-height:18px;display:flex;gap:5px;align-items:center;margin-bottom:5px}.learn-label svg{width:15px;height:15px}.learn-title{display:flex;justify-content:space-between;gap:10px;font-weight:600}.learn-title svg{transition:transform .35s}.learn-toggle[aria-expanded=true] .learn-title svg{transform:rotate(180deg)}.explain{font-size:14px;line-height:21px;padding-top:12px;color:var(--scene)}.explain p{margin:5px 0 10px}.explain strong{font-size:12px;color:var(--learn)}.learn-actions{display:flex;justify-content:flex-end}.ask-link{color:var(--learn)}.ask-button{display:block;width:100%;min-height:44px;border:1px solid var(--line);border-radius:24px;background:var(--surface);color:var(--foreground);font-size:14px;font-weight:600;padding:10px 16px;margin-top:12px}.review-cta{padding:12px 20px 22px;background:var(--background)}
+.composer{flex-shrink:0;padding:10px 16px 22px;background:var(--background);border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}.composer textarea{resize:none;min-width:0;flex:1;border:1px solid var(--line);border-radius:22px;background:var(--surface);color:var(--foreground);padding:10px 14px;line-height:22px;height:66px;font-size:15px}.send{background:var(--accent);color:white;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}.send:disabled{opacity:.4;cursor:default}
+.new-message{}@keyframes arrive{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.particle-layer{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:3}.particle-layer .confetti{z-index:auto;animation:free-burst 2.1s .25s both cubic-bezier(.18,.55,.35,1)}@keyframes free-burst{0%{opacity:0;transform:translate(0,0) rotate(0)}12%{opacity:.9}55%{opacity:.9;transform:translate(var(--dx),var(--dy)) rotate(var(--r))}100%{opacity:0;transform:translate(var(--dx),var(--fall)) rotate(var(--r))}}#closing-slot{flex-shrink:0;max-height:49%;overflow:auto}.closing-wrap{padding:12px 20px 22px}.closing{position:relative;overflow:hidden;text-align:center;border:1px solid color-mix(in srgb,var(--accent) 20%,var(--surface));background:color-mix(in srgb,var(--accent) 5%,var(--surface));border-radius:24px;padding:20px;isolation:isolate}.mark{width:72px;height:72px;margin:0 auto 8px;border-radius:50%;background:var(--accent);color:white;box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 15%,transparent);display:grid;place-items:center;position:relative}.mark svg{width:38px;height:38px}.mark path{stroke-dasharray:40;stroke-dashoffset:0}.congrats{color:var(--accent);font-size:14px;font-weight:600;margin:12px 0 6px}.closing h2{font-size:22px;line-height:30px;letter-spacing:-.6px;word-break:keep-all;margin:0 0 20px;position:relative}.primary{width:100%;min-height:48px;border-radius:28px;background:var(--accent);color:#fff;padding:11px 18px;font-weight:500}.play{animation:arrive .6s var(--ease)}.play .mark{animation:mark-in .8s .15s both var(--ease)}.play .mark path{animation:draw .55s .48s both ease}.play .congrats{animation:arrive .6s .6s both}.play h2{animation:arrive .7s .75s both}.play .primary{animation:arrive .6s .9s both}.ring{position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--accent);opacity:0}.play .ring{animation:ring 1.4s .35s both ease-out}@keyframes mark-in{from{opacity:0;transform:scale(.72)}to{opacity:1;transform:scale(1)}}@keyframes draw{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}@keyframes ring{0%{transform:scale(.9);opacity:.4}100%{transform:scale(1.9);opacity:0}}.confetti{position:absolute;left:50%;top:48px;width:5px;height:9px;background:var(--accent);border-radius:2px;opacity:0;z-index:-1}.play .confetti{animation:burst 1.9s .25s both ease-out}@keyframes burst{0%{opacity:0;transform:translate(0,0) rotate(0)}12%{opacity:.85}65%{opacity:.7}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--r))}}
+.record{margin:28px 0 0;border-top:1px solid var(--line);padding-top:18px}.record-label{font-size:12px;color:var(--muted);margin-bottom:5px}.record p{margin:0;line-height:24px}.review-content{flex:1;overflow:auto;padding:18px 20px}.eyebrow{font-size:13px;color:var(--muted)}.review-content h2{font-size:19px;margin:20px 0 14px}.review-card{border-radius:18px;background:var(--surface);padding:16px}.review-card p{margin:7px 0}.review-bottom{padding:16px 20px 24px}.overlay{position:absolute;inset:0;background:#0006;z-index:10;display:flex;align-items:flex-end}.sheet{background:var(--background);width:100%;max-height:88%;border-radius:24px 24px 0 0;padding:12px 20px 24px;overflow:auto}.handle{width:36px;height:4px;border-radius:4px;background:var(--muted);opacity:.4;margin:0 auto 14px}.sheet-head{display:flex;justify-content:space-between;align-items:center;font-weight:600}.source{padding:14px;border-radius:16px;background:var(--surface);margin:14px 0;color:var(--scene);font-size:14px}.question{margin-left:auto;background:var(--accent);color:white;border-radius:16px;padding:12px 14px;width:fit-content;max-width:90%}.answer{margin:16px 0;line-height:26px}.sheet .composer{padding:12px 0 0}.sheet .composer textarea{height:48px}.toast{position:absolute;bottom:100px;left:50%;transform:translateX(-50%);background:var(--foreground);color:var(--background);padding:9px 16px;border-radius:22px;font-size:13px;white-space:nowrap;z-index:20}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.confetti,.ring{display:none}}
+</style>
+
+<body class="sh-vp-390"><header class="sh-bar">
+  <b>proto</b>
+  <label class="sh-control"><span class="sh-control-label">screen</span><select id="sh-screen"></select></label>
+  <span class="sh-spacer"></span>
+  <label class="sh-control"><span class="sh-control-label">state</span><select id="sh-state"></select></label>
+  <button id="sh-vp">vp: full (m)</button>
+  <div class="sh-theme" id="sh-theme" role="group" aria-label="theme (t)" hidden>
+    <button data-theme="light">light</button><button data-theme="dark">dark</button>
+  </div>
+</header>
+
+<main class="sh-stage"><section data-screen="episode" data-title="에피소드 대화" data-states="대화 종료,다시 읽기,긴 대사"><div class="phone"><div class="status"><span>9:41</span><span class="island"></span><span>▰</span></div><header class="nav" data-component="NativeHeader"><button class="round" aria-label="뒤로" data-action="back"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></button><h1>계산이 꼬인 아침</h1><span class="spacer"></span></header><div class="situation" data-component="EpisodeSituationBanner"><span>💳</span><span>다른 방법을 찾아 계산을 끝내 보세요</span></div><div class="messages" id="messages"></div><div id="closing-slot"></div><form class="composer" id="composer" data-component="Composer"><textarea aria-label="메시지" rows="2">I pay with my phone yesterday.</textarea><button class="send" aria-label="보내기"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V4m-7 7 7-7 7 7"/></svg></button></form><div id="ask-overlay" class="overlay" hidden><div class="sheet" role="dialog" aria-modal="true" aria-label="AI에게 물어보기"><div class="handle"></div><div class="sheet-head">AI에게 물어보기<button class="round" aria-label="닫기" data-action="close"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div><div class="source" id="ask-source"></div><div class="question">왜 이렇게 말하나요?</div><div class="answer" id="ask-answer"></div><form class="composer" id="ask-form"><textarea aria-label="질문" placeholder="궁금한 점을 물어보세요"></textarea><button class="send" aria-label="질문 보내기"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V4m-7 7 7-7 7 7"/></svg></button></form></div></div><div class="toast" role="status" hidden></div></div></section>
+<section data-screen="review" data-title="표현 돌아보기"><div class="phone"><div class="status"><span>9:41</span><span class="island"></span><span>▰</span></div><header class="nav" data-component="NativeHeader"><button class="round" aria-label="뒤로" data-action="back"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></button><h1>표현 돌아보기</h1><span class="spacer"></span></header><div class="review-content"><div class="eyebrow">Mia의 카페 · 1화</div><h2>기억해 둘 표현</h2><div class="review-card" data-component="ExpressionReviewCard"><div class="learn-label"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z"/></svg>어제 했던 일을 말할 때</div><button class="learn-toggle" data-action="review-expand" aria-expanded="false"><div class="learn-title">I paid with my phone yesterday.<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></div></button><p>어제 휴대폰으로 결제했어요.</p><div class="reveal" inert><div class="clip"><div class="explain"><strong>내가 쓴 문장</strong><p>I pay with my phone yesterday.</p><strong>이렇게 쓰는 이유</strong><p>어제 한 일이므로 pay 대신 과거형 paid를 써요.</p></div></div></div><div class="learn-actions"><button class="iconbtn" data-action="bookmark" aria-label="표현 담기" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button><button class="iconbtn" data-action="copy" aria-label="영어 문장 복사"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 5V3H3v13h2"/></svg></button></div></div></div><div class="review-bottom"><button class="primary" data-action="return">대화 다시 보기</button></div><div class="toast" role="status" hidden></div></div></section></main>
+
+<script>
+  const stage = document.querySelector('.sh-stage');
+  const screens = [...stage.querySelectorAll('[data-screen]')];
+  const screenSelect = document.getElementById('sh-screen');
+  const stateSelect = document.getElementById('sh-state');
+  const vpBtn = document.getElementById('sh-vp');
+  const themeCtl = document.getElementById('sh-theme');
+  const themeBtns = [...themeCtl.querySelectorAll('button')];
+  let current = null;
+  let currentStates = [];
+
+  screens.forEach(s => {
+    const option = document.createElement('option');
+    option.textContent = s.dataset.title || s.dataset.screen;
+    option.value = s.dataset.screen;
+    screenSelect.append(option);
+  });
+  screenSelect.onchange = () => show(screenSelect.value);
+
+  function show(slug) {
+    current = screens.find(s => s.dataset.screen === slug) || screens[0];
+    screens.forEach(s => s.hidden = s !== current);
+    screenSelect.value = current.dataset.screen;
+    history.replaceState(null, '', '#' + current.dataset.screen);
+    buildStates();
+  }
+
+  function buildStates() {
+    const declared = (current.dataset.states || '').split(',').map(x => x.trim()).filter(Boolean);
+    currentStates = ['Default', ...declared.filter(name => name !== 'Default')];
+    stateSelect.innerHTML = '';
+    currentStates.forEach(name => {
+      const option = document.createElement('option');
+      option.textContent = name;
+      option.value = name;
+      stateSelect.append(option);
+    });
+    applyState('Default');
+  }
+
+  function applyState(name) {
+    const active = currentStates.includes(name) ? name : 'Default';
+    current.querySelectorAll('[data-when]').forEach(el => {
+      el.hidden = !el.dataset.when.split(',').map(x => x.trim()).includes(active);
+    });
+    stateSelect.value = active;
+  }
+  stateSelect.onchange = () => applyState(stateSelect.value);
+
+  window.prototypeShell = {
+    showScreen: show,
+    setState: applyState,
+    getScreen: () => current?.dataset.screen,
+    getState: () => stateSelect.value
+  };
+
+  const VPS = ['full', '390', '768'];
+  let vp = VPS.find(v => document.body.classList.contains('sh-vp-' + v)) || 'full';
+  function applyVp() {
+    VPS.forEach(v => document.body.classList.toggle('sh-vp-' + v, v === vp && v !== 'full'));
+    vpBtn.textContent = 'vp: ' + vp + ' (m)';
+    vpBtn.classList.toggle('on', vp !== 'full');
+  }
+  vpBtn.onclick = () => { vp = VPS[(VPS.indexOf(vp) + 1) % VPS.length]; applyVp(); };
+  applyVp();
+
+  const hasDark = [...document.styleSheets].some(sheet => {
+    try {
+      return [...sheet.cssRules].some(rule => (rule.selectorText || '')
+        .split(',').some(part => /\.sh-theme-dark$/.test(part.trim())));
+    } catch { return false }
+  });
+  let dark = false;
+  function applyTheme() {
+    document.documentElement.classList.toggle('sh-theme-dark', dark);
+    document.body.classList.toggle('sh-theme-dark', dark);
+    themeBtns.forEach(b => b.classList.toggle('on', (b.dataset.theme === 'dark') === dark));
+  }
+  themeCtl.hidden = !hasDark;
+  themeBtns.forEach(b => b.onclick = () => { dark = b.dataset.theme === 'dark'; applyTheme(); });
+  applyTheme();
+
+  addEventListener('keydown', e => {
+    if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    const i = screens.indexOf(current);
+    if (e.key === 'ArrowRight') show(screens[(i + 1) % screens.length].dataset.screen);
+    if (e.key === 'ArrowLeft') show(screens[(i - 1 + screens.length) % screens.length].dataset.screen);
+    if (e.key === 'm') vpBtn.click();
+    if (e.key === 't' && !themeCtl.hidden) { dark = !dark; applyTheme(); }
+  });
+
+  addEventListener('hashchange', () => show(location.hash.slice(1)));
+  show(location.hash.slice(1));
+</script>
+<script>
+const ICONS={"back": "<path d=\"m15 4-8 8 8 8\"/>", "translate": "<path d=\"M3 5h12M9 2v3M5 5c0 6 7 10 7 10M13 5c0 6-8 11-8 11M13 21l4-10 4 10m-6-4h4\"/>", "bookmark": "<path d=\"M6 3h12v18l-6-4-6 4z\"/>", "copy": "<rect x=\"8\" y=\"8\" width=\"12\" height=\"13\" rx=\"2\"/><path d=\"M16 5V3H3v13h2\"/>", "down": "<path d=\"m6 9 6 6 6-6\"/>", "forward": "<path d=\"m9 5 7 7-7 7\"/>", "up": "<path d=\"M12 20V4m-7 7 7-7 7 7\"/>", "check": "<path d=\"m5 12 4 4L19 6\"/>", "spark": "<path d=\"m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z\"/>", "close": "<path d=\"m6 6 12 12M6 18 18 6\"/>"};
+function icon(n){return '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">'+ICONS[n]+'</svg>'}
+const msg=document.getElementById('messages'), composer=document.getElementById('composer'), closingSlot=document.getElementById('closing-slot');
+let turn=0, mode='Default', returnMode='다시 읽기', revealTimer;
+const original='I’m sorry, your card didn’t go through. Do you have another way to pay?';
+const longOriginal='I’m sorry, your card didn’t go through. If you used your phone yesterday, you can try it again. Just hold it near the reader until you see the green check, and please don’t move it away too quickly.';
+function utterance(text,meaning,extra=''){return `<article class="utterance ${extra}" data-component="SceneMessage"><div class="speaker">Mia</div><div class="bubble" data-english="${text.replaceAll('"','&quot;')}">${text}</div><div class="reveal translation" inert><div class="clip"><div class="meaning" data-component="UtteranceMeaningLine"><p>${meaning}</p><button class="link" data-action="ask">AI에게 물어보기 ${icon('forward')}</button></div></div></div><div class="actions" data-component="IconRow"><button class="iconbtn" data-action="translate" aria-label="대사 뜻 보기" aria-pressed="false">${icon('translate')}</button><button class="iconbtn" data-action="bookmark" aria-label="대사 담기" aria-pressed="false">${icon('bookmark')}</button><button class="iconbtn" data-action="copy" aria-label="영어 대사 복사">${icon('copy')}</button></div></article>`}
+function learning(){return `<div class="reveal learning" inert><div class="clip"><div class="learning-card" data-component="CorrectionNote"><button class="learn-toggle" data-action="expand" aria-expanded="false"><div class="learn-label">${icon('spark')}더 자연스러운 영어 표현</div><div class="learn-title">I paid with my phone yesterday.${icon('down')}</div></button><div class="reveal details" inert><div class="clip"><div class="explain"><strong>내가 쓴 문장</strong><p>I pay with my phone yesterday.</p><strong>이렇게 쓰는 이유</strong><p>어제 한 일이므로 pay 대신 과거형 paid를 써요.</p><button class="link" data-action="ask" data-component="LinkButton">AI에게 물어보기 ${icon('forward')}</button></div></div></div></div><div class="learn-actions"><button class="iconbtn" data-action="bookmark" aria-label="표현 담기" aria-pressed="false">${icon('bookmark')}</button><button class="iconbtn" data-action="copy" aria-label="영어 문장 복사">${icon('copy')}</button></div></div></div>`}
+let followFrame=0;msg.addEventListener('wheel',()=>cancelAnimationFrame(followFrame),{passive:true});msg.addEventListener('touchstart',()=>cancelAnimationFrame(followFrame),{passive:true});function reveal(el,open){const follow=msg.contains(el)&&msg.scrollHeight-msg.scrollTop-msg.clientHeight<28;el.classList.toggle('open',open);el.inert=!open;if(follow){const start=performance.now();cancelAnimationFrame(followFrame);function tick(now){msg.scrollTop=msg.scrollHeight;if(now-start<520)followFrame=requestAnimationFrame(tick)}followFrame=requestAnimationFrame(tick)}}
+function completedConversation(){return '<p class="opening"><strong>월요일 아침, Mia의 카페.</strong>회의에 가기 전 커피를 주문했다. 카드를 내밀었지만 단말기에서 짧은 경고음이 울린다.</p>'+utterance(original,'죄송해요, 카드 결제가 안 됐어요. 다른 결제 방법이 있으세요?')+`<div class="user"><div class="bubble">I pay with my phone yesterday.</div>${learning()}</div>`+utterance('Yes, you can use your phone again. Just hold it near the reader.','네, 휴대폰으로 다시 결제하셔도 돼요. 단말기 가까이에 대 주세요.')+`<div class="user"><div class="bubble">I’ll use my phone again. Thank you!</div></div>`+utterance('Yes, it went through. Here is your iced Americano with only a little ice.','네, 결제됐어요. 얼음을 조금만 넣은 아이스 아메리카노 나왔어요.')}
+function clearParticles(){document.getElementById('celebration-layer')?.remove()}
+function playParticles(){clearParticles();if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;requestAnimationFrame(()=>{const card=closingSlot.querySelector('.closing.play');if(!card||current.dataset.screen!=='episode')return;const phone=card.closest('.phone'),mark=card.querySelector('.mark');const bounds=phone.getBoundingClientRect(),origin=mark.getBoundingClientRect();const layer=document.createElement('div');layer.id='celebration-layer';layer.className='particle-layer';layer.setAttribute('aria-hidden','true');layer.inert=true;const x=origin.left-bounds.left+origin.width/2,y=origin.top-bounds.top+origin.height/2;layer.innerHTML=Array.from({length:28},(_,i)=>{const angle=Math.PI+(i/27)*Math.PI;const reach=125+(i%4)*26;const dx=Math.cos(angle)*reach,dy=Math.sin(angle)*reach-35;return `<i class="confetti" style="left:${x}px;top:${y}px;--dx:${dx}px;--dy:${dy}px;--fall:${dy+120}px;--r:${i*67}deg;background:${['var(--accent)','var(--learn)','var(--expression)'][i%3]}"></i>`}).join('');phone.append(layer);setTimeout(()=>layer.remove(),2500)})}
+function closing(play){return `<div class="closing-wrap"><div class="closing ${play?'play':''}" data-component="EpisodeClosing"><div class="mark">${icon('check')}<span class="ring"></span></div><div class="congrats">해냈어요!</div><h2>휴대폰 결제에 성공하고 어제와 같은 아이스 아메리카노를 받았다</h2><button class="primary" data-action="review">표현 돌아보기</button></div></div>`}
+function setMode(name){clearParticles();clearTimeout(revealTimer);mode=name;setAsk(false);turn=0;closingSlot.innerHTML='';composer.hidden=false;composer.querySelector('textarea').value='I pay with my phone yesterday.';
+ if(name==='대화 종료'||name==='다시 읽기'){turn=2;msg.innerHTML=completedConversation().replaceAll('class="reveal learning" inert','class="reveal learning open"');composer.hidden=true;if(name==='대화 종료'){closingSlot.innerHTML=closing(true);playParticles()}else closingSlot.innerHTML='<div class="review-cta" data-component="Button"><button class="primary" data-action="review">표현 돌아보기</button></div>';msg.scrollTop=msg.scrollHeight;requestAnimationFrame(()=>msg.scrollTop=msg.scrollHeight);
+ }else{msg.innerHTML=`<p class="opening"><strong>월요일 아침, Mia의 카페.</strong>회의에 가기 전 커피를 주문했다. 카드를 내밀었지만 단말기에서 짧은 경고음이 울린다.</p>`+utterance(name==='긴 대사'?longOriginal:original,name==='긴 대사'?'죄송해요, 카드 결제가 안 됐어요. 어제 휴대폰으로 결제하셨다면 다시 시도하셔도 돼요. 초록색 체크 표시가 나올 때까지 단말기 가까이에 대고, 너무 빨리 떼지 마세요.':'죄송해요, 카드 결제가 안 됐어요. 다른 결제 방법이 있으세요?');msg.scrollTop=0;} }
+const baseApply=applyState;applyState=function(name){baseApply(name);if(current.dataset.screen==='episode')setMode(stateSelect.value)};window.prototypeShell.setState=applyState;stateSelect.onchange=()=>applyState(stateSelect.value);
+composer.addEventListener('submit',e=>{e.preventDefault();const field=composer.querySelector('textarea'),text=field.value.trim();if(!text)return;turn++;const node=document.createElement('div');node.className='user new-message';const b=document.createElement('div');b.className='bubble';b.textContent=text;node.append(b);msg.append(node);if(turn===1){const corrected=/^I pay with my phone yesterday\.?$/i.test(text);if(corrected){node.insertAdjacentHTML('beforeend',learning());revealTimer=setTimeout(()=>{reveal(node.querySelector('.learning'),true)},380)}msg.insertAdjacentHTML('beforeend',utterance('Yes, you can use your phone again. Just hold it near the reader.','네, 휴대폰으로 다시 결제하셔도 돼요. 단말기 가까이에 대 주세요.','new-message'));field.value='I’ll use my phone again. Thank you!';}else{msg.insertAdjacentHTML('beforeend',utterance('Yes, it went through. Here is your iced Americano with only a little ice.','네, 결제됐어요. 얼음을 조금만 넣은 아이스 아메리카노 나왔어요.','new-message'));composer.hidden=true;closingSlot.innerHTML=closing(true);playParticles();mode='대화 종료';baseApply(mode);}msg.scrollTop=msg.scrollHeight;});
+function toast(text){const el=current.querySelector('.toast');el.textContent=text;el.hidden=false;setTimeout(()=>el.hidden=true,1400)}
+let lastAsk;function setAsk(open){const overlay=document.getElementById('ask-overlay');overlay.hidden=!open;[...overlay.parentElement.children].filter(e=>e!==overlay&&!e.classList.contains('toast')).forEach(e=>e.inert=open)}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-action]');if(!b)return;const action=b.dataset.action;
+if(action==='translate'){const el=b.closest('.utterance').querySelector('.translation'),on=!el.classList.contains('open');reveal(el,on);b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',on?'대사 뜻 닫기':'대사 뜻 보기')}
+if(action==='expand'||action==='review-expand'){const el=b.parentElement.querySelector('.reveal'),on=!el.classList.contains('open');reveal(el,on);b.setAttribute('aria-expanded',on)}
+if(action==='bookmark'){const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',on?'담기 취소':(b.closest('.utterance')?'대사 담기':'표현 담기'));toast(on?'표현 노트에 담았어요':'표현 노트에서 뺐어요')}
+if(action==='copy'){const text=b.closest('.utterance')?.querySelector('.bubble').textContent||'I paid with my phone yesterday.';try{await navigator.clipboard.writeText(text);toast('복사했어요')}catch{toast('복사하지 못했어요')}}
+if(action==='review'){clearParticles();returnMode=mode;prototypeShell.showScreen('review')}
+if(action==='return'){prototypeShell.showScreen('episode');applyState('다시 읽기')}
+if(action==='back'){if(current.dataset.screen==='review'){prototypeShell.showScreen('episode');applyState('다시 읽기')}else{applyState('Default')}}
+if(action==='ask'){lastAsk=b;const text=b.closest('.utterance')?.querySelector('.meaning p').textContent||'I paid with my phone yesterday.';document.getElementById('ask-source').textContent=text;document.getElementById('ask-answer').textContent=b.closest('.utterance')?'“didn’t go through”는 결제가 정상적으로 처리되지 않았다는 뜻이에요. 다른 방법으로 결제할 수 있는지 묻는 말이에요.':'yesterday는 어제를 뜻하므로 이미 끝난 일을 말해요. pay의 과거형인 paid를 쓰면 돼요.';setAsk(true);document.querySelector('[data-action=close]').focus()}
+if(action==='close'){setAsk(false);lastAsk?.focus()}
+});
+document.addEventListener('keydown',e=>{const overlay=document.getElementById('ask-overlay');if(!overlay.hidden){if(e.key==='Escape'){setAsk(false);lastAsk?.focus()}if(e.key==='Tab'){const all=[...overlay.querySelectorAll('button,textarea')];const first=all[0],last=all.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}}});
+document.getElementById('ask-form').addEventListener('submit',e=>{e.preventDefault();const f=e.target.querySelector('textarea');if(!f.value.trim())return;const answer=document.getElementById('ask-answer');const p=document.createElement('div');p.className='question';p.textContent=f.value;answer.append(p);const a=document.createElement('p');a.textContent='이 장면에서는 “I’ll use my phone.”이라고 하면 “휴대폰으로 결제할게요”라는 뜻을 전할 수 있어요.';answer.append(a);f.value=''});
+setMode('Default');
+</script>
