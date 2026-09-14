@@ -37,7 +37,7 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-test("시작 확인이 끝날 때까지 기다리고 낮은 설치 버전을 막으며 NULL로 바로 해제한다", async () => {
+test("시작 확인이 끝날 때까지 기다리고 낮은 설치 버전을 막으며 앱을 다시 열면 NULL을 반영한다", async () => {
   let resolveFirst:
     | ((policy: { minimum_version: string; install_url: string }) => void)
     | undefined;
@@ -59,22 +59,24 @@ test("시작 확인이 끝날 때까지 기다리고 낮은 설치 버전을 막
     expect(gate.result.current.status).toBe("blocked");
     expect(gate.result.current.installUrl).toBe(INSTALL_URL);
 
-    await act(async () => gate.result.current.recheck());
-    expect(gate.result.current.status).toBe("allowed");
+    await gate.unmount();
+    const reopened = await renderHook(() => useAppVersionGate());
+    await waitFor(() => expect(reopened.result.current.status).toBe("allowed"));
     expect(mockedRead).toHaveBeenCalledTimes(2);
-    gate.unmount();
+    await reopened.unmount();
   } finally {
     appState.restore();
   }
 });
 
-test("차단 중 재확인 실패는 차단을 유지하고, 일반 복귀는 5분 안에 다시 읽지 않는다", async () => {
+test("차단 중 설치 화면 복귀 확인이 실패해도 차단을 유지하고, 일반 복귀는 5분 안에 다시 읽지 않는다", async () => {
   mockedRead
     .mockResolvedValueOnce({
       install_url: INSTALL_URL,
       minimum_version: "1.2.0",
     })
     .mockRejectedValueOnce(new Error("offline"));
+  mockedOpen.mockResolvedValue(true);
   const appState = watchAppState();
   let now = 10_000;
   jest.spyOn(Date, "now").mockImplementation(() => now);
@@ -86,7 +88,10 @@ test("차단 중 재확인 실패는 차단을 유지하고, 일반 복귀는 5�
     await appState.send("active");
     expect(mockedRead).toHaveBeenCalledTimes(1);
 
-    await act(async () => gate.result.current.recheck());
+    await act(async () => gate.result.current.openInstall());
+    await appState.send("background");
+    await appState.send("active");
+    await waitFor(() => expect(gate.result.current.checkError).toBe(true));
     expect(gate.result.current.status).toBe("blocked");
     expect(gate.result.current.checkError).toBe(true);
     gate.unmount();
@@ -166,7 +171,7 @@ test("설치 화면을 열지 못해도 차단을 유지하고 오류를 알린�
   }
 });
 
-test("동시에 다시 확인을 눌러도 정책 요청은 한 번만 보낸다", async () => {
+test("설치 화면 복귀 확인 중 연속 복귀해도 정책 요청은 한 번만 보낸다", async () => {
   let resolveRetry:
     | ((policy: {
         install_url: string | null;
@@ -184,17 +189,20 @@ test("동시에 다시 확인을 눌러도 정책 요청은 한 번만 보낸다
           resolveRetry = resolve;
         })
     );
+  mockedOpen.mockResolvedValue(true);
   const appState = watchAppState();
   try {
     const gate = await renderHook(() => useAppVersionGate());
     await waitFor(() => expect(gate.result.current.status).toBe("blocked"));
-    await act(async () => {
-      const first = gate.result.current.recheck();
-      const second = gate.result.current.recheck();
-      expect(mockedRead).toHaveBeenCalledTimes(2);
-      resolveRetry?.({ install_url: null, minimum_version: null });
-      await Promise.all([first, second]);
-    });
+    await act(async () => gate.result.current.openInstall());
+    await appState.send("background");
+    await appState.send("active");
+    await appState.send("background");
+    await appState.send("active");
+    expect(mockedRead).toHaveBeenCalledTimes(2);
+    await act(async () =>
+      resolveRetry?.({ install_url: null, minimum_version: null })
+    );
     expect(gate.result.current.status).toBe("allowed");
     gate.unmount();
   } finally {

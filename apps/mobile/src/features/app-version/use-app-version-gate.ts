@@ -52,7 +52,7 @@ function policyDecision(
     : { status: "allowed" };
 }
 
-/** Reads once at launch, on meaningful foreground returns, and on explicit retry. */
+/** Reads once at launch and on meaningful foreground returns. */
 export function useAppVersionGate() {
   const audience = useMemo(
     () =>
@@ -174,7 +174,6 @@ export function useAppVersionGate() {
     };
   }, [check]);
 
-  const recheck = useCallback(() => check(true), [check]);
   const openInstall = useCallback(async () => {
     if (!state.installUrl) {
       return;
@@ -191,5 +190,5 @@ export function useAppVersionGate() {
     }
   }, [state.installUrl]);
 
-  return { ...state, openInstall, recheck };
+  return { ...state, openInstall };
 }

@@ -12,13 +12,11 @@ export function UpdateRequiredScreen({
   checkError,
   isRechecking,
   onOpenInstall,
-  onRecheck,
   openError,
 }: {
   checkError: boolean;
   isRechecking: boolean;
   onOpenInstall: () => void;
-  onRecheck: () => void;
   openError: boolean;
 }) {
   const insets = useSafeAreaInsets();
@@ -30,7 +28,7 @@ export function UpdateRequiredScreen({
     };
   } else if (checkError) {
     notice = {
-      body: "연결을 확인하고 다시 시도해 주세요",
+      body: "인터넷 연결을 확인하고 앱을 다시 열어 주세요",
       title: "지금은 확인할 수 없어요",
     };
   } else if (openError) {
@@ -74,17 +72,9 @@ export function UpdateRequiredScreen({
           </View>
         ) : null}
       </View>
-      <View className="gap-2.5 pt-6">
+      <View className="pt-6">
         <Button isDisabled={isRechecking} onPress={onOpenInstall} size="lg">
           업데이트하기
-        </Button>
-        <Button
-          isPending={isRechecking}
-          onPress={onRecheck}
-          size="lg"
-          variant="secondary"
-        >
-          다시 확인
         </Button>
       </View>
     </ScrollView>

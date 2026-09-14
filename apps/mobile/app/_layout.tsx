@@ -140,7 +140,6 @@ function ThemedRootLayout() {
           checkError={versionGate.checkError}
           isRechecking={versionGate.isRechecking}
           onOpenInstall={versionGate.openInstall}
-          onRecheck={versionGate.recheck}
           openError={versionGate.openError}
         />
         <StatusBar style={scheme === "dark" ? "light" : "dark"} />
