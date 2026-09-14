@@ -113,10 +113,12 @@ type Motion = "pending" | "play" | "still";
 export function EpisodeClosing({
   ending,
   animate,
+  isChecking = false,
   onReview,
 }: {
   ending: EpisodeEnding;
   animate: boolean;
+  isChecking?: boolean;
   onReview: () => void;
 }) {
   const [requested] = useState(animate);
@@ -172,8 +174,15 @@ export function EpisodeClosing({
       accessibilityElementsHidden={pending}
       importantForAccessibility={pending ? "no-hide-descendants" : "auto"}
       pointerEvents={pending ? "none" : "auto"}
-      style={pending ? hidden : undefined}
+      style={[{ overflow: "visible" }, pending ? hidden : undefined]}
     >
+      {playing ? (
+        <CelebrationBurst
+          half={!isSuccess}
+          onFinish={finish}
+          playing={!finished}
+        />
+      ) : null}
       {/* motion이 바뀌면 카드를 새로 만들어 entering이 그 순간부터 돌고, 마크는
           정지한 마지막 프레임으로 다시 그려진다. */}
       <Animated.View
@@ -184,15 +193,6 @@ export function EpisodeClosing({
         testID="episode-closing"
       >
         <View className="absolute inset-0 bg-accent/5" pointerEvents="none" />
-        {/* 마크보다 먼저 만들어 iOS가 효과 파일을 읽는 동안 마크의 시계가 먼저
-            가지 않게 한다. 형제 순서상 마크와 글 뒤에 깔려 그 뒤에서 터진다. */}
-        {playing ? (
-          <CelebrationBurst
-            half={!isSuccess}
-            onFinish={finish}
-            playing={!finished}
-          />
-        ) : null}
         <ScrollView
           className="shrink grow-0"
           contentContainerClassName="items-center gap-2 py-1"
@@ -221,7 +221,11 @@ export function EpisodeClosing({
           </Animated.View>
         </ScrollView>
         <Animated.View entering={playing ? settle : undefined}>
-          <Button accessibilityLabel="표현 돌아보기" onPress={onReview}>
+          <Button
+            accessibilityLabel="표현 돌아보기"
+            isPending={isChecking}
+            onPress={onReview}
+          >
             표현 돌아보기
           </Button>
         </Animated.View>
@@ -282,11 +286,9 @@ function CompletionMark({
   );
 }
 
-const burstStyle = { height: closingBurst.h, width: closingBurst.w } as const;
-const burstHalfStyle = {
-  height: closingBurstHalf.h,
-  width: closingBurstHalf.w,
-} as const;
+// 원본보다 크게 그려 조각이 카드 위와 양옆 바깥까지 닿게 한다. 두 파일의
+// 캔버스는 같은 비율이며 실제 화면 경계는 화면이 잘라 준다.
+const burstStyle = { height: 330, width: 440 } as const;
 
 /**
  * 마크 뒤에서 퍼지는 고리와 파랑, 보라, 청록 조각. 목표를 이루지 못한 결말은
@@ -322,7 +324,7 @@ function CelebrationBurst({
       className="absolute inset-x-0 items-center"
       importantForAccessibility="no-hide-descendants"
       pointerEvents="none"
-      style={{ top: BURST_TOP - source.h / 2 }}
+      style={{ top: BURST_TOP - burstStyle.height / 2 }}
     >
       <LottieView
         autoPlay={playing}
@@ -332,7 +334,7 @@ function CelebrationBurst({
         onAnimationFinish={onFinish}
         renderMode={RENDER_MODE}
         source={source}
-        style={half ? burstHalfStyle : burstStyle}
+        style={burstStyle}
         testID="episode-celebration-burst"
       />
     </View>

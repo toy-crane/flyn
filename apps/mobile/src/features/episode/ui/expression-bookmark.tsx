@@ -14,6 +14,7 @@ import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { StatusLine } from "@/shared/ui/status-line";
 import { episodeLabels, savedExpressionLabels } from "./episode-labels";
 import {
+  UtteranceMeaningFailure,
   UtteranceMeaningLine,
   UtteranceTranslationButton,
 } from "./utterance-meaning";
@@ -146,6 +147,7 @@ export function UtteranceExpressionSlot({
   return (
     <View className="w-full items-start">
       {children}
+      <UtteranceMeaningLine speaker={speaker} spot={spot} text={text} />
       <IconRow
         isVisible={!isArriving}
         riseIndex={at}
@@ -161,7 +163,7 @@ export function UtteranceExpressionSlot({
         </IconRowJoin>
         <IconRowCopyButton label={episodeLabels.copyUtterance} text={text} />
       </IconRow>
-      <UtteranceMeaningLine speaker={speaker} spot={spot} text={text} />
+      <UtteranceMeaningFailure spot={spot} />
       <ExpressionSaveFailure align="start" spot={spot} />
     </View>
   );

@@ -1,5 +1,5 @@
 import { afterEach, expect, jest, test } from "@jest/globals";
-import { screen, userEvent } from "@testing-library/react-native";
+import { act, screen, userEvent } from "@testing-library/react-native";
 import { setStringAsync } from "expo-clipboard";
 import { Dimensions } from "react-native";
 
@@ -118,6 +118,73 @@ test("한 줄을 탭하면 그 자리에서 카드로 펼쳐지고 접기로 되
   expect(screen.queryByTestId("correction-card")).toBeNull();
 });
 
+test("전환 중 다시 눌러도 마지막 선택대로 열리고 질문 링크를 누를 수 있다", async () => {
+  const user = userEvent.setup();
+  const { onAsk, rendered } = renderNote(ONE_EXPRESSION);
+  await rendered;
+  await user.press(screen.getByTestId("correction-line"));
+  await user.press(screen.getByTestId("correction-fold"));
+  await user.press(screen.getByTestId("correction-line"));
+  expect(screen.getByTestId("correction-card")).toBeOnTheScreen();
+  expect(screen.queryByTestId("correction-line")).toBeNull();
+  expect(screen.getByTestId("correction-note").props.layout).toBeDefined();
+  await user.press(screen.getByTestId("correction-ask"));
+  expect(onAsk).toHaveBeenCalledWith(ONE_EXPRESSION);
+});
+
+test("기록에서 복원한 교정은 바로 보인다", async () => {
+  const message = {
+    id: "m1",
+    parts: [{ text: ONE_EXPRESSION.original, type: "text" as const }],
+    role: "user" as const,
+  };
+  const renderState = (ready: boolean) => (
+    <EpisodeCorrectionsProvider
+      value={{
+        ask: jest.fn(),
+        byMessageId: ready ? { m1: ONE_EXPRESSION } : {},
+        retry: jest.fn(),
+        states: {
+          m1: ready
+            ? { correction: ONE_EXPRESSION, status: "corrected" }
+            : { retrying: false, status: "pending" },
+        },
+      }}
+    >
+      <EpisodeCorrectionNote message={message} />
+    </EpisodeCorrectionsProvider>
+  );
+  await renderWithHeroUI(renderState(true));
+  expect(screen.getByTestId("correction-note").props.entering).toBeUndefined();
+});
+
+test("새로 준비된 교정은 그 자리에서 나타난다", async () => {
+  const message = {
+    id: "m1",
+    parts: [{ text: ONE_EXPRESSION.original, type: "text" as const }],
+    role: "user" as const,
+  };
+  const renderState = (ready: boolean) => (
+    <EpisodeCorrectionsProvider
+      value={{
+        ask: jest.fn(),
+        byMessageId: ready ? { m1: ONE_EXPRESSION } : {},
+        retry: jest.fn(),
+        states: {
+          m1: ready
+            ? { correction: ONE_EXPRESSION, status: "corrected" }
+            : { retrying: false, status: "pending" },
+        },
+      }}
+    >
+      <EpisodeCorrectionNote message={message} />
+    </EpisodeCorrectionsProvider>
+  );
+  const fresh = await renderWithHeroUI(renderState(false));
+  await act(() => fresh.rerender(renderState(true)));
+  expect(screen.getByTestId("correction-note").props.entering).toBeDefined();
+});
+
 // 한 메시지에 표현이 여럿이어도 고친 문장은 하나다. 나뉘는 것은 카드 안이다.
 test("배울 표현이 둘이면 카드가 항목 둘로 나뉜다", async () => {
   const user = userEvent.setup();
@@ -152,6 +219,10 @@ test("카드에는 AI에게 물어보기만 남고 다시 보내기와 전송 �
   expect(
     screen.getByRole("button", { name: "AI에게 물어보기" })
   ).toBeOnTheScreen();
+  const askLink = screen.getByTestId("correction-ask");
+  expect(askLink.props.className).toContain("link-button__root");
+  expect(askLink.props.className).toContain("min-h-11");
+  expect(askLink.props.className).not.toContain("bg-surface");
 });
 
 // 시트를 닫으면 카드가 그대로 열려 있어야 한다. 여는 쪽은 접지 않는다.

@@ -1,5 +1,12 @@
 import type { UIMessage } from "ai";
-import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { TextInput } from "react-native";
 import { useAuthSession } from "@/features/auth/state/auth-session";
 import {
@@ -27,15 +34,12 @@ import {
 } from "@/features/episode/state/utterance-meanings";
 import { EpisodeCorrectionNote } from "@/features/episode/ui/correction-note";
 import { EpisodeClosing } from "@/features/episode/ui/episode-closing";
-import {
-  correctionLabels,
-  episodeLabels,
-} from "@/features/episode/ui/episode-labels";
+import { episodeLabels } from "@/features/episode/ui/episode-labels";
 import { EpisodeSituationBanner } from "@/features/episode/ui/episode-situation-banner";
 import { UtteranceExpressionSlot } from "@/features/episode/ui/expression-bookmark";
 import { useExpressionToast } from "@/features/episode/ui/expression-toast";
 import { useExpressionNoteRefresh } from "@/features/note/query/expression-note";
-import { StatusLine } from "@/shared/ui/status-line";
+import { Button } from "@/shared/ui/button";
 
 /**
  * 에피소드 하나를 사건 시작부터 결말까지 진행하는 화면.
@@ -52,7 +56,7 @@ import { StatusLine } from "@/shared/ui/status-line";
  * 배울 표현은 말풍선 아래에 매달린다. 대화는 채팅 기능의 것이고 교정은
  * 에피소드 기능의 것이라, 둘을 잇는 자리도 여기다. 메시지 하나에 거는 동작과
  * 템플릿의 텍스트 선택 진입은 여전히 넘기지 않는다. 물어보는 자리로 들어가는
- * 길은 교정 카드 하나뿐이다.
+ * 길은 대사 뜻과 교정 카드에 각각 있다.
  *
  * 나가기를 붙잡아 두지 않는다. 대화를 저장하는 주체가 서버 하나라, 중지하거나
  * 화면을 나가면 요청만 끊고 서버가 자기가 만든 데까지를 스스로 남긴다.
@@ -221,25 +225,37 @@ export function EpisodeScreen({
   const isChecking = Object.values(corrections.states).some(
     (state) => state.status === "pending"
   );
+  const [hasOpenedReview, setHasOpenedReview] = useState(false);
   const celebrated = useRef(readOnly || recordedEnding !== undefined);
-  const isReady = ending !== undefined && !isChecking;
-  const animate = isReady && !celebrated.current;
+  const animate = ending !== undefined && !celebrated.current;
   useEffect(() => {
-    if (isReady) {
+    if (ending !== undefined) {
       celebrated.current = true;
     }
-  }, [isReady]);
-  const review = useCallback(() => onReview(nextUp), [nextUp, onReview]);
+  }, [ending]);
+  const review = useCallback(() => {
+    setHasOpenedReview(true);
+    onReview(nextUp);
+  }, [nextUp, onReview]);
 
-  if (ending !== undefined) {
-    closing = isChecking ? (
-      <StatusLine
-        label={correctionLabels.checking}
-        loading
-        testID="episode-ending-checking"
+  if ((readOnly || hasOpenedReview) && ending !== undefined) {
+    closing = (
+      <Button
+        accessibilityLabel="표현 돌아보기"
+        isPending={isChecking}
+        onPress={review}
+      >
+        표현 돌아보기
+      </Button>
+    );
+  } else if (ending !== undefined) {
+    closing = (
+      <EpisodeClosing
+        animate={animate}
+        ending={ending}
+        isChecking={isChecking}
+        onReview={review}
       />
-    ) : (
-      <EpisodeClosing animate={animate} ending={ending} onReview={review} />
     );
   } else if (readOnly) {
     closing = null;
