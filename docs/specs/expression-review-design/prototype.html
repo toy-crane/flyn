@@ -198,7 +198,9 @@
   .teaser-copy { margin: 0; color: var(--muted); font-size: 14px; line-height: 20px; }
   .primary { display: grid; place-items: center; width: 100%; min-height: 48px; padding: 10px 14px; border: 0; border-radius: 16px; background: #0087ff; color: #fff; text-decoration: none; font: 600 16px/24px var(--font); cursor: pointer; text-align: center; }
   .sh-theme-dark .primary { background: #83a4ff; color: #0b0b0d; }
-  .toast { position: sticky; top: 4px; z-index: 5; margin: 0 auto -44px; width: max-content; max-width: calc(100% - 36px); border-radius: 999px; background: var(--foreground); color: var(--background); padding: 9px 16px; font-size: 13px; }
+  .toast { position: sticky; top: 4px; z-index: 5; display: flex; align-items: center; gap: 8px; margin: 0 auto -44px; width: max-content; max-width: calc(100% - 36px); border-radius: 999px; background: var(--foreground); color: var(--background); padding: 9px 16px; font-size: 13px; }
+  .toast svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .toast[data-saved="true"] .bookmark-path { fill: currentColor; }
   .destination-content { flex: 1; padding: 24px; display: grid; align-content: start; gap: 16px; }
   .destination-content h2 { margin: 0; font-size: 22px; line-height: 30px; }
   .destination-content p { margin: 0; color: var(--muted); font-size: 15px; line-height: 22px; }
@@ -253,8 +255,8 @@
               <div><h3>이렇게 쓰는 이유</h3><p class="why">특정 편지의 주소를 말하므로 the address라고 해요</p></div>
             </div>
             <div class="card-actions">
-              <button class="icon-action" aria-label="표현 복사" data-copy="Could you check the address again?"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button>
               <button class="icon-action" aria-label="표현 저장" aria-pressed="false" data-save><svg viewBox="0 0 24 24" aria-hidden="true"><path class="bookmark-path" d="M6 3h12v18l-6-4-6 4z"/></svg></button>
+              <button class="icon-action" aria-label="표현 복사" data-copy="Could you check the address again?"><svg class="copy-symbol" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><svg class="check-symbol" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="m4 12 5 5 11-11"/></svg></button>
             </div>
           </article>
           <article class="expression-card" data-component="Accordion" data-when="Default,다음 화 완료,마지막 화">
@@ -268,8 +270,8 @@
               <div><h3>이렇게 쓰는 이유</h3><p class="why">belongs to someone else는 다른 사람 것이라는 뜻이에요</p></div>
             </div>
             <div class="card-actions">
-              <button class="icon-action" aria-label="표현 복사" data-copy="I think this letter belongs to someone else."><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button>
               <button class="icon-action" aria-label="표현 저장" aria-pressed="false" data-save><svg viewBox="0 0 24 24" aria-hidden="true"><path class="bookmark-path" d="M6 3h12v18l-6-4-6 4z"/></svg></button>
+              <button class="icon-action" aria-label="표현 복사" data-copy="I think this letter belongs to someone else."><svg class="copy-symbol" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><svg class="check-symbol" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="m4 12 5 5 11-11"/></svg></button>
             </div>
           </article>
         </div>
@@ -315,7 +317,7 @@
     </div>
   </section>
   <section class="mobile" data-screen="next-episode" data-title="다음 화의 대화">
-    <header class="native-header"><a class="nav-icon" href="#review" aria-label="표현 돌아보기로 돌아가기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></a><h1 class="native-title">2화 · 사라진 발신인</h1><span></span></header>
+    <header class="native-header"><a class="nav-icon" href="#records" aria-label="대화 기록으로 돌아가기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></a><h1 class="native-title">2화 · 사라진 발신인</h1><span></span></header>
     <div class="destination-content"><p>편지를 보낸 사람을 찾아 골목으로 들어섰어요</p><div class="chat-bubble">어제 그 사람을 봤어요. 무슨 일이 있었나요?</div></div>
   </section>
   <section class="mobile" data-screen="home" data-title="홈">
@@ -426,13 +428,22 @@
 <script>
   const review = document.querySelector('[data-screen="review"]');
   let toastTimer;
-  function showToast(message) {
+  function showSaveToast(message, button) {
     const toast = review.querySelector('.toast');
-    toast.textContent = message;
+    toast.replaceChildren(button.querySelector('svg').cloneNode(true), document.createTextNode(message));
+    toast.dataset.saved = button.getAttribute('aria-pressed');
     toast.hidden = false;
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { toast.hidden = true; }, 1900);
+    toastTimer = setTimeout(() => { toast.hidden = true; }, 2500);
   }
+  const copyTimers = new WeakMap();
+  document.addEventListener('click', event => {
+    if (!event.target.closest('a[href="#next-episode"]')) return;
+    const back = document.querySelector('[data-screen="next-episode"] .nav-icon');
+    const fromHome = prototypeShell.getScreen() === 'home';
+    back.href = fromHome ? '#home' : '#records';
+    back.setAttribute('aria-label', fromHome ? '홈으로 돌아가기' : '대화 기록으로 돌아가기');
+  });
   review.addEventListener('click', async event => {
     const toggle = event.target.closest('[data-card-toggle]');
     if (toggle) {
@@ -447,16 +458,22 @@
       const saved = save.getAttribute('aria-pressed') === 'true';
       save.setAttribute('aria-pressed', String(!saved));
       save.setAttribute('aria-label', saved ? '표현 저장' : '저장 취소');
-      showToast(saved ? '표현 노트에서 뺐어요' : '표현 노트에 담았어요');
+      showSaveToast(saved ? '저장을 취소했어요' : '표현을 저장했어요', save);
       return;
     }
     const copy = event.target.closest('[data-copy]');
     if (copy) {
       try {
         await navigator.clipboard.writeText(copy.dataset.copy);
-        showToast('복사했어요');
+        copy.querySelector('.copy-symbol').hidden = true;
+        copy.querySelector('.check-symbol').hidden = false;
+        clearTimeout(copyTimers.get(copy));
+        copyTimers.set(copy, setTimeout(() => {
+          copy.querySelector('.copy-symbol').hidden = false;
+          copy.querySelector('.check-symbol').hidden = true;
+        }, 1500));
       } catch {
-        showToast('복사하지 못했어요');
+        // 브라우저가 복사를 막으면 원래 아이콘을 유지한다.
       }
       return;
     }
