@@ -228,6 +228,44 @@ test("다시 연 화면은 서버가 실어 보낸 배울 표현으로 시작한
   expect(result.current.corrections.byMessageId.m1).toEqual(saved[0]);
 });
 
+test("메시지를 고치면 같은 id의 예전 교정을 버리고 새 판정을 받는다", async () => {
+  fakeTransport();
+  const check = jest.mocked(checkEpisodeExpression);
+  const message: UIMessage = {
+    id: "edited-user",
+    parts: [{ text: "I wants coffee.", type: "text" }],
+    role: "user",
+  };
+  const { result } = await renderHook(() =>
+    useEpisodeStoryPlay(
+      "token",
+      EPISODE_ID,
+      [message],
+      false,
+      STORY_ID,
+      STORY_PLAY_ID,
+      noop,
+      undefined,
+      undefined,
+      [{ messageId: message.id, status: "natural" }]
+    )
+  );
+  expect(result.current.corrections.states[message.id]?.status).toBe("natural");
+
+  await act(() => result.current.onReplaceMessage(message.id));
+  expect(result.current.corrections.states[message.id]).toBeUndefined();
+
+  await act(() => result.current.corrections.check(message.id));
+  await waitFor(() => expect(check).toHaveBeenCalledTimes(1));
+  expect(check).toHaveBeenCalledWith(
+    "token",
+    STORY_PLAY_ID,
+    EPISODE_ID,
+    message.id,
+    expect.any(AbortSignal)
+  );
+});
+
 test("끝난 기록에서도 완료 결과가 없는 메시지만 자동 확인하고 같은 화면에서 실패를 반복하지 않는다", async () => {
   const transport = fakeTransport();
   const check = jest.mocked(checkEpisodeExpression);
