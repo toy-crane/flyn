@@ -83,7 +83,7 @@
 
 ## 모바일 기능
 
-- [모바일 인증](mobile-authentication.md) — 모바일 로그인 제공자, 인증 세션, 계정 연결, 로그아웃 또는 로컬 인증 검증 경로를 변경할 때 읽는다.
+- [모바일 인증](mobile-authentication.md) — 모바일 로그인 제공자, 로그인 전 법적 고지 링크, 인증 세션, 계정 연결, 로그아웃 또는 로컬 인증 검증 경로를 변경할 때 읽는다.
 - [모바일 프로필 식별자와 온보딩](mobile-profile-identity-and-onboarding.md) — 닉네임, 아이디, 로그인 뒤 필수 프로필 설정 또는 프로필 완성 조건을 변경할 때 읽는다.
 - [모바일 설정 구조](mobile-settings-structure.md) — Settings의 섹션 순서, 여러 값 중 하나를 고르는 흐름 또는 행 오른쪽 표시를 변경할 때 읽는다.
 - [모바일 설정 공개 프로필](mobile-profile-settings.md) — Settings의 프로필 표시, `프로필` 화면 진입, 사진 편집 또는 프로필 폼 배치를 변경할 때 읽는다.
