@@ -1,0 +1,464 @@
+<!--
+  prototype shell: the review chrome every prototype starts from.
+
+  Keep this comment in the prototype you grow from here: it is the contract,
+  and later turns work from that file rather than from this one.
+
+  Contract (extend product screens; keep the review shell):
+  - Product:  .sh-stage contains only end-user product UI. Keep review notes,
+               rationale, instructions, and approval controls in conversation.
+  - Screens:  <section data-screen="slug" data-title="Label"> inside .sh-stage.
+               The selector, arrow keys, and #hash routing build themselves.
+               Use one option per product destination or distinct surface,
+               named by its product role. Keep baselines, variants, comparison
+               labels, steps, indexes, and progress out of names and states.
+               Links may use href="#slug".
+  - States:   "Default" is automatic. A screen declares only representative
+               presets in data-states="Empty,Error". Use natural, screen-specific
+               names. Reserve presets for important multi-step results, forced
+               data or errors, or materially different structure; keep one-click
+               and transient states as interactions. Use data-when="Empty" on
+               preset-only elements. Call prototypeShell.setState("Name") on
+               entry and setState("Default") on exit, including when repeated
+               actions cross a preset condition.
+  - Viewport: "vp (m)" cycles full / 390 / 768. The 390 preset is a
+               fixed-height, internally scrolling phone frame. Start a
+               mobile-first prototype by adding class="sh-vp-390" to <body>
+               (or a bootstrap classList.add before the chrome script runs).
+  - Pinning:  keep in-frame bars (tab bars, CTAs) inside the phone with
+               position: sticky; position: fixed pins to the browser window.
+  - Tokens:   replace the project-tokens block with project tokens copied
+               verbatim. Map differing names to --background, --foreground, and
+               --font afterwards; replace network fonts with a system stack and
+               note that substitution. Without a design system, keep this
+               palette as the finished style. When the project ships dark
+               tokens, copy them under .sh-theme-dark, which the shell sets
+               on both the root element and body, so :root.sh-theme-dark and
+               body.sh-theme-dark work too. A .dark class or a
+               prefers-color-scheme media query copied verbatim would follow
+               the reviewer's system instead of the toggle.
+  - Theme:    the light / dark switch (t) changes the product surface only.
+               It appears only when a .sh-theme-dark rule declares dark tokens,
+               so a prototype without them carries no theme control. Prototypes
+               always load light; the review bar keeps its own dark styling in
+               both themes so it still reads as chrome.
+  - Placeholders: .wf-pic stands in for pictures the prototype has no real
+               files for. Use real text everywhere text belongs.
+
+  - Chrome:   Keep exactly the screen selector, selected-screen state selector,
+               viewport cycle, and theme toggle.
+
+  Self-contained by design: no build, no framework, no network.
+-->
+<meta charset="utf-8">
+<title>표현 돌아보기 프로토타입</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /* apps/mobile/global.css tokens; system font substitutes for React Native. */
+  :root {
+    --background: #f4f4f6;
+    --foreground: #111114;
+    --surface: #ffffff;
+    --surface-foreground: var(--foreground);
+    --expression: #0f766e;
+    --expression-surface: #e5f3ef;
+    --learn: oklch(0.54 0.19 300);
+    --learn-foreground: oklch(0.9911 0 0);
+    --learn-surface: oklch(0.945 0.022 300);
+    --scene: #3c3c43;
+    --cast-1: #b4552f;
+    --cast-2: #2f6f4e;
+    --cast-3: #8a5a10;
+    --cast-4: #a8386a;
+    --muted: #62626b;
+    --accent: #0087ff;
+    --font: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  }
+  .sh-theme-dark {
+    --background: #0b0b0d;
+    --foreground: #ffffff;
+    --surface: #1a1a1e;
+    --surface-foreground: var(--foreground);
+    --expression: #76d6c9;
+    --expression-surface: #152f2c;
+    --learn: oklch(0.78 0.15 300);
+    --learn-foreground: oklch(0.21 0.03 300);
+    --learn-surface: oklch(0.27 0.045 300);
+    --scene: #c7c7cc;
+    --cast-1: #f0997b;
+    --cast-2: #97c459;
+    --cast-3: #e0b063;
+    --cast-4: #ee93b1;
+    --muted: #a1a1aa;
+    --accent: #83a4ff;
+  }
+
+  /* ── review chrome (sh-*): keep; extend product styles elsewhere ── */
+  * { box-sizing: border-box }
+  body {
+    margin: 0; padding: 0 0 40px;
+    background: var(--background, #f6f6f6); color: var(--foreground, #3a3a3a);
+    font-family: var(--font, system-ui, sans-serif);
+  }
+  .sh-bar {
+    position: sticky; top: 0; z-index: 999;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    padding: 8px 12px; background: #191a1c; color: #d7d7d7;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .sh-bar b, .sh-control-label { color: #8a8f98; font-weight: 500 }
+  .sh-control { display: inline-flex; gap: 5px; align-items: center }
+  .sh-bar button {
+    border: 1px solid #3a3d42; background: none; color: inherit;
+    font: inherit; padding: 2px 9px; border-radius: 99px; cursor: pointer;
+  }
+  .sh-bar select {
+    width: 170px; border: 1px solid #3a3d42; background: #232428; color: inherit;
+    font: inherit; padding: 3px 28px 3px 9px; border-radius: 7px; cursor: pointer;
+    color-scheme: dark;
+  }
+  #sh-screen { width: 190px }
+  .sh-bar button.on { background: #d7d7d7; color: #191a1c; border-color: #d7d7d7 }
+  .sh-theme { display: inline-flex; border: 1px solid #3a3d42; border-radius: 99px; overflow: hidden }
+  .sh-theme button { border: 0; border-radius: 0; padding: 2px 10px }
+  .sh-spacer { flex: 1 }
+  .sh-stage { max-width: 960px; margin: 0 auto; padding: 12px 16px 0 }
+  [hidden] { display: none !important }
+
+  /* viewport presets */
+  .sh-vp-390 .sh-stage {
+    max-width: 390px; background: var(--background, #f6f6f6);
+    border: 10px solid #191a1c; border-radius: 28px;
+    padding: 16px 12px; height: min(844px, calc(100dvh - 52px));
+    overflow-y: auto; margin-top: 12px;
+  }
+  .sh-vp-768 .sh-stage {
+    max-width: 768px; border: 1px solid #c4c4c4; border-radius: 12px;
+    padding: 16px; margin-top: 12px;
+  }
+
+  /* placeholders */
+  .wf-pic  { border-radius: 4px; background:
+             repeating-linear-gradient(45deg, #e9e9e9, #e9e9e9 6px, #f2f2f2 6px, #f2f2f2 12px) }
+  .sh-theme-dark .wf-pic { background: repeating-linear-gradient(45deg,
+             color-mix(in srgb, var(--foreground) 16%, transparent) 0 6px,
+             color-mix(in srgb, var(--foreground) 8%, transparent) 6px 12px) }
+
+  /* Product UI */
+  .sh-vp-390 .sh-stage { padding: 0; }
+  .mobile { min-height: 100%; display: flex; flex-direction: column; background: var(--background); }
+  .native-header { height: 55px; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; padding: 0 14px; }
+  .native-title { text-align: center; font-size: 17px; line-height: 24px; font-weight: 650; margin: 0; }
+  .nav-icon { display: grid; place-items: center; width: 44px; height: 44px; color: var(--foreground); text-decoration: none; font-size: 30px; line-height: 1; }
+  .nav-icon svg { width: 23px; height: 23px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .review-content { flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 20px 24px 24px; }
+  .context { display: grid; gap: 4px; }
+  .context p { margin: 0; }
+  .story-name { color: var(--muted); font-size: 12px; line-height: 18px; }
+  .episode-name { color: var(--foreground); font-size: 14px; line-height: 20px; font-weight: 600; }
+  .section-heading { margin: 0 0 12px; font-size: 16px; line-height: 24px; font-weight: 700; }
+  .card-list { display: grid; gap: 10px; }
+  .expression-card { background: var(--surface); border-radius: 18px; padding: 16px 16px 14px; }
+  .card-toggle { display: block; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; font: inherit; }
+  .card-top { display: flex; align-items: flex-start; gap: 8px; min-height: 20px; }
+  .spark { color: var(--learn); flex: none; font-size: 15px; line-height: 18px; }
+  .spark.expression { color: var(--expression); }
+  .situation { flex: 1; margin: 0; color: var(--learn); font-size: 12px; line-height: 18px; }
+  .situation.expression { color: var(--expression); }
+  .chevron { color: var(--muted); font-size: 17px; line-height: 18px; }
+  .english { margin: 8px 0; font-size: 17px; font-weight: 600; line-height: 25px; }
+  .meaning { margin: 0; color: var(--muted); font-size: 15px; line-height: 22px; }
+  .learn-mark { background: var(--learn-surface); border-radius: 3px; padding: 0 2px; }
+  .expression-mark { background: var(--expression-surface); border-radius: 3px; padding: 0 2px; }
+  .card-detail { display: grid; gap: 14px; padding-top: 16px; }
+  .card-detail h3 { margin: 0 0 4px; color: var(--muted); font-size: 12px; line-height: 18px; font-weight: 500; }
+  .card-detail p { margin: 0; font-size: 15px; line-height: 22px; }
+  .card-detail .why { color: var(--muted); }
+  .card-actions { display: flex; justify-content: flex-end; gap: 2px; margin-top: 7px; }
+  .icon-action { width: 38px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; }
+  .icon-action[aria-pressed="true"] { color: var(--accent); }
+  .icon-action svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .icon-action[aria-pressed="true"] .bookmark-path { fill: currentColor; }
+  .praise-space, .interim-empty { flex: 1; min-height: 230px; display: grid; place-items: center; }
+  .praise-copy { max-width: 250px; margin: 0; text-align: center; color: var(--foreground); font-size: 22px; font-weight: 750; line-height: 31px; }
+  .interim-empty p { margin: 0; text-align: center; color: var(--muted); font-size: 16px; line-height: 24px; }
+  .status-block { min-height: 200px; display: grid; place-content: center; justify-items: center; gap: 16px; }
+  .status-block p { margin: 0; font-size: 16px; line-height: 24px; color: var(--muted); text-align: center; }
+  .loader { width: 25px; height: 25px; border: 3px solid color-mix(in srgb, var(--foreground) 16%, transparent); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .retry { color: var(--accent); font: 600 15px/22px var(--font); border: 0; background: transparent; padding: 8px 12px; cursor: pointer; }
+  .review-footer { position: sticky; bottom: 0; z-index: 2; margin-top: auto; display: grid; gap: 12px; padding: 12px 24px max(12px, env(safe-area-inset-bottom)); background: var(--background); }
+  .review-footer > div { display: grid; gap: 12px; }
+  .teaser { display: grid; gap: 4px; background: var(--surface); border-radius: 18px; padding: 16px; }
+  .teaser-label { margin: 0; color: var(--muted); font-size: 12px; line-height: 18px; }
+  .teaser-title { margin: 0; color: var(--foreground); font-size: 16px; line-height: 24px; font-weight: 600; }
+  .teaser-copy { margin: 0; color: var(--muted); font-size: 14px; line-height: 20px; }
+  .primary { display: grid; place-items: center; width: 100%; min-height: 48px; padding: 10px 14px; border: 0; border-radius: 16px; background: #0087ff; color: #fff; text-decoration: none; font: 600 16px/24px var(--font); cursor: pointer; text-align: center; }
+  .sh-theme-dark .primary { background: #83a4ff; color: #0b0b0d; }
+  .toast { position: sticky; top: 4px; z-index: 5; margin: 0 auto -44px; width: max-content; max-width: calc(100% - 36px); border-radius: 999px; background: var(--foreground); color: var(--background); padding: 9px 16px; font-size: 13px; }
+  .destination-content { flex: 1; padding: 24px; display: grid; align-content: start; gap: 16px; }
+  .destination-content h2 { margin: 0; font-size: 22px; line-height: 30px; }
+  .destination-content p { margin: 0; color: var(--muted); font-size: 15px; line-height: 22px; }
+  .destination-card { border-radius: 18px; background: var(--surface); padding: 20px; display: grid; gap: 10px; }
+  .chat-bubble { border-radius: 18px; padding: 12px 16px; background: var(--surface); max-width: 82%; }
+  .chat-bubble.mine { justify-self: end; background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+  .destination-footer { margin-top: auto; padding: 24px; }
+  @media (prefers-reduced-motion: reduce) { .loader { animation: none; } }
+</style>
+
+<body class="sh-vp-390">
+
+<header class="sh-bar">
+  <b>proto</b>
+  <label class="sh-control"><span class="sh-control-label">screen</span><select id="sh-screen"></select></label>
+  <span class="sh-spacer"></span>
+  <label class="sh-control"><span class="sh-control-label">state</span><select id="sh-state"></select></label>
+  <button id="sh-vp">vp: full (m)</button>
+  <div class="sh-theme" id="sh-theme" role="group" aria-label="theme (t)" hidden>
+    <button data-theme="light">light</button><button data-theme="dark">dark</button>
+  </div>
+</header>
+
+<main class="sh-stage">
+  <section class="mobile" data-screen="review" data-title="표현 돌아보기" data-states="완벽한 대화,확인 실패,읽는 중,불러오기 실패,다음 화 완료,마지막 화">
+    <header class="native-header">
+      <a class="nav-icon" href="#previous-episode" aria-label="대화로 돌아가기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></a>
+      <h1 class="native-title">표현 돌아보기</h1>
+      <a class="nav-icon" href="#home" aria-label="홈으로 이동"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-6h6v6"/></svg></a>
+    </header>
+    <div class="toast" role="status" hidden></div>
+    <div class="review-content">
+      <div class="context" data-when="Default,완벽한 대화,확인 실패,읽는 중,불러오기 실패,다음 화 완료">
+        <p class="story-name">뜻밖의 우편</p>
+        <p class="episode-name">1화 · 잘못 배달된 편지</p>
+      </div>
+      <div class="context" data-when="마지막 화">
+        <p class="story-name">뜻밖의 우편</p>
+        <p class="episode-name">5화 · 보낸 사람의 이름</p>
+      </div>
+      <div data-when="Default,다음 화 완료,마지막 화">
+        <h2 class="section-heading">기억해 둘 표현</h2>
+        <div class="card-list">
+          <article class="expression-card" data-component="Accordion" data-when="Default,다음 화 완료,마지막 화">
+            <button class="card-toggle" aria-expanded="false" data-card-toggle>
+              <span class="card-top"><span class="spark" aria-hidden="true">✦</span><span class="situation">상대에게 다시 확인을 부탁할 때</span><span class="chevron" aria-hidden="true">⌄</span></span>
+              <span class="english" style="display:block">Could you check <mark class="learn-mark">the address</mark> again?</span>
+              <span class="meaning" style="display:block">주소를 다시 확인해 주실 수 있나요?</span>
+            </button>
+            <div class="card-detail" hidden>
+              <div><h3>내가 쓴 문장</h3><p>Can you check <u>address</u> again?</p></div>
+              <div><h3>이렇게 쓰는 이유</h3><p class="why">특정 편지의 주소를 말하므로 the address라고 해요</p></div>
+            </div>
+            <div class="card-actions">
+              <button class="icon-action" aria-label="영어 문장 복사" data-copy="Could you check the address again?"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button>
+              <button class="icon-action" aria-label="표현 노트에 담기" aria-pressed="false" data-save><svg viewBox="0 0 24 24" aria-hidden="true"><path class="bookmark-path" d="M6 3h12v18l-6-4-6 4z"/></svg></button>
+            </div>
+          </article>
+          <article class="expression-card" data-component="Accordion" data-when="Default,다음 화 완료,마지막 화">
+            <button class="card-toggle" aria-expanded="false" data-card-toggle>
+              <span class="card-top"><span class="spark expression" aria-hidden="true">✦</span><span class="situation expression">내 물건이 아니라고 조심스럽게 말할 때</span><span class="chevron" aria-hidden="true">⌄</span></span>
+              <span class="english" style="display:block">I think this letter <mark class="expression-mark">belongs to someone else.</mark></span>
+              <span class="meaning" style="display:block">이 편지는 다른 사람 것인 것 같아요</span>
+            </button>
+            <div class="card-detail" hidden>
+              <div><h3>내가 쓴 문장</h3><p>이 편지는 제 것이 아닌 것 같아요</p></div>
+              <div><h3>이렇게 쓰는 이유</h3><p class="why">belongs to someone else는 다른 사람 것이라는 뜻이에요</p></div>
+            </div>
+            <div class="card-actions">
+              <button class="icon-action" aria-label="영어 문장 복사" data-copy="I think this letter belongs to someone else."><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></button>
+              <button class="icon-action" aria-label="표현 노트에 담기" aria-pressed="false" data-save><svg viewBox="0 0 24 24" aria-hidden="true"><path class="bookmark-path" d="M6 3h12v18l-6-4-6 4z"/></svg></button>
+            </div>
+          </article>
+        </div>
+      </div>
+      <div class="praise-space" data-when="완벽한 대화"><p class="praise-copy">이번 대화, 완벽했어요!</p></div>
+      <div class="interim-empty" data-when="확인 실패"><p>이번 대화에는 안내한 표현이 없어요</p></div>
+      <div class="status-block" data-when="읽는 중"><span class="loader" aria-hidden="true"></span><p>표현을 불러오고 있어요</p></div>
+      <div class="status-block" data-when="불러오기 실패"><p>표현을 불러오지 못했어요</p><button class="retry" data-retry>다시 시도하기</button></div>
+    </div>
+    <footer class="review-footer">
+      <div data-when="Default,완벽한 대화,확인 실패,읽는 중,불러오기 실패">
+        <div class="teaser" data-component="Card">
+          <p class="teaser-label">다음 이야기</p>
+          <p class="teaser-title">2화 · 사라진 발신인</p>
+          <p class="teaser-copy">편지를 보낸 사람을 찾아 나서요</p>
+        </div>
+        <a class="primary" href="#next-episode">2화 시작하기</a>
+      </div>
+      <div data-when="다음 화 완료">
+        <div class="teaser" data-component="Card">
+          <p class="teaser-label">다음 이야기</p>
+          <p class="teaser-title">2화 · 사라진 발신인</p>
+          <p class="teaser-copy">편지를 보낸 사람을 찾아 나서요</p>
+        </div>
+        <a class="primary" href="#next-episode">2화 다시 보기</a>
+      </div>
+      <div data-when="마지막 화">
+        <div class="teaser" data-component="Card">
+          <p class="teaser-label">뜻밖의 우편</p>
+          <p class="teaser-title">마지막 이야기까지 함께했어요</p>
+        </div>
+        <a class="primary" href="#records">대화 기록 보기</a>
+      </div>
+    </footer>
+  </section>
+  <section class="mobile" data-screen="previous-episode" data-title="끝난 화의 대화">
+    <header class="native-header"><a class="nav-icon" href="#records" aria-label="대화 기록으로 돌아가기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></a><h1 class="native-title">1화 · 잘못 배달된 편지</h1><span></span></header>
+    <div class="destination-content">
+      <p>우편함에 다른 사람 앞으로 온 편지가 들어 있어요</p>
+      <div class="chat-bubble">이 편지, 혹시 주소가 잘못된 걸까요?</div>
+      <div class="chat-bubble mine">Can you check address again?</div>
+      <div class="destination-card"><h2>편지를 돌려주었어요</h2><p>상대가 발신인을 찾는 데 도움을 주기로 했어요</p><a class="primary" href="#review">표현 돌아보기</a></div>
+    </div>
+  </section>
+  <section class="mobile" data-screen="next-episode" data-title="다음 화의 대화">
+    <header class="native-header"><a class="nav-icon" href="#review" aria-label="표현 돌아보기로 돌아가기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></a><h1 class="native-title">2화 · 사라진 발신인</h1><span></span></header>
+    <div class="destination-content"><p>편지를 보낸 사람을 찾아 골목으로 들어섰어요</p><div class="chat-bubble">어제 그 사람을 봤어요. 무슨 일이 있었나요?</div></div>
+  </section>
+  <section class="mobile" data-screen="home" data-title="홈">
+    <header class="native-header"><span></span><h1 class="native-title">홈</h1><span></span></header>
+    <div class="destination-content"><h2>뜻밖의 우편</h2><p>다음 이야기가 기다리고 있어요</p><div class="destination-card"><strong>2화 · 사라진 발신인</strong><p>편지를 보낸 사람을 찾아 나서요</p><a class="primary" href="#next-episode">2화 시작하기</a></div><a href="#records">대화 기록 보기</a></div>
+  </section>
+  <section class="mobile" data-screen="records" data-title="대화 기록">
+    <header class="native-header"><a class="nav-icon" href="#home" aria-label="홈으로 돌아가기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></a><h1 class="native-title">대화 기록</h1><span></span></header>
+    <div class="destination-content"><h2>뜻밖의 우편</h2><div class="destination-card"><strong>1화 · 잘못 배달된 편지</strong><p>편지를 돌려주었어요</p><a href="#previous-episode">대화 다시 보기</a></div></div>
+  </section>
+</main>
+
+<script>
+  const stage = document.querySelector('.sh-stage');
+  const screens = [...stage.querySelectorAll('[data-screen]')];
+  const screenSelect = document.getElementById('sh-screen');
+  const stateSelect = document.getElementById('sh-state');
+  const vpBtn = document.getElementById('sh-vp');
+  const themeCtl = document.getElementById('sh-theme');
+  const themeBtns = [...themeCtl.querySelectorAll('button')];
+  let current = null;
+  let currentStates = [];
+
+  screens.forEach(s => {
+    const option = document.createElement('option');
+    option.textContent = s.dataset.title || s.dataset.screen;
+    option.value = s.dataset.screen;
+    screenSelect.append(option);
+  });
+  screenSelect.onchange = () => show(screenSelect.value);
+
+  function show(slug) {
+    current = screens.find(s => s.dataset.screen === slug) || screens[0];
+    screens.forEach(s => s.hidden = s !== current);
+    screenSelect.value = current.dataset.screen;
+    history.replaceState(null, '', '#' + current.dataset.screen);
+    buildStates();
+  }
+
+  function buildStates() {
+    const declared = (current.dataset.states || '').split(',').map(x => x.trim()).filter(Boolean);
+    currentStates = ['Default', ...declared.filter(name => name !== 'Default')];
+    stateSelect.innerHTML = '';
+    currentStates.forEach(name => {
+      const option = document.createElement('option');
+      option.textContent = name;
+      option.value = name;
+      stateSelect.append(option);
+    });
+    applyState('Default');
+  }
+
+  function applyState(name) {
+    const active = currentStates.includes(name) ? name : 'Default';
+    current.querySelectorAll('[data-when]').forEach(el => {
+      el.hidden = !el.dataset.when.split(',').map(x => x.trim()).includes(active);
+    });
+    stateSelect.value = active;
+  }
+  stateSelect.onchange = () => applyState(stateSelect.value);
+
+  window.prototypeShell = {
+    showScreen: show,
+    setState: applyState,
+    getScreen: () => current?.dataset.screen,
+    getState: () => stateSelect.value
+  };
+
+  const VPS = ['full', '390', '768'];
+  let vp = VPS.find(v => document.body.classList.contains('sh-vp-' + v)) || 'full';
+  function applyVp() {
+    VPS.forEach(v => document.body.classList.toggle('sh-vp-' + v, v === vp && v !== 'full'));
+    vpBtn.textContent = 'vp: ' + vp + ' (m)';
+    vpBtn.classList.toggle('on', vp !== 'full');
+  }
+  vpBtn.onclick = () => { vp = VPS[(VPS.indexOf(vp) + 1) % VPS.length]; applyVp(); };
+  applyVp();
+
+  const hasDark = [...document.styleSheets].some(sheet => {
+    try {
+      return [...sheet.cssRules].some(rule => (rule.selectorText || '')
+        .split(',').some(part => /\.sh-theme-dark$/.test(part.trim())));
+    } catch { return false }
+  });
+  let dark = false;
+  function applyTheme() {
+    document.documentElement.classList.toggle('sh-theme-dark', dark);
+    document.body.classList.toggle('sh-theme-dark', dark);
+    themeBtns.forEach(b => b.classList.toggle('on', (b.dataset.theme === 'dark') === dark));
+  }
+  themeCtl.hidden = !hasDark;
+  themeBtns.forEach(b => b.onclick = () => { dark = b.dataset.theme === 'dark'; applyTheme(); });
+  applyTheme();
+
+  addEventListener('keydown', e => {
+    if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    const i = screens.indexOf(current);
+    if (e.key === 'ArrowRight') show(screens[(i + 1) % screens.length].dataset.screen);
+    if (e.key === 'ArrowLeft') show(screens[(i - 1 + screens.length) % screens.length].dataset.screen);
+    if (e.key === 'm') vpBtn.click();
+    if (e.key === 't' && !themeCtl.hidden) { dark = !dark; applyTheme(); }
+  });
+
+  addEventListener('hashchange', () => show(location.hash.slice(1)));
+  show(location.hash.slice(1));
+</script>
+
+<script>
+  const review = document.querySelector('[data-screen="review"]');
+  let toastTimer;
+  function showToast(message) {
+    const toast = review.querySelector('.toast');
+    toast.textContent = message;
+    toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.hidden = true; }, 1900);
+  }
+  review.addEventListener('click', async event => {
+    const toggle = event.target.closest('[data-card-toggle]');
+    if (toggle) {
+      const expanded = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', String(!expanded));
+      toggle.parentElement.querySelector('.card-detail').hidden = expanded;
+      toggle.querySelector('.chevron').textContent = expanded ? '⌄' : '⌃';
+      return;
+    }
+    const save = event.target.closest('[data-save]');
+    if (save) {
+      const saved = save.getAttribute('aria-pressed') === 'true';
+      save.setAttribute('aria-pressed', String(!saved));
+      save.setAttribute('aria-label', saved ? '표현 노트에 담기' : '표현 노트에서 빼기');
+      showToast(saved ? '표현 노트에서 뺐어요' : '표현 노트에 담았어요');
+      return;
+    }
+    const copy = event.target.closest('[data-copy]');
+    if (copy) {
+      try {
+        await navigator.clipboard.writeText(copy.dataset.copy);
+        showToast('복사했어요');
+      } catch {
+        showToast('복사하지 못했어요');
+      }
+      return;
+    }
+    if (event.target.closest('[data-retry]')) prototypeShell.setState('Default');
+  });
+  const initialState = new URLSearchParams(location.search).get('state');
+  if (initialState && prototypeShell.getScreen() === 'review') prototypeShell.setState(initialState);
+</script>
