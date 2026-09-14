@@ -11,7 +11,7 @@
 -- 문장이 끝날 때 확인한다(deferred). 계정 삭제는 그 둘을 한 문장 안에서
 -- 지우므로 확인 시점에는 가리키는 쪽이 이미 사라져 있다.
 BEGIN;
-SELECT plan(11);
+SELECT plan(12);
 
 INSERT INTO auth.users (id, email)
 VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'maker@example.test');
@@ -63,6 +63,16 @@ VALUES (
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   '11111111-1111-4111-8111-111111111111',
   (SELECT first_episode_id FROM made)
+);
+
+-- 계정을 지우는 중에는 판정을 기다리는 영어 발언도 남기지 않는다.
+INSERT INTO public.episode_messages (id, episode_play_id, role, parts)
+VALUES (
+  '1d000000-0000-4000-8000-000000000009',
+  (SELECT id FROM public.episode_plays
+   WHERE story_play_id = '11111111-1111-4111-8111-111111111111'),
+  'user',
+  '[{"type":"text","text":"I need a room tonight."}]'::jsonb
 );
 
 INSERT INTO public.expressions (
@@ -126,6 +136,11 @@ SELECT is(
 SELECT is(
   (SELECT count(*) FROM public.expressions), 0::bigint,
   'the expressions saved along the way are gone'
+);
+
+SELECT is(
+  (SELECT count(*) FROM public.learning_events), 0::bigint,
+  'account deletion does not preserve even a pending English message'
 );
 
 -- 공식 콘텐츠는 주인이 없어 이 연쇄에 들어오지 않는다.
