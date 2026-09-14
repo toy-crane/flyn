@@ -1,5 +1,7 @@
 # 역할 혼동을 줄이는 방법 확인
 
+실행 결과는 [역할 혼동의 원인과 개선 후보](results.md)에 있다.
+
 ## 확인할 질문
 
 Luna가 인물별 일정을 읽지 못하는지, 읽은 사실을 대사로 옮길 때 틀리는지 나누어
@@ -83,3 +85,9 @@ bun --cwd apps/api "$role_scratch/run.ts" run
 `prepare`는 모델을 부르지 않는다. 실행을 시작한 manifest는 다시 쓰지 않으며,
 `run`은 이미 기록한 호출을 건너뛴다. 입력이 달라지거나 S에 필요한 추출이
 실패하면 정답을 넣는 대신 중단한다.
+
+첫 실험 뒤 [초안 대조 수정 실험](repair/README.md)을 추가로 실행했다.
+기존 결과를 다시 집계하려면 `data`와 `repair`를 scratch에 복사한 뒤
+`analyze.ts summarize`, `repair-analyze.ts summarize`를 실행한다. 이 두 명령은
+모델을 부르지 않는다. 새 실행에서는 새 출력을 읽고 관찰을 작성해야 하며
+기존 `review.json`을 새 응답에 그대로 적용하지 않는다.
