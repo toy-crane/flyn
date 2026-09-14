@@ -521,12 +521,12 @@ test("iOS 설정 텍스트는 네이티브 기본 색상을 그대로 쓴다", a
   expect(view.getByText("버전").props.style).toBeUndefined();
 });
 
-test("개발 중에는 기기에 설치된 앱 버전과 개발 중을 한 행에 보여 준다", async () => {
+test("개발 모드에서는 기기에 설치된 앱 버전과 개발 모드를 한 행에 보여 준다", async () => {
   await renderSettings();
 
   const versionRow = screen.getByTestId("version-row");
 
-  expect(within(versionRow).getByText("2.4.0 · 개발 중")).toBeOnTheScreen();
+  expect(within(versionRow).getByText("2.4.0 · 개발 모드")).toBeOnTheScreen();
   expect(versionRow.props.accessibilityRole).toBeUndefined();
 });
 

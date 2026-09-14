@@ -23,7 +23,7 @@ export const profileLabels = {
   contactEmailUnknown: "이메일 정보 없음",
   contactSupport: "문의하기",
   deletePhoto: "현재 사진 삭제",
-  developmentVersion: "개발 중",
+  developmentVersion: "개발 모드",
   /** The pill under the picture. Its accessible name stays the fuller 사진 편집. */
   edit: "편집",
   embeddedVersion: "기본 버전",
