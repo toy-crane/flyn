@@ -117,28 +117,38 @@ export function EpisodeScreen({
     },
     [announce, refreshNote]
   );
-  const { chat, corrections, ending, nextUp, open, saved, meanings } =
-    useEpisodeStoryPlay(
-      accessToken,
-      episodeId,
-      initialMessages,
-      readOnly,
-      storyId,
-      storyPlayId,
-      onStoryPlayStarted,
-      recordedEnding,
-      recordedNextUp,
-      savedResults,
-      savedExpressions,
-      changed,
-      savedMeanings
-    );
+  const {
+    chat,
+    corrections,
+    ending,
+    nextUp,
+    onReplaceMessage,
+    open,
+    saved,
+    meanings,
+  } = useEpisodeStoryPlay(
+    accessToken,
+    episodeId,
+    initialMessages,
+    readOnly,
+    storyId,
+    storyPlayId,
+    onStoryPlayStarted,
+    recordedEnding,
+    recordedNextUp,
+    savedResults,
+    savedExpressions,
+    changed,
+    savedMeanings
+  );
   const drafts = useLocalChatDrafts();
   const conversation = useConversation(
     chat,
     drafts,
     accessToken,
-    prepareEpisodeMessage
+    prepareEpisodeMessage,
+    undefined,
+    onReplaceMessage
   );
   const { openAsk } = useEpisodeAsks();
   const inputRef = useRef<TextInput>(null);

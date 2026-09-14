@@ -15,7 +15,8 @@ let testTransport: ChatTransport<UIMessage>;
 
 function useTestConversation(
   accessToken: string | undefined,
-  prepareMessage?: (text: string) => string
+  prepareMessage?: (text: string) => string,
+  onReplaceMessage?: (messageId: string) => void
 ) {
   const chat = useChat({
     throttle: STREAM_UPDATE_INTERVAL_MS,
@@ -25,7 +26,9 @@ function useTestConversation(
     chat,
     useLocalChatDrafts(),
     accessToken,
-    prepareMessage
+    prepareMessage,
+    undefined,
+    onReplaceMessage
   );
 }
 
@@ -472,6 +475,7 @@ describe("useConversation", () => {
   });
 
   test("수정 상태에서 보내면 그 메시지부터 대화를 다시 시작한다", async () => {
+    const onReplaceMessage = jest.fn<(messageId: string) => void>();
     const answers = ["첫 답변", "두 번째 답변", "고친 답변"];
     let turn = 0;
     const transport = fakeTransport(() => {
@@ -481,7 +485,7 @@ describe("useConversation", () => {
       return Promise.resolve(answerStream(answer));
     });
     const { result } = await renderHook(() =>
-      useTestConversation(ACCESS_TOKEN)
+      useTestConversation(ACCESS_TOKEN, undefined, onReplaceMessage)
     );
 
     await ask(result, "첫 질문");
@@ -516,6 +520,8 @@ describe("useConversation", () => {
     expect(result.current.editingMessageId).toBeUndefined();
     expect(result.current.draft).toBe("");
     expect(result.current.messages[2]?.id).toBe(secondQuestionId);
+    expect(onReplaceMessage).toHaveBeenCalledTimes(1);
+    expect(onReplaceMessage).toHaveBeenCalledWith(secondQuestionId);
     expect(
       transport.sendMessages.mock.calls[2][0].messages.map(messageText)
     ).toEqual(["첫 질문", "첫 답변", "고친 질문"]);

@@ -82,7 +82,8 @@ export function useConversation(
   drafts: ChatDrafts,
   accessToken: string | undefined,
   prepareMessage?: (text: string) => string,
-  requestLock?: { current: boolean }
+  requestLock?: { current: boolean },
+  onReplaceMessage?: (messageId: string) => void
 ): ChatSession {
   const [requestError, setRequestError] = useState<Error | undefined>();
   const {
@@ -147,6 +148,7 @@ export function useConversation(
     // The SDK replaces this user message in place and drops everything after
     // it. Keeping its id lets the stored study fact still name the same act.
     if (editingMessageId) {
+      onReplaceMessage?.(editingMessageId);
       setEditingMessageId(undefined);
       stashedDraft.current = "";
     }
@@ -156,6 +158,7 @@ export function useConversation(
     canStartRequest,
     draft,
     editingMessageId,
+    onReplaceMessage,
     prepareMessage,
     runRequest,
     sendMessage,

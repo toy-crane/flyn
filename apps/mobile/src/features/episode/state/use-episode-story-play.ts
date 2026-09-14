@@ -46,6 +46,8 @@ export interface EpisodeRun {
   meanings: ReturnType<typeof useUtteranceMeanings>;
   /** What follows the ending: the next episode's preview, or the story's end. */
   nextUp: EpisodeNextUp | undefined;
+  /** Clears results tied to the old words before the same message id is sent again. */
+  onReplaceMessage: (messageId: string) => void;
   /** Asks for the first scene again after it failed to arrive. */
   open: () => void;
   /** 이 에피소드에서 지금까지 담아 둔 표현. */
@@ -214,6 +216,28 @@ export function useEpisodeStoryPlay(
     throttle: SCENE_UPDATE_INTERVAL_MS,
     transport,
   });
+  const onReplaceMessage = useCallback(
+    (messageId: string) => {
+      const index = chat.messages.findIndex(
+        (message) => message.id === messageId
+      );
+      if (index < 0) {
+        return;
+      }
+      const kept = chat.messages.slice(0, index);
+      const keptIds = new Set(kept.map((message) => message.id));
+      corrections.retain(
+        new Set(
+          kept
+            .filter((message) => message.role === "user")
+            .map((message) => message.id)
+        )
+      );
+      retain(keptIds);
+      meanings.retain(keptIds);
+    },
+    [chat.messages, corrections.retain, meanings.retain, retain]
+  );
   const knownMessages = useRef(
     new Set(initialMessages.map((message) => message.id))
   );
@@ -282,6 +306,7 @@ export function useEpisodeStoryPlay(
     ending: endingOfEpisode(chat.messages) ?? recordedEnding,
     meanings,
     nextUp: nextUpOfEpisode(chat.messages) ?? recordedNextUp,
+    onReplaceMessage,
     open,
     saved,
   };
