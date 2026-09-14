@@ -227,10 +227,16 @@ create table public.characters (
   -- 대본까지 함께 사라진다. 그 문장을 쓸 수 있는 것은 소유자와 `service_role`
   -- 뿐이고 앱에는 그 길이 없다.
   story_id uuid not null references public.stories (id) on delete cascade,
+  -- 공식 콘텐츠의 고정 키. 이름이나 순서를 바꿔도 이 값은 바꾸지 않는다.
+  content_key text,
   name text not null,
   position smallint not null,
   persona text not null,
-  unique (story_id, name),
+  unique (story_id, content_key),
+  unique (story_id, name) deferrable initially deferred,
+  constraint characters_content_key_usable check (
+    content_key is null or content_key ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+  ),
   -- 콘텐츠를 다시 올릴 때 두 인물의 순서가 서로 바뀔 수 있다. 문장이 끝날 때
   -- 확인하면 그 교체가 중간 상태에서 걸리지 않는다. 화 안의 자리도 같은 자세다.
   unique (story_id, position) deferrable initially deferred,

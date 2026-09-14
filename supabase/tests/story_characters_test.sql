@@ -6,6 +6,7 @@ SELECT plan(23);
 -- 아니라 COMMIT에서 확인한다. 이 테스트는 ROLLBACK으로 닫으므로 그대로 두면
 -- 그 절반을 영영 확인하지 못한다. 이 트랜잭션에서만 즉시로 바꿔 확인한다.
 SET CONSTRAINTS
+  public.characters_story_id_name_key,
   public.characters_story_id_position_key,
   public.episode_characters_episode_id_at_key
   IMMEDIATE;

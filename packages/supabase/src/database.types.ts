@@ -63,6 +63,7 @@ export type Database = {
       }
       characters: {
         Row: {
+          content_key: string | null
           created_at: string
           id: string
           name: string
@@ -72,6 +73,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          content_key?: string | null
           created_at?: string
           id?: string
           name: string
@@ -81,6 +83,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          content_key?: string | null
           created_at?: string
           id?: string
           name?: string

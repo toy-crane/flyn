@@ -102,70 +102,81 @@ set position = excluded.position,
 -- 각 스토리의 등장인물. 화가 바뀌어도 같은 것만 여기 있고, 그 화에서의 사정은
 -- 아래 에피소드의 무대가 쓴다. `position`은 스토리 안의 순서이자 이름표 색의
 -- 번호다. 근거는 docs/decisions/episode-authoring.md가 소유한다.
-insert into public.characters (story_id, name, position, persona)
+insert into public.characters (story_id, content_key, name, position, persona)
 values
 (
   (select id from public.stories where slug = 'mia-cafe'),
+  'mia',
   $content$Mia$content$,
   1,
   $content$20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.$content$
 ),
 (
   (select id from public.stories where slug = 'mia-cafe'),
+  'owen',
   $content$Owen$content$,
   2,
   $content$30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.$content$
 ),
 (
   (select id from public.stories where slug = 'business-trip'),
+  'anna',
   $content$Anna$content$,
   1,
   $content$30대 초반의 호텔 프런트 직원. 차분하고 일 처리가 정확하다. 근거가 없으면 움직이지 않지만, 근거가 보이면 방법을 끝까지 찾아 준다. 묻는 만큼 정확히 알려 주되 사용자 대신 결정하지는 않는다.$content$
 ),
 (
   (select id from public.stories where slug = 'business-trip'),
+  'daniel',
   $content$Daniel$content$,
   2,
   $content$30대 중반의 현지 동료. 이번 출장을 준비한 사람이라 일이 잘되기를 바라고 손님 대접에도 진심이다. 필요한 것을 짚어 말하면 바로 움직이고, 애매하게 말하면 무엇이 제일 중요한지 되묻는다. 무뚝뚝한 척해도 챙길 것은 챙긴다.$content$
 ),
 (
   (select id from public.stories where slug = 'roommate-month'),
+  'jamie',
   $content$Jamie$content$,
   1,
   $content$20대 후반의 룸메이트. 격의 없고 잘 웃지만 정리에는 무심하다. 미안해할 줄 알면서도 자기 사정은 물러서지 않고 말한다. 구체적인 기준이나 대안을 내면 순순히 따르고, 애매하게 말하거나 눈치만 주면 알아차리지 못하고 대충 넘어간다.$content$
 ),
 (
   (select id from public.stories where slug = 'roommate-month'),
+  'noah',
   $content$Noah$content$,
   2,
   $content$Jamie의 오랜 친구. 붙임성이 좋고 얹혀 있는 처지를 안다. 기한과 규칙이 정해지면 군말 없이 따른다.$content$
 ),
 (
   (select id from public.stories where slug = 'first-week-office'),
+  'dan',
   $content$Dan$content$,
   1,
   $content$30대 초반의 옆자리 동료. 친절하지만 자기 일이 많아 시간이 넉넉하지는 않다. 구체적으로 물으면 아는 만큼 알려 주고 바로 자리를 당겨 앉지만, 애매하면 뭐가 문제인지 되묻는다. 자기 실수를 알면 바로 인정한다.$content$
 ),
 (
   (select id from public.stories where slug = 'first-week-office'),
+  'grace',
   $content$Grace$content$,
   2,
   $content$팀장. 바쁘고 회의를 빠르게 진행한다. 근거가 있는 질문과 요청은 바로 받아들이지만, 두루뭉술한 말에는 무엇이 필요한지 되묻는다. 잘못을 따지기보다 사실과 해결책을 원해서, 남 탓만 하면 표정이 굳고 사실을 정리해 말하면 그대로 받아들인다.$content$
 ),
 (
   (select id from public.stories where slug = 'upstairs-neighbor'),
+  'nora',
   $content$Nora$content$,
   1,
   $content$30대 초반의 간호사. 윗집 402호에 살고 밤 근무를 마치고 자정 넘어 귀가한다. 이웃을 반갑게 대하고 미안해할 줄 알지만 자기 사정도 함께 설명한다. 구체적인 제안에는 기꺼이 응하고, 거절도 담담하게 받아들인다.$content$
 ),
 (
   (select id from public.stories where slug = 'upstairs-neighbor'),
+  'frank',
   $content$Frank$content$,
   2,
   $content$50대의 건물 관리인. 규정과 서류와 날짜를 믿는다. 절차대로 부탁하면 성의껏 도와주지만, 두루뭉술한 설명이나 근거 없는 주장에는 되묻고 물러서지 않는다. 근거가 맞으면 깔끔하게 인정하고 고친다.$content$
 )
-on conflict (story_id, name) do update
-set position = excluded.position,
+on conflict (story_id, content_key) do update
+set name = excluded.name,
+    position = excluded.position,
     persona = excluded.persona;
 
 -- 각 스토리의 다섯 화. 사람이 쓴 무대이고, 그 뒤의 대사와 전개는 모델이 쓴다.
@@ -801,53 +812,53 @@ set title = excluded.title,
 -- 등장인물 문장이 이 차례로 이름을 부른다. 위 `cast_names`와 같은 이름을 같은
 -- 차례로 담으며, 그 일치는 pgTAP이 지킨다.
 --
--- 스토리 slug와 화 번호, 인물 이름으로 세 부모를 찾는다. UUID를 적지 않으므로
+-- 스토리 slug와 화 번호, 고정 인물 키로 세 부모를 찾는다. UUID를 적지 않으므로
 -- 다시 실행해도 기존 ID와 플레이 기록의 연결이 그대로다.
 --
 -- 아래 목록이 이 다섯 스토리의 연결 전부다. 화에서 인물을 빼면 upsert만으로는
--- 낡은 연결이 남으므로 목록에 없는 것을 먼저 지운다. 인물 이름 자체를 바꾸는
--- 일은 배포한 콘텐츠의 식별자를 바꾸는 것이라 별도 마이그레이션이 맡는다.
+-- 낡은 연결이 남으므로 목록에 없는 것을 먼저 지운다. 이름과 순서를 바꿔도
+-- 고정 인물 키는 그대로 둔다. 다른 사람으로 교체할 때는 새 키를 부여한다.
 -- 이 파일을 한 트랜잭션 안에서 두 번 실행하는 재실행 검사가 있으므로, 남은
 -- 자리를 먼저 치우고 끝에서 직접 지운다.
 -- 한 문장 안에서 끝낸다. 목록을 임시 테이블에 담으면 그 테이블을 만드는 문장과
 -- 읽는 문장이 나뉘는데, CLI는 seed를 한 묶음으로 서버에 미리 준비시키므로 뒤쪽
 -- 문장이 아직 없는 테이블을 가리켜 `db reset`이 그 자리에서 멈춘다. psql은
 -- 문장을 하나씩 보내 지나가지만 두 경로가 같은 파일을 다르게 읽는 것은 곤란하다.
-with listed (slug, number, name, at) as (
+with listed (slug, number, content_key, at) as (
   values
-    ('mia-cafe', 1::smallint, 'Mia', 1::smallint),
-    ('mia-cafe', 2::smallint, 'Mia', 1::smallint),
-    ('mia-cafe', 2::smallint, 'Owen', 2::smallint),
-    ('mia-cafe', 3::smallint, 'Mia', 1::smallint),
-    ('mia-cafe', 3::smallint, 'Owen', 2::smallint),
-    ('mia-cafe', 4::smallint, 'Mia', 1::smallint),
-    ('mia-cafe', 5::smallint, 'Mia', 1::smallint),
-    ('business-trip', 1::smallint, 'Anna', 1::smallint),
-    ('business-trip', 2::smallint, 'Daniel', 1::smallint),
-    ('business-trip', 3::smallint, 'Daniel', 1::smallint),
-    ('business-trip', 4::smallint, 'Anna', 1::smallint),
-    ('business-trip', 5::smallint, 'Daniel', 1::smallint),
-    ('business-trip', 5::smallint, 'Anna', 2::smallint),
-    ('roommate-month', 1::smallint, 'Jamie', 1::smallint),
-    ('roommate-month', 2::smallint, 'Jamie', 1::smallint),
-    ('roommate-month', 3::smallint, 'Jamie', 1::smallint),
-    ('roommate-month', 4::smallint, 'Jamie', 1::smallint),
-    ('roommate-month', 4::smallint, 'Noah', 2::smallint),
-    ('roommate-month', 5::smallint, 'Jamie', 1::smallint),
-    ('first-week-office', 1::smallint, 'Dan', 1::smallint),
-    ('first-week-office', 1::smallint, 'Grace', 2::smallint),
-    ('first-week-office', 2::smallint, 'Grace', 1::smallint),
-    ('first-week-office', 2::smallint, 'Dan', 2::smallint),
-    ('first-week-office', 3::smallint, 'Grace', 1::smallint),
-    ('first-week-office', 3::smallint, 'Dan', 2::smallint),
-    ('first-week-office', 4::smallint, 'Dan', 1::smallint),
-    ('first-week-office', 5::smallint, 'Grace', 1::smallint),
-    ('first-week-office', 5::smallint, 'Dan', 2::smallint),
-    ('upstairs-neighbor', 1::smallint, 'Nora', 1::smallint),
-    ('upstairs-neighbor', 2::smallint, 'Frank', 1::smallint),
-    ('upstairs-neighbor', 3::smallint, 'Nora', 1::smallint),
-    ('upstairs-neighbor', 4::smallint, 'Frank', 1::smallint),
-    ('upstairs-neighbor', 5::smallint, 'Nora', 1::smallint)
+    ('mia-cafe', 1::smallint, 'mia', 1::smallint),
+    ('mia-cafe', 2::smallint, 'mia', 1::smallint),
+    ('mia-cafe', 2::smallint, 'owen', 2::smallint),
+    ('mia-cafe', 3::smallint, 'mia', 1::smallint),
+    ('mia-cafe', 3::smallint, 'owen', 2::smallint),
+    ('mia-cafe', 4::smallint, 'mia', 1::smallint),
+    ('mia-cafe', 5::smallint, 'mia', 1::smallint),
+    ('business-trip', 1::smallint, 'anna', 1::smallint),
+    ('business-trip', 2::smallint, 'daniel', 1::smallint),
+    ('business-trip', 3::smallint, 'daniel', 1::smallint),
+    ('business-trip', 4::smallint, 'anna', 1::smallint),
+    ('business-trip', 5::smallint, 'daniel', 1::smallint),
+    ('business-trip', 5::smallint, 'anna', 2::smallint),
+    ('roommate-month', 1::smallint, 'jamie', 1::smallint),
+    ('roommate-month', 2::smallint, 'jamie', 1::smallint),
+    ('roommate-month', 3::smallint, 'jamie', 1::smallint),
+    ('roommate-month', 4::smallint, 'jamie', 1::smallint),
+    ('roommate-month', 4::smallint, 'noah', 2::smallint),
+    ('roommate-month', 5::smallint, 'jamie', 1::smallint),
+    ('first-week-office', 1::smallint, 'dan', 1::smallint),
+    ('first-week-office', 1::smallint, 'grace', 2::smallint),
+    ('first-week-office', 2::smallint, 'grace', 1::smallint),
+    ('first-week-office', 2::smallint, 'dan', 2::smallint),
+    ('first-week-office', 3::smallint, 'grace', 1::smallint),
+    ('first-week-office', 3::smallint, 'dan', 2::smallint),
+    ('first-week-office', 4::smallint, 'dan', 1::smallint),
+    ('first-week-office', 5::smallint, 'grace', 1::smallint),
+    ('first-week-office', 5::smallint, 'dan', 2::smallint),
+    ('upstairs-neighbor', 1::smallint, 'nora', 1::smallint),
+    ('upstairs-neighbor', 2::smallint, 'frank', 1::smallint),
+    ('upstairs-neighbor', 3::smallint, 'nora', 1::smallint),
+    ('upstairs-neighbor', 4::smallint, 'frank', 1::smallint),
+    ('upstairs-neighbor', 5::smallint, 'nora', 1::smallint)
 ),
 resolved as (
   select
@@ -860,7 +871,7 @@ resolved as (
   join public.episodes episode
     on episode.story_id = story.id and episode.number = listed.number
   join public.characters person
-    on person.story_id = story.id and person.name = listed.name
+    on person.story_id = story.id and person.content_key = listed.content_key
 ),
 -- 화에서 인물을 빼면 upsert만으로는 낡은 연결이 남는다. 목록에 없는 것을 먼저
 -- 치운다. 지우는 것과 넣는 것이 서로 겹치지 않아 한 문장 안에 함께 둘 수 있다.
