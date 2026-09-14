@@ -474,7 +474,7 @@ export interface WrittenStory {
   characters: StoryCharacter[];
   completionCopy: string;
   completionTitle: string;
-  coverEmoji: string;
+
   episodes: WrittenEpisode[];
   intro: string;
 }
@@ -509,7 +509,7 @@ export const WRITTEN_STORY_SCHEMA = jsonSchema<WrittenStory>({
       "스토리를 끝낸 사람에게 보이는 한 문장. 무엇을 지나왔는지 말한다."
     ),
     completionTitle: text("완주 안내 제목. 열두 자 안쪽의 한국어."),
-    coverEmoji: text("이 스토리를 나타내는 이모지 하나."),
+
     episodes: {
       items: {
         additionalProperties: false,
@@ -561,7 +561,7 @@ export const WRITTEN_STORY_SCHEMA = jsonSchema<WrittenStory>({
     "intro",
     "completionTitle",
     "completionCopy",
-    "coverEmoji",
+
     "characters",
     "episodes",
   ],
@@ -672,7 +672,7 @@ export function storyToSave(
     })),
     completionCopy: written.completionCopy,
     completionTitle: written.completionTitle,
-    coverEmoji: written.coverEmoji,
+
     episodes: outline.episodes.map((episode) => {
       const script = written.episodes.find(
         (candidate) => candidate.number === episode.number

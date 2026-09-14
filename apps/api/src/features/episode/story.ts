@@ -73,7 +73,7 @@ export interface StoryCatalogEpisode {
 export interface StoryCatalogEntry {
   completion: { copy: string; title: string };
   coverBlurhash: string | null;
-  coverEmoji: string;
+
   coverImagePath: string | null;
   /** 만든 시각. 공식 콘텐츠도 갖지만 순서를 정하는 데 쓰지는 않는다. */
   createdAt: string;
@@ -114,7 +114,7 @@ export async function readStoryCatalog(
   const { data, error } = await client
     .from("stories")
     .select(
-      "id, owner_id, created_at, position, slug, title, hook, intro, cover_emoji, cover_image_path, cover_blurhash, completion_title, completion_copy, episodes(id, number, title, preview, situation, situation_emoji)"
+      "id, owner_id, created_at, position, slug, title, hook, intro, cover_image_path, cover_blurhash, completion_title, completion_copy, episodes(id, number, title, preview, situation, situation_emoji)"
     )
     .order("position", { nullsFirst: true })
     .order("created_at", { ascending: false })
@@ -130,7 +130,7 @@ export async function readStoryCatalog(
       title: story.completion_title,
     },
     coverBlurhash: story.cover_blurhash,
-    coverEmoji: story.cover_emoji,
+
     coverImagePath: story.cover_image_path,
     createdAt: story.created_at,
     episodes: story.episodes.map((episode) => ({
@@ -218,7 +218,7 @@ export async function readStoryOfPlay(
 }
 
 /**
- * 인물 연결을 화 id로 묶는다. 목록의 차례는 화가 정한 `at`이다.
+ * 인물 연결을 화 id로 묶는다. 목록의 차례는 화가 정한 `position`이다.
  *
  * 인물은 스토리가 소유하고 화는 그중 누구인지만 가리키므로, 두 줄기를 받아
  * 여기서 잇는다. 앱은 이 순서를 스스로 알 수 없다.
@@ -230,7 +230,11 @@ function castOfLinks(
     persona: string;
     position: number;
   }[],
-  links: readonly { at: number; character_id: string; episode_id: string }[]
+  links: readonly {
+    position: number;
+    character_id: string;
+    episode_id: string;
+  }[]
 ): Map<string, StoryCharacter[]> {
   const byId = new Map(
     people.map((person) => [
@@ -264,31 +268,13 @@ function castOfLinks(
 }
 
 /**
- * 인물 행이 아직 없는 화를 이전 화자 목록으로 세운다.
- *
- * 콘텐츠는 스키마와 API보다 늦게 운영에 올라간다. 그 사이 `characters`가 비어
- * 있으면 화자 판정이 통째로 무너져 모든 대사가 화자 없는 줄이 된다. 이름만 있는
- * 인물로 세우면 말풍선과 이름표는 살고 설명만 빠진다. 콘텐츠가 올라간 뒤에는
- * 이 길로 오지 않는다.
- *
- * `cast_names`를 지우는 마이그레이션이 이 대비도 함께 걷어낸다.
- */
-function namesOnlyCast(names: readonly string[]): StoryCharacter[] {
-  return names.map((name, index) => ({
-    name,
-    persona: "",
-    position: index + 1,
-  }));
-}
-
-/**
  * 이 스토리의 화마다 누가 서는지 읽어 화 id로 묶는다.
  *
  * 인물은 스토리가 소유하고 화는 그중 누구인지만 가리키므로, 두 번 물어 앱이
  * 아니라 여기서 잇는다. 한 스토리의 인물은 넷을 넘지 못하고 한 화의 인물은
  * 셋을 넘지 못하므로 이 조회가 화 수만큼 커지지 않는다.
  *
- * 목록의 차례는 화가 정한 `at`이다. 프롬프트의 등장인물 문장이 이 차례로 이름을
+ * 목록의 차례는 화가 정한 `position`이다. 프롬프트의 등장인물 문장이 이 차례로 이름을
  * 부르므로, 같은 인물이라도 화마다 먼저 불릴 수 있다.
  */
 export async function readStoryCast(
@@ -309,9 +295,9 @@ export async function readStoryCast(
       .eq("story_id", storyId),
     client
       .from("episode_characters")
-      .select("episode_id, character_id, at")
+      .select("episode_id, character_id, position")
       .eq("story_id", storyId)
-      .order("at"),
+      .order("position"),
   ]);
 
   if (people.error) {
@@ -356,7 +342,7 @@ export async function readStoryContentById(
   const { data: episodes, error: episodeError } = await client
     .from("episodes")
     .select(
-      "id, story_id, number, title, preview, situation, situation_emoji, opening, stage, cast_names, ending_success, ending_compromise, ending_failure"
+      "id, story_id, number, title, preview, situation, situation_emoji, opening, stage, ending_success, ending_compromise, ending_failure"
     )
     .eq("story_id", story.id)
     .order("number");
@@ -368,6 +354,11 @@ export async function readStoryContentById(
   }
 
   const cast = await readStoryCast(client, story.id, slug);
+  for (const episode of episodes) {
+    if (!cast.get(episode.id)?.length) {
+      throw new Error(`The cast of episode ${episode.id} is unavailable.`);
+    }
+  }
 
   return {
     completion: {
@@ -375,7 +366,7 @@ export async function readStoryContentById(
       title: story.completion_title,
     },
     episodes: episodes.map((episode) => ({
-      cast: cast.get(episode.id) ?? namesOnlyCast(episode.cast_names),
+      cast: cast.get(episode.id) ?? [],
       endings: {
         compromise: episode.ending_compromise,
         failure: episode.ending_failure,

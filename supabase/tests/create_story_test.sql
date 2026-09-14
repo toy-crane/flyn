@@ -119,12 +119,12 @@ SELECT is(
 -- 차례로 이름을 부른다.
 SELECT results_eq(
   $$
-    select e.number, ec.at, c.name
+    select e.number, ec.position, c.name
     from public.episode_characters ec
     join public.episodes e on e.id = ec.episode_id
     join public.characters c on c.id = ec.character_id
     where ec.story_id = (select story_id from made)
-    order by e.number, ec.at
+    order by e.number, ec.position
   $$,
   $$
     values
@@ -135,17 +135,7 @@ SELECT results_eq(
   'each episode stands its own people in the order the card listed them'
 );
 
--- 옛 열은 아직 앞선 API가 읽는다. 같은 이름을 같은 차례로 담아야 한다.
-SELECT results_eq(
-  $$select number, cast_names from public.episodes
-    where story_id = (select story_id from made) order by number$$,
-  $$
-    values
-      (1::smallint, array['Lena']::text[]),
-      (2::smallint, array['Markus', 'Lena']::text[])
-  $$,
-  'the older speaker column carries the same names in the same order'
-);
+SELECT hasnt_column('public', 'episodes', 'cast_names', '인물 목록을 중복 저장하지 않는다');
 
 SELECT ok(
   (SELECT slug IS NULL AND position IS NULL

@@ -10,7 +10,7 @@ export interface SavedExpressionEntry {
 }
 
 /** 담을 수 있는 출처. 카드의 모양을 이것이 정한다. */
-export type SavedExpressionKind = "utterance" | "correction" | "guidance";
+export type SavedExpressionKind = "dialogue" | "correction" | "translation";
 
 /**
  * 표현 노트의 카드 하나.

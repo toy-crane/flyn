@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(13);
+SELECT plan(15);
 
 -- 사용자가 만든 스토리 하나를 공식 콘텐츠 옆에 세워 둔다. 공식 seed를 다시
 -- 실행하는 문장은 `slug`와 `(story_id, number)`로 대상을 좁히는데, 만든
@@ -149,6 +149,29 @@ SELECT is(
   '2026-01-02 03:04:05+00'::timestamptz,
   'a run through a made story keeps its place in the recent list'
 );
+
+-- 이름과 순서를 바꾼 뒤 실제 seed를 다시 실행해도 같은 인물과 연결을 쓴다.
+CREATE TEMP TABLE people_before_rename AS
+SELECT c.id, c.story_id, c.name, c.position FROM public.characters c
+JOIN public.stories s ON s.id = c.story_id WHERE s.slug IS NOT NULL;
+CREATE TEMP TABLE links_before_rename AS
+SELECT episode_id, character_id FROM public.episode_characters
+WHERE story_id IN (SELECT id FROM public.stories WHERE slug IS NOT NULL);
+UPDATE public.characters SET name = 'Renamed ' || name, position = 5 - position
+WHERE story_id IN (SELECT id FROM public.stories WHERE slug IS NOT NULL);
+\ir seed.sql
+\ir seed.sql
+SELECT results_eq(
+  $$SELECT c.id, c.story_id, c.name, c.position FROM public.characters c
+    JOIN public.stories s ON s.id = c.story_id WHERE s.slug IS NOT NULL ORDER BY c.id$$,
+  'SELECT id, story_id, name, position FROM people_before_rename ORDER BY id',
+  'renaming and reordering content preserves character IDs without duplicates');
+SELECT results_eq(
+  $$SELECT episode_id, character_id FROM public.episode_characters
+    WHERE story_id IN (SELECT id FROM public.stories WHERE slug IS NOT NULL)
+    ORDER BY episode_id, character_id$$,
+  'SELECT episode_id, character_id FROM links_before_rename ORDER BY episode_id, character_id',
+  'renaming content preserves every episode character reference');
 
 SELECT * FROM finish();
 ROLLBACK;

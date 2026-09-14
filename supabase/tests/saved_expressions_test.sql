@@ -1,7 +1,7 @@
 -- 손으로 담아 둔 표현의 접근 규칙을 확인한다. 자기 것만 읽고 지우며, 종류마다
 -- 담을 수 있는 메시지의 역할이 다르고, 원본이 사라져도 항목은 남는다.
 BEGIN;
-SELECT plan(41);
+SELECT no_plan();
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -53,7 +53,7 @@ VALUES
   );
 
 -- 끝난 1화의 장면 하나와 사용자 메시지 하나.
-INSERT INTO public.episode_messages (id, play_id, user_id, role, parts)
+INSERT INTO public.episode_messages (id, episode_play_id, user_id, role, parts)
 VALUES
   (
     'cc000000-0000-4000-8000-000000000001',
@@ -71,7 +71,7 @@ VALUES
   );
 
 -- 열려 있는 2화의 장면 하나. 화가 어긋난 저장을 막는지 보는 데 쓴다.
-INSERT INTO public.episode_messages (id, play_id, user_id, role, parts)
+INSERT INTO public.episode_messages (id, episode_play_id, user_id, role, parts)
 VALUES (
   'cc000000-0000-4000-8000-000000000003',
   'aa000000-0000-4000-8000-000000000002',
@@ -81,7 +81,7 @@ VALUES (
 );
 
 -- 판정을 받지 않은 사용자 메시지 하나. 배울 표현이 없는 자리를 보는 데 쓴다.
-INSERT INTO public.episode_messages (id, play_id, user_id, role, parts)
+INSERT INTO public.episode_messages (id, episode_play_id, user_id, role, parts)
 VALUES (
   'cc000000-0000-4000-8000-000000000004',
   'aa000000-0000-4000-8000-000000000001',
@@ -92,7 +92,7 @@ VALUES (
 
 -- 문제없다고 판정받은 사용자 메시지 하나. 판정은 받았지만 고친 문장이 없으므로
 -- 담을 배울 표현이 없는 자리를 보는 데 쓴다.
-INSERT INTO public.episode_messages (id, play_id, user_id, role, parts)
+INSERT INTO public.episode_messages (id, episode_play_id, user_id, role, parts)
 VALUES (
   'cc000000-0000-4000-8000-000000000005',
   'aa000000-0000-4000-8000-000000000001',
@@ -101,488 +101,59 @@ VALUES (
   '[{"type":"text","text":"Thank you very much."}]'::jsonb
 );
 
--- 위 사용자 메시지들이 실제로 받은 판정. 배울 표현은 고친 문장이 있는 행에서만
--- 나온다.
-INSERT INTO public.episode_expression_results (
-  message_id, user_id, status, fixed, entries, situation, meaning, example,
-  example_meaning
-)
-VALUES
-  (
-    'cc000000-0000-4000-8000-000000000002',
-    '11111111-1111-4111-8111-111111111111',
-    'corrected',
-    'I ordered a hot americano, but this is an iced latte.',
-    '[{"original":"order","fixed":"ordered","pattern":"past-tense","why":"지난 일은 ordered로 써요."}]'::jsonb,
-    '받은 음료가 주문과 다를 때',
-    '저는 뜨거운 아메리카노를 시켰는데 이건 아이스 라테예요.',
-    'I ordered a tea, but this is a coffee.',
-    '저는 차를 시켰는데 이건 커피예요.'
-  ),
-  (
-    'cc000000-0000-4000-8000-000000000005',
-    '11111111-1111-4111-8111-111111111111',
-    'natural', NULL, NULL, NULL, NULL, NULL, NULL
-  );
-
--- 다른 계정의 장면 하나.
-INSERT INTO public.episode_messages (id, play_id, user_id, role, parts)
-VALUES (
-  'dd000000-0000-4000-8000-000000000001',
-  'bb000000-0000-4000-8000-000000000001',
-  '22222222-2222-4222-8222-222222222222',
-  'assistant',
-  '[{"type":"data-speaker","data":{"name":"미아"}},{"type":"text","text":"Welcome."}]'::jsonb
-);
-
-SELECT has_table(
-  'public', 'saved_expressions', 'public.saved_expressions exists'
-);
-
-SELECT ok(
-  (
-    SELECT relrowsecurity
-    FROM pg_class
-    WHERE oid = 'public.saved_expressions'::regclass
-  ),
-  'row level security is on'
-);
-
--- 참조는 대본을 가리킨다. 회차를 지워도 카드의 출처 표시가 남는 이유다.
-SELECT col_is_fk(
-  'public', 'saved_expressions', ARRAY['episode_id'],
-  'a saved expression points at the script it came from'
-);
-
-SELECT col_is_fk(
-  'public', 'saved_expressions', ARRAY['message_id'],
-  'and at the message it sat next to'
-);
-
--- 원본이 사라져도 항목은 남아야 하므로 이 참조만 끊긴다.
-SELECT is(
-  (
-    SELECT confdeltype
-    FROM pg_constraint
-    WHERE conrelid = 'public.saved_expressions'::regclass
-      AND confrelid = 'public.episode_messages'::regclass
-  ),
-  'n'::"char",
-  'losing the message clears the reference instead of the row'
-);
-
--- 종류가 채우는 열을 정한다. 반쪽 항목은 카드가 읽을 수 없다.
-SELECT throws_ok(
-  $$insert into public.saved_expressions
-      (user_id, kind, episode_id, message_id, utterance_at, english, speaker)
-    values (
-      '11111111-1111-4111-8111-111111111111', 'utterance',
-      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
-      'cc000000-0000-4000-8000-000000000001', 0, 'Next in line, please!', '미아'
-    )$$,
-  '23514',
-  NULL,
-  'a character line without a Korean meaning is refused'
-);
-
-SELECT throws_ok(
-  $$insert into public.saved_expressions
-      (user_id, kind, episode_id, message_id, english, original)
-    values (
-      '11111111-1111-4111-8111-111111111111', 'correction',
-      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
-      'cc000000-0000-4000-8000-000000000002',
-      'I ordered a hot americano.', 'I order hot americano.'
-    )$$,
-  '23514',
-  NULL,
-  'a correction without its changed parts is refused'
-);
-
-SELECT throws_ok(
-  $$insert into public.saved_expressions
-      (user_id, kind, episode_id, message_id, english, original, entries)
-    values (
-      '11111111-1111-4111-8111-111111111111', 'shopping-list',
-      (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
-      'cc000000-0000-4000-8000-000000000002',
-      'I ordered a hot americano.', 'I order hot americano.', '[]'::jsonb
-    )$$,
-  '23514',
-  NULL,
-  'an unknown kind is refused'
-);
-
--- 권한. 앱은 담고, 읽고, 지운다. 고쳐 쓰지는 않는다. 담는 것은 열 단위 권한이라
--- 테이블 전체로는 잡히지 않고 아래에서 열마다 확인한다.
-SELECT ok(
-  (
-    SELECT bool_and(
-      has_table_privilege('authenticated', 'public.saved_expressions', p)
-    )
-    FROM unnest(ARRAY['SELECT', 'DELETE']) AS p
-  ),
-  'authenticated may read and erase'
-);
-
-SELECT ok(
-  NOT has_table_privilege('authenticated', 'public.saved_expressions', 'UPDATE'),
-  'and may not rewrite a saved expression'
-);
-
-SELECT ok(
-  (
-    SELECT bool_and(
-      has_column_privilege('authenticated', 'public.saved_expressions', c, 'INSERT')
-    )
-    FROM unnest(ARRAY[
-      'kind', 'episode_id', 'message_id', 'utterance_at', 'english', 'meaning',
-      'speaker', 'original', 'entries'
-    ]) AS c
-  ),
-  'every value the app sends is insertable'
-);
-
-SELECT ok(
-  NOT has_column_privilege(
-    'authenticated', 'public.saved_expressions', 'user_id', 'INSERT'
-  ),
-  'but the owner is not sent by the app'
-);
-
-SELECT ok(
-  NOT has_column_privilege(
-    'authenticated', 'public.saved_expressions', 'created_at', 'INSERT'
-  ),
-  'and neither is the time it was saved'
-);
-
-SELECT ok(
-  NOT (
-    SELECT bool_or(
-      has_table_privilege('anon', 'public.saved_expressions', p)
-    )
-    FROM unnest(ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE']) AS p
-  ),
-  'a signed-out caller reaches none of it'
-);
-
+SELECT has_table('public','expressions','표현은 하나의 테이블에 있다');
+SELECT ok((SELECT relrowsecurity FROM pg_class WHERE oid='public.expressions'::regclass),'표현에 RLS가 켜져 있다');
+SELECT col_is_fk('public','expressions',ARRAY['episode_id'],'표현은 원래 에피소드를 가리킨다');
+SELECT is((SELECT confdeltype FROM pg_constraint WHERE conrelid='public.expressions'::regclass AND confrelid='public.episode_messages'::regclass),
+ 'n'::"char",'원본 삭제는 메시지 연결을 끊는다');
+SELECT ok(NOT has_table_privilege('authenticated','public.expressions','INSERT'),'앱은 표현을 직접 추가하지 않는다');
+SELECT ok(has_column_privilege('authenticated','public.expressions','saved_at','UPDATE'),'앱은 담은 표시를 바꾼다');
+SELECT ok(NOT has_column_privilege('authenticated','public.expressions','text','UPDATE'),'앱은 표현 내용을 바꾸지 않는다');
+SELECT ok(NOT has_table_privilege('anon','public.expressions','SELECT'),'로그인 없이 표현을 읽지 못한다');
+SELECT throws_ok($$INSERT INTO public.expressions(user_id,episode_id,kind,text,speaker,dialogue_index)
+ SELECT '11111111-1111-4111-8111-111111111111',id,'dialogue','Hello!','Mia',0 FROM public.episodes LIMIT 1$$,
+ '23514',NULL,'뜻도 선점도 없는 표현은 만들지 않는다');
+SELECT throws_ok($$INSERT INTO public.expressions(user_id,episode_id,message_id,kind,text,speaker,dialogue_index,meaning)
+ SELECT '11111111-1111-4111-8111-111111111111',e.id,'cc000000-0000-4000-8000-000000000003','dialogue','Here you go.','미아',0,'여기 있어요.'
+ FROM public.episodes e JOIN public.stories s ON s.id=e.story_id WHERE s.slug='mia-cafe' AND e.number=1$$,
+ '23514',NULL,'원본과 다른 에피소드를 연결하지 못한다');
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claims TO '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}';
-
--- 끝난 화의 인물 대사를 담는다. 결말이 대화를 얼려도 담는 것은 막지 않는다.
-SELECT lives_ok(
-  $$insert into public.saved_expressions
-      (kind, episode_id, message_id, utterance_at, english, meaning, speaker)
-    values (
-      'utterance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
-      'cc000000-0000-4000-8000-000000000001', 0,
-      'Next in line, please!', '다음 분이요!', '미아'
-    )$$,
-  'a character line in a finished episode can still be saved'
-);
-
-SELECT is(
-  (SELECT user_id FROM public.saved_expressions),
-  '11111111-1111-4111-8111-111111111111'::uuid,
-  'and the database fills in who saved it'
-);
-
--- 한 장면에 대사가 여럿이면 각각 따로 담긴다.
-SELECT lives_ok(
-  $$insert into public.saved_expressions
-      (kind, episode_id, message_id, utterance_at, english, meaning, speaker)
-    values (
-      'utterance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
-      'cc000000-0000-4000-8000-000000000001', 1,
-      'Was there something wrong?', '무슨 문제가 있었나요?', '미아'
-    )$$,
-  'another utterance in the same scene is saved on its own'
-);
-
-SELECT throws_ok(
-  $$insert into public.saved_expressions
-      (kind, episode_id, message_id, utterance_at, english, meaning, speaker)
-    values (
-      'utterance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
-      'cc000000-0000-4000-8000-000000000001', 0,
-      'Next in line, please!', '다음 분이요!', '미아'
-    )$$,
-  '23505',
-  NULL,
-  'but the same utterance cannot be saved twice'
-);
-
-SELECT lives_ok(
-  $$insert into public.saved_expressions
-      (kind, episode_id, message_id, english, original, entries)
-    values (
-      'correction', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
-      'cc000000-0000-4000-8000-000000000002',
-      'I ordered a hot americano, but this is an iced latte.',
-      'I order hot americano but this is ice latte.',
-      '[{"original":"order","fixed":"ordered","why":"지난 일은 ordered로 써요."}]'::jsonb
-    )$$,
-  'a correction on my own message is saved'
-);
-
--- 영어 교정과 한국어 안내는 같은 판정의 다른 이름이라 한 메시지에 함께 설 수
--- 없다. 자리는 종류가 아니라 메시지가 정한다.
-SELECT throws_ok(
-  $$insert into public.saved_expressions
-      (kind, episode_id, message_id, english, original, entries)
-    values (
-      'guidance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
-      'cc000000-0000-4000-8000-000000000002',
-      'I ordered a hot americano, but this is an iced latte.',
-      'I order hot americano but this is ice latte.',
-      '[{"original":"ice","fixed":"iced","why":"얼음 넣은 음료는 iced예요."}]'::jsonb
-    )$$,
-  '23505',
-  NULL,
-  'and one message gives one learning note, whichever kind it is'
-);
-
--- 배울 표현은 실제로 판정을 받은 메시지에서만 나온다. 아무 말에나 지어낸 교정을
--- 붙이는 문장은 여기서 막힌다.
-SELECT throws_ok(
-  $$insert into public.saved_expressions
-      (kind, episode_id, message_id, english, original, entries)
-    values (
-      'correction', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
-      'cc000000-0000-4000-8000-000000000004',
-      'Thanks a lot.', 'Thank you.',
-      '[{"original":"Thank you","fixed":"Thanks a lot","why":"지어낸 이유."}]'::jsonb
-    )$$,
-  '42501',
-  NULL,
-  'a message that was never judged has no learning note to save'
-);
-
--- 판정은 받았어도 고친 문장이 없으면 담을 배울 표현이 없다.
-SELECT throws_ok(
-  $$insert into public.saved_expressions
-      (kind, episode_id, message_id, english, original, entries)
-    values (
-      'correction', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
-      'cc000000-0000-4000-8000-000000000005',
-      'Thanks a lot.', 'Thank you very much.',
-      '[{"original":"Thank you very much","fixed":"Thanks a lot","why":"지어낸 이유."}]'::jsonb
-    )$$,
-  '42501',
-  NULL,
-  'a message judged fine has no learning note to save either'
-);
-
--- 종류마다 담을 수 있는 역할이 다르다.
-SELECT throws_ok(
-  $$insert into public.saved_expressions
-      (kind, episode_id, message_id, utterance_at, english, meaning, speaker)
-    values (
-      'utterance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
-      'cc000000-0000-4000-8000-000000000002', 0,
-      'I order hot americano but this is ice latte.', '아메리카노를 시켰어요.', '미아'
-    )$$,
-  '42501',
-  NULL,
-  'my own words cannot be saved as a character line'
-);
-
-SELECT throws_ok(
-  $$insert into public.saved_expressions
-      (kind, episode_id, message_id, english, original, entries)
-    values (
-      'guidance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
-      'cc000000-0000-4000-8000-000000000001',
-      'Next in line, please!', '다음 분이요!',
-      '[{"original":"","fixed":"","why":"x"}]'::jsonb
-    )$$,
-  '42501',
-  NULL,
-  'and a character line cannot be saved as guidance'
-);
-
--- 적어 낸 화가 그 메시지가 오간 화여야 한다. 아니면 출처 표시를 앱 밖에서 고를 수
--- 있게 된다.
-SELECT throws_ok(
-  $$insert into public.saved_expressions
-      (kind, episode_id, message_id, utterance_at, english, meaning, speaker)
-    values (
-      'utterance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
-      'cc000000-0000-4000-8000-000000000003', 0,
-      'Here you go.', '여기 있습니다.', '미아'
-    )$$,
-  '42501',
-  NULL,
-  'a saved expression cannot claim an episode the message never reached'
-);
-
--- 같은 자리 번호를 쓰는 두 번째 대사. 아래에서 둘 다 원본을 잃었을 때 서로
--- 부딪히지 않는지 보는 데 쓴다.
-SELECT lives_ok(
-  $$insert into public.saved_expressions
-      (kind, episode_id, message_id, utterance_at, english, meaning, speaker)
-    values (
-      'utterance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 2),
-      'cc000000-0000-4000-8000-000000000003', 0,
-      'Here you go.', '여기 있습니다.', '미아'
-    )$$,
-  'the same seat number in another scene is its own item'
-);
-
-SELECT throws_ok(
-  $$insert into public.saved_expressions
-      (kind, episode_id, message_id, utterance_at, english, meaning, speaker)
-    values (
-      'utterance', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
-      'dd000000-0000-4000-8000-000000000001', 0,
-      'Welcome.', '어서 오세요.', '미아'
-    )$$,
-  '42501',
-  NULL,
-  'and cannot be hung on another account''s message'
-);
-
--- 원본이 사라져도 항목은 남는다. 담는 것은 사용자가 직접 한 행동이라, 다시 받기로
--- 함께 사라지면 잃어버린 것이 된다.
-RESET ROLE;
-
-DELETE FROM public.episode_messages
-WHERE id IN (
-  'cc000000-0000-4000-8000-000000000001',
-  'cc000000-0000-4000-8000-000000000003'
-);
-
-SELECT is(
-  (
-    SELECT count(*) FROM public.saved_expressions
-    WHERE kind = 'utterance' AND message_id IS NULL
-  ),
-  3::bigint,
-  'saved utterances outlive the messages they came from'
-);
-
-SELECT is(
-  (
-    SELECT count(*) FROM public.saved_expressions
-    WHERE english = 'Next in line, please!'
-      AND user_id = '11111111-1111-4111-8111-111111111111'
-  ),
-  1::bigint,
-  'and keep their owner while the reference goes'
-);
-
--- 참조를 잃은 항목끼리는 같은 자리를 가리키지 않으므로 부딪히지 않는다. 두 대사가
--- 모두 자기 장면의 첫 자리였는데도 둘 다 남아 있다.
-SELECT is(
-  (
-    SELECT count(*) FROM public.saved_expressions
-    WHERE message_id IS NULL AND kind = 'utterance' AND utterance_at = 0
-      AND user_id = '11111111-1111-4111-8111-111111111111'
-  ),
-  2::bigint,
-  'orphaned rows do not collide with each other'
-);
-
-SELECT is(
-  (
-    SELECT count(*) FROM public.saved_expressions
-    WHERE episode_id = (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)
-      AND user_id = '11111111-1111-4111-8111-111111111111'
-  ),
-  3::bigint,
-  'an orphaned item still names the episode it came from'
-);
-
-SET LOCAL ROLE authenticated;
+SELECT lives_ok($$SELECT public.claim_dialogue_expression('cc000000-0000-4000-8000-000000000001',0,'미아','Next in line, please!','ee000000-0000-4000-8000-000000000001')$$,
+ '끝난 화에서도 번역을 만든다');
+SELECT throws_ok($$UPDATE public.expressions SET saved_at=clock_timestamp()$$,'23514',NULL,'생성 중인 표현은 담지 못한다');
+SELECT public.complete_dialogue_expression('cc000000-0000-4000-8000-000000000001',0,'ee000000-0000-4000-8000-000000000001','다음 분이요!');
+SELECT public.claim_dialogue_expression('cc000000-0000-4000-8000-000000000003',0,'미아','Here you go.','ee000000-0000-4000-8000-000000000002');
+SELECT public.complete_dialogue_expression('cc000000-0000-4000-8000-000000000003',0,'ee000000-0000-4000-8000-000000000002','여기 있어요.');
+SELECT lives_ok($$UPDATE public.expressions SET saved_at=clock_timestamp()$$,'끝난 화와 진행 중인 화의 표현을 담는다');
+SELECT is((SELECT count(*) FROM public.expressions WHERE saved_at IS NOT NULL),2::bigint,'다른 메시지의 같은 대사 위치는 각각 담긴다');
+SELECT is((SELECT count(*) FROM public.expressions WHERE user_id='11111111-1111-4111-8111-111111111111'),2::bigint,'DB가 표현의 주인을 정한다');
+SELECT throws_ok($$SELECT public.claim_dialogue_expression('cc000000-0000-4000-8000-000000000002',0,'미아','Made up','ee000000-0000-4000-8000-000000000003')$$,
+ '42501',NULL,'사용자 메시지는 인물 대사가 될 수 없다');
+SELECT public.save_expression_result('cc000000-0000-4000-8000-000000000005','natural');
+SELECT is((SELECT count(*) FROM public.expressions WHERE message_id IN ('cc000000-0000-4000-8000-000000000004','cc000000-0000-4000-8000-000000000005')),
+ 0::bigint,'미확인 메시지와 자연스러운 메시지에는 담을 표현이 없다');
+SELECT throws_ok($$INSERT INTO public.expressions(kind,text,meaning) VALUES ('correction','Made up','지어낸 표현')$$,
+ '42501',NULL,'판정 없이 표현을 직접 만들어 담지 못한다');
+SELECT throws_ok($$UPDATE public.expressions SET text='rewritten'$$,'42501',NULL,'담은 표현의 내용은 고치지 못한다');
 SET LOCAL request.jwt.claims TO '{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}';
-
-SELECT is(
-  (SELECT count(*) FROM public.saved_expressions), 0::bigint,
-  'another account sees none of the first one''s saved expressions'
-);
-
-SELECT lives_ok(
-  $$delete from public.saved_expressions$$,
-  'a delete aimed at another account''s rows raises nothing'
-);
-
+SELECT is((SELECT count(*) FROM public.expressions),0::bigint,'다른 계정은 표현을 읽지 못한다');
+SELECT lives_ok($$UPDATE public.expressions SET saved_at=NULL$$,'다른 계정의 담기를 취소하는 요청은 행을 찾지 못한다');
+SELECT throws_ok($$SELECT public.claim_dialogue_expression('cc000000-0000-4000-8000-000000000001',0,'미아','Next in line, please!','ee000000-0000-4000-8000-000000000004')$$,
+ '42501',NULL,'다른 계정의 메시지를 출처로 삼지 못한다');
 RESET ROLE;
-
-SELECT is(
-  (
-    SELECT count(*) FROM public.saved_expressions
-    WHERE user_id = '11111111-1111-4111-8111-111111111111'
-  ),
-  4::bigint,
-  'and removes nothing'
-);
-
+SELECT is((SELECT count(*) FROM public.expressions WHERE saved_at IS NOT NULL),2::bigint,'다른 계정의 취소는 담은 표현을 바꾸지 않는다');
+DELETE FROM public.episode_messages WHERE id IN ('cc000000-0000-4000-8000-000000000001','cc000000-0000-4000-8000-000000000003');
+SELECT is((SELECT count(*) FROM public.expressions WHERE message_id IS NULL AND dialogue_index=0),2::bigint,'같은 위치의 두 고아 표현은 충돌하지 않는다');
+SELECT is((SELECT count(DISTINCT episode_id) FROM public.expressions),2::bigint,'원본을 잃어도 에피소드 출처는 유지한다');
+SELECT is((SELECT text FROM public.expressions WHERE meaning='다음 분이요!'),'Next in line, please!','원본 삭제 뒤에도 영어와 뜻이 남는다');
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claims TO '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}';
-
-SELECT is(
-  (SELECT count(*) FROM public.saved_expressions), 4::bigint,
-  'the owner sees every expression they saved'
-);
-
--- 책갈피를 다시 누르는 취소와 표현 노트에서 미는 삭제가 같은 문장이다.
-SELECT lives_ok(
-  $$delete from public.saved_expressions where kind = 'correction'$$,
-  'the owner erases what they saved'
-);
-
-SELECT is(
-  (SELECT count(*) FROM public.saved_expressions), 3::bigint,
-  'and it is gone'
-);
-
--- 교정과 안내도 뜻을 가질 수 있다. 표현 돌아보기가 그 메시지에 대해 이미 만들어
--- 둔 고친 문장의 뜻을 담을 때 옮겨 담기 때문이다. 새로 만드는 값이 아니므로
--- 뜻이 없는 항목도 그대로 성립한다.
-SELECT lives_ok(
-  $$insert into public.saved_expressions
-      (kind, episode_id, message_id, english, original, entries, meaning)
-    values (
-      'correction', (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1),
-      'cc000000-0000-4000-8000-000000000002',
-      'I ordered a hot americano, but this is an iced latte.',
-      'I order hot americano but this is ice latte.',
-      '[{"original":"order","fixed":"ordered","why":"지난 일은 ordered로 써요."}]'::jsonb,
-      '저는 뜨거운 아메리카노를 시켰는데 이건 아이스 라테예요.'
-    )$$,
-  'a correction carries the meaning the review already made'
-);
-
-SELECT is(
-  (
-    SELECT meaning FROM public.saved_expressions
-    WHERE kind = 'correction'
-  ),
-  '저는 뜨거운 아메리카노를 시켰는데 이건 아이스 라테예요.',
-  'and the note reads that meaning back'
-);
-
-SELECT throws_ok(
-  $$update public.saved_expressions set english = 'rewritten'$$,
-  '42501',
-  NULL,
-  'nobody rewrites a saved expression'
-);
-
+SELECT lives_ok($$UPDATE public.expressions SET saved_at=NULL WHERE meaning='다음 분이요!'$$,'주인은 원본 없는 표현을 취소할 수 있다');
+SELECT is((SELECT count(*) FROM public.expressions),1::bigint,'원본 없는 표현은 취소와 함께 삭제된다');
 RESET ROLE;
-
--- 계정이 사라지면 담은 것도 함께 사라진다.
-DELETE FROM auth.users WHERE id = '11111111-1111-4111-8111-111111111111';
-
-SELECT is(
-  (
-    SELECT count(*) FROM public.saved_expressions
-    WHERE user_id = '11111111-1111-4111-8111-111111111111'
-  ),
-  0::bigint,
-  'deleting the account takes its saved expressions with it'
-);
-
+DELETE FROM auth.users WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT is((SELECT count(*) FROM public.expressions),0::bigint,'계정 삭제는 저장한 표현도 함께 지운다');
+SET CONSTRAINTS ALL IMMEDIATE;
 SELECT * FROM finish();
 ROLLBACK;

@@ -54,7 +54,7 @@ const STORY_ROW = {
   completion_copy: "다섯 번의 사건을 영어로 지나왔어요.",
   completion_title: "첫 이야기를 끝냈어요",
   cover_blurhash: "LAME]I7y8w{e009uBC,t1j%f_1My",
-  cover_emoji: "☕",
+
   cover_image_path: null,
   created_at: "2026-01-01T00:00:00.000Z",
   hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
@@ -76,7 +76,7 @@ const MADE_STORY_ROW = {
   completion_copy: "호텔부터 미팅까지 영어로 지나왔어요.",
   completion_title: "출장을 마쳤어요",
   cover_blurhash: null,
-  cover_emoji: "🧳",
+
   cover_image_path: null,
   created_at: "2026-09-10T00:00:00.000Z",
   hook: "다음 달 베를린 출장인데, 혼자 해내야 해요",
@@ -185,11 +185,11 @@ const TEST_CHARACTERS = [
 /** 어느 화에 누가 서는지. `at`이 그 화의 목록에서의 자리다. */
 const TEST_EPISODE_CHARACTERS = TEST_EPISODES.flatMap((episode) =>
   episode.cast_names.map((name, index) => ({
-    at: index + 1,
     character_id: CHARACTER_ID(
       TEST_CHARACTERS.find((person) => person.name === name)?.position ?? 1
     ),
     episode_id: episode.id,
+    position: index + 1,
     story_id: STORY_ID,
   }))
 );
@@ -208,9 +208,9 @@ interface FinishedRow {
 /** One stored message, the way `episode_messages` holds it. */
 interface MessageRow {
   created_at: string;
+  episode_play_id: string;
   id: string;
   parts: unknown[];
-  play_id: string;
   role: string;
 }
 
@@ -220,6 +220,7 @@ interface MessageRow {
  * 실제 시계를 쓰지 않는 것은 한 테스트가 밀리초 안에 여러 행을 넣기 때문이다.
  * 여기서 차례를 잃으면 정렬이 무의미해져 순서 결함을 잡지 못한다.
  */
+const KOREAN_INPUT = /[가-힣ㄱ-ㅎㅏ-ㅣ]/;
 let storedClock = 0;
 
 function nextCreatedAt(): string {
@@ -240,6 +241,7 @@ function nextCreatedAt(): string {
 /** 담아 둔 표현 한 줄, `saved_expressions`가 들고 있는 모양대로. */
 interface SavedRow {
   created_at: string;
+  dialogue_index: number | null;
   english: string;
   entries: { fixed: string; original: string; why: string }[] | null;
   episode_id: string;
@@ -249,7 +251,6 @@ interface SavedRow {
   message_id: string | null;
   original: string | null;
   speaker: string | null;
-  utterance_at: number | null;
 }
 /** 회차 한 줄, `story_plays`가 들고 있는 모양대로. */
 interface StoryPlayRow {
@@ -371,7 +372,7 @@ function signedInWith(
     const finished = finishedRows();
     const known = new Set([
       ...openedPlays,
-      ...state.messages.map((message) => message.play_id),
+      ...state.messages.map((message) => message.episode_play_id),
     ]);
     const open = [...known]
       .filter((id) => !finished.some((play) => play.id === id))
@@ -387,6 +388,54 @@ function signedInWith(
       }));
 
     return [...finished, ...open];
+  }
+
+  function expressionRows(): Row[] {
+    const saved = state.saved.map((row) => ({
+      ...row,
+      saved_at: row.created_at,
+      text: row.english,
+    }));
+    const source = (messageId: unknown) =>
+      state.messages.find((m) => m.id === messageId);
+    const results: Row[] = state.expressionResults
+      .filter((row) => row.status === "corrected")
+      .map((row) => {
+        const message = source(row.message_id);
+        const parts = (message?.parts ?? []) as {
+          type: string;
+          text?: string;
+        }[];
+        const original = parts
+          .filter((part) => part.type === "text")
+          .map((part) => part.text)
+          .join("");
+        return {
+          ...row,
+          dialogue_index: null,
+          episode_id: message?.episode_play_id.slice(5),
+          id: `expression-${row.message_id}`,
+          kind: KOREAN_INPUT.test(original) ? "translation" : "correction",
+          original,
+          saved_at: null,
+          speaker: null,
+          text: row.fixed,
+        };
+      });
+    const combined = [...saved, ...results, ...meaningRows].filter(
+      (row, index, all) =>
+        row.message_id === null ||
+        all.findIndex(
+          (item) =>
+            item.message_id === row.message_id &&
+            item.dialogue_index === row.dialogue_index
+        ) === index
+    );
+    return combined.map((row) => ({
+      ...row,
+      "episode_messages.episode_play_id": source(row.message_id)
+        ?.episode_play_id,
+    }));
   }
 
   const client = {
@@ -411,8 +460,8 @@ function signedInWith(
       const value = (row: Row, column: string) => row[column];
 
       function source(): Row[] {
-        if (table === "utterance_meanings") {
-          return meaningRows;
+        if (table === "expressions") {
+          return expressionRows();
         }
         if (table === "stories") {
           return [STORY_ROW, ...(state.madeStories ?? [])] as unknown as Row[];
@@ -443,38 +492,25 @@ function signedInWith(
         }
 
         if (table === "episode_messages") {
-          return [...state.messages].sort((left, right) =>
-            left.created_at.localeCompare(right.created_at)
-          ) as unknown as Row[];
-        }
-
-        if (table === "episode_expression_results") {
-          const play = new Map(
-            state.messages.map((message) => [message.id, message.play_id])
-          );
-          return state.expressionResults.map((row) => ({
-            ...row,
-            "episode_messages.play_id": play.get(String(row.message_id)),
-          }));
-        }
-
-        if (table === "saved_expressions") {
-          // 담아 둔 표현도 교정과 같은 자리에 매달린다. 원본을 잃은 항목은 걸
-          // 메시지가 없어 이 조회에 오지 않는다.
-          const play = new Map(
-            state.messages.map((message) => [message.id, message.play_id])
-          );
-
-          return [...state.saved]
+          return [...state.messages]
             .sort((left, right) =>
               left.created_at.localeCompare(right.created_at)
             )
-            .map((row) => ({
-              ...row,
-              "episode_messages.play_id": row.message_id
-                ? play.get(row.message_id)
-                : undefined,
-            })) as unknown as Row[];
+            .map((message) => {
+              const result = state.expressionResults.find(
+                (row) => row.message_id === message.id
+              );
+              return {
+                ...message,
+                expression_status:
+                  result?.status === "corrected"
+                    ? "provided"
+                    : (result?.status ?? null),
+                expressions: expressionRows().filter(
+                  (row) => row.message_id === message.id
+                ),
+              };
+            });
         }
 
         return [];
@@ -547,7 +583,7 @@ function signedInWith(
                 episode_messages: [
                   {
                     count: state.messages.filter(
-                      (message) => message.play_id === play.id
+                      (message) => message.episode_play_id === play.id
                     ).length,
                   },
                 ],
@@ -561,7 +597,7 @@ function signedInWith(
             episode_messages: [
               {
                 count: state.messages.filter(
-                  (message) => message.play_id === play.id
+                  (message) => message.episode_play_id === play.id
                 ).length,
               },
             ],
@@ -615,16 +651,12 @@ function signedInWith(
 
               const doomed = new Set(rows().map((row) => String(row.id)));
 
-              if (table === "utterance_meanings") {
-                const doomedMeanings = new Set(rows());
+              if (table === "expressions") {
                 for (let i = meaningRows.length - 1; i >= 0; i -= 1) {
-                  const row = meaningRows[i];
-                  if (row && doomedMeanings.has(row)) {
+                  if (doomed.has(String(meaningRows[i]?.id))) {
                     meaningRows.splice(i, 1);
                   }
                 }
-              } else if (table === "saved_expressions") {
-                state.saved = state.saved.filter((row) => !doomed.has(row.id));
               } else {
                 state.messages = state.messages.filter(
                   (message) => !doomed.has(message.id)
@@ -668,103 +700,6 @@ function signedInWith(
           },
           insert: (payload: Row | Row[]) => {
             const added = Array.isArray(payload) ? payload : [payload];
-            if (table === "utterance_meanings") {
-              const [row] = added;
-              if (fixtures.failOpeningSave && row?.message_id === "opening-1") {
-                throw new Error("utterance_meanings_message_id_fkey");
-              }
-              if (!row) {
-                throw new Error("Missing meaning insert");
-              }
-              const duplicate = meaningRows.some(
-                (saved) =>
-                  saved.message_id === row.message_id &&
-                  saved.utterance_at === row.utterance_at
-              );
-              if (duplicate) {
-                return {
-                  select: () => ({
-                    maybeSingle: async () => ({
-                      data: null,
-                      error: { code: "23505" },
-                    }),
-                  }),
-                };
-              }
-              const stored = {
-                expires_at: new Date(Date.now() + 30_000).toISOString(),
-                ...row,
-              };
-              meaningRows.push(stored);
-              return writeResult(stored);
-            }
-
-            if (table === "saved_expressions") {
-              const row = added[0] as unknown as SavedRow;
-              // 진짜 유니크 색인은 `(message_id, coalesce(utterance_at, -1))`이고
-              // 종류를 열쇠에 넣지 않는다. 한 메시지가 교정과 안내를 둘 다 낳지
-              // 못하게 막는 것이 그 규칙이므로 여기서도 종류를 묻지 않는다.
-              const taken = state.saved.some(
-                (kept) =>
-                  kept.message_id !== null &&
-                  kept.message_id === row.message_id &&
-                  kept.utterance_at === row.utterance_at
-              );
-
-              if (taken) {
-                const clash = {
-                  code: "23505",
-                  message:
-                    'duplicate key value violates unique constraint "saved_expressions_one_per_source_idx"',
-                };
-
-                return {
-                  error: clash,
-                  select: () => ({
-                    maybeSingle: () =>
-                      Promise.resolve({ data: null, error: clash }),
-                    single: () => Promise.resolve({ data: null, error: clash }),
-                  }),
-                };
-              }
-
-              // 열이 uuid라 가짜도 같은 모양을 낸다. 취소 경로가 경로 조각의
-              // 모양을 확인하므로, 짧은 문자열은 실제와 다른 답을 만든다.
-              const stored: SavedRow = {
-                ...row,
-                created_at: nextCreatedAt(),
-                id: `5a4ed000-0000-4000-8000-${(state.saved.length + 1)
-                  .toString()
-                  .padStart(12, "0")}`,
-              };
-
-              state.saved.push(stored);
-
-              return writeResult(stored as unknown as Row);
-            }
-
-            if (table === "episode_expression_results") {
-              if (state.correctionSaveError) {
-                return { error: { message: state.correctionSaveError } };
-              }
-              if (
-                added.some((row) =>
-                  state.expressionResults.some(
-                    (saved) => saved.message_id === row.message_id
-                  )
-                )
-              ) {
-                return {
-                  error: {
-                    code: "23505",
-                    message: "duplicate expression result",
-                  },
-                };
-              }
-              state.expressionResults.push(...added);
-              return writeResult(null);
-            }
-
             if (table === "episode_messages") {
               if (fixtures.failOpeningSave && added[0]?.id === "opening-1") {
                 return { error: { message: "connection refused" } };
@@ -863,24 +798,45 @@ function signedInWith(
           single: () =>
             Promise.resolve({ data: rows()[0] ?? null, error: null }),
           update: (payload: Row) => {
+            let completed: { data: Row | null; error: null } | undefined;
             const changed = () => {
-              const selected = rows().filter((row) => row.meaning === null);
-              for (const row of selected) {
-                Object.assign(row, payload);
+              if (completed) {
+                return completed;
               }
-              return { data: selected.at(0) ?? null, error: null };
+              const selected = rows();
+              for (const row of selected) {
+                if (payload.saved_at === null) {
+                  state.saved = state.saved.filter(
+                    (item) => item.id !== row.id
+                  );
+                } else if (!state.saved.some((item) => item.id === row.id)) {
+                  state.saved.push({
+                    ...row,
+                    created_at: nextCreatedAt(),
+                    english: row.text,
+                  } as unknown as SavedRow);
+                }
+              }
+              completed = { data: selected.at(0) ?? null, error: null };
+              return completed;
             };
-            const update: object = {
-              eq: (column: string, wanted: unknown) => {
-                equals.set(column, wanted);
-                return update;
-              },
-              is: (column: string, wanted: unknown) => {
-                equals.set(column, wanted);
-                return update;
-              },
-              select: () => ({ maybeSingle: async () => changed() }),
-            };
+            const update: object = Object.assign(
+              Promise.resolve().then(changed),
+              {
+                eq: (column: string, wanted: unknown) => {
+                  equals.set(column, wanted);
+                  return update;
+                },
+                is: (column: string, wanted: unknown) => {
+                  equals.set(column, wanted);
+                  return update;
+                },
+                select: () => ({
+                  maybeSingle: async () => changed(),
+                  single: async () => changed(),
+                }),
+              }
+            );
             return update;
           },
         }
@@ -889,6 +845,81 @@ function signedInWith(
       return builder;
     },
     rpc: (name: string, args: Record<string, unknown>) => {
+      if (
+        name === "claim_dialogue_expression" ||
+        name === "complete_dialogue_expression"
+      ) {
+        const message = state.messages.find(
+          (item) => item.id === args.p_message_id
+        );
+        if (!message) {
+          throw new Error("The dialogue source is unavailable.");
+        }
+        let row = meaningRows.find(
+          (item) =>
+            item.message_id === args.p_message_id &&
+            item.dialogue_index === args.p_dialogue_index
+        );
+        const saved = expressionRows().find(
+          (item) =>
+            item.message_id === args.p_message_id &&
+            item.dialogue_index === args.p_dialogue_index &&
+            item.meaning
+        );
+        if (saved) {
+          return { single: async () => ({ data: saved, error: null }) };
+        }
+        if (name === "claim_dialogue_expression") {
+          if (!row) {
+            row = {
+              claim_token: args.p_token,
+              dialogue_index: args.p_dialogue_index,
+              entries: null,
+              episode_id: message.episode_play_id.slice(5),
+              expires_at: new Date(Date.now() + 30_000).toISOString(),
+              id: `5a4ed000-0000-4000-8000-${(meaningRows.length + 1).toString().padStart(12, "0")}`,
+              kind: "dialogue",
+              meaning: null,
+              message_id: message.id,
+              original: null,
+              saved_at: null,
+              speaker: args.p_speaker,
+              text: args.p_text,
+            };
+            meaningRows.push(row);
+          }
+        } else if (row && row.claim_token === args.p_token) {
+          Object.assign(row, {
+            claim_token: null,
+            expires_at: null,
+            meaning: args.p_meaning,
+          });
+        }
+        return { single: async () => ({ data: row, error: null }) };
+      }
+      if (name === "save_expression_result") {
+        if (state.correctionSaveError) {
+          return Promise.resolve({
+            error: { message: state.correctionSaveError },
+          });
+        }
+        let row = state.expressionResults.find(
+          (item) => item.message_id === args.p_message_id
+        );
+        if (!row) {
+          const content = args.p_content as Row | undefined;
+          row = {
+            message_id: args.p_message_id,
+            status: args.p_status === "provided" ? "corrected" : args.p_status,
+            ...content,
+            example_meaning: content?.exampleMeaning,
+            fixed: content?.text,
+          };
+          state.expressionResults.push(row);
+        }
+        return Promise.resolve({ data: row.status, error: null });
+      }
+
       if (name === "create_story") {
         state.madeStoryRequests?.push(args);
 
@@ -1020,7 +1051,7 @@ const WRITTEN_STORY = {
   characters: [{ name: "Lena", persona: "30대 호텔 직원이다.", position: 1 }],
   completionCopy: "호텔부터 미팅까지 영어로 지나왔어요.",
   completionTitle: "출장을 마쳤어요",
-  coverEmoji: "🧳",
+
   episodes: [
     {
       castNames: ["Lena"],
@@ -1180,7 +1211,7 @@ function createEpisodeRequest(
     keepThrough?: string | null;
     utteranceMeanings?: {
       messageId: string;
-      utteranceAt: number;
+      dialogueIndex: number;
       meaning: string;
     }[];
     message?: unknown;
@@ -1627,6 +1658,7 @@ describe("POST /ai/episode", () => {
 
     state.messages.push({
       created_at: "2026-08-29T00:00:00.000Z",
+      episode_play_id: playIdOf(episodeId(1)),
       id: "m1",
       parts: [
         { data: { name: null }, id: "speaker-1", type: "data-speaker" },
@@ -1634,7 +1666,6 @@ describe("POST /ai/episode", () => {
         { data: { name: "Mia" }, id: "speaker-2", type: "data-speaker" },
         { text: "Next in line, please!", type: "text" },
       ],
-      play_id: playIdOf(episodeId(1)),
       role: "assistant",
     });
 
@@ -1666,12 +1697,12 @@ describe("POST /ai/episode", () => {
 
     state.messages.push({
       created_at: "2026-08-29T00:00:00.000Z",
+      episode_play_id: playIdOf(episodeId(1)),
       id: "m1",
       parts: [
         { data: { name: "Mia" }, id: "speaker-1", type: "data-speaker" },
         { text: "Next in line, please!", type: "text" },
       ],
-      play_id: playIdOf(episodeId(1)),
       role: "assistant",
     });
 
@@ -1961,27 +1992,14 @@ describe("POST /ai/episode", () => {
     expect(text).toContain("- Owen: 30대 초반의 회사원.");
   });
 
-  // 콘텐츠는 스키마와 API보다 늦게 운영에 올라간다. 그 사이 인물 행이 없어도
-  // 화자 판정이 무너지지 않도록 이전 화자 목록으로 선다. 설명만 빠진다.
-  test("falls back to the old speaker list until the characters land", async () => {
-    const model = createSceneModel(
-      [{ speaker: "Mia", text: "Sorry about that." }],
-      null
-    );
+  test("인물 연결이 없으면 옛 이름 목록으로 대화를 만들지 않는다", async () => {
     const app = createApp({
       authMiddleware: signedInWith(createSeasonState(), {
         withoutCharacters: true,
       }),
-      model,
     });
-
     const response = await app.request(createEpisodeRequest({ messages: [] }));
-    const body = await response.text();
-
-    // 첫 장면은 모델을 부르지 않으므로 화자 판정만 확인한다. 이름표는 서고
-    // 줄 머리의 `Mia:`는 화면에 흐르지 않는다.
-    expect(body).toContain('"name":"Mia"');
-    expect(body).not.toContain("Mia:");
+    expect(response.status).toBe(500);
   });
 
   // 무대는 어느 결말에서 왔든 같다. 기억이 바꾸는 것은 전개뿐이다.
@@ -2182,9 +2200,9 @@ test("표현만 다시 확인하면 문제없음을 명시하고 대화는 바�
   const state = createSeasonState();
   state.messages.push({
     created_at: "2026-09-07T00:00:00.000Z",
+    episode_play_id: playIdOf(episodeId(1)),
     id: "natural-message",
     parts: [{ text: "I want to go home.", type: "text" }],
-    play_id: playIdOf(episodeId(1)),
     role: "user",
   });
   const model = createMockModel([], {
@@ -2438,9 +2456,9 @@ describe("메시지별 표현 확인 API", () => {
   function stored(text: string, id = "m1"): MessageRow {
     return {
       created_at: `2026-09-07T00:00:0${id === "m1" ? "1" : "2"}.000Z`,
+      episode_play_id: playIdOf(episodeId(1)),
       id,
       parts: [{ text, type: "text" }],
-      play_id: playIdOf(episodeId(1)),
       role: "user",
     };
   }
@@ -2775,6 +2793,7 @@ describe("표현을 담아 두는 API", () => {
   function scene(id = "s1"): MessageRow {
     return {
       created_at: "2026-09-07T00:00:01.000Z",
+      episode_play_id: playIdOf(episodeId(1)),
       id,
       parts: [
         { data: { name: null }, id: "p0", type: "data-speaker" },
@@ -2787,16 +2806,15 @@ describe("표현을 담아 두는 API", () => {
         { data: { name: "Mia" }, id: "p2", type: "data-speaker" },
         { text: "Was there something wrong?", type: "text" },
       ],
-      play_id: playIdOf(episodeId(1)),
       role: "assistant",
     };
   }
   function wrote(text: string, id = "m1"): MessageRow {
     return {
       created_at: "2026-09-07T00:00:02.000Z",
+      episode_play_id: playIdOf(episodeId(1)),
       id,
       parts: [{ text, type: "text" }],
-      play_id: playIdOf(episodeId(1)),
       role: "user",
     };
   }
@@ -2812,7 +2830,7 @@ describe("표현을 담아 두는 API", () => {
     });
   }
   function utterance(at: number, messageId = "s1") {
-    return request({ kind: "utterance", messageId, utteranceAt: at });
+    return request({ dialogueIndex: at, kind: "dialogue", messageId });
   }
   function learning(messageId = "m1") {
     return request({ kind: "learning", messageId });
@@ -2830,20 +2848,20 @@ describe("표현을 담아 두는 API", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
-      kind: "utterance",
+      dialogueIndex: 0,
+      kind: "dialogue",
       messageId: "s1",
-      utteranceAt: 0,
     });
     expect(state.saved).toMatchObject([
       {
+        dialogue_index: 0,
         english: "Next in line, please!",
         entries: null,
         episode_id: episodeId(1),
-        kind: "utterance",
+        kind: "dialogue",
         meaning: "다음 분이요!",
         original: null,
         speaker: "Mia",
-        utterance_at: 0,
       },
     ]);
   });
@@ -2915,7 +2933,7 @@ describe("표현을 담아 두는 API", () => {
       kind: string;
     };
 
-    expect(first.kind).toBe("guidance");
+    expect(first.kind).toBe("translation");
 
     // 같은 메시지의 원문이 영어로 바뀐 것처럼 굴어 다른 종류를 요청한다.
     state.messages[0] = wrote("I am in a hurry.");
@@ -2971,12 +2989,13 @@ describe("표현을 담아 두는 API", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
+      dialogueIndex: null,
       kind: "correction",
       messageId: "m1",
-      utteranceAt: null,
     });
     expect(state.saved).toMatchObject([
       {
+        dialogue_index: null,
         english: WRONG_COFFEE.fixed,
         entries: [
           {
@@ -2990,7 +3009,6 @@ describe("표현을 담아 두는 API", () => {
         meaning: "주문한 커피가 아니에요.",
         original: "I think you gave me wrong coffee.",
         speaker: null,
-        utterance_at: null,
       },
     ]);
     expect(model.doGenerateCalls).toHaveLength(0);
@@ -3022,7 +3040,7 @@ describe("표현을 담아 두는 API", () => {
     });
 
     expect(await (await app.request(learning())).json()).toMatchObject({
-      kind: "guidance",
+      kind: "translation",
     });
   });
 
@@ -3055,10 +3073,10 @@ describe("표현을 담아 두는 API", () => {
 
     expect(session.saved).toEqual([
       {
+        dialogueIndex: 1,
         id: saved.id,
-        kind: "utterance",
+        kind: "dialogue",
         messageId: "s1",
-        utteranceAt: 1,
       },
     ]);
   });
@@ -3120,9 +3138,9 @@ describe("표현을 담아 두는 API", () => {
   });
 
   test.each([
-    { kind: "utterance", messageId: "s1" },
-    { kind: "utterance", messageId: "s1", utteranceAt: -1 },
-    { kind: "utterance", messageId: "s1", utteranceAt: "0" },
+    { kind: "dialogue", messageId: "s1" },
+    { dialogueIndex: -1, kind: "dialogue", messageId: "s1" },
+    { dialogueIndex: "0", kind: "dialogue", messageId: "s1" },
     { kind: "note", messageId: "s1" },
     { kind: "learning" },
   ])("모양이 어긋난 요청은 받지 않는다: %j", async (body) => {
@@ -3187,7 +3205,7 @@ describe("표현을 담아 두는 API", () => {
         entries: null,
         episodeNumber: 1,
         id: expect.any(String),
-        kind: "utterance",
+        kind: "dialogue",
         meaning: expect.any(String),
         original: null,
         speaker: "Mia",
@@ -3584,7 +3602,6 @@ describe("POST /ai/episode/ask", () => {
 
 interface RecentViewBody {
   stories: {
-    coverEmoji: string;
     coverBlurhash: string | null;
     coverImagePath: string | null;
     hook: string;
@@ -3645,7 +3662,7 @@ describe("GET /ai/episode/recent", () => {
     expect(view.stories).toEqual([
       {
         coverBlurhash: "LAME]I7y8w{e009uBC,t1j%f_1My",
-        coverEmoji: "☕",
+
         coverImagePath: null,
         hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
         storyId: STORY_ID,
@@ -3799,9 +3816,9 @@ describe("GET /ai/episode/stories/:storyId/plays", () => {
 
     state.messages.push({
       created_at: "2026-08-29T00:05:00.000Z",
+      episode_play_id: playIdOf(episodeId(1)),
       id: "m1",
       parts: [{ text: "Can I change it?", type: "text" }],
-      play_id: playIdOf(episodeId(1)),
       role: "user",
     });
 
@@ -3838,7 +3855,6 @@ describe("GET /ai/episode/stories", () => {
     const response = await app.request(`${EPISODE_PATH}/stories`);
     const view = (await response.json()) as {
       stories: {
-        coverEmoji: string;
         coverBlurhash: string | null;
         coverImagePath: string | null;
         hook: string;
@@ -3853,7 +3869,7 @@ describe("GET /ai/episode/stories", () => {
     expect(view.stories).toEqual([
       {
         coverBlurhash: "LAME]I7y8w{e009uBC,t1j%f_1My",
-        coverEmoji: "☕",
+
         coverImagePath: null,
         hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
         mine: false,
@@ -4089,16 +4105,16 @@ describe("story content database contract", () => {
     state.messages.push(
       {
         created_at: "2026-08-29T00:00:00.000Z",
+        episode_play_id: playIdOf(episodeId(1)),
         id: "m1",
         parts: [{ text: "This is wrong.", type: "text" }],
-        play_id: playIdOf(episodeId(1)),
         role: "user",
       },
       {
         created_at: "2026-08-29T00:00:01.000Z",
+        episode_play_id: playIdOf(episodeId(1)),
         id: "m2",
         parts: [{ text: "Mia: Let me check.", type: "text" }],
-        play_id: playIdOf(episodeId(1)),
         role: "assistant",
       }
     );
@@ -4132,9 +4148,9 @@ describe("story content database contract", () => {
 
     state.messages.push({
       created_at: "2026-08-29T00:00:00.000Z",
+      episode_play_id: playIdOf(episodeId(1)),
       id: "m1",
       parts: [{ text: "This is wrong.", type: "text" }],
-      play_id: playIdOf(episodeId(1)),
       role: "user",
     });
 
@@ -4163,9 +4179,9 @@ describe("story content database contract", () => {
 
     state.messages.push({
       created_at: "2026-08-29T00:00:00.000Z",
+      episode_play_id: playIdOf(episodeId(1)),
       id: "m1",
       parts: [{ text: "I ordered an iced americano.", type: "text" }],
-      play_id: playIdOf(episodeId(1)),
       role: "user",
     });
 
@@ -4196,9 +4212,9 @@ describe("story content database contract", () => {
     ]);
     state.messages.push({
       created_at: "2026-09-10T00:00:00Z",
+      episode_play_id: playIdOf(episodeId(1)),
       id: "ended-message",
       parts: [{ text: "Thank you.", type: "text" }],
-      play_id: playIdOf(episodeId(1)),
       role: "user",
     });
     const app = createApp({ authMiddleware: signedInWith(state) });
@@ -4217,9 +4233,9 @@ describe("story content database contract", () => {
 
     state.messages.push({
       created_at: "2026-08-29T00:00:00.000Z",
+      episode_play_id: play,
       id: "m1",
       parts: [{ text: "I think this is wrong coffee.", type: "text" }],
-      play_id: play,
       role: "user",
     });
     state.expressionResults.push({
@@ -4292,9 +4308,9 @@ describe("story content database contract", () => {
 
     state.messages.push({
       created_at: "2026-08-29T00:00:00.000Z",
+      episode_play_id: playIdOf(episodeId(1)),
       id: "m1",
       parts: [{ text: "Done", type: "text" }],
-      play_id: playIdOf(episodeId(1)),
       role: "user",
     });
 
@@ -4343,23 +4359,23 @@ describe("story content database contract", () => {
     state.messages.push(
       {
         created_at: "2026-08-29T00:00:00.000Z",
+        episode_play_id: play,
         id: "opening",
         parts: [{ text: "Next in line, please!", type: "text" }],
-        play_id: play,
         role: "assistant",
       },
       {
         created_at: "2026-08-29T00:00:01.000Z",
+        episode_play_id: play,
         id: "asked",
         parts: [{ text: "This is wrong.", type: "text" }],
-        play_id: play,
         role: "user",
       },
       {
         created_at: "2026-08-29T00:00:02.000Z",
+        episode_play_id: play,
         id: "answered",
         parts: [{ text: "What did you order?", type: "text" }],
-        play_id: play,
         role: "assistant",
       }
     );
@@ -4394,9 +4410,9 @@ describe("story content database contract", () => {
 
     state.messages.push({
       created_at: "2026-08-29T00:00:00.000Z",
+      episode_play_id: play,
       id: "opening",
       parts: [{ text: "Next in line, please!", type: "text" }],
-      play_id: play,
       role: "assistant",
     });
 
@@ -4418,9 +4434,9 @@ describe("story content database contract", () => {
 
     state.messages.push({
       created_at: "2026-08-29T00:00:00.000Z",
+      episode_play_id: play,
       id: "opening",
       parts: [{ text: "Next in line, please!", type: "text" }],
-      play_id: play,
       role: "assistant",
     });
 
@@ -4492,16 +4508,16 @@ describe("story content database contract", () => {
     state.messages.push(
       {
         created_at: "2026-08-29T00:00:01.000Z",
+        episode_play_id: play,
         id: "kept",
         parts: [{ text: "What did you order?", type: "text" }],
-        play_id: play,
         role: "assistant",
       },
       {
         created_at: "2026-08-29T00:00:02.000Z",
+        episode_play_id: play,
         id: "replaced",
         parts: [{ text: "Anything else?", type: "text" }],
-        play_id: play,
         role: "assistant",
       }
     );
@@ -4696,9 +4712,9 @@ describe("새 대화 시작", () => {
         storyId: STORY_ID,
         utteranceMeanings: [
           {
+            dialogueIndex: 0,
             meaning: "다음 손님, 오세요!",
             messageId: "opening-1",
-            utteranceAt: 0,
           },
         ],
       })
@@ -4720,9 +4736,9 @@ describe("새 대화 시작", () => {
     );
     const app = createApp({ authMiddleware: signedInWith(state), model });
     const translated = {
+      dialogueIndex: 0,
       meaning: "다음 손님, 오세요!",
       messageId: "opening-1",
-      utteranceAt: 0,
     };
     const response = await app.request(
       createEpisodeRequest({
@@ -4760,7 +4776,9 @@ describe("새 대화 시작", () => {
     expect(state.recorded).toEqual([]);
     // 새 회차의 플레이는 1화에 붙는다. 앞 회차의 진행을 물려받지 않는다.
     expect(
-      state.messages.every((row) => row.play_id === playIdOf(episodeId(1)))
+      state.messages.every(
+        (row) => row.episode_play_id === playIdOf(episodeId(1))
+      )
     ).toBeTrue();
   });
 
@@ -5179,18 +5197,18 @@ describe("회차 없는 첫 장면의 대사 뜻", () => {
     const app = createApp({ authMiddleware: signedInWith(state), model });
     const response = await app.request("/ai/episode/utterance-meanings", {
       body: JSON.stringify({
+        dialogueIndex: 0,
         episodeId: episodeId(1),
         messageId: "opening",
-        utteranceAt: 0,
       }),
       headers: { "content-type": "application/json" },
       method: "POST",
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
+      dialogueIndex: 0,
       meaning: "다음 손님, 오세요!",
       messageId: "opening",
-      utteranceAt: 0,
     });
     expect(model.doGenerateCalls).toHaveLength(1);
     expect(state.messages).toHaveLength(0);

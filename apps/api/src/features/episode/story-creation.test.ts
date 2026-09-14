@@ -236,7 +236,7 @@ function written(overrides: Partial<WrittenStory> = {}): WrittenStory {
     characters: [{ name: "Lena", persona: "30대 호텔 직원.", position: 1 }],
     completionCopy: "호텔부터 미팅까지 영어로 지나왔어요.",
     completionTitle: "출장을 마쳤어요",
-    coverEmoji: "🧳",
+
     episodes: [script()],
     intro: "첫 해외 출장으로 떠난 베를린에서 보내는 일주일.",
     ...overrides,

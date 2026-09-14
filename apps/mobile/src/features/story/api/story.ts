@@ -11,7 +11,7 @@ export const RECENT_API_PATH = "/ai/episode/recent";
  */
 export interface StoryCard {
   coverBlurhash: string | null;
-  coverEmoji: string;
+
   coverImagePath: string | null;
   hook: string;
   /**
@@ -58,7 +58,7 @@ export interface StoryDetail extends StoryCard {
 /** 스토리 탭의 최근 대화 한 줄. */
 export interface RecentStory {
   coverBlurhash: string | null;
-  coverEmoji: string;
+
   coverImagePath: string | null;
   hook: string;
   storyId: string;
@@ -95,7 +95,7 @@ export interface StoryPlay {
 /** 대화 기록 화면 한 장. */
 export interface StoryPlays {
   coverBlurhash: string | null;
-  coverEmoji: string;
+
   coverImagePath: string | null;
   intro: string;
   plays: StoryPlay[];

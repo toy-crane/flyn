@@ -63,25 +63,34 @@ export type Database = {
       }
       characters: {
         Row: {
+          content_key: string | null
+          created_at: string
           id: string
           name: string
           persona: string
           position: number
           story_id: string
+          updated_at: string
         }
         Insert: {
+          content_key?: string | null
+          created_at?: string
           id?: string
           name: string
           persona: string
           position: number
           story_id: string
+          updated_at?: string
         }
         Update: {
+          content_key?: string | null
+          created_at?: string
           id?: string
           name?: string
           persona?: string
           position?: number
           story_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -95,22 +104,28 @@ export type Database = {
       }
       episode_characters: {
         Row: {
-          at: number
           character_id: string
+          created_at: string
           episode_id: string
+          position: number
           story_id: string
+          updated_at: string
         }
         Insert: {
-          at: number
           character_id: string
+          created_at?: string
           episode_id: string
+          position: number
           story_id: string
+          updated_at?: string
         }
         Update: {
-          at?: number
           character_id?: string
+          created_at?: string
           episode_id?: string
+          position?: number
           story_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -129,79 +144,41 @@ export type Database = {
           },
         ]
       }
-      episode_expression_results: {
-        Row: {
-          entries: Json | null
-          example: string | null
-          example_meaning: string | null
-          fixed: string | null
-          meaning: string | null
-          message_id: string
-          situation: string | null
-          status: string
-          user_id: string
-        }
-        Insert: {
-          entries?: Json | null
-          example?: string | null
-          example_meaning?: string | null
-          fixed?: string | null
-          meaning?: string | null
-          message_id: string
-          situation?: string | null
-          status: string
-          user_id?: string
-        }
-        Update: {
-          entries?: Json | null
-          example?: string | null
-          example_meaning?: string | null
-          fixed?: string | null
-          meaning?: string | null
-          message_id?: string
-          situation?: string | null
-          status?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "episode_expression_results_message_id_user_id_fkey"
-            columns: ["message_id", "user_id"]
-            isOneToOne: false
-            referencedRelation: "episode_messages"
-            referencedColumns: ["id", "user_id"]
-          },
-        ]
-      }
       episode_messages: {
         Row: {
           created_at: string
+          episode_play_id: string
+          expression_status: string | null
           id: string
           parts: Json
-          play_id: string
           role: string
+          updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          episode_play_id: string
+          expression_status?: string | null
           id: string
           parts: Json
-          play_id: string
           role: string
+          updated_at?: string
           user_id?: string
         }
         Update: {
           created_at?: string
+          episode_play_id?: string
+          expression_status?: string | null
           id?: string
           parts?: Json
-          play_id?: string
           role?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "episode_messages_play_id_user_id_fkey"
-            columns: ["play_id", "user_id"]
+            foreignKeyName: "episode_messages_episode_play_id_user_id_fkey"
+            columns: ["episode_play_id", "user_id"]
             isOneToOne: false
             referencedRelation: "episode_plays"
             referencedColumns: ["id", "user_id"]
@@ -210,6 +187,7 @@ export type Database = {
       }
       episode_plays: {
         Row: {
+          created_at: string
           ending_kind: string | null
           ending_outcome: string | null
           episode_id: string
@@ -220,9 +198,11 @@ export type Database = {
           memory_relationship: string | null
           started_at: string
           story_play_id: string
+          updated_at: string
           user_id: string
         }
         Insert: {
+          created_at?: string
           ending_kind?: string | null
           ending_outcome?: string | null
           episode_id: string
@@ -233,9 +213,11 @@ export type Database = {
           memory_relationship?: string | null
           started_at?: string
           story_play_id: string
+          updated_at?: string
           user_id?: string
         }
         Update: {
+          created_at?: string
           ending_kind?: string | null
           ending_outcome?: string | null
           episode_id?: string
@@ -246,6 +228,7 @@ export type Database = {
           memory_relationship?: string | null
           started_at?: string
           story_play_id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -274,7 +257,7 @@ export type Database = {
       }
       episodes: {
         Row: {
-          cast_names: string[]
+          created_at: string
           ending_compromise: string
           ending_failure: string
           ending_success: string
@@ -287,9 +270,10 @@ export type Database = {
           stage: string
           story_id: string
           title: string
+          updated_at: string
         }
         Insert: {
-          cast_names: string[]
+          created_at?: string
           ending_compromise: string
           ending_failure: string
           ending_success: string
@@ -302,9 +286,10 @@ export type Database = {
           stage: string
           story_id: string
           title: string
+          updated_at?: string
         }
         Update: {
-          cast_names?: string[]
+          created_at?: string
           ending_compromise?: string
           ending_failure?: string
           ending_success?: string
@@ -317,6 +302,7 @@ export type Database = {
           stage?: string
           story_id?: string
           title?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -328,20 +314,114 @@ export type Database = {
           },
         ]
       }
-      language_levels: {
+      expressions: {
         Row: {
-          level: string
-          observed_at: string
+          claim_token: string | null
+          created_at: string
+          dialogue_index: number | null
+          entries: Json | null
+          episode_id: string
+          example: string | null
+          example_meaning: string | null
+          expires_at: string | null
+          id: string
+          kind: string
+          meaning: string | null
+          message_id: string | null
+          original: string | null
+          saved_at: string | null
+          situation: string | null
+          speaker: string | null
+          text: string
+          updated_at: string
           user_id: string
         }
         Insert: {
+          claim_token?: string | null
+          created_at?: string
+          dialogue_index?: number | null
+          entries?: Json | null
+          episode_id: string
+          example?: string | null
+          example_meaning?: string | null
+          expires_at?: string | null
+          id?: string
+          kind: string
+          meaning?: string | null
+          message_id?: string | null
+          original?: string | null
+          saved_at?: string | null
+          situation?: string | null
+          speaker?: string | null
+          text: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          claim_token?: string | null
+          created_at?: string
+          dialogue_index?: number | null
+          entries?: Json | null
+          episode_id?: string
+          example?: string | null
+          example_meaning?: string | null
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          meaning?: string | null
+          message_id?: string | null
+          original?: string | null
+          saved_at?: string | null
+          situation?: string | null
+          speaker?: string | null
+          text?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expressions_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "episodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expressions_message_id_user_id_fkey"
+            columns: ["message_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "episode_messages"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "expressions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      language_levels: {
+        Row: {
+          created_at: string
+          level: string
+          observed_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
           level: string
           observed_at?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
+          created_at?: string
           level?: string
           observed_at?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -398,21 +478,27 @@ export type Database = {
       }
       retired_usernames: {
         Row: {
+          created_at: string
           protected_until: string
           retired_at: string
           retired_by: string
+          updated_at: string
           username: string
         }
         Insert: {
+          created_at?: string
           protected_until: string
           retired_at?: string
           retired_by: string
+          updated_at?: string
           username: string
         }
         Update: {
+          created_at?: string
           protected_until?: string
           retired_at?: string
           retired_by?: string
+          updated_at?: string
           username?: string
         }
         Relationships: [
@@ -425,79 +511,11 @@ export type Database = {
           },
         ]
       }
-      saved_expressions: {
-        Row: {
-          created_at: string
-          english: string
-          entries: Json | null
-          episode_id: string
-          id: string
-          kind: string
-          meaning: string | null
-          message_id: string | null
-          original: string | null
-          speaker: string | null
-          user_id: string
-          utterance_at: number | null
-        }
-        Insert: {
-          created_at?: string
-          english: string
-          entries?: Json | null
-          episode_id: string
-          id?: string
-          kind: string
-          meaning?: string | null
-          message_id?: string | null
-          original?: string | null
-          speaker?: string | null
-          user_id?: string
-          utterance_at?: number | null
-        }
-        Update: {
-          created_at?: string
-          english?: string
-          entries?: Json | null
-          episode_id?: string
-          id?: string
-          kind?: string
-          meaning?: string | null
-          message_id?: string | null
-          original?: string | null
-          speaker?: string | null
-          user_id?: string
-          utterance_at?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "saved_expressions_episode_id_fkey"
-            columns: ["episode_id"]
-            isOneToOne: false
-            referencedRelation: "episodes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "saved_expressions_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "episode_messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "saved_expressions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       stories: {
         Row: {
           completion_copy: string
           completion_title: string
           cover_blurhash: string | null
-          cover_emoji: string
           cover_image_path: string | null
           created_at: string
           hook: string
@@ -508,12 +526,12 @@ export type Database = {
           slug: string | null
           target_language: string
           title: string
+          updated_at: string
         }
         Insert: {
           completion_copy: string
           completion_title: string
           cover_blurhash?: string | null
-          cover_emoji: string
           cover_image_path?: string | null
           created_at?: string
           hook: string
@@ -524,12 +542,12 @@ export type Database = {
           slug?: string | null
           target_language: string
           title: string
+          updated_at?: string
         }
         Update: {
           completion_copy?: string
           completion_title?: string
           cover_blurhash?: string | null
-          cover_emoji?: string
           cover_image_path?: string | null
           created_at?: string
           hook?: string
@@ -540,6 +558,7 @@ export type Database = {
           slug?: string | null
           target_language?: string
           title?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -553,24 +572,30 @@ export type Database = {
       }
       story_plays: {
         Row: {
+          created_at: string
           id: string
           last_user_message_at: string | null
           started_at: string
           story_id: string
+          updated_at: string
           user_id: string
         }
         Insert: {
+          created_at?: string
           id?: string
           last_user_message_at?: string | null
           started_at?: string
           story_id: string
+          updated_at?: string
           user_id?: string
         }
         Update: {
+          created_at?: string
           id?: string
           last_user_message_at?: string | null
           started_at?: string
           story_id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -590,54 +615,83 @@ export type Database = {
           },
         ]
       }
-      utterance_meanings: {
-        Row: {
-          claim_token: string
-          expires_at: string
-          meaning: string | null
-          message_id: string
-          user_id: string
-          utterance_at: number
-        }
-        Insert: {
-          claim_token?: string
-          expires_at?: string
-          meaning?: string | null
-          message_id: string
-          user_id?: string
-          utterance_at: number
-        }
-        Update: {
-          claim_token?: string
-          expires_at?: string
-          meaning?: string | null
-          message_id?: string
-          user_id?: string
-          utterance_at?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "utterance_meanings_message_id_user_id_fkey"
-            columns: ["message_id", "user_id"]
-            isOneToOne: false
-            referencedRelation: "episode_messages"
-            referencedColumns: ["id", "user_id"]
-          },
-          {
-            foreignKeyName: "utterance_meanings_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       available_usernames: { Args: { candidates: string[] }; Returns: string[] }
+      claim_dialogue_expression: {
+        Args: {
+          p_dialogue_index: number
+          p_message_id: string
+          p_speaker: string
+          p_text: string
+          p_token: string
+        }
+        Returns: {
+          claim_token: string | null
+          created_at: string
+          dialogue_index: number | null
+          entries: Json | null
+          episode_id: string
+          example: string | null
+          example_meaning: string | null
+          expires_at: string | null
+          id: string
+          kind: string
+          meaning: string | null
+          message_id: string | null
+          original: string | null
+          saved_at: string | null
+          situation: string | null
+          speaker: string | null
+          text: string
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "expressions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      complete_dialogue_expression: {
+        Args: {
+          p_dialogue_index: number
+          p_meaning: string
+          p_message_id: string
+          p_token: string
+        }
+        Returns: {
+          claim_token: string | null
+          created_at: string
+          dialogue_index: number | null
+          entries: Json | null
+          episode_id: string
+          example: string | null
+          example_meaning: string | null
+          expires_at: string | null
+          id: string
+          kind: string
+          meaning: string | null
+          message_id: string | null
+          original: string | null
+          saved_at: string | null
+          situation: string | null
+          speaker: string | null
+          text: string
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "expressions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       create_story: {
         Args: { story: Json }
         Returns: {
@@ -667,6 +721,10 @@ export type Database = {
         Returns: boolean
       }
       is_reserved_username: { Args: { candidate: string }; Returns: boolean }
+      save_expression_result: {
+        Args: { p_content?: Json; p_message_id: string; p_status: string }
+        Returns: string
+      }
       set_story_cover: {
         Args: { cover_blurhash: string; cover_path: string; story_id: string }
         Returns: undefined

@@ -51,7 +51,7 @@ VALUES
   );
 
 -- 끝난 플레이가 남긴 메시지 한 건. 읽기 전용 대화 기록의 자리다.
-INSERT INTO public.episode_messages (id, play_id, user_id, role, parts)
+INSERT INTO public.episode_messages (id, episode_play_id, user_id, role, parts)
 VALUES (
   'cc000000-0000-4000-8000-000000000009',
   'aa000000-0000-4000-8000-000000000001',
@@ -76,7 +76,7 @@ SELECT hasnt_column(
 -- 자식이 나르는 user_id가 부모의 주인과 어긋날 수 없게 만드는 두 쌍. 그래서
 -- 정책이 조인 없이 자기 열만 보고 답한다.
 SELECT fk_ok(
-  'public', 'episode_messages', ARRAY['play_id', 'user_id'],
+  'public', 'episode_messages', ARRAY['episode_play_id', 'user_id'],
   'public', 'episode_plays', ARRAY['id', 'user_id'],
   'a message belongs to a play and to that play''s owner'
 );
@@ -118,7 +118,7 @@ SELECT ok(
     SELECT bool_and(
       has_column_privilege('authenticated', 'public.episode_messages', c, 'INSERT')
     )
-    FROM unnest(ARRAY['id', 'play_id', 'role', 'parts']) AS c
+    FROM unnest(ARRAY['id', 'episode_play_id', 'role', 'parts']) AS c
   )
   AND NOT (
     SELECT has_column_privilege(
@@ -144,7 +144,7 @@ SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claims TO '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}';
 
 SELECT lives_ok(
-  $$insert into public.episode_messages (id, play_id, role, parts)
+  $$insert into public.episode_messages (id, episode_play_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000001',
       'aa000000-0000-4000-8000-000000000002',
@@ -154,7 +154,7 @@ SELECT lives_ok(
 );
 
 SELECT lives_ok(
-  $$insert into public.episode_messages (id, play_id, role, parts)
+  $$insert into public.episode_messages (id, episode_play_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000002',
       'aa000000-0000-4000-8000-000000000002',
@@ -166,7 +166,7 @@ SELECT lives_ok(
 -- 넣은 차례가 곧 읽는 차례다. 자리를 정하는 값은 데이터베이스가 채운다.
 SELECT results_eq(
   $$select id from public.episode_messages
-    where play_id = 'aa000000-0000-4000-8000-000000000002'
+    where episode_play_id = 'aa000000-0000-4000-8000-000000000002'
     order by created_at$$,
   $$values
     ('cc000000-0000-4000-8000-000000000001'::uuid),
@@ -175,7 +175,7 @@ SELECT results_eq(
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, created_at, role, parts)
+  $$insert into public.episode_messages (id, episode_play_id, created_at, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'aa000000-0000-4000-8000-000000000002',
@@ -185,7 +185,7 @@ SELECT throws_ok(
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, role, parts)
+  $$insert into public.episode_messages (id, episode_play_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'aa000000-0000-4000-8000-000000000002',
@@ -195,7 +195,7 @@ SELECT throws_ok(
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, role, parts)
+  $$insert into public.episode_messages (id, episode_play_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'aa000000-0000-4000-8000-000000000002',
@@ -205,7 +205,7 @@ SELECT throws_ok(
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, role, parts)
+  $$insert into public.episode_messages (id, episode_play_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'aa000000-0000-4000-8000-000000000001',
@@ -215,7 +215,7 @@ SELECT throws_ok(
 );
 
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, role, parts)
+  $$insert into public.episode_messages (id, episode_play_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'bb000000-0000-4000-8000-000000000001',
@@ -227,7 +227,7 @@ SELECT throws_ok(
 -- `user_id`는 기본값이 채우므로 insert grant에 없다. 남의 이름을 실어 보내는
 -- 문장은 정책을 만나기 전에 권한에서 막힌다.
 SELECT throws_ok(
-  $$insert into public.episode_messages (id, play_id, user_id, role, parts)
+  $$insert into public.episode_messages (id, episode_play_id, user_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000003',
       'aa000000-0000-4000-8000-000000000002',
@@ -241,13 +241,13 @@ SELECT throws_ok(
 -- 아무 일도 일어나지 않는 것으로 나타난다.
 SELECT lives_ok(
   $$delete from public.episode_messages
-    where play_id = 'aa000000-0000-4000-8000-000000000001'$$,
+    where episode_play_id = 'aa000000-0000-4000-8000-000000000001'$$,
   'removing from a finished play raises nothing'
 );
 
 SELECT is(
   (SELECT count(*) FROM public.episode_messages
-   WHERE play_id = 'aa000000-0000-4000-8000-000000000001'),
+   WHERE episode_play_id = 'aa000000-0000-4000-8000-000000000001'),
   1::bigint,
   'and leaves the finished transcript exactly as it was'
 );
@@ -255,7 +255,7 @@ SELECT is(
 -- 특정 화에서 쓴 문장 전체도 한 번의 조회로 나온다.
 SELECT is(
   (SELECT count(*) FROM public.episode_messages
-   WHERE play_id = 'aa000000-0000-4000-8000-000000000002'
+   WHERE episode_play_id = 'aa000000-0000-4000-8000-000000000002'
      AND role = 'user'),
   1::bigint,
   'and so does everything this account wrote in one episode'
@@ -264,7 +264,7 @@ SELECT is(
 -- 다시 받기와 수정은 기준 메시지와 그 뒤를 지운다.
 SELECT lives_ok(
   $$delete from public.episode_messages
-    where play_id = 'aa000000-0000-4000-8000-000000000002'
+    where episode_play_id = 'aa000000-0000-4000-8000-000000000002'
       and created_at > (
         select created_at from public.episode_messages
         where id = 'cc000000-0000-4000-8000-000000000001'
@@ -274,13 +274,13 @@ SELECT lives_ok(
 
 SELECT is(
   (SELECT count(*) FROM public.episode_messages
-   WHERE play_id = 'aa000000-0000-4000-8000-000000000002'),
+   WHERE episode_play_id = 'aa000000-0000-4000-8000-000000000002'),
   1::bigint,
   'and the conversation keeps everything before it'
 );
 
 SELECT lives_ok(
-  $$insert into public.episode_messages (id, play_id, role, parts)
+  $$insert into public.episode_messages (id, episode_play_id, role, parts)
     values (
       'cc000000-0000-4000-8000-000000000004',
       'aa000000-0000-4000-8000-000000000002',
@@ -304,7 +304,7 @@ SELECT is(
 
 SELECT lives_ok(
   $$delete from public.episode_messages
-    where play_id = 'aa000000-0000-4000-8000-000000000002'$$,
+    where episode_play_id = 'aa000000-0000-4000-8000-000000000002'$$,
   'a delete aimed at another account''s play raises nothing'
 );
 
@@ -312,7 +312,7 @@ RESET ROLE;
 
 SELECT is(
   (SELECT count(*) FROM public.episode_messages
-   WHERE play_id = 'aa000000-0000-4000-8000-000000000002'),
+   WHERE episode_play_id = 'aa000000-0000-4000-8000-000000000002'),
   1::bigint,
   'and removes nothing'
 );

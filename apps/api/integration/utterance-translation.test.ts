@@ -65,12 +65,12 @@ beforeAll(async () => {
 async function addScene() {
   const id = crypto.randomUUID();
   const added = await user.client.from("episode_messages").insert({
+    episode_play_id: playId,
     id,
     parts: [
       { data: { name: "Mia" }, type: "data-speaker" },
       { text: "Next in line, please!", type: "text" },
     ],
-    play_id: playId,
     role: "assistant",
   });
   if (added.error) {
@@ -114,10 +114,10 @@ function request(
 ) {
   return app.request(`/ai/episode/${path}`, {
     body: JSON.stringify({
+      dialogueIndex: 0,
       episodeId,
       messageId: id,
       storyPlayId,
-      utteranceAt: 0,
       ...extra,
     }),
     headers: { "content-type": "application/json" },
@@ -131,14 +131,14 @@ describe("대사 뜻의 실제 API와 저장 수명", () => {
     const app = appFor(model);
     const [translated, saved] = await Promise.all([
       request(app, "utterance-meanings"),
-      request(app, "saved-expressions", { kind: "utterance" }),
+      request(app, "saved-expressions", { kind: "dialogue" }),
     ]);
     expect(translated.status).toBe(200);
     expect(saved.status).toBe(200);
     expect(model.doGenerateCalls).toHaveLength(1);
     expect((await translated.json()).meaning).toBe(meaning);
     const note = await user.client
-      .from("saved_expressions")
+      .from("expressions")
       .select("meaning")
       .eq("message_id", messageId)
       .single();
@@ -147,9 +147,9 @@ describe("대사 뜻의 실제 API와 저장 수명", () => {
       `/ai/episode/${episodeId}?storyPlayId=${storyPlayId}`
     );
     expect((await restored.json()).utteranceMeanings).toContainEqual({
+      dialogueIndex: 0,
       meaning,
       messageId,
-      utteranceAt: 0,
     });
     expect(
       (await request(app, "utterance-meanings", { meaning: "다른 뜻" })).status
@@ -163,25 +163,20 @@ describe("대사 뜻의 실제 API와 저장 수명", () => {
     ).toBe(404);
     expect(model.doGenerateCalls).toHaveLength(0);
     const rows = await stranger.client
-      .from("utterance_meanings")
+      .from("expressions")
       .select("*")
       .eq("message_id", messageId);
     expect(rows.data).toEqual([]);
   });
   test("예전에 담은 대사의 뜻을 모델 없이 가져온다", async () => {
     const id = await addScene();
-    const saved = await user.client.from("saved_expressions").insert({
-      english: "Next in line, please!",
-      episode_id: episodeId,
-      kind: "utterance",
-      meaning: "다음 분이요!",
-      message_id: id,
-      speaker: "Mia",
-      utterance_at: 0,
-    });
-    if (saved.error) {
-      throw saved.error;
-    }
+    const prepared = await request(
+      appFor(modelFor("다음 분이요!")),
+      "saved-expressions",
+      { kind: "dialogue" },
+      id
+    );
+    expect(prepared.status).toBe(200);
     const model = modelFor();
     const response = await request(appFor(model), "utterance-meanings", {}, id);
     expect(response.status).toBe(200);
@@ -194,22 +189,18 @@ describe("대사 뜻의 실제 API와 저장 수명", () => {
       (await request(appFor(modelFor("")), "utterance-meanings", {}, id)).status
     ).toBe(500);
     expect(
-      (
-        await user.client
-          .from("utterance_meanings")
-          .select("*")
-          .eq("message_id", id)
-      ).data
+      (await user.client.from("expressions").select("*").eq("message_id", id))
+        .data
     ).toEqual([]);
     expect((await request(appFor(), "utterance-meanings", {}, id)).status).toBe(
       200
     );
     const changed = await user.client
-      .from("utterance_meanings")
+      .from("expressions")
       .update({ meaning: "바뀐 뜻" })
       .eq("message_id", id)
       .select("meaning");
-    expect(changed.data).toEqual([]);
+    expect(changed.error?.code).toBe("42501");
   });
   test("만료된 선점을 회수하면 앞 요청의 실패가 새 선점을 지우지 않는다", async () => {
     const id = await addScene();
@@ -226,11 +217,11 @@ describe("대사 뜻의 실제 API와 저장 수명", () => {
     const oldRequest = request(appFor(oldModel), "utterance-meanings", {}, id);
     const read = () =>
       user.client
-        .from("utterance_meanings")
+        .from("expressions")
         .select("claim_token")
         .eq("message_id", id)
         .maybeSingle();
-    let token: string | undefined;
+    let token: string | null | undefined;
     for (let i = 0; i < 100 && !token; i += 1) {
       // biome-ignore lint/performance/noAwaitInLoops: 선점이 만들어지는 순서를 관찰한다.
       token = (await read()).data?.claim_token;
@@ -239,13 +230,8 @@ describe("대사 뜻의 실제 API와 저장 수명", () => {
       }
     }
     expect(token).toBeDefined();
-    const expired = await user.client
-      .from("utterance_meanings")
-      .update({ expires_at: new Date(Date.now() - 1000).toISOString() })
-      .eq("message_id", id);
-    if (expired.error) {
-      throw expired.error;
-    }
+    // 만료 시각은 DB가 소유한다. 실제 30초 선점 수명이 지난 뒤 재시도한다.
+    await new Promise((resolve) => setTimeout(resolve, 30_100));
     const nextRequest = request(
       appFor(modelFor("새로 남긴 뜻이에요.", 200)),
       "utterance-meanings",
@@ -267,6 +253,55 @@ describe("대사 뜻의 실제 API와 저장 수명", () => {
     const response = await nextRequest;
     expect(response.status).toBe(200);
     expect((await response.json()).meaning).toBe("새로 남긴 뜻이에요.");
+  }, 45_000);
+  test("번역 생성 중 원본을 삭제하면 늦은 응답이 표현을 되살리지 않는다", async () => {
+    const id = await addScene();
+    const started = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => {
+        started.resolve();
+        await release.promise;
+        return {
+          content: [{ text: JSON.stringify({ meaning }), type: "text" }],
+          finishReason: { raw: undefined, unified: "stop" },
+          usage: {
+            inputTokens: { cacheRead: 0, cacheWrite: 0, noCache: 1, total: 1 },
+            outputTokens: { reasoning: 0, text: 1, total: 1 },
+          },
+          warnings: [],
+        };
+      },
+    });
+    const pending = request(
+      appFor(model),
+      "saved-expressions",
+      { kind: "dialogue" },
+      id
+    );
+    await started.promise;
+    try {
+      const removed = await user.client
+        .from("episode_messages")
+        .delete()
+        .eq("id", id);
+      expect(removed.error).toBeNull();
+    } finally {
+      release.resolve();
+    }
+    expect((await pending).status).toBe(500);
+    const remaining = await user.client
+      .from("expressions")
+      .select("id")
+      .eq("message_id", id);
+    expect(remaining.error).toBeNull();
+    expect(remaining.data).toEqual([]);
+    const orphan = await user.client
+      .from("expressions")
+      .select("id")
+      .is("message_id", null);
+    expect(orphan.error).toBeNull();
+    expect(orphan.data).toEqual([]);
   });
   test("장면을 버리면 뜻이 사라지고 담아 둔 표현은 남는다", async () => {
     const removed = await user.client
@@ -279,13 +314,13 @@ describe("대사 뜻의 실제 API와 저장 수명", () => {
     expect(
       (
         await user.client
-          .from("utterance_meanings")
+          .from("expressions")
           .select("*")
           .eq("message_id", messageId)
       ).data
     ).toEqual([]);
     const note = await user.client
-      .from("saved_expressions")
+      .from("expressions")
       .select("meaning, message_id")
       .eq("meaning", meaning);
     expect(note.data).toContainEqual({ meaning, message_id: null });

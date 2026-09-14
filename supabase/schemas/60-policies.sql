@@ -208,7 +208,7 @@ create policy episode_messages_write_open_play on public.episode_messages
     and exists (
       select 1
       from public.episode_plays played
-      where played.id = play_id
+      where played.id = episode_play_id
         and played.finished_at is null
     )
   );
@@ -223,7 +223,7 @@ create policy episode_messages_erase_open_play on public.episode_messages
     and exists (
       select 1
       from public.episode_plays played
-      where played.id = play_id
+      where played.id = episode_play_id
         and played.finished_at is null
     )
   );
@@ -234,31 +234,9 @@ create policy episode_messages_erase_open_play on public.episode_messages
 -- 자리를 정하는 것은 데이터베이스가 채우는 시각이라 실어 보낼 값이 아니다.
 grant select, delete on table public.episode_messages to authenticated;
 revoke insert on table public.episode_messages from authenticated;
-grant insert (id, play_id, role, parts)
+grant insert (id, episode_play_id, role, parts)
   on table public.episode_messages to authenticated;
 grant all on table public.episode_messages to service_role;
-
-alter table public.episode_expression_results enable row level security;
-
-create policy episode_expression_results_select_own on public.episode_expression_results
-  for select to authenticated
-  using ((select auth.uid()) = user_id);
-
-create policy episode_expression_results_write_own_message on public.episode_expression_results
-  for insert to authenticated
-  with check (
-    (select auth.uid()) = user_id
-    and exists (
-      select 1 from public.episode_messages written
-      where written.id = message_id and written.role = 'user'
-    )
-  );
-
-grant select on table public.episode_expression_results to authenticated;
-revoke insert on table public.episode_expression_results from authenticated;
-grant insert (message_id, status, fixed, entries, situation, meaning, example, example_meaning)
-  on table public.episode_expression_results to authenticated;
-grant all on table public.episode_expression_results to service_role;
 
 -- Access control for public.language_levels.
 --
@@ -276,107 +254,20 @@ grant select on table public.language_levels to authenticated;
 
 grant all on table public.language_levels to service_role;
 
--- 손으로 담아 둔 표현의 접근 규칙.
---
--- 앞의 네 테이블과 다른 점이 둘이다. 담는 자리가 인물의 대사이기도 해서 어느
--- 역할의 메시지인지를 종류가 정하고, 결말이 난 화에서도 담고 취소할 수 있다.
-alter table public.saved_expressions enable row level security;
-
-create policy saved_expressions_select_own on public.saved_expressions
-  for select
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
--- 담는 것은 사람이 한다. 지킬 규칙은 넷이다. 자기 것이어야 하고, 그 종류가 담을
--- 수 있는 역할의 메시지여야 하고, 적어 낸 화가 그 메시지가 실제로 오간 화여야
--- 하고, 배울 표현은 고칠 것이 있다고 판정된 메시지에서만 나와야 한다. 셋째가
--- 없으면 표현 노트의 출처 표시를 앱 밖에서 고를 수 있고, 넷째가 없으면 아무 말에나
--- 지어낸 교정을 붙일 수 있다. 판정 결과는 문제없음과 알 수 없음도 행으로 남기므로
--- 행이 있다는 것만으로는 모자라고, 고친 문장이 있는 판정만 배울 표현이 된다.
---
--- 인물 대사는 캐릭터가 말한 것이고 영어 교정과 한국어 안내는 사용자가 쓴 것에
--- 붙으므로, 담을 수 있는 역할이 종류마다 다르다. 지문과 내 말풍선에 저장을 두지
--- 않는다는 화면의 규칙과 달리, 여기서 막는 것은 역할까지다. 지문인지 대사인지는
--- 같은 메시지 안의 자리라 정책이 볼 수 없고, `utterance_at`이 가리키는 자리를
--- 서버가 읽어 영어 문장을 만든다.
---
--- 담기는 글 자체는 서버를 믿는다. `english`, `meaning`, `speaker`, `original`,
--- `entries`가 그렇다. 인물 대사의 화자와 문장은 `episode_messages.parts` 안에
--- 있으므로 정책이 대조할 수는 있지만, 한국어 뜻은 담는 순간 모델이 만드는 값이라
--- 데이터베이스에 견줄 원본이 없다. 다섯 열 중 하나만 규칙이 걸리면 나머지가
--- 지켜진다는 인상만 남으므로 다섯을 함께 서버에 맡긴다. 이 열들을 고쳐서 얻는
--- 것은 자기 표현 노트에 자기가 지어낸 글을 넣는 것뿐이고, 남의 행에는 닿지
--- 않는다. 모델을 부르지 않고도 문장을 확정할 수 있게 되면 다시 본다.
---
--- 플레이가 끝났는지는 보지 않는다. 결말이 얼리는 것은 대화이고, 끝난 화를 읽기
--- 전용으로 다시 열어 마음에 드는 대사를 담는 것은 이 기능이 하려는 일 그 자체다.
-create policy saved_expressions_save_own on public.saved_expressions
-  for insert
-  to authenticated
-  with check (
-    (select auth.uid()) = user_id
-    and exists (
-      select 1
-      from public.episode_messages written
-      join public.episode_plays played on played.id = written.play_id
-      where written.id = message_id
-        and written.user_id = (select auth.uid())
-        and played.episode_id = saved_expressions.episode_id
-        and written.role = (
-          case when kind = 'utterance' then 'assistant' else 'user' end
-        )
-    )
-    and (
-      kind = 'utterance'
-      or exists (
-        select 1
-        from public.episode_expression_results judged
-        where judged.message_id = saved_expressions.message_id
-          and judged.status = 'corrected'
-      )
-    )
-  );
-
--- 담은 것을 지우는 것도 사람이 한다. 책갈피를 다시 누르는 취소와 표현 노트에서
--- 미는 삭제가 같은 문장이다. 자기 행인지 말고 볼 것이 없다.
-create policy saved_expressions_erase_own on public.saved_expressions
-  for delete
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
--- update 정책이 없다. 담은 항목은 고쳐 쓰지 않는다. 뜻 편집은 범위 밖이고,
--- 자리를 옮기는 일도 없다. `user_id`와 `created_at`은 앞의 테이블들과 같은 이유로
--- insert grant에서 빠져 있다.
-grant select, delete on table public.saved_expressions to authenticated;
-revoke insert on table public.saved_expressions from authenticated;
-grant insert (
-  kind, episode_id, message_id, utterance_at, english, meaning, speaker,
-  original, entries
-) on table public.saved_expressions to authenticated;
-grant all on table public.saved_expressions to service_role;
-
-alter table public.utterance_meanings enable row level security;
-create policy utterance_meanings_read_own on public.utterance_meanings
-  for select to authenticated using ((select auth.uid()) = user_id);
-create policy utterance_meanings_insert_own on public.utterance_meanings
-  for insert to authenticated with check (
-    (select auth.uid()) = user_id and exists (
-      select 1 from public.episode_messages m where m.id = message_id and m.role = 'assistant'
-    )
-  );
--- 완료된 뜻은 고치거나 지우지 않는다. 실패한 선점만 비울 수 있다.
-create policy utterance_meanings_update_pending on public.utterance_meanings
-  for update to authenticated using ((select auth.uid()) = user_id and meaning is null)
-  with check ((select auth.uid()) = user_id);
-create policy utterance_meanings_delete_pending on public.utterance_meanings
-  for delete to authenticated using ((select auth.uid()) = user_id and meaning is null);
-revoke insert, update on public.utterance_meanings from authenticated;
-grant select, delete on public.utterance_meanings to authenticated;
-grant insert(message_id, utterance_at, meaning, claim_token) on public.utterance_meanings to authenticated;
-grant update(meaning, claim_token, expires_at) on public.utterance_meanings to authenticated;
-grant all on public.utterance_meanings to service_role;
-
 -- 로그인 여부와 관계없이 현재 배포 대상의 정책을 읽는다. Dashboard 운영자만 바꾼다.
+alter table public.expressions enable row level security;
+create policy expressions_read_own on public.expressions for select to authenticated
+  using ((select auth.uid()) = user_id);
+create policy expressions_save_own on public.expressions for update to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+create policy expressions_release_own_claim on public.expressions for delete to authenticated
+  using ((select auth.uid()) = user_id and kind = 'dialogue' and meaning is null);
+revoke insert, update on public.expressions from authenticated;
+grant select, delete on public.expressions to authenticated;
+grant update(saved_at) on public.expressions to authenticated;
+grant all on public.expressions to service_role;
+
 alter table public.app_version_policies enable row level security;
 create policy app_version_policies_read on public.app_version_policies
   for select to anon, authenticated using (true);

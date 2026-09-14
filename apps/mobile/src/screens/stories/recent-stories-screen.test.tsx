@@ -16,7 +16,7 @@ function stories(): RecentStory[] {
   return [
     {
       coverBlurhash: null,
-      coverEmoji: "☕",
+
       coverImagePath: null,
       hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
       storyId: STORY_ID,
@@ -24,7 +24,7 @@ function stories(): RecentStory[] {
     },
     {
       coverBlurhash: null,
-      coverEmoji: "✈️",
+
       coverImagePath: null,
       hook: "첫 출장인데 공항에서부터 꼬였어요",
       storyId: OTHER_STORY_ID,

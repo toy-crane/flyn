@@ -43,65 +43,73 @@ create trigger on_auth_user_created
   for each row
   execute function public.handle_new_user();
 
--- Stamps `updated_at` when a profile actually changes.
---
--- `security invoker` is the right level here: this only rewrites a column of the
--- row the caller is already updating, so it needs no privileges of its own.
-create function public.set_updated_at()
+-- 모든 앱 행의 시각은 DB가 기록한다. 사건 시각과 메시지 순서는 바꾸지 않는다.
+create function public.set_row_timestamps()
 returns trigger
 language plpgsql
 security invoker
 set search_path = ''
 as $$
 begin
-  new.updated_at := now();
-
-  return new;
-end;
-$$;
-
-comment on function public.set_updated_at() is
-  'Sets updated_at on a row that changed. Paired with a WHEN clause that skips no-op updates.';
-
-revoke all on function public.set_updated_at() from public, anon, authenticated, service_role;
-
--- The `when` clause is what keeps `updated_at` honest: an update that writes the
--- same values never fires, so the column records real changes rather than write
--- attempts.
-create trigger profiles_set_updated_at
-  before update on public.profiles
-  for each row
-  when (old.* is distinct from new.*)
-  execute function public.set_updated_at();
-
--- Keep policy creation time fixed and stamp only changes to editable settings.
-create function public.set_app_version_policy_timestamps()
-returns trigger
-language plpgsql
-security invoker
-set search_path = ''
-as $$
-begin
-  new.created_at := old.created_at;
-  if row(new.platform, new.distribution, new.minimum_version, new.install_url)
-    is distinct from row(old.platform, old.distribution, old.minimum_version, old.install_url) then
-    new.updated_at := clock_timestamp();
+  if tg_op = 'INSERT' then
+    new.created_at := clock_timestamp();
+    new.updated_at := new.created_at;
   else
+    new.created_at := old.created_at;
     new.updated_at := old.updated_at;
+    if new is distinct from old then
+      new.updated_at := clock_timestamp();
+    end if;
   end if;
   return new;
 end;
 $$;
 
-comment on function public.set_app_version_policy_timestamps() is
-  'Keeps policy creation time fixed and stamps actual policy changes.';
+revoke all on function public.set_row_timestamps() from public, anon, authenticated, service_role;
 
-revoke all on function public.set_app_version_policy_timestamps() from public, anon, authenticated, service_role;
+create trigger profiles_set_timestamps
+  before insert or update on public.profiles
+  for each row execute function public.set_row_timestamps();
+
+create trigger retired_usernames_set_timestamps
+  before insert or update on public.retired_usernames
+  for each row execute function public.set_row_timestamps();
+
+create trigger stories_set_timestamps
+  before insert or update on public.stories
+  for each row execute function public.set_row_timestamps();
+
+create trigger characters_set_timestamps
+  before insert or update on public.characters
+  for each row execute function public.set_row_timestamps();
+
+create trigger episodes_set_timestamps
+  before insert or update on public.episodes
+  for each row execute function public.set_row_timestamps();
+
+create trigger episode_characters_set_timestamps
+  before insert or update on public.episode_characters
+  for each row execute function public.set_row_timestamps();
+
+create trigger story_plays_set_timestamps
+  before insert or update on public.story_plays
+  for each row execute function public.set_row_timestamps();
+
+create trigger episode_plays_set_timestamps
+  before insert or update on public.episode_plays
+  for each row execute function public.set_row_timestamps();
+
+create trigger episode_messages_set_timestamps
+  before insert or update on public.episode_messages
+  for each row execute function public.set_row_timestamps();
+
+create trigger language_levels_set_timestamps
+  before insert or update on public.language_levels
+  for each row execute function public.set_row_timestamps();
 
 create trigger app_version_policies_set_timestamps
-  before update on public.app_version_policies
-  for each row
-  execute function public.set_app_version_policy_timestamps();
+  before insert or update on public.app_version_policies
+  for each row execute function public.set_row_timestamps();
 
 -- How long a changed account id is locked, and how long the old one is held back.
 --
@@ -425,7 +433,7 @@ begin
     new.created_at
   )
   from public.episode_plays played
-  where played.id = new.play_id
+  where played.id = new.episode_play_id
     and public.story_plays.id = played.story_play_id;
 
   return new;
@@ -606,9 +614,7 @@ begin
       using errcode = '22023';
   end if;
 
-  -- 화의 인물 수는 `episode_characters.at`이 1..3으로 막지만, 옛 열
-  -- `cast_names`는 20까지 받는다. 넷을 담은 화는 그 열을 지난 뒤 자리 번호에서
-  -- 막혀 오류가 실제 규칙이 아닌 곳을 가리킨다. 여기서 먼저 센다.
+  -- 화마다 등장인물은 1명부터 3명까지 둔다.
   if exists (
     select 1
     from jsonb_array_elements(chapters) as chapter
@@ -624,7 +630,6 @@ begin
     title,
     hook,
     intro,
-    cover_emoji,
     -- 이 제품이 가르치는 언어. 만드는 사람이 고르는 값이 아니다.
     target_language,
     completion_title,
@@ -635,7 +640,6 @@ begin
     create_story.story ->> 'title',
     create_story.story ->> 'hook',
     create_story.story ->> 'intro',
-    create_story.story ->> 'coverEmoji',
     'en',
     create_story.story ->> 'completionTitle',
     create_story.story ->> 'completionCopy'
@@ -650,8 +654,6 @@ begin
     person ->> 'persona'
   from jsonb_array_elements(create_story.story -> 'characters') as person;
 
-  -- `cast_names`는 아직 앞선 API가 읽는 옛 열이다. 같은 이름을 같은 차례로
-  -- 담아야 pgTAP의 일치 검사가 지나간다.
   insert into public.episodes (
     story_id,
     number,
@@ -661,7 +663,6 @@ begin
     situation_emoji,
     opening,
     stage,
-    cast_names,
     ending_success,
     ending_compromise,
     ending_failure
@@ -675,23 +676,20 @@ begin
     chapter ->> 'situationEmoji',
     chapter ->> 'opening',
     chapter ->> 'stage',
-    array(
-      select jsonb_array_elements_text(chapter -> 'castNames')
-    ),
     chapter ->> 'endingSuccess',
     chapter ->> 'endingCompromise',
     chapter ->> 'endingFailure'
   from jsonb_array_elements(create_story.story -> 'episodes') as chapter;
 
-  insert into public.episode_characters (episode_id, character_id, story_id, at)
+  insert into public.episode_characters (episode_id, character_id, story_id, position)
   select
     saved.id,
     person.id,
     made_story_id,
-    standing.at::smallint
+    standing.position::smallint
   from jsonb_array_elements(create_story.story -> 'episodes') as chapter
   cross join lateral jsonb_array_elements_text(chapter -> 'castNames')
-    with ordinality as standing(name, at)
+    with ordinality as standing(name, position)
   join public.episodes saved
     on saved.story_id = made_story_id
     and saved.number = (chapter ->> 'number')::smallint

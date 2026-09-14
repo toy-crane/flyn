@@ -37,7 +37,7 @@ export interface SavedExpressionSource {
   episodeId: string;
   meaningFor?: (spot: {
     messageId: string;
-    utteranceAt: number;
+    dialogueIndex: number;
   }) => Promise<string | undefined>;
   /** 이 화에서 이미 담아 둔 자리. 서버가 들고 있는 진실이다. */
   saved: readonly SavedExpressionRef[] | undefined;
@@ -363,9 +363,7 @@ export function EpisodeSavedExpressionsProvider({
           source.episodeId,
           spot,
           signal,
-          spot.kind === "utterance"
-            ? await source.meaningFor?.(spot)
-            : undefined
+          spot.kind === "dialogue" ? await source.meaningFor?.(spot) : undefined
         ),
       []
     ),

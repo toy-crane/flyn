@@ -99,6 +99,8 @@ comment on column public.profiles.username_locked_until is
 -- The trigger fills it and the availability functions read it, both as owner. A
 -- client that could select here would have a list of ids to sit and wait for.
 create table public.retired_usernames (
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
   username text primary key,
   -- The account that gave the id up. `on delete cascade` releases it when the
   -- account is gone: nobody is left to be confused with.
@@ -125,6 +127,7 @@ create index retired_usernames_protected_until_idx
 -- 화면에서 이 단위의 이름은 아직 쓰지 않지만, 데이터에서는 공유 가능한
 -- 자기 완결 단위가 된다.
 create table public.stories (
+  updated_at timestamptz not null default clock_timestamp(),
   id uuid primary key default gen_random_uuid(),
   -- 이 스토리를 만든 사람. 공식 콘텐츠는 비어 있고, 사용자가 만든 스토리에만
   -- 이름이 들어간다. 탐색에서 무엇이 보이는지를 이 한 열이 가른다.
@@ -145,8 +148,6 @@ create table public.stories (
   hook text not null,
   -- 스토리 상세가 여는 소개 문단. 훅보다 길고, 세계와 인물을 함께 말한다.
   intro text not null,
-  -- 기존 콘텐츠 호환을 위해 보존한다. 표지 화면에서는 표시하지 않는다.
-  cover_emoji text not null,
   -- `story-covers` 버킷에서 이 스토리의 표지 그림이 있는 자리.
   -- URL이 아니라 경로다. 같은 행을 시뮬레이터, 기기, 배포본이 함께 읽는데
   -- 저장소에 닿는 주소가 저마다 달라서, `http://127.0.0.1:54321/...`을 넣으면
@@ -175,9 +176,6 @@ create table public.stories (
   ),
   constraint stories_intro_usable check (
     length(btrim(intro)) between 1 and 500
-  ),
-  constraint stories_cover_emoji_usable check (
-    length(btrim(cover_emoji)) between 1 and 20
   ),
   constraint stories_cover_image_path_usable check (
     cover_image_path is null
@@ -211,6 +209,8 @@ create index stories_owner_id_created_at_idx
 -- 안에서 겹치지 않게 하면, 스토리에 다섯째 인물이 생기는 일도 세는 트리거 없이
 -- 막힌다. 한 모델이 여러 인물을 연기하므로 넷을 넘으면 인물이 흐려진다.
 create table public.characters (
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
   id uuid primary key default gen_random_uuid(),
   -- 스토리가 인물을 소유하므로 스토리가 사라지면 인물도 사라진다. 계정을
   -- 지우면 그 사람이 만든 스토리가 지워지는데, 여기가 `restrict`면 그 연쇄가
@@ -222,10 +222,16 @@ create table public.characters (
   -- 대본까지 함께 사라진다. 그 문장을 쓸 수 있는 것은 소유자와 `service_role`
   -- 뿐이고 앱에는 그 길이 없다.
   story_id uuid not null references public.stories (id) on delete cascade,
+  -- 공식 콘텐츠의 고정 키. 이름이나 순서를 바꿔도 이 값은 바꾸지 않는다.
+  content_key text,
   name text not null,
   position smallint not null,
   persona text not null,
-  unique (story_id, name),
+  unique (story_id, content_key),
+  unique (story_id, name) deferrable initially deferred,
+  constraint characters_content_key_usable check (
+    content_key is null or content_key ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+  ),
   -- 콘텐츠를 다시 올릴 때 두 인물의 순서가 서로 바뀔 수 있다. 문장이 끝날 때
   -- 확인하면 그 교체가 중간 상태에서 걸리지 않는다. 화 안의 자리도 같은 자세다.
   unique (story_id, position) deferrable initially deferred,
@@ -243,6 +249,8 @@ create table public.characters (
 
 -- 사람이 쓴 대본 한 편. 번호는 스토리 안의 순서이고, 참조에는 안정된 id를 쓴다.
 create table public.episodes (
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
   id uuid primary key default gen_random_uuid(),
   -- `characters.story_id`와 같은 이유로 함께 지운다. 대본은 스토리의 일부다.
   story_id uuid not null references public.stories (id) on delete cascade,
@@ -253,11 +261,6 @@ create table public.episodes (
   situation_emoji text not null,
   opening text not null,
   stage text not null,
-  -- 인물이 `characters`로 옮겨 가기 전의 화자 목록. `episode_characters`와 같은
-  -- 이름을 같은 차례로 담으며 그 일치는 pgTAP이 지킨다. DB가 API보다 먼저
-  -- 배포되므로 아직 이 열을 읽는 앞선 API를 위해 한 판 더 남긴다. 지우는 것은
-  -- 별도 검토와 승인을 거친 뒤의 마이그레이션이 한다.
-  cast_names text[] not null,
   ending_success text not null,
   ending_compromise text not null,
   ending_failure text not null,
@@ -283,9 +286,6 @@ create table public.episodes (
   constraint episodes_stage_usable check (
     length(btrim(stage)) between 1 and 20000
   ),
-  constraint episodes_cast_names_usable check (
-    cardinality(cast_names) between 1 and 20
-  ),
   constraint episodes_ending_success_usable check (
     length(btrim(ending_success)) between 1 and 500
   ),
@@ -299,7 +299,7 @@ create table public.episodes (
 
 -- 이 화에 서는 인물. 스토리가 소유한 인물 중 누가 나오는지만 가리킨다.
 --
--- `at`은 이 화의 인물 목록에서의 자리다. 프롬프트의 등장인물 문장이 이 차례로
+-- `position`은 이 화의 인물 목록에서의 자리다. 프롬프트의 등장인물 문장이 이 차례로
 -- 이름을 부르므로, 같은 인물이라도 화마다 먼저 불릴 수 있다. 색을 정하는
 -- `characters.position`과는 다른 값이다. 1..3으로 묶고 화 안에서 겹치지 않게
 -- 하면 화에 넷째 인물이 서는 일도 세는 트리거 없이 막힌다.
@@ -307,14 +307,16 @@ create table public.episodes (
 -- `story_id`를 함께 들고 두 부모를 그 쌍으로 참조한다. 열 하나가 늘지만, 다른
 -- 스토리의 인물을 이 화에 세우는 문장이 애플리케이션에 닿기 전에 막힌다.
 create table public.episode_characters (
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
   episode_id uuid not null,
   character_id uuid not null,
   story_id uuid not null,
-  at smallint not null,
+  position smallint not null,
   primary key (episode_id, character_id),
   -- 콘텐츠를 다시 올릴 때 두 인물의 자리가 서로 바뀔 수 있다. 문장이 끝날 때
   -- 확인하면 그 교체가 중간 상태에서 걸리지 않는다.
-  unique (episode_id, at) deferrable initially deferred,
+  unique (episode_id, position) deferrable initially deferred,
   constraint episode_characters_episode_fkey
     foreign key (episode_id, story_id)
     references public.episodes (id, story_id) on delete cascade,
@@ -323,13 +325,13 @@ create table public.episode_characters (
   constraint episode_characters_character_fkey
     foreign key (character_id, story_id)
     references public.characters (id, story_id) on delete cascade,
-  constraint episode_characters_at_usable check (at between 1 and 3)
+  constraint episode_characters_position_usable check (position between 1 and 3)
 );
 
 -- 화를 열 때마다 이 스토리의 연결을 자리 차례로 읽는다. 기본 키는 화 하나를
 -- 묻는 데만 쓸모가 있어서 이 방향을 돕지 못한다.
 create index episode_characters_story_idx
-  on public.episode_characters (story_id, at);
+  on public.episode_characters (story_id, position);
 
 -- 인물 행을 지울 때의 참조 검사가 이 색인을 탄다. 없으면 그 검사가 테이블을
 -- 훑는다.
@@ -347,6 +349,8 @@ create index episode_characters_character_idx
 -- 않는다. 두 기기가 동시에 처음 말하면 회차도 둘로 갈린다. 서로 다른 대화를
 -- 한 회차로 합치면 그 회차의 이야기 기억이 두 흐름을 섞어 읽게 된다.
 create table public.story_plays (
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
   id uuid primary key default gen_random_uuid(),
   -- `episode_plays`와 같은 이유로 부르는 사람이 채운다. insert grant에서 빠져
   -- 있어 남의 이름으로 회차를 여는 문장은 정책에 닿기 전에 권한에서 막힌다.
@@ -400,6 +404,8 @@ comment on column public.story_plays.last_user_message_at is
 -- 진행 중과 끝남은 `finished_at`이 가른다. 대화 쪽에 완료 표시를 따로 두지
 -- 않는다. 한 화의 결말은 한 번만 나고, `public.finish_episode`가 그 규칙을 지킨다.
 create table public.episode_plays (
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
   -- 메시지와 교정이 참조할 안정된 키. (user_id, episode_id)를 그대로 물려주면
   -- 자식 테이블마다 두 열을 나르게 되고, 교정은 그 위에 message_id까지 얹어
   -- 세 열이 된다.
@@ -434,7 +440,7 @@ create table public.episode_plays (
   -- 때문이다. 열 이름으로 쓰면 `episode_id`가 함수 파라미터와 컬럼 사이에서
   -- 모호해진다.
   constraint episode_plays_one_per_story_play unique (story_play_id, episode_id),
-  -- 메시지가 (play_id, user_id) 한 쌍으로 참조하기 위한 대상. 자식이 나르는
+  -- 메시지가 (episode_play_id, user_id) 한 쌍으로 참조하기 위한 대상. 자식이 나르는
   -- user_id가 플레이의 주인과 어긋날 수 없게 만든다. 그래서 메시지 정책은
   -- 조인 없이 자기 열만 보고 끝난다.
   constraint episode_plays_owned_id unique (id, user_id),
@@ -526,11 +532,12 @@ comment on column public.episode_plays.finished_at is
 -- 판올림마다 바꾸는 계약이라 여기까지 펴면 SDK를 올릴 때마다 데이터 구조를 함께
 -- 고쳐야 한다. Vercel이 자기 제품에서 긋는 선도 같은 자리다.
 create table public.episode_messages (
+  updated_at timestamptz not null default clock_timestamp(),
   -- AI SDK가 이 메시지에 붙인 식별자를 그대로 쓴다. 앱과 서버와 데이터베이스가
   -- 같은 이름으로 같은 메시지를 가리켜야, 다시 받기가 "이 메시지부터"를 말할 수
   -- 있다. uuid로 좁혀 두면 앱이 아무 문자열이나 실어 보낼 수 없다.
   id uuid primary key,
-  play_id uuid not null,
+  episode_play_id uuid not null,
   -- 플레이의 주인을 여기 한 번 더 적는다. 복합 외래키가 둘을 묶으므로 어긋날 수
   -- 없고, 대신 정책이 다른 테이블을 보지 않고 이 열만으로 답한다. 값은
   -- `episode_plays`와 같은 이유로 부르는 사람이 채운다.
@@ -548,9 +555,13 @@ create table public.episode_messages (
   --
   -- insert grant에 이 열이 없다. 앱이 보낸 시각은 순서의 근거가 되지 않는다.
   created_at timestamptz not null default clock_timestamp(),
-  -- 교정이 (message_id, user_id) 한 쌍으로 참조하기 위한 대상.
+  expression_status text,
+  constraint episode_messages_expression_status_known check (
+    expression_status is null or (role = 'user' and expression_status in ('provided', 'natural', 'unclear'))
+  ),
+  -- 표현이 (message_id, user_id) 한 쌍으로 참조하기 위한 대상.
   constraint episode_messages_owned_id unique (id, user_id),
-  foreign key (play_id, user_id)
+  foreign key (episode_play_id, user_id)
     references public.episode_plays (id, user_id) on delete cascade,
   constraint episode_messages_role_known check (role in ('user', 'assistant')),
   constraint episode_messages_parts_array check (jsonb_typeof(parts) = 'array'),
@@ -563,14 +574,14 @@ create table public.episode_messages (
 );
 
 -- 한 플레이의 대화를 순서대로 읽는 조회와 뒤를 잘라 내는 삭제가 모두 이 색인을
--- 탄다. 앞자리가 `play_id`이므로 부모를 지울 때 도는 조회도 함께 받는다.
+-- 탄다. 앞자리가 `episode_play_id`이므로 부모를 지울 때 도는 조회도 함께 받는다.
 --
--- `(play_id, user_id)` 외래키를 정확히 덮는 색인은 두지 않는다. Supabase
+-- `(episode_play_id, user_id)` 외래키를 정확히 덮는 색인은 두지 않는다. Supabase
 -- advisor가 `unindexed_foreign_keys`를 INFO로 보고하지만, 앞자리 일치로 충분하고
 -- 이 데이터베이스는 `retired_usernames_retired_by_fkey`에서 같은 보고를 이미 받아
 -- 두고 있다(2026-08-29 `supabase db advisors --local`로 확인).
-create index episode_messages_play_id_created_at_idx
-  on public.episode_messages (play_id, created_at);
+create index episode_messages_episode_play_id_created_at_idx
+  on public.episode_messages (episode_play_id, created_at);
 
 create index episode_messages_user_id_idx
   on public.episode_messages (user_id);
@@ -587,46 +598,14 @@ comment on column public.episode_messages.created_at is
 comment on column public.episode_messages.parts is
   'AI SDK UI message parts, kept as one JSON document. Limited to 256 KiB per message.';
 
--- 메시지별 확인 완료 결과. 행이 없으면 아직 완료 결과가 없는 것이다.
--- 판정과 카드 내용을 한 행에 담아 일부만 저장되는 상태를 만들지 않는다.
--- 먼저 저장한 결과는 바꾸지 않으며, 메시지가 삭제되면 함께 사라진다.
-create table public.episode_expression_results (
-  message_id uuid primary key,
-  user_id uuid not null default auth.uid(),
-  status text not null,
-  fixed text,
-  entries jsonb,
-  situation text,
-  meaning text,
-  example text,
-  example_meaning text,
-  foreign key (message_id, user_id)
-    references public.episode_messages (id, user_id) on delete cascade,
-  constraint episode_expression_results_status_known check (status in ('corrected', 'natural', 'unclear')),
-  constraint episode_expression_results_complete check (
-    case when status = 'corrected' then
-      num_nonnulls(fixed, entries, situation, meaning, example, example_meaning) = 6
-      and length(btrim(fixed)) >= 1 and length(btrim(fixed)) <= 1000
-      and jsonb_typeof(entries) = 'array'
-      and jsonb_array_length(entries) > 0
-      and octet_length(entries::text) <= 65536
-      and length(btrim(situation)) >= 1 and length(btrim(situation)) <= 160
-      and length(btrim(meaning)) >= 1 and length(btrim(meaning)) <= 1000
-      and length(btrim(example)) >= 1 and length(btrim(example)) <= 1000
-      and length(btrim(example_meaning)) >= 1 and length(btrim(example_meaning)) <= 1000
-    else num_nonnulls(fixed, entries, situation, meaning, example, example_meaning) = 0 end
-  )
-);
-
-create index episode_expression_results_user_id_idx
-  on public.episode_expression_results (user_id);
-
 -- 사용자가 쓰는 영어의 수준. 시즌이 아니라 계정에 붙는다.
 --
 -- 이야기 기억은 시즌이 끝나면 함께 끝나지만 이 사람의 영어는 이어진다. 그래서
 -- 같은 행에 두지 않고 계정마다 한 줄로 둔다. 화가 끝날 때마다 그 시점의 관찰로
 -- 덮어쓴다. 지난 수준의 역사는 남기지 않는다.
 create table public.language_levels (
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
   user_id uuid primary key references public.profiles (id) on delete cascade,
   -- 모델이 쓴 한국어 한 줄. 점수나 등급이 아니라 관찰이다.
   level text not null,
@@ -642,158 +621,6 @@ comment on table public.language_levels is
 comment on column public.language_levels.level is
   'One Korean line describing the level, written by the model that closed the scene.';
 
--- 사용자가 대화에서 손으로 담아 둔 영어 문장 하나. 화면에서는 표현 노트로 부른다.
---
--- 세 출처가 한 테이블을 나눠 쓴다. 표현 노트가 셋을 같은 목록에 같은 카드로
--- 그리므로 공통 열은 한 벌이어야 하고, 인물 대사에만 있는 화자나 교정에만 있는
--- 이유는 그 종류에서만 찬다.
---
--- 항목은 원본과 별개로 남는다. 교정은 메시지를 따라 지워지지만 저장은 사용자가
--- 직접 한 행동이라, 다시 받기로 사라지면 잃어버린 것이 된다. 그래서 메시지가
--- 지워지면 참조만 끊고 행은 남긴다.
-create table public.saved_expressions (
-  id uuid primary key default gen_random_uuid(),
-  -- 앞의 테이블들과 같은 이유로 부르는 사람이 채운다. insert grant에서 빠져 있어
-  -- 남의 이름으로 담는 문장은 정책에 닿기 전에 권한에서 막힌다.
-  user_id uuid not null default auth.uid()
-    references public.profiles (id) on delete cascade,
-  -- 무엇에서 담았는지. 카드의 모양과 어느 열이 차는지를 이 값이 가른다. 화면에
-  -- 그대로 보이지 않으므로 영어 키를 쓴다.
-  kind text not null,
-  -- 이 표현이 나온 화. 카드가 스토리 제목과 화 번호를 여기서 읽는다. 플레이가
-  -- 아니라 대본을 가리키므로 회차를 지워도 출처 표시가 남는다.
-  -- `story_plays.story_id`와 같은 이유로 확인을 문장 끝으로 미룬다.
-  episode_id uuid not null references public.episodes (id)
-    on delete no action deferrable initially deferred,
-  -- 담을 때 곁에 있던 메시지. 다시 받기나 수정으로 그 메시지가 사라지면 여기만
-  -- 비고 항목은 남는다. 단일 열 참조라 주인을 나르는 `user_id`는 건드리지 않는다.
-  message_id uuid references public.episode_messages (id) on delete set null,
-  -- 장면 안에서 몇 번째 대사인지. 한 장면에 대사가 여럿이면 각각 따로 담기므로
-  -- 메시지 id만으로는 어느 대사인지 가리키지 못한다. 인물 대사만 쓴다.
-  utterance_at smallint,
-  -- 담은 영어 문장. 인물 대사는 그 대사, 영어 교정은 모든 수정을 반영한 고친
-  -- 문장, 한국어 안내는 안내한 영어 문장이다.
-  english text not null,
-  -- 한국어 뜻. 인물 대사는 담을 때 한 번 만들고, 교정과 안내는 표현 돌아보기가
-  -- 이미 만들어 둔 뜻을 옮겨 받는다. 어느 쪽도 다시 만들지 않는다.
-  meaning text,
-  -- 인물 대사가 더하는 하나.
-  speaker text,
-  -- 교정과 안내가 더하는 둘. `original`은 사용자가 쓴 문장 전체이고, `entries`는
-  -- 그 안에서 어긋난 자리와 고친 자리와 이유를 짝지은 배열이다. 배열째 두는 것은
-  -- 한 메시지의 교정이 여럿이어도 담기는 것은 문장 하나이기 때문이다.
-  original text,
-  entries jsonb,
-  created_at timestamptz not null default now(),
-  constraint saved_expressions_kind_known check (
-    kind in ('utterance', 'correction', 'guidance')
-  ),
-  -- 인물 대사는 화자와 자리와 뜻을 함께 갖는다. 화자만 있고 뜻이 없는 반쪽 항목은
-  -- 카드가 읽을 수 없다.
-  --
-  -- 뜻은 인물 대사만의 것이 아니다. 교정과 안내도 표현 돌아보기가 그 메시지에
-  -- 대해 이미 만들어 둔 고친 문장의 뜻을 담을 때 옮겨 받는다. 새로 만드는 값이
-  -- 아니라 옮겨 오는 값이므로, 옮길 것이 없으면 비어 있어도 항목은 성립한다.
-  -- 그래서 뜻은 인물 대사에만 필수이고 나머지 종류에는 선택이다.
-  constraint saved_expressions_utterance_whole check (
-    (kind <> 'utterance' or meaning is not null)
-    and (kind = 'utterance') = (speaker is not null)
-    and (kind = 'utterance') = (utterance_at is not null)
-  ),
-  -- 교정과 안내의 두 값도 마찬가지다.
-  constraint saved_expressions_learning_whole check (
-    (kind <> 'utterance') = (original is not null)
-    and (kind <> 'utterance') = (entries is not null)
-  ),
-  constraint saved_expressions_utterance_at_usable check (
-    utterance_at is null or utterance_at between 0 and 100
-  ),
-  constraint saved_expressions_english_usable check (
-    length(btrim(english)) between 1 and 1000
-  ),
-  constraint saved_expressions_meaning_usable check (
-    meaning is null or length(btrim(meaning)) between 1 and 1000
-  ),
-  constraint saved_expressions_speaker_usable check (
-    speaker is null or length(btrim(speaker)) between 1 and 60
-  ),
-  constraint saved_expressions_original_usable check (
-    original is null or length(btrim(original)) between 1 and 1000
-  ),
-  constraint saved_expressions_entries_array check (
-    entries is null or jsonb_typeof(entries) = 'array'
-  ),
-  constraint saved_expressions_entries_size check (
-    entries is null or octet_length(entries::text) <= 8192
-  )
-);
-
--- 같은 자리를 두 번 담지 못하게 한다. 인물 대사는 메시지 안의 대사 자리까지
--- 봐야 갈리고, 사용자가 쓴 말에는 배울 표현이 하나뿐이라 메시지 하나가 곧 자리다.
---
--- 열쇠에 `kind`를 넣지 않는다. 넣으면 같은 메시지에 영어 교정과 한국어 안내가
--- 둘 다 생길 수 있는데, 그 둘은 같은 판정의 다른 이름이라 한 메시지에 함께 설 수
--- 없다. 자리는 종류가 아니라 메시지와 대사 번호가 정한다.
---
--- 참조가 끊긴 행은 여기서 빠진다. 원본을 잃은 항목끼리는 같은 자리를 가리키지
--- 않으므로 서로 부딪힐 이유가 없다. `message_id`가 앞자리라 그 메시지가 지워질 때
--- 참조를 끊으러 도는 조회도 이 색인을 탄다.
-create unique index saved_expressions_one_per_source_idx
-  on public.saved_expressions (message_id, coalesce(utterance_at, -1))
-  where message_id is not null;
-
--- 표현 노트가 "내가 담은 것을 최근순으로"를 묻는다. 두 열이 그 순서대로 앉아
--- 있으면 그 질문 하나가 이 색인만 탄다.
-create index saved_expressions_user_id_created_at_idx
-  on public.saved_expressions (user_id, created_at desc);
-
--- 한 화를 다시 열 때 그 화에서 담은 것을 모아 읽고, 대본을 지울 때 도는 조회도
--- 함께 받는다.
-create index saved_expressions_episode_id_idx
-  on public.saved_expressions (episode_id);
-
-comment on table public.saved_expressions is
-  'One English sentence the person saved by hand. Shown in the app as 표현 노트.';
-
-comment on column public.saved_expressions.kind is
-  'Where it was saved from: utterance, correction or guidance. Decides which columns are filled.';
-
-comment on column public.saved_expressions.episode_id is
-  'The script this came from. Survives deleting the run, so the card keeps its story and number.';
-
-comment on column public.saved_expressions.message_id is
-  'The message it sat next to. Null once that message is gone; the row stays.';
-
-comment on column public.saved_expressions.utterance_at is
-  'Which utterance inside the scene, for character lines only.';
-
-comment on column public.saved_expressions.english is
-  'The saved English sentence.';
-
-comment on column public.saved_expressions.meaning is
-  'One Korean line saying what the sentence means. Required for character lines, copied from the review for corrections and guidance.';
-
-comment on column public.saved_expressions.speaker is
-  'Who said it, for character lines only.';
-
-comment on column public.saved_expressions.original is
-  'What the person wrote, for corrections and guidance only.';
-
-comment on column public.saved_expressions.entries is
-  'Which parts were off, what replaced them and why, as one JSON array. Corrections and guidance only.';
-
--- 뜻을 만드는 동안에도 같은 대사 자리를 선점한다. 메시지가 사라지면 뜻도 사라진다.
-create table public.utterance_meanings (
-  message_id uuid not null,
-  utterance_at smallint not null check (utterance_at between 0 and 100),
-  user_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
-  meaning text check (meaning is null or length(btrim(meaning)) between 1 and 1000),
-  claim_token uuid not null default gen_random_uuid(),
-  expires_at timestamptz not null default (clock_timestamp() + interval '30 seconds'),
-  primary key (message_id, utterance_at),
-  foreign key (message_id, user_id) references public.episode_messages(id, user_id) on delete cascade
-);
-create index utterance_meanings_user_id_idx on public.utterance_meanings(user_id);
 -- 운영자가 Dashboard에서 바꾸는 설치 버전 정책. 배포 대상별로 최소값은 하나뿐이다.
 -- 앱은 다른 대상의 값을 읽지 않아 내부 테스터와 공개 사용자를 따로 관리한다.
 create table public.app_version_policies (

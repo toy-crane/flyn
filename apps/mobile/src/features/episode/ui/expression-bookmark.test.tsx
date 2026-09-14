@@ -21,9 +21,9 @@ const mockSetStringAsync = jest.mocked(setStringAsync);
 const LINE = "Next in line, please!";
 
 const SPOT: SavedExpressionSpot = {
-  kind: "utterance",
+  dialogueIndex: 1,
+  kind: "dialogue",
   messageId: "s1",
-  utteranceAt: 1,
 };
 
 function slot(

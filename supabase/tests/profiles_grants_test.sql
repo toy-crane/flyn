@@ -95,13 +95,13 @@ SELECT ok(
 );
 
 SELECT function_privs_are(
-  'public', 'set_updated_at', ARRAY[]::name[], 'anon', ARRAY[]::text[],
-  'anon cannot execute set_updated_at'
+  'public', 'set_row_timestamps', ARRAY[]::name[], 'anon', ARRAY[]::text[],
+  'anon cannot execute set_row_timestamps'
 );
 
 SELECT function_privs_are(
-  'public', 'set_updated_at', ARRAY[]::name[], 'authenticated', ARRAY[]::text[],
-  'authenticated cannot execute set_updated_at'
+  'public', 'set_row_timestamps', ARRAY[]::name[], 'authenticated', ARRAY[]::text[],
+  'authenticated cannot execute set_row_timestamps'
 );
 
 -- The two availability functions are SECURITY DEFINER and read every profile

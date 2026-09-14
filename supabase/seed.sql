@@ -21,7 +21,6 @@ insert into public.stories (
   title,
   hook,
   intro,
-  cover_emoji,
   cover_image_path,
   target_language,
   completion_title,
@@ -34,7 +33,6 @@ values
     $content$우리 동네 카페$content$,
     $content$늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요$content$,
     $content$매일 들르는 동네 카페에서 벌어지는 다섯 번의 사건. 바리스타 Mia와 조금씩 가까워져요.$content$,
-    $content$☕$content$,
     'mia-cafe.png',
     'en',
     $content$첫 이야기를 끝냈어요$content$,
@@ -46,7 +44,6 @@ values
     $content$출장 일주일$content$,
     $content$첫 해외 출장인데, 호텔에 제 예약이 없대요$content$,
     $content$첫 해외 출장으로 떠난 낯선 도시에서 보내는 일주일. 호텔 직원 Anna, 현지 동료 Daniel과 함께 어긋난 계획을 하나씩 바로잡아요.$content$,
-    $content$✈️$content$,
     'business-trip.png',
     'en',
     $content$일주일의 출장을 끝냈어요$content$,
@@ -58,7 +55,6 @@ values
     $content$룸메이트 구함$content$,
     $content$이사 온 다음 날인데, 냉장고 제 칸이 룸메이트 짐으로 가득해요$content$,
     $content$룸메이트 Jamie와 함께 사는 첫 한 달 동안 벌어지는 다섯 번의 사건. 냉장고 칸부터 우리 집 규칙까지, 서로 다른 기준을 하나씩 맞춰 가요.$content$,
-    $content$🏠$content$,
     'roommate-month.png',
     'en',
     $content$한 달을 함께 살았어요$content$,
@@ -70,7 +66,6 @@ values
     $content$첫 주의 사무실$content$,
     $content$첫 출근인데, 다들 제가 맡았다는 일을 저만 몰라요$content$,
     $content$영어로 일하는 회사에서 보내는 첫 일주일. 옆자리 동료 Dan, 팀장 Grace와 다섯 번의 고비를 넘어요.$content$,
-    $content$🏢$content$,
     'first-week-office.png',
     'en',
     $content$첫 일주일을 마쳤어요$content$,
@@ -82,7 +77,6 @@ values
     $content$윗집 사람$content$,
     $content$이사 온 지 일주일, 윗집 소리에 오늘도 잠을 설쳤어요$content$,
     $content$새로 이사 온 건물에서 벌어지는 다섯 번의 곤란. 윗집의 Nora, 관리인 Frank와 조금씩 아는 사이가 돼요.$content$,
-    $content$🌙$content$,
     'upstairs-neighbor.png',
     'en',
     $content$이웃이 생겼어요$content$,
@@ -93,7 +87,6 @@ set position = excluded.position,
     title = excluded.title,
     hook = excluded.hook,
     intro = excluded.intro,
-    cover_emoji = excluded.cover_emoji,
     cover_image_path = excluded.cover_image_path,
     target_language = excluded.target_language,
     completion_title = excluded.completion_title,
@@ -102,70 +95,81 @@ set position = excluded.position,
 -- 각 스토리의 등장인물. 화가 바뀌어도 같은 것만 여기 있고, 그 화에서의 사정은
 -- 아래 에피소드의 무대가 쓴다. `position`은 스토리 안의 순서이자 이름표 색의
 -- 번호다. 근거는 docs/decisions/episode-authoring.md가 소유한다.
-insert into public.characters (story_id, name, position, persona)
+insert into public.characters (story_id, content_key, name, position, persona)
 values
 (
   (select id from public.stories where slug = 'mia-cafe'),
+  'mia',
   $content$Mia$content$,
   1,
   $content$20대 후반의 바리스타. 바쁘고 말이 빠르지만 나쁜 사람은 아니다. 쉬운 낱말로 짧게 말하고 한 번에 한 가지만 말한다. 분명하게 말하면 바로 움직이고, 애매하게 말하면 무엇이 필요한지 되묻는다. 규정은 어기지 못하지만 손님이 곤란하면 방법을 같이 찾는다. 단골을 알아보고 반가워한다.$content$
 ),
 (
   (select id from public.stories where slug = 'mia-cafe'),
+  'owen',
   $content$Owen$content$,
   2,
   $content$30대 초반의 회사원. 예의는 있지만 급하면 재촉하고 그냥 물러서지는 않는다. 사정을 구체적으로 말하면 조정할 여지가 있다.$content$
 ),
 (
   (select id from public.stories where slug = 'business-trip'),
+  'anna',
   $content$Anna$content$,
   1,
   $content$30대 초반의 호텔 프런트 직원. 차분하고 일 처리가 정확하다. 근거가 없으면 움직이지 않지만, 근거가 보이면 방법을 끝까지 찾아 준다. 묻는 만큼 정확히 알려 주되 사용자 대신 결정하지는 않는다.$content$
 ),
 (
   (select id from public.stories where slug = 'business-trip'),
+  'daniel',
   $content$Daniel$content$,
   2,
   $content$30대 중반의 현지 동료. 이번 출장을 준비한 사람이라 일이 잘되기를 바라고 손님 대접에도 진심이다. 필요한 것을 짚어 말하면 바로 움직이고, 애매하게 말하면 무엇이 제일 중요한지 되묻는다. 무뚝뚝한 척해도 챙길 것은 챙긴다.$content$
 ),
 (
   (select id from public.stories where slug = 'roommate-month'),
+  'jamie',
   $content$Jamie$content$,
   1,
   $content$20대 후반의 룸메이트. 격의 없고 잘 웃지만 정리에는 무심하다. 미안해할 줄 알면서도 자기 사정은 물러서지 않고 말한다. 구체적인 기준이나 대안을 내면 순순히 따르고, 애매하게 말하거나 눈치만 주면 알아차리지 못하고 대충 넘어간다.$content$
 ),
 (
   (select id from public.stories where slug = 'roommate-month'),
+  'noah',
   $content$Noah$content$,
   2,
   $content$Jamie의 오랜 친구. 붙임성이 좋고 얹혀 있는 처지를 안다. 기한과 규칙이 정해지면 군말 없이 따른다.$content$
 ),
 (
   (select id from public.stories where slug = 'first-week-office'),
+  'dan',
   $content$Dan$content$,
   1,
   $content$30대 초반의 옆자리 동료. 친절하지만 자기 일이 많아 시간이 넉넉하지는 않다. 구체적으로 물으면 아는 만큼 알려 주고 바로 자리를 당겨 앉지만, 애매하면 뭐가 문제인지 되묻는다. 자기 실수를 알면 바로 인정한다.$content$
 ),
 (
   (select id from public.stories where slug = 'first-week-office'),
+  'grace',
   $content$Grace$content$,
   2,
   $content$팀장. 바쁘고 회의를 빠르게 진행한다. 근거가 있는 질문과 요청은 바로 받아들이지만, 두루뭉술한 말에는 무엇이 필요한지 되묻는다. 잘못을 따지기보다 사실과 해결책을 원해서, 남 탓만 하면 표정이 굳고 사실을 정리해 말하면 그대로 받아들인다.$content$
 ),
 (
   (select id from public.stories where slug = 'upstairs-neighbor'),
+  'nora',
   $content$Nora$content$,
   1,
   $content$30대 초반의 간호사. 윗집 402호에 살고 밤 근무를 마치고 자정 넘어 귀가한다. 이웃을 반갑게 대하고 미안해할 줄 알지만 자기 사정도 함께 설명한다. 구체적인 제안에는 기꺼이 응하고, 거절도 담담하게 받아들인다.$content$
 ),
 (
   (select id from public.stories where slug = 'upstairs-neighbor'),
+  'frank',
   $content$Frank$content$,
   2,
   $content$50대의 건물 관리인. 규정과 서류와 날짜를 믿는다. 절차대로 부탁하면 성의껏 도와주지만, 두루뭉술한 설명이나 근거 없는 주장에는 되묻고 물러서지 않는다. 근거가 맞으면 깔끔하게 인정하고 고친다.$content$
 )
-on conflict (story_id, name) do update
-set position = excluded.position,
+on conflict (story_id, content_key) do update
+set name = excluded.name,
+    position = excluded.position,
     persona = excluded.persona;
 
 -- 각 스토리의 다섯 화. 사람이 쓴 무대이고, 그 뒤의 대사와 전개는 모델이 쓴다.
@@ -179,7 +183,6 @@ insert into public.episodes (
   situation_emoji,
   opening,
   stage,
-  cast_names,
   ending_success,
   ending_compromise,
   ending_failure
@@ -202,7 +205,6 @@ Mia: Next in line, please!$content$,
 - 사용자가 말을 걸어야 이 일이 풀린다. 짧게 한마디만 해도 Mia는 알아듣고 반응한다.
 - 주문 내역은 영수증으로 바로 확인할 수 있어서, 누가 틀렸는지는 다툼거리가 아니다.
 - 다른 손님과 주변 상황은 인물의 말로 전한다.$content$,
-  array[$content$Mia$content$],
   $content$주문한 아이스 아메리카노를 다시 받아냈을 때$content$,
   $content$다른 음료나 보상으로 만족하고 정리했을 때$content$,
   $content$잘못 나온 커피를 그대로 든 채 물러났을 때$content$
@@ -227,7 +229,6 @@ Owen: Sorry, I have a meeting in ten minutes. Is this going to take long?$conten
 - 바로 뒤에 선 Owen은 아침 회의에 늦어 마음이 급하다. 사용자가 정중하게 사정을 말하면 대신 계산해 주겠다고 나설 수도 있다.
 - 사용자가 다른 방법을 말해야 이 일이 풀린다.
 - 다른 손님과 주변 상황은 인물의 말로 전한다.$content$,
-  array[$content$Mia$content$, $content$Owen$content$],
   $content$사용자가 스스로 다른 결제 방법을 찾아 주문한 음료를 받았을 때$content$,
   $content$음료를 바꾸거나 남의 도움을 받아 겨우 계산을 정리했을 때$content$,
   $content$계산하지 못하고 음료를 받지 못한 채 물러났을 때$content$
@@ -251,7 +252,6 @@ Mia: Hey, you're back. Everything okay over there?$content$,
 - Mia는 사용자를 단골로 알아본다. 부탁을 받으면 콘센트가 있는 다른 자리를 찾아봐 주지만, 손님끼리의 일에 먼저 끼어들지는 않는다.
 - 사용자가 말을 걸어야 자리 문제가 정리된다.
 - 다른 손님과 주변 상황은 인물의 말로 전한다.$content$,
-  array[$content$Mia$content$, $content$Owen$content$],
   $content$맡아 뒀던 자리를 돌려받았을 때$content$,
   $content$다른 자리나 나눠 앉는 것으로 정리됐을 때$content$,
   $content$자리를 잃고 아무것도 정리하지 못한 채 물러났을 때$content$
@@ -275,7 +275,6 @@ Mia: Try this. I made it myself. The manager tastes it on Friday, so be honest, 
 - Mia는 칭찬만 들으면 실망하고, 근거 없이 깎아내리면 방어적으로 변한다. 무엇이 어떻게 아쉬운지 짚어 주는 말에는 고마워한다.
 - 사용자가 무엇을 어떻게 말하느냐에 따라 Mia가 얻어 가는 것이 달라진다.
 - 다른 손님과 주변 상황은 인물의 말로 전한다.$content$,
-  array[$content$Mia$content$],
   $content$솔직한 감상이 구체적으로 전해져 Mia가 고칠 지점을 얻었을 때$content$,
   $content$좋은 말만 하거나 두루뭉술하게 넘겨 Mia가 얻은 것이 없을 때$content$,
   $content$말이 상처가 되거나 대화를 피해 Mia가 마음을 닫았을 때$content$
@@ -300,7 +299,6 @@ Mia: Iced americano, right? I got it wrong the first time we met.$content$,
 - Mia는 잘못 나온 커피부터 신메뉴 시음까지, 그동안의 일로 사용자를 손님 이상으로 여긴다. 담담한 척하지만 인사를 받으면 반가워하고, 새 지점에 놀러 오라는 말을 먼저 꺼내지는 못한다.
 - 사용자가 무엇을 말하느냐에 따라 이 관계가 어떻게 끝나는지 달라진다.
 - 다른 손님과 주변 상황은 인물의 말로 전한다.$content$,
-  array[$content$Mia$content$],
   $content$하고 싶은 말을 전하고 다시 만날 약속까지 이어졌을 때$content$,
   $content$짧은 인사만 주고받고 헤어졌을 때$content$,
   $content$하고 싶은 말을 전하지 못한 채 Mia가 나갔을 때$content$
@@ -325,7 +323,6 @@ Anna: Could you show me anything that has your booking details?$content$,
 - Anna는 규정 밖의 일은 못 하지만, 단서를 받으면 끝까지 찾아본다. 오늘 밤 남는 방도 몇 개 있다.
 - 사용자가 예약을 증명하거나 다른 방법을 말해야 이 일이 풀린다.
 - 다른 투숙객과 주변 상황은 인물의 말로 전한다.$content$,
-  array[$content$Anna$content$],
   $content$잘못 넘어간 예약을 찾아내 원래 조건 그대로 방을 받았을 때$content$,
   $content$예약은 찾지 못했지만 다른 방이나 조건으로 오늘 밤을 해결했을 때$content$,
   $content$예약도 방도 확인하지 못한 채 사용자가 그만뒀을 때$content$
@@ -349,7 +346,6 @@ Daniel: So, what do you want to do? Ten minutes goes fast.$content$,
 - Daniel은 이번 방문을 준비한 사람이라 회의가 잘되기를 바란다. 내일 실무 팀과의 자리를 잡아 줄 수 있고, 자료를 미리 돌려 줄 수도 있다.
 - 사용자가 무엇을 남기고 무엇을 미룰지 말해야 회의 준비가 끝난다.
 - 디렉터와 다른 직원은 인물의 말로 전한다.$content$,
-  array[$content$Daniel$content$],
   $content$보여 줄 것을 추리고 이어질 자리까지 정해 회의로 들어갔을 때$content$,
   $content$일부만 정한 채 회의로 들어갔을 때$content$,
   $content$아무것도 정하지 못한 채 회의 시간이 됐거나 사용자가 그만뒀을 때$content$
@@ -373,7 +369,6 @@ Daniel: Should I get us two more plates?$content$,
 - 음식을 남기는 것을 Daniel은 아쉬워하지만, 이유를 들으면 이해한다. 남은 음식은 포장할 수 있다.
 - 사용자가 그만 먹고 싶다는 뜻과 일어날 때를 전해야 저녁이 정리된다.
 - 식당 직원과 주변 상황은 인물의 말로 전한다.$content$,
-  array[$content$Daniel$content$],
   $content$더 시키지 않게 멈추고 좋은 분위기로 저녁을 끝냈을 때$content$,
   $content$접시를 하나 더 받거나 예정보다 늦어졌지만 저녁을 마무리했을 때$content$,
   $content$뜻을 전하지 못해 저녁이 계속 길어졌거나 분위기가 상했을 때$content$
@@ -397,7 +392,6 @@ Anna: There are a few other ways to get there. What would you like to do?$conten
 - Anna는 체크인 날의 소동 뒤로 사용자를 기억한다. 길을 알려 주고, 역 이름을 적어 주고, 필요하면 거래처에 전화를 대신 걸어 줄 수 있다. 무엇을 해 줄지는 사용자가 골라야 한다.
 - 사용자가 가는 방법을 정하고 필요한 도움을 청해야 출발할 수 있다.
 - 택시 기사와 주변 상황은 인물의 말로 전한다.$content$,
-  array[$content$Anna$content$],
   $content$제시간에 도착할 방법을 정해 출발했을 때$content$,
   $content$조금 늦는 것을 거래처에 알리고 차선책으로 출발했을 때$content$,
   $content$방법을 정하지 못하고 로비에서 시간을 다 써 버렸을 때$content$
@@ -422,7 +416,6 @@ Anna: Your bill is ready whenever you are. I'll keep it short.$content$,
 - Anna는 체크인 날부터 사용자를 지켜봤다. 체크아웃을 처리하며 짧게 인사를 건넬 수 있다.
 - 사용자가 남은 일을 정리하고 하고 싶은 말을 전해야 이 일주일이 닫힌다.
 - 다른 투숙객과 주변 상황은 인물의 말로 전한다.$content$,
-  array[$content$Daniel$content$, $content$Anna$content$],
   $content$남은 일을 정하고 마음까지 전해 다음을 기약하며 떠났을 때$content$,
   $content$일과 인사 중 한쪽만 정리한 채 버스를 탔을 때$content$,
   $content$아무것도 정리하지 못한 채 쫓기듯 떠났을 때$content$
@@ -446,7 +439,6 @@ Jamie: Morning! I did some grocery shopping last night. Just push my stuff aside
 - Jamie는 정리를 귀찮아하지 않는다. 기준이 정해지면 바로 옮긴다. 다만 사용자가 말하지 않으면 문제가 있는지도 모른다.
 - 사용자가 원하는 것을 말해야 칸 문제가 정리된다.
 - 집과 물건의 상태는 인물의 말로 전한다.$content$,
-  array[$content$Jamie$content$],
   $content$냉장고 칸을 어떻게 나눌지 둘이 정했을 때$content$,
   $content$당장 넣을 자리만 얻고 나누는 기준은 정하지 못했을 때$content$,
   $content$자리도 기준도 얻지 못했거나 사용자가 말을 접었을 때$content$
@@ -469,7 +461,6 @@ Jamie: Oh, did I wake you up? Sorry, my best friend lives overseas, so this is t
 - Jamie는 통화를 완전히 그만둘 수는 없지만, 시간과 장소와 소리 크기는 조정할 수 있다.
 - 사용자가 원하는 것을 말해야 밤이 조용해진다.
 - 통화 상대는 Jamie의 말로만 전한다. 통화 상대를 인물로 세우지 않는다.$content$,
-  array[$content$Jamie$content$],
   $content$밤 통화의 시간이나 장소를 어떻게 바꿀지 둘이 정했을 때$content$,
   $content$오늘 밤만 조용히 하기로 하고 앞으로의 약속은 정하지 못했을 때$content$,
   $content$아무것도 바뀌지 않은 채 대화가 끝났거나 사용자가 그만뒀을 때$content$
@@ -492,7 +483,6 @@ Jamie: I just sent you the list for this week. I split everything fifty-fifty, e
 - Jamie는 돈 계산이 빠르고 깔끔한 것을 좋아한다. 항목을 짚어 말하면 빼 주지만, 두루뭉술하게 불만만 말하면 목록을 그대로 둔다.
 - 사용자가 기준을 말해야 정산이 끝난다.
 - 정산표의 내용은 Jamie의 말로 전한다.$content$,
-  array[$content$Jamie$content$],
   $content$함께 낼 항목의 기준을 정하고 이번 정산을 그 기준대로 고쳤을 때$content$,
   $content$이번 정산의 일부만 고치고 앞으로의 기준은 정하지 못했을 때$content$,
   $content$기준을 말하지 못한 채 목록 그대로 내기로 했거나 대화를 접었을 때$content$
@@ -516,7 +506,6 @@ Jamie: Noah's place is getting repairs this week. He can stay a little longer, r
 - 언제까지 머무는지, 공용 공간을 어떻게 쓰는지는 이 대화에서 정할 수 있다. 다만 Noah를 오늘 밤 당장 내보내는 것은 Jamie가 받아들이지 못한다.
 - Jamie는 친구 앞에서 좋은 사람이고 싶어 한다. 사용자가 구체적인 선을 그으면 그 선을 Noah에게 같이 전한다.
 - 사용자가 선을 말해야 이 밤이 정리된다.$content$,
-  array[$content$Jamie$content$, $content$Noah$content$],
   $content$Noah가 머무는 기한과 지내는 규칙을 셋이 정했을 때$content$,
   $content$오늘 밤의 불편만 정리하고 기한은 정하지 못했을 때$content$,
   $content$아무 선도 긋지 못한 채 사용자가 방으로 물러났을 때$content$
@@ -541,7 +530,6 @@ Jamie: So I thought we could write our own house rules tonight. You go first, wh
 - Jamie는 한 달 사이 사용자와 말하는 법을 배웠다. 농담으로 시작해도 진심으로 답하면 진지하게 받는다.
 - 사용자가 먼저 하나를 말해야 종이가 채워지기 시작한다.
 - 지난 한 달의 일은 Jamie의 말로 되짚는다.$content$,
-  array[$content$Jamie$content$],
   $content$둘이 지킬 규칙을 종이에 적고 다음 달도 함께 살기로 확인했을 때$content$,
   $content$규칙을 몇 개만 적고 나머지는 다음으로 미뤘을 때$content$,
   $content$종이가 빈 채로 저녁이 끝났거나 사용자가 대화를 접었을 때$content$
@@ -567,7 +555,6 @@ Dan: Quick question. You're taking over the weekly numbers report, right? It goe
 - Grace는 열 시까지 다른 회의에 있어서 메신저로만 답할 수 있다.
 - 사용자가 모른다고 말하고 물어야 이 일이 풀린다.
 - 다른 팀원과 사무실 풍경은 인물의 말로 전한다.$content$,
-  array[$content$Dan$content$, $content$Grace$content$],
   $content$그 일이 무엇인지 확인하고 열한 시까지 할 일을 정리했을 때$content$,
   $content$당장 급한 것만 부탁하거나 미루고 나머지는 모르는 채 넘어갔을 때$content$,
   $content$모른다는 말을 꺼내지 못하고 아는 척한 채 끝났거나 사용자가 그만뒀을 때$content$
@@ -591,7 +578,6 @@ Dan: I'm good.$content$,
 - Grace는 이유를 들으면 일정을 조정해 준다. 다만 어렵다는 말만으로는 움직이지 않고, 무엇이 왜 안 되는지 되묻는다.
 - Dan은 회의에서는 말을 아끼지만, 권한 신청 방법을 알고 사용자가 도움을 청하면 회의에서 거들어 준다.
 - 다른 팀원은 인물의 말로 전한다.$content$,
-  array[$content$Grace$content$, $content$Dan$content$],
   $content$회의가 끝나기 전에 문제를 말해 마감이나 권한이 조정됐을 때$content$,
   $content$회의에서는 말을 다 못 하고 끝난 뒤 따로 이야기해 일부만 조정했을 때$content$,
   $content$아무 말도 못 한 채 일정이 그대로 확정됐거나 사용자가 그만뒀을 때$content$
@@ -614,7 +600,6 @@ Grace: Hey, the numbers in today's report don't match the system. Did you change
 - Dan은 회의 중이라 메신저로만 답할 수 있다. 물으면 최신 파일 위치를 알려 주고, 자기 실수를 알면 미안해한다.
 - 사용자가 상황을 설명해야 오해가 풀리고, 고친 보고서를 다시 보내야 일이 끝난다.
 - 다른 팀원은 인물의 말로 전한다.$content$,
-  array[$content$Grace$content$, $content$Dan$content$],
   $content$무슨 일이 있었는지 사실대로 설명하고 고친 보고서까지 내보냈을 때$content$,
   $content$오해를 풀거나 보고서를 고치는 것 중 하나만 해냈을 때$content$,
   $content$사용자의 잘못으로 굳어진 채 대화가 끝났거나 사용자가 그만뒀을 때$content$
@@ -637,7 +622,6 @@ Dan: I'm heading out soon. You okay? You've been staring at that screen for a wh
 - 사용자가 괜찮다고 하면 Dan은 그대로 퇴근한다. Grace는 이미 퇴근해서 부를 수 없다.
 - 사용자가 무엇이 안 되는지 말해야 도움이 시작된다.
 - 다른 팀원과 사무실 풍경은 인물의 말로 전한다.$content$,
-  array[$content$Dan$content$],
   $content$막힌 곳을 설명하고 도움을 받아 자료를 끝낼 길이 잡혔을 때$content$,
   $content$힌트만 얻고 나머지는 혼자 감당하기로 했을 때$content$,
   $content$괜찮다고 돌려보내 혼자 남았거나 사용자가 그만뒀을 때$content$
@@ -662,7 +646,6 @@ Grace: So, same process for the report next week. Unless anyone sees a problem?$
 - Grace는 첫 주를 버틴 사용자를 인정하기 시작했다. 제안을 받아들이면 그 자리에서 계획을 고친다.
 - 회의가 끝나면 팀은 다 같이 저녁을 먹으러 간다. 이 제안이 첫 주의 마지막 일이다.
 - 다른 팀원은 인물의 말로 전한다.$content$,
-  array[$content$Grace$content$, $content$Dan$content$],
   $content$제안이 받아들여져 다음 주 계획이 바뀌었을 때$content$,
   $content$제안의 일부만 반영되거나 다음에 다시 이야기하기로 했을 때$content$,
   $content$의견을 내지 못했거나 근거 없이 밀다가 계획이 그대로 끝났을 때$content$
@@ -687,7 +670,6 @@ Nora: Oh, hi! You must be the new neighbor in 302. I'm Nora, right above you.$co
 - Nora가 할 수 있는 것: 사과하기, 슬리퍼 신기, 의자 다리에 펠트 붙이기, 시끄러운 집안일을 낮으로 옮기기. 할 수 없는 것: 밤 근무 자체를 바꾸기.
 - 사용자가 말을 꺼내야 이 일이 풀린다.
 - 다른 주민과 주변 상황은 인물의 말로 전한다.$content$,
-  array[$content$Nora$content$],
   $content$소음의 사정을 전하고 앞으로 어떻게 할지 약속을 받았을 때$content$,
   $content$문제는 전했지만 구체적인 약속 없이 헤어졌을 때$content$,
   $content$말을 꺼내지 못했거나 감정만 상한 채 끝났을 때$content$
@@ -710,7 +692,6 @@ Frank: Evening. What can I do for you?$content$,
 - Frank는 남의 집 문을 대신 열어 줄 수 없다. 402호 문에 메모를 남기거나 Nora에게 연락해 두는 것까지는 해 줄 수 있다.
 - 사용자가 설명하고 부탁해야 이 일이 풀린다.
 - 택배 기사와 다른 주민은 Frank의 말로 전한다.$content$,
-  array[$content$Frank$content$],
   $content$상자가 어디 있는지 확인하고 돌려받을 방법까지 정했을 때$content$,
   $content$행방은 알았지만 돌려받을 방법을 정하지 못하고 돌아섰을 때$content$,
   $content$행방을 확인하지 못했거나 사용자가 그만뒀을 때$content$
@@ -734,7 +715,6 @@ Nora: Oh... hey. I was going to tell you about that.$content$,
 - Nora가 할 수 있는 것: 사과하기, 다음부터 꺼내기 전에 연락하기, 세탁 시간대를 나누기. 할 수 없는 것: 지금 돌아가는 자기 빨래를 중간에 빼기.
 - 사용자가 말을 꺼내야 이 일이 정리된다.
 - 다른 주민과 주변 상황은 인물의 말로 전한다.$content$,
-  array[$content$Nora$content$],
   $content$서로의 사정을 확인하고 세탁실을 같이 쓸 방법까지 정했을 때$content$,
   $content$이번 일만 정리하고 다음 방법 없이 헤어졌을 때$content$,
   $content$서운함만 주고받았거나 사용자가 그만뒀을 때$content$
@@ -756,7 +736,6 @@ Frank: Let me see. Hmm, it looks right to me. Every charge under 302 goes to 302
 - Frank는 규정대로 움직인다. 사용자가 입주 날짜를 근거로 설명하면 장부를 확인하고 다음 고지서에서 바로잡아 줄 수 있다. 그 자리에서 현금으로 돌려주는 것은 할 수 없다.
 - 사용자가 근거를 들어 설명해야 이 일이 풀린다.
 - 다른 주민은 Frank의 말로 전한다.$content$,
-  array[$content$Frank$content$],
   $content$입주 날짜가 확인되어 잘못 붙은 요금을 고쳐 주기로 했을 때$content$,
   $content$다시 확인해 보겠다는 대답까지만 받고 돌아섰을 때$content$,
   $content$요금을 바로잡지 못했거나 사용자가 그만뒀을 때$content$
@@ -780,7 +759,6 @@ Nora: Hi. These are for you. And... I also came to ask a favor, if that's okay.$
 - Nora는 부탁하는 게 쑥스러워 말을 돌리지만, 되물으면 필요한 것을 정확히 말한다.
 - 사용자가 어떻게 답하느냐에 따라 이 관계가 어디에 도착하는지 달라진다.
 - Frank와 다른 주민은 Nora의 말로 전한다. Frank를 인물로 세우지 않는다.$content$,
-  array[$content$Nora$content$],
   $content$부탁을 정리하고 연락처까지 주고받았을 때$content$,
   $content$부탁만 정리하고 짧은 인사로 헤어졌을 때$content$,
   $content$부탁이 정리되지 않은 채 어색하게 헤어졌을 때$content$
@@ -792,75 +770,73 @@ set title = excluded.title,
     situation_emoji = excluded.situation_emoji,
     opening = excluded.opening,
     stage = excluded.stage,
-    cast_names = excluded.cast_names,
     ending_success = excluded.ending_success,
     ending_compromise = excluded.ending_compromise,
     ending_failure = excluded.ending_failure;
 
--- 어느 화에 누가 서는지. `at`은 그 화의 인물 목록에서의 자리라 프롬프트의
--- 등장인물 문장이 이 차례로 이름을 부른다. 위 `cast_names`와 같은 이름을 같은
--- 차례로 담으며, 그 일치는 pgTAP이 지킨다.
+-- 어느 화에 누가 서는지. `position`은 그 화의 인물 목록에서의 자리라 프롬프트의
+-- 등장인물 문장이 이 차례로 이름을 부른다.
 --
--- 스토리 slug와 화 번호, 인물 이름으로 세 부모를 찾는다. UUID를 적지 않으므로
+-- 스토리 slug와 화 번호, 고정 인물 키로 세 부모를 찾는다. UUID를 적지 않으므로
 -- 다시 실행해도 기존 ID와 플레이 기록의 연결이 그대로다.
 --
 -- 아래 목록이 이 다섯 스토리의 연결 전부다. 화에서 인물을 빼면 upsert만으로는
--- 낡은 연결이 남으므로 목록에 없는 것을 먼저 지운다. 인물 이름 자체를 바꾸는
--- 일은 배포한 콘텐츠의 식별자를 바꾸는 것이라 별도 마이그레이션이 맡는다.
+-- 낡은 연결이 남으므로 목록에 없는 것을 먼저 지운다. 이름과 순서를 바꿔도
+-- 고정 인물 키는 그대로 둔다. 다른 사람으로 교체할 때는 새 키를 부여한다.
 -- 이 파일을 한 트랜잭션 안에서 두 번 실행하는 재실행 검사가 있으므로, 남은
 -- 자리를 먼저 치우고 끝에서 직접 지운다.
 -- 한 문장 안에서 끝낸다. 목록을 임시 테이블에 담으면 그 테이블을 만드는 문장과
 -- 읽는 문장이 나뉘는데, CLI는 seed를 한 묶음으로 서버에 미리 준비시키므로 뒤쪽
 -- 문장이 아직 없는 테이블을 가리켜 `db reset`이 그 자리에서 멈춘다. psql은
 -- 문장을 하나씩 보내 지나가지만 두 경로가 같은 파일을 다르게 읽는 것은 곤란하다.
-with listed (slug, number, name, at) as (
+with listed (slug, number, content_key, position) as (
   values
-    ('mia-cafe', 1::smallint, 'Mia', 1::smallint),
-    ('mia-cafe', 2::smallint, 'Mia', 1::smallint),
-    ('mia-cafe', 2::smallint, 'Owen', 2::smallint),
-    ('mia-cafe', 3::smallint, 'Mia', 1::smallint),
-    ('mia-cafe', 3::smallint, 'Owen', 2::smallint),
-    ('mia-cafe', 4::smallint, 'Mia', 1::smallint),
-    ('mia-cafe', 5::smallint, 'Mia', 1::smallint),
-    ('business-trip', 1::smallint, 'Anna', 1::smallint),
-    ('business-trip', 2::smallint, 'Daniel', 1::smallint),
-    ('business-trip', 3::smallint, 'Daniel', 1::smallint),
-    ('business-trip', 4::smallint, 'Anna', 1::smallint),
-    ('business-trip', 5::smallint, 'Daniel', 1::smallint),
-    ('business-trip', 5::smallint, 'Anna', 2::smallint),
-    ('roommate-month', 1::smallint, 'Jamie', 1::smallint),
-    ('roommate-month', 2::smallint, 'Jamie', 1::smallint),
-    ('roommate-month', 3::smallint, 'Jamie', 1::smallint),
-    ('roommate-month', 4::smallint, 'Jamie', 1::smallint),
-    ('roommate-month', 4::smallint, 'Noah', 2::smallint),
-    ('roommate-month', 5::smallint, 'Jamie', 1::smallint),
-    ('first-week-office', 1::smallint, 'Dan', 1::smallint),
-    ('first-week-office', 1::smallint, 'Grace', 2::smallint),
-    ('first-week-office', 2::smallint, 'Grace', 1::smallint),
-    ('first-week-office', 2::smallint, 'Dan', 2::smallint),
-    ('first-week-office', 3::smallint, 'Grace', 1::smallint),
-    ('first-week-office', 3::smallint, 'Dan', 2::smallint),
-    ('first-week-office', 4::smallint, 'Dan', 1::smallint),
-    ('first-week-office', 5::smallint, 'Grace', 1::smallint),
-    ('first-week-office', 5::smallint, 'Dan', 2::smallint),
-    ('upstairs-neighbor', 1::smallint, 'Nora', 1::smallint),
-    ('upstairs-neighbor', 2::smallint, 'Frank', 1::smallint),
-    ('upstairs-neighbor', 3::smallint, 'Nora', 1::smallint),
-    ('upstairs-neighbor', 4::smallint, 'Frank', 1::smallint),
-    ('upstairs-neighbor', 5::smallint, 'Nora', 1::smallint)
+    ('mia-cafe', 1::smallint, 'mia', 1::smallint),
+    ('mia-cafe', 2::smallint, 'mia', 1::smallint),
+    ('mia-cafe', 2::smallint, 'owen', 2::smallint),
+    ('mia-cafe', 3::smallint, 'mia', 1::smallint),
+    ('mia-cafe', 3::smallint, 'owen', 2::smallint),
+    ('mia-cafe', 4::smallint, 'mia', 1::smallint),
+    ('mia-cafe', 5::smallint, 'mia', 1::smallint),
+    ('business-trip', 1::smallint, 'anna', 1::smallint),
+    ('business-trip', 2::smallint, 'daniel', 1::smallint),
+    ('business-trip', 3::smallint, 'daniel', 1::smallint),
+    ('business-trip', 4::smallint, 'anna', 1::smallint),
+    ('business-trip', 5::smallint, 'daniel', 1::smallint),
+    ('business-trip', 5::smallint, 'anna', 2::smallint),
+    ('roommate-month', 1::smallint, 'jamie', 1::smallint),
+    ('roommate-month', 2::smallint, 'jamie', 1::smallint),
+    ('roommate-month', 3::smallint, 'jamie', 1::smallint),
+    ('roommate-month', 4::smallint, 'jamie', 1::smallint),
+    ('roommate-month', 4::smallint, 'noah', 2::smallint),
+    ('roommate-month', 5::smallint, 'jamie', 1::smallint),
+    ('first-week-office', 1::smallint, 'dan', 1::smallint),
+    ('first-week-office', 1::smallint, 'grace', 2::smallint),
+    ('first-week-office', 2::smallint, 'grace', 1::smallint),
+    ('first-week-office', 2::smallint, 'dan', 2::smallint),
+    ('first-week-office', 3::smallint, 'grace', 1::smallint),
+    ('first-week-office', 3::smallint, 'dan', 2::smallint),
+    ('first-week-office', 4::smallint, 'dan', 1::smallint),
+    ('first-week-office', 5::smallint, 'grace', 1::smallint),
+    ('first-week-office', 5::smallint, 'dan', 2::smallint),
+    ('upstairs-neighbor', 1::smallint, 'nora', 1::smallint),
+    ('upstairs-neighbor', 2::smallint, 'frank', 1::smallint),
+    ('upstairs-neighbor', 3::smallint, 'nora', 1::smallint),
+    ('upstairs-neighbor', 4::smallint, 'frank', 1::smallint),
+    ('upstairs-neighbor', 5::smallint, 'nora', 1::smallint)
 ),
 resolved as (
   select
     episode.id as episode_id,
     person.id as character_id,
     story.id as story_id,
-    listed.at
+    listed.position
   from listed
   join public.stories story on story.slug = listed.slug
   join public.episodes episode
     on episode.story_id = story.id and episode.number = listed.number
   join public.characters person
-    on person.story_id = story.id and person.name = listed.name
+    on person.story_id = story.id and person.content_key = listed.content_key
 ),
 -- 화에서 인물을 빼면 upsert만으로는 낡은 연결이 남는다. 목록에 없는 것을 먼저
 -- 치운다. 지우는 것과 넣는 것이 서로 겹치지 않아 한 문장 안에 함께 둘 수 있다.
@@ -877,7 +853,7 @@ pruned as (
     )
   returning 1
 )
-insert into public.episode_characters (episode_id, character_id, story_id, at)
-select episode_id, character_id, story_id, at from resolved
+insert into public.episode_characters (episode_id, character_id, story_id, position)
+select episode_id, character_id, story_id, position from resolved
 on conflict (episode_id, character_id) do update
-set at = excluded.at;
+set position = excluded.position;

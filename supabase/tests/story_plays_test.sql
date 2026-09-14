@@ -147,7 +147,7 @@ LIMIT 1;
 SET LOCAL ROLE authenticated;
 
 SELECT lives_ok(
-  $$insert into public.episode_messages (id, play_id, role, parts)
+  $$insert into public.episode_messages (id, episode_play_id, role, parts)
     values (
       '1d000000-0000-4000-8000-000000000001',
       '1c000000-0000-4000-8000-000000000001',
@@ -166,7 +166,7 @@ SELECT is(
 );
 
 SELECT lives_ok(
-  $$insert into public.episode_messages (id, play_id, role, parts)
+  $$insert into public.episode_messages (id, episode_play_id, role, parts)
     values (
       '1d000000-0000-4000-8000-000000000002',
       '1c000000-0000-4000-8000-000000000001',

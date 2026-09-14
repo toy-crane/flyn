@@ -1,5 +1,7 @@
 # 인물 이름을 바꾸면 seed 재실행이 멈춘다
 
+**해결 확인(2026-09-14)**: 공식 인물은 이름 대신 고정 `content_key`로 갱신한다. 실제 seed를 이름·순서 변경 뒤 두 번 실행하는 검사에서 기존 인물 ID와 모든 에피소드 연결이 유지됐다. 기존 인물에 키를 연결하는 마이그레이션의 보존 검사도 통과했다. 아래는 수정 전 증거다.
+
 **Symptom**: 배포한 스토리의 인물 이름을 `supabase/seed.sql`에서 바꾸고 다시 실행하면 `characters_story_id_position_key` 위반으로 seed가 멈춘다. 이름을 바꾼 인물은 새 행으로 들어가려 하는데 그 스토리의 같은 `position`을 이미 옛 행이 쓰고 있기 때문이다.
 
 **Observed evidence**: 2026-09-10 `20260910045742_story_characters.sql` 검토에서 확인했다. seed의 인물 upsert는 `on conflict (story_id, name)`을 충돌 대상으로 쓴다(`supabase/seed.sql`의 `insert into public.characters`). 이름이 달라지면 그 대상에 걸리지 않아 삽입이 되고, `unique (story_id, position)`에 걸린다. 이 제약은 `deferrable initially deferred`라 위반이 COMMIT에서 드러나므로 어느 행이 원인인지도 바로 보이지 않는다. 현재 콘텐츠로는 재현되지 않는다. 이름을 바꾸지 않는 재실행은 `supabase/seed_identity_test.sql`이 두 번 실행해 통과를 확인한다.

@@ -1,8 +1,8 @@
 import { aiUrl } from "@/shared/ai/request-options";
 
 export interface UtteranceSpot {
+  dialogueIndex: number;
   messageId: string;
-  utteranceAt: number;
 }
 export interface UtteranceMeaning extends UtteranceSpot {
   meaning: string;
@@ -14,7 +14,7 @@ export type MeaningRequest = (
   signal?: AbortSignal
 ) => Promise<UtteranceMeaning>;
 export const meaningKey = (spot: UtteranceSpot) =>
-  `${spot.messageId}:${spot.utteranceAt}`;
+  `${spot.messageId}:${spot.dialogueIndex}`;
 
 export async function requestUtteranceMeaning(
   accessToken: string | undefined,
@@ -41,7 +41,7 @@ export async function requestUtteranceMeaning(
   const result = (await response.json()) as UtteranceMeaning;
   if (
     result.messageId !== spot.messageId ||
-    result.utteranceAt !== spot.utteranceAt ||
+    result.dialogueIndex !== spot.dialogueIndex ||
     typeof result.meaning !== "string" ||
     !result.meaning.trim()
   ) {

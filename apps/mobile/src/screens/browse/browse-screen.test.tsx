@@ -15,7 +15,7 @@ const MADE_STORY_ID = "10000000-0000-4000-8000-0000000000f1";
 function official(): StoryCard {
   return {
     coverBlurhash: null,
-    coverEmoji: "☕",
+
     coverImagePath: null,
     hook: "늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요",
     mine: false,
@@ -28,7 +28,7 @@ function official(): StoryCard {
 function made(): StoryCard {
   return {
     coverBlurhash: null,
-    coverEmoji: "🧳",
+
     coverImagePath: null,
     hook: "다음 달 베를린 출장인데, 혼자 해내야 해요",
     mine: true,

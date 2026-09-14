@@ -1,7 +1,7 @@
 import { aiUrl } from "@/shared/ai/request-options";
 
 /** 담을 수 있는 출처. 화면에 그대로 보이지 않으므로 영어 키를 쓴다. */
-export type SavedExpressionKind = "utterance" | "correction" | "guidance";
+export type SavedExpressionKind = "dialogue" | "correction" | "translation";
 
 /**
  * 대화에서 담아 둔 표현 하나를 가리키는 이름표.
@@ -10,11 +10,11 @@ export type SavedExpressionKind = "utterance" | "correction" | "guidance";
  * 뜻은 오지 않는다. 그것을 읽는 곳은 표현 노트다.
  */
 export interface SavedExpressionRef {
+  /** 인물 대사는 장면 안의 몇 번째 대사인지, 나머지는 없다. */
+  dialogueIndex: number | null;
   id: string;
   kind: SavedExpressionKind;
   messageId: string;
-  /** 인물 대사는 장면 안의 몇 번째 대사인지, 나머지는 없다. */
-  utteranceAt: number | null;
 }
 
 /**
@@ -24,23 +24,23 @@ export interface SavedExpressionRef {
  * 영어 교정인지 한국어 안내인지는 서버가 가르므로 여기서 말하지 않는다.
  */
 export type SavedExpressionSpot =
-  | { kind: "utterance"; messageId: string; utteranceAt: number }
+  | { kind: "dialogue"; messageId: string; dialogueIndex: number }
   | { kind: "learning"; messageId: string };
 
 /** 같은 자리를 가리키는 두 이름표가 같은 열쇠를 만든다. */
 export function spotKey(spot: SavedExpressionSpot): string {
-  return spot.kind === "utterance"
-    ? `${spot.messageId}:${spot.utteranceAt}`
+  return spot.kind === "dialogue"
+    ? `${spot.messageId}:${spot.dialogueIndex}`
     : `${spot.messageId}:learning`;
 }
 
 /** 서버가 돌려준 이름표가 가리키는 자리. */
 export function spotOfRef(saved: SavedExpressionRef): SavedExpressionSpot {
-  return saved.kind === "utterance" && saved.utteranceAt !== null
+  return saved.kind === "dialogue" && saved.dialogueIndex !== null
     ? {
-        kind: "utterance",
+        dialogueIndex: saved.dialogueIndex,
+        kind: "dialogue",
         messageId: saved.messageId,
-        utteranceAt: saved.utteranceAt,
       }
     : { kind: "learning", messageId: saved.messageId };
 }
@@ -91,11 +91,11 @@ export async function saveExpression(
   }
 
   return {
+    dialogueIndex:
+      typeof saved.dialogueIndex === "number" ? saved.dialogueIndex : null,
     id: saved.id,
     kind: saved.kind as SavedExpressionKind,
     messageId: saved.messageId,
-    utteranceAt:
-      typeof saved.utteranceAt === "number" ? saved.utteranceAt : null,
   };
 }
 

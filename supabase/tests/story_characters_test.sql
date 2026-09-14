@@ -6,8 +6,9 @@ SELECT plan(23);
 -- 아니라 COMMIT에서 확인한다. 이 테스트는 ROLLBACK으로 닫으므로 그대로 두면
 -- 그 절반을 영영 확인하지 못한다. 이 트랜잭션에서만 즉시로 바꿔 확인한다.
 SET CONSTRAINTS
+  public.characters_story_id_name_key,
   public.characters_story_id_position_key,
-  public.episode_characters_episode_id_at_key
+  public.episode_characters_episode_id_position_key
   IMMEDIATE;
 
 -- 다섯 스토리가 저마다 인물을 소유한다.
@@ -65,20 +66,10 @@ SELECT is(
   '화는 자기 스토리의 인물만 가리킨다'
 );
 
--- 이전 화자 목록과 새 구조가 같은 이름을 같은 차례로 담는다. 앞선 API가 아직
--- `cast_names`를 읽으므로 둘이 어긋나면 안 된다. 인물이 하나도 없는 화는 부분
--- 질의가 NULL을 돌려주므로 빈 배열로 바꿔 그 화도 불일치로 세게 한다.
 SELECT is(
-  (select count(*) from public.episodes e
-   where e.cast_names <> coalesce((
-     select array_agg(c.name order by ec.at)
-     from public.episode_characters ec
-     join public.characters c on c.id = ec.character_id
-     where ec.episode_id = e.id
-   ), '{}'::text[])),
-  0::bigint,
-  '이전 화자 목록과 새 구조가 같은 이름을 같은 차례로 담는다'
-);
+  (select count(*) from public.episodes e where not exists
+    (select 1 from public.episode_characters ec where ec.episode_id=e.id)),
+  0::bigint, '모든 화의 인물 목록은 연결 테이블에 있다');
 
 -- 무대 글에서 등장인물 문장과 인물 항목이 사라졌다. 그 문장은 이제 인물
 -- 데이터에서 만든다.
@@ -109,15 +100,15 @@ SELECT is(
   (select count(*) from public.episodes e
    where exists (
      select 1
-     from unnest(string_to_array(e.opening, E'\n')) with ordinality as line(text, at)
+     from unnest(string_to_array(e.opening, E'\n')) with ordinality as line(text, position)
      join lateral (
-       select min(spoken.at) as first_spoken
-       from unnest(string_to_array(e.opening, E'\n')) with ordinality as spoken(text, at)
+       select min(spoken.position) as first_spoken
+       from unnest(string_to_array(e.opening, E'\n')) with ordinality as spoken(text, position)
        where spoken.text ~ '^[A-Z][A-Za-z]*: '
      ) as said on true
      where line.text !~ '^[A-Z][A-Za-z]*: '
        and said.first_spoken is not null
-       and line.at > said.first_spoken
+       and line.position > said.first_spoken
    )),
   0::bigint,
   '도입은 첫 대사 뒤로 이름 없는 줄을 두지 않는다'
@@ -161,7 +152,7 @@ SELECT throws_ok(
 
 -- 화에 넷째 인물이 서지 않는다.
 SELECT throws_ok(
-  $$insert into public.episode_characters (episode_id, character_id, story_id, at)
+  $$insert into public.episode_characters (episode_id, character_id, story_id, position)
     select e.id, c.id, e.story_id, 4
     from public.episodes e
     join public.stories s on s.id = e.story_id
@@ -172,7 +163,7 @@ SELECT throws_ok(
 
 -- 다른 스토리의 인물을 이 화에 세울 수 없다.
 SELECT throws_ok(
-  $$insert into public.episode_characters (episode_id, character_id, story_id, at)
+  $$insert into public.episode_characters (episode_id, character_id, story_id, position)
     select e.id, c.id, e.story_id, 3
     from public.episodes e
     join public.stories s on s.id = e.story_id
@@ -185,7 +176,7 @@ SELECT throws_ok(
 -- 한 화에 같은 자리를 두 번 줄 수 없다. 이 고유 제약이 없으면 자리 번호가
 -- 1..3이어도 인물이 넷까지 설 수 있다.
 SELECT throws_ok(
-  $$insert into public.episode_characters (episode_id, character_id, story_id, at)
+  $$insert into public.episode_characters (episode_id, character_id, story_id, position)
     select e.id, c.id, e.story_id, 1
     from public.episodes e
     join public.stories s on s.id = e.story_id

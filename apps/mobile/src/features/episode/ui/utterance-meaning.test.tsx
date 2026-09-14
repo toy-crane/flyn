@@ -7,7 +7,7 @@ import {
   UtteranceTranslationButton,
 } from "./utterance-meaning";
 
-const spot = { messageId: "s1", utteranceAt: 0 };
+const spot = { dialogueIndex: 0, messageId: "s1" };
 test("뜻은 펼치는 동작 없이 보이고 링크만 그 대사를 출처로 연다", async () => {
   const ask = jest.fn();
   const toggle = jest.fn();

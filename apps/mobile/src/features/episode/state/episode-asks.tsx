@@ -103,7 +103,7 @@ export function EpisodeAsksProvider({
   const openAsk = useCallback<EpisodeAsksValue["openAsk"]>(
     ({ correction, utterance, snapshot }) => {
       const id = utterance
-        ? `ask-utterance-${utterance.messageId}-${utterance.utteranceAt}`
+        ? `ask-utterance-${utterance.messageId}-${utterance.dialogueIndex}`
         : `ask-${correction.messageId}`;
       const existing = asksRef.current.find((ask) => ask.id === id);
 

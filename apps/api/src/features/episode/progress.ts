@@ -20,7 +20,6 @@ const MEMORY_LINE_LIMIT = 300;
 const STORED_ROLES = new Set(["assistant", "user"]);
 
 /** 같은 자리를 두 번 담았을 때 Postgres가 돌려주는 코드. */
-const UNIQUE_VIOLATION = "23505";
 
 /** 끝난 에피소드 한 줄. 제목과 번호는 현재 콘텐츠에서 합친다. */
 export interface FinishedEpisodeRow {
@@ -271,7 +270,7 @@ async function readStoredMessages(
   const { data, error } = await client
     .from("episode_messages")
     .select("id, role, parts, created_at")
-    .eq("play_id", playId)
+    .eq("episode_play_id", playId)
     .order("created_at");
 
   if (error) {
@@ -325,7 +324,7 @@ export async function openEpisodePlay(
     const { error } = await client
       .from("episode_messages")
       .delete()
-      .eq("play_id", playId)
+      .eq("episode_play_id", playId)
       .gt("created_at", lastKept);
 
     if (error) {
@@ -378,9 +377,9 @@ export async function appendEpisodeMessage(
   }
 
   const { error } = await client.from("episode_messages").insert({
+    episode_play_id: play.playId,
     id: message.id,
     parts: message.parts,
-    play_id: play.playId,
     role: message.role,
   });
 
@@ -401,12 +400,13 @@ export async function readPlaySavedExpressions(
   playId: string
 ): Promise<SavedExpressionRef[]> {
   const { data, error } = await client
-    .from("saved_expressions")
+    .from("expressions")
     .select(
-      "id, kind, message_id, utterance_at, created_at, episode_messages!inner(play_id)"
+      "id, kind, message_id, dialogue_index, saved_at, episode_messages!inner(episode_play_id)"
     )
-    .eq("episode_messages.play_id", playId)
-    .order("created_at");
+    .eq("episode_messages.episode_play_id", playId)
+    .not("saved_at", "is", null)
+    .order("saved_at");
 
   if (error) {
     throw new Error(`Reading saved expressions failed: ${error.message}`);
@@ -416,10 +416,10 @@ export async function readPlaySavedExpressions(
     row.message_id
       ? [
           {
+            dialogueIndex: row.dialogue_index,
             id: row.id,
             kind: row.kind as SavedExpressionKind,
             messageId: row.message_id,
-            utteranceAt: row.utterance_at,
           },
         ]
       : []
@@ -485,11 +485,12 @@ export async function readSavedExpressions(
   client: EpisodeClient
 ): Promise<SavedExpressionCard[]> {
   const { data, error } = await client
-    .from("saved_expressions")
+    .from("expressions")
     .select(
-      "id, kind, english, meaning, speaker, original, entries, episodes!inner(number, stories!inner(title))"
+      "id, kind, text, meaning, speaker, original, entries, episodes!inner(number, stories!inner(title))"
     )
-    .order("created_at", { ascending: false });
+    .not("saved_at", "is", null)
+    .order("saved_at", { ascending: false });
 
   if (error) {
     throw new Error(`Reading the expression note failed: ${error.message}`);
@@ -502,7 +503,7 @@ export async function readSavedExpressions(
     };
 
     return {
-      english: row.english,
+      english: row.text,
       entries: storedEntries(row.entries),
       episodeNumber: episode.number,
       id: row.id,
@@ -515,111 +516,48 @@ export async function readSavedExpressions(
   });
 }
 
-/** 담아 둘 표현 한 건. 값은 모두 서버가 저장된 행에서 만든다. */
+/** 저장된 표현의 출처. 담기는 내용을 복사하지 않고 저장 표시만 바꾼다. */
 export interface SavedExpressionDraft {
-  english: string;
-  entries: { fixed: string; original: string; why: string }[] | null;
-  episodeId: string;
-  kind: SavedExpressionKind;
-  meaning: string | null;
+  dialogueIndex: number | null;
   messageId: string;
-  original: string | null;
-  speaker: string | null;
-  utteranceAt: number | null;
 }
 
-/**
- * 표현 하나를 담는다.
- *
- * 같은 자리를 두 번 담으면 데이터베이스의 유니크 색인이 막는다. 화면은 이미
- * 담은 상태를 보여 주고 있으므로, 그 충돌은 오류가 아니라 이미 있는 항목을
- * 돌려주는 것으로 끝낸다.
- */
+/** 같은 표현을 다시 담아도 DB가 처음 담은 시각을 유지한다. */
 export async function saveExpression(
   client: EpisodeClient,
   draft: SavedExpressionDraft
 ): Promise<SavedExpressionRef> {
-  const { data, error } = await client
-    .from("saved_expressions")
-    .insert({
-      english: draft.english,
-      entries: draft.entries,
-      episode_id: draft.episodeId,
-      kind: draft.kind,
-      meaning: draft.meaning,
-      message_id: draft.messageId,
-      original: draft.original,
-      speaker: draft.speaker,
-      utterance_at: draft.utteranceAt,
-    })
-    .select("id, kind, message_id, utterance_at")
+  let query = client
+    .from("expressions")
+    .update({ saved_at: new Date().toISOString() })
+    .eq("message_id", draft.messageId);
+  query =
+    draft.dialogueIndex === null
+      ? query.is("dialogue_index", null)
+      : query.eq("dialogue_index", draft.dialogueIndex);
+  const { data, error } = await query
+    .select("id, kind, message_id, dialogue_index")
     .single();
-
   if (error) {
-    if (error.code === UNIQUE_VIOLATION) {
-      const found = await readSavedExpression(client, draft);
-
-      if (found) {
-        return found;
-      }
-    }
-
     throw new Error(`Saving an expression failed: ${error.message}`);
   }
-
   return {
+    dialogueIndex: data.dialogue_index,
     id: data.id,
     kind: data.kind as SavedExpressionKind,
     messageId: draft.messageId,
-    utteranceAt: data.utterance_at,
   };
 }
 
-async function readSavedExpression(
-  client: EpisodeClient,
-  draft: SavedExpressionDraft
-): Promise<SavedExpressionRef | undefined> {
-  // 유니크 색인의 열쇠와 같은 조건만 건다. 종류는 열쇠에 없으므로 여기서도 묻지
-  // 않는다. 물으면 충돌을 낸 그 행을 못 찾고 없는 것으로 보게 된다.
-  let query = client
-    .from("saved_expressions")
-    .select("id, kind, message_id, utterance_at")
-    .eq("message_id", draft.messageId);
-
-  query =
-    draft.utteranceAt === null
-      ? query.is("utterance_at", null)
-      : query.eq("utterance_at", draft.utteranceAt);
-
-  const { data, error } = await query.maybeSingle();
-
-  if (error || !data?.message_id) {
-    return;
-  }
-
-  return {
-    id: data.id,
-    kind: data.kind as SavedExpressionKind,
-    messageId: data.message_id,
-    utteranceAt: data.utterance_at,
-  };
-}
-
-/**
- * 담아 둔 표현 하나를 지운다.
- *
- * 책갈피를 다시 누르는 취소와 표현 노트에서 미는 삭제가 같은 문장이다. 남의
- * 항목을 가리키는 요청은 정책이 걸러 아무 행도 지우지 않고 끝난다.
- */
+/** 저장 표시를 지운다. 원본도 없는 표현의 정리는 DB가 함께 처리한다. */
 export async function eraseSavedExpression(
   client: EpisodeClient,
   id: string
 ): Promise<void> {
   const { error } = await client
-    .from("saved_expressions")
-    .delete()
+    .from("expressions")
+    .update({ saved_at: null })
     .eq("id", id);
-
   if (error) {
     throw new Error(`Erasing a saved expression failed: ${error.message}`);
   }
