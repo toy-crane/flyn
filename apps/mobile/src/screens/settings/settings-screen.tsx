@@ -1,5 +1,5 @@
 import { FieldGroup, Host, RNHostView, Row, Spacer, Text } from "@expo/ui";
-import Constants from "expo-constants";
+import { View } from "react-native";
 
 import { useAccountDeletion } from "@/features/account-deletion/state/use-account-deletion";
 import { accountDeletionLabels } from "@/features/account-deletion/ui/account-deletion-labels";
@@ -20,6 +20,10 @@ import { ExternalDestinationIcon } from "./external-destination-icon";
 import { useExternalDestinations } from "./external-destinations";
 import { SettingsIcon, type SettingsIconProps } from "./settings-icon";
 import { SettingsProfileHero } from "./settings-profile-hero";
+import {
+  SettingsCopyFeedback,
+  useSettingsReleaseInfo,
+} from "./settings-release-info";
 import { SettingsRow } from "./settings-row";
 import {
   getSettingsSectionModifiers,
@@ -27,7 +31,6 @@ import {
 } from "./settings-surface-modifiers";
 import { getThemePreferenceLabel } from "./theme-options";
 
-const appVersion = Constants.expoConfig?.version ?? "Unknown";
 /** What iOS uses for a list disclosure chevron, which is smaller than body text. */
 const CHEVRON_SIZE = 14;
 /** The symbol in front of a row's name, at the row's own text size. */
@@ -66,6 +69,7 @@ export function SettingsScreen({
   const deletion = useAccountDeletion();
   const { mailFailure, openPrivacy, openSupportMail, openTerms } =
     useExternalDestinations();
+  const releaseInfo = useSettingsReleaseInfo();
   useDestructiveActionAnnouncement(profileLabels.signOut, isSigningOut);
   useDestructiveActionAnnouncement(
     accountDeletionLabels.deleteAccount,
@@ -107,74 +111,75 @@ export function SettingsScreen({
   );
 
   return (
-    <Host
-      /*
+    <View style={{ flex: 1 }}>
+      <Host
+        /*
         Uniwind's variables stop at the native tree, so the chosen mode has to
         be named here. Without it this screen keeps the operating system's mode
         while the rest of the app changes, and 화면 모드 appears to do nothing.
       */
-      colorScheme={themePreference === "system" ? undefined : themePreference}
-      style={{ backgroundColor: background, flex: 1 }}
-      useViewportSizeMeasurement
-    >
-      <FieldGroup
-        modifiers={getSettingsSurfaceModifiers()}
-        style={{ backgroundColor: background }}
-        testID="settings-field-group"
+        colorScheme={themePreference === "system" ? undefined : themePreference}
+        style={{ backgroundColor: background, flex: 1 }}
+        useViewportSizeMeasurement
       >
-        <FieldGroup.Section modifiers={sectionModifiers}>
-          <FieldGroup.SectionHeader>
-            {/*
+        <FieldGroup
+          modifiers={getSettingsSurfaceModifiers()}
+          style={{ backgroundColor: background }}
+          testID="settings-field-group"
+        >
+          <FieldGroup.Section modifiers={sectionModifiers}>
+            <FieldGroup.SectionHeader>
+              {/*
               The host sizes itself to the React Native content, because a
               percentage width inside it has no parent width to resolve
               against. So the centring is the native row's: flexible space on
               both sides puts the content-sized block in the middle, where a
               section header would otherwise leave it at the leading edge.
             */}
-            <Row alignment="center">
-              <Spacer flexible />
-              <RNHostView matchContents>
-                <SettingsProfileHero
-                  avatarUrl={readProfileAvatarUrl(profile)}
-                  displayName={profile?.displayName ?? null}
-                  onPress={onOpenProfile}
-                  username={profile?.username ?? null}
-                />
-              </RNHostView>
-              <Spacer flexible />
-            </Row>
-          </FieldGroup.SectionHeader>
-        </FieldGroup.Section>
+              <Row alignment="center">
+                <Spacer flexible />
+                <RNHostView matchContents>
+                  <SettingsProfileHero
+                    avatarUrl={readProfileAvatarUrl(profile)}
+                    displayName={profile?.displayName ?? null}
+                    onPress={onOpenProfile}
+                    username={profile?.username ?? null}
+                  />
+                </RNHostView>
+                <Spacer flexible />
+              </Row>
+            </FieldGroup.SectionHeader>
+          </FieldGroup.Section>
 
-        <FieldGroup.Section
-          modifiers={sectionModifiers}
-          testID="account-section"
-          title={profileLabels.account}
-        >
-          {/*
+          <FieldGroup.Section
+            modifiers={sectionModifiers}
+            testID="account-section"
+            title={profileLabels.account}
+          >
+            {/*
             Which account this is. Three sign-in methods lead to the same app,
             and the nickname above says who a person is to other people rather
             than which login they arrived on. Read-only, so it shows its value
             and nothing else on the right.
           */}
-          <SettingsRow
-            leading={rowIcon("envelope")}
-            testID="account-email-row"
-            trailing={value(
-              session?.user.email ?? profileLabels.contactEmailUnknown
-            )}
-          >
-            <Text>{profileLabels.contactEmail}</Text>
-          </SettingsRow>
-          <SettingsRow
-            leading={rowIcon("person.crop.circle")}
-            onPress={onOpenProfile}
-            testID="profile-row"
-            trailing={chevron}
-          >
-            <Text>{profileLabels.profile}</Text>
-          </SettingsRow>
-          {/*
+            <SettingsRow
+              leading={rowIcon("envelope")}
+              testID="account-email-row"
+              trailing={value(
+                session?.user.email ?? profileLabels.contactEmailUnknown
+              )}
+            >
+              <Text>{profileLabels.contactEmail}</Text>
+            </SettingsRow>
+            <SettingsRow
+              leading={rowIcon("person.crop.circle")}
+              onPress={onOpenProfile}
+              testID="profile-row"
+              trailing={chevron}
+            >
+              <Text>{profileLabels.profile}</Text>
+            </SettingsRow>
+            {/*
             An ordinary account action in ordinary ink. The red on this screen
             belongs to the one row that cannot be undone, and a second red row
             would take weight from it.
@@ -183,108 +188,112 @@ export function SettingsScreen({
             trailing slot and `accessibilityValue` is what says it is running.
             `useSignOut` already drops a second press.
           */}
-          <SettingsRow
-            leading={rowIcon("rectangle.portrait.and.arrow.right")}
-            modifiers={destructiveActionModifiers(isSigningOut)}
-            onPress={requestSignOut}
-            testID="sign-out-button"
-            trailing={
-              isSigningOut ? (
-                <ActionProgress testID="sign-out-progress" />
-              ) : undefined
-            }
-          >
-            <Text>{profileLabels.signOut}</Text>
-          </SettingsRow>
-          {signOutFailure ? (
-            <FieldGroup.SectionFooter>
-              <Text testID="sign-out-error" textStyle={{ color: danger }}>
-                {signOutFailure}
-              </Text>
-            </FieldGroup.SectionFooter>
-          ) : null}
-        </FieldGroup.Section>
+            <SettingsRow
+              leading={rowIcon("rectangle.portrait.and.arrow.right")}
+              modifiers={destructiveActionModifiers(isSigningOut)}
+              onPress={requestSignOut}
+              testID="sign-out-button"
+              trailing={
+                isSigningOut ? (
+                  <ActionProgress testID="sign-out-progress" />
+                ) : undefined
+              }
+            >
+              <Text>{profileLabels.signOut}</Text>
+            </SettingsRow>
+            {signOutFailure ? (
+              <FieldGroup.SectionFooter>
+                <Text testID="sign-out-error" textStyle={{ color: danger }}>
+                  {signOutFailure}
+                </Text>
+              </FieldGroup.SectionFooter>
+            ) : null}
+          </FieldGroup.Section>
 
-        <FieldGroup.Section
-          modifiers={sectionModifiers}
-          testID="preferences-section"
-          title={profileLabels.preferences}
-        >
-          {/*
+          <FieldGroup.Section
+            modifiers={sectionModifiers}
+            testID="preferences-section"
+            title={profileLabels.preferences}
+          >
+            {/*
             The value and the chevron together: this row says what the mode is
             now and that pressing it opens the place to change it. Android takes
             the value alone, where a chevron is not how a settings list says it
             goes somewhere.
           */}
-          <SettingsRow
-            leading={rowIcon("sun.max")}
-            onPress={onOpenThemeMode}
-            testID="theme-mode-row"
-            trailing={navigationValue(getThemePreferenceLabel(themePreference))}
-          >
-            <Text>{profileLabels.themeMode}</Text>
-          </SettingsRow>
-        </FieldGroup.Section>
+            <SettingsRow
+              leading={rowIcon("sun.max")}
+              onPress={onOpenThemeMode}
+              testID="theme-mode-row"
+              trailing={navigationValue(
+                getThemePreferenceLabel(themePreference)
+              )}
+            >
+              <Text>{profileLabels.themeMode}</Text>
+            </SettingsRow>
+          </FieldGroup.Section>
 
-        <FieldGroup.Section
-          modifiers={sectionModifiers}
-          testID="support-section"
-          title={profileLabels.support}
-        >
-          <SettingsRow
-            leading={rowIcon("bubble.left.and.bubble.right")}
-            onPress={openSupportMail}
-            testID="support-row"
-            trailing={externalDestination}
+          <FieldGroup.Section
+            modifiers={sectionModifiers}
+            testID="support-section"
+            title={profileLabels.support}
           >
-            <Text>{profileLabels.contactSupport}</Text>
-          </SettingsRow>
-          {mailFailure ? (
-            <FieldGroup.SectionFooter>
-              <Text testID="support-mail-error" textStyle={{ color: danger }}>
-                {mailFailure}
-              </Text>
-            </FieldGroup.SectionFooter>
-          ) : null}
-        </FieldGroup.Section>
+            <SettingsRow
+              leading={rowIcon("bubble.left.and.bubble.right")}
+              onPress={openSupportMail}
+              testID="support-row"
+              trailing={externalDestination}
+            >
+              <Text>{profileLabels.contactSupport}</Text>
+            </SettingsRow>
+            {mailFailure ? (
+              <FieldGroup.SectionFooter>
+                <Text testID="support-mail-error" textStyle={{ color: danger }}>
+                  {mailFailure}
+                </Text>
+              </FieldGroup.SectionFooter>
+            ) : null}
+          </FieldGroup.Section>
 
-        <FieldGroup.Section
-          modifiers={sectionModifiers}
-          testID="app-info-section"
-          title={profileLabels.appInfo}
-        >
-          {/*
+          <FieldGroup.Section
+            modifiers={sectionModifiers}
+            testID="app-info-section"
+            title={profileLabels.appInfo}
+          >
+            {/*
             Both pages live on the web and open in the browser, so they carry
             the leaving-the-app glyph rather than a chevron. The stores ask for
             the privacy policy to be reachable inside the app as well as on the
             listing, which is what this row is.
           */}
-          <SettingsRow
-            leading={rowIcon("doc.text")}
-            onPress={openTerms}
-            testID="terms-row"
-            trailing={externalDestination}
-          >
-            <Text>{profileLabels.terms}</Text>
-          </SettingsRow>
-          <SettingsRow
-            leading={rowIcon("hand.raised")}
-            onPress={openPrivacy}
-            testID="privacy-row"
-            trailing={externalDestination}
-          >
-            <Text>{profileLabels.privacyPolicy}</Text>
-          </SettingsRow>
-          <SettingsRow
-            leading={rowIcon("info.circle")}
-            testID="version-row"
-            trailing={value(appVersion)}
-          >
-            <Text>{profileLabels.version}</Text>
-          </SettingsRow>
-        </FieldGroup.Section>
+            <SettingsRow
+              leading={rowIcon("doc.text")}
+              onPress={openTerms}
+              testID="terms-row"
+              trailing={externalDestination}
+            >
+              <Text>{profileLabels.terms}</Text>
+            </SettingsRow>
+            <SettingsRow
+              leading={rowIcon("hand.raised")}
+              onPress={openPrivacy}
+              testID="privacy-row"
+              trailing={externalDestination}
+            >
+              <Text>{profileLabels.privacyPolicy}</Text>
+            </SettingsRow>
+            <SettingsRow
+              leading={rowIcon("info.circle")}
+              modifiers={releaseInfo.accessibilityModifiers}
+              onPress={releaseInfo.copy}
+              testID="version-row"
+              trailing={value(releaseInfo.display)}
+            >
+              <Text>{profileLabels.version}</Text>
+            </SettingsRow>
+          </FieldGroup.Section>
 
-        {/*
+          {/*
           Last, alone and unnamed. A title would have to say what this one row
           is a group of, and the platform already reads a lone trailing group as
           the thing that ends the screen. Position, spacing and the red word are
@@ -298,36 +307,41 @@ export function SettingsScreen({
           one word marking this as destructive; `useAccountDeletion` drops a
           second press before the dialog.
         */}
-        <FieldGroup.Section
-          modifiers={sectionModifiers}
-          testID="account-deletion-section"
-        >
-          <SettingsRow
-            modifiers={destructiveActionModifiers(deletion.isDeleting)}
-            onPress={deletion.confirmDeletion}
-            testID="delete-account-row"
-            trailing={
-              deletion.isDeleting ? (
-                <ActionProgress testID="delete-account-progress" />
-              ) : undefined
-            }
+          <FieldGroup.Section
+            modifiers={sectionModifiers}
+            testID="account-deletion-section"
           >
-            <Text textStyle={{ color: danger }}>
-              {accountDeletionLabels.deleteAccount}
-            </Text>
-          </SettingsRow>
-          {deletion.failure ? (
-            <FieldGroup.SectionFooter>
-              <Text
-                testID="account-deletion-error"
-                textStyle={{ color: danger }}
-              >
-                {deletion.failure}
+            <SettingsRow
+              modifiers={destructiveActionModifiers(deletion.isDeleting)}
+              onPress={deletion.confirmDeletion}
+              testID="delete-account-row"
+              trailing={
+                deletion.isDeleting ? (
+                  <ActionProgress testID="delete-account-progress" />
+                ) : undefined
+              }
+            >
+              <Text textStyle={{ color: danger }}>
+                {accountDeletionLabels.deleteAccount}
               </Text>
-            </FieldGroup.SectionFooter>
-          ) : null}
-        </FieldGroup.Section>
-      </FieldGroup>
-    </Host>
+            </SettingsRow>
+            {deletion.failure ? (
+              <FieldGroup.SectionFooter>
+                <Text
+                  testID="account-deletion-error"
+                  textStyle={{ color: danger }}
+                >
+                  {deletion.failure}
+                </Text>
+              </FieldGroup.SectionFooter>
+            ) : null}
+          </FieldGroup.Section>
+        </FieldGroup>
+      </Host>
+      <SettingsCopyFeedback
+        message={releaseInfo.feedback}
+        themePreference={themePreference}
+      />
+    </View>
   );
 }
