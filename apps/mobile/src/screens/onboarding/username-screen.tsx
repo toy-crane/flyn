@@ -1,9 +1,10 @@
 import { InputGroup } from "heroui-native/input-group";
 import { Label } from "heroui-native/label";
+import { Typography } from "heroui-native/text";
 import { TextField } from "heroui-native/text-field";
 import { useCallback } from "react";
 import type { TextInput } from "react-native";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { useUsernameStep } from "@/features/auth/state/use-username-step";
 import { AuthFieldError, AuthLayout } from "@/features/auth/ui/auth-layout";
@@ -189,9 +190,14 @@ function UsernameSuggestions({
 }) {
   return (
     <View className="gap-2.5">
-      <Text className="font-semibold text-muted text-sm">
+      <Typography.Paragraph
+        accessibilityRole="header"
+        color="muted"
+        type="body-sm"
+        weight="medium"
+      >
         {onboardingLabels.suggestions}
-      </Text>
+      </Typography.Paragraph>
       <View className="gap-2">
         {suggestions.map((candidate) => (
           <UsernameSuggestion
@@ -224,9 +230,7 @@ function UsernameSuggestion({
       onPress={choose}
       testID="onboarding-username-suggestion"
     >
-      <Text className="font-semibold text-base text-foreground">
-        {candidate}
-      </Text>
+      <Typography.Paragraph weight="semibold">{candidate}</Typography.Paragraph>
     </Pressable>
   );
 }

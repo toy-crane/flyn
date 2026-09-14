@@ -388,6 +388,18 @@ test("이미 쓰는 아이디면 후보 세 개를 보여주고 고르면 다시
     { timeout: SETTLE_TIMEOUT }
   );
 
+  // 목록 위 작은 소제목은 보조색·중간 굵기·작은 글자이고 헤더로 읽힌다.
+  const suggestionsTitle = screen.getByRole("header", {
+    name: "사용 가능한 아이디",
+  });
+  expect(suggestionsTitle.props.className).toContain(
+    "text__root--type-body-sm"
+  );
+  expect(suggestionsTitle.props.className).toContain(
+    "text__root--weight-medium"
+  );
+  expect(suggestionsTitle.props.className).toContain("text__root--color-muted");
+
   await act(() => {
     fireEvent.press(suggestions[0]);
   });

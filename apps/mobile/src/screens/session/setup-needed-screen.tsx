@@ -1,4 +1,5 @@
-import { ScrollView, Text, View } from "react-native";
+import { Typography } from "heroui-native/text";
+import { ScrollView, View } from "react-native";
 
 /**
  * What the app shows when Supabase was never configured.
@@ -16,15 +17,12 @@ export function SetupNeededScreen({ problem }: { problem: string }) {
       testID="setup-needed"
     >
       <View className="gap-3">
-        <Text
-          accessibilityRole="header"
-          className="font-bold text-2xl text-foreground"
-        >
+        <Typography.Heading type="h3">
           앱 설정이 끝나지 않았어요
-        </Text>
-        <Text className="text-base text-muted leading-6" selectable>
+        </Typography.Heading>
+        <Typography.Paragraph color="muted" selectable>
           {problem}
-        </Text>
+        </Typography.Paragraph>
       </View>
     </ScrollView>
   );

@@ -24,6 +24,11 @@ jest.mock("@/shared/supabase/client", () => ({
 }));
 
 const EMAIL = "reader@example.test";
+/**
+ * 역할 대신 크기·행간·굵기를 직접 고르는 클래스. HeroUI 글자가 스스로 붙이는
+ * `font-normal`은 화면이 고른 것이 아니라서 뺀다.
+ */
+const SIZE_CLASS = /\b(text-(xs|sm|base|lg|\d?xl|\[)|leading-|font-(?!normal))/;
 
 let fake: FakeSupabase;
 let onSent: jest.Mock<(email: string) => void>;
@@ -52,6 +57,18 @@ function renderEmail() {
 beforeEach(() => {
   onSent = jest.fn<(email: string) => void>();
   fake = resetFakeSupabase();
+});
+
+test("화면 안 제목은 헤더로 읽히는 h3 역할이다", async () => {
+  await renderEmail();
+
+  const title = screen.getByRole("header", {
+    name: "이메일 주소를 입력해 주세요",
+  });
+
+  expect(title.props.className).toContain("text__root--type-h3");
+  // 크기와 굵기는 역할이 정한다. 화면이 클래스로 덧붙이지 않는다.
+  expect(title.props.className).not.toMatch(SIZE_CLASS);
 });
 
 test("주소를 보내면 정규화한 주소로 다음 화면에 넘긴다", async () => {

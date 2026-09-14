@@ -2,7 +2,7 @@ import { FieldError } from "heroui-native/field-error";
 import { Separator } from "heroui-native/separator";
 import { Typography } from "heroui-native/text";
 import type { ReactNode } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -60,7 +60,7 @@ export function AuthLayout({
         keyboardShouldPersistTaps="handled"
       >
         <View className="gap-2.5 pt-2">
-          <Text className="font-bold text-3xl text-foreground">{title}</Text>
+          <Typography.Heading type="h3">{title}</Typography.Heading>
           {subtitle}
         </View>
         {children}
@@ -94,7 +94,7 @@ export function AuthLayout({
 
 /** The line under the title. Uses `muted`, which is the name the theme defines. */
 export function AuthSubtitle({ children }: { children: ReactNode }) {
-  return <Text className="text-base text-muted leading-6">{children}</Text>;
+  return <Typography.Paragraph color="muted">{children}</Typography.Paragraph>;
 }
 
 /**
@@ -157,7 +157,9 @@ export function AuthDivider() {
   return (
     <View className="flex-row items-center gap-3 py-1">
       <Separator className="flex-1" />
-      <Text className="text-muted text-sm">또는</Text>
+      <Typography.Paragraph color="muted" type="body-sm">
+        또는
+      </Typography.Paragraph>
       <Separator className="flex-1" />
     </View>
   );

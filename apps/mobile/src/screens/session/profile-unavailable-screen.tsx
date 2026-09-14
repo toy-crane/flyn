@@ -1,4 +1,5 @@
-import { ScrollView, Text, View } from "react-native";
+import { Typography } from "heroui-native/text";
+import { ScrollView, View } from "react-native";
 
 import { Button } from "@/shared/ui/button";
 
@@ -25,15 +26,12 @@ export function ProfileUnavailableScreen({
       testID="profile-unavailable"
     >
       <View className="gap-3">
-        <Text
-          accessibilityRole="header"
-          className="font-bold text-2xl text-foreground"
-        >
+        <Typography.Heading type="h3">
           잠시 후 다시 시도해 주세요
-        </Text>
-        <Text className="text-base text-muted leading-6">
+        </Typography.Heading>
+        <Typography.Paragraph color="muted">
           프로필을 불러오지 못했어요
-        </Text>
+        </Typography.Paragraph>
       </View>
 
       <Button

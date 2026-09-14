@@ -17,6 +17,13 @@ import { AppleMark, GoogleMark } from "./brand-marks";
 
 const BUTTON_HEIGHT = 54;
 const PRESSED_OPACITY = 0.75;
+/**
+ * The label's size, as numbers because the row caps its growth. The typography
+ * table gives button labels to HeroUI, so these are the HeroUI `md` button
+ * label's values: 16 with a 24 line.
+ */
+const LABEL_FONT_SIZE = 16;
+const LABEL_LINE_HEIGHT = 24;
 
 const COLORS = {
   dark: {
@@ -104,8 +111,9 @@ export function SignInButton({
         style={{
           color: colors.text,
           flexShrink: 1,
-          fontSize: 16,
+          fontSize: LABEL_FONT_SIZE,
           fontWeight: "600",
+          lineHeight: LABEL_LINE_HEIGHT,
         }}
       >
         {label}
