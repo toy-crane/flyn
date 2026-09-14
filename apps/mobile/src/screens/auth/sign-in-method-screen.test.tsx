@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { beforeEach, expect, jest, test } from "@jest/globals";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { signInAsync } from "expo-apple-authentication";
+import { openURL } from "expo-linking";
 import { Platform } from "react-native";
 import {
   GoogleOneTapSignIn,
@@ -14,6 +15,10 @@ import {
 } from "@/shared/test/fake-supabase";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { SignInMethodScreen } from "./sign-in-method-screen";
+
+jest.mock("expo-linking", () => ({
+  openURL: jest.fn(() => Promise.resolve(true)),
+}));
 
 jest.mock("@/shared/supabase/client", () => ({
   getSupabaseClient: () =>
@@ -106,6 +111,7 @@ beforeEach(() => {
     .mockRejectedValue(new Error("signInAsync is not stubbed for this test"));
   chooseEmail = jest.fn<() => void>();
   fake = resetFakeSupabase();
+  jest.mocked(openURL).mockClear();
 });
 
 test("이메일을 고르면 다음 화면으로 넘긴다", async () => {
@@ -116,6 +122,26 @@ test("이메일을 고르면 다음 화면으로 넘긴다", async () => {
   expect(chooseEmail).toHaveBeenCalledTimes(1);
   // The address itself belongs to the next screen, so this one asks for none.
   expect(screen.queryByLabelText("이메일")).toBeNull();
+});
+
+test("로그인 전에 이용약관과 개인정보 처리방침을 각각 열 수 있다", async () => {
+  await renderMethods();
+
+  expect(
+    screen.getAllByRole("link").map((link) => link.props.accessibilityLabel)
+  ).toEqual(["이용약관", "개인정보 처리방침"]);
+
+  await press("이용약관");
+  await press("개인정보 처리방침");
+
+  expect(jest.mocked(openURL)).toHaveBeenNthCalledWith(
+    1,
+    "https://example.com/terms"
+  );
+  expect(jest.mocked(openURL)).toHaveBeenNthCalledWith(
+    2,
+    "https://example.com/privacy"
+  );
 });
 
 test("Google 로그인은 시도마다 새 nonce를 만들고 원본을 Supabase에 넘긴다", async () => {
@@ -336,6 +362,10 @@ test("Apple 버튼은 iOS에서만 보여준다", async () => {
 
     expect(screen.queryByLabelText("Apple로 계속하기")).toBeNull();
     expect(screen.getByLabelText("Google로 계속하기")).toBeOnTheScreen();
+    expect(screen.getByRole("link", { name: "이용약관" })).toBeOnTheScreen();
+    expect(
+      screen.getByRole("link", { name: "개인정보 처리방침" })
+    ).toBeOnTheScreen();
   } finally {
     platform.restore();
   }
