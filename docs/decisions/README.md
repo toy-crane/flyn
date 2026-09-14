@@ -16,7 +16,7 @@
 - [디자인 시스템 생성 작업 흐름](design-system-generation-workflow.md) — 참고 자료에서 테마 후보를 만들거나 미리보기, 승인, 적용 범위를 변경할 때 읽는다.
 - [Worktree 개발 세션](worktree-development-sessions.md) — 여러 Git worktree의 API·Metro 포트, 같은 컴퓨터의 다른 프로젝트와 나누는 포트 대역, 로컬 Supabase 포트, 플랫폼 동시 실행, 실기기 LAN 연결, 기기 풀과 배정·반납, 기기 계정 보존, 프로세스 소유권 또는 공용 Development Build 재사용 방식을 변경할 때 읽는다.
 - [CI 코드 리뷰](ci-code-review.md) — CI에서 PR 자동 코드 리뷰를 켜거나, 리뷰 도구와 권한을 손대려 할 때 읽는다.
-- [검증과 내부 테스트 배포](continuous-delivery.md) — PR 검증, 운영 배포의 승인 자리, Supabase·Vercel·EAS 배포 순서 또는 복구 경로를 변경할 때 읽는다.
+- [검증과 내부 테스트 배포](continuous-delivery.md) — PR 검증, 운영 배포의 승인 자리, Supabase·Vercel·EAS 배포 순서, Slack 결과 알림 또는 복구 경로를 변경할 때 읽는다.
 - [검토 에이전트 실행 경계](reviewer-agent-execution-boundaries.md) — Claude Code와 Codex의 전용 검토 agent, 공용 검토 계약, 읽기 전용 권한 또는 실행 맥락을 추가하거나 바꿀 때 읽는다.
 - [Expo 참조 저장소 색인](expo-reference-repo-index.md) — 참조 저장소를 추가하거나 색인의 역할, 항목 형식, 커밋 고정 방식을 바꿀 때 읽는다.
 
@@ -49,7 +49,7 @@
 
 ## 모바일 기반
 
-- [모바일 업데이트 경험](mobile-update-experience.md) — 일반 EAS Update의 안내 여부, 적용 시점 또는 강제 업데이트와의 경계를 변경할 때 읽는다.
+- [모바일 업데이트 경험](mobile-update-experience.md) — 일반 EAS Update의 안내 여부, 적용 시점, 최소 지원 버전의 확인·차단 또는 운영 절차를 변경할 때 읽는다.
 
 - [모바일 코드 구조](mobile-code-architecture.md) — 모바일 영역 구분, 기능 내부 책임, 폴더 구조 또는 import 경계를 변경할 때 읽는다.
 - [모바일 개발 런타임](mobile-development-runtime.md) — 모바일 앱의 Expo SDK, 지원 플랫폼, Development Build 런타임 또는 배포 경계를 변경할 때 읽는다.
@@ -85,7 +85,7 @@
 
 - [모바일 인증](mobile-authentication.md) — 모바일 로그인 제공자, 로그인 전 법적 고지 링크, 인증 세션, 계정 연결, 로그아웃 또는 로컬 인증 검증 경로를 변경할 때 읽는다.
 - [모바일 프로필 식별자와 온보딩](mobile-profile-identity-and-onboarding.md) — 닉네임, 아이디, 로그인 뒤 필수 프로필 설정 또는 프로필 완성 조건을 변경할 때 읽는다.
-- [모바일 설정 구조](mobile-settings-structure.md) — Settings의 섹션 순서, 여러 값 중 하나를 고르는 흐름 또는 행 오른쪽 표시를 변경할 때 읽는다.
+- [모바일 설정 구조](mobile-settings-structure.md) — Settings의 섹션 순서, 여러 값 중 하나를 고르는 흐름, 설치 버전·업데이트 ID 또는 행 오른쪽 표시를 변경할 때 읽는다.
 - [모바일 설정 공개 프로필](mobile-profile-settings.md) — Settings의 프로필 표시, `프로필` 화면 진입, 사진 편집 또는 프로필 폼 배치를 변경할 때 읽는다.
 - [모바일 설정 폼 저장](mobile-settings-form-save.md) — 여러 값을 모아 한 번에 저장하는 설정 화면을 만들거나, 저장 컨트롤의 자리, 모양 또는 저장 가능 조건을 바꿀 때 읽는다.
 - [모바일 계정 삭제](mobile-account-deletion.md) — 모바일 계정 삭제의 진입 위치, 확인, 삭제 범위, 진행 상태 또는 스토어 제출 조건을 변경할 때 읽는다.
