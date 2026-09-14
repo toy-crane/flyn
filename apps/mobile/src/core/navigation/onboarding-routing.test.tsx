@@ -45,6 +45,14 @@ jest.mock("@/screens/home/home-screen", () => {
   };
 });
 
+/**
+ * The first test in this file loads and renders the whole app router. With an
+ * empty transform cache, as on CI, that alone took just over Jest's default
+ * five seconds, and the timed-out render then overlapped every later test's act
+ * scope. The later tests reuse the loaded modules and finish in milliseconds.
+ */
+jest.setTimeout(15_000);
+
 /** Longer than the availability debounce, so a settled value gets its answer. */
 const SETTLE_TIMEOUT = 2000;
 /** Long enough for the profile read to retry once and then give up. */
