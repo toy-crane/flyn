@@ -4,7 +4,8 @@ import { Stack } from "expo-router";
 import { hide as hideSplashScreen } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { HeroUINativeProvider } from "heroui-native/provider";
-import { useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
+import { Modal } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
@@ -19,10 +20,12 @@ import {
 } from "@/core/navigation/story-screens";
 import { QueryProvider } from "@/core/providers/query-provider";
 import { AppThemeBridge, useAppTheme } from "@/core/theme/app-theme-bridge";
+import { useAppVersionGate } from "@/features/app-version/use-app-version-gate";
 import { AuthSessionProvider } from "@/features/auth/state/auth-session";
 import { ProfileUnavailableScreen } from "@/screens/session/profile-unavailable-screen";
 import { SessionCheckingScreen } from "@/screens/session/session-checking-screen";
 import { SetupNeededScreen } from "@/screens/session/setup-needed-screen";
+import { UpdateRequiredScreen } from "@/screens/session/update-required-screen";
 
 /**
  * 방금 한 일을 알리는 짧은 문구는 화면 위쪽에 뜬다.
@@ -37,46 +40,50 @@ const heroUIConfig = {
   toast: { defaultProps: { placement: "top" } },
 } as const;
 
+const keepUpdateScreenOpen = () => undefined;
+
 function ThemedRootLayout() {
   const { background, foreground, scheme } = useAppTheme();
   const { area, checkingPhase, isRetryingProfile, problem, retryProfile } =
     useProtectedArea();
+  const versionGate = useAppVersionGate();
   const settingsScreenOptions = getSettingsScreenOptions(background);
   const storyScreenOptions = getStoryScreenOptions({ background, foreground });
   useEffect(() => {
-    if (area === "misconfigured" || area === "profileUnavailable") {
+    if (
+      area === "misconfigured" ||
+      area === "profileUnavailable" ||
+      versionGate.status === "blocked"
+    ) {
       hideSplashScreen();
     }
-  }, [area]);
+  }, [area, versionGate.status]);
 
-  if (area === "checking") {
-    return <SessionCheckingScreen phase={checkingPhase} />;
-  }
-
-  if (area === "misconfigured" || area === "profileUnavailable") {
+  if (versionGate.status === "checking") {
     return (
-      <>
-        {area === "misconfigured" ? (
-          <SetupNeededScreen problem={problem ?? ""} />
-        ) : (
-          <ProfileUnavailableScreen
-            isRetrying={isRetryingProfile}
-            onRetry={retryProfile}
-          />
-        )}
-      </>
+      <SessionCheckingScreen
+        phase={area === "checking" ? checkingPhase : "version"}
+      />
     );
   }
 
-  return (
-    <>
-      {/*
-        The guards decide which group exists at all, so there is no screen to
-        navigate away from and no redirect to write. Expo Router also drops the
-        history of a group whose guard turns false, which is what keeps a signed
-        out person from swiping back into a protected screen — and what closes
-        onboarding the moment the profile is finished.
-      */}
+  let content: ReactNode;
+  if (area === "checking") {
+    content = <SessionCheckingScreen phase={checkingPhase} />;
+  } else if (area === "misconfigured" || area === "profileUnavailable") {
+    content =
+      area === "misconfigured" ? (
+        <SetupNeededScreen problem={problem ?? ""} />
+      ) : (
+        <ProfileUnavailableScreen
+          isRetrying={isRetryingProfile}
+          onRetry={retryProfile}
+        />
+      );
+  } else {
+    content = (
+      // The protected groups still own navigation. The update modal covers this
+      // tree without unmounting it, so a response already in flight can settle.
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: background },
@@ -93,21 +100,9 @@ function ThemedRootLayout() {
               options={{ ...storyScreenOptions, title: storyScreen.title }}
             />
           ))}
-          {/*
-            An episode is pushed here so the native push covers the tab bar.
-            The scene needs the whole screen. It brings its own stack,
-            which draws the episode's header
-            and presents asking about a correction as a sheet over it. Left on,
-            this screen would show a second header above that one.
-          */}
+          {/* 에피소드는 화면 전체를 쓰므로 탭과 루트 헤더 위에 push한다. */}
           <Stack.Screen name="episode" />
-          {/*
-            The settings hierarchy is pushed here, screen by screen, for the
-            same reason: the native push covers the tab bar. Unlike
-            에피소드 these bring no stack of their own — a nested stack would
-            make 설정 a first screen, and a first screen has no native back
-            button to go back to the tab with.
-          */}
+          {/* 설정 계층은 같은 루트 Stack에서 네이티브 뒤로 가기를 공유한다. */}
           {settingsScreens.map((settingsScreen) => (
             <Stack.Screen
               key={settingsScreen.name}
@@ -126,6 +121,26 @@ function ThemedRootLayout() {
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
       </Stack>
+    );
+  }
+
+  return (
+    <>
+      {content}
+      <Modal
+        animationType="none"
+        onRequestClose={keepUpdateScreenOpen}
+        visible={versionGate.status === "blocked"}
+      >
+        <UpdateRequiredScreen
+          checkError={versionGate.checkError}
+          isRechecking={versionGate.isRechecking}
+          onOpenInstall={versionGate.openInstall}
+          onRecheck={versionGate.recheck}
+          openError={versionGate.openError}
+        />
+        <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+      </Modal>
       {/*
         The chosen screen mode, not the operating system's. `auto` reads the OS,
         so a person who picks 다크 while the phone is light gets dark text on
