@@ -74,6 +74,35 @@ create trigger profiles_set_updated_at
   when (old.* is distinct from new.*)
   execute function public.set_updated_at();
 
+-- Keep policy creation time fixed and stamp only changes to editable settings.
+create function public.set_app_version_policy_timestamps()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  new.created_at := old.created_at;
+  if row(new.platform, new.distribution, new.minimum_version, new.install_url)
+    is distinct from row(old.platform, old.distribution, old.minimum_version, old.install_url) then
+    new.updated_at := clock_timestamp();
+  else
+    new.updated_at := old.updated_at;
+  end if;
+  return new;
+end;
+$$;
+
+comment on function public.set_app_version_policy_timestamps() is
+  'Keeps policy creation time fixed and stamps actual policy changes.';
+
+revoke all on function public.set_app_version_policy_timestamps() from public, anon, authenticated, service_role;
+
+create trigger app_version_policies_set_timestamps
+  before update on public.app_version_policies
+  for each row
+  execute function public.set_app_version_policy_timestamps();
+
 -- How long a changed account id is locked, and how long the old one is held back.
 --
 -- One function rather than the literal repeated across the trigger and both

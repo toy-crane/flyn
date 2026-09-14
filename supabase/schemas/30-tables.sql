@@ -799,6 +799,8 @@ create index utterance_meanings_user_id_idx on public.utterance_meanings(user_id
 create table public.app_version_policies (
   platform text not null check (platform in ('ios', 'android')),
   distribution text not null check (distribution in ('internal', 'public')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
   minimum_version text check (
     minimum_version is null
     or minimum_version ~ '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
