@@ -6,10 +6,6 @@ import type { SavedExpression } from "@/features/note/api/expression-note";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { ExpressionNoteScreen } from "./expression-note-screen";
 
-jest.mock("expo-router/react-navigation", () => ({
-  useHeaderHeight: () => 140,
-}));
-
 /** 카드 하나가 자기 id를 testID에 담으므로 세운 순서를 이것으로 읽는다. */
 const CARD_TEST_ID = /^expression-card-5a4ed000-0000-4000-8000-\d{12}$/;
 

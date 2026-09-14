@@ -16,8 +16,8 @@
 | 스토리 제목(표지 옆) | `Heading` `h5` | 대화 기록 헤더 |
 | 카드 제목, 영어 문장, 회차 날짜 | `Heading` `h6` | 펼침 카드의 제목은 트리거 안에 있어 헤더로 따로 읽히지 않을 수 있다. 카드 자체가 펼침 상태를 가진 버튼으로 읽힌다 |
 | 섹션 소제목(`최근 대화`, `추천 아이디` 같은 목록 위 작은 제목) | `Paragraph` `body-sm` + `weight="medium"` + `color="muted"` | [모바일 스토리 탐색](mobile-story-browsing.md)이 정한 보조색·중간 굵기·작은 소제목. 헤더 역할은 `accessibilityRole`로 넘긴다 |
-| 본문, 말풍선, 장면 서술, 안내 문단 | `Paragraph` `body` | |
-| 작은 본문, 뜻, 화 결과, 상황 줄, 오류 문구 | `Paragraph` `body-sm` | 오류는 색만 `text-danger`. 입력에 붙는 오류는 `FieldError`가 그린다 |
+| 본문, 말풍선, 대사 뜻, 장면 서술, 안내 문단 | `Paragraph` `body` | |
+| 작은 본문, 표현 노트와 표현 돌아보기의 뜻, 화 결과, 상황 줄, 오류 문구 | `Paragraph` `body-sm` | 오류는 색만 `text-danger`. 입력에 붙는 오류는 `FieldError`가 그린다 |
 | 캡션, 메타, 출처, 채널 라벨, 인물 이름표 | `Paragraph` `body-xs` | 강조는 `weight`, 색은 className |
 | 버튼, 칩, 목록 행의 제목과 설명, 입력 오류(`FieldError`) | HeroUI 컴포넌트가 소유 | 앱이 지정하지 않는다 |
 
