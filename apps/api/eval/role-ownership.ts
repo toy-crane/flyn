@@ -7,6 +7,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { resolve } from "node:path";
+import { episodeSystemPrompt } from "../src/features/episode/episode";
 import { resolveModelId } from "../src/shared/model-id";
 import { roleOwnershipCandidatePrompt } from "./role-ownership-candidate";
 import { fixedScenarios, type Scenario } from "./role-ownership-cases";
@@ -35,6 +36,12 @@ interface Trial extends Job {
 }
 const sha = (value: string) => createHash("sha256").update(value).digest("hex");
 
+function assertBaselinePrompt(scenario: Scenario) {
+  if (scenario.before !== episodeSystemPrompt(scenario.script)) {
+    throw new Error(`Baseline prompt changed: ${scenario.id}`);
+  }
+}
+
 function prepare(directory: string) {
   if (existsSync(resolve(directory, "responses.jsonl"))) {
     throw new Error("Cannot rewrite a started evaluation");
@@ -43,10 +50,10 @@ function prepare(directory: string) {
   if (model !== "openai/gpt-5.6-luna") {
     throw new Error("This evaluation is authorized for Luna only");
   }
-  const scenarios = fixedScenarios().map((f) => ({
-    ...f,
-    after: roleOwnershipCandidatePrompt(f.script),
-  }));
+  const scenarios = fixedScenarios().map((f) => {
+    assertBaselinePrompt(f);
+    return { ...f, after: roleOwnershipCandidatePrompt(f.script) };
+  });
   if (scenarios.some((f) => f.before === f.after)) {
     throw new Error("Before and after prompts are identical");
   }
@@ -88,6 +95,7 @@ async function run(directory: string) {
     throw new Error("Model changed");
   }
   for (const f of manifest.scenarios) {
+    assertBaselinePrompt(f);
     if (f.after !== roleOwnershipCandidatePrompt(f.script)) {
       throw new Error(`Prompt changed after freeze: ${f.id}`);
     }

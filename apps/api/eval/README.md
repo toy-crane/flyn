@@ -54,6 +54,9 @@ bun run --cwd apps/api eval:multi-cast
 아직 품질 관문을 통과하지 못해 운영 프롬프트에는 적용하지 않는다.
 처음에는 `prepare`로 입력과 프롬프트를 저장하고, `run`에서 실제 Luna를 호출한다.
 서버 모델 설정이 Luna가 아니면 중단한다.
+`prepare`와 `run`은 저장한 이전 프롬프트가 현재 운영 프롬프트와 같은지도 확인한다.
+다르면 네 규칙 외의 변경이 비교에 섞이므로 실제 호출 전에 중단한다.
+운영 프롬프트를 바꾼 뒤에는 비교 기준과 입력을 다시 검토해 새 평가로 기록한다.
 
 ```sh
 role_scratch=$(mktemp -d /tmp/flyn-role-ownership.XXXXXX)
