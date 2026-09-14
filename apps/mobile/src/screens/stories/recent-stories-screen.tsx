@@ -8,6 +8,7 @@ import type { RecentStory } from "@/features/story/api/story";
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { StoryRow } from "@/features/story/ui/story-row";
 import { Button } from "@/shared/ui/button";
+import { DelayedLoading } from "@/shared/ui/delayed-loading";
 import { ScreenEmpty, ScreenUnavailable } from "@/shared/ui/screen-status";
 import { useScreenContentHeight } from "@/shared/ui/use-screen-content-height";
 
@@ -105,6 +106,9 @@ export function RecentStoriesScreen({
           testID="recent-empty"
           title={storyLabels.recentEmptyTitle}
         />
+      ) : null}
+      {!stories && isLoading ? (
+        <DelayedLoading testID="recent-loading" />
       ) : null}
       {stories || isLoading ? null : (
         <ScreenUnavailable

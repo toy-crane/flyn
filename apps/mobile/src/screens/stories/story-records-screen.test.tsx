@@ -1,398 +1,206 @@
-import { beforeEach, expect, jest, test } from "@jest/globals";
-import {
-  act,
-  fireEvent,
-  screen,
-  userEvent,
-} from "@testing-library/react-native";
-import { AccessibilityInfo } from "react-native";
+import { expect, jest, test } from "@jest/globals";
+import { fireEvent, screen } from "@testing-library/react-native";
 
 import type { StoryPlay, StoryPlays } from "@/features/story/api/story";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { StoryRecordsScreen } from "./story-records-screen";
 
 const STORY_ID = "10000000-0000-4000-8000-000000000001";
+const FIRST_ID = "1a000000-0000-4000-8000-000000000001";
+const SECOND_ID = "1a000000-0000-4000-8000-000000000002";
 
-function episodeId(number: number): string {
-  return `11000000-0000-4000-8000-${number.toString().padStart(12, "0")}`;
-}
-
-function storyPlayId(number: number): string {
-  return `1a000000-0000-4000-8000-${number.toString().padStart(12, "0")}`;
-}
-
-/** 로컬 시각으로 적은 시작 시각. 카드 제목이 이 시각을 그대로 쓴다. */
-function startedAt(day: number, hour: number, minute: number): string {
-  return new Date(2026, 8, day, hour, minute).toISOString();
-}
-
-/** 1화를 끝내고 2화를 남긴 회차. */
-function unfinishedRun(): StoryPlay {
+function play(id: string, finished: number): StoryPlay {
   return {
-    episodes: [
-      {
-        episodeId: episodeId(1),
-        hasTranscript: true,
-        number: 1,
-        outcome: "원하는 커피로 바꿔냈어요.",
-        title: "카페에서 생긴 일",
-      },
-    ],
-    finished: 1,
-    next: { episodeId: episodeId(2), number: 2, title: "계산이 꼬인 아침" },
-    startedAt: startedAt(8, 15, 42),
-    storyPlayId: storyPlayId(1),
-  };
-}
-
-/** 다섯 화를 모두 끝낸 회차. */
-function finishedRun(): StoryPlay {
-  return {
-    episodes: [1, 2, 3, 4, 5].map((number) => ({
-      episodeId: episodeId(number),
+    episodes: Array.from({ length: finished }, (_, index) => ({
+      episodeId: `11000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
       hasTranscript: true,
-      number,
-      outcome: `${number}화의 결과.`,
-      title: `${number}화`,
+      number: index + 1,
+      outcome: "해냈어요.",
+      title: `${index + 1}화`,
     })),
-    finished: 5,
-    next: null,
-    startedAt: startedAt(2, 9, 5),
-    storyPlayId: storyPlayId(2),
+    finished,
+    next:
+      finished === 5
+        ? null
+        : {
+            episodeId: `11000000-0000-4000-8000-${String(finished + 1).padStart(12, "0")}`,
+            hasTranscript: finished === 0,
+            number: finished + 1,
+            title: "계산이 꼬인 아침",
+          },
+    startedAt: new Date(2026, 8, finished + 1, 15, 42).toISOString(),
+    storyPlayId: id,
   };
 }
 
-function records(storyPlays: StoryPlay[]): StoryPlays {
+function records(plays: StoryPlay[], total = 5): StoryPlays {
   return {
     coverBlurhash: null,
-
     coverImagePath: null,
-    intro: "매일 들르는 동네 카페에서 벌어지는 다섯 번의 사건.",
-    plays: storyPlays,
+    intro: "동네 카페에서 벌어지는 이야기.",
+    plays,
     storyId: STORY_ID,
     title: "Mia의 카페",
-    total: 5,
+    total,
   };
 }
 
 function renderRecords(
   overrides: Partial<Parameters<typeof StoryRecordsScreen>[0]> = {}
 ) {
-  const onOpenEpisode =
-    jest.fn<(storyPlayId: string, episodeId: string) => void>();
-  const onResume = jest.fn<(storyPlayId: string, episodeId: string) => void>();
-
-  return {
-    onOpenEpisode,
-    onResume,
-    rendered: renderWithHeroUI(
-      <StoryRecordsScreen
-        isLoading={false}
-        isRetrying={false}
-        onOpenEpisode={onOpenEpisode}
-        onResume={onResume}
-        onRetry={jest.fn()}
-        storyPlays={records([unfinishedRun(), finishedRun()])}
-        {...overrides}
-      />
-    ),
-  };
+  const onOpen = jest.fn<(selected: StoryPlay) => void>();
+  const onDelete = jest.fn<(storyPlayId: string) => void>();
+  const rendered = renderWithHeroUI(
+    <StoryRecordsScreen
+      isLoading={false}
+      isRetrying={false}
+      onDelete={onDelete}
+      onOpen={onOpen}
+      onRetry={jest.fn()}
+      storyPlays={records([play(FIRST_ID, 1), play(SECOND_ID, 5)])}
+      {...overrides}
+    />
+  );
+  return { onDelete, onOpen, rendered };
 }
 
 jest.mock("expo-router/react-navigation", () => ({
   useHeaderHeight: () => 103,
 }));
 
-beforeEach(() => {
-  jest
-    .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
-    .mockResolvedValue(false);
-});
-
-test("표지 소개와 최근 대화 아래에 회차 카드를 시작한 날짜와 시간으로 보여 준다", async () => {
-  const { rendered } = renderRecords();
-
+test("회차 본문을 누르면 선택한 회차의 Sheet 진입을 요청한다", async () => {
+  const first = play(FIRST_ID, 1);
+  const { onDelete, onOpen, rendered } = renderRecords({
+    storyPlays: records([first, play(SECOND_ID, 5)]),
+  });
   await rendered;
 
   expect(screen.getByText("Mia의 카페")).toBeVisible();
-  expect(screen.getByRole("header", { name: "최근 대화" })).toBeVisible();
-  expect(screen.getByText("9월 8일 오후 3:42")).toBeVisible();
-  expect(screen.getByText("9월 2일 오전 9:05")).toBeVisible();
-});
-
-const SECTION_TYPE = /\btext__root--type-body-sm(\s|$)/;
-
-test("스토리 제목과 최근 대화 소제목, 회차 날짜가 대응표의 역할을 쓴다", async () => {
-  const { rendered } = renderRecords();
-
-  await rendered;
-
-  expect(
-    screen.getByRole("header", { name: "Mia의 카페" }).props.className
-  ).toContain("text__root--type-h5");
-  const section = screen.getByRole("header", { name: "최근 대화" });
-  expect(section.props.className).toMatch(SECTION_TYPE);
-  expect(section.props.className).toContain("text__root--weight-medium");
-  expect(section.props.className).toContain("text__root--color-muted");
-  expect(screen.getByText("9월 8일 오후 3:42").props.className).toContain(
-    "text__root--type-h6"
-  );
-});
-
-// 미완료 회차가 여럿이어도 어느 하나를 대표로 세우지 않는다.
-test("현재 플레이 배지를 붙이지 않고 회차마다 진행 바를 둔다", async () => {
-  const { rendered } = renderRecords({
-    storyPlays: records([
-      unfinishedRun(),
-      {
-        ...finishedRun(),
-        finished: 2,
-        next: {
-          episodeId: episodeId(3),
-          number: 3,
-          title: "자리를 맡아 둔 사이에",
-        },
-      },
-    ]),
-  });
-
-  await rendered;
-
-  expect(screen.queryByText("현재 플레이")).toBeNull();
-  expect(screen.getAllByTestId("story-progress")).toHaveLength(2);
-});
-
-test("접힌 회차는 현재 위치와 화 제목 또는 완료를 보여 주고 이어서 하기가 보인다", async () => {
-  const { rendered } = renderRecords({
-    storyPlays: records([unfinishedRun(), finishedRun()]),
-  });
-
-  await rendered;
-
   expect(screen.getByText("2/5화 · 계산이 꼬인 아침")).toBeVisible();
   expect(screen.getByText("5/5화 · 완료")).toBeVisible();
-  expect(screen.getAllByText("이어서 하기")).toHaveLength(1);
-  expect(
-    screen.getByTestId(`story-play-toggle-${storyPlayId(1)}`).props
-      .accessibilityState
-  ).toMatchObject({ expanded: false });
-});
-
-test("회차 카드는 카드마다 하나인 HeroUI Accordion 표면 변형이다", async () => {
-  const { rendered } = renderRecords({
-    storyPlays: records([unfinishedRun()]),
-  });
-
-  await rendered;
-
-  expect(
-    screen.getByTestId(`story-play-card-${storyPlayId(1)}`).props.className
-  ).toContain("accordion__root-container--variant-surface");
-  expect(
-    screen.getByRole("button", {
-      name: "9월 8일 오후 3:42, 2/5화 · 계산이 꼬인 아침, 대화 기록 펼치기",
-    })
-  ).toBe(screen.getByTestId(`story-play-toggle-${storyPlayId(1)}`));
-});
-
-test("소개와 최근 대화 사이의 구분선은 HeroUI Separator다", async () => {
-  const { rendered } = renderRecords();
-
-  await rendered;
-
-  expect(screen.getByTestId("story-records-divider").props.className).toContain(
-    "separator__root"
-  );
-});
-
-test("완주한 회차에는 이어서 하기가 없다", async () => {
-  const { rendered } = renderRecords({ storyPlays: records([finishedRun()]) });
-
-  await rendered;
-
+  expect(screen.getAllByTestId("story-progress")).toHaveLength(2);
   expect(screen.queryByText("이어서 하기")).toBeNull();
+  fireEvent.press(screen.getByTestId(`story-play-open-${FIRST_ID}`));
+
+  expect(onOpen).toHaveBeenCalledWith(first);
+  expect(onDelete).not.toHaveBeenCalled();
 });
 
-test("미완료 회차의 이어서 하기는 그 회차의 다음 화를 연다", async () => {
-  const { onResume, rendered } = renderRecords({
-    storyPlays: records([unfinishedRun()]),
-  });
-
+test("끝낸 화가 없는 회차도 본문을 누르면 화 선택으로 간다", async () => {
+  const first = play(FIRST_ID, 0);
+  const { onOpen, rendered } = renderRecords({ storyPlays: records([first]) });
   await rendered;
-  const user = userEvent.setup();
 
-  // 접힌 카드에서 바로 누른다.
-  await user.press(screen.getByTestId(`story-play-resume-${storyPlayId(1)}`));
-
-  expect(onResume).toHaveBeenCalledWith(storyPlayId(1), episodeId(2));
-  expect(screen.queryByText("원하는 커피로 바꿔냈어요.")).toBeNull();
+  fireEvent.press(screen.getByTestId(`story-play-open-${FIRST_ID}`));
+  expect(onOpen).toHaveBeenCalledWith(first);
+  expect(screen.getByTestId(`story-play-menu-${FIRST_ID}`)).toBeVisible();
 });
 
-test("카드를 펼치면 그 회차에서 끝낸 화의 결과가 보이고 눌러서 열 수 있다", async () => {
-  const { onOpenEpisode, rendered } = renderRecords({
-    storyPlays: records([unfinishedRun()]),
-  });
-
+test("삭제 중에는 그 회차의 본문과 메뉴를 잠그고 메뉴 자리에 진행을 표시한다", async () => {
+  const { rendered } = renderRecords({ deletingStoryPlayId: FIRST_ID });
   await rendered;
-  const user = userEvent.setup();
-  const toggle = screen.getByTestId(`story-play-toggle-${storyPlayId(1)}`);
-
-  expect(screen.queryByText("원하는 커피로 바꿔냈어요.")).toBeNull();
-  expect(toggle).toHaveProp(
-    "accessibilityLabel",
-    "9월 8일 오후 3:42, 2/5화 · 계산이 꼬인 아침, 대화 기록 펼치기"
-  );
-  expect(toggle.props.accessibilityState).toMatchObject({ expanded: false });
-
-  await user.press(toggle);
-
-  const opened = screen.getByTestId(`story-play-toggle-${storyPlayId(1)}`);
-  expect(screen.getByText("원하는 커피로 바꿔냈어요.")).toBeVisible();
-  expect(opened).toHaveProp(
-    "accessibilityLabel",
-    "9월 8일 오후 3:42, 2/5화 · 계산이 꼬인 아침, 대화 기록 접기"
-  );
-  expect(opened.props.accessibilityState).toMatchObject({ expanded: true });
-
-  await user.press(screen.getByTestId("story-play-episode-1"));
-
-  expect(onOpenEpisode).toHaveBeenCalledWith(storyPlayId(1), episodeId(1));
-
-  await user.press(opened);
-
-  expect(screen.queryByText("원하는 커피로 바꿔냈어요.")).toBeNull();
-});
-
-test("끝낸 화 행은 HeroUI ListGroup 행이고 제목과 결과를 잇는 이름의 버튼이다", async () => {
-  const { rendered } = renderRecords({
-    storyPlays: records([unfinishedRun()]),
-  });
-
-  await rendered;
-  const user = userEvent.setup();
-
-  await user.press(screen.getByTestId(`story-play-toggle-${storyPlayId(1)}`));
 
   expect(
-    screen.getByRole("button", {
-      name: "1화 카페에서 생긴 일, 원하는 커피로 바꿔냈어요., 대화 보기",
+    screen.getByTestId("story-play-delete-progress", {
+      includeHiddenElements: true,
     })
-  ).toBe(screen.getByTestId("story-play-episode-1"));
-  expect(screen.getByText("카페에서 생긴 일").props.className).toContain(
-    "list-group__item-title"
-  );
+  ).toBeTruthy();
   expect(
-    screen.getByTestId(`story-play-episodes-${storyPlayId(1)}`).props.className
-  ).toContain("list-group__root");
+    screen.getByTestId(`story-play-open-${FIRST_ID}`).props.accessibilityState
+  ).toEqual({ busy: true, disabled: true });
+  expect(
+    screen.getByTestId(`story-play-menu-${FIRST_ID}`).props.accessibilityState
+  ).toEqual({ busy: true, disabled: true });
+  expect(screen.getByTestId(`story-play-menu-${SECOND_ID}`)).toBeVisible();
 });
 
-test("회차 카드를 옆으로 12pt 넘게 밀다 떼면 펼치지 않는다", async () => {
-  const { rendered } = renderRecords({
-    storyPlays: records([unfinishedRun()]),
-  });
-
-  await rendered;
-  const toggle = screen.getByTestId(`story-play-toggle-${storyPlayId(1)}`);
-
-  // 빠른 밀기에서는 `pressOut`이 누름보다 늦게 오므로 보내지 않는다.
-  await fireEvent(toggle, "pressIn", {
-    nativeEvent: { pageX: 330, pageY: 300 },
-  });
-  await fireEvent.press(toggle, { nativeEvent: { pageX: 100, pageY: 300 } });
-
-  expect(screen.queryByText("원하는 커피로 바꿔냈어요.")).toBeNull();
-});
-
-test("동작 줄이기가 켜져 있으면 회차 카드의 펼침 애니메이션을 끈다", async () => {
-  jest
-    .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
-    .mockResolvedValue(true);
-  const { rendered } = renderRecords({
-    storyPlays: records([unfinishedRun()]),
-  });
-
-  await rendered;
-  await act(async () => {
-    await Promise.resolve();
-  });
-
-  let fiber = screen.getByTestId(
-    `story-play-card-${storyPlayId(1)}`
-  ).unstable_fiber;
-  while (fiber && fiber.type?.displayName !== "HeroUINative.Accordion.Root") {
-    fiber = fiber.return;
-  }
-  expect(fiber?.memoizedProps.animation).toBe("disable-all");
-});
-
-// 첫 화를 끝내지 않았어도 사용자 메시지가 있으면 기록에 선다. 펼칠 끝낸 화가
-// 없으므로 펼치지 않는 카드이고, 이어서 하기는 처음부터 보인다.
-test("아직 아무 화도 끝내지 않은 회차는 펼치지 않고 바로 이어간다", async () => {
-  const started: StoryPlay = {
-    episodes: [],
-    finished: 0,
-    next: { episodeId: episodeId(1), number: 1, title: "카페에서 생긴 일" },
-    startedAt: startedAt(9, 10, 0),
-    storyPlayId: storyPlayId(3),
+test("한 화짜리 회차도 같은 본문 너비에 진행 바를 둔다", async () => {
+  const finished = play(FIRST_ID, 5);
+  const one = {
+    ...finished,
+    episodes: finished.episodes.slice(0, 1),
+    finished: 1,
   };
-  const { rendered } = renderRecords({ storyPlays: records([started]) });
-
+  const { rendered } = renderRecords({ storyPlays: records([one], 1) });
   await rendered;
 
-  expect(
-    screen.queryByTestId(`story-play-toggle-${storyPlayId(3)}`)
-  ).toBeNull();
-  expect(
-    screen.getByTestId(`story-play-card-${storyPlayId(3)}`).props.className
-  ).toContain("surface__root");
   expect(screen.getByTestId("story-progress")).toBeVisible();
-  expect(screen.getByText("1/5화 · 카페에서 생긴 일")).toBeVisible();
-  expect(screen.getByTestId("story-progress-step-1")).toHaveProp(
-    "className",
-    expect.stringContaining("border-accent")
+  expect(screen.getByTestId("story-progress").props.className).toContain(
+    "w-full"
   );
-  expect(screen.getByText("이어서 하기")).toBeVisible();
+  expect(screen.getByText("1/1화 · 완료")).toBeVisible();
+  expect(
+    screen.getByTestId(`story-play-open-${FIRST_ID}`).props.className
+  ).toContain("px-4");
 });
 
-// 결말만 남고 대화가 없는 화는 열어도 볼 것이 없다.
-test("대화가 없는 끝낸 화는 결과만 보이고 누를 수 없다", async () => {
-  const storyPlay = unfinishedRun();
-  const [first] = storyPlay.episodes;
-
-  if (first) {
-    first.hasTranscript = false;
-  }
-
-  const { rendered } = renderRecords({ storyPlays: records([storyPlay]) });
-
-  await rendered;
-  const user = userEvent.setup();
-
-  await user.press(screen.getByTestId(`story-play-toggle-${storyPlayId(1)}`));
-
-  expect(screen.getByText("원하는 커피로 바꿔냈어요.")).toBeVisible();
-  expect(screen.queryByTestId("story-play-episode-1")).toBeNull();
-});
-
-test("기록이 없으면 빈 화면을 보여 주고 다시 시도를 붙이지 않는다", async () => {
+test("기록이 없으면 빈 상태를 보여 준다", async () => {
   const { rendered } = renderRecords({ storyPlays: records([]) });
-
   await rendered;
-
   expect(screen.getByTestId("story-records-empty")).toBeVisible();
-  expect(screen.getByRole("header", { name: "최근 대화" })).toBeVisible();
-  expect(screen.getByText("아직 나눈 대화가 없어요")).toBeVisible();
-  expect(screen.queryByText("다시 시도하기")).toBeNull();
 });
 
-// 빈 기록과 읽지 못한 것은 다른 일이다. 재시도 버튼이 그 둘을 가른다.
-test("불러오지 못하면 다시 시도할 수 있다", async () => {
+test("조회 실패는 빈 상태와 구분한다", async () => {
   const { rendered } = renderRecords({ storyPlays: undefined });
+  await rendered;
+  expect(screen.getByTestId("story-records-unavailable")).toBeVisible();
+  expect(screen.queryByTestId("story-records-empty")).toBeNull();
+});
 
+test("이미 아는 소개는 남겨 두고 최근 대화만 기다린다", async () => {
+  const { rendered } = renderRecords({
+    isLoading: true,
+    storyIntro: records([]),
+    storyPlays: undefined,
+  });
   await rendered;
 
-  expect(screen.getByTestId("story-records-unavailable")).toBeVisible();
-  expect(screen.getByText("다시 시도하기")).toBeVisible();
+  expect(screen.getByText("Mia의 카페")).toBeVisible();
+  expect(screen.getByText("최근 대화")).toBeVisible();
   expect(screen.queryByTestId("story-records-empty")).toBeNull();
-  expect(screen.queryByRole("header", { name: "최근 대화" })).toBeNull();
+  expect(screen.queryByTestId("story-records-unavailable")).toBeNull();
+});
+
+test("최근 대화가 1초 넘게 걸리면 스피너를 보여 주고 결과가 오면 지운다", async () => {
+  const onDelete = jest.fn<(storyPlayId: string) => void>();
+  const onOpen = jest.fn<(selected: StoryPlay) => void>();
+  const onRetry = jest.fn();
+  const intro = records([]);
+  const rendered = await renderWithHeroUI(
+    <StoryRecordsScreen
+      isLoading
+      isRetrying={false}
+      onDelete={onDelete}
+      onOpen={onOpen}
+      onRetry={onRetry}
+      storyIntro={intro}
+      storyPlays={undefined}
+    />
+  );
+
+  expect(screen.queryByTestId("story-records-loading")).toBeNull();
+  const loading = await screen.findByTestId(
+    "story-records-loading",
+    {},
+    {
+      timeout: 2000,
+    }
+  );
+  expect(loading.props.accessibilityRole).toBe("progressbar");
+  expect(loading.props.accessibilityLabel).toBe("불러오는 중");
+  expect(screen.getByText("최근 대화")).toBeVisible();
+
+  await rendered.rerender(
+    <StoryRecordsScreen
+      isLoading={false}
+      isRetrying={false}
+      onDelete={onDelete}
+      onOpen={onOpen}
+      onRetry={onRetry}
+      storyIntro={intro}
+      storyPlays={intro}
+    />
+  );
+  expect(screen.queryByTestId("story-records-loading")).toBeNull();
+  expect(screen.getByTestId("story-records-empty")).toBeVisible();
 });

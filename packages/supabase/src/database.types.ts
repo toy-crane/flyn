@@ -434,6 +434,35 @@ export type Database = {
           },
         ]
       }
+      learning_events: {
+        Row: {
+          kind: string
+          occurred_at: string
+          source_id: string
+          user_id: string
+        }
+        Insert: {
+          kind: string
+          occurred_at: string
+          source_id: string
+          user_id: string
+        }
+        Update: {
+          kind?: string
+          occurred_at?: string
+          source_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           account_deletion_started_at: string | null

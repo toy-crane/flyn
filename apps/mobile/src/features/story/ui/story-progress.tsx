@@ -43,7 +43,7 @@ export function StoryProgress({
         text: accessibilityText,
       }}
       accessible
-      className="w-24 flex-row gap-[3px]"
+      className="w-full flex-row gap-[3px]"
       testID="story-progress"
     >
       {Array.from({ length: total }, (_, index) => index + 1).map((episode) => (

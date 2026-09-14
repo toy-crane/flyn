@@ -598,6 +598,23 @@ comment on column public.episode_messages.created_at is
 comment on column public.episode_messages.parts is
   'AI SDK UI message parts, kept as one JSON document. Limited to 256 KiB per message.';
 
+-- 학습한 사실은 대화 원본과 수명이 다르다. 출처 ID는 중복 기록을 막는 키로만
+-- 남기며 외래키를 두지 않는다. 회차를 지워도 날짜와 횟수는 남고 본문과 결말은
+-- 이 테이블에서 되찾을 수 없다. 계정을 지울 때는 함께 지운다.
+create table public.learning_events (
+  kind text not null check (kind in ('english_message', 'episode_completed')),
+  source_id uuid not null,
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  occurred_at timestamptz not null,
+  primary key (kind, source_id)
+);
+
+create index learning_events_user_time_idx
+  on public.learning_events (user_id, occurred_at);
+
+comment on table public.learning_events is
+  'Permanent study facts without conversation text or endings; run deletion does not erase them.';
+
 -- 사용자가 쓰는 영어의 수준. 시즌이 아니라 계정에 붙는다.
 --
 -- 이야기 기억은 시즌이 끝나면 함께 끝나지만 이 사람의 영어는 이어진다. 그래서

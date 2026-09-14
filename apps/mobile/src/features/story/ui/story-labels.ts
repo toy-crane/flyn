@@ -16,6 +16,7 @@ export const storyLabels = {
   allStories: "전체",
   /** 탐색 탭의 이름이자 그 화면의 큰 제목. */
   browseTab: "탐색",
+  cancel: "취소",
   /** 만들기에 실패했을 때 그 화면 위에 띄우는 알림창. */
   createFailedTitle: "스토리를 만들지 못했어요",
   /** 만들기 대화의 빈 입력창. */
@@ -29,6 +30,11 @@ export const storyLabels = {
     saving: "거의 다 됐어요",
     script: "대본을 쓰고 있어요",
   },
+  deleteRun: "삭제",
+  deleteRunDescription:
+    "이 회차의 모든 화에서 나눈 대화와 결말이 사라집니다. 되돌릴 수 없습니다.",
+  deleteRunFailed: "삭제하지 못했어요. 다시 시도해 주세요.",
+  deleteRunTitle: "이 회차를 삭제할까요?",
   episodeLimit: "에피소드는 최대 5화까지 넣을 수 있어요",
   /** 상세의 에피소드 목록 제목. */
   episodeList: "에피소드",
@@ -60,8 +66,9 @@ export const storyLabels = {
   reviewEpisode: (episode: number, title: string, outcome: string) =>
     `${episode}화 ${title}, ${outcome}, 대화 보기`,
   /** Not shown: 회차 카드를 펼치고 접는 자리. */
-  runCard: (startedAt: string, progress: string, isOpen: boolean) =>
-    `${startedAt}, ${progress}, 대화 기록 ${isOpen ? "접기" : "펼치기"}`,
+  runCard: (startedAt: string, progress: string) =>
+    `${startedAt}, ${progress}, 화 선택하기`,
+  runMenu: (startedAt: string) => `${startedAt} 대화 관리`,
   /** 회차 카드에서 진행 바 아래에 보이는 현재 위치. */
   runProgress: (
     finished: number,
@@ -73,6 +80,7 @@ export const storyLabels = {
       : `${finished}/${total}화 · 완료`,
   /** 상세 하단에 고정하는 하나뿐인 주요 행동. */
   start: "대화 시작하기",
+  startEpisode: "시작하기",
   startFailedClose: "닫기",
   startFailedRetry: "다시 시도",
   /** 대화를 시작하지 못했을 때 그 화면 위에 띄우는 알림창. */

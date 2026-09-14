@@ -42,6 +42,7 @@ export interface StoryPlayView {
   /** 이어갈 화. 이 회차를 완주했으면 없다. */
   next: {
     episodeId: string;
+    hasTranscript: boolean;
     number: number;
     title: string;
   } | null;
@@ -169,6 +170,9 @@ function storyPlayViewOf(
     if (ending === undefined) {
       next ??= {
         episodeId: episode.id,
+        hasTranscript:
+          (storyPlay.plays.find((play) => play.episode_id === episode.id)
+            ?.messages ?? 0) > 0,
         number: episode.number,
         title: episode.title,
       };
@@ -191,6 +195,20 @@ function storyPlayViewOf(
     startedAt: storyPlay.started_at,
     storyPlayId: storyPlay.id,
   };
+}
+
+/** 소유권은 로그인한 사용자의 RLS가 확인한다. 이미 없는 회차도 성공이다. */
+export async function deleteStoryPlay(
+  client: EpisodeClient,
+  storyId: string,
+  storyPlayId: string
+): Promise<void> {
+  await client
+    .from("story_plays")
+    .delete()
+    .eq("story_id", storyId)
+    .eq("id", storyPlayId)
+    .throwOnError();
 }
 
 /**

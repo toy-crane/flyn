@@ -78,6 +78,7 @@ import {
   WRITTEN_STORY_SCHEMA,
 } from "./story-creation.js";
 import {
+  deleteStoryPlay,
   readRecentStories,
   readStoryPlays,
   startStoryPlay,
@@ -95,6 +96,8 @@ interface MeaningBody {
   messageId: string;
   storyPlayId?: string;
 }
+const UUID_PATH =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function validMeaningRequest(body: unknown): body is MeaningBody {
   const sent = body as Partial<MeaningBody> | null;
   return (
@@ -665,6 +668,28 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           }
 
           return c.json(await readStoryPlays(client, entry));
+        }
+      )
+      .delete(
+        "/stories/:storyId/plays/:storyPlayId",
+        requireUser,
+        requireCurrentUser,
+        async (c) => {
+          const storyId = c.req.param("storyId");
+          const storyPlayId = c.req.param("storyPlayId");
+          if (!(UUID_PATH.test(storyId) && UUID_PATH.test(storyPlayId))) {
+            return c.json(
+              { error: "A story and conversation are required." },
+              400
+            );
+          }
+
+          await deleteStoryPlay(
+            c.var.supabaseContext.supabase,
+            storyId,
+            storyPlayId
+          );
+          return c.body(null, 204);
         }
       )
       /*
