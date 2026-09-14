@@ -118,6 +118,32 @@ test("한 줄을 탭하면 그 자리에서 카드로 펼쳐지고 접기로 되
   expect(screen.queryByTestId("correction-card")).toBeNull();
 });
 
+test("배울 표현의 펼침 상태를 화면 읽기에 알리고 접은 설명은 숨긴다", async () => {
+  const user = userEvent.setup();
+  await renderNote(ONE_EXPRESSION).rendered;
+  expect(
+    screen.getByRole("button", {
+      expanded: false,
+      name: "더 자연스러운 영어 표현 보기",
+    })
+  ).toBeOnTheScreen();
+  await user.press(screen.getByTestId("correction-line"));
+  expect(
+    screen.getByRole("button", {
+      expanded: true,
+      name: "더 자연스러운 영어 표현 접기",
+    })
+  ).toBeOnTheScreen();
+  await user.press(screen.getByTestId("correction-fold"));
+  expect(screen.queryByText(ONE_EXPRESSION.entries[0].why)).toBeNull();
+  expect(
+    screen.getByRole("button", {
+      expanded: false,
+      name: "더 자연스러운 영어 표현 보기",
+    })
+  ).toBeOnTheScreen();
+});
+
 test("전환 중 다시 눌러도 마지막 선택대로 열리고 질문 링크를 누를 수 있다", async () => {
   const user = userEvent.setup();
   const { onAsk, rendered } = renderNote(ONE_EXPRESSION);
