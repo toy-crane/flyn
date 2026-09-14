@@ -1,0 +1,355 @@
+{
+  "method": "Codex가 조건과 반복 번호를 가린 출력 130개의 대사와 결말 및 기록을 모두 읽었다. 별도 채점 모델이나 사람의 독립 검토가 아니다. 실행 중 일부 조건별 기계 실패 로그를 봤으므로 엄격한 맹검이라고 부르지 않는다.",
+  "reviewedIds": [
+    "V001",
+    "V002",
+    "V003",
+    "V004",
+    "V005",
+    "V006",
+    "V007",
+    "V008",
+    "V009",
+    "V010",
+    "V011",
+    "V012",
+    "V013",
+    "V014",
+    "V015",
+    "V016",
+    "V017",
+    "V018",
+    "V019",
+    "V020",
+    "V021",
+    "V022",
+    "V023",
+    "V024",
+    "V025",
+    "V026",
+    "V027",
+    "V028",
+    "V029",
+    "V030",
+    "V031",
+    "V032",
+    "V033",
+    "V034",
+    "V035",
+    "V036",
+    "V037",
+    "V038",
+    "V039",
+    "V040",
+    "V041",
+    "V042",
+    "V043",
+    "V044",
+    "V045",
+    "V046",
+    "V047",
+    "V048",
+    "V049",
+    "V050",
+    "V051",
+    "V052",
+    "V053",
+    "V054",
+    "V055",
+    "V056",
+    "V057",
+    "V058",
+    "V059",
+    "V060",
+    "V061",
+    "V062",
+    "V063",
+    "V064",
+    "V065",
+    "V066",
+    "V067",
+    "V068",
+    "V069",
+    "V070",
+    "V071",
+    "V072",
+    "V073",
+    "V074",
+    "V075",
+    "V076",
+    "V077",
+    "V078",
+    "V079",
+    "V080",
+    "V081",
+    "V082",
+    "V083",
+    "V084",
+    "V085",
+    "V086",
+    "V087",
+    "V088",
+    "V089",
+    "V090",
+    "V091",
+    "V092",
+    "V093",
+    "V094",
+    "V095",
+    "V096",
+    "V097",
+    "V098",
+    "V099",
+    "V100",
+    "V101",
+    "V102",
+    "V103",
+    "V104",
+    "V105",
+    "V106",
+    "V107",
+    "V108",
+    "V109",
+    "V110",
+    "V111",
+    "V112",
+    "V113",
+    "V114",
+    "V115",
+    "V116",
+    "V117",
+    "V118",
+    "V119",
+    "V120",
+    "V121",
+    "V122",
+    "V123",
+    "V124",
+    "V125",
+    "V126",
+    "V127",
+    "V128",
+    "V129",
+    "V130"
+  ],
+  "definitions": {
+    "wrong-person": "이미 알려진 다른 사람의 회의나 기차를 사용자 일정으로 옮김",
+    "invented-schedule": "알려지지 않은 사용자 출근 일정을 붙임",
+    "ambiguous-recipient": "말을 듣는 사람이 달라지는 표시 없이 같은 you를 이어 씀",
+    "missing-answer": "질문에 필요한 알려진 일정을 답하지 않거나, 언급한 뒤 모르겠다고 답을 부정함"
+  },
+  "exclusions": [
+    "일정을 묻지 않은 장면에서 일반 인사로 끝내는 것은 일정 오류가 아니다.",
+    "I hope you get where you need to go는 구체적인 일정이나 마감 시간을 부여하지 않아 주요 오류에서 제외한다.",
+    "회의에 늦지 않기를 바란다는 말은 사용자에게 실제 회의가 있으면 허용한다.",
+    "기록의 관계 표현과 어색한 인사는 주요 일정 오류와 별도로 보존하며 추가 관찰은 전수 문체 채점이 아니다."
+  ],
+  "observations": [
+    {
+      "reviewId": "V012",
+      "categories": [
+        "wrong-person"
+      ],
+      "reason": "회의가 있는 사람은 Owen인데 Owen이 사용자에게 your meeting이라고 말했다.",
+      "quote": "Mia: Great, it went through. Here is your iced Americano with a little ice. Have a good day. | Owen: You are welcome. I hope you make it to your meeting on time."
+    },
+    {
+      "reviewId": "V015",
+      "categories": [
+        "missing-answer"
+      ],
+      "reason": "사용자와 Owen의 일정이 이미 알려져 있지만 장소를 되묻고 두 일정을 답하지 않았다.",
+      "quote": "Mia: Yes, the payment went through. Your iced Americano is ready. | Mia: Do you mean where to pick up your drink, or where to go after the café?"
+    },
+    {
+      "reviewId": "V019",
+      "categories": [
+        "wrong-person"
+      ],
+      "reason": "회의가 있는 사람은 Owen인데 Owen이 사용자에게 your meeting이라고 말했다.",
+      "quote": "Mia: You are welcome. I am glad that worked. | Owen: You are welcome. I hope you make your meeting on time."
+    },
+    {
+      "reviewId": "V023",
+      "categories": [
+        "wrong-person"
+      ],
+      "reason": "회의가 있는 사람은 Owen인데 Owen이 사용자에게 your meeting이라고 말했다.",
+      "quote": "Mia: Yes, it went through. Your iced Americano is paid for. Here is your drink. | Owen: You are welcome. I hope you make your meeting on time."
+    },
+    {
+      "reviewId": "V024",
+      "categories": [
+        "invented-schedule"
+      ],
+      "reason": "사용자의 출근 일정은 없는데 사용자에게 출근 시간에 맞춰 가기를 바란다고 말했다.",
+      "quote": "Mia: Great, it went through. Here is your iced Americano with a little ice. Have a good day. | Owen: You are welcome. I hope you get to work on time."
+    },
+    {
+      "reviewId": "V026",
+      "categories": [
+        "wrong-person"
+      ],
+      "reason": "기차를 타야 하는 사람은 Noah인데 Noah가 사용자에게 your train이라고 말했다.",
+      "quote": "Elena: Yes, it went through. Here is your iced Americano with a little ice. | Noah: You are welcome. I hope you catch your train."
+    },
+    {
+      "reviewId": "V042",
+      "categories": [
+        "wrong-person"
+      ],
+      "reason": "회의가 있는 사람은 Owen인데 Owen이 사용자에게 your meeting이라고 말했다.",
+      "quote": "Mia: Yes, it went through. Your iced Americano has only a little ice. Here you go. | Owen: You are welcome. I hope you make your meeting."
+    },
+    {
+      "reviewId": "V045",
+      "categories": [
+        "invented-schedule"
+      ],
+      "reason": "사용자의 출근 일정은 없는데 사용자에게 출근 시간에 맞춰 가기를 바란다고 말했다.",
+      "quote": "Mia: Great. The payment went through. Here is your iced Americano with a little ice. Have a good day. | Owen: You are welcome. I hope you get to work on time."
+    },
+    {
+      "reviewId": "V046",
+      "categories": [
+        "ambiguous-recipient"
+      ],
+      "reason": "Mia가 Owen을 부른 뒤 your meeting과 your train을 이어 말했다. 두 번째 you가 사용자로 바뀌었다는 표시가 없다. 뜻을 추정할 수 있어 확정된 일정 이동 오류와 별도로 센다.",
+      "quote": "Mia: Yes, the payment went through. Here is your iced Americano with a little ice. Owen, you need to go to your meeting, and you need to catch your train in twenty minutes. | Owen: Thanks, Mia. Have a good day, and good luck catching your train."
+    },
+    {
+      "reviewId": "V047",
+      "categories": [
+        "wrong-person"
+      ],
+      "reason": "기차를 타야 하는 사람은 Noah인데 Noah가 사용자에게 your train이라고 말했다.",
+      "quote": "Elena: Yes, it went through. Your iced Americano is ready with only a little ice. | Noah: You are welcome. I hope you catch your train."
+    },
+    {
+      "reviewId": "V058",
+      "categories": [
+        "missing-answer"
+      ],
+      "reason": "사용자의 회의를 언급한 뒤 바로 다음에 무엇을 해야 하는지 모르겠다고 답을 부정했다. 일정 단어 자체의 누락과는 구분한다.",
+      "quote": "Mia: Yes, the payment went through. Here is your iced Americano with a little ice. | Owen: You said you have a meeting in ten minutes. I do not know what you need to do next."
+    },
+    {
+      "reviewId": "V068",
+      "categories": [
+        "wrong-person"
+      ],
+      "reason": "회의가 있는 사람은 Owen인데 Owen이 사용자에게 your meeting이라고 말했다.",
+      "quote": "Mia: You’re welcome. I’m glad we found a way. | Owen: You’re welcome. I hope your meeting goes well."
+    },
+    {
+      "reviewId": "V078",
+      "categories": [
+        "wrong-person"
+      ],
+      "reason": "회의가 있는 사람은 Owen인데 Owen이 사용자에게 your meeting이라고 말했다.",
+      "quote": "Mia: Yes, it went through. Your iced Americano with a little ice is ready. | Owen: You are welcome. I hope you make your meeting on time."
+    },
+    {
+      "reviewId": "V093",
+      "categories": [
+        "ambiguous-recipient"
+      ],
+      "reason": "Mia가 Owen을 부른 뒤 your meeting과 your train을 이어 말했다. 두 번째 you가 사용자로 바뀌었다는 표시가 없다. 뜻을 추정할 수 있어 확정된 일정 이동 오류와 별도로 센다.",
+      "quote": "Mia: Yes, the payment went through. Here is your iced Americano with a little ice. Owen, you need to get to your meeting, and you need to catch your train in twenty minutes. | Owen: Thanks for reminding us. I hope you catch your train."
+    },
+    {
+      "reviewId": "V099",
+      "categories": [
+        "wrong-person"
+      ],
+      "reason": "회의가 있는 사람은 Owen인데 Owen이 사용자에게 your meeting이라고 말했다.",
+      "quote": "Mia: Yes, it went through. Here is your iced Americano with a little ice. | Owen: Good. You are all set. I hope your meeting goes well."
+    },
+    {
+      "reviewId": "V106",
+      "categories": [
+        "invented-schedule"
+      ],
+      "reason": "사용자의 출근 일정은 없는데 사용자에게 출근 시간에 맞춰 가기를 바란다고 말했다.",
+      "quote": "Mia: You’re welcome. I’m glad we found a way. | Owen: No problem. I hope you get to work on time."
+    },
+    {
+      "reviewId": "V110",
+      "categories": [
+        "invented-schedule"
+      ],
+      "reason": "사용자의 출근 일정은 없는데 사용자에게 출근 시간에 맞춰 가기를 바란다고 말했다.",
+      "quote": "Elena: Yes, it went through. Your iced Americano with a little ice is ready. Here you are. | Noah: You are welcome. I hope you get to work on time."
+    },
+    {
+      "reviewId": "V113",
+      "categories": [
+        "wrong-person"
+      ],
+      "reason": "기차를 타야 하는 사람은 Noah인데 Noah가 사용자에게 your train이라고 말했다.",
+      "quote": "Elena: Yes, it went through. Here is your iced Americano with a little ice. | Noah: You are welcome. I hope you make your train."
+    }
+  ],
+  "additionalObservations": [
+    {
+      "reviewId": "V046",
+      "category": "record-rule",
+      "reason": "level과 relationship에 쓰지 말라고 한 사용자라는 단어를 썼다."
+    },
+    {
+      "reviewId": "V058",
+      "category": "record-rule",
+      "reason": "level에 쓰지 말라고 한 사용자라는 단어를 썼다."
+    },
+    {
+      "reviewId": "V010",
+      "category": "record-wording",
+      "reason": "Mia와는 서로의 주문을 기억하는 단골 손님 사이가 되었다는 문구가 직원과 손님 역할을 흐린다. 주요 일정 오류 수에는 포함하지 않는다."
+    },
+    {
+      "reviewId": "V055",
+      "category": "record-wording",
+      "reason": "Mia와 서로의 주문을 기억한다고 써 누가 누구의 주문을 기억하는지 불분명하다."
+    },
+    {
+      "reviewId": "V096",
+      "category": "record-wording",
+      "reason": "Elena와 서로의 주문을 기억한다고 써 누가 누구의 주문을 기억하는지 불분명하다."
+    },
+    {
+      "reviewId": "V130",
+      "category": "record-wording",
+      "reason": "Mia와 서로의 주문을 기억한다고 써 누가 누구의 주문을 기억하는지 불분명하다."
+    },
+    {
+      "reviewId": "V008",
+      "category": "awkward-dialogue",
+      "reason": "Good luck with your coffee는 이 장면의 작별 인사로 어색하다."
+    },
+    {
+      "reviewId": "V102",
+      "category": "awkward-dialogue",
+      "reason": "Good luck with your coffee는 이 장면의 작별 인사로 어색하다."
+    },
+    {
+      "reviewId": "V069",
+      "category": "added-detail",
+      "reason": "회의 장소를 at the office로 구체화했다. 원문에 장소가 없지만 기존 일정의 주인을 바꾸거나 새 일정을 만든 것은 아니어서 주요 오류 수에서 제외한다."
+    },
+    {
+      "reviewId": "V015",
+      "category": "ending-missing",
+      "reason": "결제가 완료됐는데 결말이 null이다."
+    },
+    {
+      "reviewId": "V105",
+      "category": "ending-missing",
+      "reason": "결제 성공과 음료 준비를 알렸는데 결말이 null이다."
+    },
+    {
+      "reviewId": "V126",
+      "category": "utterance-count",
+      "reason": "Mia 두 발화와 Owen 한 발화로 두 발화 상한을 넘는다."
+    }
+  ]
+}
