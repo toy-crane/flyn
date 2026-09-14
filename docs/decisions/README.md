@@ -49,6 +49,8 @@
 
 ## 모바일 기반
 
+- [모바일 업데이트 경험](mobile-update-experience.md) — 일반 EAS Update의 안내 여부, 적용 시점 또는 강제 업데이트와의 경계를 변경할 때 읽는다.
+
 - [모바일 코드 구조](mobile-code-architecture.md) — 모바일 영역 구분, 기능 내부 책임, 폴더 구조 또는 import 경계를 변경할 때 읽는다.
 - [모바일 개발 런타임](mobile-development-runtime.md) — 모바일 앱의 Expo SDK, 지원 플랫폼, Development Build 런타임 또는 배포 경계를 변경할 때 읽는다.
 - [모바일 환경 설정](mobile-environment-configuration.md) — 모바일 공개 환경 변수의 필수 여부, 검증 위치, 접근 방식 또는 검증 도구를 변경할 때 읽는다.

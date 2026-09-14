@@ -2,6 +2,8 @@ import type { UseChatHelpers } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { useCallback, useMemo, useRef, useState } from "react";
 
+import { trackPendingUserWork } from "@/shared/state/pending-user-work";
+
 /** How often a stream is let through to React, in milliseconds. */
 export const STREAM_UPDATE_INTERVAL_MS = 50;
 
@@ -122,7 +124,7 @@ export function useConversation(
       sending.current = true;
       setRequestError(undefined);
 
-      request
+      trackPendingUserWork(request)
         .catch((cause: unknown) => {
           setRequestError(
             cause instanceof Error ? cause : new Error(String(cause))

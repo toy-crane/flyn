@@ -12,7 +12,7 @@ import { ScreenLoading } from "@/shared/ui/screen-loading";
 export function SessionCheckingScreen({
   phase = "session",
 }: {
-  phase?: "session" | "profile";
+  phase?: "session" | "profile" | "version";
 }) {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -24,7 +24,12 @@ export function SessionCheckingScreen({
       hideSplashScreen();
     }
   }, [visible]);
-  const label = phase === "session" ? "로그인 상태 확인 중" : "프로필 확인 중";
+  let label = "프로필 확인 중";
+  if (phase === "version") {
+    label = "앱 버전 확인 중";
+  } else if (phase === "session") {
+    label = "로그인 상태 확인 중";
+  }
   return (
     <View
       accessibilityLabel={visible ? undefined : label}

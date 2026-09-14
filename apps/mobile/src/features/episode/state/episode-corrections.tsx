@@ -12,6 +12,7 @@ import type {
   EpisodeCorrection,
   ExpressionResult,
 } from "@/features/episode/api/episode-correction";
+import { trackPendingUserWork } from "@/shared/state/pending-user-work";
 
 export type ExpressionState =
   | { status: "pending"; retrying: boolean }
@@ -82,6 +83,7 @@ export function useEpisodeCorrections(
   checker.current = request;
   const running = useRef(new Map<string, AbortController>());
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const pendingSettlers = useRef(new Map<string, () => void>());
   const publish = useCallback((next: Record<string, ExpressionState>) => {
     current.current = next;
     setStates(next);
@@ -89,6 +91,11 @@ export function useEpisodeCorrections(
   const clearTimer = useCallback((id: string) => {
     clearTimeout(timers.current.get(id));
     timers.current.delete(id);
+  }, []);
+  const settlePending = useCallback((id: string) => {
+    const settle = pendingSettlers.current.get(id);
+    pendingSettlers.current.delete(id);
+    settle?.();
   }, []);
   const startPending = useCallback(
     (id: string, retrying: boolean) => {
@@ -103,10 +110,11 @@ export function useEpisodeCorrections(
           if (current.current[id]?.status === "pending") {
             publish({ ...current.current, [id]: { status: "error" } });
           }
+          settlePending(id);
         }, CHECK_TIMEOUT_MS)
       );
     },
-    [clearTimer, publish]
+    [clearTimer, publish, settlePending]
   );
   const begin = useCallback(
     (id: string) => {
@@ -132,6 +140,11 @@ export function useEpisodeCorrections(
       startPending(id, retrying);
       const controller = new AbortController();
       running.current.set(id, controller);
+      trackPendingUserWork(
+        new Promise<void>((resolve) => {
+          pendingSettlers.current.set(id, resolve);
+        })
+      );
       const finish = (next: ExpressionState) => {
         if (running.current.get(id) !== controller) {
           return;
@@ -139,18 +152,23 @@ export function useEpisodeCorrections(
         running.current.delete(id);
         clearTimer(id);
         publish({ ...current.current, [id]: next });
+        settlePending(id);
       };
-      checker.current(id, controller.signal).then(
-        (result) =>
-          finish(
-            result.status === "corrected"
-              ? { correction: result.correction, status: "corrected" }
-              : { status: result.status }
-          ),
-        () => finish({ status: "error" })
-      );
+      try {
+        checker.current(id, controller.signal).then(
+          (result) =>
+            finish(
+              result.status === "corrected"
+                ? { correction: result.correction, status: "corrected" }
+                : { status: result.status }
+            ),
+          () => finish({ status: "error" })
+        );
+      } catch {
+        finish({ status: "error" });
+      }
     },
-    [clearTimer, publish, startPending]
+    [clearTimer, publish, settlePending, startPending]
   );
   const check = useCallback((id: string) => run(id, false), [run]);
   const retry = useCallback((id: string) => run(id, true), [run]);
@@ -165,6 +183,7 @@ export function useEpisodeCorrections(
         running.current.get(id)?.abort();
         running.current.delete(id);
         clearTimer(id);
+        settlePending(id);
         delete next[id];
         changed = true;
       }
@@ -172,7 +191,7 @@ export function useEpisodeCorrections(
         publish(next);
       }
     },
-    [clearTimer, publish]
+    [clearTimer, publish, settlePending]
   );
   const failWaiting = useCallback(() => {
     const next = { ...current.current };
@@ -191,6 +210,7 @@ export function useEpisodeCorrections(
   useEffect(() => {
     const requests = running.current;
     const pendingTimers = timers.current;
+    const settlers = pendingSettlers.current;
     return () => {
       for (const controller of requests.values()) {
         controller.abort();
@@ -200,6 +220,10 @@ export function useEpisodeCorrections(
         clearTimeout(timer);
       }
       pendingTimers.clear();
+      for (const settle of settlers.values()) {
+        settle();
+      }
+      settlers.clear();
     };
   }, []);
   const byMessageId = useMemo(
