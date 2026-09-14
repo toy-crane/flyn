@@ -14,7 +14,7 @@ function episodeId(number: number): string {
 function story(): StoryDetail {
   return {
     coverBlurhash: null,
-    coverEmoji: "☕",
+
     coverImagePath: null,
     episodes: [
       {

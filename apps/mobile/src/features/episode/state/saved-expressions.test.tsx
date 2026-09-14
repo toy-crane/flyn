@@ -11,20 +11,20 @@ import {
 } from "./saved-expressions";
 
 const UTTERANCE: SavedExpressionSpot = {
-  kind: "utterance",
+  dialogueIndex: 0,
+  kind: "dialogue",
   messageId: "s1",
-  utteranceAt: 0,
 };
 const LEARNING: SavedExpressionSpot = { kind: "learning", messageId: "m1" };
 const CORRECTION_REF: SavedExpressionRef = {
+  dialogueIndex: null,
   id: "saved-2",
   kind: "correction",
   messageId: "m1",
-  utteranceAt: null,
 };
 
 function savedRef(id: string): SavedExpressionRef {
-  return { id, kind: "utterance", messageId: "s1", utteranceAt: 0 };
+  return { dialogueIndex: 0, id, kind: "dialogue", messageId: "s1" };
 }
 
 /** 담고, 도로 놓고, 알리는 세 가지를 지켜보는 자리. */

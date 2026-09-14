@@ -113,7 +113,12 @@ test("카드 아래 오른쪽에 복사와 책갈피가 서고 담긴 것은 채
   // 대화에서 먼저 담은 표현은 서버가 아는 자리로 실려 와 채워진 채로 선다.
   await view.rerender(
     review([
-      { id: "saved-1", kind: "correction", messageId: "m1", utteranceAt: null },
+      {
+        dialogueIndex: null,
+        id: "saved-1",
+        kind: "correction",
+        messageId: "m1",
+      },
     ])
   );
 

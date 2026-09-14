@@ -22,11 +22,11 @@ import { noteLabels } from "./note-labels";
  * 인물 대사에는 형광펜이 없다. 짚을 자리가 없는 것이 곧 그 카드의 표시다.
  */
 function markClassName(kind: SavedExpression["kind"]): string {
-  if (kind === "utterance") {
+  if (kind === "dialogue") {
     return "";
   }
 
-  return kind === "guidance"
+  return kind === "translation"
     ? "bg-expression-surface text-expression"
     : "bg-learn-surface text-learn";
 }
@@ -42,7 +42,7 @@ function cardDetail(
 ): ExpressionCardDetail | undefined {
   const entries = expression.entries ?? [];
 
-  if (expression.kind === "utterance" || expression.original === null) {
+  if (expression.kind === "dialogue" || expression.original === null) {
     return;
   }
 

@@ -44,7 +44,7 @@ function outline(title: string) {
     ],
     completionCopy: "지나왔어요.",
     completionTitle: "끝냈어요",
-    coverEmoji: "📘",
+
     episodes: [
       {
         castNames: ["Lena"],

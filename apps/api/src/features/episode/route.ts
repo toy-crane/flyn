@@ -89,21 +89,21 @@ import {
 } from "./utterance-meaning.js";
 
 interface MeaningBody {
+  dialogueIndex: number;
   episodeId: string;
   meaning?: string;
   messageId: string;
   storyPlayId?: string;
-  utteranceAt: number;
 }
 function validMeaningRequest(body: unknown): body is MeaningBody {
   const sent = body as Partial<MeaningBody> | null;
   return (
     typeof sent?.episodeId === "string" &&
     typeof sent.messageId === "string" &&
-    typeof sent.utteranceAt === "number" &&
-    Number.isInteger(sent.utteranceAt) &&
-    sent.utteranceAt >= 0 &&
-    sent.utteranceAt <= 100 &&
+    typeof sent.dialogueIndex === "number" &&
+    Number.isInteger(sent.dialogueIndex) &&
+    sent.dialogueIndex >= 0 &&
+    sent.dialogueIndex <= 100 &&
     (sent.storyPlayId === undefined || typeof sent.storyPlayId === "string") &&
     (sent.meaning === undefined ||
       (isMeaning(sent.meaning) && sent.storyPlayId !== undefined))
@@ -116,18 +116,20 @@ async function saveOpeningMeanings(
 ) {
   const utterances = sceneUtterances(opening.parts);
   await Promise.all(
-    meanings
-      .filter(
-        (item) => item.messageId === opening.id && utterances[item.utteranceAt]
-      )
-      .map((item) =>
+    meanings.flatMap((item) => {
+      const utterance = utterances[item.dialogueIndex];
+      if (item.messageId !== opening.id || !utterance) {
+        return [];
+      }
+      return [
         ensureUtteranceMeaning(
           client,
-          item,
+          { ...item, ...utterance },
           () => Promise.resolve(item.meaning),
           item.meaning
-        )
-      )
+        ),
+      ];
+    })
   );
 }
 
@@ -260,10 +262,9 @@ async function utteranceDraft({
   client,
   supplied,
   context,
-  episodeId,
   message,
   model,
-  utteranceAt,
+  dialogueIndex,
 }: {
   client: EpisodeClient;
   supplied?: string;
@@ -271,43 +272,39 @@ async function utteranceDraft({
   episodeId: string;
   message: UIMessage;
   model: LanguageModel;
-  utteranceAt: number;
+  dialogueIndex: number;
 }): Promise<SavedExpressionDraft | undefined> {
   if (message.role !== "assistant") {
     return;
   }
 
   const utterance = sceneUtterances(message.parts).find(
-    (candidate) => candidate.at === utteranceAt
+    (candidate) => candidate.at === dialogueIndex
   );
 
   if (!utterance) {
     return;
   }
 
-  return {
-    english: utterance.text.trim(),
-    entries: null,
-    episodeId,
-    kind: "utterance",
-    meaning: await ensureUtteranceMeaning(
-      client,
-      { messageId: message.id, utteranceAt },
-      async (signal) =>
-        writeKoreanMeaning({
-          context: await context(),
-          model,
-          signal,
-          speaker: utterance.speaker,
-          text: utterance.text,
-        }),
-      supplied
-    ),
-    messageId: message.id,
-    original: null,
-    speaker: utterance.speaker,
-    utteranceAt,
-  };
+  await ensureUtteranceMeaning(
+    client,
+    {
+      dialogueIndex,
+      messageId: message.id,
+      speaker: utterance.speaker,
+      text: utterance.text,
+    },
+    async (signal) =>
+      writeKoreanMeaning({
+        context: await context(),
+        model,
+        signal,
+        speaker: utterance.speaker,
+        text: utterance.text,
+      }),
+    supplied
+  );
+  return { dialogueIndex, messageId: message.id };
 }
 
 /** 앱이 한 턴에 보내는 것. 지난 장면은 여기 없다. */
@@ -369,9 +366,9 @@ async function readTurnRequest(
     meanings.some(
       (item) =>
         typeof item?.messageId !== "string" ||
-        !Number.isInteger(item.utteranceAt) ||
-        item.utteranceAt < 0 ||
-        item.utteranceAt > 100 ||
+        !Number.isInteger(item.dialogueIndex) ||
+        item.dialogueIndex < 0 ||
+        item.dialogueIndex > 100 ||
         !isMeaning(item.meaning)
     )
   ) {
@@ -729,7 +726,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           const body = (await c.req.json().catch(() => null)) as {
             episodeId?: unknown;
             messageId?: unknown;
-            utteranceAt?: unknown;
+            dialogueIndex?: unknown;
             storyPlayId?: unknown;
             meaning?: unknown;
           } | null;
@@ -774,7 +771,7 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
             ];
           }
           const utterance = sceneUtterances(messages.at(-1)?.parts ?? [])[
-            body.utteranceAt
+            body.dialogueIndex
           ];
           if (!utterance) {
             return c.json({ error: "Message is unavailable." }, 404);
@@ -797,7 +794,12 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
               ? generate(AbortSignal.timeout(30_000))
               : ensureUtteranceMeaning(
                   client,
-                  { messageId: body.messageId, utteranceAt: body.utteranceAt },
+                  {
+                    dialogueIndex: body.dialogueIndex,
+                    messageId: body.messageId,
+                    speaker: utterance.speaker,
+                    text: utterance.text,
+                  },
                   generate,
                   body.meaning
                 );
@@ -805,9 +807,9 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
           keepWorking(dependencies.waitUntil, work);
           const meaning = await work;
           return c.json({
+            dialogueIndex: body.dialogueIndex,
             meaning,
             messageId: body.messageId,
-            utteranceAt: body.utteranceAt,
           });
         }
       )
@@ -891,19 +893,19 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
             meaning?: unknown;
             messageId?: unknown;
             storyPlayId?: unknown;
-            utteranceAt?: unknown;
+            dialogueIndex?: unknown;
           } | null;
-          const wantsUtterance = body?.kind === "utterance";
+          const wantsUtterance = body?.kind === "dialogue";
           if (
             typeof body?.episodeId !== "string" ||
             typeof body.messageId !== "string" ||
             typeof body.storyPlayId !== "string" ||
-            (body.kind !== "utterance" && body.kind !== "learning") ||
+            (body.kind !== "dialogue" && body.kind !== "learning") ||
             (body.meaning !== undefined && !isMeaning(body.meaning)) ||
             (wantsUtterance &&
-              (typeof body.utteranceAt !== "number" ||
-                !Number.isInteger(body.utteranceAt) ||
-                body.utteranceAt < 0))
+              (typeof body.dialogueIndex !== "number" ||
+                !Number.isInteger(body.dialogueIndex) ||
+                body.dialogueIndex < 0))
           ) {
             return c.json({ error: "Invalid request body." }, 400);
           }
@@ -937,11 +939,11 @@ export function createEpisodeRoutes(dependencies: EpisodeDependencies = {}) {
                         ? { text: speakerModelText(part.data), type: "text" }
                         : undefined,
                   }),
+                dialogueIndex: body.dialogueIndex as number,
                 episodeId: body.episodeId,
                 message,
                 model: dependencies.model ?? resolveModelId(),
                 supplied: body.meaning,
-                utteranceAt: body.utteranceAt as number,
               })
             : learningDraft({
                 corrections: session.corrections,

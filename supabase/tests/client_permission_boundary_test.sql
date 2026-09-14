@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(48);
+SELECT no_plan();
 
 -- Effective privileges include table-wide and direct role grants, not only
 -- the explicit column grants written in the schema.
@@ -12,9 +12,9 @@ FROM (VALUES
   ('public.story_plays', 'last_user_message_at', 'INSERT'),
   ('public.episode_plays', 'ending_kind', 'INSERT'),
   ('public.episode_messages', 'created_at', 'INSERT'),
-  ('public.episode_expression_results', 'user_id', 'INSERT'),
-  ('public.saved_expressions', 'user_id', 'INSERT'),
-  ('public.saved_expressions', 'created_at', 'INSERT')
+  ('public.episode_messages', 'expression_status', 'UPDATE'),
+  ('public.expressions', 'user_id', 'INSERT'),
+  ('public.expressions', 'created_at', 'INSERT')
 ) AS protected(table_name, column_name, privilege);
 
 -- The allowlist is the contract, independent of the cloud's default ACL.
@@ -40,7 +40,14 @@ FROM (VALUES
   ('public.touch_story_play()', false, false),
   ('public.finish_episode(uuid,uuid,text,text,text,text,text,text)', true, false),
   ('public.create_story(jsonb)', true, false),
-  ('public.set_story_cover(uuid,text,text)', true, false)
+  ('public.set_story_cover(uuid,text,text)', true, false),
+  ('public.claim_dialogue_expression(uuid,integer,text,text,uuid)',true,false),
+  ('public.complete_dialogue_expression(uuid,integer,uuid,text)',true,false),
+  ('public.save_expression_result(uuid,text,jsonb)',true,false),
+  ('public.stamp_expression_saved_at()',false,false),
+  ('public.remove_unsaved_orphan_expression()',false,false),
+  ('public.check_expression_source()',false,false),
+  ('public.check_message_expression_result()',false,false)
 ) AS functions(signature, client_callable, service_callable)
 CROSS JOIN (VALUES ('anon'), ('authenticated'), ('service_role')) AS roles(role_name);
 

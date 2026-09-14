@@ -24,7 +24,6 @@ SELECT * FROM public.create_story($json${
   "title": "베를린 출장 일주일",
   "hook": "다음 달 베를린 출장인데, 호텔부터 거래처 미팅까지 혼자 해내야 해요",
   "intro": "첫 해외 출장으로 떠난 베를린에서 보내는 일주일.",
-  "coverEmoji": "🧳",
   "completionTitle": "출장을 마쳤어요",
   "completionCopy": "호텔부터 미팅까지 영어로 지나왔어요.",
   "characters": [
@@ -66,17 +65,17 @@ VALUES (
   (SELECT first_episode_id FROM made)
 );
 
-INSERT INTO public.saved_expressions (
-  user_id, episode_id, kind, english, speaker, meaning, utterance_at
+INSERT INTO public.expressions (
+  user_id, episode_id, kind, text, speaker, meaning, dialogue_index, saved_at
 )
 VALUES (
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   (SELECT first_episode_id FROM made),
-  'utterance',
+  'dialogue',
   'I cannot find a reservation under your name.',
   'Lena',
   '예약이 확인되지 않는다는 말이다.',
-  1
+  0, clock_timestamp()
 );
 
 SELECT is(
@@ -85,7 +84,7 @@ SELECT is(
 );
 
 SELECT is(
-  (SELECT count(*) FROM public.saved_expressions), 1::bigint,
+  (SELECT count(*) FROM public.expressions), 1::bigint,
   'an expression saved from the made story is there too'
 );
 
@@ -125,7 +124,7 @@ SELECT is(
 );
 
 SELECT is(
-  (SELECT count(*) FROM public.saved_expressions), 0::bigint,
+  (SELECT count(*) FROM public.expressions), 0::bigint,
   'the expressions saved along the way are gone'
 );
 

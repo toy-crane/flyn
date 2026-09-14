@@ -139,7 +139,7 @@ export function UtteranceExpressionSlot({
   text: string;
 }) {
   const spot = useMemo(
-    () => ({ kind: "utterance" as const, messageId, utteranceAt: at }),
+    () => ({ dialogueIndex: at, kind: "dialogue" as const, messageId }),
     [at, messageId]
   );
 

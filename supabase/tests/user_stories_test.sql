@@ -46,12 +46,12 @@ SELECT ok(
 -- 한쪽만 가진 행은 seed가 절반만 찾아내는 행이라 만들지 못하게 막는다.
 SELECT throws_ok(
   $$insert into public.stories (
-      owner_id, slug, title, hook, intro, cover_emoji,
+      owner_id, slug, title, hook, intro,
       target_language, completion_title, completion_copy
     )
     values (
       'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'made-up', '만든 스토리',
-      '훅', '소개', '🧳', 'en', '끝', '완주'
+      '훅', '소개', 'en', '끝', '완주'
     )$$,
   '23514', NULL,
   'a made story cannot take a slug'
@@ -59,17 +59,17 @@ SELECT throws_ok(
 
 SELECT throws_ok(
   $$insert into public.stories (
-      title, hook, intro, cover_emoji,
+      title, hook, intro,
       target_language, completion_title, completion_copy
     )
-    values ('주인 없는 스토리', '훅', '소개', '📘', 'en', '끝', '완주')$$,
+    values ('주인 없는 스토리', '훅', '소개', 'en', '끝', '완주')$$,
   '23514', NULL,
   'an official story cannot go without a slug and a place'
 );
 
 -- 사용자가 만든 스토리 하나. 인물 둘과 화 하나가 달려 있다.
 INSERT INTO public.stories (
-  id, owner_id, title, hook, intro, cover_emoji,
+  id, owner_id, title, hook, intro,
   target_language, completion_title, completion_copy
 )
 VALUES (
@@ -78,7 +78,6 @@ VALUES (
   '베를린 출장 일주일',
   '다음 달 베를린 출장인데, 호텔부터 거래처 미팅까지 혼자 해내야 해요',
   '첫 해외 출장으로 떠난 베를린에서 보내는 일주일.',
-  '🧳',
   'en',
   '출장을 마쳤어요',
   '호텔부터 미팅까지 영어로 지나왔어요.'
@@ -101,7 +100,7 @@ VALUES
 
 INSERT INTO public.episodes (
   id, story_id, number, title, preview, situation, situation_emoji,
-  opening, stage, cast_names,
+  opening, stage,
   ending_success, ending_compromise, ending_failure
 )
 VALUES (
@@ -112,11 +111,10 @@ VALUES (
   '예약을 찾아 오늘 밤 묵을 방을 받아 보세요', '🏨',
   E'밤 열한 시, 베를린 호텔 프런트 앞에 도착했다.\nLena: I can''t find a reservation under your name.',
   E'상황:\n- 사용자는 예약 확인 이메일을 가지고 있다.\n- 사용자가 말을 해야 이 일이 풀린다.',
-  ARRAY['Lena'],
   '방을 배정받았을 때', '임시 해결 방법을 받았을 때', '방을 받지 못했을 때'
 );
 
-INSERT INTO public.episode_characters (episode_id, character_id, story_id, at)
+INSERT INTO public.episode_characters (episode_id, character_id, story_id, position)
 VALUES (
   '88888888-8888-4888-8888-888888888888',
   '66666666-6666-4666-8666-666666666666',

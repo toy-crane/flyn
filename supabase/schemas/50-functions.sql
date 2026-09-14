@@ -433,7 +433,7 @@ begin
     new.created_at
   )
   from public.episode_plays played
-  where played.id = new.play_id
+  where played.id = new.episode_play_id
     and public.story_plays.id = played.story_play_id;
 
   return new;
@@ -614,9 +614,7 @@ begin
       using errcode = '22023';
   end if;
 
-  -- 화의 인물 수는 `episode_characters.at`이 1..3으로 막지만, 옛 열
-  -- `cast_names`는 20까지 받는다. 넷을 담은 화는 그 열을 지난 뒤 자리 번호에서
-  -- 막혀 오류가 실제 규칙이 아닌 곳을 가리킨다. 여기서 먼저 센다.
+  -- 화마다 등장인물은 1명부터 3명까지 둔다.
   if exists (
     select 1
     from jsonb_array_elements(chapters) as chapter
@@ -632,7 +630,6 @@ begin
     title,
     hook,
     intro,
-    cover_emoji,
     -- 이 제품이 가르치는 언어. 만드는 사람이 고르는 값이 아니다.
     target_language,
     completion_title,
@@ -643,7 +640,6 @@ begin
     create_story.story ->> 'title',
     create_story.story ->> 'hook',
     create_story.story ->> 'intro',
-    create_story.story ->> 'coverEmoji',
     'en',
     create_story.story ->> 'completionTitle',
     create_story.story ->> 'completionCopy'
@@ -658,8 +654,6 @@ begin
     person ->> 'persona'
   from jsonb_array_elements(create_story.story -> 'characters') as person;
 
-  -- `cast_names`는 아직 앞선 API가 읽는 옛 열이다. 같은 이름을 같은 차례로
-  -- 담아야 pgTAP의 일치 검사가 지나간다.
   insert into public.episodes (
     story_id,
     number,
@@ -669,7 +663,6 @@ begin
     situation_emoji,
     opening,
     stage,
-    cast_names,
     ending_success,
     ending_compromise,
     ending_failure
@@ -683,23 +676,20 @@ begin
     chapter ->> 'situationEmoji',
     chapter ->> 'opening',
     chapter ->> 'stage',
-    array(
-      select jsonb_array_elements_text(chapter -> 'castNames')
-    ),
     chapter ->> 'endingSuccess',
     chapter ->> 'endingCompromise',
     chapter ->> 'endingFailure'
   from jsonb_array_elements(create_story.story -> 'episodes') as chapter;
 
-  insert into public.episode_characters (episode_id, character_id, story_id, at)
+  insert into public.episode_characters (episode_id, character_id, story_id, position)
   select
     saved.id,
     person.id,
     made_story_id,
-    standing.at::smallint
+    standing.position::smallint
   from jsonb_array_elements(create_story.story -> 'episodes') as chapter
   cross join lateral jsonb_array_elements_text(chapter -> 'castNames')
-    with ordinality as standing(name, at)
+    with ordinality as standing(name, position)
   join public.episodes saved
     on saved.story_id = made_story_id
     and saved.number = (chapter ->> 'number')::smallint

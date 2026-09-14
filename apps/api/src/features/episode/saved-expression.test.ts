@@ -92,7 +92,7 @@ function userMessage(id: string, text: string): UIMessage {
 }
 
 describe("learningDraft", () => {
-  test("표현 돌아보기가 이미 만든 뜻을 항목에 옮겨 담는다", () => {
+  test("이미 만든 표현을 가리키며 내용을 복사하지 않는다", () => {
     const message = userMessage(
       "msg-1",
       "I order hot americano but this is ice latte."
@@ -104,22 +104,6 @@ describe("learningDraft", () => {
         episodeId: "episode-1",
         message,
       })
-    ).toEqual({
-      english: "I ordered a hot americano, but this is an iced latte.",
-      entries: [
-        {
-          fixed: "ordered",
-          original: "order",
-          why: "지난 일은 ordered로 써요.",
-        },
-      ],
-      episodeId: "episode-1",
-      kind: "correction",
-      meaning: "저는 뜨거운 아메리카노를 시켰는데 이건 아이스 라테예요.",
-      messageId: "msg-1",
-      original: "I order hot americano but this is ice latte.",
-      speaker: null,
-      utteranceAt: null,
-    });
+    ).toEqual({ dialogueIndex: null, messageId: "msg-1" });
   });
 });

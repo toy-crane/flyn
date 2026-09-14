@@ -17,24 +17,24 @@ SELECT has_column(
 -- 다섯 편이 정해진 순서로 서고, 표지 그림의 자리도 함께 실린다.
 SELECT results_eq(
   $$
-    select position, slug, title, cover_emoji, regexp_replace(cover_image_path, '-[a-f0-9]{64}[.]png$', '.png')
+    select position, slug, title, regexp_replace(cover_image_path, '-[a-f0-9]{64}[.]png$', '.png')
     from public.stories
     order by position
   $$,
   $$
     values
-      (1::smallint, 'mia-cafe'::text, '우리 동네 카페'::text, '☕'::text, 'mia-cafe.png'::text),
-      (2::smallint, 'business-trip'::text, '출장 일주일'::text, '✈️'::text, 'business-trip.png'::text),
-      (3::smallint, 'roommate-month'::text, '룸메이트 구함'::text, '🏠'::text, 'roommate-month.png'::text),
-      (4::smallint, 'first-week-office'::text, '첫 주의 사무실'::text, '🏢'::text, 'first-week-office.png'::text),
-      (5::smallint, 'upstairs-neighbor'::text, '윗집 사람'::text, '🌙'::text, 'upstairs-neighbor.png'::text)
+      (1::smallint, 'mia-cafe'::text, '우리 동네 카페'::text, 'mia-cafe.png'::text),
+      (2::smallint, 'business-trip'::text, '출장 일주일'::text, 'business-trip.png'::text),
+      (3::smallint, 'roommate-month'::text, '룸메이트 구함'::text, 'roommate-month.png'::text),
+      (4::smallint, 'first-week-office'::text, '첫 주의 사무실'::text, 'first-week-office.png'::text),
+      (5::smallint, 'upstairs-neighbor'::text, '윗집 사람'::text, 'upstairs-neighbor.png'::text)
   $$,
   'every official story stands in its own place with a cover'
 );
 
 SELECT results_eq(
   $$
-    select title, hook, intro, cover_emoji,
+    select title, hook, intro,
            target_language, completion_title, completion_copy
     from public.stories
     where slug = 'mia-cafe'
@@ -44,7 +44,6 @@ SELECT results_eq(
       '우리 동네 카페'::text,
       '늘 가던 동네 카페인데, 오늘은 커피부터 잘못 나왔어요'::text,
       '매일 들르는 동네 카페에서 벌어지는 다섯 번의 사건. 바리스타 Mia와 조금씩 가까워져요.'::text,
-      '☕'::text,
       'en'::text,
       '첫 이야기를 끝냈어요'::text,
       '잘못 나온 커피 한 잔에서 Mia의 새 출발까지, 다섯 번의 사건을 영어로 지나왔어요.'::text
@@ -75,12 +74,11 @@ SELECT results_eq(
 
 SELECT throws_ok(
   $$insert into public.stories (
-      id, position, slug, title, hook, intro, cover_emoji,
+      id, position, slug, title, hook, intro,
       target_language, completion_title, completion_copy
     ) values (
       '10000000-0000-4000-8000-000000000009', 1, 'another-story',
-      '다른 이야기', '한 줄 소개예요', '소개 문단이에요.', '📘',
-      'en', '끝', '끝냈어요.'
+      '다른 이야기', '한 줄 소개예요', '소개 문단이에요.', 'en', '끝', '끝냈어요.'
     )$$,
   '23505',
   null,
@@ -89,12 +87,11 @@ SELECT throws_ok(
 
 SELECT throws_ok(
   $$insert into public.stories (
-      id, position, slug, title, hook, intro, cover_emoji,
+      id, position, slug, title, hook, intro,
       target_language, completion_title, completion_copy
     ) values (
       '10000000-0000-4000-8000-00000000000a', 0, 'invalid-story',
-      '순서가 없는 이야기', '한 줄 소개예요', '소개 문단이에요.', '📘',
-      'en', '끝', '끝냈어요.'
+      '순서가 없는 이야기', '한 줄 소개예요', '소개 문단이에요.', 'en', '끝', '끝냈어요.'
     )$$,
   '23514',
   null,
@@ -135,7 +132,7 @@ SELECT is(
           e.situation_emoji,
           e.opening,
           e.stage,
-          array_to_string(e.cast_names, chr(29)),
+          (select string_agg(c.name, chr(29) order by ec.position) from public.episode_characters ec join public.characters c on c.id=ec.character_id where ec.episode_id=e.id),
           e.ending_success,
           e.ending_compromise,
           e.ending_failure
