@@ -45,6 +45,6 @@ in-progress
 
 ## Execution
 
-- Verification: —
-- Blocker: —
+- Verification: ba752b7에서 grep이 계약의 예외(`chat-panel.tsx`의 `TextInput`, `user-avatar.tsx`의 `Avatar.Fallback`, 테스트 주석 한 줄)만 남긴다. RN `Text`는 `sign-in-button.tsx`와 `marked-text.tsx`의 중첩 표시만 남는다. 최근 대화, 스토리 상세, 대화 기록, 표현 카드 테스트가 `text__root--type-*`와 굵기·색 클래스를 검사한다. `mobile-ui-consistency-reviewer`는 PASS_WITH_GAPS다. P3 두 건(화면 안 제목 행의 괄호 설명, 스토리 카드 화 번호의 굵기 목록 누락)은 `mobile-typography.md` 문구로 고쳤다. 리뷰어가 `story-row.tsx` 제목의 `weight="semibold"`를 05의 `ListGroup`이 없애야 한다고 짚었다.
+- Blocker: 기기 확인(일곱 화면, 두 플랫폼, 기본·최대 글자 크기, 밝은·어두운 화면)과 `agent-device` 헤더 역할 확인이 남았다. 05가 탐색, 스토리 상세, 대화 기록, 표현 노트의 행과 카드 안 글자를 `ListGroup`과 `Accordion`으로 다시 그리므로 05 코드 뒤에 두 task를 한 번에 확인한다. 05가 막히면 04만 따로 확인한다.
 - Revision: —
