@@ -23,6 +23,8 @@
 - 공식 문서의 사본을 저장소에 두지 않는다. 사본은 금방 낡고, 어느 시점의 문서인지도 알 수 없다.
 - 필요한 문서는 작업을 시작할 때 아래 경로로 원본에서 읽고, 설치한 버전과 맞는지 확인한다.
 - Expo Image를 다룰 때는 `https://docs.expo.dev/versions/latest/sdk/image/`를 원문에서 읽고, 프로젝트의 Expo SDK 호환 버전과 설치한 `expo-image` 버전에 맞는지 확인한다. 다른 Expo 문서는 `https://docs.expo.dev/llms.txt`에서 찾는다.
+- EAS Workflows 알림을 다룰 때는 `eas-workflows` Skill과 `https://docs.expo.dev/eas/workflows/pre-packaged-jobs/`를 읽고, 현재 공식 스키마와 프로젝트에서 고정한 `eas-cli` 버전으로 검증한다.
+- Slack Incoming Webhooks를 다룰 때는 `https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/`를 원문에서 읽는다. EAS 연동은 해당 시점의 공식 작업 정의와 함께 확인한다.
 - Hono 문서는 `bunx @hono/cli@0.1.11 docs [path]`로 읽고, 주제 검색은 `bunx @hono/cli@0.1.11 search <query>`를 사용한다. 문서 목록은 `https://hono.dev/llms.txt`에 있다.
 - Astro 문서는 `astro-docs` MCP의 `search_astro_docs`로 찾는다. Astro는 `llms.txt`를 제공하지 않아서 `.mcp.json`과 `.codex/config.toml`에 공식 문서 MCP 서버를 등록해 두었다.
 
