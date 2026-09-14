@@ -69,6 +69,8 @@ CREATE TRIGGER episode_plays_record_completion
   EXECUTE FUNCTION public.record_episode_completion();
 
 CREATE TABLE public.learning_events (
+  created_at timestamp with time zone NOT NULL DEFAULT clock_timestamp(),
+  updated_at timestamp with time zone NOT NULL DEFAULT clock_timestamp(),
   kind        text                     NOT NULL,
   source_id   uuid                     NOT NULL,
   user_id     uuid                     NOT NULL,
@@ -76,6 +78,11 @@ CREATE TABLE public.learning_events (
 );
 
 COMMENT ON TABLE public.learning_events IS 'Permanent study facts without conversation text or endings; run deletion does not erase them.';
+
+CREATE TRIGGER learning_events_set_timestamps
+  BEFORE INSERT OR UPDATE ON public.learning_events
+  FOR EACH ROW
+  EXECUTE FUNCTION public.set_row_timestamps();
 
 ALTER TABLE public.learning_events
   ENABLE ROW LEVEL SECURITY;

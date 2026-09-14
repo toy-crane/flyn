@@ -103,6 +103,10 @@ create trigger episode_messages_set_timestamps
   before insert or update on public.episode_messages
   for each row execute function public.set_row_timestamps();
 
+create trigger learning_events_set_timestamps
+  before insert or update on public.learning_events
+  for each row execute function public.set_row_timestamps();
+
 create trigger language_levels_set_timestamps
   before insert or update on public.language_levels
   for each row execute function public.set_row_timestamps();

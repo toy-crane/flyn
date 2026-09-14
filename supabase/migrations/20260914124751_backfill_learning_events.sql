@@ -1,5 +1,6 @@
 -- 새 기록 방식이 적용되기 전에 이미 말하고 끝낸 사실을 보존한다.
 -- 다시 실행해도 원본 ID별로 한 번만 기록한다.
+-- occurred_at은 원본 사건 시각이고 공통 생성·수정 시각은 이 기록을 채운 때다.
 insert into public.learning_events (kind, source_id, user_id, occurred_at)
 select 'english_message', message.id, message.user_id, message.created_at
 from public.episode_messages message

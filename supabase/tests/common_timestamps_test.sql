@@ -5,7 +5,8 @@ SELECT col_not_null('public', name, column_name,
   name || '.' || column_name || ' is required')
 FROM unnest(ARRAY['profiles', 'retired_usernames', 'stories', 'characters',
   'episodes', 'episode_characters', 'story_plays', 'episode_plays',
-  'episode_messages', 'expressions', 'language_levels', 'app_version_policies']) AS tables(name)
+  'episode_messages', 'learning_events', 'expressions', 'language_levels',
+  'app_version_policies']) AS tables(name)
 CROSS JOIN unnest(ARRAY['created_at', 'updated_at']) AS columns(column_name);
 
 CREATE TEMP TABLE timestamps_before AS
