@@ -602,6 +602,8 @@ comment on column public.episode_messages.parts is
 -- 남기며 외래키를 두지 않는다. 회차를 지워도 날짜와 횟수는 남고 본문과 결말은
 -- 이 테이블에서 되찾을 수 없다. 계정을 지울 때는 함께 지운다.
 create table public.learning_events (
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
   kind text not null check (kind in ('english_message', 'episode_completed')),
   source_id uuid not null,
   user_id uuid not null references public.profiles (id) on delete cascade,
