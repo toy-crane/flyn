@@ -14,9 +14,9 @@
 
 - [x] 인증, 온보딩, 세션 화면 폴더에 `text-[Npx]`, `leading-[Npx]`가 없고, `Text`에 `text-*`(색 제외), `leading-*`, `font-*` 클래스가 없다. 제공자 로그인 버튼의 인라인 크기는 계약의 예외다.
 - [x] 쓰인 `Typography` `type`이 모두 [모바일 타이포그래피](../../../decisions/mobile-typography.md) 대응표에 있고, 본문 계열은 `Paragraph`, 제목 계열은 `Heading`이다.
-- [ ] 화면 안 제목이 접근성 트리에서 헤더 역할이다.
-- [ ] iOS와 Android 기기에서 화면 안 제목(`h3`)과 `weight`가 붙은 소제목이 같은 화면의 본문보다 굵게 보인다.
-- [ ] 다섯 인증·온보딩 화면과 세션 안내 화면 두 개(프로필을 불러오지 못한 화면, 설정이 필요한 화면)를 계약의 절차로 기본 크기와 최대 글자 크기, 밝은 화면과 어두운 화면으로 열어 잘림과 겹침이 없다.
+- [x] 화면 안 제목이 접근성 트리에서 헤더 역할이다.
+- [x] iOS와 Android 기기에서 화면 안 제목(`h3`)과 `weight`가 붙은 소제목이 같은 화면의 본문보다 굵게 보인다.
+- [x] 다섯 인증·온보딩 화면과 세션 안내 화면 두 개(프로필을 불러오지 못한 화면, 설정이 필요한 화면)를 계약의 절차로 기본 크기와 최대 글자 크기, 밝은 화면과 어두운 화면으로 열어 잘림과 겹침이 없다.
 
 ## Constraints
 
@@ -38,10 +38,14 @@ None.
 
 ## Status
 
-pending
+completed
 
 ## Execution
 
-- Verification: 코드 기준은 통과했다. 세 폴더 grep은 테스트 주석 한 줄 말고 0건이고, `bun run check`, `check-types`, 모바일 테스트 93개 묶음 682개가 통과했다. 헤더 역할은 jest의 `getByRole("header")`와 `text__root--type-h3` 검사로만 확인했다. `mobile-ui-consistency-reviewer`(범위 `259225d..237ec54`)는 PASS_WITH_GAPS다. 고칠 것은 없고, 제공자 로그인 버튼의 줄 높이 24와 `adjustsFontSizeToFit` 조합, 일곱 화면의 크기·모드 확인, 기기 접근성 트리를 UNVERIFIED로 남겼다. 기기 확인은 아래 막힘 때문에 시작하지 않았다.
-- Blocker: HeroUI Native 1.0.8의 `Typography`는 굵기를 `font-family: var(--font-semibold)`처럼 글꼴 변수로만 준다. 앱은 계약대로 커스텀 폰트와 `--font-*` 변수를 두지 않으므로, Metro가 컴파일한 global.css에서 `text__root--type-h3`, `--type-h6`, `--weight-semibold`의 `fontFamily`가 정의되지 않은 변수를 읽고 `fontWeight`는 없다(`"--font-semibold":` 정의 0건). 그래서 `Heading`과 `weight`가 모두 보통 굵기로 그려진다. 2026-09-14 iOS 표현 돌아보기에서 `기억해 둘 표현`(h6)과 회차 줄(semibold)이 보통 굵기이고, 아직 크기 클래스를 쓰는 카드 문장만 굵게 보였다. 인증 제목은 30 bold에서 24 semibold가 아니라 24 보통 굵기가 된다. 대응표의 굵기 위계와 "Typography는 type마다 굵기를 정한다"는 계약 전제가 이 버전에서 성립하지 않는다. 1.0.9(2026-08-31)는 같은 자리를 `@apply font-semibold`로 바꿔 시스템 폰트에 숫자 굵기를 준다. 고치는 길(1.0.9로 올리기, global.css 세 번째 재정의, 보통 굵기 수용)이 모두 스펙의 재정의 둘 기준이나 1.0.8을 근거로 둔 계약을 바꾸므로 사용자 결정을 기다린다.
+- Verification: 코드 기준은 통과했다. 세 폴더 grep은 테스트 주석 한 줄 말고 0건이고, `bun run check`, `check-types`, 모바일 테스트 93개 묶음 682개가 통과했다. `mobile-ui-consistency-reviewer`(범위 `259225d..237ec54`)는 PASS_WITH_GAPS다. 고칠 것은 없었고 기기 확인 항목을 UNVERIFIED로 남겼다.
+  - 기기 확인(2026-09-14, HeroUI Native 1.0.9): iOS 기본 크기와 `accessibility-extra-extra-extra-large`, Android 기본 크기와 200%에서 각각 앱을 완전히 닫고 다시 시작한 뒤 밝은 화면과 어두운 화면으로 찍었다. 로그인 방법, 이메일(오류 문구), 코드(틀린 코드의 무효 외곽선과 오류 문구), 닉네임, 아이디(이미 쓰이거나 쓸 수 없는 아이디와 `사용 가능한 아이디` 목록), 프로필을 불러오지 못한 화면, 설정이 필요한 화면에서 키보드를 내린 상태로 잘림과 겹침이 없었다. 제목(h3)은 세미볼드로, `사용 가능한 아이디`는 중간 굵기로 본문보다 굵게 그려졌다. 제공자 로그인 버튼 라벨은 네 조건 모두 가운데에 한 줄로 서고 잘리지 않았다.
+  - 세션 두 화면은 상태를 만들 수 없어 이렇게 열었다. 프로필 오류는 iOS에서 `features/auth/query/profile.ts`의 읽기를 임시로 실패시키고, Android에서는 네트워크를 끄고 다시 시작했다. 설정 오류는 `features/auth/state/auth-session.tsx`에서 임시로 예외를 던졌다. 임시 수정은 확인 뒤 되돌렸고 커밋하지 않았다.
+  - 접근성 트리: Android에서 `플린`, `이메일 주소를 입력해 주세요`, `잠시 후 다시 시도해 주세요` 제목 노드가 `android.view.View`(헤더 역할이 붙은 노드)이고 `또는`, `프로필을 불러오지 못했어요` 같은 본문은 `android.widget.TextView`다. iOS `agent-device`는 XCTest 노드의 헤더 특성을 내보내지 않아(`role="heading"` 선택자가 맞지 않고 노드 형식이 `StaticText`) iOS 헤더 역할은 jest의 `getByRole("header")`로만 확인했다.
+  - 최대 글자 크기에서 키보드를 올린 채로는 아래 버튼이 오류 문구와 입력칸을 덮는다. 이 변경 전부터 있던 배치라 [follow-up](../../../follow-ups/auth-footer-covers-content-with-keyboard-at-largest-text.md)으로 남겼다.
+- Blocker: 해소됨. 아래는 막혔던 당시의 기록이다. HeroUI Native 1.0.8의 `Typography`는 굵기를 `font-family: var(--font-semibold)`처럼 글꼴 변수로만 준다. 앱은 계약대로 커스텀 폰트와 `--font-*` 변수를 두지 않으므로, Metro가 컴파일한 global.css에서 `text__root--type-h3`, `--type-h6`, `--weight-semibold`의 `fontFamily`가 정의되지 않은 변수를 읽고 `fontWeight`는 없다(`"--font-semibold":` 정의 0건). 그래서 `Heading`과 `weight`가 모두 보통 굵기로 그려진다. 2026-09-14 iOS 표현 돌아보기에서 `기억해 둘 표현`(h6)과 회차 줄(semibold)이 보통 굵기이고, 아직 크기 클래스를 쓰는 카드 문장만 굵게 보였다. 인증 제목은 30 bold에서 24 semibold가 아니라 24 보통 굵기가 된다. 대응표의 굵기 위계와 "Typography는 type마다 굵기를 정한다"는 계약 전제가 이 버전에서 성립하지 않는다. 1.0.9(2026-08-31)는 같은 자리를 `@apply font-semibold`로 바꿔 시스템 폰트에 숫자 굵기를 준다. 고치는 길(1.0.9로 올리기, global.css 세 번째 재정의, 보통 굵기 수용)이 모두 스펙의 재정의 둘 기준이나 1.0.8을 근거로 둔 계약을 바꾸므로 사용자 결정을 기다린다.
 - Revision: 대응표에 세션 오류 화면을 화면 안 제목 행의 예로 더했다(ef5dc3b). 2026-09-14 스펙 개정(2fb26ed)으로 1.0.9 올리기가 01에 들어가, 위 막힘은 01의 막힘으로 옮기고 굵기 기준을 더했다. 코드 기준의 증거는 그대로 유효하다.
