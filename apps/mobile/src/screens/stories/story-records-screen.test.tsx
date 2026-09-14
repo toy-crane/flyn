@@ -294,11 +294,9 @@ test("회차 카드를 옆으로 12pt 넘게 밀다 떼면 펼치지 않는다",
   await rendered;
   const toggle = screen.getByTestId(`story-play-toggle-${storyPlayId(1)}`);
 
+  // 빠른 밀기에서는 `pressOut`이 누름보다 늦게 오므로 보내지 않는다.
   await fireEvent(toggle, "pressIn", {
     nativeEvent: { pageX: 330, pageY: 300 },
-  });
-  await fireEvent(toggle, "pressOut", {
-    nativeEvent: { pageX: 100, pageY: 300 },
   });
   await fireEvent.press(toggle, { nativeEvent: { pageX: 100, pageY: 300 } });
 

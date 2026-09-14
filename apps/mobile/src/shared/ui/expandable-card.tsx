@@ -60,7 +60,6 @@ const COLLAPSED_VALUE = "";
 export function ExpandableCard({
   accessibilityLabel,
   children,
-  contentClassName,
   contentTestID,
   expandedAccessibilityLabel = accessibilityLabel,
   footer,
@@ -73,7 +72,6 @@ export function ExpandableCard({
   accessibilityLabel: string;
   /** 펼쳤을 때만 보이는 내용. */
   children: ReactNode;
-  contentClassName?: string;
   contentTestID?: string;
   /** 펼쳤을 때 읽을 이름. 펼침 상태에 따라 말이 바뀌는 카드만 넘긴다. */
   expandedAccessibilityLabel?: string;
@@ -93,11 +91,14 @@ export function ExpandableCard({
     pressedAt.current = pointOf(event);
     releasedAt.current = null;
   }, []);
+  // 뗀 자리는 누름 이벤트에서 읽는다. React Native는 130ms보다 짧은 누름의
+  // `onPressOut`을 타이머로 미루고 누름을 먼저 보내므로, 빠르게 밀고 뗀 손가락은
+  // `onPressOut`을 기다리면 판정 없이 카드를 연다.
   const rememberRelease = useCallback((event: GestureResponderEvent) => {
     releasedAt.current = pointOf(event);
   }, []);
-  // HeroUI 트리거는 누름을 받으면 `onPress`보다 먼저 이 함수를 부른다. 누르기
-  // 시작과 끝은 그 전에 오므로 여기서 두 자리를 비교할 수 있다.
+  // 누름을 받은 HeroUI 트리거가 부른다. 트리거 자식의 `onPress`가 먼저 불려 뗀
+  // 자리를 적어 두므로 여기서 두 자리를 비교할 수 있다.
   const change = useCallback((next: string | undefined) => {
     const from = pressedAt.current;
     const to = releasedAt.current;
@@ -131,24 +132,26 @@ export function ExpandableCard({
 
           `accessibilityState`는 넘기지 않는다. HeroUI 트리거가 펼침 상태를 적은
           뒤에 받은 속성을 덮어쓰므로, 넘기면 `expanded`가 사라진다.
+
+          누르기 속성은 자식에 둔다. HeroUI `Slot`은 양쪽의 같은 핸들러를 자식 먼저
+          부르도록 묶으므로, 뗀 자리가 트리거의 펼침 처리보다 먼저 적힌다.
         */}
         <Accordion.Trigger
           accessibilityLabel={
             isExpanded ? expandedAccessibilityLabel : accessibilityLabel
           }
           asChild
-          onPressIn={rememberPress}
-          onPressOut={rememberRelease}
           testID={triggerTestID}
         >
-          <PressableFeedback>
+          <PressableFeedback
+            onPress={rememberRelease}
+            onPressIn={rememberPress}
+          >
             <View className="flex-1">{summary}</View>
             <Accordion.Indicator testID={indicatorTestID} />
           </PressableFeedback>
         </Accordion.Trigger>
-        <Accordion.Content className={contentClassName} testID={contentTestID}>
-          {children}
-        </Accordion.Content>
+        <Accordion.Content testID={contentTestID}>{children}</Accordion.Content>
       </Accordion.Item>
       {footer}
     </Accordion>

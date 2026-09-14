@@ -169,11 +169,10 @@ test("옆으로 12pt 넘게 밀다 뗀 손가락은 카드를 펼치지 않는�
   await renderWithHeroUI(<ExpressionCard {...CORRECTION} />);
   const body = screen.getByTestId("card-body");
 
+  // 130ms보다 짧은 누름은 React Native가 `pressOut`을 누름 뒤로 미룬다. 실제
+  // 빠른 밀기의 순서대로 누르기 시작과 누름만 보낸다.
   await fireEvent(body, "pressIn", {
     nativeEvent: { pageX: 330, pageY: 300 },
-  });
-  await fireEvent(body, "pressOut", {
-    nativeEvent: { pageX: 110, pageY: 304 },
   });
   await fireEvent.press(body, { nativeEvent: { pageX: 110, pageY: 304 } });
 
@@ -184,9 +183,6 @@ test("옆으로 12pt 넘게 밀다 뗀 손가락은 카드를 펼치지 않는�
 
   await fireEvent(body, "pressIn", {
     nativeEvent: { pageX: 330, pageY: 300 },
-  });
-  await fireEvent(body, "pressOut", {
-    nativeEvent: { pageX: 333, pageY: 302 },
   });
   await fireEvent.press(body, { nativeEvent: { pageX: 333, pageY: 302 } });
 
