@@ -21,6 +21,7 @@ import {
 import { QueryProvider } from "@/core/providers/query-provider";
 import { AppThemeBridge, useAppTheme } from "@/core/theme/app-theme-bridge";
 import { useAppVersionGate } from "@/features/app-version/use-app-version-gate";
+import { useUpdateScreenVisibility } from "@/features/app-version/use-update-screen-visibility";
 import { AuthSessionProvider } from "@/features/auth/state/auth-session";
 import { ProfileUnavailableScreen } from "@/screens/session/profile-unavailable-screen";
 import { SessionCheckingScreen } from "@/screens/session/session-checking-screen";
@@ -47,6 +48,9 @@ function ThemedRootLayout() {
   const { area, checkingPhase, isRetryingProfile, problem, retryProfile } =
     useProtectedArea();
   const versionGate = useAppVersionGate();
+  const showUpdateScreen = useUpdateScreenVisibility(
+    versionGate.status === "blocked"
+  );
   const settingsScreenOptions = getSettingsScreenOptions(background);
   const storyScreenOptions = getStoryScreenOptions({ background, foreground });
   useEffect(() => {
@@ -82,8 +86,8 @@ function ThemedRootLayout() {
       );
   } else {
     content = (
-      // The protected groups still own navigation. The update modal covers this
-      // tree without unmounting it, so a response already in flight can settle.
+      // The protected groups still own navigation. Keep this tree mounted so
+      // an in-flight response or save can settle before the modal covers it.
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: background },
@@ -130,7 +134,7 @@ function ThemedRootLayout() {
       <Modal
         animationType="none"
         onRequestClose={keepUpdateScreenOpen}
-        visible={versionGate.status === "blocked"}
+        visible={showUpdateScreen}
       >
         <UpdateRequiredScreen
           checkError={versionGate.checkError}

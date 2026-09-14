@@ -20,6 +20,7 @@ import {
   requestUtteranceMeaning,
   type UtteranceMeaning,
 } from "@/features/episode/api/utterance-meaning";
+import { trackPendingUserWork } from "@/shared/state/pending-user-work";
 import {
   type EpisodeCorrectionStore,
   useEpisodeCorrections,
@@ -256,7 +257,7 @@ export function useEpisodeStoryPlay(
       return;
     }
 
-    chat.sendMessage().catch(() => {
+    trackPendingUserWork(chat.sendMessage()).catch(() => {
       // 실패는 `chat.error`로 남고, 화면이 그 자리에 다시 시도를 내놓는다.
     });
   }, [chat.sendMessage, readOnly]);
