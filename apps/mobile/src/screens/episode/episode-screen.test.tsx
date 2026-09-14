@@ -361,15 +361,14 @@ test("결말과 무관하게 상황 줄 배너를 채팅 패널에 넘긴다", a
   expect(screen.getByText(PLAYING.situation)).toBeOnTheScreen();
 });
 
-test("마지막 대사가 와도 앞선 메시지의 표현 확인이 남으면 종료 카드를 기다린다", async () => {
+test("결말이 오면 표현 확인 중에도 종료 카드가 보이고 버튼만 기다린다", async () => {
   mockEnding = { kind: "성공", outcome: "커피를 받았다." };
   mockCorrections.states = { earlier: { retrying: false, status: "pending" } };
   await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
-  expect(screen.getByTestId("episode-ending-checking")).toHaveTextContent(
-    "표현을 확인하고 있어요"
-  );
-  expect(screen.queryByTestId("episode-closing")).toBeNull();
-  expect(screen.queryByRole("button", { name: "표현 돌아보기" })).toBeNull();
+  expect(screen.getByTestId("episode-closing")).toBeOnTheScreen();
+  expect(screen.getByText("커피를 받았다")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "표현 돌아보기" })).toBeDisabled();
+  expect(screen.queryByTestId("episode-ending-checking")).toBeNull();
   expect(panel?.closing).toBeDefined();
 });
 
@@ -385,37 +384,60 @@ test("모든 확인이 실패로 끝나도 실제 결말과 표현 돌아보기�
   expect(onReview).toHaveBeenCalledWith(mockNextUp);
 });
 
+test("표현 돌아보기를 다녀오면 완료 카드 없이 하단 버튼만 남는다", async () => {
+  mockEnding = { kind: "성공", outcome: "커피를 받았다." };
+  const onReview = jest.fn();
+  const user = userEvent.setup();
+  await renderWithHeroUI(<EpisodeScreen {...PLAYING} onReview={onReview} />);
+  expect(screen.getByTestId("episode-closing")).toBeOnTheScreen();
+  await user.press(screen.getByRole("button", { name: "표현 돌아보기" }));
+  expect(onReview).toHaveBeenCalledWith(mockNextUp);
+  expect(screen.queryByTestId("episode-closing")).toBeNull();
+  expect(screen.queryByText("커피를 받았다")).toBeNull();
+  expect(screen.getByRole("button", { name: "표현 돌아보기" })).toBeEnabled();
+});
+
 test("재시도가 끝나도 축하를 다시 재생하지 않는다", async () => {
   mockEnding = { kind: "성공", outcome: "커피를 받았다." };
   const view = await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
-  expect(
-    screen.getByTestId("episode-celebration-burst", {
-      includeHiddenElements: true,
-    })
-  ).toBeOnTheScreen();
+  const burst = screen.getByTestId("episode-celebration-burst", {
+    includeHiddenElements: true,
+  });
+  await act(() => burst.props.onAnimationFinish(false));
   mockCorrections.states = { m1: { retrying: true, status: "pending" } };
   await view.rerender(<EpisodeScreen {...PLAYING} />);
-  expect(screen.queryByTestId("episode-closing")).toBeNull();
+  expect(screen.getByTestId("episode-closing")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "표현 돌아보기" })).toBeDisabled();
   mockCorrections.states = { m1: { status: "natural" } };
   await view.rerender(<EpisodeScreen {...PLAYING} />);
   expect(screen.getByTestId("episode-closing")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "표현 돌아보기" })).toBeEnabled();
   expect(
-    screen.queryByTestId("episode-celebration-burst", {
+    screen.getByTestId("episode-celebration-burst", {
       includeHiddenElements: true,
-    })
-  ).toBeNull();
+    }).props.autoPlay
+  ).toBe(false);
 });
 
-test("기록에서도 같은 종료 카드와 교정을 보여 주고 축하는 반복하지 않는다", async () => {
+test("끝난 기록은 교정을 유지하고 하단에는 표현 돌아보기만 보여 준다", async () => {
   mockEnding = { kind: "성공", outcome: "커피를 받았다." };
   mockCorrections.byMessageId = { m1: CORRECTION };
+  const onReview = jest.fn();
+  const user = userEvent.setup();
   await renderWithHeroUI(
-    <EpisodeScreen {...PLAYING} readOnly recordedEnding={mockEnding} />
+    <EpisodeScreen
+      {...PLAYING}
+      onReview={onReview}
+      readOnly
+      recordedEnding={mockEnding}
+    />
   );
-  expect(screen.getByTestId("episode-closing")).toBeOnTheScreen();
+  expect(screen.queryByTestId("episode-closing")).toBeNull();
   expect(screen.getByTestId("correction-line-fixed")).toBeOnTheScreen();
   expect(screen.queryByTestId("episode-celebration-burst")).toBeNull();
-  expect(screen.queryByText("끝")).toBeNull();
+  expect(screen.queryByText("커피를 받았다")).toBeNull();
+  await user.press(screen.getByRole("button", { name: "표현 돌아보기" }));
+  expect(onReview).toHaveBeenCalledWith(mockNextUp);
 });
 
 test("인물 말풍선 곁에 담아 둘 자리를 함께 넘긴다", async () => {

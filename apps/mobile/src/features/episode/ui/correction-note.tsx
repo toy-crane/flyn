@@ -1,7 +1,21 @@
 import type { UIMessage } from "ai";
+import { LinkButton } from "heroui-native/link-button";
 import { Typography } from "heroui-native/text";
-import { useCallback, useMemo, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Pressable, View } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+  ReduceMotion,
+} from "react-native-reanimated";
 
 import type {
   CorrectionEntry,
@@ -11,10 +25,10 @@ import {
   type ExpressionState,
   useCorrections,
 } from "@/features/episode/state/episode-corrections";
-import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { MarkedSentence } from "@/shared/ui/marked-text";
 import { StatusLine } from "@/shared/ui/status-line";
+import { useReduceMotion } from "@/shared/ui/use-reduce-motion";
 import { correctionPresentation } from "./correction-presentation";
 import { fixedMarks } from "./correction-text";
 import { correctionLabels } from "./episode-labels";
@@ -22,6 +36,10 @@ import {
   ExpressionSaveFailure,
   LearningExpressionActions,
 } from "./expression-bookmark";
+
+const reveal = FadeIn.duration(240).reduceMotion(ReduceMotion.System);
+const conceal = FadeOut.duration(180).reduceMotion(ReduceMotion.System);
+const resize = LinearTransition.duration(480).reduceMotion(ReduceMotion.System);
 
 /**
  * 카드 안의 표현 하나. 원문의 어긋난 자리, 고친 문장, 이유 한 줄.
@@ -73,16 +91,19 @@ function CorrectionRow({
 
 function CorrectionActions({ onAsk }: { onAsk: () => void }) {
   return (
-    <View className="mt-3">
-      <Button
+    <View className="mt-3 items-end">
+      <LinkButton
         accessibilityLabel={correctionLabels.ask}
-        className="w-full rounded-full bg-surface"
+        className="min-h-11 gap-0.5 self-end"
         onPress={onAsk}
+        size="sm"
         testID="correction-ask"
-        variant="outline"
       >
-        {correctionLabels.ask}
-      </Button>
+        <LinkButton.Label className="text-accent">
+          {correctionLabels.ask}
+        </LinkButton.Label>
+        <Icon name="forward" size="xs" tone="accent" />
+      </LinkButton>
     </View>
   );
 }
@@ -98,13 +119,22 @@ function CorrectionActions({ onAsk }: { onAsk: () => void }) {
  * 이유이고, 목록이 이 행을 다시 만들지 않는 한 그대로 남는다.
  */
 export function CorrectionNote({
+  animateOnArrival = false,
   correction,
   onAsk,
 }: {
+  animateOnArrival?: boolean;
   correction: EpisodeCorrection;
   onAsk: (correction: EpisodeCorrection) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const isReduced = useReduceMotion();
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+  }, []);
+  // biome-ignore lint/suspicious/noUnnecessaryConditions: 마운트 뒤 useEffect가 값을 바꾼다.
+  const entering = mounted.current && !isReduced ? reveal : undefined;
   const open = useCallback(() => setIsOpen(true), []);
   const fold = useCallback(() => setIsOpen(false), []);
   const ask = useCallback(() => onAsk(correction), [correction, onAsk]);
@@ -115,10 +145,17 @@ export function CorrectionNote({
   );
 
   return (
-    <View className="mt-1 w-full items-end">
+    <Animated.View
+      className="mt-1 w-full items-end"
+      entering={animateOnArrival && !isReduced ? reveal : undefined}
+      layout={isReduced ? undefined : resize}
+      testID="correction-note"
+    >
       {isOpen ? (
-        <View
+        <Animated.View
           className={`max-w-[85%] self-end rounded-2xl rounded-tl-md px-3.5 py-3 ${appearance.surface}`}
+          entering={isReduced ? undefined : reveal}
+          exiting={isReduced ? undefined : conceal}
           testID="correction-card"
         >
           <View className="mb-2 flex-row items-center justify-between gap-1">
@@ -154,32 +191,37 @@ export function CorrectionNote({
             />
           ))}
           <CorrectionActions onAsk={ask} />
-        </View>
+        </Animated.View>
       ) : (
-        <Pressable
-          accessibilityLabel={`${appearance.title} 보기`}
-          accessibilityRole="button"
-          className={`max-w-[92%] flex-row items-start gap-2 self-end rounded-2xl rounded-tl-md px-3.5 py-2.5 ${appearance.surface}`}
-          onPress={open}
-          testID="correction-line"
+        <Animated.View
+          entering={entering}
+          exiting={isReduced ? undefined : conceal}
         >
-          <View className="mt-1">
-            <Icon name="learn" size="sm" tone={appearance.tone} />
-          </View>
-          <View className="shrink">
-            <MarkedSentence
-              markClassName={appearance.text}
-              marks={fixedMarks(correction)}
-              testID="correction-line-fixed"
-              text={correction.fixed}
-              type="body-sm"
-            />
-          </View>
-          {/* `body-sm`의 24 줄 가운데에 16pt 아이콘을 맞춘다. */}
-          <View className="mt-1">
-            <Icon name="expand" size="sm" tone="muted" />
-          </View>
-        </Pressable>
+          <Pressable
+            accessibilityLabel={`${appearance.title} 보기`}
+            accessibilityRole="button"
+            className={`max-w-[92%] flex-row items-start gap-2 self-end rounded-2xl rounded-tl-md px-3.5 py-2.5 ${appearance.surface}`}
+            onPress={open}
+            testID="correction-line"
+          >
+            <View className="mt-1">
+              <Icon name="learn" size="sm" tone={appearance.tone} />
+            </View>
+            <View className="shrink">
+              <MarkedSentence
+                markClassName={appearance.text}
+                marks={fixedMarks(correction)}
+                testID="correction-line-fixed"
+                text={correction.fixed}
+                type="body-sm"
+              />
+            </View>
+            {/* `body-sm`의 24 줄 가운데에 16pt 아이콘을 맞춘다. */}
+            <View className="mt-1">
+              <Icon name="expand" size="sm" tone="muted" />
+            </View>
+          </Pressable>
+        </Animated.View>
       )}
       {/*
         아이콘 줄은 접힌 한 줄과 펼친 카드 아래 같은 자리에 선다. 어느 쪽에서
@@ -187,7 +229,7 @@ export function CorrectionNote({
       */}
       <LearningExpressionActions spot={spot} text={correction.fixed} />
       <ExpressionSaveFailure align="end" spot={spot} />
-    </View>
+    </Animated.View>
   );
 }
 
@@ -246,6 +288,8 @@ export function EpisodeCorrectionNote({ message }: { message: UIMessage }) {
   const { ask, byMessageId, states, retry } = useCorrections();
   const correction = byMessageId[message.id];
   const state = states?.[message.id];
+  const isReduced = useReduceMotion();
+  const hadCorrectionAtMount = useRef(correction !== undefined).current;
   const retryExpression = useCallback(
     () => retry(message.id),
     [retry, message.id]
@@ -253,11 +297,21 @@ export function EpisodeCorrectionNote({ message }: { message: UIMessage }) {
   if (message.role !== "user") {
     return null;
   }
+  let content: ReactNode;
   if (state && state.status !== "corrected") {
-    return <ExpressionStatusNote onRetry={retryExpression} state={state} />;
+    content = <ExpressionStatusNote onRetry={retryExpression} state={state} />;
+  } else if (correction) {
+    content = (
+      <CorrectionNote
+        animateOnArrival={!hadCorrectionAtMount}
+        correction={correction}
+        onAsk={ask}
+      />
+    );
   }
-  if (!correction) {
-    return null;
-  }
-  return <CorrectionNote correction={correction} onAsk={ask} />;
+  return (
+    <Animated.View layout={isReduced ? undefined : resize}>
+      {content}
+    </Animated.View>
+  );
 }

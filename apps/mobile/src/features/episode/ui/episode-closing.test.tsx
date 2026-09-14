@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, jest, test } from "@jest/globals";
-import { act, screen, userEvent } from "@testing-library/react-native";
+import { act, screen, userEvent, within } from "@testing-library/react-native";
 import { impactAsync } from "expo-haptics";
 import { AccessibilityInfo } from "react-native";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
@@ -41,6 +41,23 @@ test("성공 결말은 마크와 고리 있는 세 색 조각을 재생하고 �
   expect(burst.props.autoPlay).toBe(true);
   expect(screen.getByText("해냈어요!")).toBeOnTheScreen();
   expect(impactAsync).toHaveBeenCalledTimes(1);
+});
+
+test("축하 조각은 카드 밖에서 그려지고 대화와 버튼 누름을 가로막지 않는다", async () => {
+  await renderWithHeroUI(
+    <EpisodeClosing
+      animate
+      ending={{ kind: "성공", outcome: "원하는 커피를 받았어요." }}
+      onReview={jest.fn()}
+    />
+  );
+  const card = screen.getByTestId("episode-closing", hiddenToo);
+  expect(
+    within(card).queryByTestId("episode-celebration-burst", hiddenToo)
+  ).toBeNull();
+  const burst = screen.getByTestId("episode-celebration-burst", hiddenToo);
+  expect(burst.parent?.props.pointerEvents).toBe("none");
+  expect(burst.props.style.width).toBeGreaterThan(burst.props.source.w);
 });
 
 test("마크와 조각의 색은 파일이 아니라 화면의 강조색과 채널 색을 따른다", async () => {

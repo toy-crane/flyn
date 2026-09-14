@@ -8,6 +8,7 @@ import {
   type SavedExpressionState,
   SavedExpressionsProvider,
 } from "@/features/episode/state/saved-expressions";
+import { UtteranceMeaningsProvider } from "@/features/episode/state/utterance-meanings";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { episodeLabels, savedExpressionLabels } from "./episode-labels";
 import { UtteranceExpressionSlot } from "./expression-bookmark";
@@ -184,4 +185,55 @@ test("대사 복사는 그 말풍선의 글만 클립보드에 넣는다", async
   await userEvent.press(screen.getByLabelText(episodeLabels.copyUtterance));
 
   expect(mockSetStringAsync).toHaveBeenCalledWith(LINE);
+});
+
+test("대사 뜻을 열면 말풍선과 아이콘 줄 사이에서 읽는다", async () => {
+  const meaning = "다음 손님, 오세요!";
+  await renderWithHeroUI(
+    <UtteranceMeaningsProvider
+      value={{
+        ask: jest.fn(),
+        states: {
+          "s1:1": { meaning, shown: true, status: "ready" },
+        },
+        toggle: jest.fn(),
+      }}
+    >
+      {slot(jest.fn())}
+    </UtteranceMeaningsProvider>
+  );
+
+  const children = screen.getByTestId("utterance-actions").parent?.children;
+  expect(children).toBeDefined();
+  const order = children?.map((child) =>
+    typeof child === "string" ? child : child.props.testID
+  );
+  expect(order).toEqual([
+    undefined,
+    "utterance-meaning-motion",
+    "utterance-actions",
+  ]);
+  expect(screen.getByText(meaning)).toBeOnTheScreen();
+});
+
+test("번역 실패 안내는 아이콘 줄 아래에서 읽는다", async () => {
+  await renderWithHeroUI(
+    <UtteranceMeaningsProvider
+      value={{
+        ask: jest.fn(),
+        states: { "s1:1": { status: "error" } },
+        toggle: jest.fn(),
+      }}
+    >
+      {slot(jest.fn())}
+    </UtteranceMeaningsProvider>
+  );
+
+  const children = screen.getByTestId("utterance-actions").parent?.children;
+  const order = children?.map((child) =>
+    typeof child === "string" ? child : child.props.testID
+  );
+  expect(order?.indexOf("utterance-translation-failed-row")).toBeGreaterThan(
+    order?.indexOf("utterance-actions") ?? -1
+  );
 });
