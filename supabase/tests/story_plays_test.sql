@@ -5,7 +5,7 @@
 -- 메시지가 앉을 때 트리거가 밀고, 클라이언트는 그 열에 닿지 못한다. 기록을 열어
 -- 보는 것만으로 스토리 탭의 순서가 바뀌지 않는다는 약속이 그 좁은 길에서 나온다.
 BEGIN;
-SELECT plan(32);
+SELECT plan(36);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -214,6 +214,41 @@ SELECT ok(
    WHERE kind = 'english_message'
      AND source_id = '1d000000-0000-4000-8000-000000000002'),
   'a new study fact has matching database-managed common timestamps'
+);
+
+-- 앱의 메시지 수정은 같은 id로 다시 저장한다. 원본 대화 행을 지운 뒤에도
+-- 학습 사실은 남고, 고친 영어 메시지는 새 횟수를 더하지 않는다.
+SELECT lives_ok(
+  $$delete from public.episode_messages
+    where id = '1d000000-0000-4000-8000-000000000002'$$,
+  'editing removes the old conversation row'
+);
+
+SELECT lives_ok(
+  $$insert into public.episode_messages (id, episode_play_id, role, parts)
+    values (
+      '1d000000-0000-4000-8000-000000000002',
+      '1c000000-0000-4000-8000-000000000001',
+      'user',
+      '[{"type":"text","text":"Could I change my drink?"}]'::jsonb
+    )$$,
+  'the edited message reuses its original id'
+);
+
+SELECT is(
+  public.save_expression_result(
+    '1d000000-0000-4000-8000-000000000002', 'natural', null
+  ),
+  'natural'::text,
+  'the edited message receives its own expression result'
+);
+
+SELECT is(
+  (SELECT count(*) FROM public.learning_events
+   WHERE kind = 'english_message'
+     AND source_id = '1d000000-0000-4000-8000-000000000002'),
+  1::bigint,
+  'editing and resending one English message keeps exactly one study fact'
 );
 
 -- 다른 회차는 움직이지 않았다. 한 회차에서 말한 것이 다른 회차의 순서를 바꾸지
