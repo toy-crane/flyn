@@ -544,7 +544,10 @@ test("실행 중인 업데이트의 짧은 ID를 보여 주고 전체 ID를 복�
   await user.press(versionRow);
 
   expect(setStringAsync).toHaveBeenCalledWith(mockUpdateId);
-  expect(screen.getByText("업데이트 정보를 복사했어요")).toBeOnTheScreen();
+  const feedback = screen.getByText("업데이트 정보를 복사했어요");
+  expect(feedback).toBeOnTheScreen();
+  // 알림 문구도 타이포그래피 대응표의 작은 본문 역할이다.
+  expect(feedback.props.className).toContain("text__root--type-body-sm");
 });
 
 test("빌드에 포함된 코드를 실행하면 기본 버전만 알리고 복사하지 않는다", async () => {

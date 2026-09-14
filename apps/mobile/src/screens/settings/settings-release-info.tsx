@@ -7,11 +7,11 @@ import {
 import { nativeApplicationVersion } from "expo-application";
 import { setStringAsync } from "expo-clipboard";
 import { isEmbeddedLaunch, isEnabled, updateId } from "expo-updates";
+import { Typography } from "heroui-native/text";
 import { useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   Platform,
-  Text,
   useColorScheme,
   View,
 } from "react-native";
@@ -146,9 +146,12 @@ export function SettingsCopyFeedback({
           paddingVertical: 11,
         }}
       >
-        <Text style={{ color: isDark ? "#141418" : "#ffffff", fontSize: 14 }}>
+        <Typography.Paragraph
+          style={{ color: isDark ? "#141418" : "#ffffff" }}
+          type="body-sm"
+        >
           {message}
-        </Text>
+        </Typography.Paragraph>
       </View>
     </View>
   );
