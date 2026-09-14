@@ -7,26 +7,12 @@ import {
   writeFileSync,
 } from "node:fs";
 import { resolve } from "node:path";
-import type { ModelMessage } from "ai";
 import { episodeSystemPrompt } from "../src/features/episode/episode";
-import type { EpisodeScene } from "../src/features/episode/scene";
-import type { EpisodeScript } from "../src/features/episode/story";
 import { resolveModelId } from "../src/shared/model-id";
+import { fixedScenarios, type Scenario } from "./role-ownership-cases";
+import { roleOwnershipProblems } from "./role-ownership-checks";
 import { sceneAnswer } from "./scene-answer";
-import { sceneProblems } from "./scene-checks";
-import { type Appointment, scheduleWordingProblems } from "./schedule-wording";
 
-type EndingKind = NonNullable<EpisodeScene["ending"]>["kind"];
-interface Scenario {
-  appointments: Appointment[];
-  before: string;
-  expectedEnding: EndingKind | null;
-  id: string;
-  messages: ModelMessage[];
-  requiredMention: Appointment[];
-  script: EpisodeScript;
-  title: string;
-}
 interface Job {
   id: string;
   repetition: number;
@@ -48,60 +34,6 @@ interface Trial extends Job {
   problems: string[];
 }
 const sha = (value: string) => createHash("sha256").update(value).digest("hex");
-const evidence = resolve(
-  import.meta.dir,
-  "../../../docs/specs/episode-prompt-load-evaluation"
-);
-
-function fixedScenarios(): Scenario[] {
-  const role = JSON.parse(
-    readFileSync(resolve(evidence, "role-check/data/manifest.json"), "utf8")
-  ) as {
-    cases: (Omit<Scenario, "appointments" | "before"> & {
-      baseSystem: string;
-      expectedAppointments: Appointment[];
-    })[];
-  };
-  const primary = JSON.parse(
-    readFileSync(resolve(evidence, "evidence/primary/manifest.json"), "utf8")
-  ) as {
-    cases: {
-      conditions: { arm: string; system: string }[];
-      expectedEnding: EndingKind | null;
-      id: string;
-      messages: ModelMessage[];
-      script: EpisodeScript;
-      title: string;
-    }[];
-  };
-  const scenarios: Scenario[] = role.cases.map((f) => ({
-    appointments: f.expectedAppointments,
-    before: f.baseSystem,
-    expectedEnding: f.expectedEnding,
-    id: f.id,
-    messages: f.messages,
-    requiredMention: f.requiredMention,
-    script: f.script,
-    title: f.title,
-  }));
-  for (const f of primary.cases.filter((item) => item.id !== "s1-owner")) {
-    const before = f.conditions.find((c) => c.arm === "A")?.system;
-    if (!before) {
-      throw new Error(`Missing fixed baseline for ${f.id}`);
-    }
-    scenarios.push({
-      appointments: [{ event: "meeting", person: "Owen" }],
-      before,
-      expectedEnding: f.expectedEnding,
-      id: f.id,
-      messages: f.messages,
-      requiredMention: [],
-      script: f.script,
-      title: f.title,
-    });
-  }
-  return scenarios;
-}
 
 function prepare(directory: string) {
   if (existsSync(resolve(directory, "responses.jsonl"))) {
@@ -144,31 +76,6 @@ function prepare(directory: string) {
     `${JSON.stringify(manifest, null, 2)}\n`
   );
   process.stdout.write(`Prepared ${jobs.length} calls in ${directory}\n`);
-}
-
-function problemsOf(
-  answer: Awaited<ReturnType<typeof sceneAnswer>>,
-  f: Scenario
-): string[] {
-  const problems = sceneProblems(
-    answer.scene,
-    f.script.cast.map((c) => c.name),
-    f.expectedEnding !== null
-  );
-  if (answer.scene.dialogue.length > 2) {
-    problems.push("발화가 두 개를 넘음");
-  }
-  if (answer.scene.ending && answer.scene.ending.kind !== f.expectedEnding) {
-    problems.push("결말 종류 불일치");
-  }
-  problems.push(
-    ...scheduleWordingProblems(
-      answer.scene,
-      f.appointments,
-      f.script.cast.map((c) => c.name)
-    )
-  );
-  return problems;
 }
 
 async function run(directory: string) {
@@ -215,7 +122,7 @@ async function run(directory: string) {
         [],
         f[job.variant]
       );
-      trial.problems = problemsOf(trial.answer, f);
+      trial.problems = roleOwnershipProblems(trial.answer.scene, f);
     } catch (error) {
       trial.error = String(error)
         .replaceAll(

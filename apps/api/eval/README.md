@@ -45,3 +45,40 @@ bun run --cwd apps/api eval:multi-cast
 
 자동 테스트는 변경 전의 실제 대소문자 교정 답 세 개가 검사에 실패하는지도
 확인한다. 평가를 다시 실행해 생긴 다른 기록은 기본적으로 Git에서 제외한다.
+
+
+## 사람과 일정을 구분하는 평가
+
+`eval:role-ownership`은 카페의 13개 고정 장면을 변경 전후 다섯 번씩 비교한다.
+처음에는 `prepare`로 입력과 프롬프트를 저장하고, `run`에서 실제 Luna를 호출한다.
+서버 모델 설정이 Luna가 아니면 중단한다.
+
+```sh
+role_scratch=$(mktemp -d /tmp/flyn-role-ownership.XXXXXX)
+bun run --cwd apps/api eval:role-ownership prepare "$role_scratch"
+bun run --cwd apps/api eval:role-ownership run "$role_scratch"
+```
+
+[실제 오답 예시](fixtures/role-ownership-regressions.json) 7개를 다음 입력에 연결했다.
+입력은 이미 있던 장면이므로 같은 입력을 복제해 호출 수를 늘리지는 않는다.
+`prepare`가 저장하는 각 장면의 `regressionCases`에서 오답의 출처와 확인 항목을 볼 수 있다.
+
+| 입력 | 고정한 실제 오답 | 개수 |
+| --- | --- | ---: |
+| o4-renamed-train | Noah의 기차를 사용자 일정으로 바꿈, 없는 출근 일정 추가, 기대 결말 누락 | 3 |
+| o6-user-required | 사용자의 회의를 말한 뒤 다음 일정을 모르겠다고 답함 | 1 |
+| o8-two-schedules | 상대 전환 표시 없이 같은 you로 두 사람의 일정을 말함, 발화 두 개 상한 초과 | 3 |
+
+실제 eval과 자동 테스트는 같은 `roleOwnershipProblems` 검사를 사용한다.
+`bun test`는 저장한 오답 7개를 떨어뜨리고 수정 예시를 통과시키는지 확인하며,
+모델을 호출하지 않는다. 수정 예시는 검사 확인을 위해 작성한 것으로 새로운
+Luna 응답이나 프롬프트 개선 결과가 아니다. 원문 오답의 결말과 기록도 보존한다.
+
+추가한 상대 전환 검사는 이름을 부른 뒤 `your meeting, and you ... your train`처럼
+두 일정을 연결하는 관찰된 표현만 찾는다. 다음 일정을 모른다는 검사도 알려진
+일정을 답해야 하는 장면에만 적용한다. 모든 대명사나 말뜻을 판정하는 검사는
+아니므로 실제 eval에서는 계속 출력 전문을 읽어야 한다. 기록 문구와 말투 검사는
+이 일곱 예시의 통과 기준에 포함하지 않는다.
+
+[130회 비교 원본](../../../docs/specs/episode-prompt-load-evaluation/simple-rules/results.md)은
+실행 당시 검사 결과를 보존한다. 이번에 검사를 보강했다고 과거 결과를 덮어쓰지 않는다.
