@@ -96,8 +96,10 @@ test("끝낸 화가 없는 회차도 본문을 누르면 화 선택으로 간다
   expect(screen.getByTestId(`story-play-menu-${FIRST_ID}`)).toBeVisible();
 });
 
-test("삭제 중에는 그 회차의 본문과 메뉴를 잠그고 메뉴 자리에 진행을 표시한다", async () => {
-  const { rendered } = renderRecords({ deletingStoryPlayId: FIRST_ID });
+test("삭제 중에는 모든 회차의 삭제 메뉴를 잠그고 해당 회차에 진행을 표시한다", async () => {
+  const { onDelete, rendered } = renderRecords({
+    deletingStoryPlayId: FIRST_ID,
+  });
   await rendered;
 
   expect(
@@ -111,7 +113,11 @@ test("삭제 중에는 그 회차의 본문과 메뉴를 잠그고 메뉴 자리
   expect(
     screen.getByTestId(`story-play-menu-${FIRST_ID}`).props.accessibilityState
   ).toEqual({ busy: true, disabled: true });
-  expect(screen.getByTestId(`story-play-menu-${SECOND_ID}`)).toBeVisible();
+  expect(
+    screen.getByTestId(`story-play-menu-${SECOND_ID}`).props.accessibilityState
+  ).toEqual({ busy: false, disabled: true });
+  fireEvent.press(screen.getByTestId(`story-play-menu-${SECOND_ID}`));
+  expect(onDelete).not.toHaveBeenCalled();
 });
 
 test("한 화짜리 회차도 같은 본문 너비에 진행 바를 둔다", async () => {

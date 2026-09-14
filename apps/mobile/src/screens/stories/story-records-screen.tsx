@@ -18,12 +18,14 @@ import { ScreenEmpty, ScreenUnavailable } from "@/shared/ui/screen-status";
 import { useScreenContentHeight } from "@/shared/ui/use-screen-content-height";
 
 function StoryPlayCard({
+  isDeletePending,
   isDeleting,
   onDelete,
   onOpen,
   storyPlay,
   total,
 }: {
+  isDeletePending: boolean;
   isDeleting: boolean;
   onDelete: (storyPlayId: string) => void;
   onOpen: (storyPlay: StoryPlay) => void;
@@ -71,19 +73,25 @@ function StoryPlayCard({
         </Typography.Paragraph>
       </PressableFeedback>
       <View className="absolute top-1 right-1 z-10">
-        {isDeleting ? (
+        {isDeletePending ? (
           <IconButton
             accessibilityLabel={storyLabels.runMenu(startedAt)}
-            accessibilityState={{ busy: true }}
+            accessibilityState={{ busy: isDeleting, disabled: true }}
             className="rounded-full"
             isDisabled
             size="lg"
             testID={`story-play-menu-${storyPlay.storyPlayId}`}
           >
-            <LoadingSpinner
-              sizeRole="control"
-              testID="story-play-delete-progress"
-            />
+            {isDeleting ? (
+              <LoadingSpinner
+                sizeRole="control"
+                testID="story-play-delete-progress"
+              />
+            ) : (
+              <Typography.Paragraph type="body" weight="semibold">
+                ···
+              </Typography.Paragraph>
+            )}
           </IconButton>
         ) : (
           <Menu>
@@ -195,6 +203,7 @@ export function StoryRecordsScreen({
               <View className="gap-4">
                 {storyPlays.plays.map((storyPlay) => (
                   <StoryPlayCard
+                    isDeletePending={deletingStoryPlayId !== undefined}
                     isDeleting={deletingStoryPlayId === storyPlay.storyPlayId}
                     key={storyPlay.storyPlayId}
                     onDelete={onDelete}
