@@ -10,7 +10,7 @@
 -- Add inserts here for tables that carry no user data, such as reference or
 -- lookup rows.
 -- ID는 처음 INSERT할 때 DB가 만든다. 다시 실행할 때는 스토리 slug와
--- (story_id, number)로 갱신하며 기존 ID와 플레이 기록의 연결은 바꾸지 않는다.
+-- (story_id, number)로 갱신하며 기존 ID와 episode_plays의 연결은 바꾸지 않는다.
 
 -- 공식 스토리 다섯 편. `position`이 스토리 탭의 순서이고, `cover_image_path`는
 -- `story-covers` 버킷 안의 파일 이름이다. 그 파일들은 `supabase/story-covers/`에
@@ -778,7 +778,7 @@ set title = excluded.title,
 -- 등장인물 문장이 이 차례로 이름을 부른다.
 --
 -- 스토리 slug와 화 번호, 고정 인물 키로 세 부모를 찾는다. UUID를 적지 않으므로
--- 다시 실행해도 기존 ID와 플레이 기록의 연결이 그대로다.
+-- 다시 실행해도 기존 ID와 episode_plays의 연결이 그대로다.
 --
 -- 아래 목록이 이 다섯 스토리의 연결 전부다. 화에서 인물을 빼면 upsert만으로는
 -- 낡은 연결이 남으므로 목록에 없는 것을 먼저 지운다. 이름과 순서를 바꿔도

@@ -125,7 +125,7 @@ alter table public.retired_usernames enable row level security;
 
 grant all on table public.retired_usernames to service_role;
 
--- 회차, 플레이 기록, 메시지, 교정의 접근 규칙.
+-- story_plays, episode_plays, 메시지, 교정의 접근 규칙.
 --
 -- 네 테이블이 같은 모양을 쓴다. 자기 행만 읽고, 자기 행에만 쓰고, 결말이 난
 -- 플레이는 더 이상 바뀌지 않는다. 어느 규칙이 어디 사는지는
