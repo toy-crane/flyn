@@ -9,6 +9,7 @@ cross join lateral (
   where part->>'type' = 'text'
 ) body
 where message.role = 'user'
+  and message.expression_status is not null
   and body.spoken ~ '[A-Za-z]'
   and body.spoken !~ '[가-힣ㄱ-ㅎㅏ-ㅣ]'
 on conflict do nothing;

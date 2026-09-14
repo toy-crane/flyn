@@ -11,10 +11,10 @@ select results_eq(
   'backfill keeps the exact source, owner, and time for English speech and completion'
 );
 select is((select count(*) from public.learning_events), 2::bigint,
-  'assistant and Korean messages do not become English study facts');
+  'assistant, Korean, and unclassified English messages do not become English study facts');
 select results_eq(
-  'select id, user_id, role, parts, created_at from public.episode_messages order by id',
-  'select id, user_id, role, parts, created_at from ci_learning_upgrade.messages order by id',
+  'select id, user_id, role, parts, expression_status, created_at from public.episode_messages order by id',
+  'select id, user_id, role, parts, expression_status, created_at from ci_learning_upgrade.messages order by id',
   'backfill does not alter original messages'
 );
 select results_eq(

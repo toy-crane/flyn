@@ -13,7 +13,7 @@ CREATE FUNCTION public.record_english_message()
 declare
   spoken text;
 begin
-  if new.role <> 'user' then
+  if new.role <> 'user' or new.expression_status is null then
     return new;
   end if;
 
@@ -59,7 +59,7 @@ $function$;
 REVOKE ALL ON FUNCTION public.record_episode_completion() FROM PUBLIC;
 
 CREATE TRIGGER episode_messages_record_english
-  AFTER INSERT ON public.episode_messages
+  AFTER INSERT OR UPDATE OF expression_status ON public.episode_messages
   FOR EACH ROW
   EXECUTE FUNCTION public.record_english_message();
 

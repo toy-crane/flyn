@@ -450,8 +450,8 @@ create trigger episode_messages_touch_story_play
   for each row
   execute function public.touch_story_play();
 
--- 사용자의 영어 메시지를 한 번만 기록한다. 한국어가 섞인 입력은 영어 횟수에
--- 넣지 않는다. 원본을 지우더라도 이 행에는 본문을 저장하지 않는다.
+-- 표현 판정이 끝난 사용자의 영어 메시지를 한 번만 기록한다. 판정이 실패하거나
+-- 한국어가 섞인 입력은 영어 횟수에 넣지 않는다. 원본을 지워도 본문은 남기지 않는다.
 create function public.record_english_message()
 returns trigger
 language plpgsql
@@ -461,7 +461,7 @@ as $$
 declare
   spoken text;
 begin
-  if new.role <> 'user' then
+  if new.role <> 'user' or new.expression_status is null then
     return new;
   end if;
 
@@ -482,7 +482,7 @@ $$;
 revoke all on function public.record_english_message() from public, anon, authenticated, service_role;
 
 create trigger episode_messages_record_english
-  after insert on public.episode_messages
+  after insert or update of expression_status on public.episode_messages
   for each row execute function public.record_english_message();
 
 -- 완료 날짜는 회차가 삭제된 뒤에도 남는다. 이미 끝난 플레이의 중복 완료

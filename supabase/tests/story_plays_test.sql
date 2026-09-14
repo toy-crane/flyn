@@ -5,7 +5,7 @@
 -- 메시지가 앉을 때 트리거가 밀고, 클라이언트는 그 열에 닿지 못한다. 기록을 열어
 -- 보는 것만으로 스토리 탭의 순서가 바뀌지 않는다는 약속이 그 좁은 길에서 나온다.
 BEGIN;
-SELECT plan(29);
+SELECT plan(31);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -193,6 +193,20 @@ SELECT is(
   (SELECT created_at FROM public.episode_messages
    WHERE id = '1d000000-0000-4000-8000-000000000002'),
   'and that moment becomes the run''s place in the recent list'
+);
+
+SELECT is(
+  (SELECT count(*) FROM public.learning_events),
+  0::bigint,
+  'an English message is not counted while its expression result is pending'
+);
+
+SELECT is(
+  public.save_expression_result(
+    '1d000000-0000-4000-8000-000000000002', 'natural', null
+  ),
+  'natural'::text,
+  'the expression result can be finalized without an expression row'
 );
 
 -- 다른 회차는 움직이지 않았다. 한 회차에서 말한 것이 다른 회차의 순서를 바꾸지

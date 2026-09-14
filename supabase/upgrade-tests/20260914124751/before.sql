@@ -35,17 +35,20 @@ values (
   '2026-01-01 00:00:00+00', '2026-01-01 00:12:00+00', '성공', '커피를 받았다'
 );
 
-insert into public.episode_messages (id, episode_play_id, user_id, role, parts)
+insert into public.episode_messages (id, episode_play_id, user_id, role, parts, expression_status)
 values
   ('d1111111-1111-4111-8111-111111111111', 'f1111111-1111-4111-8111-111111111111',
    'dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'assistant',
-   '[{"type":"text","text":"Here is your coffee."}]'::jsonb),
+   '[{"type":"text","text":"Here is your coffee."}]'::jsonb, null),
   ('d2222222-2222-4222-8222-222222222222', 'f1111111-1111-4111-8111-111111111111',
    'dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'user',
-   '[{"type":"text","text":"May I have a coffee?"}]'::jsonb),
+   '[{"type":"text","text":"May I have a coffee?"}]'::jsonb, 'natural'),
   ('d3333333-3333-4333-8333-333333333333', 'f1111111-1111-4111-8111-111111111111',
    'dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'user',
-   '[{"type":"text","text":"커피 한 잔 주세요"}]'::jsonb);
+   '[{"type":"text","text":"커피 한 잔 주세요"}]'::jsonb, null),
+  ('d4444444-4444-4444-8444-444444444444', 'f1111111-1111-4111-8111-111111111111',
+   'dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'user',
+   '[{"type":"text","text":"A coffee, please."}]'::jsonb, null);
 
 -- 앞선 스키마 마이그레이션이 만든 트리거의 결과만 지워 과거 행을 재현한다.
 delete from public.learning_events;
@@ -62,6 +65,6 @@ values (
 
 create schema ci_learning_upgrade;
 create table ci_learning_upgrade.messages as
-  select id, user_id, role, parts, created_at from public.episode_messages;
+  select id, user_id, role, parts, expression_status, created_at from public.episode_messages;
 create table ci_learning_upgrade.completed as
   select id, user_id, finished_at from public.episode_plays where finished_at is not null;
