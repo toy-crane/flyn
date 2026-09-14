@@ -15,7 +15,8 @@ import { speakerModelText } from "../src/shared/scene-stream";
 export async function sceneAnswer(
   script: EpisodeScript,
   messages: ModelMessage[],
-  memories: readonly StoryMemory[] = []
+  memories: readonly StoryMemory[] = [],
+  system = episodeSystemPrompt(script, memories)
 ) {
   const started = performance.now();
   const deltas: { elapsedMs: number; text: string }[] = [];
@@ -24,7 +25,7 @@ export async function sceneAnswer(
     messages,
     model: resolveModelId(),
     output: episodeSceneOutput(script),
-    system: episodeSystemPrompt(script, memories),
+    system,
   });
   const { parts } = await streamEpisodeScene(
     result,
@@ -44,9 +45,17 @@ export async function sceneAnswer(
     },
     script
   );
+  const step = await result.finalStep;
+  const cost = step.providerMetadata?.gateway?.cost;
   return {
     deltas,
     elapsedMs: Math.round(performance.now() - started),
+    gatewayCostUsd:
+      typeof cost === "string" || typeof cost === "number"
+        ? Number(cost)
+        : null,
+    model: step.response.modelId,
+    rawText: await result.text,
     scene: await result.output,
     text: parts
       .map((part) => {
@@ -59,5 +68,6 @@ export async function sceneAnswer(
         return "";
       })
       .join(""),
+    usage: await result.usage,
   };
 }
