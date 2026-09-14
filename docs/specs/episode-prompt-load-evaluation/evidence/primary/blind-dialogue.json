@@ -1,0 +1,1802 @@
+[
+  {
+    "reviewId": "R001",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R002",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R003",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am glad that worked."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R004",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Owen",
+        "text": "One more minute is fine, but please be quick."
+      },
+      {
+        "speaker": "Mia",
+        "text": "Open your phone wallet, choose your card, and hold it near the reader."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R005",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am sorry it did not work today. I hope to see you tomorrow."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thank you. I hope you have a better morning."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R006",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am sorry it did not work today. See you next time."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thank you. I hope your morning gets better. I need to go now."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R007",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great, your payment went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R008",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am sorry it did not work today. I hope you can come back tomorrow."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thanks. I will try to get to my meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R009",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone over the card reader. Please keep it there until it beeps."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. I hope it works this time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R010",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am glad we found a way."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you get to your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R011",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Owen",
+        "text": "Yes, I can wait one more minute. Please be quick."
+      },
+      {
+        "speaker": "Mia",
+        "text": "Open your phone wallet, choose a card, and hold your phone near the reader."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R012",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold your phone near the card reader, right here. Keep the screen open."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thanks. Please try it now."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R013",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You’re welcome. I’m glad we found a way."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You’re welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R014",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You’re welcome. I’m glad we found a way."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You’re welcome. I hope you get to your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R015",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "I’m sorry it did not work today. I hope your card works next time."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thanks. I hope you get home safely."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R016",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Owen",
+        "text": "Yes, I can wait one more minute. Please make it quick."
+      },
+      {
+        "speaker": "Mia",
+        "text": "Open your phone wallet and choose your card. Then hold your phone near the reader."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R017",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You’re welcome. I’m sorry it did not work today. See you next time."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thank you. I hope you have a good day. I will hurry."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R018",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am glad this works for you."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. I hope your meeting goes well."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R019",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "I am sorry it did not work. I hope you have a better morning."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thank you. I hope you get home safely."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R020",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great. Your payment went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I am glad it worked."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R021",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone near the card reader. You can tap it now."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Sure. I hope it works this time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R022",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great, your payment went through. Here is your iced Americano with a little ice. Have a good day."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you get to work on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R023",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Open your phone wallet. Choose your card, then hold your phone near the reader."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Yes, I can wait one more minute. Please try it now."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R024",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great, your payment went through. Here is your iced Americano with a little ice. Have a good day."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R025",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Open your payment app first. Then hold your phone near the reader."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Yes, I can wait one more minute. Please make it quick."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R026",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You’re welcome. I’m glad we found a way."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R027",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You’re welcome. I’m glad we found a way."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. I hope your morning gets easier."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R028",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone near the card reader. Please tap it there."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. I hope it works this time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R029",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Open your payment app, then hold your phone near the reader."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Okay, one more minute. Please make it quick."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R030",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Owen",
+        "text": "Yes, I can wait one more minute. Please be quick."
+      },
+      {
+        "speaker": "Mia",
+        "text": "Open your phone wallet. Choose your card, then tap your phone here."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R031",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am sorry you could not get your coffee."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thank you. I hope your next payment works."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R032",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great, it went through. Here is your iced Americano with a little ice. Have a good morning."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R033",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Owen",
+        "text": "Okay, one more minute. Please be quick."
+      },
+      {
+        "speaker": "Mia",
+        "text": "Open your payment app, choose your card, and tap your phone on the reader."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R034",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great, the payment went through. Here is your iced Americano with a little ice. Have a good day."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. Good luck with your day."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R035",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great. The payment went through. Here is your iced Americano with a little ice. Have a good morning."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I am glad it worked. Good luck today."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R036",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone near the reader. You can tap it when you are ready."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. I hope it works this time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R037",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great, the payment went through. Here is your iced Americano with a little ice. Have a good morning."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I am glad it worked. Good luck today."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R038",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Open your phone payment app first. Then hold your phone near the reader."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Okay, one more minute. Please make it quick."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R039",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Owen",
+        "text": "One more minute, please. I can wait, but I need to leave soon."
+      },
+      {
+        "speaker": "Mia",
+        "text": "Open your payment app first. Then hold your phone near the reader."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R040",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Your iced Americano has only a little ice. Here is your drink."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you get to work on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R041",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold your phone near the top of the card reader. Keep it there until it beeps."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Sure. Thank you for telling me."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R042",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone near the contactless sign on the card reader. Keep it there until it beeps."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. Please take your time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R043",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Open your payment app, then tap your phone on the reader."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Okay, one more minute. Please make it quick."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R044",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Open your payment app and hold your phone near the reader."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Okay, I can wait one more minute. Please be quick."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R045",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. Have a good morning."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R046",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone near the black reader. Please tap it when you are ready."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. I hope it works this time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R047",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great, the payment went through. Here is your iced Americano with a little ice. Have a good day."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you get to work on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R048",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You’re welcome. I’m glad we found a drink your cash could cover."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. I hope you make it on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R049",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I am glad it worked."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R050",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Here is your iced Americano with a little ice. Have a good day."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you are not late."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R051",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am sorry we could not make it work. I hope you can come back tomorrow."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thank you. I hope your payment works next time. I will try to make my meeting."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R052",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Owen",
+        "text": "Yes, I can wait one more minute. Please be quick."
+      },
+      {
+        "speaker": "Mia",
+        "text": "Open your payment app first. Then hold your phone near the reader."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R053",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am sorry it did not work today."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thanks. I hope your payment works next time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R054",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Your iced Americano has only a little ice. Here you go."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R055",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. Have a good day."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R056",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone near the reader. Please keep it there until you hear a beep."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. I hope it works this time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R057",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold your phone near the card reader. Look for the small contactless sign."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thanks. Please take your time, but I need to leave soon."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R058",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great, the payment went through. Here is your iced Americano with a little ice. Have a good morning."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R059",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Open your phone wallet, choose your card, and tap the top of your phone on the reader."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Okay, one more minute. Please make it quick."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R060",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone near the reader. Tap it when you are ready."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thanks. I hope it works this time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R061",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You’re welcome. I’m glad we found a way. Have a good morning."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You’re welcome. I hope you get to work on time. I need to go now."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R062",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. Have a good day."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R063",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R064",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make it on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R065",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great, it went through. Here is your iced Americano with a little ice. Have a good day."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I am glad it worked. Have a good day."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R066",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you get to work on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R067",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great, it went through. Here is your iced Americano with a little ice. Have a good morning."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R068",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R069",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone near the small card reader. Please tap it when you are ready."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thanks. I can wait a little longer."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R070",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am sorry it did not work today. I hope to see you again."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thank you. I hope your payment works next time. I need to go now."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R071",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone near the reader. You can tap it now."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thanks. I hope it works this time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R072",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am glad we found a way."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. I hope you get to work on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R073",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You’re welcome. I’m glad we found a way."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You’re welcome. I hope you get to work on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R074",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great, the payment went through. Here is your iced Americano with a little ice. Have a good day."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make it to your meeting."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R075",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You’re welcome. I’m glad we found a way."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You’re welcome. I hope your morning gets better."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R076",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am glad that worked."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. I hope you get to work on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R077",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am sorry we could not find a way today. I hope your payment works next time."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thanks. I hope you get home safely. Have a good day."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R078",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone near the card reader. Tap it when you are ready."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. I hope it works this time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R079",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Open your payment app, then hold your phone near the reader. It will show when it works."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Okay, one more minute. Please try it now."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R080",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am glad we found a way."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make it on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R081",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone near the reader. Please tap it there."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Sure. I will wait a little longer."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R082",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am glad we found a way."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope your morning goes well."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R083",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you get to work on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R084",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am sorry it did not work today. I hope you have a better morning."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thank you. I hope you get home safely."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R085",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am glad we found a way."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R086",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You’re welcome. I’m sorry we could not find a way to pay today. I hope you have a better morning."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thank you. I hope your morning gets better too. Take care."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R087",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am sorry we could not make it work today."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thank you. I hope your card works next time. I need to go now."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R088",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I am glad it worked."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R089",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great, the payment went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. Good luck with your day."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R090",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great, it went through. Here is your iced Americano with a little ice. Have a good day."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make it to your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R091",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone near the card reader. Please keep it there until it beeps."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope it works this time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R092",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You’re welcome. I’m glad we found a way."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. I hope you get to work on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R093",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am sorry we could not make it work. I hope to see you tomorrow."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thank you. I hope your next payment works."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R094",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Your iced Americano with a little ice is ready. Here you go."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R095",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, the payment went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R096",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am sorry it did not work today. I hope you can come back tomorrow."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thanks. I hope you get your coffee next time. I need to run."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R097",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great, your payment went through. Here is your iced Americano with a little ice. Have a good day."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R098",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone near the card reader. Then tap it once."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thanks. Please go ahead."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R099",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. Have a good morning."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R100",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Owen",
+        "text": "Yes, I can wait one more minute. Please make it quick."
+      },
+      {
+        "speaker": "Mia",
+        "text": "Open your phone payment app, choose your card, and hold your phone near the reader."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R101",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone over the reader. It is next to the screen."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. Please tap it now, if you can."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R102",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Open your wallet app, choose your card, and hold your phone near the reader."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Okay, one more minute. Please try it now."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R103",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great. Your payment went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R104",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You’re welcome. I’m glad we found a way."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. I hope your morning gets better."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R105",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone near the small reader. Keep it there until you hear a beep."
+      },
+      {
+        "speaker": "Owen",
+        "text": "No problem. I hope it works this time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R106",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great. Your payment went through. Here is your iced Americano with a little ice. Have a good day."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you get to work on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R107",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R108",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am sorry we could not find a way. I hope your payment works later."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thank you. I hope you have a better morning. I am going to my meeting now."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R109",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You’re welcome. I’m sorry we could not make it work."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thank you. I hope your day gets better."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R110",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Open your payment app, choose your card, and tap your phone on the reader."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Yes, I can wait one more minute. Please try it now."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R111",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Open your phone wallet and choose your card. Then hold your phone near the reader."
+      },
+      {
+        "speaker": "Owen",
+        "text": "I can wait one more minute. Please try it now."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R112",
+    "fixtureId": "s2-addressee",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Open your payment app and hold your phone near the reader. You may need to unlock it first."
+      },
+      {
+        "speaker": "Owen",
+        "text": "All right. I can wait one more minute, but please be quick."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R113",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am sorry it did not work today. See you next time."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thank you. I hope your payment works next time. I need to go now."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R114",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make it to work on time."
+      },
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. See you tomorrow, maybe with a working card."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R115",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great. Your payment went through. Here is your iced Americano with a little ice. Have a good day."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I am glad it worked. Have a good meeting."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R116",
+    "fixtureId": "s6-failure",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "I am sorry we could not make it work. I hope your card works later."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Thanks. I hope your payment works soon. Have a good day."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R117",
+    "fixtureId": "s3-not-done",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Hold the top of your phone near the card reader. You can tap it when you are ready."
+      },
+      {
+        "speaker": "Owen",
+        "text": "Sure. I hope it works this time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R118",
+    "fixtureId": "s5-compromise",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "You are welcome. I am glad we found a way."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope your meeting goes well."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R119",
+    "fixtureId": "s4-success",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Great, the payment went through. Here is your iced Americano with a little ice. Have a good morning."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  },
+  {
+    "reviewId": "R120",
+    "fixtureId": "s1-owner",
+    "dialogue": [
+      {
+        "speaker": "Mia",
+        "text": "Yes, it went through. Here is your iced Americano with a little ice."
+      },
+      {
+        "speaker": "Owen",
+        "text": "You are welcome. I hope you make your meeting on time."
+      }
+    ],
+    "error": null
+  }
+]
