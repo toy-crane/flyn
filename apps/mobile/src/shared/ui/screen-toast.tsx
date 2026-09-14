@@ -6,11 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  type LayoutChangeEvent,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { type LayoutChangeEvent, View } from "react-native";
 import Animated, {
   Easing,
   FadeIn,
@@ -45,8 +41,10 @@ const LAYER_TOP_GAP = 10;
 const LAYER_MIN_HEIGHT = 62;
 
 /**
- * 기본 글자 크기에서 문구 한 줄의 높이. 실제 줄높이는 여기에 배율을 곱한다.
- * 문구는 타이포그래피 대응표의 `body`이므로 그 행간 28이 기준이다.
+ * 기본 글자 크기에서 문구 한 줄의 높이. 문구는 타이포그래피 대응표의 `body`이므로
+ * 그 행간 28이 기준이다. React Native가 이 값에 확대 상한까지의 배율을 곱하므로
+ * 여기서 배율을 곱하지 않는다. 곱하면 최대 글자 크기에서 줄이 두 번 커져 글자가
+ * 알약 아래로 잘린다.
  */
 const LINE_HEIGHT = 28;
 
@@ -162,7 +160,6 @@ function ScreenToast({
   const measurePill = useCallback((event: LayoutChangeEvent) => {
     setPillHeight(event.nativeEvent.layout.height);
   }, []);
-  const { fontScale } = useWindowDimensions();
 
   return (
     /*
@@ -196,16 +193,9 @@ function ScreenToast({
         testID="screen-toast-pill"
       >
         {content.icon}
-        {/*
-          줄높이를 클래스에 못 박지 않고 배율을 곱한다. 클래스의 줄높이는
-          고정값이라 글자만 커지고 줄은 그대로여서 문구의 위아래가 잘린다.
-        */}
         <Typography.Paragraph
           maxFontSizeMultiplier={MAX_FONT_SCALE}
-          style={{
-            flexShrink: 1,
-            lineHeight: LINE_HEIGHT * Math.min(fontScale, MAX_FONT_SCALE),
-          }}
+          style={{ flexShrink: 1, lineHeight: LINE_HEIGHT }}
         >
           {content.text}
         </Typography.Paragraph>

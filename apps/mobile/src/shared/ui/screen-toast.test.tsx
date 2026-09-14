@@ -81,9 +81,11 @@ test("알린 문구가 위쪽 띠 아래 자리에 선다", async () => {
   ).toBeNull();
 });
 
-test("문구는 본문 역할이고 확대 상한 안의 줄 높이는 본문 행간 28을 기준으로 한다", async () => {
+test("문구는 본문 역할이고 줄 높이는 큰 글자에서도 본문 행간 28을 그대로 넘긴다", async () => {
+  // React Native가 줄 높이에 확대 상한까지의 배율을 직접 곱한다. 여기서 배율을
+  // 한 번 더 곱하면 최대 글자 크기에서 줄이 두 번 커져 알약 안의 글자가 잘린다.
   const window = Dimensions.get("window");
-  Dimensions.set({ window: { ...window, fontScale: 1 } });
+  Dimensions.set({ window: { ...window, fontScale: 3 } });
   await renderWithHeroUI(<ToastHarness />);
 
   await act(() => {
