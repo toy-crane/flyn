@@ -7,8 +7,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { resolve } from "node:path";
-import { episodeSystemPrompt } from "../src/features/episode/episode";
 import { resolveModelId } from "../src/shared/model-id";
+import { roleOwnershipCandidatePrompt } from "./role-ownership-candidate";
 import { fixedScenarios, type Scenario } from "./role-ownership-cases";
 import { roleOwnershipProblems } from "./role-ownership-checks";
 import { sceneAnswer } from "./scene-answer";
@@ -45,7 +45,7 @@ function prepare(directory: string) {
   }
   const scenarios = fixedScenarios().map((f) => ({
     ...f,
-    after: episodeSystemPrompt(f.script),
+    after: roleOwnershipCandidatePrompt(f.script),
   }));
   if (scenarios.some((f) => f.before === f.after)) {
     throw new Error("Before and after prompts are identical");
@@ -88,7 +88,7 @@ async function run(directory: string) {
     throw new Error("Model changed");
   }
   for (const f of manifest.scenarios) {
-    if (f.after !== episodeSystemPrompt(f.script)) {
+    if (f.after !== roleOwnershipCandidatePrompt(f.script)) {
       throw new Error(`Prompt changed after freeze: ${f.id}`);
     }
   }

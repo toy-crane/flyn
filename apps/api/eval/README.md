@@ -49,7 +49,9 @@ bun run --cwd apps/api eval:multi-cast
 
 ## 사람과 일정을 구분하는 평가
 
-`eval:role-ownership`은 카페의 13개 고정 장면을 변경 전후 다섯 번씩 비교한다.
+`eval:role-ownership`은 카페의 13개 고정 장면에서 이전 프롬프트와 후보를 다섯 번씩 비교한다.
+후보는 [role-ownership-candidate.ts](role-ownership-candidate.ts)에 둔다.
+아직 품질 관문을 통과하지 못해 운영 프롬프트에는 적용하지 않는다.
 처음에는 `prepare`로 입력과 프롬프트를 저장하고, `run`에서 실제 Luna를 호출한다.
 서버 모델 설정이 Luna가 아니면 중단한다.
 
