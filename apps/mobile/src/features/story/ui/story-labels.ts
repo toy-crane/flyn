@@ -57,8 +57,8 @@ export const storyLabels = {
   /** Not shown: 회차 카드에서 이 회차를 이어가는 버튼. */
   resumeRun: (startedAt: string) => `${startedAt} 대화, 이어서 하기`,
   /** Not shown: 회차 카드에서 끝낸 화의 대화를 여는 행. */
-  reviewEpisode: (episode: number, title: string) =>
-    `${episode}화 ${title}, 대화 보기`,
+  reviewEpisode: (episode: number, title: string, outcome: string) =>
+    `${episode}화 ${title}, ${outcome}, 대화 보기`,
   /** Not shown: 회차 카드를 펼치고 접는 자리. */
   runCard: (startedAt: string, progress: string, isOpen: boolean) =>
     `${startedAt}, ${progress}, 대화 기록 ${isOpen ? "접기" : "펼치기"}`,

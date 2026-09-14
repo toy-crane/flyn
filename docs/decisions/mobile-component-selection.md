@@ -12,6 +12,7 @@
 - 크기, 둥글기, 여백, 비활성 투명도는 HeroUI 기본값을 그대로 쓴다. 인증 코드 칸도 HeroUI 기본 칸 크기와 왼쪽 정렬을 쓰고 화면 폭을 채우지 않는다.
 - `apps/mobile/global.css`의 HeroUI 재정의는 다음 둘뿐이다. 버튼의 고정 높이를 최소 높이로 바꿔 큰 시스템 글자 크기에서 라벨이 자라게 하는 것과, 펼침 카드 트리거의 세로 정렬을 첫 줄 맞춤으로 바꿔 큰 글자에서 쉐브론이 첫 줄에 붙게 하는 것이다. 둘 다 [모바일 타이포그래피](mobile-typography.md)의 확대 규칙과 [표현 노트](expression-note.md)의 첫 줄 맞춤 규칙을 지키기 위한 것이다. 화면 코드에서 `!important`로 HeroUI 클래스를 덮지 않는다.
 - 공용 `Button`의 선행 슬롯(진행 표시, 앞 아이콘)은 HeroUI가 주는 줄 안 슬롯을 쓴다. 절대 위치로 라벨 밖에 두지 않는다.
+- HeroUI Native는 1.0.9 이상을 쓴다. 1.0.8은 굵기를 `--font-*` 글꼴 변수로만 주어, 커스텀 폰트가 없는 이 앱에서 `Typography`의 제목·`weight`와 컴포넌트 라벨의 굵기가 빠진다. 굵기를 되살리려고 global.css에 재정의를 더하거나 `--font-*` 변수를 시스템 글꼴 이름으로 채우지 않는다. 2026-09-14 사용자가 정했다.
 
 ## 예외 목록
 
@@ -35,7 +36,7 @@
 - Settings와 시스템 폼은 `@expo/ui`가 소유하므로 이 계약의 대상이 아니다. [모바일 UI 렌더러 경계](mobile-ui-renderer-boundaries.md)를 따른다.
 - 진행 표시, 토스트, 아이콘은 각각의 계약이 HeroUI 대신 다른 수단을 정했다. 그 계약이 우선한다.
 - 텍스트 역할은 [모바일 타이포그래피](mobile-typography.md)가 정한다.
-- 기억해 둘 표현과 표현 노트의 카드, 회차 카드와 스토리 행, 화 행, 추천 아이디 행은 이 계약을 쓰기 전에 만들어졌고 아직 원시 `Pressable`이다. 예외가 아니라 되돌릴 대상이다. 펼침 카드는 HeroUI `Accordion` 표면 변형, 목록 행은 `ListGroup`으로 옮긴다. 옮기는 중에 HeroUI가 줄 수 없는 동작이 확인되면 그때 예외 목록에 이유와 함께 넣는다.
+- 기억해 둘 표현과 표현 노트의 펼침 카드는 `Accordion` 표면 변형이고, 스토리 행, 화 행, 추천 아이디 행은 `ListGroup`이다. 2026-09-13 시안에서 사용자가 HeroUI 기본 모양으로 가기로 정했다. 펼치지 않는 카드(인물 대사 카드)는 `Card`다.
 - 회차 카드는 2026-09-14 승인한 [모바일 스토리 탐색](mobile-story-browsing.md)의 Sheet 진입점이다. 펼치지 않는 HeroUI `Card`를 쓰고 본문의 누름은 `PressableFeedback`, 오른쪽 `···`는 별도 컨트롤로 처리한다. `Accordion`이나 카드 아래 이어서 하기 버튼으로 옮기지 않는다. Sheet 표시는 [모바일 UI 렌더러 경계](mobile-ui-renderer-boundaries.md), 그 안의 화 행은 이 계약의 목록 규칙을 따른다.
 - 펼침 카드에서 HeroUI `Accordion`이 주지 않는 것은 그 카드의 계약이 소유한 채로 남는다. 카드 밖 아래의 아이콘 줄, 손으로 조립하는 접근성 이름, 옆으로 민 뒤 뗀 것을 누름으로 치지 않는 판정이 그것이다. [표현 노트](expression-note.md).
 
@@ -61,3 +62,4 @@
 
 - 2026-09-13 감사 기준 HeroUI Native 1.0.8 컴포넌트 44종 중 11종을 쓰고 있었다. 근거 없는 우회는 12곳이었다. 다크 모드에서 앱이 `--surface`만 바꾸고 HeroUI가 리터럴로 둔 `--overlay`와 `--field-background`는 두어 카드와 메뉴·입력 필드의 표면 색이 갈렸다.
 - HeroUI `Button`의 크기별 높이는 sm 40pt, md 48pt, lg 56pt로 고정이다(`styles/components/button.css`). 아이콘 전용 28pt와 44pt는 만들 수 없다.
+- 2026-09-14 Metro가 컴파일한 global.css에서 1.0.8의 `text__root--type-h6`, `text__root--weight-semibold`, `button__label`은 `fontFamily`로 `--font-semibold`나 `--font-medium`을 읽고, 두 변수의 정의는 0건이었다. iOS 표현 돌아보기에서 `기억해 둘 표현`(h6)과 회차 줄(`weight="semibold"`)이 보통 굵기였고, `font-semibold` 클래스를 쓰던 카드 문장만 굵었다. 1.0.9(2026-08-31)는 이 자리들을 `@apply font-semibold`처럼 Tailwind 굵기 유틸리티로 바꿨고, HeroUI 문서는 커스텀 폰트 변수가 없으면 시스템 폰트에 숫자 굵기를 준다고 적는다. global.css 재정의(스펙의 재정의 둘 기준을 깸)와 보통 굵기 수용(대응표의 굵기 위계를 깸)을 함께 비교했다.

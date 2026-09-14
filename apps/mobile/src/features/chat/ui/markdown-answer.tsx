@@ -18,9 +18,13 @@ const CODE_FONT_FAMILY = Platform.select({
   default: "monospace",
   ios: "Menlo",
 });
-/** The body size and leading every message uses, as numbers the renderer takes. */
+/**
+ * The body size and leading every message uses, as numbers the renderer takes.
+ * They are the typography table's `body` role: HeroUI `Typography` 16 with a
+ * 28 line.
+ */
 const BODY_FONT_SIZE = 16;
-const BODY_LINE_HEIGHT = 24;
+const BODY_LINE_HEIGHT = 28;
 const CODE_PADDING = 12;
 const CODE_RADIUS = 12;
 const QUOTE_BORDER_WIDTH = 3;

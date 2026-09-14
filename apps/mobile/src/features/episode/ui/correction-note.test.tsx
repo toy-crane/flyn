@@ -11,7 +11,11 @@ import {
 import { SavedExpressionsProvider } from "@/features/episode/state/saved-expressions";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { CorrectionNote, EpisodeCorrectionNote } from "./correction-note";
-import { episodeLabels, savedExpressionLabels } from "./episode-labels";
+import {
+  correctionLabels,
+  episodeLabels,
+  savedExpressionLabels,
+} from "./episode-labels";
 
 jest.mock("expo-clipboard", () => ({
   setStringAsync: jest.fn(() => Promise.resolve(true)),
@@ -86,8 +90,12 @@ test("탭하기 전에는 고친 문장 한 줄만 보인다", async () => {
   const { rendered } = renderNote(ONE_EXPRESSION);
   await rendered;
 
-  expect(screen.getByTestId("correction-line-fixed")).toHaveTextContent(
-    "I think you gave me the wrong coffee."
+  const line = screen.getByTestId("correction-line-fixed");
+  expect(line).toHaveTextContent("I think you gave me the wrong coffee.");
+  expect(line.props.className).toContain("text__root--type-body-sm");
+  // 바뀐 부분은 색으로만 짚는다. 중첩된 조각에는 크기와 굵기 클래스가 없다.
+  expect(screen.getByText("the wrong coffee").props.className).toBe(
+    "text-learn"
   );
   expect(screen.queryByTestId("correction-card")).toBeNull();
   expect(screen.queryByText(ONE_EXPRESSION.entries[0].why)).toBeNull();
@@ -192,11 +200,12 @@ test("한국어 안내도 같은 카드로 열리고 상황에 맞는 제목과 
 });
 
 test.each([
-  { fontScale: 1, marginLeft: -9 },
-  { fontScale: 2, marginLeft: -2 },
+  // 문구는 대응표 `body-xs`의 20 줄 높이이고, 44px 줄 안에서 세로 가운데에 선다.
+  { fontScale: 1, labelPaddingTop: 12, marginLeft: -9 },
+  { fontScale: 2, labelPaddingTop: 2, marginLeft: -2 },
 ])(
   "글자 배율 $fontScale에서 재시도는 표시 간격과 44px 터치 영역을 유지한다",
-  async ({ fontScale, marginLeft }) => {
+  async ({ fontScale, labelPaddingTop, marginLeft }) => {
     Dimensions.set({ window: { ...originalWindow, fontScale } });
     const retry = jest.fn();
     const renderStatus = (state: ExpressionState) => (
@@ -218,6 +227,9 @@ test.each([
       </EpisodeCorrectionsProvider>
     );
     const rendered = await renderWithHeroUI(renderStatus({ status: "error" }));
+    const label = screen.getByText(correctionLabels.failed);
+    expect(label.props.className).toContain("text__root--type-body-xs");
+    expect(label.props.style).toMatchObject({ paddingTop: labelPaddingTop });
     const button = screen.getByTestId("expression-retry");
     expect(button.props.style).toMatchObject({
       height: 44,

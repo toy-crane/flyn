@@ -1,7 +1,8 @@
 import type { MenuTriggerRef } from "heroui-native/menu";
 import { Menu } from "heroui-native/menu";
+import { Typography } from "heroui-native/text";
 import { memo, useCallback, useRef } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { Icon } from "@/shared/ui/icon";
 import { chatLabels } from "./chat-labels";
@@ -21,13 +22,13 @@ const UserMessageBody = memo(function UserMessageBodyContent({
   text: string;
 }) {
   return (
-    <Text
-      className="text-accent-foreground text-base leading-6"
+    <Typography.Paragraph
+      className="text-accent-foreground"
       selectable={false}
       testID="chat-message-user"
     >
       {text}
-    </Text>
+    </Typography.Paragraph>
   );
 });
 

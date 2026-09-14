@@ -1,15 +1,18 @@
+import { Typography } from "heroui-native/text";
 import type { ReactNode } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Icon, type IconName, type IconTone } from "./icon";
 import { LoadingSpinner } from "./loading-spinner";
 import { type ProgressRole, useProgressMetrics } from "./progress-metrics";
 
 /** 이 줄이 그리는 역할만 담는다. 문구 없이 홀로 서는 역할은 여기 오지 않는다. */
-const TEXT_STYLE = {
-  control: "text-base leading-6",
-  screen: "text-sm leading-5",
-  supporting: "text-xs leading-4",
-} satisfies Partial<Record<ProgressRole, string>>;
+const TEXT_TYPE = {
+  control: "body",
+  screen: "body-sm",
+  supporting: "body-xs",
+} as const satisfies Partial<
+  Record<ProgressRole, "body" | "body-sm" | "body-xs">
+>;
 const TEXT_TONE = {
   danger: "text-danger-soft-foreground",
   muted: "text-muted",
@@ -29,7 +32,7 @@ export function StatusLine({
   label: string;
   loading?: boolean;
   icon?: IconName;
-  sizeRole?: keyof typeof TEXT_STYLE;
+  sizeRole?: keyof typeof TEXT_TYPE;
   tone?: keyof typeof TEXT_TONE;
   retry?: { label: string; onPress: () => void; testID?: string };
   testID?: string;
@@ -85,12 +88,13 @@ export function StatusLine({
           {mark}
         </View>
       ) : null}
-      <Text
-        className={`shrink ${TEXT_STYLE[sizeRole]} ${TEXT_TONE[tone]}`}
+      <Typography.Paragraph
+        className={`shrink ${TEXT_TONE[tone]}`}
         style={{ paddingTop: (rowHeight - lineHeight) / 2 }}
+        type={TEXT_TYPE[sizeRole]}
       >
         {label}
-      </Text>
+      </Typography.Paragraph>
       {retry ? (
         <Pressable
           accessibilityLabel={retry.label}

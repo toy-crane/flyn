@@ -11,6 +11,8 @@ export const onboardingLabels = {
   checking: "아이디 확인 중",
   next: "다음",
   nickname: "닉네임",
+  /** The visible text of the small button beside a failed check's message. */
+  retry: "다시 시도",
   retryCheck: "아이디 다시 확인하기",
   start: "시작하기",
   suggestions: "사용 가능한 아이디",

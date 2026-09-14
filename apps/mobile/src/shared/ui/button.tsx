@@ -1,6 +1,5 @@
 import {
   type ButtonRootProps,
-  type ButtonSize,
   type ButtonVariant,
   Button as HeroButton,
 } from "heroui-native/button";
@@ -38,42 +37,16 @@ const SPINNER_COLOR: Record<ButtonVariant, ThemeColor> = {
   tertiary: "default-foreground",
 };
 
-const DYNAMIC_TYPE_CLASS_NAME: Record<
-  ButtonSize,
-  { idle: string; pending: string }
-> = {
-  lg: {
-    idle: "relative h-auto! min-h-14 px-9! py-3.5",
-    pending: "relative min-h-14 px-9! py-3.5",
-  },
-  md: {
-    idle: "relative h-auto! min-h-12 px-8! py-3",
-    pending: "relative min-h-12 px-8! py-3",
-  },
-  sm: {
-    idle: "relative h-auto! min-h-10 px-[30px]! py-2.5",
-    pending: "relative min-h-10 px-[30px]! py-2.5",
-  },
-};
-
-const LEADING_SLOT_CLASS_NAME =
-  "absolute right-full top-1/2 size-5 -translate-x-2 -translate-y-2.5 items-center justify-center";
-
-function getDynamicTypeClassName(
-  size: ButtonSize,
-  pendingSize: { height: number; width: number } | undefined
-) {
-  return pendingSize
-    ? DYNAMIC_TYPE_CLASS_NAME[size].pending
-    : DYNAMIC_TYPE_CLASS_NAME[size].idle;
-}
-
 /**
  * The app's general React Native button.
  *
  * Pending is a state of the same action: the label and box stay in place while
  * the leading content becomes a spinner. Width remains a layout decision for
  * the parent or call site.
+ *
+ * Size, padding and the gap between the leading content and the label are
+ * HeroUI's. The one change to them, a minimum height instead of a fixed one so
+ * the label can grow with the system text size, lives once in `global.css`.
  */
 export function Button({
   accessibilityState,
@@ -93,6 +66,9 @@ export function Button({
   const idleSize = useRef<
     { height: number; width: number; label: ReactNode } | undefined
   >(undefined);
+  const idleLabelWidth = useRef<
+    { label: ReactNode; width: number } | undefined
+  >(undefined);
   const handleLayout = useCallback(
     (event: LayoutChangeEvent) => {
       if (!isPending) {
@@ -104,17 +80,45 @@ export function Button({
     },
     [children, isPending, onLayout]
   );
+  const handleLabelLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      if (!isPending) {
+        idleLabelWidth.current = {
+          label: children,
+          width: event.nativeEvent.layout.width,
+        };
+      }
+    },
+    [children, isPending]
+  );
   // 단계별 문구가 바뀌는 스토리 만들기는 새 문구에 맞춰 높이를 다시 잰다.
   const measured = idleSize.current;
   const pendingSize =
     isPending && measured && measured.label === children
       ? { height: measured.height, width: measured.width }
       : undefined;
-  const dynamicTypeClassName = getDynamicTypeClassName(size, pendingSize);
+  /*
+    진행 표시가 줄에 들어오면 같은 폭 안에서 문구가 그만큼 좁아진다. 내용 너비
+    버튼(화면 상태의 다시 시도하기)은 그대로 두면 문구가 두 줄로 꺾이고 고정한
+    높이에 잘린다. 문구를 원래 폭에 두면 줄이 버튼의 좌우 여백 쪽으로 고르게
+    넘치므로 버튼 크기와 문구가 함께 유지된다.
+  */
+  const measuredLabel = idleLabelWidth.current;
+  const pendingLabelStyle =
+    pendingSize !== undefined &&
+    measuredLabel !== undefined &&
+    measuredLabel.label === children
+      ? { flexShrink: 0, width: measuredLabel.width }
+      : undefined;
   const resolvedStyle =
     typeof style === "function"
       ? (state: PressableStateCallbackType) => [style(state), pendingSize]
       : [style, pendingSize];
+  const leadingContent = isPending ? (
+    <LoadingSpinner color={SPINNER_COLOR[variant]} />
+  ) : (
+    startContent
+  );
 
   return (
     <HeroButton
@@ -124,31 +128,37 @@ export function Button({
         busy: isPending,
         disabled: effectiveDisabled,
       }}
-      className={cn(dynamicTypeClassName, className)}
+      className={className}
       isDisabled={effectiveDisabled}
       onLayout={handleLayout}
       size={size}
       style={resolvedStyle}
       variant={variant}
     >
-      <View className="relative shrink items-center justify-center">
+      {/*
+        The root is already a centred row with a size-specific gap, so the
+        leading content is simply the item before the label. It is left out
+        entirely when there is nothing to show: an empty item still takes the
+        gap and pushes the label off centre.
+      */}
+      {leadingContent ? (
         <View
           accessibilityElementsHidden
-          className={LEADING_SLOT_CLASS_NAME}
+          className="items-center justify-center"
           importantForAccessibility="no-hide-descendants"
           pointerEvents="none"
           testID="button-leading-content"
         >
-          {isPending ? (
-            <LoadingSpinner color={SPINNER_COLOR[variant]} />
-          ) : (
-            startContent
-          )}
+          {leadingContent}
         </View>
-        <HeroButton.Label className={cn("shrink text-center", labelClassName)}>
-          {children}
-        </HeroButton.Label>
-      </View>
+      ) : null}
+      <HeroButton.Label
+        className={cn("shrink text-center", labelClassName)}
+        onLayout={handleLabelLayout}
+        style={pendingLabelStyle}
+      >
+        {children}
+      </HeroButton.Label>
     </HeroButton>
   );
 }

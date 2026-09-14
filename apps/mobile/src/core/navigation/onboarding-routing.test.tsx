@@ -45,6 +45,14 @@ jest.mock("@/screens/home/home-screen", () => {
   };
 });
 
+/**
+ * The first test in this file loads and renders the whole app router. With an
+ * empty transform cache, as on CI, that alone took just over Jest's default
+ * five seconds, and the timed-out render then overlapped every later test's act
+ * scope. The later tests reuse the loaded modules and finish in milliseconds.
+ */
+jest.setTimeout(15_000);
+
 /** Longer than the availability debounce, so a settled value gets its answer. */
 const SETTLE_TIMEOUT = 2000;
 /** Long enough for the profile read to retry once and then give up. */
@@ -251,6 +259,9 @@ test("닉네임이 비었거나 30자를 넘으면 다음으로 갈 수 없다",
   expect(screen.getByTestId("onboarding-error-nickname")).toHaveTextContent(
     "30자 이하로 입력해 주세요"
   );
+  expect(screen.getByRole("alert")).toBe(
+    screen.getByTestId("onboarding-error-nickname")
+  );
 
   await type("onboarding-nickname", "김민서");
 
@@ -385,6 +396,30 @@ test("이미 쓰는 아이디면 후보 세 개를 보여주고 고르면 다시
     { timeout: SETTLE_TIMEOUT }
   );
 
+  // 목록 위 작은 소제목은 보조색·중간 굵기·작은 글자이고 헤더로 읽힌다.
+  const suggestionsTitle = screen.getByRole("header", {
+    name: "사용 가능한 아이디",
+  });
+  expect(suggestionsTitle.props.className).toContain(
+    "text__root--type-body-sm"
+  );
+  expect(suggestionsTitle.props.className).toContain(
+    "text__root--weight-medium"
+  );
+  expect(suggestionsTitle.props.className).toContain("text__root--color-muted");
+
+  // 추천 아이디는 HeroUI ListGroup의 누르는 행이고, 아이디를 이름으로 한 버튼 하나다.
+  expect(
+    screen.getByTestId("onboarding-username-suggestions").props.className
+  ).toContain("list-group__root");
+  const [first] = suggestions;
+  expect(
+    screen.getByRole("button", { name: first?.props.accessibilityLabel })
+  ).toBe(first);
+  expect(
+    screen.getByText(first?.props.accessibilityLabel).props.className
+  ).toContain("list-group__item-title");
+
   await act(() => {
     fireEvent.press(suggestions[0]);
   });
@@ -438,7 +473,17 @@ test("확인 요청이 실패하면 입력값을 지우지 않고 다시 확인�
   expect(screen.getByTestId("onboarding-username")).toHaveDisplayValue(
     "toycrane"
   );
-  expect(screen.getByLabelText("아이디 다시 확인하기")).toBeOnTheScreen();
+  expect(screen.getByRole("alert")).toBe(
+    screen.getByTestId("onboarding-error-username")
+  );
+  // 오류 문구 전체가 아니라 옆의 작은 버튼이 다시 확인한다. 이름은 전과 같다.
+  const retry = screen.getByRole("button", { name: "아이디 다시 확인하기" });
+  expect(retry).toHaveTextContent("다시 시도");
+  expect(retry.props.className).toContain("button__root--size-sm");
+  expect(retry.props.className).toContain("button__root--variant-tertiary");
+  expect(retry).not.toContainElement(
+    screen.getByTestId("onboarding-error-username")
+  );
   expect(screen.getByLabelText("시작하기")).toBeDisabled();
 });
 

@@ -1,11 +1,15 @@
-import { useCallback, useState } from "react";
-import { type LayoutChangeEvent, ScrollView, Text, View } from "react-native";
+import { ListGroup } from "heroui-native/list-group";
+import { Separator } from "heroui-native/separator";
+import { Typography } from "heroui-native/text";
+import { Fragment, useCallback, useState } from "react";
+import { type LayoutChangeEvent, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { StoryDetail, StoryEpisode } from "@/features/story/api/story";
 import { StoryCover } from "@/features/story/ui/story-cover";
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { Button } from "@/shared/ui/button";
+import { StaticListRow } from "@/shared/ui/list-row";
 import { ScreenUnavailable } from "@/shared/ui/screen-status";
 
 /** [모바일 하단 CTA](docs/decisions/mobile-bottom-cta.md)가 정한 여백. */
@@ -17,32 +21,27 @@ const BOTTOM_PADDING = 12;
  * 모든 화가 같은 모양이다. 진행 상태, 잠금 표시와 결과 문구는 여기 없고 누를 수도
  * 없다. 상세는 콘텐츠 소개이므로 어느 회차로 보든 같은 목록이어야 한다.
  */
-function EpisodeRow({
-  episode,
-  hasBorder,
-}: {
-  episode: StoryEpisode;
-  hasBorder: boolean;
-}) {
+function EpisodeRow({ episode }: { episode: StoryEpisode }) {
   return (
-    <View
-      className={`flex-row gap-3 py-3.5 ${
-        hasBorder ? "border-border border-b" : ""
-      }`.trim()}
-      testID={`story-episode-${episode.number}`}
-    >
-      <Text className="w-9 font-bold text-muted text-sm leading-6">
-        {storyLabels.episodeNumber(episode.number)}
-      </Text>
-      <View className="flex-1 gap-0.5">
-        <Text className="text-base text-foreground leading-6">
-          {episode.title}
-        </Text>
-        <Text className="text-muted text-sm leading-5">
+    <StaticListRow testID={`story-episode-${episode.number}`}>
+      {/* 최소 폭만 둔다. 고정 폭이면 큰 글자에서 `5화`가 두 줄로 갈라진다. */}
+      <ListGroup.ItemPrefix>
+        <Typography.Paragraph
+          className="min-w-9"
+          color="muted"
+          type="body-sm"
+          weight="semibold"
+        >
+          {storyLabels.episodeNumber(episode.number)}
+        </Typography.Paragraph>
+      </ListGroup.ItemPrefix>
+      <ListGroup.ItemContent>
+        <ListGroup.ItemTitle>{episode.title}</ListGroup.ItemTitle>
+        <ListGroup.ItemDescription>
           {episode.situation}
-        </Text>
-      </View>
-    </View>
+        </ListGroup.ItemDescription>
+      </ListGroup.ItemContent>
+    </StaticListRow>
   );
 }
 
@@ -55,32 +54,31 @@ function StoryDetailBody({ story }: { story: StoryDetail }) {
           imagePath={story.coverImagePath}
         />
         <View className="flex-1 gap-1">
-          <Text
-            accessibilityRole="header"
-            className="font-extrabold text-foreground text-xl leading-7"
-          >
-            {story.title}
-          </Text>
-          <Text className="text-muted text-sm leading-5">{story.intro}</Text>
+          <Typography.Heading type="h3">{story.title}</Typography.Heading>
+          <Typography.Paragraph color="muted" type="body-sm">
+            {story.intro}
+          </Typography.Paragraph>
         </View>
       </View>
 
       <View className="gap-3">
-        <Text
+        <Typography.Paragraph
           accessibilityRole="header"
-          className="px-1 font-bold text-foreground text-sm"
+          className="px-1"
+          color="muted"
+          type="body-sm"
+          weight="medium"
         >
           {storyLabels.episodeList}
-        </Text>
-        <View className="rounded-2xl bg-surface px-5">
+        </Typography.Paragraph>
+        <ListGroup testID="story-episodes">
           {story.episodes.map((episode, index) => (
-            <EpisodeRow
-              episode={episode}
-              hasBorder={index !== story.episodes.length - 1}
-              key={episode.episodeId}
-            />
+            <Fragment key={episode.episodeId}>
+              {index === 0 ? null : <Separator className="mx-4" />}
+              <EpisodeRow episode={episode} />
+            </Fragment>
           ))}
-        </View>
+        </ListGroup>
       </View>
     </>
   );

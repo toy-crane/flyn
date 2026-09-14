@@ -8,20 +8,23 @@
 - React Native UI는 공통 역할을 크기, 행간, 굵기와 `dynamicTypeRamp`에 매핑하되 `fontFamily`를 지정하지 않고 시스템 글자 크기 확대를 유지한다.
 - React Native UI의 텍스트 역할 층은 HeroUI Native의 `Typography`다. 앱은 별도 텍스트 래퍼나 역할 상수를 만들지 않고 `type`으로 역할을 고른다. `Typography`는 type마다 크기, 행간, 굵기와 `dynamicTypeRamp`를 함께 정하고, `Heading`은 접근성 헤더 역할을 붙인다.
 - 화면 코드는 `Text`나 `Typography`에 `text-*`, `leading-*`, `font-*` 클래스와 인라인 크기를 직접 쓰지 않는다. 색은 className으로 지정할 수 있다. 역할의 값을 바꿔야 하면 `apps/mobile/global.css`에서 해당 `Typography` 클래스를 한 번 재정의한다.
-- `Typography`의 크기, 행간, 굵기, 자간은 HeroUI 기본값을 그대로 쓴다. `Typography` 클래스는 본문 행간 28을 포함해 지금 아무것도 재정의하지 않는다. 버튼과 펼침 카드 트리거의 global.css 재정의 두 개는 [모바일 컴포넌트 선택](mobile-component-selection.md)이 정하며 글자 값이 아니다. 앱 역할과 type의 대응은 다음과 같다.
+- `Typography`의 크기, 행간, 굵기, 자간은 HeroUI 기본값을 그대로 쓴다. 시스템 폰트에서 굵기가 그려지려면 HeroUI Native 1.0.9 이상이 필요하다. 근거는 [모바일 컴포넌트 선택](mobile-component-selection.md)에 있다. `Typography` 클래스는 본문 행간 28을 포함해 지금 아무것도 재정의하지 않는다. 버튼과 펼침 카드 트리거의 global.css 재정의 두 개는 [모바일 컴포넌트 선택](mobile-component-selection.md)이 정하며 글자 값이 아니다. 앱 역할과 type의 대응은 다음과 같다.
 
 | 앱 역할 | `Typography` type | 비고 |
 | --- | --- | --- |
-| 화면 안 제목(네이티브 헤더 대신 화면이 쓰는 큰 제목) | `Heading` `h3` | 인증 화면, 스토리 상세 |
+| 화면 안 제목(화면이 직접 그리는 큰 제목) | `Heading` `h3` | 인증 화면, 스토리 상세, 세션 오류 화면, 설정 위 프로필 이름 |
+| 결말 카드의 결과 문장 | `Heading` `h3` | 대화 끝에 가운데 서는 큰 문장. 화면 안 제목과 같은 크기다 |
 | 스토리 제목(표지 옆) | `Heading` `h5` | 대화 기록 헤더 |
-| 카드 제목, 영어 문장, 회차 날짜 | `Heading` `h6` | 펼침 카드의 제목은 트리거 안에 있어 헤더로 따로 읽히지 않을 수 있다. 펼침 카드는 펼침 상태를 가진 버튼으로, 회차 카드 본문은 Sheet를 여는 버튼으로 읽힌다 |
+| 본문 자리의 상태 안내 제목(불러오지 못한 목록이나 카드) | `Heading` `h5` | 아이콘 아래 가운데에 서고 다시 시도 버튼이 붙는다. 비었을 때의 안내는 굵은 제목 없이 `Paragraph` `body` 보조색이다 |
+| 카드 제목, 영어 문장, 회차 날짜 | `Heading` `h6` | 펼침 카드의 제목은 트리거 안에 있어 헤더로 따로 읽히지 않을 수 있다. 펼침 카드는 펼침 상태를 가진 버튼으로, 회차 카드 본문은 Sheet를 여는 버튼으로 읽힌다. 배울 표현의 고친 문장도 영어 문장이라 헤더로 읽힌다 |
+| 본문색 목록 제목(`기억해 둘 표현`, 표현 돌아보기의 다음 화 제목) | `Heading` `h6` | 보조색 작은 소제목이 아니라 본문색으로 목록이나 다음 행동 위에 서는 제목이다 |
 | 섹션 소제목(`최근 대화`, `추천 아이디` 같은 목록 위 작은 제목) | `Paragraph` `body-sm` + `weight="medium"` + `color="muted"` | [모바일 스토리 탐색](mobile-story-browsing.md)이 정한 보조색·중간 굵기·작은 소제목. 헤더 역할은 `accessibilityRole`로 넘긴다 |
 | 본문, 말풍선, 대사 뜻, 장면 서술, 안내 문단 | `Paragraph` `body` | |
 | 작은 본문, 표현 노트와 표현 돌아보기의 뜻, 화 결과, 상황 줄, 오류 문구 | `Paragraph` `body-sm` | 오류는 색만 `text-danger`. 입력에 붙는 오류는 `FieldError`가 그린다 |
 | 캡션, 메타, 출처, 채널 라벨, 인물 이름표 | `Paragraph` `body-xs` | 강조는 `weight`, 색은 className |
 | 버튼, 칩, 목록 행의 제목과 설명, 입력 오류(`FieldError`) | HeroUI 컴포넌트가 소유 | 앱이 지정하지 않는다 |
 
-- 본문 계열은 `Typography.Paragraph`, 제목 계열은 `Typography.Heading`으로 쓴다. 루트 `Typography`는 `dynamicTypeRamp`를 붙이지 않으므로 직접 쓰지 않는다.
+- 본문 계열은 `Typography.Paragraph`, 제목 계열은 `Typography.Heading`으로 쓴다. 루트 `Typography`는 `dynamicTypeRamp`를 붙이지 않으므로 직접 쓰지 않는다. 헤더가 아닌 줄의 강조(장면 서술의 첫 줄, 대사 뜻 카드의 뜻, 결말 카드의 작은 머리말, 표현 돌아보기의 회차 줄과 마지막 화 인사, 화 목록의 화 번호, 스토리 카드의 화 번호와 화 제목)는 본문 계열 type에 `weight`를 더해 그린다.
 - 부분 강조가 필요한 문장은 `Paragraph`나 `Heading` 안에 RN `Text`를 중첩한다. 중첩 `Text`에는 색과 배경 클래스만 두고 크기와 굵기 클래스를 두지 않는다. 강조 굵기는 바깥 `weight`가 정한다.
 - 글자를 className으로 받지 못하고 숫자만 받는 네이티브 렌더러(AI 답변 Markdown)에는 대응표 type의 크기와 행간을 숫자로 넘긴다. 이 자리만 인라인 숫자의 예외다.
 - 확대 상한을 둔 크롬(토스트, 제공자 로그인 버튼)은 상한 계산 때문에 인라인 줄 높이나 크기를 가질 수 있다. 그 자리는 대응표의 값을 숫자의 기준으로 쓴다.
@@ -68,4 +71,4 @@ HeroUI `Typography`를 역할 층으로 쓰는 이유는 이 계약이 요구한
 
 - 2026-09-11 iOS 시뮬레이터에서 확인했다. `accessibility-extra-extra-extra-large`로 설정하고 앱을 완전히 닫고 다시 시작하면 HeroUI `TagGroup` 칩과 스토리 행이 손질 없이 온전히 그려진다. 같은 화면에서 앱을 연 채 `large`로 내리거나 다시 올리면 글자만 바뀌고 상자는 이전 크기에 남는다. 이전에 "고정 줄 높이 때문"으로 적었던 잘림은 이 경우였다.
 - React Native 0.86의 iOS `RCTAttributedTextUtils.mm`와 Android `TextAttributes.kt`는 `lineHeight`에 글자 배율을 곱한다. 고정 px 줄 높이는 잘림의 원인이 아니다.
-- HeroUI Native 1.0.8은 글자 확대 상한을 두지 않는다. Provider의 `config.textProps.maxFontSizeMultiplier`로 HeroUI 컴포넌트 전체에 상한을 걸 수 있고 문서 예시는 1.5다. 자체 상한은 Avatar 안의 글자(1.4)와 InputOTP(1.6)뿐이다. 이 설정은 저장소가 직접 쓰는 RN `Text`에는 미치지 않는다.
+- HeroUI Native 1.0.8과 1.0.9는 글자 확대 상한을 두지 않는다. Provider의 `config.textProps.maxFontSizeMultiplier`로 HeroUI 컴포넌트 전체에 상한을 걸 수 있고 문서 예시는 1.5다. 자체 상한은 Avatar 안의 글자(1.4)와 InputOTP(1.6)뿐이다. 이 설정은 저장소가 직접 쓰는 RN `Text`에는 미치지 않는다.

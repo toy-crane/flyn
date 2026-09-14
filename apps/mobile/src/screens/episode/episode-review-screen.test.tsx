@@ -69,7 +69,9 @@ test("준비된 표현만 개수 없이 세우고 눌러야 원문과 이유가 
       ]}
     />
   );
-  expect(screen.getByText("기억해 둘 표현")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "기억해 둘 표현" }).props.className
+  ).toContain("text__root--type-h6");
   expect(screen.queryByText("1개")).toBeNull();
   expect(screen.getByText("주문한 것을 다시 말할 때")).toBeOnTheScreen();
   expect(screen.getByText("라테를 주문했어요.")).toBeOnTheScreen();

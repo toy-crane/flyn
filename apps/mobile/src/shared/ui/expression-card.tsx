@@ -1,12 +1,9 @@
-import { type ReactNode, useCallback, useRef, useState } from "react";
-import {
-  type GestureResponderEvent,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { Card } from "heroui-native/card";
+import { Typography } from "heroui-native/text";
+import type { ReactNode } from "react";
+import { View } from "react-native";
 
-import { Icon } from "@/shared/ui/icon";
+import { ExpandableCard } from "@/shared/ui/expandable-card";
 import { MarkedSentence } from "@/shared/ui/marked-text";
 
 /** 펼쳤을 때 드러나는 두 섹션의 라벨. 카드가 서는 두 화면에서 같은 말을 쓴다. */
@@ -14,23 +11,6 @@ const detailLabels = {
   original: "내가 쓴 문장",
   why: "이렇게 쓰는 이유",
 } as const;
-
-/**
- * 누른 자리에서 이만큼 넘게 움직이면 민 것으로 본다.
- *
- * 카드가 넓어서 옆으로 밀어도 손가락이 카드 안에 머문다. 그대로 두면 밀었다
- * 떼는 동작이 카드를 펼쳤다. 밀어서 지우던 습관이 남은 사람이 뜻하지 않은
- * 화면을 만난다. 손떨림은 이 안에 들어온다.
- */
-const MOVE_TOLERANCE = 12;
-
-/** 누른 자리와 뗀 자리로 판정한다. 민 것이면 카드는 아무 일도 하지 않는다. */
-export function isTap(
-  from: { x: number; y: number },
-  to: { x: number; y: number }
-): boolean {
-  return Math.hypot(to.x - from.x, to.y - from.y) <= MOVE_TOLERANCE;
-}
 
 /** 펼쳐야 보이는 내용. 없으면 쉐브론도 없고 카드는 눌리는 자리가 아니다. */
 export interface ExpressionCardDetail {
@@ -42,6 +22,71 @@ export interface ExpressionCardDetail {
   whys: readonly string[];
 }
 
+/** 카드 안 칸의 `testID`. 카드에 `testID`가 없으면 안의 칸에도 없다. */
+function innerTestID(
+  testID: string | undefined,
+  suffix: string
+): string | undefined {
+  return testID === undefined ? undefined : `${testID}-${suffix}`;
+}
+
+/** 펼친 카드의 두 섹션. 구분선도 띠도 없이 라벨과 여백으로만 가른다. */
+function DetailSections({
+  detail,
+  testID,
+}: {
+  detail: ExpressionCardDetail;
+  testID?: string;
+}) {
+  return (
+    <View className="gap-[14px]">
+      <View className="gap-1">
+        <Typography.Paragraph
+          color="muted"
+          selectable={false}
+          type="body-xs"
+          weight="medium"
+        >
+          {detailLabels.original}
+        </Typography.Paragraph>
+        <MarkedSentence
+          markClassName="underline"
+          marks={detail.originalMarks}
+          testID={innerTestID(testID, "original")}
+          text={detail.original}
+          type="body-sm"
+        />
+      </View>
+      <View className="gap-1">
+        <Typography.Paragraph
+          color="muted"
+          selectable={false}
+          type="body-xs"
+          weight="medium"
+        >
+          {detailLabels.why}
+        </Typography.Paragraph>
+        {/*
+          같은 이유가 두 번 올 수 있다. 서버는 짚은 자리와 고친 글로 항목을
+          가리므로 이유가 겹치는 것을 막지 않는다. 줄 번호를 열쇠에 넣어야
+          그때도 두 줄이 각자 남는다.
+        */}
+        {detail.whys.map((why, at) => (
+          <Typography.Paragraph
+            color="muted"
+            // biome-ignore lint/suspicious/noArrayIndexKey: 한 카드 안에서 이유의 순서는 바뀌지 않고, 같은 이유가 두 번 올 수 있다
+            key={`${at}:${why}`}
+            selectable={false}
+            type="body-sm"
+          >
+            {why}
+          </Typography.Paragraph>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 /**
  * 담아 둔 표현 하나를 보여 주는 카드.
  *
@@ -49,8 +94,10 @@ export interface ExpressionCardDetail {
  * 같이 쓰므로 여기서는 표현의 종류를 알지 못한다. 채널의 색도, 첫 줄에 무엇을
  * 쓸지도, 아이콘 줄에 무엇을 세울지도 부르는 쪽이 정해서 넘긴다.
  *
- * 아이콘 줄은 누르는 몸통 바깥에 선다. 그래야 복사나 휴지통을 눌렀을 때 카드가
- * 함께 펼쳐지지 않는다.
+ * 펼칠 것이 있으면 펼침 카드(HeroUI `Accordion` 표면 변형)이고, 없으면 HeroUI
+ * `Card`다. 아이콘 줄은 카드 아래에 서고 펼침 카드의 트리거와 내용 슬롯 밖이다.
+ * 그래야 접힌 카드에도 보이고 복사나 휴지통을 눌렀을 때 카드가 함께 펼쳐지지
+ * 않는다.
  */
 export function ExpressionCard({
   actions,
@@ -78,139 +125,62 @@ export function ExpressionCard({
   meaning: string | null;
   testID?: string;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const touchedAt = useRef({ x: 0, y: 0 });
-  const rememberTouch = useCallback((event: GestureResponderEvent) => {
-    touchedAt.current = {
-      x: event.nativeEvent.pageX,
-      y: event.nativeEvent.pageY,
-    };
-  }, []);
-  const toggle = useCallback((event: GestureResponderEvent) => {
-    const { pageX, pageY } = event.nativeEvent;
-
-    if (!isTap(touchedAt.current, { x: pageX, y: pageY })) {
-      return;
-    }
-
-    setIsExpanded((value) => !value);
-  }, []);
-  const inner = (suffix: string) =>
-    testID === undefined ? undefined : `${testID}-${suffix}`;
+  const inner = (suffix: string) => innerTestID(testID, suffix);
   const cardLabel = [headerLabel, english, meaning]
     .filter((part) => part !== null && part !== "")
     .join(", ");
-
-  const body = (
-    <>
-      <View className="gap-2">
-        {/*
-          아이콘과 쉐브론은 첫 줄에 맞춘다. 큰 접근성 글자에서 첫 줄이 두세 줄로
-          늘어나는데, 가운데 맞춤이면 둘이 글의 한가운데로 떠올라 무엇에 붙은
-          표시인지 읽히지 않는다.
-        */}
-        <View className="min-h-5 flex-row items-start gap-2">
-          {header}
-          {detail === undefined ? null : (
-            <Icon
-              name={isExpanded ? "collapse" : "expand"}
-              size="sm"
-              testID={inner("chevron")}
-              tone="muted"
-            />
-          )}
-        </View>
-        <MarkedSentence
-          className="font-semibold text-[17px] text-foreground leading-[25px]"
-          markClassName={markClassName}
-          marks={marks}
-          testID={inner("english")}
-          text={english}
-        />
-        {meaning === null ? null : (
-          <Text
-            className="text-[15px] text-muted leading-[22px]"
-            selectable={false}
-            testID={inner("meaning")}
-          >
-            {meaning}
-          </Text>
-        )}
-      </View>
-      {detail !== undefined && isExpanded ? (
-        // 구분선도 띠도 없다. 라벨과 여백만으로 두 섹션을 가른다. 위쪽 여백이
-        // 세 칸과 펼친 내용을 떼어 놓는 유일한 표시다.
-        <View className="gap-[14px] pt-4" testID={inner("detail")}>
-          <View className="gap-1">
-            <Text
-              className="font-medium text-muted text-xs leading-[18px]"
-              selectable={false}
-            >
-              {detailLabels.original}
-            </Text>
-            <MarkedSentence
-              className="text-[15px] text-foreground leading-[22px]"
-              markClassName="underline"
-              marks={detail.originalMarks}
-              testID={inner("original")}
-              text={detail.original}
-            />
-          </View>
-          <View className="gap-1">
-            <Text
-              className="font-medium text-muted text-xs leading-[18px]"
-              selectable={false}
-            >
-              {detailLabels.why}
-            </Text>
-            {/*
-              같은 이유가 두 번 올 수 있다. 서버는 짚은 자리와 고친 글로 항목을
-              가리므로 이유가 겹치는 것을 막지 않는다. 줄 번호를 열쇠에 넣어야
-              그때도 두 줄이 각자 남는다.
-            */}
-            {detail.whys.map((why, at) => (
-              <Text
-                className="text-[15px] text-muted leading-[22px]"
-                // biome-ignore lint/suspicious/noArrayIndexKey: 한 카드 안에서 이유의 순서는 바뀌지 않고, 같은 이유가 두 번 올 수 있다
-                key={`${at}:${why}`}
-                selectable={false}
-              >
-                {why}
-              </Text>
-            ))}
-          </View>
-        </View>
-      ) : null}
-    </>
+  const summary = (
+    <View className="gap-2">
+      <View className="min-h-5 flex-row items-start gap-2">{header}</View>
+      <MarkedSentence
+        markClassName={markClassName}
+        marks={marks}
+        testID={inner("english")}
+        text={english}
+        type="h6"
+      />
+      {meaning === null ? null : (
+        <Typography.Paragraph
+          color="muted"
+          selectable={false}
+          testID={inner("meaning")}
+          type="body-sm"
+        >
+          {meaning}
+        </Typography.Paragraph>
+      )}
+    </View>
   );
 
+  if (detail === undefined) {
+    return (
+      <Card testID={testID}>
+        <View testID={inner("body")}>{summary}</View>
+        {actions}
+      </Card>
+    );
+  }
+
   return (
-    <View
-      className="rounded-[18px] bg-surface px-4 pt-4 pb-3.5"
+    <ExpandableCard
+      accessibilityLabel={cardLabel}
+      contentTestID={inner("detail")}
+      footer={
+        // 트리거가 이미 아래 여백을 가지므로 아이콘 줄의 윗여백을 덜어 낸다. 둘이
+        // 겹치면 뜻과 아이콘 사이가 카드 위쪽 여백의 두 배로 벌어진다. 덜어 낸
+        // 만큼 이 줄이 트리거 아래 끝을 덮으므로, 빈 자리의 터치는 트리거로 흘린다.
+        actions === undefined ? null : (
+          <View className="-mt-1.5 px-5 pb-3.5" pointerEvents="box-none">
+            {actions}
+          </View>
+        )
+      }
+      indicatorTestID={inner("chevron")}
+      summary={summary}
       testID={testID}
+      triggerTestID={inner("body")}
     >
-      {detail === undefined ? (
-        <View testID={inner("body")}>{body}</View>
-      ) : (
-        // 아이콘 줄만 빼고 카드 어디를 눌러도 펼쳐진다. 그래서 아이콘 줄은 이
-        // 자리 바깥에 서고, 복사나 휴지통을 눌러도 카드가 함께 열리지 않는다.
-        //
-        // 읽을 이름을 손으로 적는다. iOS가 안의 글에서 이름을 짓게 두면 카드마다
-        // 다르게 묶어서, 어떤 카드는 세 칸을 이어 읽고 어떤 카드는 이름을 찾지
-        // 못해 `testID`를 대신 읽는다. 기기에서 그렇게 갈리는 것을 봤다.
-        <Pressable
-          accessibilityLabel={cardLabel}
-          accessibilityRole="button"
-          accessibilityState={{ expanded: isExpanded }}
-          accessible
-          onPress={toggle}
-          onPressIn={rememberTouch}
-          testID={inner("body")}
-        >
-          {body}
-        </Pressable>
-      )}
-      {actions}
-    </View>
+      <DetailSections detail={detail} testID={testID} />
+    </ExpandableCard>
   );
 }

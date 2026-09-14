@@ -57,6 +57,21 @@ function renderDetail(
   );
 }
 
+const SECTION_TYPE = /\btext__root--type-body-sm(\s|$)/;
+const FIRST_EPISODE = /카페에서 생긴 일/;
+
+test("스토리 제목은 화면 안 제목이고 에피소드 소제목은 섹션 소제목이다", async () => {
+  await renderDetail();
+
+  expect(
+    screen.getByRole("header", { name: "Mia의 카페" }).props.className
+  ).toContain("text__root--type-h3");
+  const section = screen.getByRole("header", { name: "에피소드" });
+  expect(section.props.className).toMatch(SECTION_TYPE);
+  expect(section.props.className).toContain("text__root--weight-medium");
+  expect(section.props.className).toContain("text__root--color-muted");
+});
+
 test("표지 소개와 모든 화의 제목·상황 설명을 보여 준다", async () => {
   await renderDetail();
 
@@ -100,6 +115,28 @@ test("에피소드 행은 눌러서 열 수 없다", async () => {
     "accessibilityRole",
     "button"
   );
+  expect(screen.queryAllByRole("button", { name: FIRST_EPISODE })).toEqual([]);
+});
+
+test("에피소드 행은 HeroUI ListGroup 행이고 행 사이에 Separator가 있다", async () => {
+  await renderDetail();
+
+  const list = screen.getByTestId("story-episodes");
+  expect(list.props.className).toContain("list-group__root");
+  expect(
+    list.children.filter(
+      (child) =>
+        typeof child !== "string" &&
+        String(child.props.className).includes("separator__root")
+    )
+  ).toHaveLength(1);
+  expect(screen.getByText("카페에서 생긴 일").props.className).toContain(
+    "list-group__item-title"
+  );
+  expect(
+    screen.getByText("잘못 나온 커피를 원하는 커피로 바꿔 보세요").props
+      .className
+  ).toContain("list-group__item-description");
 });
 
 test("불러오지 못하면 다시 시도할 수 있고 하단 버튼은 두지 않는다", async () => {

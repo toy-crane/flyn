@@ -1,5 +1,6 @@
+import { Typography } from "heroui-native/text";
 import { useCallback, useLayoutEffect, useMemo } from "react";
-import { ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { ScrollView, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { ExpressionResult } from "@/features/episode/api/episode-correction";
 import type {
@@ -111,15 +112,12 @@ export function EpisodeReviewScreen({
           testID="expression-review-scroll"
         >
           <View className="gap-1">
-            <Text className="text-muted text-xs" dynamicTypeRamp="caption1">
+            <Typography.Paragraph color="muted" type="body-xs">
               {story.title}
-            </Text>
-            <Text
-              className="font-semibold text-foreground text-sm"
-              dynamicTypeRamp="footnote"
-            >
+            </Typography.Paragraph>
+            <Typography.Paragraph type="body-sm" weight="semibold">
               {episode.number}화 · {episode.title}
-            </Text>
+            </Typography.Paragraph>
           </View>
           {isLoading && !isRetrying ? (
             <View className="min-h-40">
@@ -132,13 +130,7 @@ export function EpisodeReviewScreen({
                 개수를 두지 않는다. 카드가 몇 장인지는 목록이 그대로 보여 주고,
                 세어 둔 숫자는 이 화면에서 할 일을 알려 주지 않는다.
               */}
-              <Text
-                accessibilityRole="header"
-                className="font-bold text-base text-foreground"
-                dynamicTypeRamp="headline"
-              >
-                기억해 둘 표현
-              </Text>
+              <Typography.Heading type="h6">기억해 둘 표현</Typography.Heading>
               {/* 카드 사이는 표현 노트 목록과 같은 10pt다. 같은 카드를 쓴다. */}
               <View className="gap-2.5">
                 {cards.map((correction) => (
@@ -153,12 +145,9 @@ export function EpisodeReviewScreen({
           {!(isLoading || isRetrying) && cards?.length === 0 ? (
             <View className="items-center gap-4 rounded-2xl bg-surface px-5 py-9">
               <Icon name="expressions" size="lg" tone="muted" />
-              <Text
-                className="text-center text-base text-muted leading-6"
-                dynamicTypeRamp="body"
-              >
+              <Typography.Paragraph align="center" color="muted">
                 이번 대화에는 안내한 표현이 없어요
-              </Text>
+              </Typography.Paragraph>
             </View>
           ) : null}
           {isRetrying || !(isLoading || cards) ? (
@@ -183,25 +172,23 @@ export function EpisodeReviewScreen({
             contentContainerClassName="gap-1"
             showsVerticalScrollIndicator={false}
           >
-            <Text className="text-muted text-xs" dynamicTypeRamp="caption1">
+            <Typography.Paragraph color="muted" type="body-xs">
               {hasNext ? "다음 이야기" : story.title}
-            </Text>
-            <Text
-              className="font-semibold text-base text-foreground leading-6"
-              dynamicTypeRamp="headline"
-            >
-              {hasNext
-                ? `${nextNumber}화 · ${nextUp.title}`
-                : "마지막 이야기까지 함께했어요"}
-            </Text>
+            </Typography.Paragraph>
             {hasNext ? (
-              <Text
-                className="text-muted text-sm leading-5"
-                dynamicTypeRamp="footnote"
-              >
-                {nextUp.copy}
-              </Text>
-            ) : null}
+              <>
+                <Typography.Heading type="h6">
+                  {`${nextNumber}화 · ${nextUp.title}`}
+                </Typography.Heading>
+                <Typography.Paragraph color="muted" type="body-sm">
+                  {nextUp.copy}
+                </Typography.Paragraph>
+              </>
+            ) : (
+              <Typography.Paragraph weight="semibold">
+                마지막 이야기까지 함께했어요
+              </Typography.Paragraph>
+            )}
           </ScrollView>
           <Button accessibilityLabel={action} onPress={onContinue}>
             {action}

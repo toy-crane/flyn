@@ -1,16 +1,20 @@
 import { InputGroup } from "heroui-native/input-group";
 import { Label } from "heroui-native/label";
+import { ListGroup } from "heroui-native/list-group";
+import { Separator } from "heroui-native/separator";
+import { Typography } from "heroui-native/text";
 import { TextField } from "heroui-native/text-field";
-import { useCallback } from "react";
+import { Fragment, useCallback } from "react";
 import type { TextInput } from "react-native";
-import { Pressable, Text, View } from "react-native";
+import { View } from "react-native";
 
 import { useUsernameStep } from "@/features/auth/state/use-username-step";
-import { AuthError, AuthLayout } from "@/features/auth/ui/auth-layout";
+import { AuthFieldError, AuthLayout } from "@/features/auth/ui/auth-layout";
 import { onboardingLabels } from "@/features/auth/ui/onboarding-labels";
 import { useFocusOnArrival } from "@/shared/navigation/use-screen-arrival";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
+import { PressableListRow } from "@/shared/ui/list-row";
 import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 
 /**
@@ -42,33 +46,30 @@ export function UsernameScreen() {
       }
       title="아이디를 정해 주세요"
     >
-      <View className="gap-2">
-        <TextField isInvalid={form.message !== undefined}>
-          <Label>{onboardingLabels.username}</Label>
-          <InputGroup>
-            <InputGroup.Input
-              accessibilityLabel={onboardingLabels.username}
-              autoCapitalize="none"
-              autoComplete="username"
-              autoCorrect={false}
-              onChangeText={form.changeUsername}
-              onSubmitEditing={form.canSubmit ? form.submit : undefined}
-              placeholder={onboardingLabels.username}
-              ref={inputRef}
-              returnKeyType="done"
-              spellCheck={false}
-              testID="onboarding-username"
-              value={form.username}
+      <TextField isInvalid={form.message !== undefined}>
+        <Label>{onboardingLabels.username}</Label>
+        <InputGroup>
+          <InputGroup.Input
+            accessibilityLabel={onboardingLabels.username}
+            autoCapitalize="none"
+            autoComplete="username"
+            autoCorrect={false}
+            onChangeText={form.changeUsername}
+            onSubmitEditing={form.canSubmit ? form.submit : undefined}
+            placeholder={onboardingLabels.username}
+            ref={inputRef}
+            returnKeyType="done"
+            spellCheck={false}
+            testID="onboarding-username"
+            value={form.username}
+          />
+          <InputGroup.Suffix>
+            <UsernameMark
+              isAvailable={form.isAvailable}
+              isChecking={form.isChecking}
             />
-            <InputGroup.Suffix>
-              <UsernameMark
-                isAvailable={form.isAvailable}
-                isChecking={form.isChecking}
-              />
-            </InputGroup.Suffix>
-          </InputGroup>
-        </TextField>
-
+          </InputGroup.Suffix>
+        </InputGroup>
         {form.message ? (
           <UsernameMessage
             canRetry={form.isCheckFailed}
@@ -76,7 +77,7 @@ export function UsernameScreen() {
             onRetry={form.retryCheck}
           />
         ) : null}
-      </View>
+      </TextField>
 
       {form.suggestions.length > 0 ? (
         <UsernameSuggestions
@@ -144,8 +145,8 @@ function UsernameMark({
  * The message under the field.
  *
  * A failed check is the one message the person can act on directly, so in that
- * state the text is the retry control. It looks the same either way; what
- * changes is that it now has a role and a name saying it can be pressed.
+ * state a small retry button stands beside it. The button's accessible name
+ * says what it retries; on screen the message next to it already does.
  */
 function UsernameMessage({
   canRetry,
@@ -156,19 +157,29 @@ function UsernameMessage({
   message: string;
   onRetry: () => void;
 }) {
+  const error = (
+    <AuthFieldError testID="onboarding-error-username">
+      {message}
+    </AuthFieldError>
+  );
+
   if (!canRetry) {
-    return <AuthError testID="onboarding-error-username">{message}</AuthError>;
+    return error;
   }
 
   return (
-    <Pressable
-      accessibilityLabel={onboardingLabels.retryCheck}
-      accessibilityRole="button"
-      onPress={onRetry}
-      testID="onboarding-username-retry"
-    >
-      <AuthError testID="onboarding-error-username">{message}</AuthError>
-    </Pressable>
+    <View className="flex-row items-center gap-2">
+      <View className="flex-1">{error}</View>
+      <Button
+        accessibilityLabel={onboardingLabels.retryCheck}
+        onPress={onRetry}
+        size="sm"
+        testID="onboarding-username-retry"
+        variant="tertiary"
+      >
+        {onboardingLabels.retry}
+      </Button>
+    </View>
   );
 }
 
@@ -182,18 +193,22 @@ function UsernameSuggestions({
 }) {
   return (
     <View className="gap-2.5">
-      <Text className="font-semibold text-muted text-sm">
+      <Typography.Paragraph
+        accessibilityRole="header"
+        color="muted"
+        type="body-sm"
+        weight="medium"
+      >
         {onboardingLabels.suggestions}
-      </Text>
-      <View className="gap-2">
-        {suggestions.map((candidate) => (
-          <UsernameSuggestion
-            candidate={candidate}
-            key={candidate}
-            onChoose={onChoose}
-          />
+      </Typography.Paragraph>
+      <ListGroup testID="onboarding-username-suggestions">
+        {suggestions.map((candidate, index) => (
+          <Fragment key={candidate}>
+            {index === 0 ? null : <Separator className="mx-4" />}
+            <UsernameSuggestion candidate={candidate} onChoose={onChoose} />
+          </Fragment>
         ))}
-      </View>
+      </ListGroup>
     </View>
   );
 }
@@ -210,16 +225,14 @@ function UsernameSuggestion({
   }, [candidate, onChoose]);
 
   return (
-    <Pressable
+    <PressableListRow
       accessibilityLabel={candidate}
-      accessibilityRole="button"
-      className="rounded-xl bg-surface px-3.5 py-3"
       onPress={choose}
       testID="onboarding-username-suggestion"
     >
-      <Text className="font-semibold text-base text-foreground">
-        {candidate}
-      </Text>
-    </Pressable>
+      <ListGroup.ItemContent>
+        <ListGroup.ItemTitle>{candidate}</ListGroup.ItemTitle>
+      </ListGroup.ItemContent>
+    </PressableListRow>
   );
 }

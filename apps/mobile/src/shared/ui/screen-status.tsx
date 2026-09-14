@@ -1,5 +1,6 @@
+import { Typography } from "heroui-native/text";
 import type { ReactNode } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 import { Button } from "@/shared/ui/button";
 import { Icon, type IconName } from "@/shared/ui/icon";
@@ -35,12 +36,9 @@ function ScreenStatus({
       testID={testID}
     >
       <Icon name={icon} size="lg" tone="muted" />
-      <Text
-        accessibilityRole="header"
-        className="text-center font-bold text-foreground text-lg leading-7"
-      >
+      <Typography.Heading align="center" type="h5">
         {title}
-      </Text>
+      </Typography.Heading>
       {action}
     </View>
   );
@@ -112,12 +110,9 @@ export function ScreenEmpty({
       testID={testID}
     >
       <Icon name={icon} size="lg" tone="muted" />
-      <Text
-        className="text-center font-normal text-[17px] text-muted leading-[26px]"
-        dynamicTypeRamp="body"
-      >
+      <Typography.Paragraph align="center" color="muted">
         {title}
-      </Text>
+      </Typography.Paragraph>
       {action ? <View className="mt-2 max-w-full">{action}</View> : null}
     </View>
   );

@@ -129,10 +129,11 @@ export function IconRowButton({
         selected: isSelected,
       }}
       className={
-        // 진행 표시는 흐리게 두지 않는다. 회색 표시를 40%까지 낮추면 도는지조차
-        // 보이지 않아서, 기다리는 중임을 알리려던 표시가 사라진다.
+        // 진행 표시는 흐리게 두지 않는다. 회색 표시를 비활성 투명도로 낮추면
+        // 도는지조차 보이지 않아서, 기다리는 중임을 알리려던 표시가 사라진다.
+        // 흐리게 할 때는 HeroUI의 비활성 표현을 쓴다.
         isDisabled && !isBusy
-          ? "size-7 items-center justify-center opacity-40"
+          ? "element-disabled size-7 items-center justify-center"
           : "size-7 items-center justify-center"
       }
       hitSlop={{

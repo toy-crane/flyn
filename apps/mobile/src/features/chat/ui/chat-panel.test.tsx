@@ -24,6 +24,11 @@ import type { ChatSession } from "@/features/chat/state/use-conversation";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import { ChatPanel, chatLabels } from "./chat-panel";
 
+/** 앱이 스스로 그리던 비활성 투명도 클래스. HeroUI의 표현으로 바뀌었다. */
+const OWN_OPACITY = /opacity-\d/;
+/** `body-sm`이나 `body-xs`가 아니라 본문 `body` 그 자체. */
+const BODY_TYPE = /\btext__root--type-body(\s|$)/;
+
 const mockScrollToEnd = jest.fn<
   (options?: { animated?: boolean }) => Promise<void>
 >(() => Promise.resolve());
@@ -46,6 +51,13 @@ test("서버 작업 중에는 대화 대기 표시 없이 전송만 막는다", 
     />
   );
   expect(screen.getByTestId("chat-send")).toBeDisabled();
+  // 자체 투명도가 아니라 HeroUI의 비활성 표현이다.
+  expect(screen.getByTestId("chat-send").props.className).toContain(
+    "element-disabled"
+  );
+  expect(screen.getByTestId("chat-send").props.className).not.toMatch(
+    OWN_OPACITY
+  );
   await userEvent.setup().press(screen.getByTestId("chat-send"));
   expect(send).not.toHaveBeenCalled();
 });
@@ -463,12 +475,12 @@ describe("ChatPanel", () => {
     // 첫 메시지의 첫 서술은 대본이 쓴 도입이라 장면 서술 자리에 선다.
     const opening = screen.getByTestId("chat-scene-opening");
     // 첫 줄은 장소와 시각이라 굵게, 나머지는 한 단계 옅게 선다.
-    expect(
-      within(opening).getByText("저녁의 국숫집이다.").props.className
-    ).toContain("font-semibold");
-    expect(
-      within(opening).getByText("국물 김이 오른다.").props.className
-    ).toContain("text-scene");
+    const lead = within(opening).getByText("저녁의 국숫집이다.");
+    expect(lead.props.className).toMatch(BODY_TYPE);
+    expect(lead.props.className).toContain("text__root--weight-semibold");
+    const rest = within(opening).getByText("국물 김이 오른다.");
+    expect(rest.props.className).toMatch(BODY_TYPE);
+    expect(rest.props.className).toContain("text-scene");
     expect(
       within(screen.getByTestId("chat-scene-utterance")).getByText("만복")
     ).toBeOnTheScreen();
@@ -986,15 +998,14 @@ describe("ChatPanel", () => {
       />
     );
 
-    // The question takes its size from a class and the answer from the numbers
-    // the Markdown renderer accepts, so the check is that the two still meet at
-    // the same body size rather than each keeping its renderer's default.
+    // The question takes its size from the typography role and the answer from
+    // the numbers the Markdown renderer accepts, so the check is that the two
+    // still meet at the same `body` role: 16 with a 28 line.
     const question = screen.getByTestId("chat-message-user");
-    expect(question.props.className).toContain("text-base");
-    expect(question.props.className).toContain("leading-6");
+    expect(question.props.className).toMatch(BODY_TYPE);
     expect(
       screen.getByTestId("chat-message-assistant").props.markdownStyle.paragraph
-    ).toMatchObject({ fontSize: 16, lineHeight: 24 });
+    ).toMatchObject({ fontSize: 16, lineHeight: 28 });
   });
 
   test("사용자가 이전 메시지로 스크롤하면 최신 메시지 이동 버튼을 보여준다", async () => {
@@ -1823,8 +1834,14 @@ describe("ChatPanel", () => {
       />
     );
 
-    const retryButton = screen.getByLabelText(chatLabels.retry);
+    const retryButton = screen.getByRole("button", { name: chatLabels.retry });
 
+    // 누르는 작은 알약은 HeroUI `Button`의 작은 외곽선 변형이다.
+    expect(retryButton.props.className).toContain("button__root--size-sm");
+    expect(retryButton.props.className).toContain(
+      "button__root--variant-outline"
+    );
+    expect(retryButton.props.className).not.toMatch(OWN_OPACITY);
     expect(retryButton).toBeDisabled();
     await user.press(retryButton);
     expect(retry).not.toHaveBeenCalled();
@@ -1861,6 +1878,11 @@ describe("ChatPanel", () => {
     expect(
       rows.map((row) => StyleSheet.flatten(row.props.style).opacity)
     ).toEqual([1, 1, 0.38, 0.38]);
+
+    // 공용 아이콘 버튼의 28pt 원이다.
+    expect(
+      screen.getByRole("button", { name: chatLabels.endEdit }).props.className
+    ).toContain("size-7");
 
     await user.press(screen.getByLabelText(chatLabels.endEdit));
 

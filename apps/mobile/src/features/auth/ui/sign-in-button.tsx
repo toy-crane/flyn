@@ -1,10 +1,5 @@
 import { useCallback } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  useColorScheme,
-} from "react-native";
+import { ActivityIndicator, Pressable, Text } from "react-native";
 
 import { AppleMark, GoogleMark } from "./brand-marks";
 
@@ -22,6 +17,13 @@ import { AppleMark, GoogleMark } from "./brand-marks";
 
 const BUTTON_HEIGHT = 54;
 const PRESSED_OPACITY = 0.75;
+/**
+ * The label's size, as numbers because the row caps its growth. The typography
+ * table gives button labels to HeroUI, so these are the HeroUI `md` button
+ * label's values: 16 with a 24 line.
+ */
+const LABEL_FONT_SIZE = 16;
+const LABEL_LINE_HEIGHT = 24;
 
 const COLORS = {
   dark: {
@@ -46,6 +48,7 @@ export function SignInButton({
   label,
   onPress,
   method,
+  scheme,
   testID,
 }: {
   /** True while THIS button's sign-in is running, not any sibling's. */
@@ -54,9 +57,14 @@ export function SignInButton({
   label: string;
   onPress: () => void;
   method: SignInMethod;
+  /**
+   * The mode the app is drawing, from the theme bridge's `useAppTheme`. The
+   * system's own mode is not enough: the person may have chosen another one,
+   * and reading the system left these buttons light under a chosen dark mode.
+   */
+  scheme: "dark" | "light";
   testID?: string;
 }) {
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const colors = COLORS[scheme];
   const backgroundColor = method === "apple" ? colors.appleFill : colors.fill;
   const style = useCallback(
@@ -103,8 +111,9 @@ export function SignInButton({
         style={{
           color: colors.text,
           flexShrink: 1,
-          fontSize: 16,
+          fontSize: LABEL_FONT_SIZE,
           fontWeight: "600",
+          lineHeight: LABEL_LINE_HEIGHT,
         }}
       >
         {label}

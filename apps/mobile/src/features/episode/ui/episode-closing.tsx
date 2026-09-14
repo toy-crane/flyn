@@ -1,12 +1,12 @@
 import { ImpactFeedbackStyle, impactAsync } from "expo-haptics";
 import { useThemeColor } from "heroui-native/hooks";
+import { Typography } from "heroui-native/text";
 import LottieView from "lottie-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AccessibilityInfo,
   processColor,
   ScrollView,
-  Text,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -201,23 +201,23 @@ export function EpisodeClosing({
           <CompletionMark finished={finished} motion={motion} />
           {isSuccess ? (
             <Animated.View entering={playing ? popText : undefined}>
-              <Text
-                className="font-semibold text-accent text-sm"
-                dynamicTypeRamp="footnote"
+              <Typography.Paragraph
+                className="text-accent"
+                type="body-sm"
+                weight="semibold"
               >
                 해냈어요!
-              </Text>
+              </Typography.Paragraph>
             </Animated.View>
           ) : null}
           <Animated.View entering={playing ? slideUp : undefined}>
-            <Text
-              accessibilityRole="header"
-              className="text-center font-bold text-[22px] text-foreground leading-[30px]"
-              dynamicTypeRamp="title2"
+            <Typography.Heading
+              align="center"
               testID="episode-closing-outcome"
+              type="h3"
             >
               {ending.outcome.replace(TRAILING_PERIOD, "")}
-            </Text>
+            </Typography.Heading>
           </Animated.View>
         </ScrollView>
         <Animated.View entering={playing ? settle : undefined}>

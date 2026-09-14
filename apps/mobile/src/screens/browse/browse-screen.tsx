@@ -1,6 +1,8 @@
+import { ListGroup } from "heroui-native/list-group";
+import { Separator } from "heroui-native/separator";
 import { TagGroup } from "heroui-native/tag-group";
-import { useCallback, useMemo, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { Fragment, useCallback, useMemo, useState } from "react";
+import { ScrollView } from "react-native";
 
 import type { StoryCard } from "@/features/story/api/story";
 import { storyLabels } from "@/features/story/ui/story-labels";
@@ -14,11 +16,9 @@ const ALL = "all";
 const MINE = "mine";
 
 function BrowseRow({
-  hasBorder,
   onOpenStory,
   story,
 }: {
-  hasBorder: boolean;
   onOpenStory: (storyId: string) => void;
   story: StoryCard;
 }) {
@@ -30,7 +30,6 @@ function BrowseRow({
     <StoryRow
       coverBlurhash={story.coverBlurhash}
       coverImagePath={story.coverImagePath}
-      hasBorder={hasBorder}
       hook={story.hook}
       onPress={open}
       testID={`browse-row-${story.storyId}`}
@@ -102,16 +101,14 @@ export function BrowseScreen({
         </TagGroup>
       ) : null}
       {shown && shown.length > 0 ? (
-        <View className="rounded-2xl bg-surface px-4">
+        <ListGroup testID="browse-stories">
           {shown.map((story, index) => (
-            <BrowseRow
-              hasBorder={index !== shown.length - 1}
-              key={story.storyId}
-              onOpenStory={onOpenStory}
-              story={story}
-            />
+            <Fragment key={story.storyId}>
+              {index === 0 ? null : <Separator className="mx-4" />}
+              <BrowseRow onOpenStory={onOpenStory} story={story} />
+            </Fragment>
           ))}
-        </View>
+        </ListGroup>
       ) : null}
       {stories && shown?.length === 0 ? (
         <ScreenEmpty

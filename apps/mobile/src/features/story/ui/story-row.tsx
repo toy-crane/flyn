@@ -1,7 +1,7 @@
-import { Pressable, Text, View } from "react-native";
+import { ListGroup } from "heroui-native/list-group";
 
 import { StoryCover } from "@/features/story/ui/story-cover";
-import { Icon } from "@/shared/ui/icon";
+import { PressableListRow } from "@/shared/ui/list-row";
 
 /**
  * 목록의 스토리 한 줄.
@@ -11,11 +11,13 @@ import { Icon } from "@/shared/ui/icon";
  *
  * 진행 바가 없다. 같은 스토리를 여러 회차로 진행하므로 목록에 세울 대표 진행이
  * 없고, 회차별 진행은 대화 기록이 카드마다 따로 보여 준다.
+ *
+ * HeroUI `ListGroup` 행이다. 부르는 쪽이 `ListGroup` 안에 행 사이 `Separator`와
+ * 함께 세운다.
  */
 export function StoryRow({
   coverBlurhash,
   coverImagePath,
-  hasBorder,
   hook,
   onPress,
   testID,
@@ -23,37 +25,27 @@ export function StoryRow({
 }: {
   coverBlurhash: string | null;
   coverImagePath: string | null;
-  hasBorder: boolean;
   hook: string;
   onPress: () => void;
   testID?: string;
   title: string;
 }) {
   return (
-    <View
-      className={`py-3.5 ${hasBorder ? "border-border border-b" : ""}`.trim()}
+    <PressableListRow
+      accessibilityLabel={`${title}, ${hook}`}
+      onPress={onPress}
+      testID={testID}
     >
-      <Pressable
-        accessibilityLabel={`${title}, ${hook}`}
-        accessibilityRole="button"
-        className="flex-row items-center gap-3.5"
-        onPress={onPress}
-        testID={testID}
-      >
+      <ListGroup.ItemPrefix>
         <StoryCover blurhash={coverBlurhash} imagePath={coverImagePath} />
-        <View className="flex-1 gap-1">
-          <Text
-            className="font-bold text-base text-foreground"
-            numberOfLines={1}
-          >
-            {title}
-          </Text>
-          <Text className="text-muted text-sm" numberOfLines={2}>
-            {hook}
-          </Text>
-        </View>
-        <Icon name="forward" size="md" tone="muted" />
-      </Pressable>
-    </View>
+      </ListGroup.ItemPrefix>
+      <ListGroup.ItemContent>
+        <ListGroup.ItemTitle numberOfLines={1}>{title}</ListGroup.ItemTitle>
+        <ListGroup.ItemDescription numberOfLines={2}>
+          {hook}
+        </ListGroup.ItemDescription>
+      </ListGroup.ItemContent>
+      <ListGroup.ItemSuffix />
+    </PressableListRow>
   );
 }

@@ -1,5 +1,5 @@
+import { Typography } from "heroui-native/text";
 import { useMemo } from "react";
-import { Text } from "react-native";
 
 import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
 import { ExpressionCard } from "@/shared/ui/expression-card";
@@ -51,12 +51,13 @@ export function ExpressionReviewCard({
       header={
         <>
           <Icon name="learn" size="xs" tone={presentation.tone} />
-          <Text
-            className={`flex-1 text-xs leading-[18px] ${presentation.text}`}
+          <Typography.Paragraph
+            className={`flex-1 ${presentation.text}`}
             selectable={false}
+            type="body-xs"
           >
             {correction.review.situation}
-          </Text>
+          </Typography.Paragraph>
         </>
       }
       headerLabel={correction.review.situation}

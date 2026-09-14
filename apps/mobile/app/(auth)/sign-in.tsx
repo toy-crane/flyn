@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 
+import { useAppTheme } from "@/core/theme/app-theme-bridge";
 import { SignInMethodScreen } from "@/screens/auth/sign-in-method-screen";
 
 function goToEmail() {
@@ -7,5 +8,7 @@ function goToEmail() {
 }
 
 export default function SignInRoute() {
-  return <SignInMethodScreen onChooseEmail={goToEmail} />;
+  const { scheme } = useAppTheme();
+
+  return <SignInMethodScreen onChooseEmail={goToEmail} scheme={scheme} />;
 }

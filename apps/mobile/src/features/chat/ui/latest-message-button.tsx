@@ -1,6 +1,5 @@
-import { Pressable } from "react-native";
-
 import { Icon } from "@/shared/ui/icon";
+import { IconButton } from "@/shared/ui/icon-button";
 import { chatLabels } from "./chat-labels";
 import { FloatingSurface } from "./floating-surface";
 
@@ -22,10 +21,10 @@ const glassCircle = {
  */
 export function LatestMessageButton({ onPress }: { onPress: () => void }) {
   return (
-    <Pressable
+    <IconButton
       accessibilityLabel={chatLabels.latest}
-      accessibilityRole="button"
       onPress={onPress}
+      size="lg"
       testID="chat-latest"
     >
       <FloatingSurface
@@ -35,6 +34,6 @@ export function LatestMessageButton({ onPress }: { onPress: () => void }) {
       >
         <Icon name="latest" size="lg" />
       </FloatingSurface>
-    </Pressable>
+    </IconButton>
   );
 }

@@ -1,6 +1,7 @@
 import type { UIMessage } from "ai";
+import { Typography } from "heroui-native/text";
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import type {
   CorrectionEntry,
@@ -49,20 +50,23 @@ function CorrectionRow({
       testID="correction-entry"
     >
       <MarkedSentence
-        className="mb-0.5 text-muted text-sm leading-5"
+        className="mb-0.5"
+        color="muted"
         markClassName="underline"
         marks={[entry.original]}
         text={showsSentence ? correction.original : entry.original}
+        type="body-sm"
       />
       <MarkedSentence
-        className="mb-1.5 font-semibold text-base text-foreground leading-6"
+        className="mb-1.5"
         markClassName={appearance.text}
         marks={[entry.fixed]}
         text={showsSentence ? correction.fixed : entry.fixed}
+        type="h6"
       />
-      <Text className="text-muted text-sm leading-5" selectable={false}>
+      <Typography.Paragraph color="muted" selectable={false} type="body-sm">
         {entry.why}
-      </Text>
+      </Typography.Paragraph>
     </View>
   );
 }
@@ -73,7 +77,6 @@ function CorrectionActions({ onAsk }: { onAsk: () => void }) {
       <Button
         accessibilityLabel={correctionLabels.ask}
         className="w-full rounded-full bg-surface"
-        labelClassName="font-semibold text-foreground text-sm"
         onPress={onAsk}
         testID="correction-ask"
         variant="outline"
@@ -121,14 +124,16 @@ export function CorrectionNote({
           <View className="mb-2 flex-row items-center justify-between gap-1">
             <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
               <Icon name="learn" size="sm" tone={appearance.tone} />
-              <Text
-                className={`shrink font-semibold text-xs ${appearance.text}`}
+              <Typography.Paragraph
+                className={`shrink ${appearance.text}`}
                 selectable={false}
+                type="body-xs"
+                weight="semibold"
               >
                 {correction.entries.length > 1
                   ? `${appearance.title} ${correction.entries.length}개`
                   : appearance.title}
-              </Text>
+              </Typography.Paragraph>
             </View>
             <Pressable
               accessibilityLabel={`${appearance.title} 접기`}
@@ -163,14 +168,15 @@ export function CorrectionNote({
           </View>
           <View className="shrink">
             <MarkedSentence
-              className="text-foreground text-sm leading-5"
-              markClassName={`font-semibold ${appearance.text}`}
+              markClassName={appearance.text}
               marks={fixedMarks(correction)}
               testID="correction-line-fixed"
               text={correction.fixed}
+              type="body-sm"
             />
           </View>
-          <View className="mt-0.5">
+          {/* `body-sm`의 24 줄 가운데에 16pt 아이콘을 맞춘다. */}
+          <View className="mt-1">
             <Icon name="expand" size="sm" tone="muted" />
           </View>
         </Pressable>
