@@ -5,7 +5,7 @@ import { hide as hideSplashScreen } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { HeroUINativeProvider } from "heroui-native/provider";
 import { type ReactNode, useEffect } from "react";
-import { BackHandler, Modal, View } from "react-native";
+import { BackHandler, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
@@ -26,7 +26,6 @@ import { AuthSessionProvider } from "@/features/auth/state/auth-session";
 import { ProfileUnavailableScreen } from "@/screens/session/profile-unavailable-screen";
 import { SessionCheckingScreen } from "@/screens/session/session-checking-screen";
 import { SetupNeededScreen } from "@/screens/session/setup-needed-screen";
-import { UpdateRequiredScreen } from "@/screens/session/update-required-screen";
 
 /**
  * 방금 한 일을 알리는 짧은 문구는 화면 위쪽에 뜬다.
@@ -41,7 +40,24 @@ const heroUIConfig = {
   toast: { defaultProps: { placement: "top" } },
 } as const;
 
-const keepUpdateScreenOpen = () => undefined;
+function AppContent({
+  blocked,
+  children,
+}: {
+  blocked: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <View
+      accessibilityElementsHidden={blocked}
+      importantForAccessibility={blocked ? "no-hide-descendants" : "auto"}
+      pointerEvents={blocked ? "none" : "auto"}
+      style={{ flex: 1 }}
+    >
+      {children}
+    </View>
+  );
+}
 
 function ThemedRootLayout() {
   const { background, foreground, scheme } = useAppTheme();
@@ -82,9 +98,12 @@ function ThemedRootLayout() {
   }
 
   let content: ReactNode;
-  if (area === "checking") {
+  if (!showUpdateScreen && area === "checking") {
     content = <SessionCheckingScreen phase={checkingPhase} />;
-  } else if (area === "misconfigured" || area === "profileUnavailable") {
+  } else if (
+    !showUpdateScreen &&
+    (area === "misconfigured" || area === "profileUnavailable")
+  ) {
     content =
       area === "misconfigured" ? (
         <SetupNeededScreen problem={problem ?? ""} />
@@ -101,11 +120,16 @@ function ThemedRootLayout() {
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: background },
-          gestureEnabled: versionGate.status !== "blocked",
           headerShown: false,
         }}
       >
-        <Stack.Protected guard={area === "app"}>
+        <Stack.Protected guard={showUpdateScreen}>
+          <Stack.Screen
+            name="update-required"
+            options={{ animation: "none", gestureEnabled: false }}
+          />
+        </Stack.Protected>
+        <Stack.Protected guard={!showUpdateScreen && area === "app"}>
           <Stack.Screen name="(tabs)" />
           {/* 상세와 기록은 탭 전체를 덮고, 뒤로 가면 들어온 화면으로 돌아간다. */}
           {storyScreens.map((storyScreen) => (
@@ -129,10 +153,10 @@ function ThemedRootLayout() {
             />
           ))}
         </Stack.Protected>
-        <Stack.Protected guard={area === "onboarding"}>
+        <Stack.Protected guard={!showUpdateScreen && area === "onboarding"}>
           <Stack.Screen name="(onboarding)" />
         </Stack.Protected>
-        <Stack.Protected guard={area === "signedOut"}>
+        <Stack.Protected guard={!showUpdateScreen && area === "signedOut"}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
       </Stack>
@@ -141,29 +165,11 @@ function ThemedRootLayout() {
 
   return (
     <>
-      <View
-        accessibilityElementsHidden={versionGate.status === "blocked"}
-        importantForAccessibility={
-          versionGate.status === "blocked" ? "no-hide-descendants" : "auto"
-        }
-        pointerEvents={versionGate.status === "blocked" ? "none" : "auto"}
-        style={{ flex: 1 }}
+      <AppContent
+        blocked={versionGate.status === "blocked" && !showUpdateScreen}
       >
         {content}
-      </View>
-      <Modal
-        animationType="none"
-        onRequestClose={keepUpdateScreenOpen}
-        visible={showUpdateScreen}
-      >
-        <UpdateRequiredScreen
-          checkError={versionGate.checkError}
-          isRechecking={versionGate.isRechecking}
-          onOpenInstall={versionGate.openInstall}
-          openError={versionGate.openError}
-        />
-        <StatusBar style={scheme === "dark" ? "light" : "dark"} />
-      </Modal>
+      </AppContent>
       {/*
         The chosen screen mode, not the operating system's. `auto` reads the OS,
         so a person who picks 다크 while the phone is light gets dark text on
