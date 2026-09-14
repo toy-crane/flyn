@@ -102,6 +102,11 @@ export default function EpisodeReviewRoute() {
         onRetry={retry}
         results={query.isError ? undefined : query.data?.expressionResults}
         savedExpressions={query.data?.saved}
+        userMessageIds={
+          query.data?.messages
+            ?.filter((message) => message.role === "user")
+            .map((message) => message.id) ?? []
+        }
       />
       <Stack.Toolbar placement="right">
         <Stack.Toolbar.Button

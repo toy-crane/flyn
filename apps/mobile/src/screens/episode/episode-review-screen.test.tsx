@@ -55,6 +55,7 @@ const base = {
   isRetrying: false,
   onContinue: jest.fn(),
   onRetry: jest.fn(),
+  userMessageIds: [] as string[],
 };
 
 test("준비된 표현만 개수 없이 세우고 눌러야 원문과 이유가 열린다", async () => {
@@ -135,6 +136,62 @@ test("카드가 없으면 제목과 개수, 개별 재시도 없이 중립적인
   expect(screen.queryByText("표현을 확인하지 못했어요")).toBeNull();
   expect(screen.queryByLabelText("표현 다시 확인")).toBeNull();
   expect(screen.getByRole("button", { name: "2화 시작하기" })).toBeEnabled();
+});
+
+test("모든 사용자 메시지의 확인이 자연스러우면 빈 카드 대신 가운데 칭찬을 보여 준다", async () => {
+  await renderWithHeroUI(
+    <EpisodeReviewScreen
+      {...base}
+      results={[
+        { messageId: "m1", status: "natural" },
+        { messageId: "m2", status: "natural" },
+      ]}
+      userMessageIds={["m1", "m2"]}
+    />
+  );
+
+  expect(screen.getByText("이번 대화, 완벽했어요!")).toBeOnTheScreen();
+  expect(
+    screen.getByTestId("expression-review-praise").props.className
+  ).toContain("justify-center");
+  expect(screen.queryByText("기억해 둘 표현")).toBeNull();
+  expect(screen.queryByText("이번 대화에는 안내한 표현이 없어요")).toBeNull();
+});
+
+test("확인하지 못했거나 뜻이 불분명한 메시지가 있으면 완벽하다고 말하지 않는다", async () => {
+  const renderReview = (results: ExpressionResult[]) => (
+    <EpisodeReviewScreen
+      {...base}
+      results={results}
+      userMessageIds={["m1", "m2"]}
+    />
+  );
+  const view = await renderWithHeroUI(
+    renderReview([{ messageId: "m1", status: "natural" }])
+  );
+  expect(screen.queryByText("이번 대화, 완벽했어요!")).toBeNull();
+  expect(
+    screen.getByText("이번 대화에는 안내한 표현이 없어요")
+  ).toBeOnTheScreen();
+
+  await view.rerender(
+    renderReview([
+      { messageId: "m1", status: "natural" },
+      { messageId: "m2", status: "unclear" },
+    ])
+  );
+  expect(screen.queryByText("이번 대화, 완벽했어요!")).toBeNull();
+});
+
+test("다음 이야기 예고만 배경 카드에 두고 주요 버튼은 밖에 둔다", async () => {
+  await renderWithHeroUI(<EpisodeReviewScreen {...base} results={[ready]} />);
+  expect(
+    screen.getByTestId("expression-review-teaser").props.className
+  ).toContain("bg-surface");
+  expect(screen.getByText("2화 · 계산대에서")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "2화 시작하기" })
+  ).toBeOnTheScreen();
 });
 
 test("조회 중에는 빈 결과로 단정하지 않고 하단 이동을 유지한다", async () => {

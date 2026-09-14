@@ -161,6 +161,22 @@ test("조회 재시도를 겹치지 않고 오류와 다음 화 이동을 유지
   );
 });
 
+test("저장된 사용자 대화의 확인 결과가 모두 자연스러울 때만 칭찬한다", async () => {
+  globalThis.fetch = jest.fn<typeof fetch>(async () =>
+    Response.json({
+      expressionResults: [{ messageId: "m1", status: "natural" }],
+      messages: [
+        { id: "opening", parts: [], role: "assistant" },
+        { id: "m1", parts: [], role: "user" },
+      ],
+    })
+  ) as typeof fetch;
+
+  await renderWithHeroUI(<EpisodeReviewRoute />);
+  await screen.findByText("이번 대화, 완벽했어요!");
+  expect(screen.queryByText("이번 대화에는 안내한 표현이 없어요")).toBeNull();
+});
+
 test("다른 화로 바뀐 뒤 지난 화의 응답이 도착해도 카드를 섞지 않는다", async () => {
   let finishOld: ((value: Response) => void) | undefined;
   globalThis.fetch = jest.fn<typeof fetch>(async (url) => {

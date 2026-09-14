@@ -16,12 +16,49 @@ import { ExpressionReviewCard } from "@/features/episode/ui/expression-review-ca
 import { useExpressionToast } from "@/features/episode/ui/expression-toast";
 import { useExpressionNoteRefresh } from "@/features/note/query/expression-note";
 import { Button } from "@/shared/ui/button";
-import { Icon } from "@/shared/ui/icon";
 import { ScreenUnavailable } from "@/shared/ui/screen-status";
 import { EpisodeLoadingScreen } from "./episode-loading-screen";
 
 /** 토스트가 카드 위에 뜨는 높이. Android는 그림자 층으로만 순서를 정한다. */
 const TOAST_ELEVATION = 2;
+
+function hasOnlyNaturalResults(
+  userMessageIds: readonly string[],
+  results: readonly ExpressionResult[] | undefined
+) {
+  const userIds = new Set(userMessageIds);
+  if (userIds.size === 0 || results?.length !== userIds.size) {
+    return false;
+  }
+  const naturalIds = new Set(
+    results.flatMap((result) =>
+      result.status === "natural" ? [result.messageId] : []
+    )
+  );
+  return (
+    naturalIds.size === userIds.size &&
+    [...userIds].every((id) => naturalIds.has(id))
+  );
+}
+
+function EmptyReview({ isPerfect }: { isPerfect: boolean }) {
+  return (
+    <View
+      className="min-h-40 flex-1 items-center justify-center"
+      testID={isPerfect ? "expression-review-praise" : undefined}
+    >
+      {isPerfect ? (
+        <Typography.Heading align="center" type="h4">
+          이번 대화, 완벽했어요!
+        </Typography.Heading>
+      ) : (
+        <Typography.Paragraph align="center" color="muted">
+          이번 대화에는 안내한 표현이 없어요
+        </Typography.Paragraph>
+      )}
+    </View>
+  );
+}
 
 export function EpisodeReviewScreen({
   context,
@@ -31,6 +68,7 @@ export function EpisodeReviewScreen({
   onRetry,
   onContinue,
   savedExpressions,
+  userMessageIds,
 }: {
   context: EpisodeReviewContext;
   isLoading: boolean;
@@ -40,6 +78,7 @@ export function EpisodeReviewScreen({
   onContinue: () => void;
   /** 이 화에서 이미 담아 둔 자리. 대화에서 담은 것이 여기서도 채워져 보인다. */
   savedExpressions?: readonly SavedExpressionRef[];
+  userMessageIds: readonly string[];
 }) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
@@ -76,6 +115,7 @@ export function EpisodeReviewScreen({
   const cards = results?.flatMap((result) =>
     result.status === "corrected" ? [result.correction] : []
   );
+  const isPerfect = hasOnlyNaturalResults(userMessageIds, results);
   const nextNumber = nextUp?.number;
   const hasNext = nextUp?.episodeId && typeof nextNumber === "number";
   const action = hasNext
@@ -108,7 +148,7 @@ export function EpisodeReviewScreen({
         )}
         <ScrollView
           className="flex-1"
-          contentContainerClassName="gap-5 px-6 pt-5 pb-6"
+          contentContainerClassName="grow gap-5 px-6 pt-5 pb-6"
           testID="expression-review-scroll"
         >
           <View className="gap-1">
@@ -120,8 +160,8 @@ export function EpisodeReviewScreen({
             </Typography.Paragraph>
           </View>
           {isLoading && !isRetrying ? (
-            <View className="min-h-40">
-              <EpisodeLoadingScreen label="표현을 불러오고 있어요" />
+            <View className="min-h-40 flex-1">
+              <EpisodeLoadingScreen label="표현을 불러오는 중" />
             </View>
           ) : null}
           {!(isLoading || isRetrying) && cards && cards.length > 0 ? (
@@ -143,15 +183,11 @@ export function EpisodeReviewScreen({
             </View>
           ) : null}
           {!(isLoading || isRetrying) && cards?.length === 0 ? (
-            <View className="items-center gap-4 rounded-2xl bg-surface px-5 py-9">
-              <Icon name="expressions" size="lg" tone="muted" />
-              <Typography.Paragraph align="center" color="muted">
-                이번 대화에는 안내한 표현이 없어요
-              </Typography.Paragraph>
-            </View>
+            <EmptyReview isPerfect={isPerfect} />
           ) : null}
           {isRetrying || !(isLoading || cards) ? (
             <ScreenUnavailable
+              isCentered
               isRetrying={isRetrying}
               onRetry={onRetry}
               testID="expression-review-unavailable"
@@ -168,9 +204,10 @@ export function EpisodeReviewScreen({
           testID="expression-review-next"
         >
           <ScrollView
-            className="shrink"
-            contentContainerClassName="gap-1"
+            className="shrink rounded-2xl bg-surface"
+            contentContainerClassName="gap-1 p-4"
             showsVerticalScrollIndicator={false}
+            testID="expression-review-teaser"
           >
             <Typography.Paragraph color="muted" type="body-xs">
               {hasNext ? "다음 이야기" : story.title}
