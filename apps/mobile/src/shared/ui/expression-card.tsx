@@ -1,10 +1,6 @@
+import { Typography } from "heroui-native/text";
 import { type ReactNode, useCallback, useRef, useState } from "react";
-import {
-  type GestureResponderEvent,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { type GestureResponderEvent, Pressable, View } from "react-native";
 
 import { Icon } from "@/shared/ui/icon";
 import { MarkedSentence } from "@/shared/ui/marked-text";
@@ -121,20 +117,21 @@ export function ExpressionCard({
           )}
         </View>
         <MarkedSentence
-          className="font-semibold text-[17px] text-foreground leading-[25px]"
           markClassName={markClassName}
           marks={marks}
           testID={inner("english")}
           text={english}
+          type="h6"
         />
         {meaning === null ? null : (
-          <Text
-            className="text-[15px] text-muted leading-[22px]"
+          <Typography.Paragraph
+            color="muted"
             selectable={false}
             testID={inner("meaning")}
+            type="body-sm"
           >
             {meaning}
-          </Text>
+          </Typography.Paragraph>
         )}
       </View>
       {detail !== undefined && isExpanded ? (
@@ -142,41 +139,46 @@ export function ExpressionCard({
         // 세 칸과 펼친 내용을 떼어 놓는 유일한 표시다.
         <View className="gap-[14px] pt-4" testID={inner("detail")}>
           <View className="gap-1">
-            <Text
-              className="font-medium text-muted text-xs leading-[18px]"
+            <Typography.Paragraph
+              color="muted"
               selectable={false}
+              type="body-xs"
+              weight="medium"
             >
               {detailLabels.original}
-            </Text>
+            </Typography.Paragraph>
             <MarkedSentence
-              className="text-[15px] text-foreground leading-[22px]"
               markClassName="underline"
               marks={detail.originalMarks}
               testID={inner("original")}
               text={detail.original}
+              type="body-sm"
             />
           </View>
           <View className="gap-1">
-            <Text
-              className="font-medium text-muted text-xs leading-[18px]"
+            <Typography.Paragraph
+              color="muted"
               selectable={false}
+              type="body-xs"
+              weight="medium"
             >
               {detailLabels.why}
-            </Text>
+            </Typography.Paragraph>
             {/*
               같은 이유가 두 번 올 수 있다. 서버는 짚은 자리와 고친 글로 항목을
               가리므로 이유가 겹치는 것을 막지 않는다. 줄 번호를 열쇠에 넣어야
               그때도 두 줄이 각자 남는다.
             */}
             {detail.whys.map((why, at) => (
-              <Text
-                className="text-[15px] text-muted leading-[22px]"
+              <Typography.Paragraph
+                color="muted"
                 // biome-ignore lint/suspicious/noArrayIndexKey: 한 카드 안에서 이유의 순서는 바뀌지 않고, 같은 이유가 두 번 올 수 있다
                 key={`${at}:${why}`}
                 selectable={false}
+                type="body-sm"
               >
                 {why}
-              </Text>
+              </Typography.Paragraph>
             ))}
           </View>
         </View>

@@ -41,6 +41,20 @@ test("카드가 출처, 영어, 한국어 세 칸으로 선다", async () => {
   expect(screen.getByTestId("card-meaning")).toHaveTextContent("다음 분이요!");
 });
 
+const BODY_SM_TYPE = /\btext__root--type-body-sm(\s|$)/;
+const ARBITRARY_SIZE = /text-\[|leading-\[/;
+
+test("영어 문장은 h6, 뜻은 작은 본문 역할이고 크기 클래스를 붙이지 않는다", async () => {
+  await renderWithHeroUI(<ExpressionCard {...UTTERANCE} />);
+
+  const english = screen.getByTestId("card-english").props.className;
+  const meaning = screen.getByTestId("card-meaning").props.className;
+  expect(english).toContain("text__root--type-h6");
+  expect(meaning).toMatch(BODY_SM_TYPE);
+  expect(meaning).toContain("text__root--color-muted");
+  expect(`${english} ${meaning}`).not.toMatch(ARBITRARY_SIZE);
+});
+
 test("뜻이 없는 옛 항목은 한국어 줄만 빈다", async () => {
   await renderWithHeroUI(<ExpressionCard {...CORRECTION} meaning={null} />);
 

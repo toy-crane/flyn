@@ -1,5 +1,6 @@
+import { Typography } from "heroui-native/text";
 import { useCallback } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
 
 import type { RecentStory } from "@/features/story/api/story";
 import { storyLabels } from "@/features/story/ui/story-labels";
@@ -72,12 +73,15 @@ export function RecentStoriesScreen({
     >
       {hasStories ? (
         <>
-          <Text
+          <Typography.Paragraph
             accessibilityRole="header"
-            className="px-1 font-bold text-foreground text-sm"
+            className="px-1"
+            color="muted"
+            type="body-sm"
+            weight="medium"
           >
             {storyLabels.recentHeading}
-          </Text>
+          </Typography.Paragraph>
           <View className="rounded-2xl bg-surface px-4">
             {stories.map((story, index) => (
               <RecentRow

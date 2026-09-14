@@ -57,6 +57,20 @@ function renderDetail(
   );
 }
 
+const SECTION_TYPE = /\btext__root--type-body-sm(\s|$)/;
+
+test("스토리 제목은 화면 안 제목이고 에피소드 소제목은 섹션 소제목이다", async () => {
+  await renderDetail();
+
+  expect(
+    screen.getByRole("header", { name: "Mia의 카페" }).props.className
+  ).toContain("text__root--type-h3");
+  const section = screen.getByRole("header", { name: "에피소드" });
+  expect(section.props.className).toMatch(SECTION_TYPE);
+  expect(section.props.className).toContain("text__root--weight-medium");
+  expect(section.props.className).toContain("text__root--color-muted");
+});
+
 test("표지 소개와 모든 화의 제목·상황 설명을 보여 준다", async () => {
   await renderDetail();
 

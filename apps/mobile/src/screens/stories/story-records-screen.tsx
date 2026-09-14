@@ -1,5 +1,6 @@
+import { Typography } from "heroui-native/text";
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 import type {
   StoryPlay,
@@ -30,14 +31,19 @@ function StoryPlayEpisodeRow({
   }, [episode.episodeId, onOpenEpisode, storyPlayId]);
   const body = (
     <>
-      <Text className="w-9 font-bold text-muted text-sm leading-6">
+      <Typography.Paragraph
+        className="w-9"
+        color="muted"
+        type="body-sm"
+        weight="semibold"
+      >
         {storyLabels.episodeNumber(episode.number)}
-      </Text>
+      </Typography.Paragraph>
       <View className="flex-1 gap-0.5">
-        <Text className="text-base text-foreground leading-6">
-          {episode.title}
-        </Text>
-        <Text className="text-muted text-sm leading-5">{episode.outcome}</Text>
+        <Typography.Paragraph>{episode.title}</Typography.Paragraph>
+        <Typography.Paragraph color="muted" type="body-sm">
+          {episode.outcome}
+        </Typography.Paragraph>
       </View>
       {episode.hasTranscript ? (
         <Icon name="forward" size="md" tone="muted" />
@@ -114,25 +120,25 @@ function StoryPlayCard({
           testID={`story-play-toggle-${storyPlay.storyPlayId}`}
         >
           <View className="flex-1 gap-2">
-            <Text className="font-bold text-base text-foreground">
-              {startedAt}
-            </Text>
+            <Typography.Heading type="h6">{startedAt}</Typography.Heading>
             <StoryProgress
               current={next?.number}
               finished={storyPlay.finished}
               total={total}
             />
-            <Text className="text-muted text-sm leading-5">{progress}</Text>
+            <Typography.Paragraph color="muted" type="body-sm">
+              {progress}
+            </Typography.Paragraph>
           </View>
           <Icon name={isOpen ? "collapse" : "expand"} size="md" tone="muted" />
         </Pressable>
       ) : (
         <View className="gap-2">
-          <Text className="font-bold text-base text-foreground">
-            {startedAt}
-          </Text>
+          <Typography.Heading type="h6">{startedAt}</Typography.Heading>
           <StoryProgress finished={storyPlay.finished} total={total} />
-          <Text className="text-muted text-sm leading-5">{progress}</Text>
+          <Typography.Paragraph color="muted" type="body-sm">
+            {progress}
+          </Typography.Paragraph>
         </View>
       )}
 
@@ -174,13 +180,10 @@ function StoryHeader({ storyPlays }: { storyPlays: StoryPlays }) {
         imagePath={storyPlays.coverImagePath}
       />
       <View className="flex-1 gap-1">
-        <Text
-          accessibilityRole="header"
-          className="font-extrabold text-foreground text-xl leading-7"
-        >
-          {storyPlays.title}
-        </Text>
-        <Text className="text-muted text-sm leading-5">{storyPlays.intro}</Text>
+        <Typography.Heading type="h5">{storyPlays.title}</Typography.Heading>
+        <Typography.Paragraph color="muted" type="body-sm">
+          {storyPlays.intro}
+        </Typography.Paragraph>
       </View>
     </View>
   );
@@ -224,13 +227,15 @@ export function StoryRecordsScreen({
             <StoryHeader storyPlays={storyPlays} />
           </View>
           <View className="grow pt-6">
-            <Text
+            <Typography.Paragraph
               accessibilityRole="header"
-              className="mb-3 px-1 font-medium text-muted text-sm leading-5"
-              dynamicTypeRamp="subheadline"
+              className="mb-3 px-1"
+              color="muted"
+              type="body-sm"
+              weight="medium"
             >
               {storyLabels.recentHeading}
-            </Text>
+            </Typography.Paragraph>
             {hasStoryPlays ? (
               <View className="gap-4">
                 {storyPlays.plays.map((storyPlay) => (

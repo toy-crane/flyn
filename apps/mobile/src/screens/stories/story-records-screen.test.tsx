@@ -108,6 +108,25 @@ test("표지 소개와 최근 대화 아래에 회차 카드를 시작한 날짜
   expect(screen.getByText("9월 2일 오전 9:05")).toBeVisible();
 });
 
+const SECTION_TYPE = /\btext__root--type-body-sm(\s|$)/;
+
+test("스토리 제목과 최근 대화 소제목, 회차 날짜가 대응표의 역할을 쓴다", async () => {
+  const { rendered } = renderRecords();
+
+  await rendered;
+
+  expect(
+    screen.getByRole("header", { name: "Mia의 카페" }).props.className
+  ).toContain("text__root--type-h5");
+  const section = screen.getByRole("header", { name: "최근 대화" });
+  expect(section.props.className).toMatch(SECTION_TYPE);
+  expect(section.props.className).toContain("text__root--weight-medium");
+  expect(section.props.className).toContain("text__root--color-muted");
+  expect(screen.getByText("9월 8일 오후 3:42").props.className).toContain(
+    "text__root--type-h6"
+  );
+});
+
 // 미완료 회차가 여럿이어도 어느 하나를 대표로 세우지 않는다.
 test("현재 플레이 배지를 붙이지 않고 회차마다 진행 바를 둔다", async () => {
   const { rendered } = renderRecords({

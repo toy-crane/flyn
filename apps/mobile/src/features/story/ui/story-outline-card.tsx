@@ -1,4 +1,5 @@
-import { Text, View } from "react-native";
+import { Typography } from "heroui-native/text";
+import { View } from "react-native";
 
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { Button } from "@/shared/ui/button";
@@ -66,61 +67,41 @@ export function StoryOutlineCard({
       testID="story-outline-card"
     >
       <View>
-        <Text
-          accessibilityRole="header"
-          className="font-semibold text-[17px] text-foreground leading-6"
-          dynamicTypeRamp="headline"
-        >
-          {outline.title}
-        </Text>
-        <Text
-          className="mt-[3px] text-[13px] text-muted leading-[19px]"
-          dynamicTypeRamp="footnote"
-        >
+        <Typography.Heading type="h6">{outline.title}</Typography.Heading>
+        <Typography.Paragraph className="mt-0.5" color="muted" type="body-sm">
           {outline.hook}
-        </Text>
+        </Typography.Paragraph>
       </View>
 
       <View className="gap-1 border-border border-t pt-3">
-        <Text
-          className="font-medium text-[12px] text-muted leading-[18px]"
-          dynamicTypeRamp="caption1"
-        >
+        <Typography.Paragraph color="muted" type="body-xs" weight="medium">
           {storyLabels.outlineCast}
-        </Text>
+        </Typography.Paragraph>
         {outline.characters.map((person) => (
-          <Text
-            className="text-[14px] text-foreground leading-5"
-            dynamicTypeRamp="subheadline"
-            key={person.name}
-          >
+          <Typography.Paragraph key={person.name} type="body-sm">
             {`${person.name} · ${person.role}`}
-          </Text>
+          </Typography.Paragraph>
         ))}
       </View>
 
       <View className="gap-2.5 border-border border-t pt-3">
         {outline.episodes.map((episode) => (
           <View className="flex-row gap-1.5" key={episode.number}>
-            <Text
-              className="min-w-8 shrink-0 font-semibold text-[12px] text-muted leading-[18px]"
-              dynamicTypeRamp="caption1"
+            <Typography.Paragraph
+              className="min-w-8 shrink-0"
+              color="muted"
+              type="body-xs"
+              weight="semibold"
             >
               {storyLabels.episodeNumber(episode.number)}
-            </Text>
+            </Typography.Paragraph>
             <View className="flex-1">
-              <Text
-                className="font-semibold text-[15px] text-foreground leading-[21px]"
-                dynamicTypeRamp="subheadline"
-              >
+              <Typography.Paragraph type="body-sm" weight="semibold">
                 {episode.title}
-              </Text>
-              <Text
-                className="mt-px text-[13px] text-muted leading-[19px]"
-                dynamicTypeRamp="footnote"
-              >
+              </Typography.Paragraph>
+              <Typography.Paragraph color="muted" type="body-sm">
                 {episode.preview}
-              </Text>
+              </Typography.Paragraph>
             </View>
           </View>
         ))}
@@ -138,12 +119,9 @@ export function StoryOutlineCard({
         </Button>
       ) : null}
       {onAdd && outline.episodes.length >= 5 ? (
-        <Text
-          className="text-center text-[12px] text-muted leading-[18px]"
-          dynamicTypeRamp="caption1"
-        >
+        <Typography.Paragraph align="center" color="muted" type="body-xs">
           {storyLabels.episodeLimit}
-        </Text>
+        </Typography.Paragraph>
       ) : null}
       {onStart ? (
         <Button
@@ -193,12 +171,9 @@ export function StoryOutlineTurn({
         progress={progress}
       />
       {isStarting && onStart ? null : (
-        <Text
-          className="px-1 text-[16px] text-foreground leading-6"
-          dynamicTypeRamp="body"
-        >
+        <Typography.Paragraph className="px-1">
           {storyLabels.afterCard}
-        </Text>
+        </Typography.Paragraph>
       )}
     </View>
   );

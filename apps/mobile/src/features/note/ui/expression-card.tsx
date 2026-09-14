@@ -1,5 +1,6 @@
+import { Typography } from "heroui-native/text";
 import { useCallback } from "react";
-import { Alert, Text } from "react-native";
+import { Alert } from "react-native";
 
 import type { SavedExpression } from "@/features/note/api/expression-note";
 import {
@@ -101,12 +102,14 @@ export function NoteExpressionCard({
       detail={cardDetail(expression)}
       english={expression.english}
       header={
-        <Text
-          className="flex-1 text-muted text-xs leading-[18px]"
+        <Typography.Paragraph
+          className="flex-1"
+          color="muted"
           selectable={false}
+          type="body-xs"
         >
           {source}
-        </Text>
+        </Typography.Paragraph>
       }
       headerLabel={source}
       markClassName={markClassName(expression.kind)}

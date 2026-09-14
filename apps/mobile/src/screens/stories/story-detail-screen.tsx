@@ -1,5 +1,6 @@
+import { Typography } from "heroui-native/text";
 import { useCallback, useState } from "react";
-import { type LayoutChangeEvent, ScrollView, Text, View } from "react-native";
+import { type LayoutChangeEvent, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { StoryDetail, StoryEpisode } from "@/features/story/api/story";
@@ -31,16 +32,19 @@ function EpisodeRow({
       }`.trim()}
       testID={`story-episode-${episode.number}`}
     >
-      <Text className="w-9 font-bold text-muted text-sm leading-6">
+      <Typography.Paragraph
+        className="w-9"
+        color="muted"
+        type="body-sm"
+        weight="semibold"
+      >
         {storyLabels.episodeNumber(episode.number)}
-      </Text>
+      </Typography.Paragraph>
       <View className="flex-1 gap-0.5">
-        <Text className="text-base text-foreground leading-6">
-          {episode.title}
-        </Text>
-        <Text className="text-muted text-sm leading-5">
+        <Typography.Paragraph>{episode.title}</Typography.Paragraph>
+        <Typography.Paragraph color="muted" type="body-sm">
           {episode.situation}
-        </Text>
+        </Typography.Paragraph>
       </View>
     </View>
   );
@@ -55,23 +59,23 @@ function StoryDetailBody({ story }: { story: StoryDetail }) {
           imagePath={story.coverImagePath}
         />
         <View className="flex-1 gap-1">
-          <Text
-            accessibilityRole="header"
-            className="font-extrabold text-foreground text-xl leading-7"
-          >
-            {story.title}
-          </Text>
-          <Text className="text-muted text-sm leading-5">{story.intro}</Text>
+          <Typography.Heading type="h3">{story.title}</Typography.Heading>
+          <Typography.Paragraph color="muted" type="body-sm">
+            {story.intro}
+          </Typography.Paragraph>
         </View>
       </View>
 
       <View className="gap-3">
-        <Text
+        <Typography.Paragraph
           accessibilityRole="header"
-          className="px-1 font-bold text-foreground text-sm"
+          className="px-1"
+          color="muted"
+          type="body-sm"
+          weight="medium"
         >
           {storyLabels.episodeList}
-        </Text>
+        </Typography.Paragraph>
         <View className="rounded-2xl bg-surface px-5">
           {story.episodes.map((episode, index) => (
             <EpisodeRow

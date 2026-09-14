@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from "react-native";
+import { Typography } from "heroui-native/text";
+import { Pressable, View } from "react-native";
 
 import { StoryCover } from "@/features/story/ui/story-cover";
 import { Icon } from "@/shared/ui/icon";
@@ -42,15 +43,12 @@ export function StoryRow({
       >
         <StoryCover blurhash={coverBlurhash} imagePath={coverImagePath} />
         <View className="flex-1 gap-1">
-          <Text
-            className="font-bold text-base text-foreground"
-            numberOfLines={1}
-          >
+          <Typography.Paragraph numberOfLines={1} weight="semibold">
             {title}
-          </Text>
-          <Text className="text-muted text-sm" numberOfLines={2}>
+          </Typography.Paragraph>
+          <Typography.Paragraph color="muted" numberOfLines={2} type="body-sm">
             {hook}
-          </Text>
+          </Typography.Paragraph>
         </View>
         <Icon name="forward" size="md" tone="muted" />
       </Pressable>

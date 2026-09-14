@@ -56,6 +56,19 @@ function renderRecent(
   };
 }
 
+const SECTION_TYPE = /\btext__root--type-body-sm(\s|$)/;
+
+test("최근 대화 소제목은 보조색·중간 굵기·작은 글자의 헤더다", async () => {
+  const { rendered } = renderRecent();
+
+  await rendered;
+
+  const heading = screen.getByRole("header", { name: "최근 대화" });
+  expect(heading.props.className).toMatch(SECTION_TYPE);
+  expect(heading.props.className).toContain("text__root--weight-medium");
+  expect(heading.props.className).toContain("text__root--color-muted");
+});
+
 test("최근 대화 제목 아래 서버가 준 순서 그대로 세운다", async () => {
   const { rendered } = renderRecent();
 

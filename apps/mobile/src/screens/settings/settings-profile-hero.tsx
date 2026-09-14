@@ -1,4 +1,5 @@
-import { Pressable, Text, useWindowDimensions, View } from "react-native";
+import { Typography } from "heroui-native/text";
+import { Pressable, useWindowDimensions, View } from "react-native";
 
 import { profileLabels } from "@/features/auth/ui/profile-labels";
 import { UserAvatar } from "@/shared/ui/user-avatar";
@@ -61,18 +62,20 @@ export function SettingsProfileHero({
           both allowed, and cutting one off hides part of what the screen exists
           to show.
         */}
-        <Text
-          className="text-center font-bold text-2xl text-foreground"
+        <Typography.Heading
+          align="center"
           testID="settings-profile-name"
+          type="h3"
         >
           {displayName}
-        </Text>
-        <Text
-          className="text-center text-base text-muted"
+        </Typography.Heading>
+        <Typography.Paragraph
+          align="center"
+          color="muted"
           testID="settings-profile-username"
         >
           {username}
-        </Text>
+        </Typography.Paragraph>
       </View>
     </View>
   );
