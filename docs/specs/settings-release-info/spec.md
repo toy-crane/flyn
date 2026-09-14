@@ -46,6 +46,8 @@
 - [모바일 설정 구조](../../decisions/mobile-settings-structure.md)는 `앱 정보`의 행
   순서와 값 행의 표현을 정한다.
 - [UX 라이팅 원칙](../../decisions/ux-writing.md)은 상태와 복사 안내의 문구를 정한다.
+- [에피소드 화면 토스트 자리](../../decisions/mobile-toast-placement.md)는 에피소드
+  화면에만 적용된다. 설정의 복사 안내는 확정 시안처럼 화면 아래에 잠시 띄운다.
 - [검증과 내부 테스트 배포](../../decisions/continuous-delivery.md)는 빌드와 EAS
   Update가 각각 배포되는 범위를 정한다. 설정의 값은 배포 성공이나 최신 상태를
   판정하지 않고, 이 기기에서 지금 실행 중인 것을 보여 준다.
