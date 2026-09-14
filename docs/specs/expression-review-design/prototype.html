@@ -296,7 +296,7 @@
           <p class="teaser-title">2화 · 사라진 발신인</p>
           <p class="teaser-copy">편지를 보낸 사람을 찾아 나서요</p>
         </div>
-        <a class="primary" href="#next-episode">2화 다시 보기</a>
+        <a class="primary" href="#completed-next-episode">2화 다시 보기</a>
       </div>
       <div data-when="마지막 화">
         <div class="teaser" data-component="Card">
@@ -319,6 +319,14 @@
   <section class="mobile" data-screen="next-episode" data-title="다음 화의 대화">
     <header class="native-header"><a class="nav-icon" href="#records" aria-label="대화 기록으로 돌아가기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></a><h1 class="native-title">2화 · 사라진 발신인</h1><span></span></header>
     <div class="destination-content"><p>편지를 보낸 사람을 찾아 골목으로 들어섰어요</p><div class="chat-bubble">어제 그 사람을 봤어요. 무슨 일이 있었나요?</div></div>
+  </section>
+  <section class="mobile" data-screen="completed-next-episode" data-title="끝난 다음 화의 대화">
+    <header class="native-header"><a class="nav-icon" href="#records" aria-label="대화 기록으로 돌아가기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></a><h1 class="native-title">2화 · 사라진 발신인</h1><span></span></header>
+    <div class="destination-content"><p>편지를 보낸 사람을 찾아 골목으로 들어섰어요</p><div class="chat-bubble">어제 그 사람을 봤어요. 무슨 일이 있었나요?</div><div class="destination-card"><h2>발신인을 찾았어요</h2><p>편지를 보낸 사람과 만나 이야기를 마쳤어요</p></div></div>
+  </section>
+  <section class="mobile" data-screen="last-episode" data-title="마지막 화의 대화">
+    <header class="native-header"><a class="nav-icon" href="#records" aria-label="대화 기록으로 돌아가기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4-8 8 8 8"/></svg></a><h1 class="native-title">5화 · 보낸 사람의 이름</h1><span></span></header>
+    <div class="destination-content"><p>마지막 편지를 들고 보낸 사람을 만났어요</p><div class="destination-card"><h2>마지막 편지를 전했어요</h2><p>서로의 이야기를 듣고 편지를 건넸어요</p></div></div>
   </section>
   <section class="mobile" data-screen="home" data-title="홈">
     <header class="native-header"><span></span><h1 class="native-title">홈</h1><span></span></header>
@@ -437,6 +445,10 @@
     toastTimer = setTimeout(() => { toast.hidden = true; }, 2500);
   }
   const copyTimers = new WeakMap();
+  review.querySelector('.native-header .nav-icon').addEventListener('click', event => {
+    event.currentTarget.href = prototypeShell.getState() === '마지막 화'
+      ? '#last-episode' : '#previous-episode';
+  });
   document.addEventListener('click', event => {
     if (!event.target.closest('a[href="#next-episode"]')) return;
     const back = document.querySelector('[data-screen="next-episode"] .nav-icon');
