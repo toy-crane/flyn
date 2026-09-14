@@ -36,17 +36,14 @@ test("늦게 붙는 진행 표시는 화면 읽기에 스스로 알린다", asyn
   ).toHaveProp("accessibilityLiveRegion", "polite");
 });
 
-// 표현 돌아보기는 스토리와 화 제목을 위에 둔 채 그 아래 칸만 기다린다. 화면의
-// 나머지가 살아 있으므로 무엇을 기다리는지 그 자리가 스스로 말한다.
-test("한 칸만 기다리는 자리는 문구를 함께 보인다", async () => {
+// 표현 돌아보기의 본문은 문구 없이 기다리고 화면 읽기에만 이름을 알린다.
+test("표현 목록의 1초 넘는 읽기는 이름을 화면 읽기에만 전한다", async () => {
   jest.useFakeTimers();
-  await renderWithHeroUI(
-    <EpisodeLoadingScreen label="표현을 불러오고 있어요" />
-  );
+  await renderWithHeroUI(<EpisodeLoadingScreen label="표현을 불러오는 중" />);
   await act(() => jest.advanceTimersByTime(1000));
 
-  expect(screen.getByText("표현을 불러오고 있어요")).toBeOnTheScreen();
+  expect(screen.queryAllByText(ANY_TEXT)).toHaveLength(0);
   expect(
-    screen.getByRole("progressbar", { name: "표현을 불러오고 있어요" })
-  ).toBeOnTheScreen();
+    screen.getByRole("progressbar", { name: "표현을 불러오는 중" })
+  ).toHaveProp("accessibilityState", { busy: true });
 });
