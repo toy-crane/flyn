@@ -3,6 +3,7 @@ import { openURL } from "expo-linking";
 import { useCallback, useMemo, useState } from "react";
 
 import { profileLabels } from "@/features/auth/ui/profile-labels";
+import { getLegalDestinations } from "@/shared/navigation/legal-destinations";
 
 /**
  * The addresses settings opens outside the app.
@@ -14,9 +15,8 @@ export function getExternalDestinations() {
   const env = getMobileEnv();
 
   return {
-    privacy: new URL("/privacy", env.EXPO_PUBLIC_WEB_URL).toString(),
+    ...getLegalDestinations(),
     supportMail: `mailto:${env.EXPO_PUBLIC_SUPPORT_EMAIL}`,
-    terms: new URL("/terms", env.EXPO_PUBLIC_WEB_URL).toString(),
   };
 }
 

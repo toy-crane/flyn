@@ -17,6 +17,7 @@ import {
   spotKey,
   spotOfRef,
 } from "@/features/episode/api/saved-expression";
+import { trackPendingUserWork } from "@/shared/state/pending-user-work";
 
 /**
  * 한 자리의 책갈피가 지금 어떤 상태인지.
@@ -254,7 +255,7 @@ export function useSavedExpressionStore(
 
       if (state?.status === "saved") {
         settle(key, { id: state.id, status: "erasing" });
-        eraser.current(state.id, controller.signal).then(
+        trackPendingUserWork(eraser.current(state.id, controller.signal)).then(
           () => {
             const kept = running.current.get(key) === controller;
 
@@ -271,7 +272,9 @@ export function useSavedExpressionStore(
       }
 
       settle(key, { status: "saving" });
-      saver.current(spot, source.current, controller.signal).then(
+      trackPendingUserWork(
+        saver.current(spot, source.current, controller.signal)
+      ).then(
         (ref) => {
           const kept = running.current.get(key) === controller;
 

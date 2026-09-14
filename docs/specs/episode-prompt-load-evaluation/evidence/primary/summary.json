@@ -1,0 +1,309 @@
+{
+  "calls": 120,
+  "requestedModels": [
+    "openai/gpt-5.6-luna"
+  ],
+  "returnedModels": [
+    "gpt-5.6-luna"
+  ],
+  "providers": [
+    "openai"
+  ],
+  "providerAttempts": [
+    1
+  ],
+  "gatewayCostUsd": 0.029688580000000003,
+  "quantileMethod": "nearest-rank",
+  "firstRequest": "2026-09-14T01:54:56.655Z",
+  "lastRequest": "2026-09-14T01:57:01.516Z",
+  "arms": [
+    {
+      "arm": "A",
+      "n": 30,
+      "successful": 30,
+      "schemaValid": 30,
+      "oneOrTwoUtterances": 30,
+      "correctEndings": 30,
+      "endingDenominator": 30,
+      "meetingOwnerErrors": 10,
+      "inventedUserWork": 0,
+      "ambiguousDeadline": 2,
+      "medianFirstDialogueMs": 1676,
+      "p90FirstDialogueMs": 2453,
+      "medianTotalMs": 3247,
+      "p90TotalMs": 5224,
+      "inputTokens": 53370,
+      "outputTokens": 6255,
+      "cachedReadTokens": 49794,
+      "cachedWriteTokens": 3486,
+      "reasoningTokens": 1738,
+      "gatewayCostUsd": 0.009391380000000003,
+      "byFixture": [
+        {
+          "fixtureId": "s1-owner",
+          "n": 5,
+          "meetingOwnerErrors": 3,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 1,
+          "correctEndings": 5
+        },
+        {
+          "fixtureId": "s2-addressee",
+          "n": 5,
+          "meetingOwnerErrors": 0,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 0,
+          "correctEndings": 5
+        },
+        {
+          "fixtureId": "s3-not-done",
+          "n": 5,
+          "meetingOwnerErrors": 0,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 0,
+          "correctEndings": 5
+        },
+        {
+          "fixtureId": "s4-success",
+          "n": 5,
+          "meetingOwnerErrors": 3,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 0,
+          "correctEndings": 5
+        },
+        {
+          "fixtureId": "s5-compromise",
+          "n": 5,
+          "meetingOwnerErrors": 4,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 1,
+          "correctEndings": 5
+        },
+        {
+          "fixtureId": "s6-failure",
+          "n": 5,
+          "meetingOwnerErrors": 0,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 0,
+          "correctEndings": 5
+        }
+      ]
+    },
+    {
+      "arm": "B",
+      "n": 30,
+      "successful": 30,
+      "schemaValid": 30,
+      "oneOrTwoUtterances": 30,
+      "correctEndings": 29,
+      "endingDenominator": 30,
+      "meetingOwnerErrors": 6,
+      "inventedUserWork": 3,
+      "ambiguousDeadline": 0,
+      "medianFirstDialogueMs": 2081,
+      "p90FirstDialogueMs": 2733,
+      "medianTotalMs": 2931,
+      "p90TotalMs": 3810,
+      "inputTokens": 47100,
+      "outputTokens": 3647,
+      "cachedReadTokens": 43733,
+      "cachedWriteTokens": 3277,
+      "reasoningTokens": 1154,
+      "gatewayCostUsd": 0.0060883099999999996,
+      "byFixture": [
+        {
+          "fixtureId": "s1-owner",
+          "n": 5,
+          "meetingOwnerErrors": 1,
+          "inventedUserWork": 1,
+          "ambiguousDeadline": 0,
+          "correctEndings": 5
+        },
+        {
+          "fixtureId": "s2-addressee",
+          "n": 5,
+          "meetingOwnerErrors": 0,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 0,
+          "correctEndings": 5
+        },
+        {
+          "fixtureId": "s3-not-done",
+          "n": 5,
+          "meetingOwnerErrors": 0,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 0,
+          "correctEndings": 5
+        },
+        {
+          "fixtureId": "s4-success",
+          "n": 5,
+          "meetingOwnerErrors": 3,
+          "inventedUserWork": 1,
+          "ambiguousDeadline": 0,
+          "correctEndings": 5
+        },
+        {
+          "fixtureId": "s5-compromise",
+          "n": 5,
+          "meetingOwnerErrors": 2,
+          "inventedUserWork": 1,
+          "ambiguousDeadline": 0,
+          "correctEndings": 4
+        },
+        {
+          "fixtureId": "s6-failure",
+          "n": 5,
+          "meetingOwnerErrors": 0,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 0,
+          "correctEndings": 5
+        }
+      ]
+    },
+    {
+      "arm": "C",
+      "n": 30,
+      "successful": 30,
+      "schemaValid": 30,
+      "oneOrTwoUtterances": 30,
+      "correctEndings": null,
+      "endingDenominator": 0,
+      "meetingOwnerErrors": 6,
+      "inventedUserWork": 2,
+      "ambiguousDeadline": 1,
+      "medianFirstDialogueMs": 1909,
+      "p90FirstDialogueMs": 2451,
+      "medianTotalMs": 2389,
+      "p90TotalMs": 2934,
+      "inputTokens": 43050,
+      "outputTokens": 2561,
+      "cachedReadTokens": 39818,
+      "cachedWriteTokens": 3142,
+      "reasoningTokens": 792,
+      "gatewayCostUsd": 0.00467306,
+      "byFixture": [
+        {
+          "fixtureId": "s1-owner",
+          "n": 5,
+          "meetingOwnerErrors": 2,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 1,
+          "correctEndings": null
+        },
+        {
+          "fixtureId": "s2-addressee",
+          "n": 5,
+          "meetingOwnerErrors": 0,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 0,
+          "correctEndings": null
+        },
+        {
+          "fixtureId": "s3-not-done",
+          "n": 5,
+          "meetingOwnerErrors": 0,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 0,
+          "correctEndings": null
+        },
+        {
+          "fixtureId": "s4-success",
+          "n": 5,
+          "meetingOwnerErrors": 2,
+          "inventedUserWork": 1,
+          "ambiguousDeadline": 0,
+          "correctEndings": null
+        },
+        {
+          "fixtureId": "s5-compromise",
+          "n": 5,
+          "meetingOwnerErrors": 2,
+          "inventedUserWork": 1,
+          "ambiguousDeadline": 0,
+          "correctEndings": null
+        },
+        {
+          "fixtureId": "s6-failure",
+          "n": 5,
+          "meetingOwnerErrors": 0,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 0,
+          "correctEndings": null
+        }
+      ]
+    },
+    {
+      "arm": "D",
+      "n": 30,
+      "successful": 30,
+      "schemaValid": 30,
+      "oneOrTwoUtterances": 30,
+      "correctEndings": 30,
+      "endingDenominator": 30,
+      "meetingOwnerErrors": 6,
+      "inventedUserWork": 7,
+      "ambiguousDeadline": 1,
+      "medianFirstDialogueMs": 2047,
+      "p90FirstDialogueMs": 2853,
+      "medianTotalMs": 3837,
+      "p90TotalMs": 5341,
+      "inputTokens": 53820,
+      "outputTokens": 6365,
+      "cachedReadTokens": 50229,
+      "cachedWriteTokens": 3501,
+      "reasoningTokens": 1695,
+      "gatewayCostUsd": 0.009535829999999999,
+      "byFixture": [
+        {
+          "fixtureId": "s1-owner",
+          "n": 5,
+          "meetingOwnerErrors": 3,
+          "inventedUserWork": 2,
+          "ambiguousDeadline": 0,
+          "correctEndings": 5
+        },
+        {
+          "fixtureId": "s2-addressee",
+          "n": 5,
+          "meetingOwnerErrors": 0,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 0,
+          "correctEndings": 5
+        },
+        {
+          "fixtureId": "s3-not-done",
+          "n": 5,
+          "meetingOwnerErrors": 0,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 0,
+          "correctEndings": 5
+        },
+        {
+          "fixtureId": "s4-success",
+          "n": 5,
+          "meetingOwnerErrors": 3,
+          "inventedUserWork": 1,
+          "ambiguousDeadline": 0,
+          "correctEndings": 5
+        },
+        {
+          "fixtureId": "s5-compromise",
+          "n": 5,
+          "meetingOwnerErrors": 0,
+          "inventedUserWork": 4,
+          "ambiguousDeadline": 1,
+          "correctEndings": 5
+        },
+        {
+          "fixtureId": "s6-failure",
+          "n": 5,
+          "meetingOwnerErrors": 0,
+          "inventedUserWork": 0,
+          "ambiguousDeadline": 0,
+          "correctEndings": 5
+        }
+      ]
+    }
+  ]
+}

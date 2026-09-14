@@ -34,7 +34,9 @@ test("EAS는 같은 운영 환경에서 호환 빌드를 찾고 설치 가능 �
       | "update_submitted"
       | "submit_existing"
       | "submit_ios"
-      | "verify_new",
+      | "verify_new"
+      | "format_notification"
+      | "notify_slack",
       {
         after?: string[];
         type?: string;
@@ -42,6 +44,7 @@ test("EAS는 같은 운영 환경에서 호환 빌드를 찾고 설치 가능 �
         needs?: string[];
         if?: string;
         params?: Record<string, unknown>;
+        steps?: { uses?: string; with?: Record<string, unknown> }[];
       }
     >;
   };
@@ -80,4 +83,30 @@ test("EAS는 같은 운영 환경에서 호환 빌드를 찾고 설치 가능 �
     "${{ needs.build_ios.outputs.build_id }}"
   );
   expect(workflow.jobs.verify_new.needs).toEqual(["build_ios", "submit_ios"]);
+  expect(workflow.jobs.format_notification.after).toEqual(
+    expect.arrayContaining([
+      "identity",
+      "build_ios",
+      "submit_ios",
+      "verify_new",
+      "submit_existing",
+      "verify_submitted",
+      "update_ios",
+      "update_submitted",
+    ])
+  );
+  expect(workflow.jobs.notify_slack).toMatchObject({
+    environment: "production",
+    needs: ["format_notification"],
+    steps: [
+      {
+        uses: "eas/send_slack_message",
+        with: {
+          // biome-ignore lint/suspicious/noTemplateCurlyInString: EAS 표현식 원문을 검증한다.
+          message: "${{ needs.format_notification.outputs.message }}",
+        },
+      },
+    ],
+    type: "custom",
+  });
 });

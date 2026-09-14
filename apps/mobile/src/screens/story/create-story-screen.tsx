@@ -31,6 +31,7 @@ import {
 import { storyLabels } from "@/features/story/ui/story-labels";
 import { StoryOutlineTurn } from "@/features/story/ui/story-outline-card";
 import { useFocusOnArrival } from "@/shared/navigation/use-screen-arrival";
+import { trackPendingUserWork } from "@/shared/state/pending-user-work";
 
 /**
  * 화면을 열면 이미 놓여 있는 플린의 첫마디.
@@ -172,8 +173,9 @@ export function CreateStoryScreen({
     }
     requestLock.current = true;
     setAddingAt(newest.messageId);
-    chat
-      .sendMessage({ text: "에피소드를 하나 더 넣고 싶어요." })
+    trackPendingUserWork(
+      chat.sendMessage({ text: "에피소드를 하나 더 넣고 싶어요." })
+    )
       .catch(() => {
         // 요청 실패는 useChat의 error를 통해 기존 대화 재시도로 표시한다.
       })
@@ -196,12 +198,14 @@ export function CreateStoryScreen({
     starting.current = newest.messageId;
     setIsStarting(true);
 
-    saveStory(accessToken, newest.outline, (nextStage) => {
-      // biome-ignore lint/suspicious/noUnnecessaryConditions: 응답 전에 effect 정리 함수가 ref를 변경할 수 있다.
-      if (mounted.current) {
-        setStage(nextStage);
-      }
-    })
+    trackPendingUserWork(
+      saveStory(accessToken, newest.outline, (nextStage) => {
+        // biome-ignore lint/suspicious/noUnnecessaryConditions: 응답 전에 effect 정리 함수가 ref를 변경할 수 있다.
+        if (mounted.current) {
+          setStage(nextStage);
+        }
+      })
+    )
       .then((made) => {
         // biome-ignore lint/suspicious/noUnnecessaryConditions: 응답 전에 화면이 사라질 수 있다.
         if (mounted.current) {

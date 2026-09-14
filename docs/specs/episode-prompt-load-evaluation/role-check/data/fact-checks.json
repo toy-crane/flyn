@@ -1,0 +1,682 @@
+[
+  {
+    "id": "o7-owen-required-facts-5",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o4-renamed-train-facts-5",
+    "expected": [
+      {
+        "person": "Noah",
+        "event": "train"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Noah",
+        "event": "train"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o3-user-owner-facts-5",
+    "expected": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o3-user-owner-facts-3",
+    "expected": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o6-user-required-facts-2",
+    "expected": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o3-user-owner-facts-2",
+    "expected": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o6-user-required-facts-3",
+    "expected": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o6-user-required-facts-4",
+    "expected": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o7-owen-required-facts-4",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o3-user-owner-facts-4",
+    "expected": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o2-restated-facts-5",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o4-renamed-train-facts-4",
+    "expected": [
+      {
+        "person": "Noah",
+        "event": "train"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Noah",
+        "event": "train"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o7-owen-required-facts-1",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o3-user-owner-facts-1",
+    "expected": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o7-owen-required-facts-2",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o1-original-facts-4",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o5-longer-facts-2",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o1-original-facts-5",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o5-longer-facts-5",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o6-user-required-facts-1",
+    "expected": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o4-renamed-train-facts-2",
+    "expected": [
+      {
+        "person": "Noah",
+        "event": "train"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Noah",
+        "event": "train"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o1-original-facts-2",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o5-longer-facts-1",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o5-longer-facts-3",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o2-restated-facts-2",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o6-user-required-facts-5",
+    "expected": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "USER",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o8-two-schedules-facts-5",
+    "expected": [
+      {
+        "person": "USER",
+        "event": "train"
+      },
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      },
+      {
+        "person": "USER",
+        "event": "train"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o1-original-facts-1",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o4-renamed-train-facts-3",
+    "expected": [
+      {
+        "person": "Noah",
+        "event": "train"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Noah",
+        "event": "train"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o7-owen-required-facts-3",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o1-original-facts-3",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o8-two-schedules-facts-4",
+    "expected": [
+      {
+        "person": "USER",
+        "event": "train"
+      },
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "USER",
+        "event": "train"
+      },
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o2-restated-facts-1",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o8-two-schedules-facts-2",
+    "expected": [
+      {
+        "person": "USER",
+        "event": "train"
+      },
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      },
+      {
+        "person": "USER",
+        "event": "train"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o2-restated-facts-3",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o2-restated-facts-4",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o5-longer-facts-4",
+    "expected": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o4-renamed-train-facts-1",
+    "expected": [
+      {
+        "person": "Noah",
+        "event": "train"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Noah",
+        "event": "train"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o8-two-schedules-facts-3",
+    "expected": [
+      {
+        "person": "USER",
+        "event": "train"
+      },
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "USER",
+        "event": "train"
+      },
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "match": true
+  },
+  {
+    "id": "o8-two-schedules-facts-1",
+    "expected": [
+      {
+        "person": "USER",
+        "event": "train"
+      },
+      {
+        "person": "Owen",
+        "event": "meeting"
+      }
+    ],
+    "actual": [
+      {
+        "person": "Owen",
+        "event": "meeting"
+      },
+      {
+        "person": "USER",
+        "event": "train"
+      }
+    ],
+    "match": true
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "date": "2026-09-14",
+  "typescript": "Installed TypeScript --noEmit --strict on scratch run.ts, fixtures.ts and analyze.ts passed.",
+  "modelCalls": 120,
+  "uniqueCalls": 120,
+  "maskedMapReproduction": "Rebuilt blind map in a fresh scratch directory; exact file comparison passed.",
+  "savedResultsReproduction": "Rebuilt summary and mechanical checks from preserved data; exact file comparisons passed.",
+  "knownRegression": "Narrow fixture-specific phrase check detects original Owen meeting error and agrees with the 28 recorded new meeting observations.",
+  "documentationLinks": "Relative Markdown links in README.md and results.md resolve.",
+  "credentialLeakCheck": "No artifact contains the configured AI_GATEWAY_API_KEY.",
+  "productCodeChanged": false
+}

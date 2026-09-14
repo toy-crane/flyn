@@ -134,6 +134,49 @@ test("호환 빌드를 새로 제출한 뒤 설치 가능 확인과 Update가 �
   }
 });
 
+test("Slack 알림만 실패한 배포는 완료로 기록해 재배포하지 않는다", async () => {
+  const run = {
+    gitCommitHash: request.sha,
+    id,
+    jobs: [
+      identity,
+      {
+        key: "get_build",
+        outputs: { build_id: "existing" },
+        status: "success",
+      },
+      {
+        key: "check_existing",
+        outputs: { action: "update" },
+        status: "success",
+      },
+      {
+        key: "update_ios",
+        outputs: { first_update_group_id: "group" },
+        status: "success",
+      },
+      { key: "format_notification", status: "success" },
+      { key: "notify_slack", status: "failure" },
+    ],
+    status: "failure",
+  };
+  const server = serve({ fetch: () => Response.json({ data: run }), port: 0 });
+  try {
+    const remote = new EasDelivery({
+      listRuns: () => Promise.resolve([]),
+      maxPolls: 1,
+      origin: server.url.origin,
+      token: "fixture",
+    });
+    expect(await remote.inspect({ ...request, remoteId: id })).toEqual({
+      remoteId: id,
+      status: "success",
+    });
+  } finally {
+    server.stop(true);
+  }
+});
+
 test("Apple 처리 확인 없는 EAS 성공과 다른 요청의 실행은 완료로 기록하지 않는다", async () => {
   let run: {
     id: string;

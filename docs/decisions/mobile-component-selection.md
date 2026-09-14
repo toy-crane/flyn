@@ -27,7 +27,7 @@
 다음 자리는 원시 `Pressable`이 아니라 HeroUI의 다른 수단을 쓴다. 기본 컴포넌트 대신 쓰는 이유를 적어 두는 것이지 원시 `Pressable`을 허용하는 것이 아니다.
 
 - 채팅의 보내기, 중지, 최신 메시지 버튼: Glass 플로팅 컨트롤 안의 44pt 원형 아이콘 버튼이다. HeroUI `Button`의 가장 작은 크기가 40pt 고정이라 만들 수 없어, `PressableFeedback` 위에 만든 공용 아이콘 버튼 하나로 모은다. [모바일 AI 채팅 표현](mobile-ai-chat-rendering.md).
-- 대사 뜻 아래 `AI에게 물어보기`: `LinkButton`의 기본 축소 반응을 쓰고 눌림 배경은 두지 않는다. 2026-09-13 사용자가 배경 잔상을 없애기로 했다. 최소 높이는 터치 영역을 위해 44pt로 두고, 쉐브론 아이콘과 문구는 세로 중앙을 맞춘다.
+- 대사 뜻과 펼친 배울 표현 아래 `AI에게 물어보기`: `LinkButton`의 기본 축소 반응을 쓰고 눌림 배경은 두지 않는다. 2026-09-13 사용자가 배경 잔상을 없애기로 했다. `LinkButton`의 `sm` 크기와 공통 강조색을 쓴다. 최소 높이는 터치 영역을 위해 44pt로 두고, 쉐브론 아이콘과 문구는 세로 중앙을 맞춘다.
 - 메시지 아래 아이콘 줄의 28pt 버튼: `PressableFeedback` 위에 만든 버튼이며 하이라이트와 물결을 뺀다. [모바일 채팅 메시지 동작](mobile-chat-message-actions.md).
 - 탐색의 필터 칩: HeroUI `TagGroup` 기본 패턴이다. [모바일 스토리 탐색](mobile-story-browsing.md).
 
@@ -36,7 +36,8 @@
 - Settings와 시스템 폼은 `@expo/ui`가 소유하므로 이 계약의 대상이 아니다. [모바일 UI 렌더러 경계](mobile-ui-renderer-boundaries.md)를 따른다.
 - 진행 표시, 토스트, 아이콘은 각각의 계약이 HeroUI 대신 다른 수단을 정했다. 그 계약이 우선한다.
 - 텍스트 역할은 [모바일 타이포그래피](mobile-typography.md)가 정한다.
-- 기억해 둘 표현과 표현 노트의 펼침 카드, 회차 카드는 `Accordion` 표면 변형이고, 스토리 행, 화 행, 추천 아이디 행은 `ListGroup`이다. 2026-09-13 시안에서 사용자가 HeroUI 기본 모양으로 가기로 정했다. 펼치지 않는 카드(인물 대사 카드, 끝낸 화가 없는 회차 카드)는 `Card`다.
+- 기억해 둘 표현과 표현 노트의 펼침 카드는 `Accordion` 표면 변형이고, 스토리 행, 화 행, 추천 아이디 행은 `ListGroup`이다. 2026-09-13 시안에서 사용자가 HeroUI 기본 모양으로 가기로 정했다. 펼치지 않는 카드(인물 대사 카드)는 `Card`다.
+- 회차 카드는 2026-09-14 승인한 [모바일 스토리 탐색](mobile-story-browsing.md)의 Sheet 진입점이다. 펼치지 않는 HeroUI `Card`를 쓰고 본문의 누름은 `PressableFeedback`, 오른쪽 `···`는 별도 컨트롤로 처리한다. `Accordion`이나 카드 아래 이어서 하기 버튼으로 옮기지 않는다. Sheet 표시는 [모바일 UI 렌더러 경계](mobile-ui-renderer-boundaries.md), 그 안의 화 행은 이 계약의 목록 규칙을 따른다.
 - 펼침 카드에서 HeroUI `Accordion`이 주지 않는 것은 그 카드의 계약이 소유한 채로 남는다. 카드 밖 아래의 아이콘 줄, 손으로 조립하는 접근성 이름, 옆으로 민 뒤 뗀 것을 누름으로 치지 않는 판정이 그것이다. [표현 노트](expression-note.md).
 
 ## 이유

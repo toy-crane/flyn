@@ -14,6 +14,7 @@ import {
   type UtteranceMeaning,
   type UtteranceSpot,
 } from "@/features/episode/api/utterance-meaning";
+import { trackPendingUserWork } from "@/shared/state/pending-user-work";
 
 // React Native의 AbortSignal은 throwIfAborted 메서드를 제공하지 않는다.
 function assertAvailable(signal: AbortSignal) {
@@ -120,7 +121,7 @@ export function useUtteranceMeanings(
         }
       })();
       running.current.set(key, { controller, work });
-      return work;
+      return trackPendingUserWork(work);
     },
     [publish]
   );

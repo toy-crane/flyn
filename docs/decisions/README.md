@@ -39,12 +39,17 @@
 
 ## 데이터베이스
 
+- [데이터베이스 공통 필드](database-common-fields.md) — 앱 테이블의 생성·수정 시각이나 순서 열 이름을 정할 때 읽는다.
+- [표현 저장 구조](expression-storage.md) — 번역·교정·표현 노트의 저장, 책갈피 상태나 원본 삭제 뒤 수명을 바꿀 때 읽는다.
+
 - [Supabase 스키마 작업 방식](supabase-schema-workflow.md) — Supabase 스키마 원본, 로컬 스택, 마이그레이션, 타입 생성 또는 seed의 ID·갱신 규칙을 변경할 때 읽는다.
 - [Supabase 클라이언트 경계](supabase-client-boundaries.md) — Supabase 타입, 클라이언트 초기화, 세션 저장소 또는 런타임별 키 소유권을 변경할 때 읽는다.
 - [쓰기 규칙이 사는 자리](supabase-write-rules.md) — 데이터를 지키는 규칙을 데이터베이스, 서버, 앱 중 어디에 둘지 고르거나, 새 테이블의 쓰기 경로를 만들 때 읽는다.
 - [로컬 인증 제공자 설정](local-auth-provider-configuration.md) — 로컬 스택의 Google·Apple Provider 설정, client ID 보관 위치, OAuth client 구성 또는 Android 서명 등록을 변경할 때 읽는다.
 
 ## 모바일 기반
+
+- [모바일 업데이트 경험](mobile-update-experience.md) — 일반 EAS Update의 안내 여부, 적용 시점 또는 강제 업데이트와의 경계를 변경할 때 읽는다.
 
 - [모바일 코드 구조](mobile-code-architecture.md) — 모바일 영역 구분, 기능 내부 책임, 폴더 구조 또는 import 경계를 변경할 때 읽는다.
 - [모바일 개발 런타임](mobile-development-runtime.md) — 모바일 앱의 Expo SDK, 지원 플랫폼, Development Build 런타임 또는 배포 경계를 변경할 때 읽는다.
@@ -88,6 +93,7 @@
 - [모바일 채팅 메시지 동작](mobile-chat-message-actions.md) — 채팅 메시지의 복사, 수정, 다시 받기, 중지 또는 실패 뒤 다시 시도를 만들거나 바꿀 때 읽는다.
 - [모바일 채팅 스크롤](mobile-chat-scrolling.md) — 모바일 채팅의 질문 배치, 스트리밍 자동 추적, 읽던 위치 또는 최신 메시지 이동을 변경할 때 읽는다.
 - [모바일 스토리 탐색](mobile-story-browsing.md) — 홈·탐색·스토리·노트 탭의 역할, 탐색의 필터 칩, 스토리 상세, 새 대화와 회차별 기록을 변경할 때 읽는다.
+- [회차 삭제와 학습 기록 보존](story-play-deletion.md) — 회차 삭제의 확인과 범위, 삭제 후 연속 기록·영어로 말한 횟수 또는 저장한 표현의 수명을 변경할 때 읽는다.
 - [스토리 만들기](story-creation.md) — 화별로 원하는 상황을 정하는 인터뷰, 카드의 에피소드 추가와 확정 행동, 화 수, 대본·표지 생성, 실제 결과에 따른 연결 또는 만든 스토리의 수명을 바꿀 때 읽는다.
 - [인물 대사 번역](mobile-utterance-translation.md) — 대사별 번역 버튼, 대사 뜻 한 줄의 표시와 수명 또는 물어보기 진입을 변경할 때 읽는다.
 - [모바일 AI에게 물어보기](mobile-ask-ai.md) — AI에게 물어보기를 시작하는 자리, 이어받는 문맥, 시트, 수명 또는 다시 열기 방식을 변경할 때 읽는다.

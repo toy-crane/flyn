@@ -158,3 +158,52 @@ jobs:
       platform: ios
       channel: internal
       message: ${{ inputs.release_sha }} (${{ inputs.request_id }})
+
+  format_notification:
+    name: Classify mobile release result
+    type: custom
+    after: [identity, fingerprint, get_build, check_existing, build_ios, submit_ios, verify_new, submit_existing, verify_submitted, update_ios, update_submitted]
+    environment: production
+    env:
+      FLYN_RELEASE_SHA: ${{ inputs.release_sha }}
+      FLYN_WORKFLOW_URL: ${{ workflow.url }}
+      FLYN_EAS_ACCOUNT: ${{ account.name }}
+      FLYN_EAS_APP: ${{ app.slug }}
+      FLYN_IDENTITY_STATUS: ${{ after.identity.status }}
+      FLYN_FINGERPRINT_STATUS: ${{ after.fingerprint.status }}
+      FLYN_GET_BUILD_STATUS: ${{ after.get_build.status }}
+      FLYN_CHECK_EXISTING_STATUS: ${{ after.check_existing.status }}
+      FLYN_BUILD_IOS_STATUS: ${{ after.build_ios.status }}
+      FLYN_SUBMIT_IOS_STATUS: ${{ after.submit_ios.status }}
+      FLYN_VERIFY_NEW_STATUS: ${{ after.verify_new.status }}
+      FLYN_SUBMIT_EXISTING_STATUS: ${{ after.submit_existing.status }}
+      FLYN_VERIFY_SUBMITTED_STATUS: ${{ after.verify_submitted.status }}
+      FLYN_UPDATE_IOS_STATUS: ${{ after.update_ios.status }}
+      FLYN_UPDATE_SUBMITTED_STATUS: ${{ after.update_submitted.status }}
+      FLYN_ACTION: ${{ after.check_existing.outputs.action }}
+      FLYN_NEW_BUILD_ID: ${{ after.build_ios.outputs.build_id }}
+      FLYN_EXISTING_BUILD_ID: ${{ after.get_build.outputs.build_id }}
+      FLYN_APP_VERSION: ${{ after.build_ios.outputs.app_version }}
+      FLYN_APP_BUILD_VERSION: ${{ after.build_ios.outputs.app_build_version }}
+      FLYN_EXISTING_APP_VERSION: ${{ after.get_build.outputs.app_version }}
+      FLYN_EXISTING_APP_BUILD_VERSION: ${{ after.get_build.outputs.app_build_version }}
+      FLYN_UPDATE_ID: ${{ after.update_ios.outputs.first_update_group_id }}
+      FLYN_SUBMITTED_UPDATE_ID: ${{ after.update_submitted.outputs.first_update_group_id }}
+    outputs:
+      message: ${{ steps.format.outputs.message }}
+    steps:
+      - uses: eas/checkout
+      - id: format
+        run: |
+          MESSAGE=$(bun ../../scripts/ci/release-notification.ts)
+          set-output message "$MESSAGE"
+
+  notify_slack:
+    name: Notify Slack of mobile release result
+    type: custom
+    needs: [format_notification]
+    environment: production
+    steps:
+      - uses: eas/send_slack_message
+        with:
+          message: ${{ needs.format_notification.outputs.message }}

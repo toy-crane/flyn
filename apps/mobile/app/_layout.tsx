@@ -4,7 +4,8 @@ import { Stack } from "expo-router";
 import { hide as hideSplashScreen } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { HeroUINativeProvider } from "heroui-native/provider";
-import { useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
+import { BackHandler, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
@@ -19,6 +20,8 @@ import {
 } from "@/core/navigation/story-screens";
 import { QueryProvider } from "@/core/providers/query-provider";
 import { AppThemeBridge, useAppTheme } from "@/core/theme/app-theme-bridge";
+import { useAppVersionGate } from "@/features/app-version/use-app-version-gate";
+import { useUpdateScreenVisibility } from "@/features/app-version/use-update-screen-visibility";
 import { AuthSessionProvider } from "@/features/auth/state/auth-session";
 import { ProfileUnavailableScreen } from "@/screens/session/profile-unavailable-screen";
 import { SessionCheckingScreen } from "@/screens/session/session-checking-screen";
@@ -28,53 +31,96 @@ const heroUIConfig = {
   devInfo: { stylingPrinciples: false },
 } as const;
 
+function AppContent({
+  blocked,
+  children,
+}: {
+  blocked: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <View
+      accessibilityElementsHidden={blocked}
+      importantForAccessibility={blocked ? "no-hide-descendants" : "auto"}
+      pointerEvents={blocked ? "none" : "auto"}
+      style={{ flex: 1 }}
+    >
+      {children}
+    </View>
+  );
+}
+
 function ThemedRootLayout() {
   const { background, foreground, scheme } = useAppTheme();
   const { area, checkingPhase, isRetryingProfile, problem, retryProfile } =
     useProtectedArea();
+  const versionGate = useAppVersionGate();
+  const showUpdateScreen = useUpdateScreenVisibility(
+    versionGate.status === "blocked"
+  );
   const settingsScreenOptions = getSettingsScreenOptions(background);
   const storyScreenOptions = getStoryScreenOptions({ background, foreground });
   useEffect(() => {
-    if (area === "misconfigured" || area === "profileUnavailable") {
+    if (
+      area === "misconfigured" ||
+      area === "profileUnavailable" ||
+      versionGate.status === "blocked"
+    ) {
       hideSplashScreen();
     }
-  }, [area]);
+  }, [area, versionGate.status]);
+  useEffect(() => {
+    if (versionGate.status !== "blocked") {
+      return;
+    }
+    const listener = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => true
+    );
+    return () => listener.remove();
+  }, [versionGate.status]);
 
-  if (area === "checking") {
-    return <SessionCheckingScreen phase={checkingPhase} />;
-  }
-
-  if (area === "misconfigured" || area === "profileUnavailable") {
+  if (versionGate.status === "checking") {
     return (
-      <>
-        {area === "misconfigured" ? (
-          <SetupNeededScreen problem={problem ?? ""} />
-        ) : (
-          <ProfileUnavailableScreen
-            isRetrying={isRetryingProfile}
-            onRetry={retryProfile}
-          />
-        )}
-      </>
+      <SessionCheckingScreen
+        phase={area === "checking" ? checkingPhase : "version"}
+      />
     );
   }
 
-  return (
-    <>
-      {/*
-        The guards decide which group exists at all, so there is no screen to
-        navigate away from and no redirect to write. Expo Router also drops the
-        history of a group whose guard turns false, which is what keeps a signed
-        out person from swiping back into a protected screen — and what closes
-        onboarding the moment the profile is finished.
-      */}
+  let content: ReactNode;
+  if (!showUpdateScreen && area === "checking") {
+    content = <SessionCheckingScreen phase={checkingPhase} />;
+  } else if (
+    !showUpdateScreen &&
+    (area === "misconfigured" || area === "profileUnavailable")
+  ) {
+    content =
+      area === "misconfigured" ? (
+        <SetupNeededScreen problem={problem ?? ""} />
+      ) : (
+        <ProfileUnavailableScreen
+          isRetrying={isRetryingProfile}
+          onRetry={retryProfile}
+        />
+      );
+  } else {
+    content = (
+      // The protected groups still own navigation. Keep this tree mounted so
+      // an in-flight response or save can settle before the modal covers it.
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: background },
           headerShown: false,
         }}
       >
-        <Stack.Protected guard={area === "app"}>
+        <Stack.Protected guard={showUpdateScreen}>
+          <Stack.Screen
+            name="update-required"
+            options={{ animation: "none", gestureEnabled: false }}
+          />
+        </Stack.Protected>
+        <Stack.Protected guard={!showUpdateScreen && area === "app"}>
           <Stack.Screen name="(tabs)" />
           {/* 상세와 기록은 탭 전체를 덮고, 뒤로 가면 들어온 화면으로 돌아간다. */}
           {storyScreens.map((storyScreen) => (
@@ -84,21 +130,9 @@ function ThemedRootLayout() {
               options={{ ...storyScreenOptions, title: storyScreen.title }}
             />
           ))}
-          {/*
-            An episode is pushed here so the native push covers the tab bar.
-            The scene needs the whole screen. It brings its own stack,
-            which draws the episode's header
-            and presents asking about a correction as a sheet over it. Left on,
-            this screen would show a second header above that one.
-          */}
+          {/* 에피소드는 화면 전체를 쓰므로 탭과 루트 헤더 위에 push한다. */}
           <Stack.Screen name="episode" />
-          {/*
-            The settings hierarchy is pushed here, screen by screen, for the
-            same reason: the native push covers the tab bar. Unlike
-            에피소드 these bring no stack of their own — a nested stack would
-            make 설정 a first screen, and a first screen has no native back
-            button to go back to the tab with.
-          */}
+          {/* 설정 계층은 같은 루트 Stack에서 네이티브 뒤로 가기를 공유한다. */}
           {settingsScreens.map((settingsScreen) => (
             <Stack.Screen
               key={settingsScreen.name}
@@ -110,13 +144,23 @@ function ThemedRootLayout() {
             />
           ))}
         </Stack.Protected>
-        <Stack.Protected guard={area === "onboarding"}>
+        <Stack.Protected guard={!showUpdateScreen && area === "onboarding"}>
           <Stack.Screen name="(onboarding)" />
         </Stack.Protected>
-        <Stack.Protected guard={area === "signedOut"}>
+        <Stack.Protected guard={!showUpdateScreen && area === "signedOut"}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
       </Stack>
+    );
+  }
+
+  return (
+    <>
+      <AppContent
+        blocked={versionGate.status === "blocked" && !showUpdateScreen}
+      >
+        {content}
+      </AppContent>
       {/*
         The chosen screen mode, not the operating system's. `auto` reads the OS,
         so a person who picks 다크 while the phone is light gets dark text on

@@ -34,6 +34,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_version_policies: {
+        Row: {
+          created_at: string
+          distribution: string
+          install_url: string | null
+          minimum_version: string | null
+          platform: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          distribution: string
+          install_url?: string | null
+          minimum_version?: string | null
+          platform: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          distribution?: string
+          install_url?: string | null
+          minimum_version?: string | null
+          platform?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       characters: {
         Row: {
           id: string
