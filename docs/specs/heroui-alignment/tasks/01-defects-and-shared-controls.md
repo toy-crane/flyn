@@ -11,7 +11,8 @@
 HeroUI 컴포넌트의 눌림 반응과 비활성 표현을 갖는다. 공용 버튼의 가로 여백이
 HeroUI 기본값으로 돌아가고 진행 표시와 앞 아이콘이 라벨 옆 줄 안에 서며, 큰
 글자에서 버튼이 자라는 것은 유지된다. 소비자가 없는 토스트 설정이 사라지고 로그인
-버튼이 테마 브리지를 읽는다.
+버튼이 테마 브리지를 읽는다. `heroui-native`가 1.0.9로 올라가 HeroUI 컴포넌트
+라벨과 `Typography`의 굵기가 커스텀 폰트 없이 기기에서 그려진다.
 
 ## Blockers
 
@@ -29,6 +30,9 @@ None.
 - [x] 공용 버튼의 진행 표시와 앞 아이콘이 라벨 왼쪽 줄 안에 서고, 진행 중에도 버튼 크기가 흔들리지 않는다. 하단 행동 버튼과 인증 버튼의 너비와 자리가 달라지지 않는다.
 - [x] 로그인, 대화, 프로필 편집 화면을 [모바일 타이포그래피](../../../decisions/mobile-typography.md)의 절차로 최대 글자 크기에서 열어 버튼, 알약, 필드 오류가 잘리거나 겹치지 않고 버튼이 라벨만큼 자란다.
 - [x] 앱의 토스트 설정에 HeroUI 토스트 항목이 없고, 로그인 버튼 코드가 `useColorScheme`를 읽지 않는다.
+- [ ] 설치된 `heroui-native`가 1.0.9이고, iOS와 Android 기기에서 HeroUI 버튼 라벨과 `Typography.Heading`이 본문보다 굵게 그려진다.
+- [ ] 1.0.8을 근거로 적은 결정 계약의 줄이 1.0.9 소스와 맞게 고쳐져 있다.
+- [ ] 1.0.9에서 위 기준의 화면(공용 버튼, 공용 아이콘 버튼, 채팅 재시도 알약과 편집 취소, 인증 필드 오류와 코드 칸, 대사 뜻 아래 `AI에게 물어보기` 링크, 토스트)을 기본 크기와 최대 글자 크기, 밝은 화면과 어두운 화면으로 다시 열어 잘림과 겹침이 없다.
 
 ## Constraints
 
@@ -37,6 +41,8 @@ None.
 - 로그인 버튼의 브랜드 모양과 진행 표시는 [모바일 작업 진행 표시](../../../decisions/mobile-action-progress.md)가 소유한다. 색을 읽는 경로만 바꾼다.
 - 하단 행동 버튼의 배치는 [모바일 하단 CTA](../../../decisions/mobile-bottom-cta.md)를 따른다.
 - 전송 버튼이 진행 표시로 바뀌는 규칙은 [모바일 채팅 메시지 동작](../../../decisions/mobile-chat-message-actions.md)을 따른다.
+- 굵기를 되살리려고 global.css 재정의나 `--font-*` 변수를 더하지 않는다. 버전 결정은 [모바일 컴포넌트 선택](../../../decisions/mobile-component-selection.md)이 소유한다.
+- 올리기 전의 기기 증거는 지우지 않는다. 1.0.9 확인은 새 증거로 더한다.
 
 ## Verification
 
@@ -46,6 +52,7 @@ None.
 - 기기 확인: `xcrun simctl ui <udid> content_size accessibility-extra-extra-extra-large`로 바꾼 뒤 앱을 완전히 닫고 다시 시작해 로그인, 대화, 프로필 편집 화면을 찍는다. 통과 조건은 잘림과 겹침이 없고 버튼이 라벨만큼 자라는 것이다. 다크 모드 세 표면은 같은 화면 모드에서 찍어 색값이 같다.
 - `agent-device` 접근성 트리에서 인증 오류 문구가 알림 역할이고, 공용 아이콘 버튼이 버튼 역할과 이름을 갖는다.
 - 변경을 `mobile-ui-consistency-reviewer`로 검토하고 실행 증거가 없는 항목은 `UNVERIFIED`로 남긴다.
+- 1.0.9: `apps/mobile/node_modules/heroui-native/package.json`의 버전이 1.0.9이고, Metro가 컴파일한 global.css에서 `text__root--type-h6`와 `button__label`에 `fontWeight`가 있다. 기기 확인은 위 절차로 iOS와 Android에서 하고, 굵기는 같은 화면의 본문과 나란히 찍어 비교한다.
 
 ## Review checkpoint
 
@@ -53,7 +60,7 @@ None.
 
 ## Status
 
-completed
+in-progress
 
 ## Execution
 
@@ -65,3 +72,4 @@ completed
   - `mobile-ui-consistency-reviewer`: FINDINGS 없음(PASS_WITH_GAPS). UNVERIFIED로 남은 것: iOS 최대 크기의 아이디 다시 시도 줄(시뮬레이터에서 네트워크 실패를 만들 수 없음), 전폭 버튼의 진행 중 모습, 최신 메시지 Glass 버튼을 누르는 동안의 모습, 밝은 화면 표면색 표본, VoiceOver·TalkBack 낭독. iOS 접근성 트리는 알림 역할을 드러내지 않는다(RN이 iOS 특성으로 옮기지 않음). 역할은 jest와 Android 노드 클래스로 확인했다.
 - Blocker: —
 - Revision: 기술 경로만 바꿨다. 기능이 `core`를 import할 수 없어 로그인 버튼은 경로 파일이 `useAppTheme`로 읽은 화면 모드를 prop으로 받는다. HeroUI 기본 여백에서는 내용 너비 버튼에 진행 표시가 들어올 자리가 없어, 진행 중에 문구 폭을 원래대로 고정해 줄이 버튼 좌우 여백으로 넘치게 했다. 최대 글자에서 대화 오류 문구가 한 글자 폭으로 눌리는 것을 기기에서 발견해 오류 줄을 `flex-wrap`으로 바꿨다. 문구에 줄어드는 성질을 주면 줄이 나뉘지 않는다. [모바일 작업 진행 표시](../../../decisions/mobile-action-progress.md)의 "문구 위치 유지" 문장은 줄 안 슬롯을 정한 [모바일 컴포넌트 선택](../../../decisions/mobile-component-selection.md)보다 오래된 표현이라 따로 기록한다.
+  - 2026-09-14 스펙 개정(2fb26ed): 1.0.8이 시스템 폰트에서 굵기를 빠뜨려 사용자가 1.0.9로 올리기로 정했다. 이 작업이 01의 범위(결함과 시안 없이 되돌릴 수 있는 것)에 들어오고 01이 넘긴 버튼과 링크의 모습을 바꾸므로 01을 in-progress로 되돌렸다. 위 증거는 1.0.8 기준으로 남긴다.
