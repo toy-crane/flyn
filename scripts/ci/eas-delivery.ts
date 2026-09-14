@@ -233,6 +233,20 @@ export class EasDelivery {
       // biome-ignore lint/performance/noAwaitInLoops: 원격 실행의 실제 완료를 기다린다.
       const run = await this.run(id, request);
       if (["failure", "canceled"].includes(run.status) && !hasRunningJob(run)) {
+        const failures = run.jobs.filter((job) => job.status === "failure");
+        if (
+          run.status === "failure" &&
+          failures.length > 0 &&
+          failures.every((job) =>
+            ["format_notification", "notify_slack"].includes(job.key)
+          )
+        ) {
+          this.requireResult(run, request);
+          console.warn(
+            `EAS ${id}: Slack 알림 실패. 모바일 배포는 완료됐습니다.`
+          );
+          return { remoteId: id, status: "success" };
+        }
         return { remoteId: id, status: "failure" };
       }
       if (run.status === "success") {
