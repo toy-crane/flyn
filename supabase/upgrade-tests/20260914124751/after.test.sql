@@ -1,5 +1,5 @@
 begin;
-select plan(7);
+select plan(8);
 
 select results_eq(
   $$select kind, source_id, user_id, occurred_at from public.learning_events order by kind, source_id$$,
@@ -24,8 +24,16 @@ select results_eq(
 );
 
 delete from public.story_plays where id = 'b1111111-1111-4111-8111-111111111111';
-select is((select count(*) from public.learning_events), 2::bigint,
-  'deleting a run preserves both study facts');
+select is((select count(*) from public.learning_events), 3::bigint,
+  'deleting a run preserves prior facts and its pending English message');
+select results_eq(
+  $$select source_id, user_id, occurred_at from public.learning_events
+    where kind = 'english_message'
+      and source_id = 'd4444444-4444-4444-8444-444444444444'$$,
+  $$select id, user_id, created_at from ci_learning_upgrade.messages
+    where id = 'd4444444-4444-4444-8444-444444444444'$$,
+  'the pending English message keeps its original speaker and time'
+);
 select is((select count(*) from public.episode_messages), 0::bigint,
   'deleting a run removes its conversation');
 select results_eq(
