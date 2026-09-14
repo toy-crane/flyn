@@ -63,6 +63,9 @@ export function StoryRecordsRoute() {
   );
   const confirmDelete = useCallback(
     (storyPlayId: string) => {
+      if (deleting.current.storyPlayId) {
+        return;
+      }
       const showConfirmation = (failed: boolean) => {
         Alert.alert(
           storyLabels.deleteRunTitle,
