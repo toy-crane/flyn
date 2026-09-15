@@ -1,0 +1,194 @@
+diff --git a/react-native.js b/react-native.js
+index b3c5a306b293f797a8b338adfca3060c0f6db22b..f827674c6c7ac2b56a33ca1494b85f6c80c58ffa 100644
+--- a/react-native.js
++++ b/react-native.js
+@@ -1100,6 +1100,28 @@ function updateContentMetricsState(ctx) {
+   }
+ }
+ 
++// Wait for the scroll-owned inset before reducing the native content range.
++// Otherwise native ScrollView clamps to the old inset while rows collapse.
++function publishTotalSizeAfterInset(ctx, afterInsetFrame = false) {
++  const state = ctx.state;
++  const renderedSize = peek$(ctx, "totalSize") || 0;
++  const requiredInset = state.props.anchoredEndSpace ? peek$(ctx, "anchoredEndSpaceSize") || 0 : 0;
++  const nativeInset = state.contentInsetOverride?.bottom || 0;
++  const needsInset = !state.props.horizontal && state.props.anchoredEndSpaceOwner === "scroll" && requiredInset > nativeInset + 0.5;
++  if (state.totalSize < renderedSize && needsInset) {
++    state.awaitingAnchoredInset = true;
++    state.scheduledWork.cancel("anchoredInsetShrink");
++    return;
++  }
++  if (state.awaitingAnchoredInset && !afterInsetFrame && state.totalSize < renderedSize) {
++    state.scheduledWork.frame(() => publishTotalSizeAfterInset(ctx, true), "anchoredInsetShrink");
++    return;
++  }
++  state.awaitingAnchoredInset = false;
++  state.scheduledWork.cancel("anchoredInsetShrink");
++  set$(ctx, "totalSize", state.totalSize);
++}
++
+ // src/core/addTotalSize.ts
+ function addTotalSize(ctx, key, add, notifyTotalSize = true) {
+   const state = ctx.state;
+@@ -1121,12 +1143,12 @@ function addTotalSize(ctx, key, add, notifyTotalSize = true) {
+       state.pendingTotalSize = void 0;
+       state.totalSize = totalSize;
+       if (notifyTotalSize) {
+-        set$(ctx, "totalSize", totalSize);
++        publishTotalSizeAfterInset(ctx);
+       }
+       updateContentMetricsState(ctx);
+     }
+   } else if (notifyTotalSize && ctx.values.get("totalSize") !== totalSize) {
+-    set$(ctx, "totalSize", totalSize);
++    publishTotalSizeAfterInset(ctx);
+   }
+ }
+ 
+@@ -4641,7 +4663,7 @@ function calculateItemsInView(ctx, params = {}) {
+ }
+ 
+ // src/core/updateAnchoredEndSpace.ts
+-function maybeUpdateAnchoredEndSpace(ctx) {
++function maybeUpdateAnchoredEndSpace(ctx, beforeContentResize = false) {
+   var _a3, _b;
+   const state = ctx.state;
+   const anchoredEndSpace = state.props.anchoredEndSpace;
+@@ -4687,11 +4709,16 @@ function maybeUpdateAnchoredEndSpace(ctx) {
+       set$(ctx, "anchoredEndSpaceSize", nextSize);
+       (_a3 = anchoredEndSpace == null ? void 0 : anchoredEndSpace.onSizeChanged) == null ? void 0 : _a3.call(anchoredEndSpace, nextSize);
+     }
+-    if (didEffectiveSizeChange) {
++    if (didEffectiveSizeChange && !beforeContentResize) {
+       updateContentMetricsState(ctx);
+       updateScroll(ctx, state.scroll, true, { markHasScrolled: false });
+     }
+-    (_b = anchoredEndSpace == null ? void 0 : anchoredEndSpace.onReady) == null ? void 0 : _b.call(anchoredEndSpace, { anchorIndex: nextAnchorIndex, anchorKey: nextAnchorKey, size: nextSize });
++    if (!beforeContentResize) {
++      (_b = anchoredEndSpace == null ? void 0 : anchoredEndSpace.onReady) == null ? void 0 : _b.call(anchoredEndSpace, { anchorIndex: nextAnchorIndex, anchorKey: nextAnchorKey, size: nextSize });
++    }
++  }
++  if (state.awaitingAnchoredInset && !beforeContentResize) {
++    publishTotalSizeAfterInset(ctx);
+   }
+   return nextSize;
+ }
+@@ -4910,6 +4937,10 @@ function updateOneItemSize(ctx, itemKey, sizeObj, resolvedMeasurementItem) {
+   }
+   const size = Platform.OS === "web" ? Math.round(rawSize) : roundSize(rawSize);
+   sizesKnown.set(itemKey, size);
++  if (prevSizeKnown !== void 0 && size < prevSizeKnown) {
++    // Update the inset without recursively recalculating the old row positions.
++    maybeUpdateAnchoredEndSpace(ctx, true);
++  }
+   if (fixedItemSize === void 0 && size > 0) {
+     itemType != null ? itemType : itemType = getItemType ? (_b = getItemType(itemData, index)) != null ? _b : "" : "";
+     let averages = averageSizes[itemType];
+@@ -6775,6 +6806,9 @@ function createImperativeHandle(ctx, scheduleImperativeScrollCommit) {
+     }),
+     reportContentInset: (inset) => {
+       const didChange = setContentInsetOverride(ctx, inset);
++      if (state.awaitingAnchoredInset) {
++        publishTotalSizeAfterInset(ctx);
++      }
+       updateScroll(ctx, state.scroll, true, { markHasScrolled: false });
+       if (didChange) {
+         retargetActiveInitialScrollAtEnd(ctx);
+diff --git a/react-native.mjs b/react-native.mjs
+index 40e87cda8c9bc79a889e5542f29af429a24b24d4..cbd1593f4c7b360a455e7291b78ef0154e601627 100644
+--- a/react-native.mjs
++++ b/react-native.mjs
+@@ -1079,6 +1079,28 @@ function updateContentMetricsState(ctx) {
+   }
+ }
+ 
++// Wait for the scroll-owned inset before reducing the native content range.
++// Otherwise native ScrollView clamps to the old inset while rows collapse.
++function publishTotalSizeAfterInset(ctx, afterInsetFrame = false) {
++  const state = ctx.state;
++  const renderedSize = peek$(ctx, "totalSize") || 0;
++  const requiredInset = state.props.anchoredEndSpace ? peek$(ctx, "anchoredEndSpaceSize") || 0 : 0;
++  const nativeInset = state.contentInsetOverride?.bottom || 0;
++  const needsInset = !state.props.horizontal && state.props.anchoredEndSpaceOwner === "scroll" && requiredInset > nativeInset + 0.5;
++  if (state.totalSize < renderedSize && needsInset) {
++    state.awaitingAnchoredInset = true;
++    state.scheduledWork.cancel("anchoredInsetShrink");
++    return;
++  }
++  if (state.awaitingAnchoredInset && !afterInsetFrame && state.totalSize < renderedSize) {
++    state.scheduledWork.frame(() => publishTotalSizeAfterInset(ctx, true), "anchoredInsetShrink");
++    return;
++  }
++  state.awaitingAnchoredInset = false;
++  state.scheduledWork.cancel("anchoredInsetShrink");
++  set$(ctx, "totalSize", state.totalSize);
++}
++
+ // src/core/addTotalSize.ts
+ function addTotalSize(ctx, key, add, notifyTotalSize = true) {
+   const state = ctx.state;
+@@ -1100,12 +1122,12 @@ function addTotalSize(ctx, key, add, notifyTotalSize = true) {
+       state.pendingTotalSize = void 0;
+       state.totalSize = totalSize;
+       if (notifyTotalSize) {
+-        set$(ctx, "totalSize", totalSize);
++        publishTotalSizeAfterInset(ctx);
+       }
+       updateContentMetricsState(ctx);
+     }
+   } else if (notifyTotalSize && ctx.values.get("totalSize") !== totalSize) {
+-    set$(ctx, "totalSize", totalSize);
++    publishTotalSizeAfterInset(ctx);
+   }
+ }
+ 
+@@ -4620,7 +4642,7 @@ function calculateItemsInView(ctx, params = {}) {
+ }
+ 
+ // src/core/updateAnchoredEndSpace.ts
+-function maybeUpdateAnchoredEndSpace(ctx) {
++function maybeUpdateAnchoredEndSpace(ctx, beforeContentResize = false) {
+   var _a3, _b;
+   const state = ctx.state;
+   const anchoredEndSpace = state.props.anchoredEndSpace;
+@@ -4666,11 +4688,16 @@ function maybeUpdateAnchoredEndSpace(ctx) {
+       set$(ctx, "anchoredEndSpaceSize", nextSize);
+       (_a3 = anchoredEndSpace == null ? void 0 : anchoredEndSpace.onSizeChanged) == null ? void 0 : _a3.call(anchoredEndSpace, nextSize);
+     }
+-    if (didEffectiveSizeChange) {
++    if (didEffectiveSizeChange && !beforeContentResize) {
+       updateContentMetricsState(ctx);
+       updateScroll(ctx, state.scroll, true, { markHasScrolled: false });
+     }
+-    (_b = anchoredEndSpace == null ? void 0 : anchoredEndSpace.onReady) == null ? void 0 : _b.call(anchoredEndSpace, { anchorIndex: nextAnchorIndex, anchorKey: nextAnchorKey, size: nextSize });
++    if (!beforeContentResize) {
++      (_b = anchoredEndSpace == null ? void 0 : anchoredEndSpace.onReady) == null ? void 0 : _b.call(anchoredEndSpace, { anchorIndex: nextAnchorIndex, anchorKey: nextAnchorKey, size: nextSize });
++    }
++  }
++  if (state.awaitingAnchoredInset && !beforeContentResize) {
++    publishTotalSizeAfterInset(ctx);
+   }
+   return nextSize;
+ }
+@@ -4889,6 +4916,10 @@ function updateOneItemSize(ctx, itemKey, sizeObj, resolvedMeasurementItem) {
+   }
+   const size = Platform.OS === "web" ? Math.round(rawSize) : roundSize(rawSize);
+   sizesKnown.set(itemKey, size);
++  if (prevSizeKnown !== void 0 && size < prevSizeKnown) {
++    // Update the inset without recursively recalculating the old row positions.
++    maybeUpdateAnchoredEndSpace(ctx, true);
++  }
+   if (fixedItemSize === void 0 && size > 0) {
+     itemType != null ? itemType : itemType = getItemType ? (_b = getItemType(itemData, index)) != null ? _b : "" : "";
+     let averages = averageSizes[itemType];
+@@ -6754,6 +6785,9 @@ function createImperativeHandle(ctx, scheduleImperativeScrollCommit) {
+     }),
+     reportContentInset: (inset) => {
+       const didChange = setContentInsetOverride(ctx, inset);
++      if (state.awaitingAnchoredInset) {
++        publishTotalSizeAfterInset(ctx);
++      }
+       updateScroll(ctx, state.scroll, true, { markHasScrolled: false });
+       if (didChange) {
+         retargetActiveInitialScrollAtEnd(ctx);

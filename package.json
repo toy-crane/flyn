@@ -53,6 +53,7 @@
     }
   },
   "patchedDependencies": {
-    "heroui-native@1.0.9": "patches/heroui-native@1.0.9.patch"
+    "heroui-native@1.0.9": "patches/heroui-native@1.0.9.patch",
+    "@legendapp/list@3.3.5": "patches/@legendapp%2Flist@3.3.5.patch"
   }
 }
