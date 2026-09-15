@@ -6,11 +6,22 @@ test("하나로 끝내는 안내만 있거나 막연한 추가 질문이면 제�
   for (const answer of [
     "지금 에피소드만 만들어도 좋아요.",
     "다른 에피소드도 해 볼까요? 지금 에피소드만 만들어도 좋아요.",
+    "다른 이야기는 제안하지 않을게요. 지금 에피소드만 만들어도 좋아요.",
   ]) {
     expect(creationViolations(answer, [], { proposes: true })).toContain(
       "다음 사건 제안 없음"
     );
   }
+});
+
+test("하나만으로는 부족하다는 답은 선택권 안내가 아니다", () => {
+  expect(
+    creationViolations(
+      "지금 에피소드만으로는 부족해요. 동료에게 취미를 물어볼까요?",
+      [],
+      { proposes: true }
+    )
+  ).toContain("한 에피소드로 끝내는 안내 없음");
 });
 
 test("제안 끝의 다른 문자권 조각도 놓치지 않는다", () => {

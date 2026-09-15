@@ -12,7 +12,10 @@ const OPTIONAL_EPISODE =
 // 고정 사례에서 사건의 행동과 제안 표현을 함께 확인하는 누락 검사다.
 // 사건의 연결성, 구체성, 기존 사건과의 차이는 여전히 전문으로 확인한다.
 const EVENT_ACTION = /물어|묻|물으며|부탁|요청|이야기|말을 걸|꺼내|설명|상의/u;
-const EVENT_OFFER = /볼까요|어때요|어떨까요|제안|할 수 있어|해도 좋아/u;
+const EVENT_OFFER =
+  /볼까요|어때요|어떨까요|제안해요|제안할게요|할 수 있어|해도 좋아/u;
+const OPTIONAL_PERMISSION = /좋아요|괜찮|충분|돼요|됩니다|가능|할 수 있어/u;
+const NEGATIVE_PERMISSION = /부족|안 돼|안돼|불가능|않|없/u;
 const SENTENCE_BREAK = /[.!?\n]/u;
 const PREDETERMINED_RESULT =
   /문제를 해결한 뒤(?!가 아니라)|교환받은 (?:새 )?기계|교환한 뒤|아기가 잠든 뒤|아기를 달랜 뒤/u;
@@ -115,7 +118,17 @@ function hasEventOffer(answer: string): boolean {
 
 function proposalViolations(answer: string): string[] {
   const violations: string[] = [];
-  if (!OPTIONAL_EPISODE.test(answer)) {
+  const optional = answer
+    .split(SENTENCE_BREAK)
+    .some(
+      (sentence) =>
+        OPTIONAL_EPISODE.test(sentence) &&
+        OPTIONAL_PERMISSION.test(sentence) &&
+        !NEGATIVE_PERMISSION.test(
+          sentence.replace(/추가하지 않|더하지 않/gu, "")
+        )
+    );
+  if (!optional) {
     violations.push("한 에피소드로 끝내는 안내 없음");
   }
   if (!hasEventOffer(answer)) {
