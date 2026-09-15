@@ -17,7 +17,7 @@ SELECT results_eq(
   '화의 ID와 스토리 관계와 값이 그대로다'
 );
 
--- 그 위에 쌓인 회차별 진행 상태의 연결도 그대로다.
+-- 그 위에 쌓인 플레이 기록의 연결도 그대로다.
 SELECT results_eq(
   $$SELECT to_jsonb(r) FROM public.story_plays r ORDER BY id$$,
   $$SELECT to_jsonb(r) FROM ci_preservation.story_plays r ORDER BY id$$,
