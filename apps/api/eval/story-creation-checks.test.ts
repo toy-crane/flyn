@@ -2,6 +2,17 @@ import { expect, test } from "bun:test";
 import { CREATION_CASES } from "./story-creation-cases";
 import { creationViolations } from "./story-creation-checks";
 
+test("하나로 끝내는 안내만 있거나 막연한 추가 질문이면 제안 누락으로 잡는다", () => {
+  for (const answer of [
+    "지금 에피소드만 만들어도 좋아요.",
+    "다른 에피소드도 해 볼까요? 지금 에피소드만 만들어도 좋아요.",
+  ]) {
+    expect(creationViolations(answer, [], { proposes: true })).toContain(
+      "다음 사건 제안 없음"
+    );
+  }
+});
+
 test("제안 끝의 다른 문자권 조각도 놓치지 않는다", () => {
   expect(
     creationViolations("승무원에게 따뜻한 물을 부탁해 볼까요? ઉમ?", [], {})

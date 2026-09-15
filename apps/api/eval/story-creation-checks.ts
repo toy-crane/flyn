@@ -9,6 +9,11 @@ const LIMIT_COUNT = /(5|다섯)/u;
 const LIMIT_NOTICE = /없|최대|상한|한도/u;
 const OPTIONAL_EPISODE =
   /(?:만으로|만 해도|만 하셔도|만 만들|만 진행|만 연습해도|만 에피소드로|하나로|하나만|한 (?:화|에피소드)로|한 화만|추가하지 않|더하지 않|추가 없이)/u;
+// 고정 사례에서 사건의 행동과 제안 표현을 함께 확인하는 누락 검사다.
+// 사건의 연결성, 구체성, 기존 사건과의 차이는 여전히 전문으로 확인한다.
+const EVENT_ACTION = /물어|묻|물으며|부탁|요청|이야기|말을 걸|꺼내|설명|상의/u;
+const EVENT_OFFER = /볼까요|어때요|어떨까요|제안|할 수 있어|해도 좋아/u;
+const SENTENCE_BREAK = /[.!?\n]/u;
 const PREDETERMINED_RESULT =
   /문제를 해결한 뒤(?!가 아니라)|교환받은 (?:새 )?기계|교환한 뒤|아기가 잠든 뒤|아기를 달랜 뒤/u;
 // 실제 출력에서 발견한 의미 반전의 회귀 검사다. 나머지 의미는 전문으로 확인한다.
@@ -100,6 +105,25 @@ function cardViolations(
   return violations;
 }
 
+function hasEventOffer(answer: string): boolean {
+  return answer
+    .split(SENTENCE_BREAK)
+    .some(
+      (sentence) => EVENT_ACTION.test(sentence) && EVENT_OFFER.test(sentence)
+    );
+}
+
+function proposalViolations(answer: string): string[] {
+  const violations: string[] = [];
+  if (!OPTIONAL_EPISODE.test(answer)) {
+    violations.push("한 에피소드로 끝내는 안내 없음");
+  }
+  if (!hasEventOffer(answer)) {
+    violations.push("다음 사건 제안 없음");
+  }
+  return violations;
+}
+
 /** 카드 계약을 검사한다. 대화의 이해도, 말투와 가독성은 전문으로 따로 확인한다. */
 export function creationViolations(
   text: string,
@@ -115,8 +139,8 @@ export function creationViolations(
   if (FORBIDDEN_PLAY_RESULT.test(answer)) {
     violations.push("실제 플레이의 결과 결정 금지");
   }
-  if (expected.proposes && !OPTIONAL_EPISODE.test(answer)) {
-    violations.push("한 에피소드로 끝내는 안내 없음");
+  if (expected.proposes) {
+    violations.push(...proposalViolations(answer));
   }
   if (
     expected.atLimit &&
