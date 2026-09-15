@@ -83,38 +83,41 @@ function DayCell({
   ].join(", ");
   // 읽는 중인 날을 눌러 `기록 없음`을 보여 주면 틀린 말이 된다.
   const isDisabled = isFuture || count === undefined;
+  // 오늘은 영어로 아직 말하지 않았을 때만 따로 표시한다. 말한 오늘은 색 칸만으로 충분하다.
+  const isTodayEmpty = isToday && count === 0;
   const select = useCallback(() => onSelect(key), [key, onSelect]);
+  let surfaceClassName: string = LEVEL_CLASS_NAME[spokenLevel(count ?? 0)];
+  if (isFuture) {
+    surfaceClassName = "border border-border bg-transparent";
+  } else if (isTodayEmpty) {
+    surfaceClassName = "bg-transparent";
+  }
 
   return (
     // 고른 칸의 테두리는 칸 밖으로 나오므로 이웃 칸보다 위에 그린다.
     <View className={cn("aspect-square flex-1", isSelected && "z-10")}>
       {/*
-        테두리는 칸 바깥에 그려 칸의 크기와 주변 배치를 바꾸지 않는다. 오늘
-        표시와 칸 사이에는 카드 표면색 틈을 두고, 오늘 칸을 고르면 선택 테두리가
-        오늘 표시 바깥에 더해진다.
+        표시선은 칸보다 먼저 그려 칸 뒤에 둔다. 칸 위에 겹치면 Android가 가려진 칸
+        버튼을 접근성 트리에서 뺀다. 오늘과 고른 상태는 칸의 이름과 상태가 읽으므로
+        표시선은 화면 읽기에서 숨긴다.
 
-        테두리를 칸보다 먼저 그려 칸 뒤에 둔다. 선은 칸 바깥에만 있어 모양은 같고,
-        칸 위에 겹치면 Android가 가려진 칸 버튼을 접근성 트리에서 뺀다. 오늘과 고른
-        상태는 칸의 이름과 상태가 읽으므로 테두리는 화면 읽기에서 숨긴다.
+        오늘의 점선은 칸 자리에 그린다. 비어 있는 오늘 칸은 면이 투명해서 뒤의 점선이
+        보인다. 선택 테두리는 칸 바깥에 표면색 틈을 두고 그려 칸의 크기와 주변 배치를
+        바꾸지 않는다.
       */}
-      {isToday ? (
+      {isTodayEmpty ? (
         <View
           accessibilityElementsHidden
-          className="absolute -inset-[3.5px] rounded-[15.5px] border-[1.5px] border-accent"
+          className="absolute inset-0 rounded-xl border-[1.5px] border-muted border-dashed"
           importantForAccessibility="no-hide-descendants"
           pointerEvents="none"
-          testID={`day-today-${key}`}
+          testID={`day-today-empty-${key}`}
         />
       ) : null}
       {isSelected ? (
         <View
           accessibilityElementsHidden
-          className={cn(
-            "absolute border-[1.5px] border-foreground",
-            isToday
-              ? "-inset-[6.5px] rounded-[18.5px]"
-              : "-inset-[3.5px] rounded-[15.5px]"
-          )}
+          className="absolute -inset-[3.5px] rounded-[15.5px] border-[1.5px] border-foreground"
           importantForAccessibility="no-hide-descendants"
           pointerEvents="none"
           testID={`day-selected-${key}`}
@@ -126,9 +129,7 @@ function DayCell({
         accessibilityState={{ disabled: isDisabled, selected: isSelected }}
         className={cn(
           "flex-1 items-center justify-center rounded-xl",
-          isFuture
-            ? "border border-border bg-transparent"
-            : LEVEL_CLASS_NAME[spokenLevel(count ?? 0)]
+          surfaceClassName
         )}
         isDisabled={isDisabled}
         onPress={select}

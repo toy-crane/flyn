@@ -52,6 +52,8 @@ test("9월 13일의 홈은 연속 기록과 7일부터 13일까지의 9월 2주�
   읽으므로 화면 읽기에는 숨겨 두었고, 그래서 숨긴 요소까지 찾아서 확인한다.
 */
 const VISIBLE_ONLY_TO_SIGHT = { includeHiddenElements: true };
+/** 영어로 아직 말하지 않은 오늘 칸의 점선. */
+const TODAY_EMPTY_MARK = /^day-today-empty-/;
 
 test("날짜 칸을 누르면 그날 영어로 말한 횟수가 뜨고, 다시 누르면 닫힌다", async () => {
   await renderHome();
@@ -185,13 +187,37 @@ test("기록을 읽지 못하면 다시 시도할 수 있다", async () => {
   expect(onRetry).toHaveBeenCalledTimes(1);
 });
 
-test("오늘 칸을 고르면 오늘 표시는 그대로 두고 선택 테두리를 더한다", async () => {
+test("오늘 영어로 아직 말하지 않았으면 오늘 칸에만 점선을 둔다", async () => {
+  await renderHome();
+
+  expect(
+    screen.getByTestId("day-today-empty-2026-09-13", VISIBLE_ONLY_TO_SIGHT)
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryAllByTestId(TODAY_EMPTY_MARK, VISIBLE_ONLY_TO_SIGHT)
+  ).toHaveLength(1);
+});
+
+test("오늘 영어로 말한 뒤에는 오늘 칸도 점선 없이 다른 날과 같다", async () => {
+  await renderHome({
+    spokenDays: { "2026-09-12": 6, "2026-09-13": 2 },
+  });
+
+  expect(
+    screen.getByLabelText("9월 13일, 영어로 2번 말했어요, 오늘")
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryAllByTestId(TODAY_EMPTY_MARK, VISIBLE_ONLY_TO_SIGHT)
+  ).toHaveLength(0);
+});
+
+test("점선이 있는 오늘 칸을 고르면 점선은 두고 선택 테두리를 더한다", async () => {
   await renderHome();
 
   await fireEvent.press(screen.getByLabelText("9월 13일, 기록 없음, 오늘"));
 
   expect(
-    screen.getByTestId("day-today-2026-09-13", VISIBLE_ONLY_TO_SIGHT)
+    screen.getByTestId("day-today-empty-2026-09-13", VISIBLE_ONLY_TO_SIGHT)
   ).toBeOnTheScreen();
   expect(
     screen.getByTestId("day-selected-2026-09-13", VISIBLE_ONLY_TO_SIGHT)
