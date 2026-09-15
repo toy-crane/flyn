@@ -1,7 +1,8 @@
 import { beforeEach, expect, jest, test } from "@jest/globals";
-import { render, screen, userEvent } from "@testing-library/react-native";
+import { screen, userEvent } from "@testing-library/react-native";
 import { router } from "expo-router";
 
+import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
 import HomeRoute from "../../../app/(tabs)/(home)/index";
 
 jest.mock("expo-router", () => {
@@ -60,24 +61,59 @@ jest.mock("@/screens/home/profile-avatar-button", () => {
   };
 });
 
+jest.mock("@/features/auth/state/auth-session", () => ({
+  useAuthSession: () => ({ session: { user: { id: "user-1" } } }),
+}));
+
+// 기기의 오늘과 기록 읽기는 시스템 경계라 고정한다. 세는 규칙은 데이터베이스
+// 테스트가, 칸과 툴팁은 home-screen 테스트가 확인한다.
+jest.mock("@/features/streak/state/use-device-today", () => ({
+  useDeviceToday: () => ({ isFocused: true, today: new Date(2026, 8, 13) }),
+}));
+
+jest.mock("@/features/streak/query/learning-record", () => ({
+  deviceTimeZone: () => "Asia/Seoul",
+  useLearningRecordRefresh: () => () => undefined,
+  useSpokenDays: () => ({
+    data: { "2026-09-12": 6 },
+    isPending: false,
+    refetch: async () => undefined,
+  }),
+  useStreakSummary: () => ({
+    data: { firstDay: "2026-09-02", streak: 12 },
+    isPending: false,
+    refetch: async () => undefined,
+  }),
+}));
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
 /*
-  홈은 영어 학습이 들어올 자리로 남겨 두었다. 이어 하기 카드도, 진행을 읽는
-  조회도 여기 없다. 진행을 잇는 일은 대화 기록이 회차마다 맡는다.
+  홈은 영어 학습 공간이다. 연속 기록 한 줄과 이번 주 카드를 두고, 이어 하기
+  카드는 두지 않는다. 진행을 잇는 일은 대화 기록이 회차마다 맡는다.
 */
-test("홈은 본문에 아무 진행도 그리지 않는다", async () => {
-  await render(<HomeRoute />);
+test("홈은 연속 기록과 이번 주 카드를 보여 주고 이어 하기 카드는 두지 않는다", async () => {
+  await renderWithHeroUI(<HomeRoute />);
 
-  expect(screen.getByTestId("home-scroll")).toBeOnTheScreen();
+  expect(screen.getByText("12일 연속")).toBeOnTheScreen();
+  expect(screen.getByText("9월 2주차")).toBeOnTheScreen();
   expect(screen.queryByTestId("home-continue-card")).toBeNull();
   expect(screen.queryByTestId("story-progress")).toBeNull();
 });
 
+test("이번 주 카드의 연속 기록이 연속 기록 화면을 연다", async () => {
+  await renderWithHeroUI(<HomeRoute />);
+  const user = userEvent.setup();
+
+  await user.press(screen.getByRole("button", { name: "연속 기록" }));
+
+  expect(router.push).toHaveBeenCalledWith("/streak");
+});
+
 test("헤더의 프로필 버튼이 설정을 연다", async () => {
-  await render(<HomeRoute />);
+  await renderWithHeroUI(<HomeRoute />);
   const user = userEvent.setup();
 
   await user.press(screen.getByLabelText("설정 열기"));

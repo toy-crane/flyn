@@ -23,6 +23,7 @@ import { AppThemeBridge, useAppTheme } from "@/core/theme/app-theme-bridge";
 import { useAppVersionGate } from "@/features/app-version/use-app-version-gate";
 import { useUpdateScreenVisibility } from "@/features/app-version/use-update-screen-visibility";
 import { AuthSessionProvider } from "@/features/auth/state/auth-session";
+import { streakLabels } from "@/features/streak/ui/streak-labels";
 import { ProfileUnavailableScreen } from "@/screens/session/profile-unavailable-screen";
 import { SessionCheckingScreen } from "@/screens/session/session-checking-screen";
 import { SetupNeededScreen } from "@/screens/session/setup-needed-screen";
@@ -147,6 +148,11 @@ function ThemedRootLayout() {
               sheetAllowedDetents: [0.4, 0.85],
               sheetGrabberVisible: true,
             }}
+          />
+          {/* 연속 기록도 탭 없이 보는 상세 화면이라 기록과 같은 헤더로 연다. */}
+          <Stack.Screen
+            name="streak"
+            options={{ ...storyScreenOptions, title: streakLabels.streak }}
           />
           {/* 에피소드는 화면 전체를 쓰므로 탭과 루트 헤더 위에 push한다. */}
           <Stack.Screen name="episode" />

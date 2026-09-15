@@ -5,6 +5,7 @@ import BookOpen from "lucide-react-native/icons/book-open";
 import Bookmark from "lucide-react-native/icons/bookmark";
 import Check from "lucide-react-native/icons/check";
 import ChevronDown from "lucide-react-native/icons/chevron-down";
+import ChevronLeft from "lucide-react-native/icons/chevron-left";
 import ChevronRight from "lucide-react-native/icons/chevron-right";
 import ChevronUp from "lucide-react-native/icons/chevron-up";
 import CloudOff from "lucide-react-native/icons/cloud-off";
@@ -24,6 +25,8 @@ import { useCSSVariable } from "uniwind";
 
 const icons = {
   add: Plus,
+  /** 앞의 것으로 넘기는 자리. 달력의 이전 달이 쓴다. */
+  backward: ChevronLeft,
   bookmark: Bookmark,
   check: Check,
   close: X,
