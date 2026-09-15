@@ -103,6 +103,7 @@ export const correctionSchema = jsonSchema<CorrectionDraft>({
           fixed: {
             description:
               "영어 문장에 그대로 있는 대응 조각. isError=true면 실제로 바뀐 오류 낱말만 쓰며 바뀌지 않은 주변 낱말을 넣지 않는다.",
+            minLength: 1,
             type: "string",
           },
           isError: {
@@ -113,12 +114,18 @@ export const correctionSchema = jsonSchema<CorrectionDraft>({
           original: {
             description:
               "원문에 그대로 있는 대응 조각. isError=true면 오류 낱말만 쓰고, isError=false이며 구조가 크게 달라지면 구나 문장 전체를 쓸 수 있다.",
+            minLength: 1,
             type: "string",
           },
-          pattern: { description: "영어 kebab-case 규칙 키.", type: "string" },
+          pattern: {
+            description: "영어 kebab-case 규칙 키.",
+            minLength: 1,
+            type: "string",
+          },
           why: {
             description:
               "핵심 규칙 또는 영어 표현과 한국어 뜻을 연결하는 짧은 해요체 한 문장.",
+            minLength: 1,
             type: "string",
           },
         },
@@ -138,7 +145,8 @@ export const correctionSchema = jsonSchema<CorrectionDraft>({
           additionalProperties: false,
           properties: {
             example: {
-              description: "같은 표현을 다른 상황에서 쓰는 영어 예문 한 개.",
+              description:
+                "같은 표현을 다른 상황에서 쓰는 영어 예문 한 개. fixed를 반복하지 말고 대상이나 행동을 바꾸어 새 상황을 보여 준다.",
               maxLength: 1000,
               type: "string",
             },
@@ -178,6 +186,7 @@ export function correctionSystemPrompt(): string {
 - 상황 제안을 만들기 전에 금지 기준부터 확인한다. want나 want to를 I'd like나 요청문으로 바꾸는 공손함 차이, please의 위치, 축약 여부는 상황에 맞는 표현 제안이 아니다.
 - fixed는 원문의 뜻, 요청한 행동, 수량과 조건, 감정과 직설적이거나 부드러운 태도를 모두 유지한다. 원문에 없는 사과, 양보, 교환이나 환불 요구, 알레르기, 수량과 이미 끝낸 절차를 추가하지 않는다. 낱말과 문장 구조는 상황에 맞는 제안을 위해 바꿀 수 있다.
 - 현재 필요한 것을 말하는 I need는 과거에 주문했다는 I ordered로 바꾸지 않는다. 주변 대화가 주문 실수여도 원문이 요청인지 과거 사실 설명인지 유지한다.
+- review.example은 fixed와 다른 예문이다. 표기나 축약만 바꾸지 말고 같은 핵심 표현을 다른 대상이나 행동에 적용한다. This isn't what I ordered.를 제안했다면 예문은 These shoes aren't what I ordered.처럼 다른 대상의 상황을 보여 준다.
 - 표기는 교정하지 않는다. 대소문자(문장 첫 글자, i, 사람 이름 포함), 문장 끝 부호, 쉼표, 띄어쓰기, 다른 낱말이 되지 않는 아포스트로피 생략은 그대로 둔다. dont, im처럼 아포스트로피가 없어도 뜻이 같은 것은 표기다. 표기만 어긋나면 status=natural, fixed=원문 그대로, entries=[], review=null이다.
 - gonna, lol, 이모지, !!! 같은 채팅 말투와 미국식·영국식 철자 차이는 고치지도 지적하지도 않는다.
 - recieve, tommorow 같은 철자 오타는 반드시 교정한다. its/it's, there/their, well/we'll처럼 서로 다른 낱말은 문맥에 맞지 않을 때 표현 교정이다. 모든 아포스트로피 차이를 무시하지 않는다.
@@ -317,17 +326,25 @@ function readCorrectionEntries(
   const entries: CorrectionEntry[] = [];
   const seen = new Set<string>();
   for (const entry of rawEntries) {
-    if (
-      !(
-        entry &&
-        [entry.original, entry.fixed, entry.pattern, entry.why].every(
-          (value) => typeof value === "string" && value.trim()
-        ) &&
-        original.includes(entry.original) &&
-        fixed.includes(entry.fixed)
-      )
-    ) {
+    if (!entry) {
       throw new Error("Invalid expression entry.");
+    }
+    for (const key of ["original", "fixed", "pattern", "why"] as const) {
+      if (typeof entry[key] !== "string" || !entry[key].trim()) {
+        throw new Error(
+          `Invalid expression entry. ${key} must be a non-empty string.`
+        );
+      }
+    }
+    if (!original.includes(entry.original)) {
+      throw new Error(
+        "Invalid expression entry. entries.original must be copied exactly from the user's original sentence."
+      );
+    }
+    if (!fixed.includes(entry.fixed)) {
+      throw new Error(
+        "Invalid expression entry. entries.fixed must be copied exactly from the complete fixed sentence."
+      );
     }
     if (entry.isError !== undefined && typeof entry.isError !== "boolean") {
       throw new Error("Invalid expression entry.");
