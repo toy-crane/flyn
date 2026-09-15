@@ -231,19 +231,16 @@
   .sheet-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .sheet-heading h2 { font-size:21px; margin:0; letter-spacing:-.5px; }
   .sheet-close { border:0; border-radius:50%; width:30px; height:30px; background:var(--line); color:var(--muted); font-size:21px; cursor:pointer; }
-  .sheet-intro { font-size:14px; color:var(--muted); line-height:1.6; margin:10px 0 20px; }
-  .sheet-options { display:grid; gap:10px; }
+  .sheet-options { display:grid; gap:10px; margin-top:22px; }
   .sheet-option { display:flex; align-items:start; gap:12px; padding:16px 14px; background:var(--surface); border:1px solid var(--line); border-radius:16px; cursor:pointer; }
   .sheet-option:has(input:checked) { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); background:color-mix(in srgb,var(--accent) 5%,var(--surface)); }
   .sheet-option input { appearance:none; width:20px; height:20px; flex:none; margin:2px 0 0; border:1.5px solid var(--muted); border-radius:50%; }
   .sheet-option input:checked { border:6px solid var(--accent); background:white; }
   .sheet-option b { font-size:15px; line-height:1.5; font-weight:600; display:block; }
-  .sheet-option small { display:block; color:var(--muted); font-size:13px; line-height:1.5; margin-top:3px; }
   .sheet-field { display:block; font-size:14px; font-weight:600; margin:22px 0 8px; }
   .sheet-input { width:100%; min-height:92px; resize:vertical; border:1px solid var(--line); border-radius:14px; padding:13px 14px; font:15px/1.6 var(--font); color:var(--foreground); background:var(--surface); }
   .sheet-input:focus { outline:2px solid var(--accent); outline-offset:1px; }
-  .sheet-hint { font-size:12px; color:var(--muted); line-height:1.5; margin:7px 0 18px; }
-  .sheet-submit { width:100%; padding:15px; font:600 16px var(--font); border:0; border-radius:15px; background:var(--accent); color:white; cursor:pointer; }
+  .sheet-submit { width:100%; margin-top:18px; padding:15px; font:600 16px var(--font); border:0; border-radius:15px; background:var(--accent); color:white; cursor:pointer; }
   .sheet-submit:disabled { background:var(--line); color:var(--muted); cursor:default; }
 
 </style>
@@ -539,24 +536,16 @@
     closeEpisodeSheet();
     sheetReturnFocus=document.activeElement;
     const choices=mode==='add-choice'?addOptions:options;
-    const descriptions={
-      lunch:'함께 식사하며 먼저 말을 걸어 봐요',
-      help:'익숙하지 않은 일을 동료에게 물어봐요',
-      meeting:'팀 회의에서 내 생각을 이야기해 봐요',
-      finish:'에피소드를 더하지 않고 카드를 확인해요'
-    };
     const overlay=document.createElement('div');
     overlay.id='episode-overlay'; overlay.className='episode-overlay';
     overlay.innerHTML=`<div class="episode-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
       <div class="sheet-grabber"></div>
-      <div class="sheet-heading"><h2 id="sheet-title">다음 에피소드 고르기</h2><button class="sheet-close" aria-label="닫기" type="button">×</button></div>
-      <p class="sheet-intro">첫 팀 회의 다음에는 어떤 일을 겪고 싶어요?<br>지금 정한 에피소드만 만들어도 좋아요</p>
+      <div class="sheet-heading"><h2 id="sheet-title">다음 에피소드</h2><button class="sheet-close" aria-label="닫기" type="button">×</button></div>
       <form id="episode-choice-form">
-      <div class="sheet-options" role="radiogroup" aria-label="다음 에피소드">${choices.map(o=>`<label class="sheet-option"><input type="radio" name="episode" value="${o.key}" ${sheetDraft.selected===o.key?'checked':''}><span><b>${esc(o.key==='finish'?'지금 정한 에피소드만 만들기':o.label)}</b><small>${descriptions[o.key]}</small></span></label>`).join('')}</div>
-      <label class="sheet-field" for="episode-note">직접 쓰거나 조건을 덧붙여 주세요</label>
-      <textarea class="sheet-input" id="episode-note" placeholder="예: 취미 이야기를 제가 먼저 꺼내고 싶어요">${esc(sheetDraft.text)}</textarea>
-      <p class="sheet-hint">선택하지 않고 원하는 상황을 직접 적어도 좋아요</p>
-      <button type="submit" class="sheet-submit">답변 보내기</button></form></div>`;
+      <div class="sheet-options" role="radiogroup" aria-label="다음 에피소드">${choices.map(o=>`<label class="sheet-option"><input type="radio" name="episode" value="${o.key}" ${sheetDraft.selected===o.key?'checked':''}><span><b>${esc(o.key==='finish'?'추가하지 않기':o.label)}</b></span></label>`).join('')}</div>
+      <label class="sheet-field" for="episode-note">직접 입력</label>
+      <textarea class="sheet-input" id="episode-note" placeholder="다른 상황이나 조건을 적어 주세요">${esc(sheetDraft.text)}</textarea>
+      <button type="submit" class="sheet-submit">보내기</button></form></div>`;
     stage.append(overlay);
     document.querySelectorAll('.app-screen').forEach(el=>el.inert=true);
     const submit=overlay.querySelector('.sheet-submit');
