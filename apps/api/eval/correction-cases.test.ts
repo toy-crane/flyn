@@ -1,5 +1,8 @@
 import { expect, test } from "bun:test";
-import type { CorrectionDraft } from "../src/features/episode/correction";
+import {
+  type CorrectionDraft,
+  readExpressionResult,
+} from "../src/features/episode/correction";
 import { correctionViolations } from "./correction-cases";
 import baseline from "./results/correction-baseline-1789226591539.json";
 
@@ -21,10 +24,57 @@ const review = {
   meaning: "집에 일찍 갔어요.",
   situation: "집에 간 일을 말할 때",
 };
+
+test("빠진 아포스트로피만 보탠 결과는 서버에서도 받지 않는다", () => {
+  expect(() =>
+    readExpressionResult(
+      {
+        entries: [
+          {
+            fixed: "can't",
+            isError: true,
+            original: "cant",
+            pattern: "contraction",
+            why: "can't는 cannot의 축약형이에요.",
+          },
+        ],
+        fixed: "I can't come tonight lol",
+        review,
+        status: "corrected",
+      },
+      "message",
+      "I cant come tonight lol"
+    )
+  ).toThrow("Expression result changes notation.");
+});
+
+test("문장 전체 표현 제안에 섞인 대소문자와 문장 부호 변경을 받지 않는다", () => {
+  expect(() =>
+    readExpressionResult(
+      {
+        entries: [
+          {
+            fixed: "can i get this coffee to go.",
+            isError: false,
+            original: "Can I take this coffee with me?",
+            pattern: "coffee-to-go",
+            why: "포장할 음료를 주문할 때는 to go라고 해요.",
+          },
+        ],
+        fixed: "can i get this coffee to go.",
+        review,
+        status: "corrected",
+      },
+      "message",
+      "Can I take this coffee with me?"
+    )
+  ).toThrow("Expression result changes notation.");
+});
 const corrected: CorrectionDraft = {
   entries: [
     {
       fixed: "went",
+      isError: true,
       original: "goed",
       pattern: "past-go",
       why: "go의 과거형은 went예요.",
@@ -35,7 +85,7 @@ const corrected: CorrectionDraft = {
   status: "corrected",
 };
 const sample = {
-  entries: [{ fixed: "went", original: "goed" }],
+  entries: [{ fixed: "went", isError: true, original: "goed" }],
   fixed: "I went home early",
   name: "과거형",
   original: "I goed home early",
@@ -88,5 +138,96 @@ test("교정 항목이나 학습 내용이 없으면 통과하지 않는다", ()
   ).not.toEqual([]);
   expect(
     correctionViolations(sample, { ...corrected, review: null })
+  ).not.toEqual([]);
+});
+
+test("상황에 맞는 표현 제안은 원문 오류와 구분해야 통과한다", () => {
+  const contextual = {
+    entries: [
+      {
+        fixed: "get this coffee to go",
+        isError: false,
+        original: "take this coffee with me",
+      },
+    ],
+    name: "상황에 맞는 표현",
+    original: "Can I take this coffee with me?",
+    status: "corrected" as const,
+  };
+  const suggestion: CorrectionDraft = {
+    entries: [
+      {
+        fixed: "get this coffee to go",
+        isError: false,
+        original: "take this coffee with me",
+        pattern: "coffee-to-go",
+        why: "음료를 포장해서 가져갈 때는 to go라고 해요.",
+      },
+    ],
+    fixed: "Can I get this coffee to go?",
+    review,
+    status: "corrected",
+  };
+
+  expect(correctionViolations(contextual, suggestion)).toEqual([]);
+  const [suggestionEntry] = suggestion.entries;
+  if (!suggestionEntry) {
+    throw new Error("표현 제안 항목이 필요합니다.");
+  }
+  expect(
+    correctionViolations(contextual, {
+      ...suggestion,
+      entries: [{ ...suggestionEntry, isError: true }],
+    })
+  ).not.toEqual([]);
+  expect(
+    correctionViolations(contextual, {
+      ...suggestion,
+      fixed: "Can I get this coffee to go",
+    })
+  ).not.toEqual([]);
+});
+
+test("뜻과 태도를 바꾸거나 항목 구분을 빼면 통과하지 않는다", () => {
+  const attitude = {
+    forbiddenFixedTerms: ["exchange", "sorry"],
+    minimumErrorEntries: 1,
+    name: "직설적인 환불 요구",
+    original: "I dont wants a replacement. I want my money back.",
+    requiredFixedTerms: ["replacement", "money back"],
+    requiresClassification: true,
+    status: "corrected" as const,
+  };
+  const answer: CorrectionDraft = {
+    entries: [
+      {
+        fixed: "want",
+        isError: true,
+        original: "wants",
+        pattern: "verb-after-do",
+        why: "dont 뒤에는 wants가 아니라 want를 써요.",
+      },
+    ],
+    fixed: "I dont want a replacement. I want my money back.",
+    review,
+    status: "corrected",
+  };
+
+  expect(correctionViolations(attitude, answer)).toEqual([]);
+  const [answerEntry] = answer.entries;
+  if (!answerEntry) {
+    throw new Error("교정 항목이 필요합니다.");
+  }
+  expect(
+    correctionViolations(attitude, {
+      ...answer,
+      fixed: "Sorry, can I exchange it?",
+    })
+  ).not.toEqual([]);
+  expect(
+    correctionViolations(attitude, {
+      ...answer,
+      entries: [{ ...answerEntry, isError: undefined }],
+    })
   ).not.toEqual([]);
 });

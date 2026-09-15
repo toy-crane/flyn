@@ -174,6 +174,26 @@ test("교정 카드를 누르면 내가 쓴 문장과 이유가 그 자리에서
   expect(screen.getByText("지난 일은 ordered로 말해요.")).toBeOnTheScreen();
 });
 
+test("오류 없는 표현 제안은 저장한 카드에서도 원문에 밑줄을 긋지 않는다", async () => {
+  const [firstEntry] = CORRECTION.entries ?? [];
+  if (!firstEntry) {
+    throw new Error("저장한 표현 항목이 필요합니다.");
+  }
+  const suggestion: SavedExpression = {
+    ...CORRECTION,
+    entries: [{ ...firstEntry, isError: false }],
+  };
+  await renderNote({ expressions: [suggestion] }).rendered;
+
+  await userEvent.press(
+    screen.getByTestId(`expression-card-${suggestion.id}-body`)
+  );
+
+  expect(markClassNames(`expression-card-${suggestion.id}-original`)).toEqual(
+    []
+  );
+});
+
 test("인물 대사 카드는 눌러도 펼쳐지지 않는다", async () => {
   await renderNote({ expressions: [UTTERANCE] }).rendered;
 

@@ -2,6 +2,7 @@ import { Typography } from "heroui-native/text";
 import { useCallback } from "react";
 import { Alert } from "react-native";
 
+import { originalErrorMarks } from "@/features/episode/ui/correction-text";
 import type { SavedExpression } from "@/features/note/api/expression-note";
 import {
   ExpressionCard,
@@ -48,7 +49,7 @@ function cardDetail(
 
   return {
     original: expression.original,
-    originalMarks: entries.map((entry) => entry.original),
+    originalMarks: originalErrorMarks(entries),
     whys: entries.map((entry) => entry.why),
   };
 }

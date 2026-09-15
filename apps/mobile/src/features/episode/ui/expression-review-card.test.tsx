@@ -59,6 +59,22 @@ test("첫 줄이 상황이고 아래가 영어 문장과 한국어 뜻이다", a
   );
 });
 
+test("오류 없는 표현 제안은 원문에 밑줄을 긋지 않는다", async () => {
+  const correction: EpisodeCorrection = {
+    ...CORRECTION,
+    entries: [{ ...CORRECTION.entries[0], isError: false }],
+  };
+  await renderWithHeroUI(
+    <SavedExpressionsProvider value={{ states: {}, toggle: jest.fn() }}>
+      <ExpressionReviewCard correction={correction} />
+    </SavedExpressionsProvider>
+  );
+
+  await userEvent.press(screen.getByTestId("expression-card-m1-body"));
+
+  expect(screen.queryByText("latte")).toBeNull();
+});
+
 test("책갈피는 대화의 배울 표현과 같은 자리를 가리킨다", async () => {
   const { toggle, view } = renderCard();
   await view;

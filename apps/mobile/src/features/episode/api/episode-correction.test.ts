@@ -26,6 +26,21 @@ test("서버가 보낸 교정을 그대로 읽는다", () => {
   expect(correctionOfData(CORRECTION)).toEqual(CORRECTION);
 });
 
+test("실제 오류가 아닌 표현 제안 구분을 그대로 읽는다", () => {
+  const suggestion = {
+    ...CORRECTION,
+    entries: [{ ...ENTRY, isError: false }],
+  };
+
+  expect(correctionOfData(suggestion)).toEqual(suggestion);
+  expect(
+    correctionOfData({
+      ...suggestion,
+      entries: [{ ...ENTRY, isError: "아니요" }],
+    })
+  ).toBeUndefined();
+});
+
 // 교정은 장면과 나란히 오는 곁다리다. 읽지 못한 값 하나가 진행 중인 이야기를
 // 멈추게 두지 않는다.
 test("모양이 맞지 않으면 아무것도 돌려주지 않는다", () => {

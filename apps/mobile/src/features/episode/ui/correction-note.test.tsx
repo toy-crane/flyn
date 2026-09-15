@@ -225,6 +225,46 @@ test("배울 표현이 둘이면 카드가 항목 둘로 나뉜다", async () =>
   expect(screen.getByText(TWO_EXPRESSIONS.entries[1].why)).toBeOnTheScreen();
 });
 
+test("오류와 표현 제안이 함께 있으면 실제 오류만 원문에 밑줄을 긋는다", async () => {
+  const correction: EpisodeCorrection = {
+    ...TWO_EXPRESSIONS,
+    entries: [
+      {
+        fixed: "want",
+        isError: true,
+        original: "wants",
+        pattern: "subject-verb-agreement",
+        why: "I 뒤에는 wants가 아니라 want를 써요.",
+      },
+      {
+        fixed: "to go",
+        isError: false,
+        original: "in a cup I can take away",
+        pattern: "coffee-to-go",
+        why: "포장해서 가져갈 음료는 to go로 말할 수 있어요.",
+      },
+    ],
+    fixed: "I want this coffee to go.",
+    original: "I wants this coffee in a cup I can take away.",
+  };
+  const { rendered } = renderNote(correction);
+  await rendered;
+
+  await userEvent.setup().press(screen.getByTestId("correction-line"));
+
+  expect(screen.getAllByTestId("correction-original")).toHaveLength(1);
+  expect(screen.getByTestId("correction-original")).toHaveTextContent(
+    correction.original
+  );
+  expect(screen.getAllByTestId("correction-fixed")).toHaveLength(1);
+  expect(screen.getByTestId("correction-fixed")).toHaveTextContent(
+    correction.fixed
+  );
+  expect(screen.getAllByText("wants")).toHaveLength(1);
+  expect(screen.getByText("wants").props.className).toBe("underline");
+  expect(screen.queryByText("in a cup I can take away")).toBeNull();
+});
+
 test("표현이 하나면 세는 말 없이 라벨만 쓴다", async () => {
   const user = userEvent.setup();
   const { rendered } = renderNote(ONE_EXPRESSION);

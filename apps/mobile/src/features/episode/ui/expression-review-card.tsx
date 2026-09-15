@@ -5,7 +5,7 @@ import type { EpisodeCorrection } from "@/features/episode/api/episode-correctio
 import { ExpressionCard } from "@/shared/ui/expression-card";
 import { Icon } from "@/shared/ui/icon";
 import { correctionPresentation } from "./correction-presentation";
-import { fixedMarks } from "./correction-text";
+import { fixedMarks, originalErrorMarks } from "./correction-text";
 import {
   ExpressionSaveFailure,
   LearningExpressionActions,
@@ -44,7 +44,7 @@ export function ExpressionReviewCard({
       }
       detail={{
         original: correction.original,
-        originalMarks: correction.entries.map((entry) => entry.original),
+        originalMarks: originalErrorMarks(correction.entries),
         whys: correction.entries.map((entry) => entry.why),
       }}
       english={correction.fixed}

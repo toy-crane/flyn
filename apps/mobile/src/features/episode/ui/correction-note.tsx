@@ -33,7 +33,7 @@ import { MarkedSentence } from "@/shared/ui/marked-text";
 import { StatusLine } from "@/shared/ui/status-line";
 import { useReduceMotion } from "@/shared/ui/use-reduce-motion";
 import { correctionPresentation } from "./correction-presentation";
-import { fixedMarks } from "./correction-text";
+import { fixedMarks, originalErrorMarks } from "./correction-text";
 import { correctionLabels } from "./episode-labels";
 import {
   ExpressionSaveFailure,
@@ -47,20 +47,20 @@ const resize = LinearTransition.duration(480).reduceMotion(ReduceMotion.System);
 /**
  * 카드 안의 표현 하나. 원문의 어긋난 자리, 고친 문장, 이유 한 줄.
  *
- * 표현이 하나뿐이면 문장을 통째로 놓고 달라진 자리를 짚는다. 여럿이면 문장을
- * 항목 수만큼 되풀이하는 대신 달라진 조각만 마주 놓는다. 어느 쪽이든 짚는
- * 장치는 같아서, 두 항목이 같은 규칙으로 읽힌다.
+ * 표현이 하나뿐이거나 오류와 구조 변경을 함께 다루면 문장을 통째로 한 번만
+ * 놓는다. 독립된 오류가 여럿이면 달라진 조각만 마주 놓는다.
  */
 function CorrectionRow({
   correction,
   entry,
   isFirst,
+  wholeSentenceLayout,
 }: {
   correction: EpisodeCorrection;
   entry: CorrectionEntry;
   isFirst: boolean;
+  wholeSentenceLayout: boolean;
 }) {
-  const showsSentence = correction.entries.length === 1;
   const appearance = correctionPresentation(correction.original);
 
   return (
@@ -70,21 +70,46 @@ function CorrectionRow({
       }
       testID="correction-entry"
     >
-      <MarkedSentence
-        className="mb-0.5"
-        color="muted"
-        markClassName="underline"
-        marks={[entry.original]}
-        text={showsSentence ? correction.original : entry.original}
-        type="body-sm"
-      />
-      <MarkedSentence
-        className="mb-1.5"
-        markClassName={appearance.text}
-        marks={[entry.fixed]}
-        text={showsSentence ? correction.fixed : entry.fixed}
-        type="h6"
-      />
+      {(wholeSentenceLayout && isFirst) || correction.entries.length === 1 ? (
+        <>
+          <MarkedSentence
+            className="mb-0.5"
+            color="muted"
+            markClassName="underline"
+            marks={originalErrorMarks(correction.entries)}
+            testID="correction-original"
+            text={correction.original}
+            type="body-sm"
+          />
+          <MarkedSentence
+            className="mb-1.5"
+            markClassName={appearance.text}
+            marks={fixedMarks(correction)}
+            testID="correction-fixed"
+            text={correction.fixed}
+            type="h6"
+          />
+        </>
+      ) : null}
+      {!wholeSentenceLayout && correction.entries.length > 1 ? (
+        <>
+          <MarkedSentence
+            className="mb-0.5"
+            color="muted"
+            markClassName="underline"
+            marks={originalErrorMarks([entry])}
+            text={entry.original}
+            type="body-sm"
+          />
+          <MarkedSentence
+            className="mb-1.5"
+            markClassName={appearance.text}
+            marks={[entry.fixed]}
+            text={entry.fixed}
+            type="h6"
+          />
+        </>
+      ) : null}
       <Typography.Paragraph color="muted" selectable={false} type="body-sm">
         {entry.why}
       </Typography.Paragraph>
@@ -154,6 +179,9 @@ export function CorrectionNote({
   const fold = useCallback(() => setIsOpen(false), []);
   const ask = useCallback(() => onAsk(correction), [correction, onAsk]);
   const appearance = correctionPresentation(correction.original);
+  const showsWholeSentence =
+    correction.entries.some((entry) => entry.isError === false) &&
+    correction.entries.some((entry) => entry.isError !== false);
   const spot = useMemo(
     () => ({ kind: "learning" as const, messageId: correction.messageId }),
     [correction.messageId]
@@ -206,6 +234,7 @@ export function CorrectionNote({
               entry={entry}
               isFirst={index === 0}
               key={`${entry.pattern}:${entry.original}:${entry.fixed}`}
+              wholeSentenceLayout={showsWholeSentence}
             />
           ))}
           <CorrectionActions onAsk={ask} />

@@ -1,36 +1,62 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { generateObject } from "ai";
 import {
-  correctionSchema,
+  type CorrectionDraft,
   correctionSystemPrompt,
+  judgeExpression,
 } from "../src/features/episode/correction";
 import { resolveModelId } from "../src/shared/model-id";
-import { CORRECTION_CASES, correctionViolations } from "./correction-cases";
+import {
+  CORRECTION_CASES,
+  type CorrectionCase,
+  correctionViolations,
+} from "./correction-cases";
 
 const model = resolveModelId();
 const records: unknown[] = [];
 let failed = 0;
 const baseline = process.argv.includes("--baseline");
+const CONCURRENCY = 2;
+interface EvaluationRecord {
+  output: CorrectionDraft;
+  round: number;
+  sample: CorrectionCase;
+  violations: string[];
+}
 for (let round = 1; round <= 3; round += 1) {
-  // biome-ignore lint/performance/noAwaitInLoops: 모델 호출을 한 묶음씩 제한한다
-  const results = await Promise.allSettled(
-    CORRECTION_CASES.map(async (sample) => {
-      const { object } = await generateObject({
-        abortSignal: AbortSignal.timeout(30_000),
-        maxRetries: 0,
-        messages: [
-          ...(sample.context ?? []),
-          { content: `확인할 문장:\n${sample.original}`, role: "user" },
-        ],
-        model,
-        schema: correctionSchema,
-        system: correctionSystemPrompt(),
-      });
-      const violations = correctionViolations(sample, object);
-      return { output: object, round, sample, violations };
-    })
-  );
+  const results: PromiseSettledResult<EvaluationRecord>[] = [];
+  for (let start = 0; start < CORRECTION_CASES.length; start += CONCURRENCY) {
+    const batch = CORRECTION_CASES.slice(start, start + CONCURRENCY);
+    // biome-ignore lint/performance/noAwaitInLoops: 게이트웨이 시간 제한을 피하려고 동시 호출 수를 제한한다
+    const settled = await Promise.allSettled(
+      batch.map(async (sample) => {
+        const result = await judgeExpression({
+          context: sample.context ?? [],
+          messageId: `evaluation-${round}`,
+          model,
+          original: sample.original,
+          signal: AbortSignal.timeout(30_000),
+        });
+        const object: CorrectionDraft =
+          result.status === "corrected"
+            ? {
+                entries: result.correction.entries,
+                fixed: result.correction.fixed,
+                review: result.correction.review,
+                status: "corrected",
+              }
+            : {
+                entries: [],
+                fixed: result.status === "natural" ? sample.original : "",
+                review: null,
+                status: result.status,
+              };
+        const violations = correctionViolations(sample, object);
+        return { output: object, round, sample, violations };
+      })
+    );
+    results.push(...settled);
+  }
   for (const [index, result] of results.entries()) {
     if (result.status === "fulfilled") {
       records.push(result.value);

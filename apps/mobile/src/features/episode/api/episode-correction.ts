@@ -4,7 +4,9 @@ import { aiUrl } from "@/shared/ai/request-options";
 export interface CorrectionEntry {
   /** 고친 문장에서 이 표현에 해당하는 조각. */
   fixed: string;
-  /** 원문에서 어긋난 조각. */
+  /** 실제 오류를 고친 항목인지. 값이 없는 옛 결과는 오류로 읽는다. */
+  isError?: boolean;
+  /** 원문에서 대응하는 조각. 오류가 아닐 수도 있다. */
   original: string;
   /** 같은 패턴을 두 번 만들지 않으려고 서버가 쓰는 키. 화면에 보이지 않는다. */
   pattern: string;
@@ -34,6 +36,7 @@ function isEntry(value: unknown): value is CorrectionEntry {
 
   return (
     typeof entry?.fixed === "string" &&
+    (entry.isError === undefined || typeof entry.isError === "boolean") &&
     typeof entry.original === "string" &&
     typeof entry.pattern === "string" &&
     typeof entry.why === "string"
