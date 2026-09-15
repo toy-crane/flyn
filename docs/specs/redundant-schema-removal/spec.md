@@ -12,7 +12,7 @@
 | `episode_plays.started_at` | 읽는 곳이 없고, 값이 `created_at`과 같다. | `created_at` |
 | `profiles.username_changed_at` | 아이디를 바꿀 때 쓰지만 읽는 곳이 없다. | `username_locked_until` |
 | `retired_usernames.retired_at` | 이전 아이디를 보호할 때 쓰지만 읽는 곳이 없다. | `protected_until` |
-| `story_plays.started_at` | 모든 행에서 `created_at`과 같은 값이다. 회차 행은 첫 사용자 메시지에 생기고 두 값 모두 바뀌지 않는다. | `created_at`을 회차 시작 시각으로 읽는다. |
+| `story_plays.started_at` | `created_at`과 같은 순간이다. 회차 행은 첫 사용자 메시지에 생기고 두 값 모두 바뀌지 않는다. 공통 시각 전환 전의 행은 값이 같고, 그 뒤에 만든 행은 `created_at`이 몇 밀리초 늦다(2026-09-15 격리 DB에서 3ms 확인). | `created_at`을 회차 시작 시각으로 읽는다. |
 
 `language_levels`가 사라지면 결말에서 사용자의 영어 수준을 쓰는 일도 없앤다. 결말 기록은 결과와 이야기 기억 세 가지(선택, 관계, 질문)만 남긴다.
 

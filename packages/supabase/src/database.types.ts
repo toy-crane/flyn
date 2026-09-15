@@ -196,7 +196,6 @@ export type Database = {
           memory_choice: string | null
           memory_question: string | null
           memory_relationship: string | null
-          started_at: string
           story_play_id: string
           updated_at: string
           user_id: string
@@ -211,7 +210,6 @@ export type Database = {
           memory_choice?: string | null
           memory_question?: string | null
           memory_relationship?: string | null
-          started_at?: string
           story_play_id: string
           updated_at?: string
           user_id?: string
@@ -226,7 +224,6 @@ export type Database = {
           memory_choice?: string | null
           memory_question?: string | null
           memory_relationship?: string | null
-          started_at?: string
           story_play_id?: string
           updated_at?: string
           user_id?: string
@@ -402,38 +399,6 @@ export type Database = {
           },
         ]
       }
-      language_levels: {
-        Row: {
-          created_at: string
-          level: string
-          observed_at: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          level: string
-          observed_at?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          level?: string
-          observed_at?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "language_levels_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       learning_events: {
         Row: {
           created_at: string
@@ -480,7 +445,6 @@ export type Database = {
           id: string
           updated_at: string
           username: string | null
-          username_changed_at: string | null
           username_locked_until: string | null
         }
         Insert: {
@@ -493,7 +457,6 @@ export type Database = {
           id: string
           updated_at?: string
           username?: string | null
-          username_changed_at?: string | null
           username_locked_until?: string | null
         }
         Update: {
@@ -506,7 +469,6 @@ export type Database = {
           id?: string
           updated_at?: string
           username?: string | null
-          username_changed_at?: string | null
           username_locked_until?: string | null
         }
         Relationships: []
@@ -515,7 +477,6 @@ export type Database = {
         Row: {
           created_at: string
           protected_until: string
-          retired_at: string
           retired_by: string
           updated_at: string
           username: string
@@ -523,7 +484,6 @@ export type Database = {
         Insert: {
           created_at?: string
           protected_until: string
-          retired_at?: string
           retired_by: string
           updated_at?: string
           username: string
@@ -531,7 +491,6 @@ export type Database = {
         Update: {
           created_at?: string
           protected_until?: string
-          retired_at?: string
           retired_by?: string
           updated_at?: string
           username?: string
@@ -610,7 +569,6 @@ export type Database = {
           created_at: string
           id: string
           last_user_message_at: string | null
-          started_at: string
           story_id: string
           updated_at: string
           user_id: string
@@ -619,7 +577,6 @@ export type Database = {
           created_at?: string
           id?: string
           last_user_message_at?: string | null
-          started_at?: string
           story_id: string
           updated_at?: string
           user_id?: string
@@ -628,7 +585,6 @@ export type Database = {
           created_at?: string
           id?: string
           last_user_message_at?: string | null
-          started_at?: string
           story_id?: string
           updated_at?: string
           user_id?: string
@@ -742,7 +698,6 @@ export type Database = {
         Args: {
           episode_id: string
           kind: string
-          language_level?: string
           memory_choice?: string
           memory_question?: string
           memory_relationship?: string

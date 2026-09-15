@@ -5,7 +5,7 @@
 -- roles that reach the table. A client that skipped the screen and called
 -- PostgREST directly has to land in the same place.
 BEGIN;
-SELECT plan(25);
+SELECT plan(28);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -32,11 +32,11 @@ SELECT is(
   'and it does not start the 30 day lock'
 );
 
-SELECT is(
-  (SELECT username_changed_at FROM public.profiles
-    WHERE id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
-  NULL::timestamptz,
-  'and it is not recorded as a change'
+-- The lock is the whole record of a change. A second column holding when the id
+-- changed would say the same thing in another name, and nothing reads it.
+SELECT hasnt_column(
+  'public', 'profiles', 'username_changed_at',
+  'a change is recorded only by the lock it starts'
 );
 
 -- The edit screen asks about the id already in the field every time it opens.
@@ -61,11 +61,11 @@ SELECT is(
   'and the next allowed change is 30 days out'
 );
 
-SELECT isnt(
-  (SELECT username_changed_at FROM public.profiles
-    WHERE id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
-  NULL::timestamptz,
-  'and the change is recorded'
+-- How long the old id stays protected is the only thing the retired list needs to
+-- know. When it was released is not read by anything.
+SELECT hasnt_column(
+  'public', 'retired_usernames', 'retired_at',
+  'and the retired id keeps only when its protection ends'
 );
 
 SELECT throws_ok(
@@ -251,6 +251,44 @@ SELECT lives_ok(
   $$update public.profiles set username = 'secondid'
     where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'$$,
   'and somebody else can take it'
+);
+
+RESET ROLE;
+
+-- ── an id given up again is protected from the latest release ──
+--
+-- 'secondid' still has its expired row from A's release. When B gives it up in
+-- turn, that row has to move to B and start a fresh 30 days, or the id would be
+-- free the moment B left it.
+UPDATE public.profiles
+SET username_locked_until = now() - interval '1 day'
+WHERE id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claims TO '{"sub":"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb","role":"authenticated"}';
+
+SELECT lives_ok(
+  $$update public.profiles set username = 'bnewid'
+    where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'$$,
+  'the second holder can give the id up as well'
+);
+
+RESET ROLE;
+
+SELECT ok(
+  (SELECT retired_by = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+      AND protected_until = now() + interval '30 days'
+    FROM public.retired_usernames WHERE username = 'secondid'),
+  'and its protection restarts from that latest release'
+);
+
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claims TO '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated"}';
+
+SELECT is(
+  public.username_status('secondid'),
+  'taken',
+  'so the account that first gave it up cannot take it while that runs'
 );
 
 RESET ROLE;

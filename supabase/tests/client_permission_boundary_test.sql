@@ -40,7 +40,7 @@ FROM (VALUES
   ('public.touch_story_play()', false, false),
   ('public.learning_streak(text,date)', true, false),
   ('public.learning_days(text,date,date)', true, false),
-  ('public.finish_episode(uuid,uuid,text,text,text,text,text,text)', true, false),
+  ('public.finish_episode(uuid,uuid,text,text,text,text,text)', true, false),
   ('public.create_story(jsonb)', true, false),
   ('public.set_story_cover(uuid,text,text)', true, false),
   ('public.claim_dialogue_expression(uuid,integer,text,text,uuid)',true,false),

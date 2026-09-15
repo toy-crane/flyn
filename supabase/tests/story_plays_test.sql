@@ -5,7 +5,7 @@
 -- 메시지가 앉을 때 트리거가 밀고, 클라이언트는 그 열에 닿지 못한다. 기록을 열어
 -- 보는 것만으로 스토리 탭의 순서가 바뀌지 않는다는 약속이 그 좁은 길에서 나온다.
 BEGIN;
-SELECT plan(39);
+SELECT plan(40);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -76,10 +76,17 @@ SELECT ok(
       has_column_privilege('authenticated', 'public.story_plays', c, 'INSERT')
     )
     FROM unnest(ARRAY[
-      'id', 'user_id', 'started_at', 'last_user_message_at'
+      'id', 'user_id', 'created_at', 'last_user_message_at'
     ]) AS c
   ),
   'a client may name only the story, so it cannot choose its own recency'
+);
+
+-- 회차 행은 첫 사용자 메시지에 생기므로 `created_at`이 곧 회차를 시작한 시각이다.
+-- 같은 순간을 다른 이름으로 한 번 더 두지 않는다.
+SELECT hasnt_column(
+  'public', 'story_plays', 'started_at',
+  'a run reads when it began from created_at'
 );
 
 SELECT is_definer(
@@ -151,7 +158,7 @@ SELECT
   (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 1)
 FROM public.story_plays run
 WHERE run.user_id = '11111111-1111-4111-8111-111111111111'
-ORDER BY run.started_at
+ORDER BY run.created_at
 LIMIT 1;
 
 SET LOCAL ROLE authenticated;

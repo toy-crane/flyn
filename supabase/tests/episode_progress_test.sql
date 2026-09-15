@@ -53,7 +53,7 @@ SELECT hasnt_column(
 SELECT function_privs_are(
   'public',
   'finish_episode',
-  array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
+  array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text']::name[],
   'authenticated',
   array['EXECUTE'],
   'a signed-in account can finish an episode by id'
@@ -62,7 +62,7 @@ SELECT function_privs_are(
 SELECT function_returns(
   'public',
   'finish_episode',
-  array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
+  array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text']::name[],
   'boolean',
   'finishing reports whether this request recorded the permanent ending'
 );
