@@ -10,6 +10,12 @@ import { ExpressionNoteScreen } from "./expression-note-screen";
 const CARD_TEST_ID = /^expression-card-5a4ed000-0000-4000-8000-\d{12}$/;
 
 const UTTERANCE: SavedExpression = {
+  conversation: {
+    dialogueIndex: 0,
+    episodeId: "11000000-0000-4000-8000-000000000001",
+    messageId: "3e55a9e0-0000-4000-8000-000000000001",
+    storyPlayId: "1a000000-0000-4000-8000-000000000001",
+  },
   english: "Next in line, please!",
   entries: null,
   episodeNumber: 1,
@@ -22,6 +28,12 @@ const UTTERANCE: SavedExpression = {
 };
 
 const CORRECTION: SavedExpression = {
+  conversation: {
+    dialogueIndex: null,
+    episodeId: "11000000-0000-4000-8000-000000000001",
+    messageId: "3e55a9e0-0000-4000-8000-000000000002",
+    storyPlayId: "1a000000-0000-4000-8000-000000000001",
+  },
   english: "I ordered a hot americano.",
   entries: [
     {
@@ -39,7 +51,9 @@ const CORRECTION: SavedExpression = {
   storyTitle: "Mia의 카페",
 };
 
+/** 원본 메시지를 잃어 돌아갈 대화가 없는 옛 항목. */
 const GUIDANCE: SavedExpression = {
+  conversation: null,
   english: "No worries, but I'm in a bit of a hurry.",
   entries: [
     {
@@ -61,15 +75,21 @@ function renderNote(
   overrides: Partial<Parameters<typeof ExpressionNoteScreen>[0]> = {}
 ) {
   const onErase = jest.fn<(id: string) => void>();
+  const onAsk = jest.fn<(expression: SavedExpression) => void>();
+  const onOpenConversation = jest.fn<(expression: SavedExpression) => void>();
 
   return {
+    onAsk,
     onErase,
+    onOpenConversation,
     rendered: renderWithHeroUI(
       <ExpressionNoteScreen
         expressions={[UTTERANCE, CORRECTION, GUIDANCE]}
         isLoading={false}
         isRetrying={false}
+        onAsk={onAsk}
         onErase={onErase}
+        onOpenConversation={onOpenConversation}
         onRetry={jest.fn()}
         {...overrides}
       />
@@ -255,12 +275,116 @@ test("카드를 펼쳐도 아이콘 줄은 카드를 펼치지 않는다", async
   ).toBeNull();
 });
 
-test("아이콘 줄의 접근성 이름은 표현 복사와 삭제다", async () => {
-  const { rendered } = renderNote({ expressions: [UTTERANCE] });
-  const { getAllByRole } = await rendered;
+test("카드 아래 아이콘 줄에는 대화에서 보기와 삭제가 차례로 서고 복사는 없다", async () => {
+  await renderNote({ expressions: [UTTERANCE] }).rendered;
 
-  expect(getAllByRole("button", { name: "표현 복사" })).toHaveLength(1);
-  expect(getAllByRole("button", { name: "삭제" })).toHaveLength(1);
+  const icons = within(
+    screen.getByTestId(`expression-icons-${UTTERANCE.id}`)
+  ).getAllByRole("button");
+
+  expect(icons.map((icon) => icon.props.accessibilityLabel)).toEqual([
+    "대화에서 보기",
+    "삭제",
+  ]);
+  expect(screen.queryByRole("button", { name: "표현 복사" })).toBeNull();
+});
+
+test("원래 대화가 지워진 표현의 아이콘 줄에는 삭제만 선다", async () => {
+  await renderNote({ expressions: [GUIDANCE] }).rendered;
+
+  const icons = within(
+    screen.getByTestId(`expression-icons-${GUIDANCE.id}`)
+  ).getAllByRole("button");
+
+  expect(icons.map((icon) => icon.props.accessibilityLabel)).toEqual(["삭제"]);
+});
+
+test("세 종류 모두 카드에서 AI에게 물어보기로 그 표현을 넘긴다", async () => {
+  const { onAsk, rendered } = renderNote();
+
+  await rendered;
+
+  const asks = screen.getAllByRole("button", { name: "AI에게 물어보기" });
+
+  expect(asks).toHaveLength(3);
+
+  await userEvent.press(asks[2] as NonNullable<(typeof asks)[number]>);
+
+  expect(onAsk).toHaveBeenCalledWith(GUIDANCE);
+});
+
+test("원래 대화가 있는 카드는 아이콘 줄의 대화에서 보기로 그 표현을 넘긴다", async () => {
+  const { onOpenConversation, rendered } = renderNote({
+    expressions: [UTTERANCE],
+  });
+
+  await rendered;
+  await userEvent.press(screen.getByRole("button", { name: "대화에서 보기" }));
+
+  expect(onOpenConversation).toHaveBeenCalledWith(UTTERANCE);
+});
+
+test("원래 대화가 지워진 표현은 계속 읽히고 대화에서 보기만 없다", async () => {
+  await renderNote({ expressions: [GUIDANCE] }).rendered;
+
+  expect(screen.getByText(GUIDANCE.english)).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "대화에서 보기" })).toBeNull();
+  expect(screen.queryByText("원래 대화가 삭제됐어요")).toBeNull();
+  expect(screen.getByRole("button", { name: "AI에게 물어보기" })).toBeEnabled();
+});
+
+test("이동하려다 대화를 찾지 못한 표현은 그 카드의 대화에서 보기만 숨긴다", async () => {
+  await renderNote({
+    expressions: [UTTERANCE, CORRECTION],
+    missingConversationIds: new Set([CORRECTION.id]),
+  }).rendered;
+
+  expect(
+    within(screen.getByTestId(`expression-card-${CORRECTION.id}`)).queryByRole(
+      "button",
+      { name: "대화에서 보기" }
+    )
+  ).toBeNull();
+  expect(
+    within(screen.getByTestId(`expression-card-${UTTERANCE.id}`)).getByRole(
+      "button",
+      { name: "대화에서 보기" }
+    )
+  ).toBeOnTheScreen();
+  expect(screen.getByText(CORRECTION.english)).toBeOnTheScreen();
+});
+
+test("대화를 확인하는 동안 대화에서 보기는 진행 표시를 두고 다시 눌리지 않는다", async () => {
+  const { onOpenConversation, rendered } = renderNote({
+    expressions: [UTTERANCE],
+    openingConversationId: UTTERANCE.id,
+  });
+
+  await rendered;
+
+  const open = screen.getByRole("button", { name: "대화에서 보기" });
+
+  expect(open.props.accessibilityState).toMatchObject({
+    busy: true,
+    disabled: true,
+  });
+  await userEvent.press(open);
+  expect(onOpenConversation).not.toHaveBeenCalled();
+});
+
+test("펼친 카드의 AI에게 물어보기와 대화에서 보기는 카드를 접지 않는다", async () => {
+  await renderNote({ expressions: [CORRECTION] }).rendered;
+  const detail = `expression-card-${CORRECTION.id}-detail`;
+
+  await userEvent.press(
+    screen.getByTestId(`expression-card-${CORRECTION.id}-body`)
+  );
+  await userEvent.press(
+    screen.getByRole("button", { name: "AI에게 물어보기" })
+  );
+  await userEvent.press(screen.getByRole("button", { name: "대화에서 보기" }));
+
+  expect(screen.getByTestId(detail)).toBeOnTheScreen();
 });
 
 test("담은 것이 없으면 책갈피 한 줄만 보이고 버튼은 없다", async () => {

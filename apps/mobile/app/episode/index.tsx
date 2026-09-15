@@ -12,11 +12,36 @@ import { useStoryDetail, useStoryRefresh } from "@/features/story/query/story";
 import { EpisodeLoadingScreen } from "@/screens/episode/episode-loading-screen";
 import { EpisodeScreen } from "@/screens/episode/episode-screen";
 import { EpisodeUnavailableScreen } from "@/screens/episode/episode-unavailable-screen";
+import { useScreenArrival } from "@/shared/navigation/use-screen-arrival";
 import { useVisibleRetry } from "@/shared/query/use-visible-retry";
 import { toolbarIcon } from "@/shared/ui/toolbar-icons";
 
+const DIALOGUE_INDEX = /^\d+$/;
+
 function firstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+/**
+ * 표현 노트가 넘긴 저장한 표현의 자리. 노트에서 들어오지 않았으면 없다.
+ *
+ * 대사 자리는 검색 매개변수라 글자로 온다. 숫자가 아니면 배울 표현으로 읽는다.
+ */
+function focusOf(
+  messageId: string | undefined,
+  dialogueIndex: string | undefined
+) {
+  if (messageId === undefined) {
+    return;
+  }
+
+  return {
+    dialogueIndex:
+      dialogueIndex !== undefined && DIALOGUE_INDEX.test(dialogueIndex)
+        ? Number(dialogueIndex)
+        : null,
+    messageId,
+  };
 }
 
 /**
@@ -32,12 +57,21 @@ export default function EpisodeRoute() {
   const { session } = useAuthSession();
   const params = useLocalSearchParams<{
     episodeId?: string | string[];
+    focusDialogueIndex?: string | string[];
+    focusMessageId?: string | string[];
     storyPlayId?: string | string[];
     storyId?: string | string[];
   }>();
   const episodeId = firstParam(params.episodeId);
   const paramStoryPlayId = firstParam(params.storyPlayId);
   const paramStoryId = firstParam(params.storyId);
+  const focusMessageId = firstParam(params.focusMessageId);
+  const focusDialogueIndex = firstParam(params.focusDialogueIndex);
+  const focus = useMemo(
+    () => focusOf(focusMessageId, focusDialogueIndex),
+    [focusDialogueIndex, focusMessageId]
+  );
+  const hasArrived = useScreenArrival();
   // 서버가 방금 만든 회차. 다음 화로 넘어갈 때 이 값을 들고 간다.
   const [startedStoryPlayId, setStartedStoryPlayId] = useState<string>();
   const storyPlayId = paramStoryPlayId ?? startedStoryPlayId;
@@ -147,6 +181,10 @@ export default function EpisodeRoute() {
         <EpisodeScreen
           cast={playing.episode.cast}
           episodeId={playing.episode.episodeId}
+          // 노트에서 들어온 대화는 저장한 표현의 자리에서 읽기 시작한다.
+          // 목록에 그 메시지가 없으면 대화판이 평소처럼 연다.
+          focus={focus}
+          hasArrived={hasArrived}
           initialMessages={playing.messages}
           key={`${paramStoryPlayId ?? paramStoryId}:${playing.episode.episodeId}`}
           onOpenAsk={openAsk}

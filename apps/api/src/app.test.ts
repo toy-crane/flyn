@@ -558,15 +558,29 @@ function signedInWith(
         }
 
         // 표현 노트는 담긴 행에서 에피소드를, 그 에피소드에서 스토리를 타고
-        // 제목과 화 번호를 읽는다.
+        // 제목과 화 번호를 읽는다. 원본 메시지가 남아 있으면 그 메시지의 플레이를
+        // 타고 회차도 읽는다.
         if (nestedEpisode) {
           return ordered.map((row) => {
             const episode = TEST_EPISODES.find(
               (candidate) => candidate.id === value(row, "episode_id")
             );
+            const message = state.messages.find(
+              (candidate) => candidate.id === value(row, "message_id")
+            );
+            const play = playRows().find(
+              (candidate) => candidate.id === message?.episode_play_id
+            );
 
             return {
               ...row,
+              episode_messages: message
+                ? {
+                    episode_plays: play
+                      ? { story_play_id: play.story_play_id }
+                      : null,
+                  }
+                : null,
               episodes: {
                 number: episode?.number ?? 0,
                 stories: { title: STORY_ROW.title },
@@ -3235,6 +3249,12 @@ describe("표현을 담아 두는 API", () => {
 
     expect(cards).toEqual([
       {
+        conversation: {
+          dialogueIndex: null,
+          episodeId: episodeId(1),
+          messageId: "m1",
+          storyPlayId: STORY_PLAY_ID,
+        },
         english: WRONG_COFFEE.fixed,
         entries: [
           {
@@ -3253,6 +3273,12 @@ describe("표현을 담아 두는 API", () => {
         storyTitle: STORY_ROW.title,
       },
       {
+        conversation: {
+          dialogueIndex: 0,
+          episodeId: episodeId(1),
+          messageId: "s1",
+          storyPlayId: STORY_PLAY_ID,
+        },
         english: "Next in line, please!",
         entries: null,
         episodeNumber: 1,
@@ -3282,11 +3308,14 @@ describe("표현을 담아 두는 API", () => {
     }
 
     const cards = (await (await app.request(note())).json()) as {
+      conversation: unknown;
       english: string;
     }[];
 
     expect(cards).toHaveLength(1);
     expect(cards[0]?.english).toBe("Next in line, please!");
+    // 돌아갈 대화가 없으므로 노트는 대화에서 보기를 세우지 않는다.
+    expect(cards[0]?.conversation).toBeNull();
   });
 });
 
@@ -3376,6 +3405,30 @@ describe("POST /ai/episode/ask", () => {
     expect(body).toContain('"type":"text-delta"');
     expect(body).toContain("안녕");
     expect(body).toContain("하세요");
+    expect(model.doStreamCalls).toHaveLength(1);
+  });
+
+  test("표현 노트가 보낸 교정처럼 유형 없이 짚은 자리와 이유만 있어도 답한다", async () => {
+    const model = createMockModel(["여기서는 the를 붙여요."]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createAskRequest({
+        correction: {
+          entries: WRONG_COFFEE.entries.map(({ fixed, original, why }) => ({
+            fixed,
+            original,
+            why,
+          })),
+          fixed: WRONG_COFFEE.fixed,
+          original: "I think you gave me wrong coffee.",
+        },
+        messages: [createUserMessage("왜 the를 붙여요?")],
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("the를 붙여요");
     expect(model.doStreamCalls).toHaveLength(1);
   });
 

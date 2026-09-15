@@ -24,6 +24,10 @@ import type { UtteranceMeaning } from "@/features/episode/api/utterance-meaning"
 import { useEpisodeAsks } from "@/features/episode/state/episode-asks";
 import { EpisodeCorrectionsProvider } from "@/features/episode/state/episode-corrections";
 import type { EpisodeEnding } from "@/features/episode/state/episode-ending";
+import {
+  type EpisodeFocus,
+  EpisodeFocusProvider,
+} from "@/features/episode/state/episode-focus";
 import type { EpisodeNextUp } from "@/features/episode/state/episode-next-up";
 import { prepareEpisodeMessage } from "@/features/episode/state/episode-notation";
 import { SavedExpressionsProvider } from "@/features/episode/state/saved-expressions";
@@ -64,6 +68,8 @@ import { Button } from "@/shared/ui/button";
 export function EpisodeScreen({
   cast,
   episodeId,
+  focus,
+  hasArrived = true,
   initialMessages,
   onReview,
   onOpenAsk,
@@ -82,6 +88,16 @@ export function EpisodeScreen({
   /** 이 화에 서는 인물. 이름표 색이 그 스토리 안 순서를 받는다. */
   cast?: readonly EpisodeCastMember[];
   episodeId: string;
+  /**
+   * 표현 노트에서 저장한 표현을 찾아 들어왔을 때 그 표현의 자리. 인물 대사면
+   * 장면 안 대사 자리가 함께 오고, 배울 표현이면 `null`이다.
+   *
+   * 대화는 그 자리에서 읽기 시작하고, 자리를 잡고 화면이 도착하면 그 표현을
+   * 잠깐 짚는다. 노트에서 들어왔다고 읽기 모드나 이어가기 버튼을 따로 두지 않는다.
+   */
+  focus?: { dialogueIndex: number | null; messageId: string };
+  /** 이 화면으로 오는 전환이 끝났는지. 짚는 테두리는 도착한 뒤에 선다. */
+  hasArrived?: boolean;
   initialMessages: UIMessage[];
   onReview: (nextUp: EpisodeNextUp | undefined) => void;
   onOpenAsk: (id: string) => void;
@@ -230,6 +246,44 @@ export function EpisodeScreen({
     () => ({ ...conversation, retry }),
     [conversation, retry]
   );
+  /*
+    짚는 테두리는 한 번만 선다. 목록이 그 자리를 잡고 화면이 도착한 뒤에 서고,
+    사라지면 다시 서지 않는다. 그 사이에 대화가 이어져도 기존 모양으로 돌아간다.
+  */
+  const [hasPositionedFocus, setHasPositionedFocus] = useState(false);
+  const [hasEndedHighlight, setHasEndedHighlight] = useState(false);
+  const positionFocus = useCallback(() => setHasPositionedFocus(true), []);
+  const endHighlight = useCallback(() => setHasEndedHighlight(true), []);
+  const isHighlighting =
+    focus !== undefined &&
+    hasPositionedFocus &&
+    hasArrived &&
+    !hasEndedHighlight;
+  const panelFocus = useMemo(
+    () =>
+      focus === undefined
+        ? undefined
+        : {
+            dialogueIndex: focus.dialogueIndex ?? undefined,
+            isHighlighting,
+            messageId: focus.messageId,
+            onHighlightEnd: endHighlight,
+            onPositioned: positionFocus,
+          },
+    [endHighlight, focus, isHighlighting, positionFocus]
+  );
+  // 인물 대사의 말풍선은 대화판이 짚고, 배울 표현의 한 줄은 에피소드가 짚는다.
+  const learningFocus = useMemo<EpisodeFocus | undefined>(
+    () =>
+      focus === undefined || focus.dialogueIndex !== null
+        ? undefined
+        : {
+            isHighlighting,
+            messageId: focus.messageId,
+            onHighlightEnd: endHighlight,
+          },
+    [endHighlight, focus, isHighlighting]
+  );
 
   let closing: ReactNode;
   const isChecking = Object.values(corrections.states).some(
@@ -285,13 +339,17 @@ export function EpisodeScreen({
 
   return (
     <EpisodeCorrectionsProvider value={correctionsView}>
-      <UtteranceMeaningsProvider value={meaningsView}>
-        <SavedExpressionsProvider value={saved}>
-          <ChatPanel
-            banner={
-              <EpisodeSituationBanner emoji={situationEmoji} text={situation} />
-            }
-            /*
+      <EpisodeFocusProvider value={learningFocus}>
+        <UtteranceMeaningsProvider value={meaningsView}>
+          <SavedExpressionsProvider value={saved}>
+            <ChatPanel
+              banner={
+                <EpisodeSituationBanner
+                  emoji={situationEmoji}
+                  text={situation}
+                />
+              }
+              /*
             회차가 생기기 전의 첫 장면에는 책갈피를 두지 않는다.
 
             회차는 사용자가 처음 말할 때 생기고, 그전의 첫 장면은 계정에 남지
@@ -300,20 +358,22 @@ export function EpisodeScreen({
             선다. 처음 말하는 순간 회차가 생기고 그 장면도 대화의 첫 줄로 남으므로,
             책갈피는 그때 복사 옆에 합류한다.
           */
-            canSaveUtterances={storyPlayId !== undefined}
-            cast={castOrder}
-            chat={conversationRun}
-            closing={closing}
-            hasMessageActions={false}
-            inputRef={inputRef}
-            key={panelKey}
-            messageAddon={EpisodeCorrectionNote}
-            placeholder={episodeLabels.placeholder}
-            toast={toast}
-            utteranceAddon={UtteranceExpressionSlot}
-          />
-        </SavedExpressionsProvider>
-      </UtteranceMeaningsProvider>
+              canSaveUtterances={storyPlayId !== undefined}
+              cast={castOrder}
+              chat={conversationRun}
+              closing={closing}
+              focus={panelFocus}
+              hasMessageActions={false}
+              inputRef={inputRef}
+              key={panelKey}
+              messageAddon={EpisodeCorrectionNote}
+              placeholder={episodeLabels.placeholder}
+              toast={toast}
+              utteranceAddon={UtteranceExpressionSlot}
+            />
+          </SavedExpressionsProvider>
+        </UtteranceMeaningsProvider>
+      </EpisodeFocusProvider>
     </EpisodeCorrectionsProvider>
   );
 }
