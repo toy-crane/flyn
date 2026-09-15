@@ -555,6 +555,7 @@ bun run test:integration
 bun run dev ios
 bun run dev:status
 bun run dev:stop
+bun run env:setup
 bun run build
 bun run check
 bun run fix
@@ -619,6 +620,7 @@ Git worktree, 풀의 기기와 저장소 공용 빌드는 지우지 않습니다
 
 여러 Git worktree에서 같은 앱을 동시에 개발할 수 있습니다.
 폴더마다 다른 포트와 다른 기기를 배정하고, 네이티브 빌드는 플랫폼과 native fingerprint가 같으면 저장소 전체에서 함께 씁니다.
+`bun run dev`는 시작 전에 `bun run env:setup`을 실행합니다. 환경 파일이 빠졌으면 같은 Git 저장소의 기본 checkout에 있는 `apps/api/.env.local`, `apps/mobile/.env.local`, `supabase/.env`를 symlink로 연결합니다. 기존 파일은 덮어쓰지 않습니다. 환경만 미리 확인하거나 연결하려면 `bun run env:setup`을 직접 실행하세요.
 Android 빌드를 새로 만들 때는 폴더별 Gradle 홈을 사용해 다른 worktree의 빌드 캐시와 섞이지 않습니다.
 빌드가 끝난 뒤에는 이 폴더를 쓰는 Gradle daemon을 남기지 않습니다.
 `dev:stop`은 이 캐시를 남기고, `dev:remove`는 해당 폴더의 Gradle 캐시도 지웁니다.

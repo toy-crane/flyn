@@ -34,6 +34,12 @@
 - 웹 개발 서버는 `apps/web`에서 `bun run dev`로 띄우고 `bun run stop`으로 내린다. `astro dev`는 셸을 벗어나 백그라운드에 남으므로 끝나면 반드시 내린다. 상태는 `bunx astro dev status`로 본다.
 - 루트의 `bun run dev`는 API, Metro와 기기만 관리한다. 웹 개발 서버는 시작하지도 멈추지도 않는다.
 
+# Worktree 환경 파일
+
+- 환경 파일이 필요한 작업은 저장소 루트에서 `bun run env:setup`을 먼저 실행한다. `bun run dev`, `bun run db:start`, `bun run auth:otp`와 `apps/api`의 `dev`, `eval:*` 명령은 이를 자동으로 실행한다.
+- `apps/api/eval/*.ts`를 직접 실행하지 않고 `apps/api`의 `bun run eval:*` 명령을 사용한다.
+- 환경 파일을 worktree에 직접 복사하거나 값을 출력하지 않는다. 준비 명령은 같은 Git 저장소의 기본 checkout 파일을 연결하며 기존 파일을 덮어쓰지 않는다.
+
 # 앱 실행
 
 - 에이전트가 시뮬레이터·에뮬레이터를 실행·재실행·재연결하거나 자동 검증할 때는 사용자 작업 창의 포커스를 빼앗지 않는다. 창을 백그라운드에 두거나 숨긴 상태로 조작·캡처한다.
