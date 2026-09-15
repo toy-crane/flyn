@@ -3,9 +3,10 @@ import { useMemo } from "react";
 
 import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
 import { ExpressionCard } from "@/shared/ui/expression-card";
+import { originalErrorMarks } from "@/shared/ui/expression-marks";
 import { Icon } from "@/shared/ui/icon";
 import { correctionPresentation } from "./correction-presentation";
-import { fixedMarks, originalErrorMarks } from "./correction-text";
+import { fixedMarks } from "./correction-text";
 import {
   ExpressionSaveFailure,
   LearningExpressionActions,

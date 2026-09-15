@@ -28,12 +28,13 @@ import {
   type ExpressionState,
   useCorrections,
 } from "@/features/episode/state/episode-corrections";
+import { originalErrorMarks } from "@/shared/ui/expression-marks";
 import { Icon } from "@/shared/ui/icon";
 import { MarkedSentence } from "@/shared/ui/marked-text";
 import { StatusLine } from "@/shared/ui/status-line";
 import { useReduceMotion } from "@/shared/ui/use-reduce-motion";
 import { correctionPresentation } from "./correction-presentation";
-import { fixedMarks, originalErrorMarks } from "./correction-text";
+import { fixedMarks } from "./correction-text";
 import { correctionLabels } from "./episode-labels";
 import {
   ExpressionSaveFailure,

@@ -2,12 +2,12 @@ import { Typography } from "heroui-native/text";
 import { useCallback } from "react";
 import { Alert } from "react-native";
 
-import { originalErrorMarks } from "@/features/episode/ui/correction-text";
 import type { SavedExpression } from "@/features/note/api/expression-note";
 import {
   ExpressionCard,
   type ExpressionCardDetail,
 } from "@/shared/ui/expression-card";
+import { originalErrorMarks } from "@/shared/ui/expression-marks";
 import { Icon } from "@/shared/ui/icon";
 import {
   IconRow,
