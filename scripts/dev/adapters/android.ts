@@ -276,6 +276,7 @@ export async function startEmulator({
     }
     // The Qt flag is a launch setting. Reopen only this AVD, preserving data.
     await shutdownEmulator(sdk, running);
+    await waitForConsolePortRelease(port);
   }
 
   // An emulator started on a taken console port fails quietly, so the wait
@@ -311,6 +312,20 @@ export async function startEmulator({
   await waitForBoot(sdk, serial);
 
   return serial;
+}
+
+async function waitForConsolePortRelease(port: number): Promise<void> {
+  const deadline = Date.now() + SHUTDOWN_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    // biome-ignore lint/performance/noAwaitInLoops: QEMU releases its port asynchronously after adb disconnects.
+    if (await isPortFree(port)) {
+      return;
+    }
+    await sleep(SHUTDOWN_POLL_MS);
+  }
+  throw new Error(
+    `Emulator 콘솔 포트 ${port}이(가) 시간 안에 해제되지 않았습니다.`
+  );
 }
 
 async function isBooted(sdk: AndroidSdk, serial: string): Promise<boolean> {

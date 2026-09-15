@@ -56,7 +56,7 @@ case "$(basename "$0"):$*" in
   'ps:'*)
     if [ "$MODE" = mismatch ]; then
       echo 'qemu -avd other -port 6540 -qt-hide-window'
-    elif [ "$MODE" = hidden ]; then
+    elif [ "$MODE" = hidden ] || [ "$MODE" = delayed ]; then
       echo 'qemu -avd ours -port 6540 -qt-hide-window'
     else
       echo 'qemu -avd ours -port 6540'
@@ -75,15 +75,32 @@ esac
     platform === "ios"
       ? `import {openSimulatorApp} from ${JSON.stringify(join(import.meta.dir, "ios.ts"))}; await openSimulatorApp("ours", ${foreground});`
       : `import {startEmulator} from ${JSON.stringify(join(import.meta.dir, "android.ts"))}; await startEmulator({sdk:${JSON.stringify(sdk)}, avdName:"ours", port:6540, logPath:${JSON.stringify(join(dir, "device.log"))},foreground:${foreground}});`;
-  const result = await run([process.execPath, "-e", source], {
-    env: {
-      ...process.env,
-      MODE: mode,
-      PATH: `${bin}:${process.env.PATH}`,
-      PROBE_DIR: dir,
-      PROBE_LOG: log,
-    } as Record<string, string>,
-  });
+  const delayedSource = `
+import {createServer} from "node:net";
+import {existsSync} from "node:fs";
+const server = createServer();
+await new Promise(resolve => server.listen(6540, "0.0.0.0", resolve));
+const timer = setInterval(() => {
+  if (existsSync(${JSON.stringify(join(dir, "killed"))})) {
+    clearInterval(timer);
+    setTimeout(() => server.close(), 500);
+  }
+}, 10);
+${source.split("; await")[0]};
+try { await ${source.split("; await")[1]} } finally { clearInterval(timer); server.close(); }
+`;
+  const result = await run(
+    [process.execPath, "-e", mode === "delayed" ? delayedSource : source],
+    {
+      env: {
+        ...process.env,
+        MODE: mode,
+        PATH: `${bin}:${process.env.PATH}`,
+        PROBE_DIR: dir,
+        PROBE_LOG: log,
+      } as Record<string, string>,
+    }
+  );
   return { ...result, commands: readFileSync(log, "utf8") };
 }
 
@@ -136,4 +153,13 @@ test("AVD와 프로세스가 다르면 창을 활성화하거나 기기를 종�
   const result = await probe("android", true, "mismatch");
   expect(result.code).not.toBe(0);
   expect(result.commands).not.toMatch(ACTIVATE_OR_KILL);
+});
+
+test("Android 종료 뒤 콘솔 포트 해제가 늦어져도 재시작을 기다린다", async () => {
+  const result = await probe("android", true, "delayed");
+  expect(result.stderr).toBe("");
+  expect(result.code).toBe(0);
+  expect(result.commands).toContain(
+    "emulator -avd ours -port 6540 -no-boot-anim\n"
+  );
 });
