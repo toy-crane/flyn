@@ -51,5 +51,8 @@
       "version": "1.4.0",
       "onFail": "warn"
     }
+  },
+  "patchedDependencies": {
+    "heroui-native@1.0.9": "patches/heroui-native@1.0.9.patch"
   }
 }
