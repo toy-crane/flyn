@@ -45,7 +45,11 @@ export function ExpressionReviewCard({
       }
       detail={{
         original: correction.original,
-        originalMarks: originalErrorMarks(correction.entries),
+        originalMarks: originalErrorMarks(
+          correction.entries,
+          correction.original,
+          correction.fixed
+        ),
         whys: correction.entries.map((entry) => entry.why),
       }}
       english={correction.fixed}

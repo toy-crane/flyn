@@ -77,7 +77,11 @@ function CorrectionRow({
             className="mb-0.5"
             color="muted"
             markClassName="underline"
-            marks={originalErrorMarks(correction.entries)}
+            marks={originalErrorMarks(
+              correction.entries,
+              correction.original,
+              correction.fixed
+            )}
             testID="correction-original"
             text={correction.original}
             type="body-sm"
@@ -98,7 +102,7 @@ function CorrectionRow({
             className="mb-0.5"
             color="muted"
             markClassName="underline"
-            marks={originalErrorMarks([entry])}
+            marks={originalErrorMarks([entry], entry.original, entry.fixed)}
             text={entry.original}
             type="body-sm"
           />

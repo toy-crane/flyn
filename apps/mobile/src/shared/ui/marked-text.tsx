@@ -13,7 +13,15 @@ export interface MarkedText {
   text: string;
 }
 
-export type TextMark = string | { text: string; isMarked: boolean };
+export type TextMark =
+  | string
+  | { text: string; isMarked: boolean; at?: number };
+
+function readTextMark(mark: TextMark) {
+  return typeof mark === "string"
+    ? { at: undefined, isMarked: true, text: mark }
+    : mark;
+}
 
 /**
  * 문장을 강조할 자리 기준으로 자른다.
@@ -33,18 +41,17 @@ export function markedParts(
   const ranges: { end: number; start: number; isMarked: boolean }[] = [];
 
   for (const item of marks) {
-    const mark = typeof item === "string" ? item : item.text;
-    const isMarked = typeof item === "string" || item.isMarked;
+    const { at, isMarked, text: mark } = readTextMark(item);
     if (!mark) {
       continue;
     }
 
-    let from = 0;
+    let from = at ?? 0;
 
     while (from <= text.length - mark.length) {
       const start = text.indexOf(mark, from);
 
-      if (start < 0) {
+      if (start < 0 || (at !== undefined && start !== at)) {
         break;
       }
 

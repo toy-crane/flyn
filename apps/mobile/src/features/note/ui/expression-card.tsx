@@ -49,7 +49,11 @@ function cardDetail(
 
   return {
     original: expression.original,
-    originalMarks: originalErrorMarks(entries),
+    originalMarks: originalErrorMarks(
+      entries,
+      expression.original,
+      expression.english
+    ),
     whys: entries.map((entry) => entry.why),
   };
 }
