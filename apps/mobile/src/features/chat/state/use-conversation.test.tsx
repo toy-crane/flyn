@@ -1,4 +1,4 @@
-import { useChat } from "@ai-sdk/react";
+import { type UseChatHelpers, useChat } from "@ai-sdk/react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
@@ -234,6 +234,126 @@ describe("useConversation", () => {
     release?.();
     await waitFor(() => {
       expect(result.current.messages.map(messageText)).toContain("답변");
+    });
+  });
+
+  test("마지막 글자와 보내기가 한 묶음에 처리돼도 마지막 글자까지 보내고 입력창을 비운다", async () => {
+    const transport = fakeTransport(() =>
+      Promise.resolve(answerStream("답변"))
+    );
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
+
+    await act(() => {
+      result.current.setDraft("hell");
+    });
+    // 입력 이벤트가 화면에 반영되기 전에 보내기가 처리되는 경우다.
+    await act(() => {
+      result.current.setDraft("hello");
+      result.current.send();
+    });
+
+    expect(result.current.draft).toBe("");
+    await waitFor(() => {
+      expect(result.current.messages.map(messageText)).toEqual([
+        "hello",
+        "답변",
+      ]);
+    });
+    expect(transport.sendMessages).toHaveBeenCalledTimes(1);
+  });
+
+  test("다 지운 직후의 보내기는 앞서 쓴 글을 보내지 않는다", async () => {
+    const transport = fakeTransport(() =>
+      Promise.resolve(answerStream("답변"))
+    );
+    const { result } = await renderHook(() =>
+      useTestConversation(ACCESS_TOKEN)
+    );
+
+    await act(() => {
+      result.current.setDraft("지울 말");
+    });
+    let sent: boolean | undefined;
+    await act(() => {
+      result.current.setDraft("");
+      sent = result.current.send();
+    });
+
+    expect(sent).toBe(false);
+    expect(transport.sendMessages).not.toHaveBeenCalled();
+  });
+
+  test("보낼 수 있을 때만 보내기를 허락한다", async () => {
+    const answer = openAnswerStream();
+    fakeTransport(() => Promise.resolve(answer.stream));
+    const { rerender, result } = await renderHook(
+      ({ token }: { token: string | undefined }) => useTestConversation(token),
+      { initialProps: { token: undefined as string | undefined } }
+    );
+
+    await act(() => {
+      result.current.setDraft("질문");
+    });
+    // 인증 토큰이 잠깐 없으면 누를 수 없다.
+    expect(result.current.canSend).toBe(false);
+
+    await rerender({ token: ACCESS_TOKEN });
+    expect(result.current.canSend).toBe(true);
+
+    await act(() => {
+      result.current.send();
+    });
+    await act(() => {
+      result.current.setDraft("다음 질문");
+    });
+    // 답이 오는 중에는 누를 수 없다.
+    expect(result.current.canSend).toBe(false);
+  });
+
+  test("요청이 정리될 때까지 보내기를 허락하지 않고 정리가 끝나면 다시 허락한다", async () => {
+    let finishRequest: (() => void) | undefined;
+    const settled = new Promise<void>((resolve) => {
+      finishRequest = resolve;
+    });
+    const sendMessage = jest.fn(() => settled);
+    const { result } = await renderHook(() =>
+      useConversation(
+        {
+          clearError: jest.fn(),
+          error: undefined,
+          messages: [],
+          regenerate: jest.fn(() => Promise.resolve()),
+          sendMessage,
+          // 답은 이미 끝났지만 요청 약속은 아직 정리 중이다.
+          status: "ready",
+          stop: jest.fn(() => Promise.resolve()),
+        } as unknown as UseChatHelpers<UIMessage>,
+        useLocalChatDrafts(),
+        ACCESS_TOKEN
+      )
+    );
+
+    await act(() => {
+      result.current.setDraft("첫 질문");
+    });
+    await act(() => {
+      result.current.send();
+    });
+    await act(() => {
+      result.current.setDraft("다음 질문");
+    });
+
+    expect(result.current.canSend).toBe(false);
+
+    await act(async () => {
+      finishRequest?.();
+      await settled;
+    });
+
+    await waitFor(() => {
+      expect(result.current.canSend).toBe(true);
     });
   });
 

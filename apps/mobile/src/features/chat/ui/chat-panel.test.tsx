@@ -43,7 +43,7 @@ const mockScrollToIndex = jest.fn<
 const mockListState = { contentLength: 1000, scroll: 500, scrollLength: 500 };
 
 test("서버 작업 중에는 대화 대기 표시 없이 전송만 막는다", async () => {
-  const send = jest.fn();
+  const send = jest.fn(() => true);
   await renderWithHeroUI(
     <ChatPanel
       canCompose={false}
@@ -278,6 +278,8 @@ function chatSession(overrides: Partial<ChatSession> = {}): ChatSession {
   return {
     beginEdit: jest.fn(),
     cancelEdit: jest.fn(),
+    // 실제 세션처럼 글이 있고 답을 기다리지 않을 때 보낼 수 있다.
+    canSend: Boolean(overrides.draft?.trim()) && !overrides.isBusy,
     draft: "",
     editingMessageId: undefined,
     error: undefined,
@@ -285,14 +287,14 @@ function chatSession(overrides: Partial<ChatSession> = {}): ChatSession {
     messages: [],
     regenerateAnswer: jest.fn(),
     retry: jest.fn(),
-    send: jest.fn(),
+    send: jest.fn(() => true),
     setDraft: jest.fn(),
     stop: jest.fn(() => Promise.resolve()),
     ...overrides,
   };
 }
 
-function EditableChat({ onSend }: { onSend: () => void }) {
+function EditableChat({ onSend }: { onSend: () => boolean }) {
   const [draft, setDraft] = useState("");
 
   return <ChatPanel chat={chatSession({ draft, send: onSend, setDraft })} />;
@@ -310,7 +312,7 @@ function SendingChat({
   messages?: UIMessage[];
 }) {
   const [messages, setMessages] = useState(initialMessages);
-  const send = () =>
+  const send = () => {
     setMessages((current) => {
       const kept = editingMessageId
         ? current.slice(
@@ -321,6 +323,8 @@ function SendingChat({
 
       return [...kept, textMessage(`sent-${kept.length}`, "user", "새 질문")];
     });
+    return true;
+  };
 
   return (
     <ChatPanel
@@ -1379,7 +1383,7 @@ describe("ChatPanel", () => {
     const user = userEvent.setup();
     await renderWithHeroUI(
       <ChatPanel
-        chat={chatSession({ draft: "첫 질문", send: jest.fn() })}
+        chat={chatSession({ draft: "첫 질문", send: jest.fn(() => true) })}
         topInset={116}
       />
     );
@@ -1407,7 +1411,11 @@ describe("ChatPanel", () => {
     ];
     await renderWithHeroUI(
       <ChatPanel
-        chat={chatSession({ draft: "새 질문", messages, send: jest.fn() })}
+        chat={chatSession({
+          draft: "새 질문",
+          messages,
+          send: jest.fn(() => true),
+        })}
         topInset={116}
       />
     );
@@ -1591,7 +1599,7 @@ describe("ChatPanel", () => {
           onAppState = listener;
           return { remove: jest.fn() };
         });
-      await renderWithHeroUI(<EditableChat onSend={jest.fn()} />);
+      await renderWithHeroUI(<EditableChat onSend={jest.fn(() => true)} />);
       if (readingHistory) {
         await scrollAwayFromLatest();
       }
@@ -1693,7 +1701,7 @@ describe("ChatPanel", () => {
     const dismiss = jest.mocked(KeyboardController.dismiss);
     const user = userEvent.setup();
     dismiss.mockClear();
-    await renderWithHeroUI(<EditableChat onSend={jest.fn()} />);
+    await renderWithHeroUI(<EditableChat onSend={jest.fn(() => true)} />);
     await scrollAwayFromLatest();
     await user.type(screen.getByLabelText(chatLabels.input), "질문");
 
@@ -1703,8 +1711,59 @@ describe("ChatPanel", () => {
     expect(screen.queryByLabelText(chatLabels.latest)).not.toBeOnTheScreen();
   });
 
+  test("세션이 보낼 수 없다고 하면 글이 있어도 보내기를 누를 수 없다", async () => {
+    const send = jest.fn(() => true);
+    await renderWithHeroUI(
+      <ChatPanel chat={chatSession({ canSend: false, draft: "질문", send })} />
+    );
+
+    expect(screen.getByLabelText(chatLabels.send)).toBeDisabled();
+    await userEvent.setup().press(screen.getByLabelText(chatLabels.send));
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  test("세션이 아무것도 보내지 않으면 입력창과 목록을 그대로 둔다", async () => {
+    const send = jest.fn(() => false);
+    const dismiss = jest.mocked(KeyboardController.dismiss);
+    const user = userEvent.setup();
+    await renderWithHeroUI(
+      <ChatPanel
+        chat={chatSession({
+          draft: "질문",
+          messages: [textMessage("question", "user", "앞선 질문")],
+          send,
+        })}
+      />
+    );
+    const input = screen.getByLabelText(chatLabels.input);
+    await act(() => {
+      input.props.onContentSizeChange({
+        nativeEvent: { contentSize: { height: 96, width: 300 } },
+      });
+    });
+    dismiss.mockClear();
+
+    await user.press(screen.getByLabelText(chatLabels.send));
+    await act(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => resolve());
+        })
+    );
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(
+      StyleSheet.flatten(screen.getByLabelText(chatLabels.input).props.style)
+        .height
+    ).toBe(96);
+    expect(screen.getByTestId("chat-list").props.anchoredEndSpace).toBe(
+      undefined
+    );
+    expect(dismiss).not.toHaveBeenCalled();
+  });
+
   test("입력과 전송을 채팅 세션에 연결한다", async () => {
-    const send = jest.fn();
+    const send = jest.fn(() => true);
     const user = userEvent.setup();
 
     await renderWithHeroUI(<EditableChat onSend={send} />);
@@ -1722,7 +1781,7 @@ describe("ChatPanel", () => {
       <ChatPanel
         chat={chatSession({
           draft: "여러 줄로 늘어난 긴 질문",
-          send: jest.fn(),
+          send: jest.fn(() => true),
         })}
       />
     );
@@ -2117,7 +2176,7 @@ describe("ChatPanel", () => {
   });
 
   test("입력창의 return 키로 전송한다", async () => {
-    const send = jest.fn();
+    const send = jest.fn(() => true);
 
     await renderWithHeroUI(
       <ChatPanel chat={chatSession({ draft: "질문", send })} />
