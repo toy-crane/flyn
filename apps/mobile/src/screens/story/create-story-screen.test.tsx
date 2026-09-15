@@ -132,10 +132,11 @@ jest.mock("@/features/chat/ui/chat-panel", () => {
         { testID: "create-panel" },
         // 진짜 패널이 보내기 버튼을 켜는 조건. 전송 동작 자체의 잠금을 따로
         // 보려고 버튼은 끄지 않고 조건만 드러낸다.
-        React.createElement(View, {
-          canSend: canCompose && chat.canSend,
-          testID: "send-readiness",
-        }),
+        React.createElement(
+          Text,
+          { testID: "send-readiness" },
+          canCompose && chat.canSend ? "보낼 수 있음" : "보낼 수 없음"
+        ),
         React.createElement(TextInput, {
           accessibilityLabel: "메시지",
           onChangeText: chat.setDraft,
@@ -191,18 +192,24 @@ test("에피소드 추가 요청이 정리될 때까지 보내기를 켜지 않�
   await renderWithHeroUI(<CreateStoryScreen onMade={jest.fn()} />);
   const user = userEvent.setup();
   await user.type(screen.getByLabelText("메시지"), "상대는 한 명이에요");
-  expect(screen.getByTestId("send-readiness").props.canSend).toBe(true);
+  expect(screen.getByTestId("send-readiness")).toHaveTextContent(
+    "보낼 수 있음"
+  );
 
   // SDK 경계는 ready 상태라, 답은 끝났지만 요청이 아직 정리 중인 순간이다.
   await user.press(screen.getByRole("button", { name: "에피소드 추가하기" }));
-  expect(screen.getByTestId("send-readiness").props.canSend).toBe(false);
+  expect(screen.getByTestId("send-readiness")).toHaveTextContent(
+    "보낼 수 없음"
+  );
 
   await act(async () => {
     finishAdding?.();
     await Promise.resolve();
   });
   await waitFor(() => {
-    expect(screen.getByTestId("send-readiness").props.canSend).toBe(true);
+    expect(screen.getByTestId("send-readiness")).toHaveTextContent(
+      "보낼 수 있음"
+    );
   });
   await user.press(screen.getByRole("button", { name: "보내기" }));
   expect(mockSendMessage).toHaveBeenLastCalledWith({
