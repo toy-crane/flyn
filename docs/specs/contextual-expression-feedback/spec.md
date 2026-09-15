@@ -23,6 +23,9 @@
   오류 표시와 표현 강조, 확인 상태, 접기·펼치기 및 재시도를 정한다.
 - [모바일 AI에게 물어보기](../../decisions/mobile-ask-ai.md): 출처를 둔 시트와
   본 대화로 돌아오는 동작을 정한다. 이번 작업에서 별도 대화 기능을 바꾸지 않는다.
+- [표현 노트](../../decisions/expression-note.md)와
+  [에피소드 종료와 표현 돌아보기](../../decisions/episode-ending-and-review.md):
+  저장과 돌아보기에서도 같은 오류 표시와 표현 강조를 유지하는 공통 카드를 정한다.
 - [AI 프롬프트 평가](../../decisions/ai-prompt-evaluation.md): 평가 실행 방식,
   기존·새 출력 비교와 기록을 정한다.
 - [UX 라이팅 원칙](../../decisions/ux-writing.md): 고정 UI 문구를 정한다.
