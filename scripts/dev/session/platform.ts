@@ -98,6 +98,7 @@ export interface PlatformDriver {
 export interface DriverInput {
   androidPackage: string;
   bundleIdentifier: string;
+  foreground?: boolean;
   gradleUserHome: string;
   mobileDirectory: string;
   platform: Platform;
@@ -155,7 +156,8 @@ async function restorePoolName(deviceId: string, slug: string): Promise<void> {
 function createIosDriver(
   bundleIdentifier: string,
   schemes: string[],
-  slug: string
+  slug: string,
+  foreground: boolean
 ): PlatformDriver {
   return {
     buildEnv: (base) => base,
@@ -182,7 +184,7 @@ function createIosDriver(
       }
 
       await bootSimulator(deviceId);
-      await openSimulatorApp();
+      await openSimulatorApp(deviceId, foreground);
 
       return { deviceId, target: deviceId };
     },
@@ -217,7 +219,8 @@ function createAndroidDriver(
   mobileDirectory: string,
   androidPackage: string,
   gradleUserHome: string,
-  slug: string
+  slug: string,
+  foreground: boolean
 ): PlatformDriver {
   const sdk: AndroidSdk = resolveAndroidSdk();
 
@@ -241,6 +244,7 @@ function createAndroidDriver(
         beforeSpawn: () => {
           writeAvdDisplayName(deviceId, androidDisplayName(slug, slot));
         },
+        foreground,
         logPath,
         port: emulatorPort(slot),
         sdk,
@@ -292,6 +296,7 @@ function createAndroidDriver(
 }
 
 export function createPlatformDriver({
+  foreground = false,
   androidPackage,
   bundleIdentifier,
   gradleUserHome,
@@ -301,23 +306,26 @@ export function createPlatformDriver({
   slug,
 }: DriverInput): PlatformDriver {
   return platform === "ios"
-    ? createIosDriver(bundleIdentifier, schemes, slug)
+    ? createIosDriver(bundleIdentifier, schemes, slug, foreground)
     : createAndroidDriver(
         mobileDirectory,
         androidPackage,
         gradleUserHome,
-        slug
+        slug,
+        foreground
       );
 }
 
 /** The driver every command wants: this project, that platform. */
 export function driverFor(
   context: SessionContext,
-  platform: Platform
+  platform: Platform,
+  foreground = false
 ): PlatformDriver {
   return createPlatformDriver({
     androidPackage: context.project.androidPackage,
     bundleIdentifier: context.project.bundleIdentifier,
+    foreground,
     gradleUserHome: worktreeGradleHome(context.paths, context.git.worktreePath),
     mobileDirectory: context.mobileDirectory,
     platform,

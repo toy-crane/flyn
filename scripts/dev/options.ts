@@ -4,6 +4,7 @@ export type DevCommand =
   | { kind: "remove" }
   | {
       clear: boolean;
+      foreground?: boolean;
       kind: "start";
       platforms: Platform[];
       physical?: boolean;
@@ -13,11 +14,12 @@ export type DevCommand =
   | { kind: "stop" };
 
 export const USAGE = [
-  "사용법: bun run dev <ios|android>... [--clear]",
+  "사용법: bun run dev <ios|android>... [--clear] [--foreground]",
   "",
   "  bun run dev ios             iOS 개발 세션을 시작합니다.",
   "  bun run dev android         Android 개발 세션을 시작합니다.",
   "  bun run dev ios android     두 플랫폼을 한 세션에서 함께 시작합니다.",
+  "  bun run dev ios --foreground  직접 확인할 기기의 창을 앞으로 가져옵니다.",
   "  bun run dev ios --clear     이 worktree의 Metro 캐시를 비우고 시작합니다.",
   "  bun run dev ios android --physical  설치된 실기기 앱의 LAN 연결을 준비합니다.",
   "  bun run dev ios --physical --host 192.168.0.10  Mac의 LAN 주소를 지정합니다.",
@@ -58,11 +60,16 @@ export function parseDevCommand(argv: string[]): DevCommand {
 function parseStartCommand(args: string[]): DevCommand {
   const platforms: Platform[] = [];
   let clear = false;
+  let foreground = false;
   let physical = false;
   let host: string | undefined;
 
   const argumentsIterator = args[Symbol.iterator]();
   for (const argument of argumentsIterator) {
+    if (argument === "--foreground") {
+      foreground = true;
+      continue;
+    }
     if (argument === "--physical") {
       physical = true;
       continue;
@@ -83,23 +90,34 @@ function parseStartCommand(args: string[]): DevCommand {
       throw new Error(`알 수 없는 인수입니다: ${argument}.\n\n${USAGE}`);
     }
 
-    if (!platforms.includes(argument)) {
-      platforms.push(argument);
-    }
+    platforms.push(argument);
   }
 
   if (platforms.length === 0) {
     throw new Error(`실행할 플랫폼을 지정해 주세요.\n\n${USAGE}`);
   }
 
-  if (host && !physical) {
-    throw new Error("--host는 --physical과 함께 사용해 주세요.");
-  }
+  validateStartOptions(physical, foreground, host);
   return {
     clear,
     kind: "start",
-    platforms,
+    platforms: [...new Set(platforms)],
     ...(physical ? { physical: true } : {}),
+    ...(foreground ? { foreground: true } : {}),
     ...(host ? { host } : {}),
   };
+}
+
+function validateStartOptions(
+  physical: boolean,
+  foreground: boolean,
+  host?: string
+): void {
+  if (foreground && physical) {
+    throw new Error("--foreground는 가상 기기에서만 사용할 수 있습니다.");
+  }
+
+  if (host && !physical) {
+    throw new Error("--host는 --physical과 함께 사용해 주세요.");
+  }
 }

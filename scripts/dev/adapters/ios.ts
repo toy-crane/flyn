@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { run, runOrThrow } from "./command";
+import { activateHostProcess } from "./window";
 
 /** The spec fixes the default configuration; both ids must exist locally. */
 export const IOS_DEVICE_TYPE_ID =
@@ -216,9 +217,44 @@ export async function bootSimulator(udid: string): Promise<void> {
   await runOrThrow(["xcrun", "simctl", "bootstatus", udid]);
 }
 
-/** 현재 사용 중인 앱의 포커스를 유지하며 Simulator를 연다. */
-export async function openSimulatorApp(): Promise<void> {
-  await run(["open", "-g", "-a", "Simulator"]);
+const PROCESS_LINE = /^\s*(\d+)\s+(.+)$/;
+const PROCESS_ARGUMENTS = /\s+/;
+
+/** Default opens in the background; explicit requests own a UI for this UDID. */
+export async function openSimulatorApp(
+  udid: string,
+  foreground = false
+): Promise<void> {
+  if (!foreground) {
+    await runOrThrow(["open", "-g", "-a", "Simulator"]);
+    return;
+  }
+  const processes = await runOrThrow(["ps", "-axo", "pid=,args="]);
+  for (const line of processes.split("\n")) {
+    const match = PROCESS_LINE.exec(line);
+    if (!match) {
+      continue;
+    }
+    const args = match[2]?.split(PROCESS_ARGUMENTS) ?? [];
+    if (
+      args[0]?.endsWith("/Simulator.app/Contents/MacOS/Simulator") &&
+      args.includes("-CurrentDeviceUDID") &&
+      args[args.indexOf("-CurrentDeviceUDID") + 1] === udid
+    ) {
+      return activateHostProcess(Number(match[1]));
+    }
+  }
+  // --args is ignored by an existing app. A separate UI instance leaves other
+  // worktrees' windows alone and attaches to the already booted device.
+  await runOrThrow([
+    "open",
+    "-n",
+    "-a",
+    "Simulator",
+    "--args",
+    "-CurrentDeviceUDID",
+    udid,
+  ]);
 }
 
 export async function installApp(udid: string, appPath: string): Promise<void> {

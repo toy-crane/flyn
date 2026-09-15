@@ -37,6 +37,7 @@ async function main(): Promise<void> {
   const result = await startSession({
     clear: command.clear,
     cwd: directory,
+    foreground: command.foreground,
     host: command.host,
     io,
     physical: command.physical,
