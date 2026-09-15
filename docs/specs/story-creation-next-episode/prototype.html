@@ -222,6 +222,30 @@
   .browse-empty button { background:var(--accent); color:white; border:0; border-radius:12px; padding:11px 18px; font:600 14px var(--font); cursor:pointer; }
   .browse-footer { position:sticky; bottom:0; padding:10px 14px 20px; background:var(--background); display:flex; justify-content:space-around; border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
   @media (min-width:700px) { .app-screen { max-width:560px; margin:auto; width:100%; border-left:1px solid var(--line); border-right:1px solid var(--line); } }
+
+  .episode-overlay { position:fixed; inset:52px 0 0; z-index:20; background:#11182766; display:flex; align-items:end; overflow:hidden; }
+  .sh-vp-390 .episode-overlay { left:50%; right:auto; width:390px; height:min(844px,calc(100dvh - 52px)); transform:translateX(-50%); border-radius:28px; }
+  .sh-vp-768 .episode-overlay { left:50%; right:auto; width:768px; transform:translateX(-50%); }
+  .episode-sheet { width:100%; max-height:94%; overflow:auto; background:var(--background); border-radius:28px 28px 0 0; padding:10px 22px 24px; box-shadow:0 -10px 40px #0002; }
+  .sheet-grabber { width:36px; height:5px; border-radius:9px; background:var(--line); margin:0 auto 20px; }
+  .sheet-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .sheet-heading h2 { font-size:21px; margin:0; letter-spacing:-.5px; }
+  .sheet-close { border:0; border-radius:50%; width:30px; height:30px; background:var(--line); color:var(--muted); font-size:21px; cursor:pointer; }
+  .sheet-intro { font-size:14px; color:var(--muted); line-height:1.6; margin:10px 0 20px; }
+  .sheet-options { display:grid; gap:10px; }
+  .sheet-option { display:flex; align-items:start; gap:12px; padding:16px 14px; background:var(--surface); border:1px solid var(--line); border-radius:16px; cursor:pointer; }
+  .sheet-option:has(input:checked) { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); background:color-mix(in srgb,var(--accent) 5%,var(--surface)); }
+  .sheet-option input { appearance:none; width:20px; height:20px; flex:none; margin:2px 0 0; border:1.5px solid var(--muted); border-radius:50%; }
+  .sheet-option input:checked { border:6px solid var(--accent); background:white; }
+  .sheet-option b { font-size:15px; line-height:1.5; font-weight:600; display:block; }
+  .sheet-option small { display:block; color:var(--muted); font-size:13px; line-height:1.5; margin-top:3px; }
+  .sheet-field { display:block; font-size:14px; font-weight:600; margin:22px 0 8px; }
+  .sheet-input { width:100%; min-height:92px; resize:vertical; border:1px solid var(--line); border-radius:14px; padding:13px 14px; font:15px/1.6 var(--font); color:var(--foreground); background:var(--surface); }
+  .sheet-input:focus { outline:2px solid var(--accent); outline-offset:1px; }
+  .sheet-hint { font-size:12px; color:var(--muted); line-height:1.5; margin:7px 0 18px; }
+  .sheet-submit { width:100%; padding:15px; font:600 16px var(--font); border:0; border-radius:15px; background:var(--accent); color:white; cursor:pointer; }
+  .sheet-submit:disabled { background:var(--line); color:var(--muted); cursor:default; }
+
 </style>
 
 <body class="sh-vp-390">
@@ -375,7 +399,7 @@
   ];
   const esc = value => String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
   const say = (role,text) => messages.push({role,text});
-  function reset(){ mode='opening'; messages=[]; episodes=[{...first}]; pending=''; failed=false; choiceIndex=-1; say('assistant','어떤 상황에서 영어로 대화해 보고 싶으세요?'); render(); prototypeShell.setState('Default'); }
+  function reset(){ closeEpisodeSheet(); sheetDraft={index:-1,selected:'',text:''}; mode='opening'; messages=[]; episodes=[{...first}]; pending=''; failed=false; choiceIndex=-1; say('assistant','어떤 상황에서 영어로 대화해 보고 싶으세요?'); render(); prototypeShell.setState('Default'); }
   function baseChoice(){
     messages=[]; episodes=[{...first}]; pending=''; failed=false;
     say('assistant','어떤 상황에서 영어로 대화해 보고 싶으세요?');
@@ -395,7 +419,7 @@
   function showChoice(isAdd=false){
     messages.push({role:'choices',text:isAdd ? '같은 회사에서 다음에 겪을 일을 골라 볼까요? 직접 적어도 좋아요.' : '같은 회사에서 이어서 겪을 일도 골라 볼까요? 에피소드 하나만 만들어도 좋아요.',isAdd});
     choiceIndex=messages.length-1; mode=isAdd?'add-choice':'choice';
-    prototypeShell.setState('다음 사건 선택'); render();
+    prototypeShell.setState('다음 사건 선택'); render(); openEpisodeSheet();
   }
   function choose(key,label){
     if(!(mode==='choice'||mode==='add-choice')) return;
@@ -425,8 +449,7 @@
       if(m.role==='user') return `<div class="user-row" data-component="UserMessage"><div class="bubble">${esc(m.text)}</div></div>`;
       if(m.role==='card') return `<div class="assistant-row">${cardMarkup(m.snapshot,i===lastCard&&mode==='card')}</div>`;
       if(m.role==='choices'){
-        const opts=m.isAdd?addOptions:options;
-        return `<div class="assistant-row" data-component="AssistantMessage"><p>${esc(m.text)}</p><div class="choices" role="group" aria-label="다음 에피소드 선택">${opts.map(o=>`<button type="button" class="choice-btn" data-component="new:EpisodeChoice" data-choice="${o.key}" data-label="${esc(o.label)}" ${m.resolved?'disabled':''}>${esc(o.label)}</button>`).join('')}</div></div>`;
+        return `<div class="assistant-row" data-component="AssistantMessage"><p>${esc(m.text)}</p>${m.resolved?'':'<button type="button" class="choice-btn" data-open-sheet>다음 에피소드 고르기 ↗</button>'}</div>`;
       }
       return `<div class="assistant-row" data-component="AssistantMessage"><p>${esc(m.text)}</p></div>`;
     }).join('');
@@ -490,7 +513,7 @@
     const name=e.target.value;
     if(name==='Default'){reset();return;}
     baseChoice();
-    if(name==='다음 사건 선택'){prototypeShell.setState(name);render();return;}
+    if(name==='다음 사건 선택'){prototypeShell.setState(name);render();openEpisodeSheet();return;}
     if(name==='스토리 카드'||name==='만들기 실패'){
       messages[choiceIndex].resolved=true;say('user','점심시간에 동료와 친해지기');
       say('assistant','점심시간에 옆자리 동료 Jamie와 식사하면서 이야기하는 장면을 더해 볼게요. 처음 만난 동료와 어떤 이야기를 해 보고 싶어요?');
@@ -502,6 +525,78 @@
     if(name==='한 에피소드 카드'){messages[choiceIndex].resolved=true;say('user','이대로 진행하기');showCard();}
   });
   function showFailure(){failed=true;prototypeShell.setState('만들기 실패');let div=document.createElement('div');div.className='modal-backdrop';div.id='error-modal';div.innerHTML='<div class="modal" role="alertdialog" aria-modal="true" aria-label="스토리를 만들지 못했어요"><h3>스토리를 만들지 못했어요</h3><div class="modal-actions"><button type="button" data-error="close">닫기</button><button type="button" class="retry" data-error="retry">다시 시도</button></div></div>';document.querySelector('.sh-stage').append(div);document.querySelector('.sh-stage').scrollTop=0;div.addEventListener('click',e=>{let b=e.target.closest('[data-error]');if(!b)return;div.remove();failed=false;prototypeShell.setState('스토리 카드');if(b.dataset.error==='retry'){saved=true;detailSource='made';renderBrowse();renderDetail();prototypeShell.showScreen('detail');}});}
+
+  let sheetDraft = { index:-1, selected:'', text:'' };
+  let sheetReturnFocus = null;
+  function closeEpisodeSheet(){
+    document.getElementById('episode-overlay')?.remove();
+    document.querySelectorAll('.app-screen').forEach(el=>el.inert=false);
+    sheetReturnFocus?.focus();
+  }
+  function openEpisodeSheet(){
+    if(!['choice','add-choice'].includes(mode) || messages[choiceIndex]?.resolved) return;
+    if(sheetDraft.index!==choiceIndex) sheetDraft={index:choiceIndex,selected:'',text:''};
+    closeEpisodeSheet();
+    sheetReturnFocus=document.activeElement;
+    const choices=mode==='add-choice'?addOptions:options;
+    const descriptions={
+      lunch:'함께 식사하며 먼저 말을 걸어 봐요',
+      help:'익숙하지 않은 일을 동료에게 물어봐요',
+      meeting:'팀 회의에서 내 생각을 이야기해 봐요',
+      finish:'에피소드를 더하지 않고 카드를 확인해요'
+    };
+    const overlay=document.createElement('div');
+    overlay.id='episode-overlay'; overlay.className='episode-overlay';
+    overlay.innerHTML=`<div class="episode-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+      <div class="sheet-grabber"></div>
+      <div class="sheet-heading"><h2 id="sheet-title">다음 에피소드 고르기</h2><button class="sheet-close" aria-label="닫기" type="button">×</button></div>
+      <p class="sheet-intro">첫 팀 회의 다음에는 어떤 일을 겪고 싶어요?<br>지금 정한 에피소드만 만들어도 좋아요</p>
+      <form id="episode-choice-form">
+      <div class="sheet-options" role="radiogroup" aria-label="다음 에피소드">${choices.map(o=>`<label class="sheet-option"><input type="radio" name="episode" value="${o.key}" ${sheetDraft.selected===o.key?'checked':''}><span><b>${esc(o.key==='finish'?'지금 정한 에피소드만 만들기':o.label)}</b><small>${descriptions[o.key]}</small></span></label>`).join('')}</div>
+      <label class="sheet-field" for="episode-note">직접 쓰거나 조건을 덧붙여 주세요</label>
+      <textarea class="sheet-input" id="episode-note" placeholder="예: 취미 이야기를 제가 먼저 꺼내고 싶어요">${esc(sheetDraft.text)}</textarea>
+      <p class="sheet-hint">선택하지 않고 원하는 상황을 직접 적어도 좋아요</p>
+      <button type="submit" class="sheet-submit">답변 보내기</button></form></div>`;
+    stage.append(overlay);
+    document.querySelectorAll('.app-screen').forEach(el=>el.inert=true);
+    const submit=overlay.querySelector('.sheet-submit');
+    const sync=()=>{submit.disabled=!(sheetDraft.selected||sheetDraft.text.trim());};
+    overlay.querySelectorAll('input').forEach(el=>el.onchange=()=>{
+      sheetDraft.selected=el.value;sync();
+    });
+    overlay.querySelector('textarea').oninput=e=>{sheetDraft.text=e.target.value;sync();};
+    overlay.querySelector('.sheet-close').onclick=closeEpisodeSheet;
+    overlay.onclick=e=>{if(e.target===overlay)closeEpisodeSheet();};
+    overlay.onkeydown=e=>{
+      if(e.key==='Escape'){e.preventDefault();closeEpisodeSheet();}
+      if(e.key==='Tab'){
+        const els=[...overlay.querySelectorAll('button:not(:disabled),input,textarea')];
+        if(e.shiftKey && document.activeElement===els[0]){e.preventDefault();els.at(-1).focus();}
+        else if(!e.shiftKey && document.activeElement===els.at(-1)){e.preventDefault();els[0].focus();}
+      }
+    };
+    overlay.querySelector('form').onsubmit=e=>{
+      e.preventDefault();if(submit.disabled)return;
+      const option=choices.find(o=>o.key===sheetDraft.selected);
+      const note=sheetDraft.text.trim();
+      const answer=[option?.key==='finish'?'지금 정한 에피소드만 만들게요':option?.label,note].filter(Boolean).join('. ');
+      closeEpisodeSheet();
+      // 이 시안은 모델 대신 선택과 입력을 그대로 보존해 카드에 반영한다.
+      if(note && option){
+        messages[choiceIndex].resolved=true;say('user',answer);
+        if(option.key==='finish') episodes.at(-1).preview=note;
+        else episodes.push({...secondEpisode(option.key,note),preview:note});
+        showCard();
+      } else choose(option?.key||'custom',answer);
+    };
+    sync();overlay.querySelector('.sheet-close').focus({preventScroll:true});
+  }
+  historyEl.addEventListener('click',e=>{if(e.target.closest('[data-open-sheet]'))openEpisodeSheet();});
+  document.getElementById('sh-state').addEventListener('change',()=>{
+    if(prototypeShell.getState()!=='다음 사건 선택')closeEpisodeSheet();
+  });
+  document.getElementById('sh-screen').addEventListener('change',closeEpisodeSheet);
+
   reset();
   renderDetail();
 </script>
