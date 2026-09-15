@@ -44,6 +44,67 @@ test("현재 필요한 음료를 과거 주문으로 바꾼 이전 평가 출력
   }
 });
 
+test("오류와 제안 분류를 뒤집으면 평가에서 떨어뜨린다", () => {
+  const sample = CORRECTION_CASES.find(
+    (entry) => entry.name === "오류와 상황 표현을 함께 제안"
+  );
+  const record = previousEvaluation.records.find(
+    (entry) => entry.sample.name === sample?.name
+  );
+  if (!(sample && record)) {
+    throw new Error("Missing mixed correction case.");
+  }
+  const output = record.output as CorrectionDraft;
+  expect(correctionViolations(sample, output)).toEqual([]);
+  expect(
+    correctionViolations(sample, {
+      ...output,
+      entries: output.entries.map((entry) => ({
+        ...entry,
+        isError: !entry.isError,
+      })),
+    })
+  ).not.toEqual([]);
+});
+
+test("독립된 오류 중 하나만 수정하면 평가에서 떨어뜨린다", () => {
+  const sample = CORRECTION_CASES.find(
+    (entry) => entry.name === "독립된 두 오류를 모두 수정"
+  );
+  if (!sample) {
+    throw new Error("Missing multiple-error case.");
+  }
+  const output: CorrectionDraft = {
+    entries: [
+      {
+        fixed: "goes",
+        isError: true,
+        original: "go",
+        pattern: "agreement",
+        why: "주어에 맞춰 goes를 써요.",
+      },
+      {
+        fixed: "went",
+        isError: true,
+        original: "goed",
+        pattern: "past-go",
+        why: "go의 과거형은 went예요.",
+      },
+    ],
+    fixed: "She goes to work every day. Yesterday I went home early.",
+    review,
+    status: "corrected",
+  };
+  expect(correctionViolations(sample, output)).toEqual([]);
+  expect(
+    correctionViolations(sample, {
+      ...output,
+      entries: output.entries.slice(0, 1),
+      fixed: "She goes to work every day. Yesterday I goed home early.",
+    })
+  ).not.toEqual([]);
+});
+
 test("빠진 아포스트로피만 보탠 결과는 서버에서도 받지 않는다", () => {
   expect(() =>
     readExpressionResult(
@@ -158,6 +219,15 @@ test("교정 항목이나 학습 내용이 없으면 통과하지 않는다", ()
   expect(
     correctionViolations(sample, { ...corrected, review: null })
   ).not.toEqual([]);
+});
+
+test("제안문을 표기만 바꿔 다른 예문으로 반복하면 떨어뜨린다", () => {
+  expect(
+    correctionViolations(sample, {
+      ...corrected,
+      review: { ...review, example: "I WENT home early." },
+    })
+  ).toContain("다른 예문이 제안문을 반복함");
 });
 
 test("상황에 맞는 표현 제안은 원문 오류와 구분해야 통과한다", () => {

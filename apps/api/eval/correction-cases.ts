@@ -14,6 +14,7 @@ export interface CorrectionCase {
   minimumErrorEntries?: number;
   name: string;
   original: string;
+  requiredErrorCorrections?: { original: string; fixed: string }[];
   requiredFixedTerms?: string[];
   requiresClassification?: boolean;
   requiresSuggestion?: boolean;
@@ -21,6 +22,21 @@ export interface CorrectionCase {
 }
 
 export const CORRECTION_CASES: CorrectionCase[] = [
+  {
+    minimumErrorEntries: 2,
+    name: "독립된 두 오류를 모두 수정",
+    original: "She go to work every day. Yesterday I goed home early.",
+    requiredErrorCorrections: [
+      { fixed: "goes", original: "go" },
+      { fixed: "went", original: "goed" },
+    ],
+    requiredFixedTerms: [
+      "She goes to work every day",
+      "Yesterday I went home early",
+    ],
+    requiresClassification: true,
+    status: "corrected",
+  },
   {
     context: [
       { content: "이동 시간이 다가와 커피를 포장하려 해요", role: "user" },
@@ -57,9 +73,11 @@ export const CORRECTION_CASES: CorrectionCase[] = [
         role: "assistant",
       },
     ],
+    maximumErrorEntries: 1,
     minimumErrorEntries: 1,
     name: "오류와 상황 표현을 함께 제안",
     original: "I wants this coffee in a cup I can take away.",
+    requiredErrorCorrections: [{ fixed: "want", original: "wants" }],
     requiredFixedTerms: ["want", "coffee", "to go"],
     requiresClassification: true,
     requiresSuggestion: true,
@@ -327,6 +345,20 @@ function classificationViolations(
     errors.push("실제 오류와 표현 제안 구분이 없음");
   }
   const errorEntries = entries.filter((entry) => entry.isError !== false);
+  for (const expected of sample.requiredErrorCorrections ?? []) {
+    if (
+      !errorEntries.some(
+        (entry) =>
+          entry.isError === true &&
+          entry.original === expected.original &&
+          entry.fixed === expected.fixed
+      )
+    ) {
+      errors.push(
+        `실제 오류 수정이 없음: ${expected.original} → ${expected.fixed}`
+      );
+    }
+  }
   if (
     sample.minimumErrorEntries !== undefined &&
     errorEntries.length < sample.minimumErrorEntries
@@ -388,6 +420,13 @@ function entryViolations(
     Object.values(result.review).some((value) => !value.trim())
   ) {
     errors.push("학습 내용이 없음");
+  }
+  if (result.review) {
+    const normalize = (text: string) =>
+      text.replace(/[\p{P}\p{S}\p{C}\s]/gu, "").toLowerCase();
+    if (normalize(result.review.example) === normalize(result.fixed)) {
+      errors.push("다른 예문이 제안문을 반복함");
+    }
   }
   return errors;
 }

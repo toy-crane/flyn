@@ -2293,7 +2293,7 @@ describe("메시지별 표현 확인 API", () => {
     expect(state.expressionResults).toHaveLength(1);
   });
 
-  test("최종 모델 평가의 출력 93건을 서버 검사로 다시 확인한다", async () => {
+  test("보존한 모델 평가의 출력 93건을 서버 검사로 다시 확인한다", async () => {
     expect(finalCorrectionEvaluation.records).toHaveLength(93);
     await Promise.all(
       finalCorrectionEvaluation.records.map(async (record) => {
