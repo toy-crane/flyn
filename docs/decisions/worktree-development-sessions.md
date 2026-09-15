@@ -20,7 +20,7 @@
 - 로컬 Supabase 스택은 모든 worktree가 공유한다. 개발 세션 명령은 Supabase를 시작하거나 중지하거나 초기화하지 않는다.
 - 같은 컴퓨터의 다른 프로젝트와는 프로젝트 포트 대역 번호로 나눈다. Supabase는 `54320 + 번호 × 10`부터 열 개, Metro는 `8081 + 번호 + slot × 10`, API는 `3900 + 번호 + slot × 10`이다. flyn은 1번이다.
 - 대역 번호의 원본은 `supabase/config.toml`의 `[api] port` 하나다. Supabase 포트는 그 파일에 숫자로 커밋하고, 번호는 `(API 포트 - 54321) / 10`으로 읽는다. 세션은 이 값이 숫자가 아니면 추측하지 않고 멈춘다.
-- Supabase 주소가 필요한 프로그램은 `config.toml`의 포트에서 주소를 만든다. 개발 세션은 Metro뿐 아니라 API 자식 프로세스에도 `SUPABASE_URL`과 `SUPABASE_JWKS_URL`을 셸 환경으로 넘기고, `auth:otp`는 Mailpit과 로컬 Supabase 주소를 같은 파일에서 읽는다. 개발자의 `.env.local`은 읽기만 한다.
+- Supabase 주소가 필요한 프로그램은 `config.toml`의 포트에서 주소를 만든다. 개발 세션은 Metro뿐 아니라 API 자식 프로세스에도 `SUPABASE_URL`과 `SUPABASE_JWKS_URL`을 셸 환경으로 넘기고, `auth:otp`는 Mailpit과 로컬 Supabase 주소를 같은 파일에서 읽는다. 개발 세션은 [Worktree 환경 파일](worktree-environment-files.md)에 따라 빠진 파일을 연결할 수 있지만 환경값은 바꾸지 않는다.
 - Portless를 기본 개발 경로에 넣지 않는다. slot에서 실제 포트를 계산하고 개발 세션이 직접 소유한다.
 - 개발 세션이 정한 모바일 API와 Supabase 포트는 `EXPO_PUBLIC_DEV_SESSION_API_PORT`와 `EXPO_PUBLIC_DEV_SESSION_SUPABASE_PORT`로 Metro에 전달한다. 앱은 이 값이 있으면 일반 모바일 URL보다 우선한다. 세션은 포트와 실기기가 접근할 LAN 주소를 준비한다. 앱의 최종 호스트는 실제 연결한 Metro 주소를 기준으로 정한다. loopback Metro 연결에서는 기존 플랫폼별 호스트를 사용한다. LAN 주소는 실행 상태와 환경 fingerprint에도 반영해 주소가 바뀌면 해당 worktree의 서버를 다시 준비한다.
 - 가상 기기의 기존 호스트는 Android Emulator `10.0.2.2`, iOS Simulator `127.0.0.1`이다. 실제 iPhone과 Android 폰은 세션이 준비한 LAN 주소를 사용한다. 운영체제만으로 실기기와 가상 기기를 같은 대상으로 취급하지 않는다. API는 worktree slot의 포트를 사용하고 Supabase는 `config.toml`의 API 포트를 사용한다.
