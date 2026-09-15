@@ -2,6 +2,105 @@ import { expect, test } from "bun:test";
 import { CREATION_CASES } from "./story-creation-cases";
 import { creationViolations } from "./story-creation-checks";
 
+test("제안 끝의 다른 문자권 조각도 놓치지 않는다", () => {
+  expect(
+    creationViolations("승무원에게 따뜻한 물을 부탁해 볼까요? ઉમ?", [], {})
+  ).toContain("관계없는 외국어 조각");
+  expect(creationViolations("Emma에게 말해 볼까요? 🙂", [], {})).toEqual([]);
+});
+
+test("인물 설명의 관계없는 외국어 조각과 표지의 휴대전화를 잡는다", () => {
+  const seed = CREATION_CASES.find((item) => item.seed)?.seed;
+  if (!seed) {
+    throw new Error("평가 카드가 없습니다.");
+  }
+  const card = {
+    ...seed,
+    characters: seed.characters.map((character) => ({
+      ...character,
+      role: "30대 팀 리더. 설명이 अस्पष्ट하면 다시 묻는다.",
+    })),
+    cover: `${seed.cover}, holding a phone`,
+  };
+  const violations = creationViolations("", [card], { episodes: 1 });
+  expect(violations).toContain("관계없는 외국어 조각");
+  expect(violations).toContain("표지에 손에 든 소품");
+  expect(creationViolations("", [seed], { episodes: 1 })).toEqual([]);
+});
+
+test("실제 대화에서도 결과를 정하지 말라는 의미 반전을 잡는다", () => {
+  const seed = CREATION_CASES.find((item) => item.seed)?.seed;
+  if (!seed) {
+    throw new Error("평가 카드가 없습니다.");
+  }
+  const card = {
+    ...seed,
+    episodes: seed.episodes.map((episode) => ({
+      ...episode,
+      details:
+        "교환이 가능한지, 어떤 절차가 진행되는지는 실제 대화에서 정하지 않는다.",
+    })),
+  };
+  expect(creationViolations("", [card], { episodes: 1 })).toContain(
+    "실제 플레이의 결과 결정 금지"
+  );
+  expect(
+    creationViolations("실제 대화에서 정하지 않겠습니다.", [], {})
+  ).toContain("실제 플레이의 결과 결정 금지");
+  expect(
+    creationViolations(
+      "여기서 미리 정하지 않고, 실제 대화에서 결과를 정해요.",
+      [],
+      {}
+    )
+  ).toEqual([]);
+});
+
+test("한 에피소드로 만들어도 된다는 자연스러운 안내를 인정한다", () => {
+  expect(
+    creationViolations(
+      "다음에는 여행 이야기를 꺼내 볼까요? 지금 정한 상황만 한 에피소드로 만들어도 괜찮아요.",
+      [],
+      { proposes: true }
+    )
+  ).toEqual([]);
+});
+
+test("기존 대화만 연습해도 된다는 안내를 인정한다", () => {
+  expect(
+    creationViolations(
+      "승무원에게 따뜻한 물을 요청해 볼까요? 지금 정한 옆자리 승객과의 대화만 연습해도 좋아요.",
+      [],
+      { proposes: true }
+    )
+  ).toEqual([]);
+});
+
+test("현재 상황만 에피소드로 만든다는 안내를 인정한다", () => {
+  expect(
+    creationViolations(
+      "공항 직원에게 길을 물어볼까요? 지금 정한 비행기 안 상황만 에피소드로 만들어도 좋아요.",
+      [],
+      { proposes: true }
+    )
+  ).toEqual([]);
+});
+
+test("첫 사건 뒤 제안은 추가하지 않아도 된다는 안내를 포함한다", () => {
+  expect(
+    creationViolations("다음에는 동료와 점심을 먹으며 취미를 물어볼까요?", [], {
+      proposes: true,
+    })
+  ).toContain("한 에피소드로 끝내는 안내 없음");
+  expect(
+    creationViolations(
+      "동료와 점심을 먹으며 취미를 물어볼까요? 지금 에피소드만 만들어도 좋아요.",
+      [],
+      { proposes: true }
+    )
+  ).toEqual([]);
+});
+
 test("사용자 역할을 별도 인물로 추가한 카드는 상대 인원 검사에서 실패한다", () => {
   const outline = CREATION_CASES.find((item) => item.seed)?.seed;
   if (!outline) {
