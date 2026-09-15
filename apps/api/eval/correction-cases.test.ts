@@ -3,8 +3,9 @@ import {
   type CorrectionDraft,
   readExpressionResult,
 } from "../src/features/episode/correction";
-import { correctionViolations } from "./correction-cases";
+import { CORRECTION_CASES, correctionViolations } from "./correction-cases";
 import baseline from "./results/correction-baseline-1789226591539.json";
+import previousEvaluation from "./results/correction-candidate-1789471175086.json";
 
 test("변경 전 모델의 대소문자 교정 세 번을 모두 떨어뜨린다", () => {
   const answers = baseline.records.filter(
@@ -24,6 +25,24 @@ const review = {
   meaning: "집에 일찍 갔어요.",
   situation: "집에 간 일을 말할 때",
 };
+
+test("현재 필요한 음료를 과거 주문으로 바꾼 이전 평가 출력을 떨어뜨린다", () => {
+  const sample = CORRECTION_CASES.find(
+    (entry) => entry.name === "수량과 알레르기 요구를 빠뜨리거나 더하지 않음"
+  );
+  if (!sample) {
+    throw new Error("Missing request-preservation case.");
+  }
+  const changedRequests = previousEvaluation.records.filter(
+    (record) => record.sample.name === sample.name && record.round > 1
+  );
+  expect(changedRequests).toHaveLength(2);
+  for (const record of changedRequests) {
+    expect(
+      correctionViolations(sample, record.output as CorrectionDraft)
+    ).not.toEqual([]);
+  }
+});
 
 test("빠진 아포스트로피만 보탠 결과는 서버에서도 받지 않는다", () => {
   expect(() =>

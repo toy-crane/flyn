@@ -162,6 +162,7 @@ export const CORRECTION_CASES: CorrectionCase[] = [
     original:
       "I need two decaf lattes with oat milk because I am allergic to dairy, but you gives me one regular latte.",
     requiredFixedTerms: [
+      "need",
       "two",
       "decaf",
       "oat milk",
