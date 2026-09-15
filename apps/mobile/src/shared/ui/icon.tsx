@@ -5,12 +5,14 @@ import BookOpen from "lucide-react-native/icons/book-open";
 import Bookmark from "lucide-react-native/icons/bookmark";
 import Check from "lucide-react-native/icons/check";
 import ChevronDown from "lucide-react-native/icons/chevron-down";
+import ChevronLeft from "lucide-react-native/icons/chevron-left";
 import ChevronRight from "lucide-react-native/icons/chevron-right";
 import ChevronUp from "lucide-react-native/icons/chevron-up";
 import CloudOff from "lucide-react-native/icons/cloud-off";
 import Copy from "lucide-react-native/icons/copy";
 import Languages from "lucide-react-native/icons/languages";
 import Lock from "lucide-react-native/icons/lock";
+import MessageSquareText from "lucide-react-native/icons/message-square-text";
 import MessagesSquare from "lucide-react-native/icons/messages-square";
 import Pencil from "lucide-react-native/icons/pencil";
 import Plus from "lucide-react-native/icons/plus";
@@ -24,10 +26,14 @@ import { useCSSVariable } from "uniwind";
 
 const icons = {
   add: Plus,
+  /** 앞의 것으로 넘기는 자리. 달력의 이전 달이 쓴다. */
+  backward: ChevronLeft,
   bookmark: Bookmark,
   check: Check,
   close: X,
   collapse: ChevronUp,
+  /** 저장한 표현이 나온 대화로 가는 자리. 아직 대화가 없다는 `noConversation`과 모양이 다르다. */
+  conversation: MessageSquareText,
   copy: Copy,
   edit: Pencil,
   expand: ChevronDown,

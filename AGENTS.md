@@ -34,7 +34,17 @@
 - 웹 개발 서버는 `apps/web`에서 `bun run dev`로 띄우고 `bun run stop`으로 내린다. `astro dev`는 셸을 벗어나 백그라운드에 남으므로 끝나면 반드시 내린다. 상태는 `bunx astro dev status`로 본다.
 - 루트의 `bun run dev`는 API, Metro와 기기만 관리한다. 웹 개발 서버는 시작하지도 멈추지도 않는다.
 
+# Worktree 환경 파일
+
+- 환경 파일이 필요한 작업은 저장소 루트에서 `bun run env:setup`을 먼저 실행한다. `bun run dev`, `bun run db:start`, `bun run auth:otp`와 `apps/api`의 `dev`, `eval:*` 명령은 이를 자동으로 실행한다.
+- `apps/api/eval/*.ts`를 직접 실행하지 않고 `apps/api`의 `bun run eval:*` 명령을 사용한다.
+- 환경 파일을 worktree에 직접 복사하거나 값을 출력하지 않는다. 준비 명령은 같은 Git 저장소의 기본 checkout 파일을 연결하며 기존 파일을 덮어쓰지 않는다.
+
 # 앱 실행
+
+- 에이전트가 시뮬레이터·에뮬레이터를 실행·재실행·재연결하거나 자동 검증할 때는 사용자 작업 창의 포커스를 빼앗지 않는다. 창을 백그라운드에 두거나 숨긴 상태로 조작·캡처한다.
+- 사용자가 직접 검증하겠다고 하거나 화면을 보여 달라고 요청한 경우에만 `--foreground`로 해당 worktree의 기기 창을 앞으로 가져온다. 이 선택은 다음 실행에 저장하지 않는다.
+- 검증 도구나 Skill의 기본 실행 방식에도 같은 규칙을 적용한다. 기기 안에서 앱을 활성화하는 동작과 컴퓨터에서 기기 창을 앞으로 가져오는 동작을 구분한다.
 
 - 앱은 저장소 루트의 `bun run dev <ios|android>`로 실행한다. 이 명령이 이 폴더 전용 포트로 API와 Metro를 띄우고 이 폴더에 배정한 기기에서 앱을 연다. 두 플랫폼이 필요하면 `bun run dev ios android`처럼 나열한다.
 - 화면을 검증할 때는 `apps/mobile`의 `ios`, `android`, `start` 명령을 직접 쓰지 않는다. 포트와 기기를 관리하지 않아 다른 worktree의 Metro에 붙은 화면을 검증하게 된다. 사람이 직접 쓰는 예외는 아래 Worktree 개발 세션 결정이 정한다.

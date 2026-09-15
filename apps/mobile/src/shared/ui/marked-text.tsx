@@ -13,6 +13,16 @@ export interface MarkedText {
   text: string;
 }
 
+export type TextMark =
+  | string
+  | { text: string; isMarked: boolean; at?: number };
+
+function readTextMark(mark: TextMark) {
+  return typeof mark === "string"
+    ? { at: undefined, isMarked: true, text: mark }
+    : mark;
+}
+
 /**
  * 문장을 강조할 자리 기준으로 자른다.
  *
@@ -26,21 +36,22 @@ export interface MarkedText {
  */
 export function markedParts(
   text: string,
-  marks: readonly string[]
+  marks: readonly TextMark[]
 ): MarkedText[] {
-  const ranges: { end: number; start: number }[] = [];
+  const ranges: { end: number; start: number; isMarked: boolean }[] = [];
 
-  for (const mark of marks) {
+  for (const item of marks) {
+    const { at, isMarked, text: mark } = readTextMark(item);
     if (!mark) {
       continue;
     }
 
-    let from = 0;
+    let from = at ?? 0;
 
     while (from <= text.length - mark.length) {
       const start = text.indexOf(mark, from);
 
-      if (start < 0) {
+      if (start < 0 || (at !== undefined && start !== at)) {
         break;
       }
 
@@ -50,7 +61,7 @@ export function markedParts(
       );
 
       if (!overlaps) {
-        ranges.push({ end, start });
+        ranges.push({ end, isMarked, start });
         break;
       }
 
@@ -70,7 +81,7 @@ export function markedParts(
 
     parts.push({
       at: range.start,
-      isMarked: true,
+      isMarked: range.isMarked,
       text: text.slice(range.start, range.end),
     });
     at = range.end;
@@ -107,7 +118,7 @@ export function MarkedSentence({
   className?: string;
   color?: TypographyColor;
   markClassName: string;
-  marks: readonly string[];
+  marks: readonly TextMark[];
   testID?: string;
   text: string;
   /** 영어 문장은 `h6`, 그 밖의 문장은 본문 계열이다. */

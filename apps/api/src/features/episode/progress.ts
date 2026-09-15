@@ -73,8 +73,8 @@ export interface EpisodeSessionView {
   /**
    * 이 화가 어떻게 끝났는지. 진행 중이면 없다.
    *
-   * 저장된 대화에는 결말 part가 들어 있지 않다. 결말은 플레이 기록이 소유하는
-   * 사실이고, 그 사실이 확정되는 순간 그 플레이의 대화는 더 이상 바뀌지 않기
+   * 저장된 대화에는 결말 part가 들어 있지 않다. 결말은 해당 회차의 화에 따로 저장하는
+   * 사실이고, 그 사실이 확정되는 순간 그 화의 대화는 더 이상 바뀌지 않기
    * 때문이다. 다시 연 화면은 흐르던 part 대신 이 값을 읽어 마무리를 그린다.
    */
   ending: { kind: string; outcome: string } | undefined;
@@ -165,7 +165,6 @@ export async function recordEpisodeEnding(
   const { data: recorded, error } = await client.rpc("finish_episode", {
     episode_id: episodeId,
     kind: ending.kind,
-    language_level: ending.level.trim().slice(0, MEMORY_LINE_LIMIT),
     memory_choice: ending.choice.trim().slice(0, MEMORY_LINE_LIMIT),
     memory_question: ending.question.trim().slice(0, MEMORY_LINE_LIMIT),
     memory_relationship: ending.relationship.trim().slice(0, MEMORY_LINE_LIMIT),
@@ -438,8 +437,18 @@ export async function readPlaySavedExpressions(
  * 비어 있다.
  */
 export interface SavedExpressionCard {
+  /**
+   * 이 표현이 나온 대화의 자리. 노트의 `대화에서 보기`가 이 값으로 그 대화를 연다.
+   *
+   * 회차를 함께 싣는다. 같은 스토리를 여러 번 하면 같은 화가 회차마다 있으므로,
+   * 화만으로는 어느 대화인지 정해지지 않는다. 원본 메시지를 잃은 항목은 돌아갈
+   * 대화가 없어 `null`이다.
+   */
+  conversation: SavedExpressionConversation | null;
   english: string;
-  entries: { fixed: string; original: string; why: string }[] | null;
+  entries:
+    | { fixed: string; isError?: boolean; original: string; why: string }[]
+    | null;
   episodeNumber: number;
   id: string;
   kind: SavedExpressionKind;
@@ -449,9 +458,19 @@ export interface SavedExpressionCard {
   storyTitle: string;
 }
 
+/** 담아 둔 표현이 나온 회차, 화, 메시지와 장면 안 대사 자리. */
+export interface SavedExpressionConversation {
+  /** 인물 대사는 장면 안 몇 번째 대사인지, 배울 표현은 없다. */
+  dialogueIndex: number | null;
+  episodeId: string;
+  messageId: string;
+  storyPlayId: string;
+}
+
 /** 담긴 행의 `entries`가 실제로 담고 있는 모양. */
 interface StoredEntry {
   fixed: string;
+  isError?: boolean;
   original: string;
   why: string;
 }
@@ -467,7 +486,16 @@ function storedEntries(value: unknown): StoredEntry[] | null {
     return typeof row?.fixed === "string" &&
       typeof row.original === "string" &&
       typeof row.why === "string"
-      ? [{ fixed: row.fixed, original: row.original, why: row.why }]
+      ? [
+          {
+            fixed: row.fixed,
+            ...(typeof row.isError === "boolean"
+              ? { isError: row.isError }
+              : {}),
+            original: row.original,
+            why: row.why,
+          },
+        ]
       : [];
   });
 }
@@ -475,9 +503,10 @@ function storedEntries(value: unknown): StoredEntry[] | null {
 /**
  * 계정에 담긴 표현을 최근 담은 것부터 읽는다.
  *
- * 메시지를 걸지 않는다. 원본을 잃은 항목도 여기서는 그대로 보여야 하고, 그것이
- * 담기와 대화를 따로 두는 이유다. 스토리 제목과 화 번호는 에피소드를 타고
- * 오므로 콘텐츠가 바뀌면 카드도 함께 바뀐다.
+ * 메시지를 `!inner`로 걸지 않는다. 원본을 잃은 항목도 여기서는 그대로 보여야
+ * 하고, 그것이 담기와 대화를 따로 두는 이유다. 메시지가 남아 있으면 그 메시지의
+ * 플레이를 타고 회차를 읽어 돌아갈 대화의 자리를 함께 싣는다. 스토리 제목과 화
+ * 번호는 에피소드를 타고 오므로 콘텐츠가 바뀌면 카드도 함께 바뀐다.
  *
  * 어느 계정의 것인지는 묻지 않는다. 정책이 내 행만 내려보낸다.
  */
@@ -487,7 +516,7 @@ export async function readSavedExpressions(
   const { data, error } = await client
     .from("expressions")
     .select(
-      "id, kind, text, meaning, speaker, original, entries, episodes!inner(number, stories!inner(title))"
+      "id, kind, text, meaning, speaker, original, entries, episode_id, message_id, dialogue_index, episodes!inner(number, stories!inner(title)), episode_messages(episode_plays(story_play_id))"
     )
     .not("saved_at", "is", null)
     .order("saved_at", { ascending: false });
@@ -501,8 +530,21 @@ export async function readSavedExpressions(
       number: number;
       stories: { title: string };
     };
+    const source = row.episode_messages as unknown as {
+      episode_plays: { story_play_id: string } | null;
+    } | null;
+    const storyPlayId = source?.episode_plays?.story_play_id;
 
     return {
+      conversation:
+        row.message_id && storyPlayId
+          ? {
+              dialogueIndex: row.dialogue_index,
+              episodeId: row.episode_id,
+              messageId: row.message_id,
+              storyPlayId,
+            }
+          : null,
       english: row.text,
       entries: storedEntries(row.entries),
       episodeNumber: episode.number,

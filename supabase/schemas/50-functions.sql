@@ -107,10 +107,6 @@ create trigger learning_events_set_timestamps
   before insert or update on public.learning_events
   for each row execute function public.set_row_timestamps();
 
-create trigger language_levels_set_timestamps
-  before insert or update on public.language_levels
-  for each row execute function public.set_row_timestamps();
-
 create trigger app_version_policies_set_timestamps
   before insert or update on public.app_version_policies
   for each row execute function public.set_row_timestamps();
@@ -318,10 +314,8 @@ begin
   values (old.username, new.id, now() + public.username_change_interval())
   on conflict (username) do update
   set retired_by = excluded.retired_by,
-      retired_at = now(),
       protected_until = excluded.protected_until;
 
-  new.username_changed_at := now();
   new.username_locked_until := now() + public.username_change_interval();
 
   return new;
@@ -547,10 +541,88 @@ create trigger episode_plays_record_completion
   after insert or update of finished_at on public.episode_plays
   for each row execute function public.record_episode_completion();
 
+-- 연속 기록의 날수와 기록이 시작된 날을 기기의 하루로 읽는다.
+--
+-- 하루의 경계는 기기의 현지 자정이다. 그래서 앱이 기기의 시간대 이름과 그
+-- 시간대의 오늘 날짜를 보낸다. 오늘 아직 화를 끝내지 않았으면 어제까지 이어진
+-- 날수를 돌려주고, 어제도 끝낸 화가 없으면 0이다. 하루에 여러 화를 끝내도
+-- 하루다. 가장 이른 날은 영어로 말한 날과 화를 끝낸 날 중 먼저 온 날이다.
+--
+-- 학습 사실만 읽으므로 회차를 지워도 값이 같다. 호출한 사람의 권한으로 돌아서
+-- 누구의 사실을 읽을지는 행 보안 정책이 정한다.
+create function public.learning_streak(zone text, today date)
+returns table (streak integer, first_day date)
+language sql
+security invoker
+stable
+set search_path = ''
+as $$
+  with completed_days as (
+    select distinct (e.occurred_at at time zone zone)::date as day
+    from public.learning_events e
+    where e.user_id = (select auth.uid())
+      and e.kind = 'episode_completed'
+      and e.occurred_at < ((today + 1)::timestamp at time zone zone)
+  ),
+  runs as (
+    -- 하루씩 거슬러 이어진 날은 날짜와 순번의 합이 같다.
+    select day, day + (row_number() over (order by day desc))::integer as run
+    from completed_days
+  ),
+  latest as (
+    select max(day) as last_day, count(*)::integer as days
+    from runs
+    group by run
+    order by last_day desc
+    limit 1
+  )
+  select
+    coalesce((select days from latest where last_day >= today - 1), 0),
+    (
+      select (min(e.occurred_at) at time zone zone)::date
+      from public.learning_events e
+      where e.user_id = (select auth.uid())
+    );
+$$;
+
+comment on function public.learning_streak(text, date) is
+  'The caller''s consecutive days with a finished episode through the device''s today, and their first study day, both in the given time zone.';
+
+revoke all on function public.learning_streak(text, date) from public, anon, authenticated, service_role;
+grant execute on function public.learning_streak(text, date) to authenticated;
+
+-- 날짜별 영어로 말한 횟수를 기기의 하루로 읽는다.
+--
+-- 이번 주 카드와 월 달력이 쓴다. 영어로 말한 날만 날짜순으로 돌려주고, 말하지
+-- 않은 날은 앱이 빈 칸으로 채운다. 무엇을 영어 메시지로 세는지는 학습 사실을
+-- 남기는 트리거가 이미 정했다.
+create function public.learning_days(zone text, first_day date, last_day date)
+returns table (day date, english_messages integer)
+language sql
+security invoker
+stable
+set search_path = ''
+as $$
+  select (e.occurred_at at time zone zone)::date as day, count(*)::integer
+  from public.learning_events e
+  where e.user_id = (select auth.uid())
+    and e.kind = 'english_message'
+    and e.occurred_at >= (first_day::timestamp at time zone zone)
+    and e.occurred_at < ((last_day + 1)::timestamp at time zone zone)
+  group by 1
+  order by 1;
+$$;
+
+comment on function public.learning_days(text, date, date) is
+  'The caller''s English message count per device day between two dates, in the given time zone. Days without English are omitted.';
+
+revoke all on function public.learning_days(text, date, date) from public, anon, authenticated, service_role;
+grant execute on function public.learning_days(text, date, date) to authenticated;
+
 -- 끝난 에피소드를 기록하는 유일한 길.
 --
--- 결말이 한 번만 난다는 규칙과 이야기 기억, 언어 수준이 한 트랜잭션에 함께
--- 남는다는 것이 이 함수의 이유다. `authenticated`는 `public.episode_plays`의
+-- 결말이 한 번만 난다는 규칙과 이야기 기억이 한 트랜잭션에 함께 남는다는 것이
+-- 이 함수의 이유다. `authenticated`는 `public.episode_plays`의
 -- 결말 열에 직접 쓰지 못한다. 직접 쓸 수 있으면 앱이 아무 화나 끝난 것으로
 -- 만들어 앞의 화를 건너뛸 수 있다.
 --
@@ -563,8 +635,7 @@ create function public.finish_episode(
   outcome text,
   memory_choice text default null,
   memory_relationship text default null,
-  memory_question text default null,
-  language_level text default null
+  memory_question text default null
 )
 returns boolean
 language plpgsql
@@ -626,23 +697,15 @@ begin
 
   get diagnostics recorded = row_count;
 
-  if recorded = 1 and finish_episode.language_level is not null then
-    insert into public.language_levels (user_id, level)
-    values (player, finish_episode.language_level)
-    on conflict on constraint language_levels_pkey do update
-    set level = excluded.level,
-        observed_at = now();
-  end if;
-
   return recorded = 1;
 end;
 $$;
 
-comment on function public.finish_episode(uuid, uuid, text, text, text, text, text, text) is
+comment on function public.finish_episode(uuid, uuid, text, text, text, text, text) is
   'Records the ending and story memory of the current episode in the caller''s run. Returns true only to the request that closed the play.';
 
-revoke all on function public.finish_episode(uuid, uuid, text, text, text, text, text, text) from public, anon, authenticated, service_role;
-grant execute on function public.finish_episode(uuid, uuid, text, text, text, text, text, text) to authenticated;
+revoke all on function public.finish_episode(uuid, uuid, text, text, text, text, text) from public, anon, authenticated, service_role;
+grant execute on function public.finish_episode(uuid, uuid, text, text, text, text, text) to authenticated;
 
 -- 사용자가 만든 스토리 하나를 저장한다.
 --

@@ -15,6 +15,7 @@
 - [앱 초기화 작업 흐름](app-initialization-workflow.md) — 템플릿에서 새 앱을 시작하는 대화, Skill, 스크립트의 책임을 변경할 때 읽는다.
 - [디자인 시스템 생성 작업 흐름](design-system-generation-workflow.md) — 참고 자료에서 테마 후보를 만들거나 미리보기, 승인, 적용 범위를 변경할 때 읽는다.
 - [Worktree 개발 세션](worktree-development-sessions.md) — 여러 Git worktree의 API·Metro 포트, 같은 컴퓨터의 다른 프로젝트와 나누는 포트 대역, 로컬 Supabase 포트, 플랫폼 동시 실행, 실기기 LAN 연결, 기기 풀과 배정·반납, 기기 계정 보존, 프로세스 소유권 또는 공용 Development Build 재사용 방식을 변경할 때 읽는다.
+- [Worktree 환경 파일](worktree-environment-files.md) — ignored 환경 파일을 worktree에 준비하거나 원본, 연결, 검증과 덮어쓰기 경계를 변경할 때 읽는다.
 - [CI 코드 리뷰](ci-code-review.md) — CI에서 PR 자동 코드 리뷰를 켜거나, 리뷰 도구와 권한을 손대려 할 때 읽는다.
 - [검증과 내부 테스트 배포](continuous-delivery.md) — PR 검증, 운영 배포의 승인 자리, Supabase·Vercel·EAS 배포 순서, Slack 결과 알림 또는 복구 경로를 변경할 때 읽는다.
 - [검토 에이전트 실행 경계](reviewer-agent-execution-boundaries.md) — Claude Code와 Codex의 전용 검토 agent, 공용 검토 계약, 읽기 전용 권한 또는 실행 맥락을 추가하거나 바꿀 때 읽는다.
@@ -39,7 +40,7 @@
 
 ## 데이터베이스
 
-- [데이터베이스 공통 필드](database-common-fields.md) — 앱 테이블의 생성·수정 시각이나 순서 열 이름을 정할 때 읽는다.
+- [데이터베이스 공통 필드](database-common-fields.md) — 앱 테이블의 생성·수정 시각, 사건 시각 열을 따로 둘지 또는 순서 열 이름을 정할 때 읽는다.
 - [표현 저장 구조](expression-storage.md) — 번역·교정·표현 노트의 저장, 책갈피 상태나 원본 삭제 뒤 수명을 바꿀 때 읽는다.
 
 - [Supabase 스키마 작업 방식](supabase-schema-workflow.md) — Supabase 스키마 원본, 로컬 스택, 마이그레이션, 타입 생성 또는 seed의 ID·갱신 규칙을 변경할 때 읽는다.
@@ -92,6 +93,7 @@
 - [모바일 AI 채팅 표현](mobile-ai-chat-rendering.md) — 모바일 AI 채팅의 Liquid Glass 입력창, 스트리밍 Markdown, 메시지 진입 또는 답변 대기 표시를 만들거나 바꿀 때 읽는다.
 - [모바일 채팅 메시지 동작](mobile-chat-message-actions.md) — 채팅 메시지의 복사, 수정, 다시 받기, 중지 또는 실패 뒤 다시 시도를 만들거나 바꿀 때 읽는다.
 - [모바일 채팅 스크롤](mobile-chat-scrolling.md) — 모바일 채팅의 질문 배치, 스트리밍 자동 추적, 읽던 위치 또는 최신 메시지 이동을 변경할 때 읽는다.
+- [연속 기록과 영어로 말한 횟수](learning-activity.md) — 홈과 연속 기록 화면의 집계, 날짜 칸, 색, 문구 또는 보존 범위를 변경할 때 읽는다.
 - [모바일 스토리 탐색](mobile-story-browsing.md) — 홈·탐색·스토리·노트 탭의 역할, 탐색의 필터 칩, 스토리 상세, 새 대화와 회차별 기록을 변경할 때 읽는다.
 - [회차 삭제와 학습 기록 보존](story-play-deletion.md) — 회차 삭제의 확인과 범위, 삭제 후 연속 기록·영어로 말한 횟수 또는 저장한 표현의 수명을 변경할 때 읽는다.
 - [스토리 만들기](story-creation.md) — 화별로 원하는 상황을 정하는 인터뷰, 카드의 에피소드 추가와 확정 행동, 화 수, 대본·표지 생성, 실제 결과에 따른 연결 또는 만든 스토리의 수명을 바꿀 때 읽는다.

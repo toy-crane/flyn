@@ -6,7 +6,7 @@
 - Google client ID 목록은 `supabase/.env`의 `SUPABASE_AUTH_GOOGLE_CLIENT_IDS`에 두고 `config.toml`은 `env()`로 가리킨다. Supabase CLI가 `supabase/.env`를 자동으로 읽는다.
 - Apple의 `client_id`에는 iOS bundle identifier를 그대로 적는다. 환경 변수로 빼지 않는다.
 - Google의 `enabled` 기본값은 `false`로 둔다. client ID를 채운 뒤에만 `true`로 바꾼다.
-- `.worktreeinclude`에 `supabase/.env`를 포함해 새 worktree가 제공자 설정을 함께 받는다.
+- `.worktreeinclude`에 `supabase/.env`를 포함해 새 worktree가 제공자 설정을 함께 받는다. 이 경로가 빠지면 [Worktree 환경 파일](worktree-environment-files.md)에 따라 기본 checkout의 파일을 연결한다.
 - Google OAuth client는 Web, iOS, Android 서명별로 하나씩 만들고 이름은 `flyn-web`, `flyn-ios`, `flyn-android-debug`처럼 `flyn-<플랫폼>[-<서명>]`으로 짓는다.
 
 ## 경계

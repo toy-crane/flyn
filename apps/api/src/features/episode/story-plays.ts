@@ -7,6 +7,8 @@ import type { EpisodeClient, StoryCatalogEntry } from "./story";
  * 보여 주고, 그 화의 대화는 사용자가 펼칠 때 따로 읽는다.
  */
 interface StoryPlayRow {
+  /** 회차 행은 첫 사용자 메시지에 생기므로 이 시각이 곧 회차를 시작한 시각이다. */
+  created_at: string;
   id: string;
   plays: {
     episode_id: string;
@@ -14,7 +16,6 @@ interface StoryPlayRow {
     finished_at: string | null;
     messages: number;
   }[];
-  started_at: string;
 }
 
 /** 회차 카드가 펼쳐 보여 주는 끝낸 화 한 줄. */
@@ -119,11 +120,11 @@ async function readStoryPlayRows(
   const { data, error } = await client
     .from("story_plays")
     .select(
-      "id, started_at, episode_plays(episode_id, finished_at, ending_outcome, episode_messages(count))"
+      "id, created_at, episode_plays(episode_id, finished_at, ending_outcome, episode_messages(count))"
     )
     .eq("story_id", storyId)
     .not("last_user_message_at", "is", null)
-    .order("started_at", { ascending: false });
+    .order("created_at", { ascending: false });
 
   if (error) {
     throw new Error(
@@ -134,6 +135,7 @@ async function readStoryPlayRows(
   // 대화 본문은 세기만 하고 한 건도 읽지 않는다. 카드가 알아야 하는 것은 그 화에
   // 다시 열 대화가 남았는지뿐이다.
   return data.map((storyPlay) => ({
+    created_at: storyPlay.created_at,
     id: storyPlay.id,
     plays: storyPlay.episode_plays.map((play) => ({
       ending_outcome: play.ending_outcome,
@@ -141,7 +143,6 @@ async function readStoryPlayRows(
       finished_at: play.finished_at,
       messages: play.episode_messages[0]?.count ?? 0,
     })),
-    started_at: storyPlay.started_at,
   }));
 }
 
@@ -192,7 +193,7 @@ function storyPlayViewOf(
     episodes,
     finished: episodes.length,
     next,
-    startedAt: storyPlay.started_at,
+    startedAt: storyPlay.created_at,
     storyPlayId: storyPlay.id,
   };
 }

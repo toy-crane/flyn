@@ -12,6 +12,7 @@ import { storyLabels } from "@/features/story/ui/story-labels";
 import { formatStoryPlayStart } from "@/features/story/ui/story-play-time";
 import { StoryProgress } from "@/features/story/ui/story-progress";
 import { DelayedLoading } from "@/shared/ui/delayed-loading";
+import { Icon } from "@/shared/ui/icon";
 import { IconButton } from "@/shared/ui/icon-button";
 import { LoadingSpinner } from "@/shared/ui/loading-spinner";
 import { ScreenEmpty, ScreenUnavailable } from "@/shared/ui/screen-status";
@@ -111,7 +112,7 @@ function StoryPlayCard({
                 </IconButton>
               </View>
             </Menu.Trigger>
-            <Menu.Portal>
+            <Menu.Portal unstable_accessibilityContainerViewIsModal>
               <Menu.Overlay />
               <Menu.Content
                 align="end"
@@ -119,7 +120,8 @@ function StoryPlayCard({
                 presentation="popover"
                 width={144}
               >
-                <Menu.Item onPress={remove}>
+                <Menu.Item onPress={remove} role="button" variant="danger">
+                  <Icon name="trash" size="md" tone="danger" />
                   <Menu.ItemTitle>{storyLabels.deleteRun}</Menu.ItemTitle>
                 </Menu.Item>
               </Menu.Content>

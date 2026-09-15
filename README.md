@@ -445,9 +445,10 @@ adb shell am start -a android.intent.action.VIEW -d "turbo-repo-mobile://setting
 | `이럴 때 쓰는 영어 표현 보기` / `접기` | 한국어 입력 안내의 펼치기와 접기 |
 | `표현 다시 확인` | 표현 확인 실패 문구 바로 뒤의 새로고침 아이콘. 재시도 중에는 비활성화됩니다 |
 | `대사 복사` | 인물 말풍선 아래 아이콘 줄 |
-| `표현 복사` | 배울 표현 아래 아이콘 줄과 표현 노트 카드 아래 아이콘 줄 |
+| `표현 복사` | 배울 표현 아래 아이콘 줄 |
 | `표현 저장` / `저장 취소` | 같은 아이콘 줄의 책갈피. 담긴 자리는 취소로 읽힙니다 |
 | `표현 저장 다시 시도` | 담지 못했을 때 그 자리에 남는 줄의 새로고침 아이콘 |
+| `대화에서 보기` | 표현 노트 카드 아래 아이콘 줄의 말풍선. 그 표현이 나온 대화를 엽니다 |
 | `삭제` | 표현 노트 카드 아래 아이콘 줄의 휴지통. `표현을 삭제할까요?` 확인창을 엽니다 |
 
 에피소드의 이름, 상황 줄, 예고는 데이터베이스의 공식 대본에서 옵니다. 서버는
@@ -555,6 +556,7 @@ bun run test:integration
 bun run dev ios
 bun run dev:status
 bun run dev:stop
+bun run env:setup
 bun run build
 bun run check
 bun run fix
@@ -571,6 +573,8 @@ iOS와 Android 모두 앱 전용 Development Build를 사용합니다.
 개발은 저장소 루트의 개발 세션 명령 하나로 시작합니다.
 이 명령이 API와 Metro를 이 폴더 전용 포트로 띄우고, 이 폴더에 배정한 Simulator나 Emulator에서 앱을 엽니다.
 앱이 Metro에 연결된 것을 확인한 뒤에 터미널을 돌려주고, 그다음부터는 백그라운드에서 계속 실행합니다.
+Simulator는 앞으로 가져오지 않고, Emulator는 창을 숨겨 시작합니다. 화면 조작과 캡처는 그대로 사용할 수 있습니다.
+직접 화면을 확인할 때는 `bun run dev ios --foreground` 또는 `bun run dev android --foreground`를 사용하세요. 옵션은 이번 실행에만 적용됩니다. 이미 숨겨 실행한 Android Emulator는 해당 기기만 창 모드로 재시작하며 앱 데이터는 유지합니다.
 
 ```bash
 bun run dev ios
@@ -617,6 +621,7 @@ Git worktree, 풀의 기기와 저장소 공용 빌드는 지우지 않습니다
 
 여러 Git worktree에서 같은 앱을 동시에 개발할 수 있습니다.
 폴더마다 다른 포트와 다른 기기를 배정하고, 네이티브 빌드는 플랫폼과 native fingerprint가 같으면 저장소 전체에서 함께 씁니다.
+`bun run dev`는 시작 전에 `bun run env:setup`을 실행합니다. 환경 파일이 빠졌으면 같은 Git 저장소의 기본 checkout에 있는 `apps/api/.env.local`, `apps/mobile/.env.local`, `supabase/.env`를 symlink로 연결합니다. 기존 파일은 덮어쓰지 않습니다. 환경만 미리 확인하거나 연결하려면 `bun run env:setup`을 직접 실행하세요.
 Android 빌드를 새로 만들 때는 폴더별 Gradle 홈을 사용해 다른 worktree의 빌드 캐시와 섞이지 않습니다.
 빌드가 끝난 뒤에는 이 폴더를 쓰는 Gradle daemon을 남기지 않습니다.
 `dev:stop`은 이 캐시를 남기고, `dev:remove`는 해당 폴더의 Gradle 캐시도 지웁니다.

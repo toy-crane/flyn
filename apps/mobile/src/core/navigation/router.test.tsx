@@ -36,6 +36,16 @@ beforeEach(() => {
   resetFakeSupabase({ session: createFakeSession() });
 });
 
+jest.mock("@/screens/streak/streak-screen", () => {
+  const React = require("react") as typeof import("react");
+  const { View } = require("react-native") as typeof import("react-native");
+
+  return {
+    StreakScreen: () =>
+      React.createElement(View, { accessibilityLabel: "Streak placeholder" }),
+  };
+});
+
 jest.mock("@/screens/browse/browse-screen", () => {
   const React = require("react") as typeof import("react");
   const { View } = require("react-native") as typeof import("react-native");
@@ -118,6 +128,25 @@ test("공통 대화 기록을 탐색에서 열고 닫으면 탐색으로 돌아�
   });
   await act(() => expoRouter.back());
   await waitFor(() => expect(rendered.getPathname()).toBe("/browse"));
+});
+
+test("홈에서 연속 기록을 열면 탭 바깥 화면이 열리고, 뒤로 가면 홈으로 돌아간다", async () => {
+  const rendered = renderRouter("./app", { initialUrl: "/" });
+  await rendered;
+  await waitFor(() => {
+    expect(screen.getByLabelText("Home placeholder")).toBeOnTheScreen();
+  });
+
+  await act(() => {
+    expoRouter.push("/streak");
+  });
+  await waitFor(() => {
+    expect(rendered.getPathname()).toBe("/streak");
+    expect(screen.getByLabelText("Streak placeholder")).toBeOnTheScreen();
+  });
+
+  await act(() => expoRouter.back());
+  await waitFor(() => expect(rendered.getPathname()).toBe("/"));
 });
 
 // The avatar button moved into HomeScreen's own toolbar, so the press-to-open

@@ -96,6 +96,7 @@ class SessionDiedError extends Error {}
 export interface StartInput {
   clear: boolean;
   cwd: string;
+  foreground?: boolean;
   host?: string;
   io: SessionIo;
   physical?: boolean;
@@ -1003,12 +1004,13 @@ function aggregateFailure(
 async function prepareDrivers(
   context: SessionContext,
   requestedVirtualPlatforms: Platform[],
-  failures: PlatformFailure[]
+  failures: PlatformFailure[],
+  foreground: boolean
 ): Promise<Map<Platform, PlatformDriver>> {
   const drivers = new Map<Platform, PlatformDriver>();
   const toolingChecks = await Promise.all(
     requestedVirtualPlatforms.map(async (platform) => {
-      const driver = driverFor(context, platform);
+      const driver = driverFor(context, platform, foreground);
 
       try {
         return { driver, missing: await driver.missingTooling(), platform };
@@ -1052,6 +1054,7 @@ function requireVirtualTarget(
 
 export async function startSession({
   clear,
+  foreground = false,
   cwd,
   io,
   platforms,
@@ -1068,7 +1071,8 @@ export async function startSession({
   const drivers = await prepareDrivers(
     context,
     requestedVirtualPlatforms,
-    failures
+    failures,
+    foreground
   );
 
   if (!physical && drivers.size === 0) {

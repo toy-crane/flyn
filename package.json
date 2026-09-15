@@ -9,7 +9,7 @@
   "scripts": {
     "agent-device": "agent-device",
     "agent-device:doctor": "agent-device doctor",
-    "auth:otp": "bun scripts/auth/read-local-email-otp.ts",
+    "auth:otp": "bun run env:setup && bun scripts/auth/read-local-email-otp.ts",
     "build": "turbo run build",
     "celebration:lottie": "bun scripts/closing-celebration/generate.ts",
     "check": "turbo run check",
@@ -19,7 +19,7 @@
     "db:diff": "supabase db diff",
     "db:lint": "supabase db lint --level warning --schema public",
     "db:reset": "supabase db reset && supabase seed buckets --local",
-    "db:start": "supabase start",
+    "db:start": "bun run env:setup -- supabase && supabase start",
     "db:status": "supabase status",
     "db:stop": "supabase stop",
     "db:test": "supabase test db supabase/tests supabase/seed_identity_test.sql",
@@ -28,6 +28,7 @@
     "dev:remove": "bun scripts/dev/cli.ts remove",
     "dev:status": "bun scripts/dev/cli.ts status",
     "dev:stop": "bun scripts/dev/cli.ts stop",
+    "env:setup": "bun scripts/environment/cli.ts",
     "fix": "turbo run fix",
     "postinstall": "bun scripts/setup/vendor-markdown-assets.ts",
     "setup": "bun scripts/setup/cli.ts",
@@ -51,5 +52,9 @@
       "version": "1.4.0",
       "onFail": "warn"
     }
+  },
+  "patchedDependencies": {
+    "heroui-native@1.0.9": "patches/heroui-native@1.0.9.patch",
+    "@legendapp/list@3.3.5": "patches/@legendapp%2Flist@3.3.5.patch"
   }
 }

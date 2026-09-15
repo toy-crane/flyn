@@ -6,7 +6,7 @@ import { withSupabase } from "@supabase/server/adapters/hono";
 import { MockLanguageModelV4, simulateReadableStream } from "ai/test";
 import { encode as encodePng } from "fast-png";
 import type { MiddlewareHandler } from "hono";
-import finalCorrectionEvaluation from "../eval/results/correction-candidate-1789228066622.json";
+import finalCorrectionEvaluation from "../eval/results/correction-candidate-1789475800984.json";
 
 import deployedApp, { createApp } from "./app";
 import type { EpisodeScene } from "./features/episode/scene";
@@ -243,7 +243,9 @@ interface SavedRow {
   created_at: string;
   dialogue_index: number | null;
   english: string;
-  entries: { fixed: string; original: string; why: string }[] | null;
+  entries:
+    | { fixed: string; isError?: boolean; original: string; why: string }[]
+    | null;
   episode_id: string;
   id: string;
   kind: string;
@@ -252,11 +254,14 @@ interface SavedRow {
   original: string | null;
   speaker: string | null;
 }
-/** 회차 한 줄, `story_plays`가 들고 있는 모양대로. */
+/**
+ * 회차 한 줄, `story_plays`가 들고 있는 모양대로. 행은 첫 사용자 메시지에
+ * 생기므로 `created_at`이 곧 회차를 시작한 시각이다.
+ */
 interface StoryPlayRow {
+  created_at: string;
   id: string;
   last_user_message_at: string | null;
-  started_at: string;
   story_id: string;
 }
 
@@ -290,9 +295,9 @@ interface SeasonState {
 /** 이미 진행 중인 회차 하나. 이어가는 테스트가 기본으로 쓴다. */
 function startedStoryPlay(): StoryPlayRow {
   return {
+    created_at: "2026-08-29T00:00:00.000Z",
     id: STORY_PLAY_ID,
     last_user_message_at: "2026-08-29T00:05:00.000Z",
-    started_at: "2026-08-29T00:00:00.000Z",
     story_id: STORY_ID,
   };
 }
@@ -361,7 +366,6 @@ function signedInWith(
         episode_id: identifier,
         finished_at: `2026-08-29T00:0${episode}:00.000Z`,
         id: playIdOf(identifier),
-        started_at: `2026-08-29T00:0${episode}:00.000Z`,
         // 진행은 회차 안에서만 읽힌다. 가짜도 그 열을 달아 주어야 회차로 거르는
         // 조회가 실제와 같은 답을 낸다.
         story_play_id: state.runs.at(0)?.id ?? STORY_PLAY_ID,
@@ -383,7 +387,6 @@ function signedInWith(
         episode_id: id.slice("play-".length),
         finished_at: null,
         id,
-        started_at: "2026-08-29T00:10:00.000Z",
         story_play_id:
           openedStoryPlays.get(id) ?? state.runs.at(0)?.id ?? STORY_PLAY_ID,
       }));
@@ -555,15 +558,29 @@ function signedInWith(
         }
 
         // 표현 노트는 담긴 행에서 에피소드를, 그 에피소드에서 스토리를 타고
-        // 제목과 화 번호를 읽는다.
+        // 제목과 화 번호를 읽는다. 원본 메시지가 남아 있으면 그 메시지의 플레이를
+        // 타고 회차도 읽는다.
         if (nestedEpisode) {
           return ordered.map((row) => {
             const episode = TEST_EPISODES.find(
               (candidate) => candidate.id === value(row, "episode_id")
             );
+            const message = state.messages.find(
+              (candidate) => candidate.id === value(row, "message_id")
+            );
+            const play = playRows().find(
+              (candidate) => candidate.id === message?.episode_play_id
+            );
 
             return {
               ...row,
+              episode_messages: message
+                ? {
+                    episode_plays: play
+                      ? { story_play_id: play.story_play_id }
+                      : null,
+                  }
+                : null,
               episodes: {
                 number: episode?.number ?? 0,
                 stories: { title: STORY_ROW.title },
@@ -765,9 +782,9 @@ function signedInWith(
 
             if (table === "story_plays") {
               const run: StoryPlayRow = {
+                created_at: nextCreatedAt(),
                 id: NEW_RUN_ID,
                 last_user_message_at: null,
-                started_at: nextCreatedAt(),
                 story_id: String(added[0]?.story_id),
               };
 
@@ -1028,6 +1045,7 @@ const deletedUserAuth: MiddlewareHandler = (c, next) => {
 interface CorrectionAnswer {
   entries: {
     fixed: string;
+    isError?: boolean;
     original: string;
     pattern: string;
     why: string;
@@ -1490,7 +1508,7 @@ describe("POST /ai/episode", () => {
     expect(state.recorded).toHaveLength(0);
   });
 
-  test.each(["outcome", "choice", "relationship", "question", "level"])(
+  test.each(["outcome", "choice", "relationship", "question"])(
     "결말의 %s가 공백뿐이면 결말과 장면을 저장하지 않고 오류로 끝낸다",
     async (field) => {
       const state = createSeasonState();
@@ -1502,7 +1520,6 @@ describe("POST /ai/episode", () => {
             ending: {
               choice: "교환을 요청했다.",
               kind: "성공",
-              level: "짧은 문장을 쓴다.",
               outcome: "커피를 받았다.",
               question: "다음에도 올까.",
               relationship: "신뢰가 생겼다.",
@@ -1563,7 +1580,6 @@ describe("POST /ai/episode", () => {
         ending: {
           choice: "요청했다.",
           kind: "완료",
-          level: "중급이다.",
           outcome: "끝났다.",
           question: "다음은.",
           relationship: "친해졌다.",
@@ -1579,7 +1595,7 @@ describe("POST /ai/episode", () => {
       },
     ],
     [
-      "네 기록 없는 결말",
+      "세 기록 없는 결말",
       {
         dialogue: [{ speaker: "Mia", text: "Hello." }],
         ending: { kind: "성공", outcome: "끝났다." },
@@ -1629,7 +1645,6 @@ describe("POST /ai/episode", () => {
       {
         choice: "교환을 요청했다.",
         kind: "성공",
-        level: "짧은 문장을 쓴다.",
         outcome: "원하던 커피를 새로 받아냈다.",
         question: "다음에도 올까.",
         relationship: "서로 신뢰하게 됐다.",
@@ -1834,7 +1849,6 @@ describe("POST /ai/episode", () => {
         {
           choice: "교환을 요청했다.",
           kind: "성공",
-          level: "짧은 문장을 쓴다.",
           outcome: "원하던 커피를 새로 받아냈다.",
           question: "다음에도 올까.",
           relationship: "서로 신뢰하게 됐다.",
@@ -1854,7 +1868,6 @@ describe("POST /ai/episode", () => {
       {
         episode_id: episodeId(1),
         kind: "성공",
-        language_level: "짧은 문장을 쓴다.",
         memory_choice: "교환을 요청했다.",
         memory_question: "다음에도 올까.",
         memory_relationship: "서로 신뢰하게 됐다.",
@@ -1865,7 +1878,8 @@ describe("POST /ai/episode", () => {
   });
 
   // 기억은 결말과 같은 한 번의 출력에서 나온다. 그래서 장면과 기억이 서로
-  // 어긋날 수 없고, 화면에는 결말만 보인다.
+  // 어긋날 수 없고, 화면에는 결말만 보인다. 사용자의 영어 수준은 쓰지도
+  // 저장하지도 않는다.
   test("stores the story memory the closing scene wrote, without showing it", async () => {
     const state = createSeasonState();
     const app = createApp({
@@ -1876,7 +1890,6 @@ describe("POST /ai/episode", () => {
           ending: {
             choice: "영수증을 보여 주며 침착하게 요구했다.",
             kind: "성공",
-            level: "중급 초반. 짧고 분명한 문장을 쓴다.",
             outcome: "원하던 커피를 새로 받아냈다.",
             question: "내일도 이 카페에 들를지.",
             relationship: "Mia가 실수를 인정했다.",
@@ -1894,7 +1907,6 @@ describe("POST /ai/episode", () => {
       {
         episode_id: episodeId(1),
         kind: "성공",
-        language_level: "중급 초반. 짧고 분명한 문장을 쓴다.",
         memory_choice: "영수증을 보여 주며 침착하게 요구했다.",
         memory_question: "내일도 이 카페에 들를지.",
         memory_relationship: "Mia가 실수를 인정했다.",
@@ -1904,7 +1916,6 @@ describe("POST /ai/episode", () => {
     ]);
     expect(body).toContain("Here is your iced americano.");
     expect(body).not.toContain("영수증을 보여 주며");
-    expect(body).not.toContain("중급 초반");
   });
 
   // 지난 선택이 다음 화에 돌아오는 길은 프롬프트 하나다. 사건은 그대로 두고
@@ -2073,7 +2084,6 @@ describe("POST /ai/episode", () => {
         {
           choice: "가".repeat(400),
           kind: "성공",
-          level: "짧은 문장을 쓴다.",
           outcome: "받아냈다.",
           question: "다음에도 올까.",
           relationship: "서로 신뢰하게 됐다.",
@@ -2099,7 +2109,6 @@ describe("POST /ai/episode", () => {
         {
           choice: "교환을 요청했다.",
           kind: "성공",
-          level: "짧은 문장을 쓴다.",
           outcome: "원하던 커피를 새로 받아냈다.",
           question: "다음에도 올까.",
           relationship: "서로 신뢰하게 됐다.",
@@ -2130,7 +2139,6 @@ describe("POST /ai/episode", () => {
         {
           choice: "교환을 요청했다.",
           kind: "성공",
-          level: "짧은 문장을 쓴다.",
           outcome: "제대로 인사를 건넸다.",
           question: "다음에도 올까.",
           relationship: "서로 신뢰하게 됐다.",
@@ -2159,7 +2167,6 @@ describe("POST /ai/episode", () => {
       model: createSceneModel([{ speaker: "Mia", text: "Here you go." }], {
         choice: "교환을 요청했다.",
         kind: "성공",
-        level: "짧은 문장을 쓴다.",
         outcome: "원하던 커피를 새로 받아냈다.",
         question: "다음에도 올까.",
         relationship: "서로 신뢰하게 됐다.",
@@ -2186,7 +2193,6 @@ describe("POST /ai/episode", () => {
       model: createSceneModel([{ speaker: "Mia", text: "Here you go." }], {
         choice: "교환을 요청했다.",
         kind: "실패",
-        level: "짧은 문장을 쓴다.",
         outcome: "다른 기기보다 늦게 끝났다.",
         question: "다음에도 올까.",
         relationship: "서로 신뢰하게 됐다.",
@@ -2272,8 +2278,37 @@ test("장면 응답은 교정을 기다리지 않고 저장된 사용자 메시�
 });
 
 describe("메시지별 표현 확인 API", () => {
-  test("최종 모델 평가의 출력 63건을 서버 검사로 다시 확인한다", async () => {
-    expect(finalCorrectionEvaluation.records).toHaveLength(63);
+  test("문법 오류 없는 문장도 상황에 맞는 배울 표현으로 제안해 저장한다", async () => {
+    const state = createSeasonState();
+    state.messages.push(stored("Can I take this coffee with me?"));
+    const entry = {
+      fixed: "Can I get this coffee to go?",
+      isError: false,
+      original: "Can I take this coffee with me?",
+      pattern: "coffee-to-go",
+      why: "음료를 포장해서 가져갈 때는 to go라고 해요.",
+    };
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([], {
+        entries: [entry],
+        fixed: "Can I get this coffee to go?",
+        status: "corrected",
+      }),
+    });
+
+    const response = await app.request(request());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      correction: { entries: [entry], fixed: "Can I get this coffee to go?" },
+      status: "corrected",
+    });
+    expect(state.expressionResults).toHaveLength(1);
+  });
+
+  test("최종 모델 평가의 출력 96건을 서버 검사로 다시 확인한다", async () => {
+    expect(finalCorrectionEvaluation.records).toHaveLength(96);
     await Promise.all(
       finalCorrectionEvaluation.records.map(async (record) => {
         const state = createSeasonState();
@@ -2996,7 +3031,10 @@ describe("표현을 담아 두는 API", () => {
     const state = createSeasonState();
     state.messages.push(wrote("I think you gave me wrong coffee."));
     state.expressionResults.push({
-      entries: WRONG_COFFEE.entries,
+      entries: WRONG_COFFEE.entries.map((entry) => ({
+        ...entry,
+        isError: false,
+      })),
       example: "I ordered a tea.",
       example_meaning: "차를 주문했어요.",
       fixed: WRONG_COFFEE.fixed,
@@ -3023,6 +3061,7 @@ describe("표현을 담아 두는 API", () => {
         entries: [
           {
             fixed: "the wrong coffee",
+            isError: false,
             original: "wrong coffee",
             why: "잘못 나온 그 하나를 짚어 말할 때는 the를 붙여요.",
           },
@@ -3186,7 +3225,10 @@ describe("표현을 담아 두는 API", () => {
     state.messages.push(scene());
     state.messages.push(wrote("I think you gave me wrong coffee."));
     state.expressionResults.push({
-      entries: WRONG_COFFEE.entries,
+      entries: WRONG_COFFEE.entries.map((entry) => ({
+        ...entry,
+        isError: false,
+      })),
       example: "I ordered a tea.",
       example_meaning: "차를 주문했어요.",
       fixed: WRONG_COFFEE.fixed,
@@ -3207,10 +3249,17 @@ describe("표현을 담아 두는 API", () => {
 
     expect(cards).toEqual([
       {
+        conversation: {
+          dialogueIndex: null,
+          episodeId: episodeId(1),
+          messageId: "m1",
+          storyPlayId: STORY_PLAY_ID,
+        },
         english: WRONG_COFFEE.fixed,
         entries: [
           {
             fixed: "the wrong coffee",
+            isError: false,
             original: "wrong coffee",
             why: "잘못 나온 그 하나를 짚어 말할 때는 the를 붙여요.",
           },
@@ -3224,6 +3273,12 @@ describe("표현을 담아 두는 API", () => {
         storyTitle: STORY_ROW.title,
       },
       {
+        conversation: {
+          dialogueIndex: 0,
+          episodeId: episodeId(1),
+          messageId: "s1",
+          storyPlayId: STORY_PLAY_ID,
+        },
         english: "Next in line, please!",
         entries: null,
         episodeNumber: 1,
@@ -3253,11 +3308,14 @@ describe("표현을 담아 두는 API", () => {
     }
 
     const cards = (await (await app.request(note())).json()) as {
+      conversation: unknown;
       english: string;
     }[];
 
     expect(cards).toHaveLength(1);
     expect(cards[0]?.english).toBe("Next in line, please!");
+    // 돌아갈 대화가 없으므로 노트는 대화에서 보기를 세우지 않는다.
+    expect(cards[0]?.conversation).toBeNull();
   });
 });
 
@@ -3347,6 +3405,30 @@ describe("POST /ai/episode/ask", () => {
     expect(body).toContain('"type":"text-delta"');
     expect(body).toContain("안녕");
     expect(body).toContain("하세요");
+    expect(model.doStreamCalls).toHaveLength(1);
+  });
+
+  test("표현 노트가 보낸 교정처럼 유형 없이 짚은 자리와 이유만 있어도 답한다", async () => {
+    const model = createMockModel(["여기서는 the를 붙여요."]);
+    const app = createApp({ authMiddleware: bypassAuth, model });
+
+    const response = await app.request(
+      createAskRequest({
+        correction: {
+          entries: WRONG_COFFEE.entries.map(({ fixed, original, why }) => ({
+            fixed,
+            original,
+            why,
+          })),
+          fixed: WRONG_COFFEE.fixed,
+          original: "I think you gave me wrong coffee.",
+        },
+        messages: [createUserMessage("왜 the를 붙여요?")],
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("the를 붙여요");
     expect(model.doStreamCalls).toHaveLength(1);
   });
 
@@ -3704,9 +3786,9 @@ describe("GET /ai/episode/recent", () => {
     const state = createSeasonState();
 
     state.runs.push({
+      created_at: "2026-08-29T00:08:00.000Z",
       id: "1a000000-0000-4000-8000-000000000002",
       last_user_message_at: "2026-08-29T00:09:00.000Z",
-      started_at: "2026-08-29T00:08:00.000Z",
       story_id: STORY_ID,
     });
 
@@ -3723,9 +3805,9 @@ describe("GET /ai/episode/recent", () => {
     const state = createEmptyState();
 
     state.runs.push({
+      created_at: "2026-08-29T00:00:00.000Z",
       id: STORY_PLAY_ID,
       last_user_message_at: null,
-      started_at: "2026-08-29T00:00:00.000Z",
       story_id: STORY_ID,
     });
 
@@ -3800,6 +3882,36 @@ describe("GET /ai/episode/stories/:storyId/plays", () => {
         outcome: "새 잔을 받아냈다.",
         title: "카페에서 생긴 일",
       },
+    ]);
+  });
+
+  // 카드 제목은 회차를 시작한 날짜와 시간이다. 가장 최근에 시작한 회차가 맨 위에 선다.
+  test("lists runs newest first, each titled by when it began", async () => {
+    const state = createSeasonState();
+    const laterId = "1a000000-0000-4000-8000-000000000002";
+
+    state.runs.push({
+      created_at: "2026-08-30T09:15:00.000Z",
+      id: laterId,
+      last_user_message_at: "2026-08-30T09:20:00.000Z",
+      story_id: STORY_ID,
+    });
+
+    const app = createApp({ authMiddleware: signedInWith(state) });
+
+    const response = await app.request(
+      `${EPISODE_PATH}/stories/${STORY_ID}/plays`
+    );
+    const view = (await response.json()) as StoryPlaysViewBody;
+
+    expect(
+      view.plays.map(({ startedAt, storyPlayId }) => ({
+        startedAt,
+        storyPlayId,
+      }))
+    ).toEqual([
+      { startedAt: "2026-08-30T09:15:00.000Z", storyPlayId: laterId },
+      { startedAt: "2026-08-29T00:00:00.000Z", storyPlayId: STORY_PLAY_ID },
     ]);
   });
 
@@ -3887,9 +3999,9 @@ describe("DELETE /ai/episode/stories/:storyId/plays/:storyPlayId", () => {
     const state = createSeasonState(finishedSeason());
     const otherId = "1a000000-0000-4000-8000-000000000002";
     state.runs.push({
+      created_at: "2026-08-30T00:00:00.000Z",
       id: otherId,
       last_user_message_at: "2026-08-30T00:05:00.000Z",
-      started_at: "2026-08-30T00:00:00.000Z",
       story_id: STORY_ID,
     });
     state.messages.push({
@@ -4639,7 +4751,6 @@ describe("story content database contract", () => {
         {
           choice: "교환을 요청했다.",
           kind: "성공",
-          level: "짧은 문장을 쓴다.",
           outcome: "원하던 커피를 새로 받아냈다.",
           question: "다음에도 올까.",
           relationship: "서로 신뢰하게 됐다.",
@@ -4668,7 +4779,6 @@ describe("story content database contract", () => {
       model: createSceneModel([{ speaker: "Mia", text: "Here you go." }], {
         choice: "교환을 요청했다.",
         kind: "성공",
-        level: "짧은 문장을 쓴다.",
         outcome: "원하던 커피를 새로 받아냈다.",
         question: "다음에도 올까.",
         relationship: "서로 신뢰하게 됐다.",

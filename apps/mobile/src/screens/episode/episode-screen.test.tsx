@@ -149,6 +149,24 @@ jest.mock("@/features/episode/state/use-episode-story-play", () => {
   };
 });
 
+/**
+ * 테두리가 서 있는 시간은 테두리가 소유한다. Jest의 Reanimated는 기다림 없이
+ * 곧바로 끝을 알리므로, 화면이 언제 세우고 언제 걷는지만 보도록 서 있기만 하는
+ * 스탠드인을 둔다.
+ */
+jest.mock("@/shared/ui/focus-ring", () => {
+  const React = require("react") as typeof import("react");
+  const { View } = require("react-native") as typeof import("react-native");
+
+  return {
+    FocusRing: () =>
+      React.createElement(View, {
+        accessibilityElementsHidden: true,
+        testID: "focus-ring",
+      }),
+  };
+});
+
 const mockOpenAsk = jest.fn<(id: string) => void>();
 
 /** The episode the route says this screen is playing. */
@@ -176,6 +194,13 @@ interface PanelProps {
     tag?: string;
   };
   closing?: ReactNode;
+  focus?: {
+    dialogueIndex?: number;
+    isHighlighting: boolean;
+    messageId: string;
+    onHighlightEnd: () => void;
+    onPositioned: () => void;
+  };
   hasMessageActions?: boolean;
   messageAddon?: ComponentType<{ message: UIMessage }>;
   placeholder?: string;
@@ -480,4 +505,79 @@ test("회차가 생기기 전에는 담아 둘 수 없다고 대화판에 알린
   });
 
   expect(panel?.canSaveUtterances).toBe(true);
+});
+
+/** 테두리는 꾸밈이라 화면 읽기에서 빠진다. 그래도 그려졌는지는 본다. */
+const HIDDEN = { includeHiddenElements: true };
+
+test("노트에서 들어오지 않은 대화는 짚을 자리를 넘기지 않는다", async () => {
+  await renderWithHeroUI(<EpisodeScreen {...PLAYING} />);
+
+  expect(panel?.focus).toBeUndefined();
+});
+
+test("화면이 아직 도착하지 않았으면 자리를 잡아도 짚지 않는다", async () => {
+  mockCorrections.byMessageId = { m1: CORRECTION };
+  await renderWithHeroUI(
+    <EpisodeScreen
+      {...PLAYING}
+      focus={{ dialogueIndex: null, messageId: "m1" }}
+      hasArrived={false}
+    />
+  );
+
+  await act(() => panel?.focus?.onPositioned());
+
+  expect(panel?.focus?.isHighlighting).toBe(false);
+  expect(screen.queryByTestId("focus-ring", HIDDEN)).toBeNull();
+});
+
+test("노트에서 들어온 배울 표현은 자리를 넘기고, 자리를 잡은 뒤에 교정 한 줄만 짚는다", async () => {
+  mockCorrections.byMessageId = { m1: CORRECTION };
+  await renderWithHeroUI(
+    <EpisodeScreen
+      {...PLAYING}
+      focus={{ dialogueIndex: null, messageId: "m1" }}
+      hasArrived
+    />
+  );
+
+  expect(panel?.focus).toMatchObject({
+    dialogueIndex: undefined,
+    isHighlighting: false,
+    messageId: "m1",
+  });
+  expect(screen.queryByTestId("focus-ring", HIDDEN)).toBeNull();
+
+  await act(() => panel?.focus?.onPositioned());
+
+  expect(panel?.focus?.isHighlighting).toBe(true);
+  expect(screen.getByTestId("focus-ring", HIDDEN)).toBeOnTheScreen();
+
+  await act(() => panel?.focus?.onHighlightEnd());
+
+  expect(panel?.focus?.isHighlighting).toBe(false);
+  expect(screen.queryByTestId("focus-ring", HIDDEN)).toBeNull();
+  // 테두리가 걷혀도 교정 한 줄은 그대로 남는다.
+  expect(screen.getByTestId("correction-line")).toBeOnTheScreen();
+});
+
+test("노트에서 들어온 인물 대사는 대사 자리를 넘기고 교정에는 테두리를 두지 않는다", async () => {
+  mockCorrections.byMessageId = { m1: CORRECTION };
+  await renderWithHeroUI(
+    <EpisodeScreen
+      {...PLAYING}
+      focus={{ dialogueIndex: 0, messageId: "m1" }}
+      hasArrived
+    />
+  );
+
+  await act(() => panel?.focus?.onPositioned());
+
+  expect(panel?.focus).toMatchObject({
+    dialogueIndex: 0,
+    isHighlighting: true,
+    messageId: "m1",
+  });
+  expect(screen.queryByTestId("focus-ring", HIDDEN)).toBeNull();
 });

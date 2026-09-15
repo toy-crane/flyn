@@ -1,4 +1,4 @@
--- 플레이 기록은 스토리·화 번호가 아니라 안정된 회차 id와 에피소드 id를
+-- episode_plays는 스토리·화 번호가 아니라 안정된 회차 id와 에피소드 id를
 -- 참조한다. 접근 규칙과 결말 동작은 episode_plays_test.sql이 소유한다.
 BEGIN;
 SELECT plan(12);
@@ -53,7 +53,7 @@ SELECT hasnt_column(
 SELECT function_privs_are(
   'public',
   'finish_episode',
-  array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
+  array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text']::name[],
   'authenticated',
   array['EXECUTE'],
   'a signed-in account can finish an episode by id'
@@ -62,7 +62,7 @@ SELECT function_privs_are(
 SELECT function_returns(
   'public',
   'finish_episode',
-  array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
+  array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text']::name[],
   'boolean',
   'finishing reports whether this request recorded the permanent ending'
 );

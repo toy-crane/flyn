@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { run, runOrThrow } from "./command";
 import { isPortFree, spawnSession } from "./processes";
+import { activateHostProcess } from "./window";
 
 /** The spec fixes the default configuration. */
 export const ANDROID_SYSTEM_IMAGE =
@@ -205,6 +206,37 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
+const DISCOVERY_PID = /(?:^|\/)pid_(\d+)\.ini$/;
+
+async function emulatorWindowProcess(
+  sdk: AndroidSdk,
+  serial: string,
+  avdName: string
+): Promise<{ hidden: boolean; pid: number }> {
+  const discovery = await runOrThrow([
+    sdk.adb,
+    "-s",
+    serial,
+    "emu",
+    "avd",
+    "discoverypath",
+  ]);
+  const path = discovery.split(LINE_BREAK_PATTERN)[0]?.trim() ?? "";
+  const pid = Number(DISCOVERY_PID.exec(path)?.[1]);
+  if (!Number.isSafeInteger(pid) || pid <= 1) {
+    throw new Error(`Emulator 창의 프로세스를 확인하지 못했습니다: ${serial}.`);
+  }
+  const command = await runOrThrow(["ps", "-p", String(pid), "-o", "args="]);
+  const args = command.trim().split(WHITESPACE_PATTERN);
+  if (args[args.indexOf("-avd") + 1] !== avdName) {
+    throw new Error(`Emulator 프로세스의 AVD가 일치하지 않습니다: ${serial}.`);
+  }
+  return {
+    hidden: args.includes("-qt-hide-window") || args.includes("-no-window"),
+    pid,
+  };
+}
+
 export interface StartEmulatorInput {
   avdName: string;
   /**
@@ -213,6 +245,7 @@ export interface StartEmulatorInput {
    * is known to be down, so it is where an edit to its files belongs.
    */
   beforeSpawn?: () => void;
+  foreground?: boolean;
   logPath: string;
   port: number;
   sdk: AndroidSdk;
@@ -225,6 +258,7 @@ export interface StartEmulatorInput {
 export async function startEmulator({
   avdName,
   beforeSpawn,
+  foreground = false,
   logPath,
   port,
   sdk,
@@ -232,7 +266,17 @@ export async function startEmulator({
   const running = await findSerialForAvd(sdk, avdName);
 
   if (running) {
-    return running;
+    if (!foreground) {
+      return running;
+    }
+    const process = await emulatorWindowProcess(sdk, running, avdName);
+    if (!process.hidden) {
+      await activateHostProcess(process.pid);
+      return running;
+    }
+    // The Qt flag is a launch setting. Reopen only this AVD, preserving data.
+    await shutdownEmulator(sdk, running);
+    await waitForConsolePortRelease(Number(running.slice("emulator-".length)));
   }
 
   // An emulator started on a taken console port fails quietly, so the wait
@@ -256,6 +300,7 @@ export async function startEmulator({
       "-port",
       String(port),
       "-no-boot-anim",
+      ...(foreground ? [] : ["-qt-hide-window"]),
     ],
     cwd: sdk.root,
     env: androidEnv(sdk, process.env as Record<string, string>),
@@ -267,6 +312,20 @@ export async function startEmulator({
   await waitForBoot(sdk, serial);
 
   return serial;
+}
+
+async function waitForConsolePortRelease(port: number): Promise<void> {
+  const deadline = Date.now() + SHUTDOWN_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    // biome-ignore lint/performance/noAwaitInLoops: QEMU releases its port asynchronously after adb disconnects.
+    if (await isPortFree(port)) {
+      return;
+    }
+    await sleep(SHUTDOWN_POLL_MS);
+  }
+  throw new Error(
+    `Emulator 콘솔 포트 ${port}이(가) 시간 안에 해제되지 않았습니다.`
+  );
 }
 
 async function isBooted(sdk: AndroidSdk, serial: string): Promise<boolean> {

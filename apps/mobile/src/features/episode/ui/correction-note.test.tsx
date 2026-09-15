@@ -118,6 +118,32 @@ test("한 줄을 탭하면 그 자리에서 카드로 펼쳐지고 접기로 되
   expect(screen.queryByTestId("correction-card")).toBeNull();
 });
 
+test("배울 표현의 펼침 상태를 화면 읽기에 알리고 접은 설명은 숨긴다", async () => {
+  const user = userEvent.setup();
+  await renderNote(ONE_EXPRESSION).rendered;
+  expect(
+    screen.getByRole("button", {
+      expanded: false,
+      name: "더 자연스러운 영어 표현 보기",
+    })
+  ).toBeOnTheScreen();
+  await user.press(screen.getByTestId("correction-line"));
+  expect(
+    screen.getByRole("button", {
+      expanded: true,
+      name: "더 자연스러운 영어 표현 접기",
+    })
+  ).toBeOnTheScreen();
+  await user.press(screen.getByTestId("correction-fold"));
+  expect(screen.queryByText(ONE_EXPRESSION.entries[0].why)).toBeNull();
+  expect(
+    screen.getByRole("button", {
+      expanded: false,
+      name: "더 자연스러운 영어 표현 보기",
+    })
+  ).toBeOnTheScreen();
+});
+
 test("전환 중 다시 눌러도 마지막 선택대로 열리고 질문 링크를 누를 수 있다", async () => {
   const user = userEvent.setup();
   const { onAsk, rendered } = renderNote(ONE_EXPRESSION);
@@ -197,6 +223,46 @@ test("배울 표현이 둘이면 카드가 항목 둘로 나뉜다", async () =>
   expect(screen.getAllByTestId("correction-entry")).toHaveLength(2);
   expect(screen.getByText(TWO_EXPRESSIONS.entries[0].why)).toBeOnTheScreen();
   expect(screen.getByText(TWO_EXPRESSIONS.entries[1].why)).toBeOnTheScreen();
+});
+
+test("오류와 표현 제안이 함께 있으면 실제 오류만 원문에 밑줄을 긋는다", async () => {
+  const correction: EpisodeCorrection = {
+    ...TWO_EXPRESSIONS,
+    entries: [
+      {
+        fixed: "want",
+        isError: true,
+        original: "wants",
+        pattern: "subject-verb-agreement",
+        why: "I 뒤에는 wants가 아니라 want를 써요.",
+      },
+      {
+        fixed: "to go",
+        isError: false,
+        original: "in a cup I can take away",
+        pattern: "coffee-to-go",
+        why: "포장해서 가져갈 음료는 to go로 말할 수 있어요.",
+      },
+    ],
+    fixed: "I want this coffee to go.",
+    original: "I wants this coffee in a cup I can take away.",
+  };
+  const { rendered } = renderNote(correction);
+  await rendered;
+
+  await userEvent.setup().press(screen.getByTestId("correction-line"));
+
+  expect(screen.getAllByTestId("correction-original")).toHaveLength(1);
+  expect(screen.getByTestId("correction-original")).toHaveTextContent(
+    correction.original
+  );
+  expect(screen.getAllByTestId("correction-fixed")).toHaveLength(1);
+  expect(screen.getByTestId("correction-fixed")).toHaveTextContent(
+    correction.fixed
+  );
+  expect(screen.getAllByText("wants")).toHaveLength(1);
+  expect(screen.getByText("wants").props.className).toBe("underline");
+  expect(screen.queryByText("in a cup I can take away")).toBeNull();
 });
 
 test("표현이 하나면 세는 말 없이 라벨만 쓴다", async () => {

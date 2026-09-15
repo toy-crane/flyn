@@ -104,10 +104,9 @@ create policy profiles_update_own on public.profiles
 -- user may not rewrite them even on their own row. `with check` above already
 -- guards `id`; this also covers `created_at`, which a policy cannot express.
 -- `updated_at` is the database's to set, through the trigger.
--- `username_changed_at` and `username_locked_until` are missing from the update
--- grant on purpose. They are the record of the rule, so a client that could write
--- them could clear its own lock and rename as often as it liked. The trigger sets
--- both, and it runs as owner.
+-- `username_locked_until` is missing from the update grant on purpose. It is the
+-- record of the rule, so a client that could write it could clear its own lock and
+-- rename as often as it liked. The trigger sets it, and it runs as owner.
 grant select on table public.profiles to authenticated;
 revoke update on table public.profiles from authenticated;
 grant update (avatar_chosen_by_user, avatar_path, avatar_url, display_name, username)
@@ -126,7 +125,7 @@ alter table public.retired_usernames enable row level security;
 
 grant all on table public.retired_usernames to service_role;
 
--- 회차, 플레이 기록, 메시지, 교정의 접근 규칙.
+-- story_plays, episode_plays, 메시지, 교정의 접근 규칙.
 --
 -- 네 테이블이 같은 모양을 쓴다. 자기 행만 읽고, 자기 행에만 쓰고, 결말이 난
 -- 플레이는 더 이상 바뀌지 않는다. 어느 규칙이 어디 사는지는
@@ -156,8 +155,8 @@ create policy story_plays_start_own on public.story_plays
 -- update 정책이 없다. 이름 변경은 제품에서 제외한 기능이고,
 -- `last_user_message_at`은 `public.touch_story_play`이 소유자 권한으로 쓴다.
 -- `user_id`는 `episode_plays`와 같은 이유로 insert grant에서 빠져 있다.
--- `started_at`과 `last_user_message_at`도 없다. 시각을 클라이언트가 실어 보내면
--- 최근 대화 순서를 앱 밖에서 고를 수 있게 된다.
+-- `created_at`과 `last_user_message_at`도 없다. 시각을 클라이언트가 실어 보내면
+-- 회차 시작 시각과 최근 대화 순서를 앱 밖에서 고를 수 있게 된다.
 grant select on table public.story_plays to authenticated;
 revoke insert on table public.story_plays from authenticated;
 grant insert (story_id) on table public.story_plays to authenticated;
@@ -185,9 +184,8 @@ create policy episode_plays_start_own on public.episode_plays
     and public.episode_is_current(episode_id, story_play_id)
   );
 
--- 결말을 쓰는 정책은 없다. `public.finish_episode`가 결말과 이야기 기억과 언어
--- 수준을 한 트랜잭션에 남기고, 그 함수만이 이미 끝난 플레이를 다시 닫지 못하게
--- 한다. 아래 insert grant가 열을 하나로 좁히는 것이 그 규칙의 나머지 절반이다.
+-- 결말을 쓰는 정책은 없다. `public.finish_episode`가 결말과 이야기 기억을 한
+-- 트랜잭션에 남기고, 그 함수만이 이미 끝난 플레이를 다시 닫지 못하게 한다. 아래 insert grant가 열을 하나로 좁히는 것이 그 규칙의 나머지 절반이다.
 -- `user_id`도 여기 없다. 그 열은 기본값이 채우므로, 남의 이름을 실어 보내는
 -- 문장은 정책을 만나기 전에 권한에서 막힌다.
 grant select on table public.episode_plays to authenticated;
@@ -248,22 +246,6 @@ create policy learning_events_select_own on public.learning_events
   using ((select auth.uid()) = user_id);
 grant select on table public.learning_events to authenticated;
 grant all on table public.learning_events to service_role;
-
--- Access control for public.language_levels.
---
--- Same shape as episode_plays: the owner may read, and only
--- `public.finish_episode` writes. A person's reading of their own English is
--- theirs to see, not theirs to declare.
-alter table public.language_levels enable row level security;
-
-create policy language_levels_select_own on public.language_levels
-  for select
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
-grant select on table public.language_levels to authenticated;
-
-grant all on table public.language_levels to service_role;
 
 -- 로그인 여부와 관계없이 현재 배포 대상의 정책을 읽는다. Dashboard 운영자만 바꾼다.
 alter table public.expressions enable row level security;

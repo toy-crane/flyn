@@ -6,7 +6,7 @@
 -- 각각 플레이할 수 있고, 한 회차의 결말과 이야기 기억이 다른 회차로 넘어가지
 -- 않는다.
 BEGIN;
-SELECT plan(59);
+SELECT plan(54);
 
 INSERT INTO auth.users (id, email)
 VALUES
@@ -111,13 +111,13 @@ SELECT ok(
 
 SELECT function_privs_are(
   'public', 'finish_episode',
-  ARRAY['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
+  ARRAY['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text']::name[],
   'anon', ARRAY[]::text[], 'anon cannot record an ending'
 );
 
 SELECT function_privs_are(
   'public', 'finish_episode',
-  ARRAY['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
+  ARRAY['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text']::name[],
   'authenticated', ARRAY['EXECUTE'],
   'a signed-in user can record an ending'
 );
@@ -141,7 +141,7 @@ SELECT function_privs_are(
 -- 없다.
 SELECT is_definer(
   'public', 'finish_episode',
-  ARRAY['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
+  ARRAY['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text']::name[],
   'only finish_episode runs with the privileges to write an ending'
 );
 
@@ -150,33 +150,22 @@ SELECT isnt_definer(
   'asking whether an episode is current needs no privileges of its own'
 );
 
-SELECT has_table('public', 'language_levels', 'public.language_levels exists');
-
-SELECT ok(
-  (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.language_levels'::regclass),
-  'row level security is enabled on language_levels'
+-- 사용자의 영어 수준은 결말에 쓰지도 계정에 남기지도 않는다. 결말을 기록하는
+-- 함수도 그 값을 받을 자리를 두지 않는다.
+SELECT hasnt_table(
+  'public', 'language_levels', 'no table keeps a language level for the account'
 );
 
-SELECT policies_are(
-  'public', 'language_levels', ARRAY['language_levels_select_own'],
-  'language_levels carries only the select policy'
+SELECT hasnt_function(
+  'public', 'finish_episode',
+  ARRAY['uuid', 'uuid', 'text', 'text', 'text', 'text', 'text', 'text']::name[],
+  'recording an ending takes no language level'
 );
 
-SELECT ok(
-  NOT (
-    SELECT bool_or(has_table_privilege('anon', 'public.language_levels', p))
-    FROM unnest(ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE']) AS p
-  ),
-  'anon cannot reach language_levels through the Data API'
-);
-
-SELECT ok(
-  (SELECT has_table_privilege('authenticated', 'public.language_levels', 'SELECT'))
-  AND NOT (
-    SELECT bool_or(has_table_privilege('authenticated', 'public.language_levels', p))
-    FROM unnest(ARRAY['INSERT', 'UPDATE', 'DELETE']) AS p
-  ),
-  'a person may read their own level but not declare it'
+-- 플레이 행은 화를 연 순간에 생기므로 시작 시각을 따로 두지 않는다.
+SELECT hasnt_column(
+  'public', 'episode_plays', 'started_at',
+  'a play reads when it began from created_at'
 );
 
 SET LOCAL ROLE anon;
@@ -354,8 +343,7 @@ SELECT lives_ok(
       '타협', '더 싼 음료로 바꿔 계산을 끝냈다.',
       '카드가 막히자 더 싼 음료로 바꿨다.',
       'Mia가 방법을 같이 찾아 줬다.',
-      '다음에는 폰 결제를 준비해 둘지.',
-      '중급 초반. 짧은 문장을 쓰고 시제를 가끔 놓친다.'
+      '다음에는 폰 결제를 준비해 둘지.'
     )$$,
   'the next episode can be finished without opening a play first'
 );
@@ -366,12 +354,6 @@ SELECT is(
      AND episode_id = (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 2)),
   '카드가 막히자 더 싼 음료로 바꿨다.',
   'the story memory is stored with the ending'
-);
-
-SELECT is(
-  (SELECT level FROM public.language_levels),
-  '중급 초반. 짧은 문장을 쓰고 시제를 가끔 놓친다.',
-  'the language level is stored for the account'
 );
 
 -- 같은 화를 다른 회차에서 다시 연다. 회차가 기준이 되면서 열리는 문이다.
@@ -429,17 +411,17 @@ SELECT lives_ok(
   $$select public.finish_episode(
       '1a000000-0000-4000-8000-000000000001'::uuid,
       (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 2)::uuid,
-      '실패', '나중에 도착한 다른 결말.',
-      null, null, null,
-      '고급. 나중 호출이 쓴 다른 관찰.'
+      '실패', '나중에 도착한 다른 결말.'
     )$$,
-  'a repeated ending with a different language observation raises nothing'
+  'a repeated ending raises nothing'
 );
 
-SELECT is(
-  (SELECT level FROM public.language_levels),
-  '중급 초반. 짧은 문장을 쓰고 시제를 가끔 놓친다.',
-  'a repeated ending cannot change the language observation either'
+SELECT results_eq(
+  $$select ending_kind, memory_choice from public.episode_plays
+    where story_play_id = '1a000000-0000-4000-8000-000000000001'
+      and episode_id = (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 2)$$,
+  $$values ('타협'::text, '카드가 막히자 더 싼 음료로 바꿨다.'::text)$$,
+  'a repeated ending cannot change the ending or the story memory'
 );
 
 SELECT lives_ok(
@@ -448,30 +430,24 @@ SELECT lives_ok(
       (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 3)::uuid,
       '실패', '자리를 잃고 나왔다.'
     )$$,
-  'an episode that says nothing about the level still finishes'
+  'an episode whose closing scene left no memory lines still finishes'
 );
 
 SELECT is(
-  (SELECT level FROM public.language_levels),
-  '중급 초반. 짧은 문장을 쓰고 시제를 가끔 놓친다.',
-  'and the level observed earlier is left standing'
+  (SELECT memory_choice FROM public.episode_plays
+   WHERE story_play_id = '1a000000-0000-4000-8000-000000000001'
+     AND episode_id = (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 3)),
+  NULL::text,
+  'and it is kept without story memory'
 );
 
 SELECT lives_ok(
   $$select public.finish_episode(
       '1a000000-0000-4000-8000-000000000001'::uuid,
       (select e.id from public.episodes e join public.stories s on s.id = e.story_id where s.slug = 'mia-cafe' and e.number = 4)::uuid,
-      '성공', '솔직한 감상을 전했다.',
-      null, null, null,
-      '중급 중반. 이유를 덧붙인 문장을 쓴다.'
+      '성공', '솔직한 감상을 전했다.'
     )$$,
-  'a later episode may observe the level again'
-);
-
-SELECT results_eq(
-  $$select level, count(*) over () from public.language_levels$$,
-  $$values ('중급 중반. 이유를 덧붙인 문장을 쓴다.'::text, 1::bigint)$$,
-  'the newest observation replaces the old one instead of adding a row'
+  'a later episode in the same run finishes'
 );
 
 -- 첫 회차의 네 화와 둘째 회차의 한 화.
@@ -495,11 +471,6 @@ SET LOCAL request.jwt.claims TO '{"sub":"22222222-2222-4222-8222-222222222222","
 SELECT is(
   (SELECT count(*) FROM public.episode_plays), 0::bigint,
   'another account sees none of them'
-);
-
-SELECT is(
-  (SELECT count(*) FROM public.language_levels), 0::bigint,
-  'and none of the first account''s language level'
 );
 
 SELECT lives_ok(

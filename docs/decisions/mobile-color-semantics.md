@@ -27,10 +27,14 @@
 | `cast-2` | `#2F6F4E` | `#97C459` |
 | `cast-3` | `#8A5A10` | `#E0B063` |
 | `cast-4` | `#A8386A` | `#EE93B1` |
+| `spoken-1` | `oklch(0.93 0.06 85)` | `oklch(0.33 0.06 60)` |
+| `spoken-2` | `oklch(0.86 0.11 75)` | `oklch(0.4 0.09 55)` |
+| `spoken-3` | `oklch(0.77 0.15 62)` | `oklch(0.47 0.12 50)` |
+| `spoken-4` | `oklch(0.69 0.17 50)` | `oklch(0.53 0.14 45)` |
 | `overlay` | `#FFFFFF` | `#1A1A1E` |
 | `field-background` | `#FFFFFF` | `#1A1A1E` |
 
-- HeroUI의 시맨틱 집합으로 뜻을 표현할 수 없는 제품 역할은 전역 CSS에 직접 등재한다. 영어 교정에는 `learn`, `learn-foreground`, `learn-surface`를, 한국어 입력의 영어 안내에는 `expression`, `expression-surface`를 쓴다. 한국어 안내는 문제없음이나 실패 상태와 다른 학습 안내이므로 전용 역할을 둔다. 에피소드의 장면 서술은 `scene`, 인물 이름표는 스토리 안 순서를 받는 `cast-1`부터 `cast-4`를 쓴다. 이름표 색은 파랑, 보라, 청록을 피해 서로 구분되는 계열에서 고른다. 표시 규칙은 [모바일 에피소드 장면 표시](mobile-episode-scene-display.md)가 소유한다. 값은 다른 역할과 같은 자리에서 Light와 Dark를 함께 정의하고, `@theme inline`으로 `bg-learn`, `text-expression` 같은 클래스를 만든다.
+- HeroUI의 시맨틱 집합으로 뜻을 표현할 수 없는 제품 역할은 전역 CSS에 직접 등재한다. 영어 교정에는 `learn`, `learn-foreground`, `learn-surface`를, 한국어 입력의 영어 안내에는 `expression`, `expression-surface`를 쓴다. 한국어 안내는 문제없음이나 실패 상태와 다른 학습 안내이므로 전용 역할을 둔다. 에피소드의 장면 서술은 `scene`, 인물 이름표는 스토리 안 순서를 받는 `cast-1`부터 `cast-4`를 쓴다. 이름표 색은 파랑, 보라, 청록을 피해 서로 구분되는 계열에서 고른다. 표시 규칙은 [모바일 에피소드 장면 표시](mobile-episode-scene-display.md)가 소유한다. 연속 기록의 날짜 칸은 그날 영어로 말한 횟수의 단계를 `spoken-1`부터 `spoken-4`로 칠하고, 0번은 HeroUI `surface-secondary`를 쓴다. 네 단계는 파랑 `accent`와 섞이지 않게 앰버로 쌓는다. 옅은 단계는 노란 기가 도는 앰버, 진한 단계는 주황이며 밝기와 채도를 함께 바꾸고 회색과 섞지 않는다. 날짜 숫자는 두 모드 모두 `foreground`이며 가장 진한 단계에서도 4.5:1 이상이다(Light 6.44, Dark 5.60). 영어로 아직 말하지 않은 오늘 칸의 점선은 HeroUI `muted`를 쓴다. 값은 다른 역할과 같은 자리에서 Light와 Dark를 함께 정의하고, `@theme inline`으로 `bg-learn`, `text-expression` 같은 클래스를 만든다.
 - 앱이 값을 바꾼 HeroUI 역할과 같은 값을 가져야 하는 HeroUI 역할은 함께 바꾼다. HeroUI는 다크 모드의 `overlay`(메뉴, 다이얼로그, 시트 배경)와 `field-background`(입력 배경)를 `surface`와 같은 리터럴로 두므로, 앱이 `surface`를 바꾸면 이 둘도 같은 값으로 등재한다.
 - 등재한 이름이 HeroUI의 `useThemeColor`가 아는 목록에 없으므로, 클래스를 쓸 수 없는 자리는 Uniwind의 CSS 변수 읽기로 같은 값을 얻는다. 이름은 `--color-` 접두사 없이 등재한 이름 그대로다.
 - 클래스를 사용할 수 없는 Expo Router, 네이티브 Stack 옵션과 루트 창에는 얇은 테마 브리지가 Uniwind 변숫값을 전달한다. 이 브리지는 색상을 정의하지 않는다.

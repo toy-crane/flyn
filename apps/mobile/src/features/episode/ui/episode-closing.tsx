@@ -27,11 +27,8 @@ import closingMark from "./celebration/closing-mark.gen.json";
 const easeOut = Easing.bezier(0.23, 1, 0.32, 1);
 const TRAILING_PERIOD = /[.]$/;
 
-// 시안 closing.html의 순서. 카드가 올라오고, 마크가 튀고(Lottie 안 40ms),
-// 체크가 그려지고, 고리가 퍼지고, 조각이 터지고, `해냈어요!`가 팝하고, 결과
-// 문장이 올라온다. 지연은 모두 카드가 보이는 순간부터 센다. 마크의 박자를
-// 시안보다 줄였으므로(scripts/closing-celebration/lottie.ts) 문구의 지연도
-// 그만큼 당겨, 마지막 요소가 500ms 안에 움직이기 시작한다.
+// 승인한 대화 시안처럼 각 단계를 알아볼 시간을 둔다. 모든 지연은 카드가
+// 나타나는 순간부터 센다. Lottie의 마크·체크·고리·조각도 같은 시작점을 쓴다.
 //
 // CSS 애니메이션이 아니라 entering을 쓰는 이유: Android는 CSS 애니메이션이
 // 붙은 뷰의 스타일을 두세 프레임 늦게 적용해서, 지연을 기다리는 문구가 그동안
@@ -39,7 +36,7 @@ const TRAILING_PERIOD = /[.]$/;
 //
 // 동작 줄이기는 이 컴포넌트가 지금 값을 읽어 정한다. Reanimated의 기본값은 앱
 // 실행 때의 설정이라, 그 뒤에 껐다면 문구만 연출 없이 튀어나온다.
-const rise = FadeInUp.duration(260)
+const rise = FadeInUp.duration(600)
   .easing(easeOut)
   .reduceMotion(ReduceMotion.Never)
   .withInitialValues({ opacity: 0, transform: [{ translateY: 12 }] });
@@ -56,16 +53,16 @@ const popText = new Keyframe({
     transform: [{ scale: 1 }],
   },
 })
-  .duration(340)
-  .delay(400)
+  .duration(600)
+  .delay(650)
   .reduceMotion(ReduceMotion.Never);
-const slideUp = FadeInUp.duration(380)
-  .delay(480)
+const slideUp = FadeInUp.duration(700)
+  .delay(750)
   .easing(easeOut)
   .reduceMotion(ReduceMotion.Never)
   .withInitialValues({ opacity: 0, transform: [{ translateY: 14 }] });
-const settle = FadeIn.duration(500)
-  .delay(300)
+const settle = FadeIn.duration(600)
+  .delay(900)
   .easing(Easing.out(Easing.ease))
   .reduceMotion(ReduceMotion.Never)
   .withInitialValues({ opacity: 0.55 });
@@ -75,8 +72,8 @@ const hidden = { opacity: 0 } as const;
 /** 시안의 `.mark`는 72pt다. 파일은 튀는 순간의 후광까지 담아 더 크므로 위아래를 접는다. */
 const MARK_BOX = 72;
 const markStyle = { height: closingMark.h, width: closingMark.w } as const;
-/** 조각이 터져 나오는 자리. 시안은 카드 위에서 46pt 아래, 가로 가운데다. */
-const BURST_TOP = 46;
+/** 조각이 터져 나오는 자리. 카드 여백 20, 본문 여백 4, 마크 반높이 36을 더한 가로 가운데다. */
+const BURST_TOP = 60;
 /**
  * iOS는 Core Animation 엔진으로 그리면 색을 입힐 때마다 레이어를 다시 만들고, 그
  * 사이 멈춘 메인 스레드 뒤로 마크의 시계가 먼저 가서 튀는 장면을 건너뛴다. 메인
@@ -163,7 +160,10 @@ export function EpisodeClosing({
   useEffect(() => {
     if (motion === "play") {
       // 마크가 튀는 박자에 한 번. 햅틱을 지원하지 않는 기기에서도 연출은 그대로다.
-      impactAsync(ImpactFeedbackStyle.Medium).catch(() => undefined);
+      const timer = setTimeout(() => {
+        impactAsync(ImpactFeedbackStyle.Medium).catch(() => undefined);
+      }, 150);
+      return () => clearTimeout(timer);
     }
   }, [motion]);
   const isSuccess = ending.kind === "성공";
@@ -176,13 +176,6 @@ export function EpisodeClosing({
       pointerEvents={pending ? "none" : "auto"}
       style={[{ overflow: "visible" }, pending ? hidden : undefined]}
     >
-      {playing ? (
-        <CelebrationBurst
-          half={!isSuccess}
-          onFinish={finish}
-          playing={!finished}
-        />
-      ) : null}
       {/* motion이 바뀌면 카드를 새로 만들어 entering이 그 순간부터 돌고, 마크는
           정지한 마지막 프레임으로 다시 그려진다. */}
       <Animated.View
@@ -230,6 +223,13 @@ export function EpisodeClosing({
           </Button>
         </Animated.View>
       </Animated.View>
+      {playing ? (
+        <CelebrationBurst
+          half={!isSuccess}
+          onFinish={finish}
+          playing={!finished}
+        />
+      ) : null}
     </View>
   );
 }
@@ -291,7 +291,7 @@ function CompletionMark({
 const burstStyle = { height: 330, width: 440 } as const;
 
 /**
- * 마크 뒤에서 퍼지는 고리와 파랑, 보라, 청록 조각. 목표를 이루지 못한 결말은
+ * 마크 주위에서 퍼지는 고리와 파랑, 보라, 청록 조각. 카드 앞에서 그린다. 목표를 이루지 못한 결말은
  * 고리 없이 조각이 절반이다. 출발점이 상자의 세로 가운데라 상자 높이의 절반만큼
  * 올려 시안의 자리에 맞춘다.
  */

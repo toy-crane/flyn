@@ -1,0 +1,38 @@
+diff --git a/src/components/menu/menu.tsx b/src/components/menu/menu.tsx
+--- a/src/components/menu/menu.tsx
++++ b/src/components/menu/menu.tsx
+@@ -321,6 +321,7 @@
+           <Animated.View
+             exiting={isSubMenuOpen ? FadeOut.duration(150) : exiting}
+             collapsable={false}
++            style={StyleSheet.absoluteFill}
+             pointerEvents="box-none"
+           >
+             <AnimatedContent
+@@ -374,6 +375,7 @@
+             entering={entering}
+             exiting={isSubMenuOpen ? FadeOut.duration(150) : exiting}
+             collapsable={false}
++            style={StyleSheet.absoluteFill}
+             pointerEvents="box-none"
+           >
+             <AnimatedContent
+diff --git a/lib/module/components/menu/menu.js b/lib/module/components/menu/menu.js
+--- a/lib/module/components/menu/menu.js
++++ b/lib/module/components/menu/menu.js
+@@ -253,6 +253,7 @@
+       children: /*#__PURE__*/_jsx(Animated.View, {
+         exiting: isSubMenuOpen ? FadeOut.duration(150) : exiting,
+         collapsable: false,
++        style: StyleSheet.absoluteFill,
+         pointerEvents: "box-none",
+         children: /*#__PURE__*/_jsxs(AnimatedContent, {
+           ref: ref,
+@@ -297,6 +298,7 @@
+       entering: entering,
+       exiting: isSubMenuOpen ? FadeOut.duration(150) : exiting,
+       collapsable: false,
++      style: StyleSheet.absoluteFill,
+       pointerEvents: "box-none",
+       children: /*#__PURE__*/_jsxs(AnimatedContent, {
+         ref: ref,

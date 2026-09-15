@@ -375,6 +375,18 @@ export function createFakeSupabase(options: FakeSupabaseOptions = {}) {
       });
     }
 
+    // 새 계정의 연속 기록. 홈이 열리자마자 읽으므로 기본으로 답한다.
+    if (name === "learning_streak") {
+      return Promise.resolve({
+        data: [{ first_day: null, streak: 0 }],
+        error: null,
+      });
+    }
+
+    if (name === "learning_days") {
+      return Promise.resolve({ data: [], error: null });
+    }
+
     return Promise.resolve({ data: null, error: null });
   });
 

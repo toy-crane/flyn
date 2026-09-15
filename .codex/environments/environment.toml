@@ -11,4 +11,5 @@ cd "$CODEX_WORKTREE_PATH"
 git fetch origin main --prune
 git rebase origin/main
 
+bun run env:setup
 bun install'''

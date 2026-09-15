@@ -12,6 +12,12 @@ export interface ChatSession {
   beginEdit: (messageId: string) => void;
   /** Leaves the conversation alone and gives the stashed draft back. */
   cancelEdit: () => void;
+  /**
+   * Whether pressing send now would send. False while an answer is arriving,
+   * while the last request is still settling or when there is no session to
+   * send with, so the button never takes a press that does nothing.
+   */
+  canSend: boolean;
   draft: string;
   /** The message being rewritten, and with it everything from there on. */
   editingMessageId: string | undefined;
@@ -22,7 +28,11 @@ export interface ChatSession {
   regenerateAnswer: (messageId: string) => void;
   /** Sends the failed question again without the person retyping it. */
   retry: () => void;
-  send: () => void;
+  /**
+   * Sends what the input last reported and empties the draft. Says whether
+   * anything went, so the panel only moves the list for a message that did.
+   */
+  send: () => boolean;
   setDraft: (value: string) => void;
   /** Ends the answer where it is and keeps what already arrived. */
   stop: () => Promise<void>;
@@ -89,18 +99,34 @@ export function useConversation(
   const {
     draft,
     editingMessageId,
-    setDraft,
+    setDraft: storeDraft,
     setEditingMessageId,
     stashedDraft,
   } = drafts;
   const currentToken = useRef(accessToken);
-  // Read through a ref so that starting an edit does not have to be rebuilt on
-  // every keystroke: it is handed to every message in the list, and a new one
-  // each time would redraw them all while someone is typing.
-  const currentDraft = useRef(draft);
+  /*
+    What the input last reported, ahead of the render that shows it.
+
+    The last keystroke and the press on send can reach JavaScript in one batch,
+    before React draws the draft the keystroke set. Reading the rendered draft
+    then sends the message without its last character. Every write goes through
+    `setDraft` below, so this is never behind the input.
+
+    It also keeps starting an edit from being rebuilt on every keystroke: that
+    is handed to every message in the list, and a new one each time would redraw
+    them all while someone is typing.
+  */
+  const latestDraft = useRef(draft);
 
   currentToken.current = accessToken;
-  currentDraft.current = draft;
+
+  const setDraft = useCallback(
+    (value: string) => {
+      latestDraft.current = value;
+      storeDraft(value);
+    },
+    [storeDraft]
+  );
 
   const { clearError, error, messages, regenerate, sendMessage, status, stop } =
     chat;
@@ -108,6 +134,12 @@ export function useConversation(
   const localSending = useRef(false);
   // 카드 저장 등 대화 밖의 요청도 같은 잠금을 확인할 수 있다.
   const sending = requestLock ?? localSending;
+  /*
+    The lock above as something a render can see. An answer ends before the
+    request that carried it settles, and in between the send button would look
+    ready while every press on it did nothing.
+  */
+  const [isRequestOpen, setIsRequestOpen] = useState(false);
 
   // Every path that reaches the server reports the same way: a rejected
   // request becomes the one error the screen shows, and the guard against a
@@ -115,6 +147,7 @@ export function useConversation(
   const runRequest = useCallback(
     (request: Promise<void>) => {
       sending.current = true;
+      setIsRequestOpen(true);
       setRequestError(undefined);
 
       trackPendingUserWork(request)
@@ -125,6 +158,7 @@ export function useConversation(
         })
         .finally(() => {
           sending.current = false;
+          setIsRequestOpen(false);
         });
     },
     [sending]
@@ -136,11 +170,11 @@ export function useConversation(
   );
 
   const send = useCallback(() => {
-    const trimmed = draft.trim();
+    const trimmed = latestDraft.current.trim();
     const text = prepareMessage ? prepareMessage(trimmed) : trimmed;
 
     if (!(text && canStartRequest())) {
-      return;
+      return false;
     }
 
     setDraft("");
@@ -154,9 +188,9 @@ export function useConversation(
     }
 
     runRequest(sendMessage({ messageId: editingMessageId, text }));
+    return true;
   }, [
     canStartRequest,
-    draft,
     editingMessageId,
     onReplaceMessage,
     prepareMessage,
@@ -201,7 +235,7 @@ export function useConversation(
       // the conversation somewhere other than where the edit says it will.
       clearError();
       setRequestError(undefined);
-      stashedDraft.current = currentDraft.current;
+      stashedDraft.current = latestDraft.current;
       setEditingMessageId(messageId);
       setDraft(textOfMessage(target));
     },
@@ -217,6 +251,10 @@ export function useConversation(
   return {
     beginEdit,
     cancelEdit,
+    canSend:
+      Boolean(accessToken) &&
+      !(isBusy || isRequestOpen) &&
+      draft.trim().length > 0,
     draft,
     editingMessageId,
     error: error ?? requestError,

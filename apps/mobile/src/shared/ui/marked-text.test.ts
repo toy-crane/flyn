@@ -1,8 +1,55 @@
 import { expect, test } from "@jest/globals";
-
+import { originalErrorMarks } from "./expression-marks";
 import { markedParts } from "./marked-text";
 
 const FIXED = "I want to change to an iced americano.";
+
+test.each([false, true])(
+  "항목 역순 %s여도 같은 낱말의 실제 오류 위치를 짚는다",
+  (reverse) => {
+    const entries = [
+      { fixed: "prefers", isError: false, original: "wants" },
+      { fixed: "want", isError: true, original: "wants" },
+    ];
+    const parts = markedParts(
+      "She wants this, but I wants that",
+      originalErrorMarks(
+        reverse ? entries.reverse() : entries,
+        "She wants this, but I wants that",
+        "She prefers this, but I want that"
+      )
+    );
+    expect(parts.filter((part) => part.isMarked)).toEqual([
+      { at: 22, isMarked: true, text: "wants" },
+    ]);
+  }
+);
+
+test("앞의 같은 낱말이 수정되지 않았으면 뒤의 실제 오류만 짚는다", () => {
+  const original = "She wants this, but I wants that";
+  const marks = originalErrorMarks(
+    [{ fixed: "want", isError: true, original: "wants" }],
+    original,
+    "She wants this, but I want that"
+  );
+  expect(markedParts(original, marks).filter((part) => part.isMarked)).toEqual([
+    { at: 22, isMarked: true, text: "wants" },
+  ]);
+});
+
+test("같은 오류를 한 항목으로 두 번 고쳤으면 두 자리 모두 짚는다", () => {
+  const original = "She go and he go";
+  const marks = originalErrorMarks(
+    [{ fixed: "goes", isError: true, original: "go" }],
+    original,
+    "She goes and he goes"
+  );
+  expect(
+    markedParts(original, marks)
+      .filter((part) => part.isMarked)
+      .map((part) => part.at)
+  ).toEqual([4, 14]);
+});
 
 test("강조할 조각을 짚고 나머지 문장은 그대로 둔다", () => {
   expect(markedParts("I want to change.", ["want to change"])).toEqual([

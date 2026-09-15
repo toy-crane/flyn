@@ -9,6 +9,7 @@ import { BackHandler, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
+import { getAskSheetOptions } from "@/core/navigation/ask-sheet";
 import { useProtectedArea } from "@/core/navigation/protected-area";
 import {
   getSettingsScreenOptions,
@@ -22,7 +23,13 @@ import { QueryProvider } from "@/core/providers/query-provider";
 import { AppThemeBridge, useAppTheme } from "@/core/theme/app-theme-bridge";
 import { useAppVersionGate } from "@/features/app-version/use-app-version-gate";
 import { useUpdateScreenVisibility } from "@/features/app-version/use-update-screen-visibility";
-import { AuthSessionProvider } from "@/features/auth/state/auth-session";
+import {
+  AuthSessionProvider,
+  useAuthSession,
+} from "@/features/auth/state/auth-session";
+import { NoteAsksProvider } from "@/features/note/state/note-asks";
+import { noteLabels } from "@/features/note/ui/note-labels";
+import { streakLabels } from "@/features/streak/ui/streak-labels";
 import { ProfileUnavailableScreen } from "@/screens/session/profile-unavailable-screen";
 import { SessionCheckingScreen } from "@/screens/session/session-checking-screen";
 import { SetupNeededScreen } from "@/screens/session/setup-needed-screen";
@@ -52,6 +59,7 @@ function AppContent({
 
 function ThemedRootLayout() {
   const { background, foreground, scheme } = useAppTheme();
+  const { session } = useAuthSession();
   const { area, checkingPhase, isRetryingProfile, problem, retryProfile } =
     useProtectedArea();
   const versionGate = useAppVersionGate();
@@ -148,8 +156,24 @@ function ThemedRootLayout() {
               sheetGrabberVisible: true,
             }}
           />
+          {/* 연속 기록도 탭 없이 보는 상세 화면이라 기록과 같은 헤더로 연다. */}
+          <Stack.Screen
+            name="streak"
+            options={{ ...storyScreenOptions, title: streakLabels.streak }}
+          />
           {/* 에피소드는 화면 전체를 쓰므로 탭과 루트 헤더 위에 push한다. */}
           <Stack.Screen name="episode" />
+          {/*
+            표현 노트에서 연 물어보기. 대화에서 여는 것과 같은 시트지만 노트 탭
+            위에서 열리므로 루트에 둔다.
+          */}
+          <Stack.Screen
+            name="note-ask"
+            options={{
+              ...getAskSheetOptions(background, noteLabels.ask),
+              headerShown: true,
+            }}
+          />
           {/* 설정 계층은 같은 루트 Stack에서 네이티브 뒤로 가기를 공유한다. */}
           {settingsScreens.map((settingsScreen) => (
             <Stack.Screen
@@ -177,7 +201,16 @@ function ThemedRootLayout() {
       <AppContent
         blocked={versionGate.status === "blocked" && !showUpdateScreen}
       >
-        {content}
+        {/*
+          노트에서 연 물어보기는 탭과 원래 대화를 오가도 남아야 하므로 앱의
+          화면 전체 위에 둔다. 계정이 바뀌면 안의 대화가 비워진다.
+        */}
+        <NoteAsksProvider
+          accessToken={session?.access_token}
+          userId={session?.user.id}
+        >
+          {content}
+        </NoteAsksProvider>
       </AppContent>
       {/*
         The chosen screen mode, not the operating system's. `auto` reads the OS,
