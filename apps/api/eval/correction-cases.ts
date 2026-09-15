@@ -15,6 +15,7 @@ export interface CorrectionCase {
   name: string;
   original: string;
   requiredErrorCorrections?: { original: string; fixed: string }[];
+  requiredExamplePattern?: string;
   requiredFixedTerms?: string[];
   requiresClassification?: boolean;
   requiresSuggestion?: boolean;
@@ -249,6 +250,8 @@ export const CORRECTION_CASES: CorrectionCase[] = [
     fixed: "I dont want it",
     name: "표기를 보존하며 교정",
     original: "I dont wants it",
+    requiredExamplePattern:
+      "\\b(?:do not|does not|don['’]?t|doesn['’]?t)\\s+(?:want|need|like|know|have|go|work|eat|drink|think|understand|wait|use|play|agree)\\b",
   },
   {
     entries: [{ fixed: "tomorrow", original: "tommorow" }],
@@ -422,6 +425,14 @@ function entryViolations(
     errors.push("학습 내용이 없음");
   }
   if (result.review) {
+    if (
+      sample.requiredExamplePattern &&
+      !new RegExp(sample.requiredExamplePattern, "i").test(
+        result.review.example
+      )
+    ) {
+      errors.push("다른 예문에 연습할 문법 패턴이 없음");
+    }
     const normalize = (text: string) =>
       text.replace(/[\p{P}\p{S}\p{C}\s]/gu, "").toLowerCase();
     if (normalize(result.review.example) === normalize(result.fixed)) {

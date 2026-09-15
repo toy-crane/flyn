@@ -313,6 +313,15 @@ export function readExpressionResult(
     throw new Error("Inconsistent expression result.");
   }
   const entries = readCorrectionEntries(object.entries, trimmed, fixed);
+  if (
+    entries.some(
+      (entry) => KOREAN.test(entry.original) && entry.isError === true
+    )
+  ) {
+    throw new Error(
+      "Invalid expression entry. Korean text is not an English error; use isError=false."
+    );
+  }
   if (!isKoreanText(trimmed)) {
     validateEnglishChanges(trimmed, fixed, entries);
   }

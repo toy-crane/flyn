@@ -144,6 +144,36 @@ test("빠진 아포스트로피만 보탠 결과는 서버에서도 받지 않�
   ).toThrow("Expression result changes notation.");
 });
 
+test("한국어 조각을 실제 영어 오류로 분류한 응답은 서버가 거절한다", () => {
+  const output: CorrectionDraft = {
+    entries: [
+      {
+        fixed: "I want to go home.",
+        isError: true,
+        original: "집에 가고 싶어요",
+        pattern: "head-home",
+        why: "집에 가고 싶다고 말해요.",
+      },
+    ],
+    fixed: "I want to go home.",
+    review,
+    status: "corrected",
+  };
+  expect(() =>
+    readExpressionResult(output, "message", "집에 가고 싶어요")
+  ).toThrow("Korean text is not an English error");
+  expect(() =>
+    readExpressionResult(
+      {
+        ...output,
+        entries: output.entries.map((entry) => ({ ...entry, isError: false })),
+      },
+      "message",
+      "집에 가고 싶어요"
+    )
+  ).not.toThrow();
+});
+
 test("문장 전체 표현 제안에 섞인 대소문자와 문장 부호 변경을 받지 않는다", () => {
   expect(() =>
     readExpressionResult(
@@ -244,6 +274,31 @@ test("제안문을 표기만 바꿔 다른 예문으로 반복하면 떨어뜨�
       review: { ...review, example: "I WENT home early." },
     })
   ).toContain("다른 예문이 제안문을 반복함");
+});
+
+test("다른 동사로 같은 부정문 패턴을 연습하는 예문은 허용하고 무관한 예문은 거절한다", () => {
+  const negativeCase = CORRECTION_CASES.find(
+    (entry) => entry.name === "표기를 보존하며 교정"
+  );
+  const record = finalEvaluation.records.find(
+    (entry) => entry.sample.name === negativeCase?.name
+  );
+  if (!(negativeCase && record)) {
+    throw new Error("Missing negative-verb case.");
+  }
+  const output = record.output as CorrectionDraft;
+  expect(
+    correctionViolations(negativeCase, {
+      ...output,
+      review: { ...review, example: "She doesn't need it." },
+    })
+  ).toEqual([]);
+  expect(
+    correctionViolations(negativeCase, {
+      ...output,
+      review: { ...review, example: "The sky is blue." },
+    })
+  ).toContain("다른 예문에 연습할 문법 패턴이 없음");
 });
 
 test("상황에 맞는 표현 제안은 원문 오류와 구분해야 통과한다", () => {
