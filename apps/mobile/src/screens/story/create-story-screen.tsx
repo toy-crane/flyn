@@ -121,6 +121,11 @@ export function CreateStoryScreen({
   const [isStarting, setIsStarting] = useState(false);
   const [stage, setStage] = useState<StoryCreationStage>();
   const [addingAt, setAddingAt] = useState<string>();
+  /*
+    추가 요청이 정리되는 동안. 잠금은 ref라 화면이 보지 못한다. 답이 끝나고
+    요청이 정리되기 전까지 보내기 버튼이 켜진 채 눌러도 아무 일이 없게 된다.
+  */
+  const [isAdding, setIsAdding] = useState(false);
   const requestLock = useRef(false);
   // 같은 프레임에 두 번 눌리는 것까지 막는다. 상태만으로는 다시 그리기 전의
   // 두 번째 누름이 지나가 스토리가 둘 만들어진다. 만드는 중인 카드를 들고
@@ -172,6 +177,7 @@ export function CreateStoryScreen({
       return;
     }
     requestLock.current = true;
+    setIsAdding(true);
     setAddingAt(newest.messageId);
     trackPendingUserWork(
       chat.sendMessage({ text: "에피소드를 하나 더 넣고 싶어요." })
@@ -181,6 +187,10 @@ export function CreateStoryScreen({
       })
       .finally(() => {
         requestLock.current = false;
+        // biome-ignore lint/suspicious/noUnnecessaryConditions: 응답 전에 화면이 사라질 수 있다.
+        if (mounted.current) {
+          setIsAdding(false);
+        }
       });
   }, [accessToken, chat.sendMessage, isDisabled, newest]);
 
@@ -256,7 +266,7 @@ export function CreateStoryScreen({
   return (
     <OutlineStart value={startState}>
       <ChatPanel
-        canCompose={!isStarting}
+        canCompose={!(isStarting || isAdding)}
         chat={conversation}
         hasMessageActions={false}
         inputRef={inputRef}

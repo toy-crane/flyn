@@ -572,7 +572,7 @@ export function ChatPanel({
   const motionGeneration = useRef(0);
   const userMomentum = useRef<true | undefined>(undefined);
   const userScrollStart = useRef<number | undefined>(undefined);
-  const canSend = canCompose && chat.draft.trim().length > 0 && !chat.isBusy;
+  const canSend = canCompose && chat.canSend;
   const composerBottomPadding = Math.max(insets.bottom, 12);
   const hasBanner = banner !== undefined && banner !== null;
   // 토스트가 띠 바로 밑에서 나오려면 띠가 실제로 차지한 높이를 알아야 한다.
@@ -841,7 +841,10 @@ export function ChatPanel({
     [hasReachedEnd, isReducedMotion]
   );
   const send = useCallback(() => {
-    if (!canSend) {
+    // The session reads what the input last reported rather than this render's
+    // draft, which can still be missing the keystroke that came with the press.
+    // Nothing moves unless a message actually went.
+    if (!(canSend && chat.send())) {
       return;
     }
 
@@ -859,7 +862,6 @@ export function ChatPanel({
       questionMotionActive.current = true;
       setIsPositioningQuestion(true);
     }
-    chat.send();
 
     if (isFirstQuestion) {
       requestAnimationFrame(() => {
