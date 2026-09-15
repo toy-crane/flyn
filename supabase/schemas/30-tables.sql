@@ -25,10 +25,10 @@ create table public.profiles (
   -- while checking the value, which lets the delete path wait for older writes
   -- and refuse every new write before it begins removing objects.
   account_deletion_started_at timestamptz,
-  -- Both are written by the username trigger, never by a client. `username_changed_at`
-  -- is history; `username_locked_until` is the answer the edit screen shows, so the
-  -- server decides the instant and the screen only formats it in the local date.
-  username_changed_at timestamptz,
+  -- Written by the username trigger, never by a client. It is the answer the edit
+  -- screen shows, so the server decides the instant and the screen only formats it
+  -- in the local date. It is also the only record of a change: nothing reads when
+  -- the id last changed, so that instant is not kept a second time.
   username_locked_until timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -83,9 +83,6 @@ comment on column public.profiles.avatar_chosen_by_user is
 comment on column public.profiles.account_deletion_started_at is
   'Write fence set before account deletion removes avatar objects. Clients cannot change it.';
 
-comment on column public.profiles.username_changed_at is
-  'When the account id last changed. Null while the person still holds the id they chose at onboarding.';
-
 comment on column public.profiles.username_locked_until is
   'When the account id may change again. Written by the trigger, so the server owns the instant.';
 
@@ -105,7 +102,6 @@ create table public.retired_usernames (
   -- The account that gave the id up. `on delete cascade` releases it when the
   -- account is gone: nobody is left to be confused with.
   retired_by uuid not null references public.profiles (id) on delete cascade,
-  retired_at timestamptz not null default now(),
   -- When anybody else may take it. Stored rather than derived so a change to the
   -- protection period does not silently move ids that are already retired.
   protected_until timestamptz not null,
@@ -365,7 +361,9 @@ create table public.story_plays (
   -- 회차 때문에 계정 삭제가 통째로 막힌다. 문장이 끝날 때는 둘 다 사라져 있다.
   story_id uuid not null references public.stories (id)
     on delete no action deferrable initially deferred,
-  started_at timestamptz not null default now(),
+  -- 회차를 시작한 시각은 `created_at`이다. 행이 첫 사용자 메시지에 생기므로 같은
+  -- 순간을 다른 이름으로 한 번 더 두지 않는다.
+  --
   -- 이 회차에서 사용자가 마지막으로 말한 시각. 스토리 탭의 `최근 대화`가 이
   -- 값으로 정렬한다.
   --
@@ -389,9 +387,6 @@ create index story_plays_story_id_idx on public.story_plays (story_id);
 
 comment on table public.story_plays is
   'One account playing one story from episode 1. Created by the first user message, never by opening a scene.';
-
-comment on column public.story_plays.started_at is
-  'When this run began, which is when its first user message arrived. Shown as the record card title.';
 
 comment on column public.story_plays.last_user_message_at is
   'When this run last received a user message. Written by a trigger, so reading a record cannot move it.';
@@ -421,7 +416,6 @@ create table public.episode_plays (
   -- `story_plays.story_id`와 같은 이유로 확인을 문장 끝으로 미룬다.
   episode_id uuid not null references public.episodes (id)
     on delete no action deferrable initially deferred,
-  started_at timestamptz not null default now(),
   -- 결말의 종류. 화면에도 이 낱말이 그대로 보인다.
   ending_kind text,
   -- 사건의 결과 한 줄. 홈의 끝낸 화 목록과 마무리 화면이 함께 읽는다. 이야기
@@ -502,9 +496,6 @@ comment on column public.episode_plays.story_play_id is
 
 comment on column public.episode_plays.episode_id is
   'Stable episode reference. Numbers are only ordering inside a story.';
-
-comment on column public.episode_plays.started_at is
-  'When this account opened the episode. Set once and never rewritten.';
 
 comment on column public.episode_plays.ending_kind is
   'How the incident ended: 성공, 타협 or 실패. Null while the play is still open.';
@@ -616,29 +607,6 @@ create index learning_events_user_time_idx
 
 comment on table public.learning_events is
   'Permanent study facts without conversation text or endings; run deletion does not erase them.';
-
--- 사용자가 쓰는 영어의 수준. 시즌이 아니라 계정에 붙는다.
---
--- 이야기 기억은 시즌이 끝나면 함께 끝나지만 이 사람의 영어는 이어진다. 그래서
--- 같은 행에 두지 않고 계정마다 한 줄로 둔다. 화가 끝날 때마다 그 시점의 관찰로
--- 덮어쓴다. 지난 수준의 역사는 남기지 않는다.
-create table public.language_levels (
-  created_at timestamptz not null default clock_timestamp(),
-  updated_at timestamptz not null default clock_timestamp(),
-  user_id uuid primary key references public.profiles (id) on delete cascade,
-  -- 모델이 쓴 한국어 한 줄. 점수나 등급이 아니라 관찰이다.
-  level text not null,
-  observed_at timestamptz not null default now(),
-  constraint language_levels_level_usable check (
-    length(btrim(level)) between 1 and 300
-  )
-);
-
-comment on table public.language_levels is
-  'The latest reading of how this person writes English. One row per account, overwritten as episodes end.';
-
-comment on column public.language_levels.level is
-  'One Korean line describing the level, written by the model that closed the scene.';
 
 -- 운영자가 Dashboard에서 바꾸는 설치 버전 정책. 배포 대상별로 최소값은 하나뿐이다.
 -- 앱은 다른 대상의 값을 읽지 않아 내부 테스터와 공개 사용자를 따로 관리한다.

@@ -107,10 +107,6 @@ create trigger learning_events_set_timestamps
   before insert or update on public.learning_events
   for each row execute function public.set_row_timestamps();
 
-create trigger language_levels_set_timestamps
-  before insert or update on public.language_levels
-  for each row execute function public.set_row_timestamps();
-
 create trigger app_version_policies_set_timestamps
   before insert or update on public.app_version_policies
   for each row execute function public.set_row_timestamps();
@@ -318,10 +314,8 @@ begin
   values (old.username, new.id, now() + public.username_change_interval())
   on conflict (username) do update
   set retired_by = excluded.retired_by,
-      retired_at = now(),
       protected_until = excluded.protected_until;
 
-  new.username_changed_at := now();
   new.username_locked_until := now() + public.username_change_interval();
 
   return new;
@@ -627,8 +621,8 @@ grant execute on function public.learning_days(text, date, date) to authenticate
 
 -- 끝난 에피소드를 기록하는 유일한 길.
 --
--- 결말이 한 번만 난다는 규칙과 이야기 기억, 언어 수준이 한 트랜잭션에 함께
--- 남는다는 것이 이 함수의 이유다. `authenticated`는 `public.episode_plays`의
+-- 결말이 한 번만 난다는 규칙과 이야기 기억이 한 트랜잭션에 함께 남는다는 것이
+-- 이 함수의 이유다. `authenticated`는 `public.episode_plays`의
 -- 결말 열에 직접 쓰지 못한다. 직접 쓸 수 있으면 앱이 아무 화나 끝난 것으로
 -- 만들어 앞의 화를 건너뛸 수 있다.
 --
@@ -641,8 +635,7 @@ create function public.finish_episode(
   outcome text,
   memory_choice text default null,
   memory_relationship text default null,
-  memory_question text default null,
-  language_level text default null
+  memory_question text default null
 )
 returns boolean
 language plpgsql
@@ -704,23 +697,15 @@ begin
 
   get diagnostics recorded = row_count;
 
-  if recorded = 1 and finish_episode.language_level is not null then
-    insert into public.language_levels (user_id, level)
-    values (player, finish_episode.language_level)
-    on conflict on constraint language_levels_pkey do update
-    set level = excluded.level,
-        observed_at = now();
-  end if;
-
   return recorded = 1;
 end;
 $$;
 
-comment on function public.finish_episode(uuid, uuid, text, text, text, text, text, text) is
+comment on function public.finish_episode(uuid, uuid, text, text, text, text, text) is
   'Records the ending and story memory of the current episode in the caller''s run. Returns true only to the request that closed the play.';
 
-revoke all on function public.finish_episode(uuid, uuid, text, text, text, text, text, text) from public, anon, authenticated, service_role;
-grant execute on function public.finish_episode(uuid, uuid, text, text, text, text, text, text) to authenticated;
+revoke all on function public.finish_episode(uuid, uuid, text, text, text, text, text) from public, anon, authenticated, service_role;
+grant execute on function public.finish_episode(uuid, uuid, text, text, text, text, text) to authenticated;
 
 -- 사용자가 만든 스토리 하나를 저장한다.
 --
