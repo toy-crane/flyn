@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, expect, jest, test } from "@jest/globals";
-import { act, screen, userEvent, within } from "@testing-library/react-native";
+import {
+  act,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "@testing-library/react-native";
 import { impactAsync } from "expo-haptics";
 import { AccessibilityInfo } from "react-native";
 import { renderWithHeroUI } from "@/shared/test/render-with-heroui";
@@ -40,7 +46,8 @@ test("성공 결말은 마크와 고리 있는 세 색 조각을 재생하고 �
   expect(burst.props.source.nm).toBe("closing-burst");
   expect(burst.props.autoPlay).toBe(true);
   expect(screen.getByText("해냈어요!")).toBeOnTheScreen();
-  expect(impactAsync).toHaveBeenCalledTimes(1);
+  expect(impactAsync).not.toHaveBeenCalled();
+  await waitFor(() => expect(impactAsync).toHaveBeenCalledTimes(1));
 });
 
 test("축하 조각은 카드 밖에서 그려지고 대화와 버튼 누름을 가로막지 않는다", async () => {
@@ -107,7 +114,7 @@ test("목표를 이루지 못한 결말은 고리 없는 절반 조각을 조용
     screen.getByTestId("episode-celebration-burst", hiddenToo).props.source.nm
   ).toBe("closing-burst-half");
   expect(screen.queryByText("해냈어요!")).toBeNull();
-  expect(impactAsync).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(impactAsync).toHaveBeenCalledTimes(1));
 });
 
 test("다 재생한 뒤에는 autoPlay를 내려 색이 바뀌어도 다시 돌지 않는다", async () => {

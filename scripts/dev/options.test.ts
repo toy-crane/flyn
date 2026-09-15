@@ -5,6 +5,19 @@ import { parseDevCommand, USAGE } from "./options";
 const usageMessage = /bun run dev <ios\|android>/;
 
 describe("parseDevCommand", () => {
+  test("foreground는 이번 명령의 요청에만 적용한다", () => {
+    expect(parseDevCommand(["ios", "android", "--foreground"])).toEqual({
+      clear: false,
+      foreground: true,
+      kind: "start",
+      platforms: ["ios", "android"],
+    });
+    expect(parseDevCommand(["ios"])).not.toHaveProperty("foreground");
+    expect(() =>
+      parseDevCommand(["ios", "--physical", "--foreground"])
+    ).toThrow("--foreground는 가상 기기에서만");
+  });
+
   test("실기기 LAN 연결과 명시한 주소를 선택한다", () => {
     expect(
       parseDevCommand([

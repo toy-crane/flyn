@@ -15,6 +15,9 @@ import Animated, {
   FadeOut,
   LinearTransition,
   ReduceMotion,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 
 import type {
@@ -129,6 +132,18 @@ export function CorrectionNote({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const isReduced = useReduceMotion();
+  const rotation = useSharedValue(0);
+  useEffect(() => {
+    rotation.set(
+      withTiming(isOpen ? 180 : 0, {
+        duration: isReduced ? 0 : 350,
+        reduceMotion: ReduceMotion.Never,
+      })
+    );
+  }, [isOpen, isReduced, rotation]);
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.get()}deg` }],
+  }));
   const mounted = useRef(false);
   useEffect(() => {
     mounted.current = true;
@@ -175,11 +190,14 @@ export function CorrectionNote({
             <Pressable
               accessibilityLabel={`${appearance.title} 접기`}
               accessibilityRole="button"
+              accessibilityState={{ expanded: true }}
               className="-my-2 -mr-2 size-11 items-center justify-center"
               onPress={fold}
               testID="correction-fold"
             >
-              <Icon name="collapse" size="sm" tone="muted" />
+              <Animated.View style={chevronStyle}>
+                <Icon name="expand" size="sm" tone="muted" />
+              </Animated.View>
             </Pressable>
           </View>
           {correction.entries.map((entry, index) => (
@@ -200,6 +218,7 @@ export function CorrectionNote({
           <Pressable
             accessibilityLabel={`${appearance.title} 보기`}
             accessibilityRole="button"
+            accessibilityState={{ expanded: false }}
             className={`max-w-[92%] flex-row items-start gap-2 self-end rounded-2xl rounded-tl-md px-3.5 py-2.5 ${appearance.surface}`}
             onPress={open}
             testID="correction-line"
@@ -217,9 +236,9 @@ export function CorrectionNote({
               />
             </View>
             {/* `body-sm`의 24 줄 가운데에 16pt 아이콘을 맞춘다. */}
-            <View className="mt-1">
+            <Animated.View className="mt-1" style={chevronStyle}>
               <Icon name="expand" size="sm" tone="muted" />
-            </View>
+            </Animated.View>
           </Pressable>
         </Animated.View>
       )}
