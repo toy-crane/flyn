@@ -23,7 +23,7 @@
       "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/animate-expo/SKILL.md",
-      "computedHash": "c9eaf6603b97ca61b05c7561e1045b2f58b6d84cdf8d67565bff23a9ff94ce8a"
+      "computedHash": "96f6c82b58460b5cdd59e3f018a1d9d46f0469a2170e726f91d18530a5788dd9"
     },
     "babysit-specs": {
       "source": "toy-crane/skills",
@@ -89,7 +89,7 @@
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/eas-simulator/SKILL.md",
-      "computedHash": "772c471d1144b1d0665c00a36d6cfb16ee499c2c42d13913ae513b72380715b5"
+      "computedHash": "5df4b5e49dab2149339534c335226e26d17fd7245d3e83f1c2733a8a0fce8d79"
     },
     "eas-update-insights": {
       "source": "expo/skills",
@@ -221,7 +221,7 @@
       "source": "toy-crane/skills",
       "sourceType": "github",
       "skillPath": "skills/workflow/implement/SKILL.md",
-      "computedHash": "4a9ff1e93a439a74ed2e6be7084cc23d3bdc6d1f2f2faabfc6666dd6da49327a"
+      "computedHash": "90c659fdfdbf272a9a56f1fdc2467c86533162ffb3ea34141735782374378962"
     },
     "maintain-project-context": {
       "source": "toy-crane/skills",
