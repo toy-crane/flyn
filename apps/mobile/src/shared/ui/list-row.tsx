@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 export function PressableListRow({
   accessibilityLabel,
   children,
+  className,
   onPress,
   testID,
 }: {
@@ -20,6 +21,8 @@ export function PressableListRow({
   accessibilityLabel: string;
   /** `ListGroup.ItemPrefix`, `ItemContent`, `ItemSuffix`. */
   children: ReactNode;
+  /** 현재 화처럼 의미 있는 상태의 배경만 바꾼다. */
+  className?: string;
   onPress: () => void;
   testID?: string;
 }) {
@@ -30,7 +33,7 @@ export function PressableListRow({
       onPress={onPress}
       testID={testID}
     >
-      <ListGroup.Item accessible={false} disabled>
+      <ListGroup.Item accessible={false} className={className} disabled>
         {children}
       </ListGroup.Item>
     </PressableFeedback>

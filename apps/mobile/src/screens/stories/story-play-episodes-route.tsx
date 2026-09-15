@@ -94,13 +94,16 @@ function CurrentEpisodeRow({
   return (
     <PressableListRow
       accessibilityLabel={`${next.number}화 ${next.title}, ${action}`}
+      className="bg-accent/10"
       onPress={open}
       testID="story-play-current-episode"
     >
       <EpisodeNumber number={next.number} />
       <ListGroup.ItemContent>
         <ListGroup.ItemTitle>{next.title}</ListGroup.ItemTitle>
-        <ListGroup.ItemDescription>{action}</ListGroup.ItemDescription>
+        <ListGroup.ItemDescription className="font-semibold text-accent">
+          {action}
+        </ListGroup.ItemDescription>
       </ListGroup.ItemContent>
       <ListGroup.ItemSuffix />
     </PressableListRow>
