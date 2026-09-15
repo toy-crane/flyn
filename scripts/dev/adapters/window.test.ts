@@ -47,7 +47,11 @@ case "$(basename "$0"):$*" in
   *'getprop sys.boot_completed')
     while [ ! -f "$PROBE_DIR/launched" ]; do sleep 0.01; done
     echo 1;;
-  'emulator:'*) touch "$PROBE_DIR/launched";;
+  'emulator:'*)
+    if [ "$MODE" = moved ] && [ ! -f "$PROBE_DIR/released" ]; then
+      echo 'started before old port release' >> "$PROBE_LOG"
+    fi
+    touch "$PROBE_DIR/launched";;
   'ps:-axo pid=,args=')
     echo '902 /Xcode/Simulator.app/Contents/MacOS/Simulator -CurrentDeviceUDID other'
     if [ "$MODE" = visible ]; then
@@ -56,7 +60,7 @@ case "$(basename "$0"):$*" in
   'ps:'*)
     if [ "$MODE" = mismatch ]; then
       echo 'qemu -avd other -port 6540 -qt-hide-window'
-    elif [ "$MODE" = hidden ] || [ "$MODE" = delayed ]; then
+    elif [ "$MODE" = hidden ] || [ "$MODE" = delayed ] || [ "$MODE" = moved ]; then
       echo 'qemu -avd ours -port 6540 -qt-hide-window'
     else
       echo 'qemu -avd ours -port 6540'
@@ -74,23 +78,27 @@ esac
   const source =
     platform === "ios"
       ? `import {openSimulatorApp} from ${JSON.stringify(join(import.meta.dir, "ios.ts"))}; await openSimulatorApp("ours", ${foreground});`
-      : `import {startEmulator} from ${JSON.stringify(join(import.meta.dir, "android.ts"))}; await startEmulator({sdk:${JSON.stringify(sdk)}, avdName:"ours", port:6540, logPath:${JSON.stringify(join(dir, "device.log"))},foreground:${foreground}});`;
+      : `import {startEmulator} from ${JSON.stringify(join(import.meta.dir, "android.ts"))}; await startEmulator({sdk:${JSON.stringify(sdk)}, avdName:"ours", port:${mode === "moved" ? 6544 : 6540}, logPath:${JSON.stringify(join(dir, "device.log"))},foreground:${foreground}});`;
   const delayedSource = `
 import {createServer} from "node:net";
-import {existsSync} from "node:fs";
+import {existsSync, writeFileSync} from "node:fs";
 const server = createServer();
 await new Promise(resolve => server.listen(6540, "0.0.0.0", resolve));
 const timer = setInterval(() => {
   if (existsSync(${JSON.stringify(join(dir, "killed"))})) {
     clearInterval(timer);
-    setTimeout(() => server.close(), 500);
+    setTimeout(() => server.close(() => writeFileSync(${JSON.stringify(join(dir, "released"))}, "")), 500);
   }
 }, 10);
 ${source.split("; await")[0]};
 try { await ${source.split("; await")[1]} } finally { clearInterval(timer); server.close(); }
 `;
   const result = await run(
-    [process.execPath, "-e", mode === "delayed" ? delayedSource : source],
+    [
+      process.execPath,
+      "-e",
+      mode === "delayed" || mode === "moved" ? delayedSource : source,
+    ],
     {
       env: {
         ...process.env,
@@ -161,5 +169,14 @@ test("Android 종료 뒤 콘솔 포트 해제가 늦어져도 재시작을 기�
   expect(result.code).toBe(0);
   expect(result.commands).toContain(
     "emulator -avd ours -port 6540 -no-boot-anim\n"
+  );
+});
+
+test("slot이 바뀌어도 실행 중이던 Android의 이전 포트 해제를 기다린다", async () => {
+  const result = await probe("android", true, "moved");
+  expect(result.code).toBe(0);
+  expect(result.commands).not.toContain("started before old port release");
+  expect(result.commands).toContain(
+    "emulator -avd ours -port 6544 -no-boot-anim\n"
   );
 });

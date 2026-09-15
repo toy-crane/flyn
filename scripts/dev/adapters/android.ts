@@ -276,7 +276,7 @@ export async function startEmulator({
     }
     // The Qt flag is a launch setting. Reopen only this AVD, preserving data.
     await shutdownEmulator(sdk, running);
-    await waitForConsolePortRelease(port);
+    await waitForConsolePortRelease(Number(running.slice("emulator-".length)));
   }
 
   // An emulator started on a taken console port fails quietly, so the wait
