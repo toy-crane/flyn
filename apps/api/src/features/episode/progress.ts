@@ -165,7 +165,6 @@ export async function recordEpisodeEnding(
   const { data: recorded, error } = await client.rpc("finish_episode", {
     episode_id: episodeId,
     kind: ending.kind,
-    language_level: ending.level.trim().slice(0, MEMORY_LINE_LIMIT),
     memory_choice: ending.choice.trim().slice(0, MEMORY_LINE_LIMIT),
     memory_question: ending.question.trim().slice(0, MEMORY_LINE_LIMIT),
     memory_relationship: ending.relationship.trim().slice(0, MEMORY_LINE_LIMIT),
