@@ -1,8 +1,21 @@
 import { expect, test } from "@jest/globals";
-
+import { originalErrorMarks } from "./expression-marks";
 import { markedParts } from "./marked-text";
 
 const FIXED = "I want to change to an iced americano.";
+
+test("표현 제안이 차지한 자리를 건너뛰고 같은 낱말의 실제 오류만 짚는다", () => {
+  const parts = markedParts(
+    "She wants this, but I wants that",
+    originalErrorMarks([
+      { isError: false, original: "wants" },
+      { isError: true, original: "wants" },
+    ])
+  );
+  expect(parts.filter((part) => part.isMarked)).toEqual([
+    { at: 22, isMarked: true, text: "wants" },
+  ]);
+});
 
 test("강조할 조각을 짚고 나머지 문장은 그대로 둔다", () => {
   expect(markedParts("I want to change.", ["want to change"])).toEqual([

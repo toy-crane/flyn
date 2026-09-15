@@ -13,6 +13,8 @@ export interface MarkedText {
   text: string;
 }
 
+export type TextMark = string | { text: string; isMarked: boolean };
+
 /**
  * 문장을 강조할 자리 기준으로 자른다.
  *
@@ -26,11 +28,13 @@ export interface MarkedText {
  */
 export function markedParts(
   text: string,
-  marks: readonly string[]
+  marks: readonly TextMark[]
 ): MarkedText[] {
-  const ranges: { end: number; start: number }[] = [];
+  const ranges: { end: number; start: number; isMarked: boolean }[] = [];
 
-  for (const mark of marks) {
+  for (const item of marks) {
+    const mark = typeof item === "string" ? item : item.text;
+    const isMarked = typeof item === "string" || item.isMarked;
     if (!mark) {
       continue;
     }
@@ -50,7 +54,7 @@ export function markedParts(
       );
 
       if (!overlaps) {
-        ranges.push({ end, start });
+        ranges.push({ end, isMarked, start });
         break;
       }
 
@@ -70,7 +74,7 @@ export function markedParts(
 
     parts.push({
       at: range.start,
-      isMarked: true,
+      isMarked: range.isMarked,
       text: text.slice(range.start, range.end),
     });
     at = range.end;
@@ -107,7 +111,7 @@ export function MarkedSentence({
   className?: string;
   color?: TypographyColor;
   markClassName: string;
-  marks: readonly string[];
+  marks: readonly TextMark[];
   testID?: string;
   text: string;
   /** 영어 문장은 `h6`, 그 밖의 문장은 본문 계열이다. */
