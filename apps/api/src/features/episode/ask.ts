@@ -1,8 +1,17 @@
 import type { CorrectionEntry } from "./correction";
 
+/**
+ * 교정 안의 짚은 자리 하나. 답을 구하는 데는 원문 조각, 고친 조각, 이유만 쓴다.
+ *
+ * 유형은 받지 않는다. 표현 노트는 담을 때 유형을 남기지 않아서, 노트에서 연
+ * 질문도 같은 근거로 답하려면 대화에서 연 질문과 같은 세 값만 요구해야 한다.
+ */
+type AskedEntry = Pick<CorrectionEntry, "fixed" | "original" | "why"> &
+  Partial<Pick<CorrectionEntry, "pattern">>;
+
 /** 시트가 답을 구하는 근거. 앱이 보낸 교정 그대로다. */
 export interface AskedCorrection {
-  entries: CorrectionEntry[];
+  entries: AskedEntry[];
   fixed: string;
   original: string;
 }
@@ -32,13 +41,12 @@ export function readAskedUtterance(body: unknown): AskedUtterance | undefined {
   return { meaning: sent.meaning, speaker: sent.speaker, text: sent.text };
 }
 
-function isEntry(value: unknown): value is CorrectionEntry {
-  const entry = value as Partial<CorrectionEntry> | null;
+function isEntry(value: unknown): value is AskedEntry {
+  const entry = value as Partial<AskedEntry> | null;
 
   return (
     typeof entry?.fixed === "string" &&
     typeof entry.original === "string" &&
-    typeof entry.pattern === "string" &&
     typeof entry.why === "string"
   );
 }
@@ -67,7 +75,11 @@ export function readAskedCorrection(
   }
 
   return {
-    entries: sent.entries,
+    entries: sent.entries.map(({ fixed, original, why }) => ({
+      fixed,
+      original,
+      why,
+    })),
     fixed: sent.fixed,
     original: sent.original,
   };

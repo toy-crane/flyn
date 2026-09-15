@@ -2445,3 +2445,254 @@ describe("메시지 하나에 거는 동작", () => {
     expect(screen.getByTestId("chat-message-actions")).toBeOnTheScreen();
   });
 });
+
+describe("저장한 표현이 나온 자리에서 여는 대화", () => {
+  /** 테두리는 꾸밈이라 화면 읽기에서 빠진다. 그래도 그려졌는지는 본다. */
+  const HIDDEN = { includeHiddenElements: true };
+  /** 장면 하나에 인물 대사 둘. 자리 번호는 대사만 센다. */
+  const scene: UIMessage = {
+    id: "assistant-2",
+    parts: [
+      { data: { name: "Mia" }, id: "speaker-1", type: "data-speaker" },
+      { text: "Next in line, please!", type: "text" },
+      { data: { name: "Mia" }, id: "speaker-2", type: "data-speaker" },
+      { text: "Was there something wrong?", type: "text" },
+    ],
+    role: "assistant",
+  };
+  const conversation = [
+    textMessage("assistant-1", "assistant", "어서 오세요."),
+    textMessage("user-1", "user", "I order a hot americano."),
+    scene,
+    textMessage("user-2", "user", "Thank you."),
+  ];
+
+  /** 사용자 문장 아래 매달리는 배울 표현의 스탠드인. */
+  function AttachedExpression({ message }: { message: UIMessage }) {
+    return message.role === "user" ? (
+      <SlotView testID="attached-expression" />
+    ) : null;
+  }
+
+  function placeRows(rows: Record<number, { size: number; top: number }>) {
+    Object.assign(mockListState, {
+      positionAtIndex: (index: number) => rows[index]?.top ?? 0,
+      sizeAtIndex: (index: number) => rows[index]?.size ?? 0,
+    });
+  }
+
+  function focusOn(
+    messageId: string,
+    overrides: Partial<
+      NonNullable<Parameters<typeof ChatPanel>[0]["focus"]>
+    > = {}
+  ) {
+    return {
+      isHighlighting: false,
+      messageId,
+      onHighlightEnd: jest.fn(),
+      onPositioned: jest.fn(),
+      ...overrides,
+    };
+  }
+
+  async function finishLoading() {
+    await act(() => {
+      screen.getByTestId("chat-list").props.onLoad?.({ elapsedTimeInMs: 1 });
+    });
+  }
+
+  afterEach(() => {
+    mockScrollToOffset.mockReset();
+    mockScrollToOffset.mockImplementation(({ offset }) => {
+      mockListState.scroll = offset;
+      return Promise.resolve();
+    });
+    Object.assign(mockListState, {
+      contentLength: 1000,
+      positionAtIndex: undefined,
+      scroll: 500,
+      scrollLength: 500,
+      sizeAtIndex: undefined,
+    });
+  });
+
+  test("목록 끝이 아니라 그 메시지를 화면 위쪽에 두고 연다", async () => {
+    await renderWithHeroUI(
+      <ChatPanel
+        chat={chatSession({ messages: conversation })}
+        focus={focusOn("user-1")}
+      />
+    );
+
+    const list = screen.getByTestId("chat-list");
+
+    expect(list.props.initialScrollAtEnd).toBe(false);
+    expect(list.props.initialScrollIndex).toEqual({
+      index: 1,
+      viewOffset: 12,
+    });
+  });
+
+  test("사용자 문장과 매달린 표현이 한 화면에 들어가면 사용자 문장 위쪽에 맞춘다", async () => {
+    const focus = focusOn("user-1");
+    Object.assign(mockListState, { contentLength: 3000, scrollLength: 800 });
+    placeRows({ 1: { size: 240, top: 400 } });
+    await renderWithHeroUI(
+      <ChatPanel chat={chatSession({ messages: conversation })} focus={focus} />
+    );
+    await act(() => {
+      screen.getByTestId("chat-composer").props.onLayout({
+        nativeEvent: { layout: { height: 100 } },
+      });
+    });
+
+    await finishLoading();
+
+    await waitFor(() => expect(focus.onPositioned).toHaveBeenCalledTimes(1));
+    expect(mockScrollToOffset).toHaveBeenCalledWith({
+      animated: false,
+      offset: 388,
+    });
+  });
+
+  test("둘이 한 화면보다 길면 매달린 저장한 영어 표현의 위쪽부터 보여 준다", async () => {
+    const focus = focusOn("user-1");
+    Object.assign(mockListState, { contentLength: 3000, scrollLength: 800 });
+    placeRows({ 1: { size: 900, top: 400 } });
+    await renderWithHeroUI(
+      <ChatPanel
+        chat={chatSession({ messages: conversation })}
+        focus={focus}
+        messageAddon={AttachedExpression}
+      />
+    );
+    await act(() => {
+      screen.getByTestId("chat-composer").props.onLayout({
+        nativeEvent: { layout: { height: 100 } },
+      });
+      screen
+        .getByTestId("chat-focus-addon")
+        .props.onLayout({ nativeEvent: { layout: { y: 520 } } });
+    });
+
+    await finishLoading();
+
+    // 목록 800에서 입력창 100을 뺀 700이 보이는 높이다. 행 900은 들어가지 않으므로,
+    // 사용자 문장 아래 520에 매달린 표현의 위쪽을 화면 위 12에 둔다.
+    await waitFor(() => expect(focus.onPositioned).toHaveBeenCalledTimes(1));
+    expect(mockScrollToOffset).toHaveBeenCalledWith({
+      animated: false,
+      offset: 908,
+    });
+  });
+
+  test("인물 대사는 장면 안의 그 대사를 화면 위쪽에 맞춘다", async () => {
+    const focus = focusOn("assistant-2", { dialogueIndex: 1 });
+    Object.assign(mockListState, { contentLength: 3000, scrollLength: 800 });
+    placeRows({ 2: { size: 400, top: 700 } });
+    await renderWithHeroUI(
+      <ChatPanel chat={chatSession({ messages: conversation })} focus={focus} />
+    );
+    const [, second] = screen.getAllByTestId("chat-scene-utterance");
+    await act(() => {
+      second?.props.onLayout({ nativeEvent: { layout: { y: 150 } } });
+    });
+
+    await finishLoading();
+
+    await waitFor(() => expect(focus.onPositioned).toHaveBeenCalledTimes(1));
+    expect(mockScrollToOffset).toHaveBeenCalledWith({
+      animated: false,
+      offset: 838,
+    });
+  });
+
+  test("대화 끝을 넘어서 옮기지 않는다", async () => {
+    const focus = focusOn("user-2");
+    Object.assign(mockListState, { contentLength: 1200, scrollLength: 800 });
+    placeRows({ 3: { size: 80, top: 1100 } });
+    await renderWithHeroUI(
+      <ChatPanel chat={chatSession({ messages: conversation })} focus={focus} />
+    );
+
+    await finishLoading();
+
+    await waitFor(() => expect(focus.onPositioned).toHaveBeenCalledTimes(1));
+    expect(mockScrollToOffset).toHaveBeenCalledWith({
+      animated: false,
+      offset: 400,
+    });
+  });
+
+  test("자리를 잡는 동안에도 잡은 뒤에도 최신 내용 추적이 표현 위치를 끝으로 끌어가지 않는다", async () => {
+    const focus = focusOn("user-1");
+    Object.assign(mockListState, { contentLength: 3000, scrollLength: 800 });
+    placeRows({ 1: { size: 240, top: 400 } });
+    await renderWithHeroUI(
+      <ChatPanel chat={chatSession({ messages: conversation })} focus={focus} />
+    );
+
+    expect(screen.getByTestId("chat-list").props.maintainScrollAtEnd).toBe(
+      false
+    );
+
+    await finishLoading();
+    await waitFor(() => expect(focus.onPositioned).toHaveBeenCalledTimes(1));
+
+    expect(screen.getByTestId("chat-list").props.maintainScrollAtEnd).toBe(
+      false
+    );
+    expect(screen.getByLabelText(chatLabels.latest)).toBeOnTheScreen();
+  });
+
+  test("목록에 없는 메시지를 받으면 평소처럼 최신 내용에서 연다", async () => {
+    const focus = focusOn("gone");
+    await renderWithHeroUI(
+      <ChatPanel chat={chatSession({ messages: conversation })} focus={focus} />
+    );
+
+    expect(screen.getByTestId("chat-list").props.initialScrollAtEnd).toBe(true);
+    await finishLoading();
+    expect(focus.onPositioned).not.toHaveBeenCalled();
+  });
+
+  test("짚는 동안에는 그 인물 대사의 말풍선에만 테두리가 선다", async () => {
+    await renderWithHeroUI(
+      <ChatPanel
+        chat={chatSession({ messages: conversation })}
+        focus={focusOn("assistant-2", {
+          dialogueIndex: 1,
+          isHighlighting: true,
+        })}
+      />
+    );
+
+    const [first, second] = screen.getAllByTestId("chat-scene-utterance");
+
+    expect(screen.getAllByTestId("focus-ring", HIDDEN)).toHaveLength(1);
+    expect(
+      within(second as NonNullable<typeof second>).getByTestId(
+        "focus-ring",
+        HIDDEN
+      )
+    ).toBeOnTheScreen();
+    expect(
+      within(first as NonNullable<typeof first>).queryByTestId(
+        "focus-ring",
+        HIDDEN
+      )
+    ).toBeNull();
+  });
+
+  test("짚지 않을 때는 테두리가 없다", async () => {
+    await renderWithHeroUI(
+      <ChatPanel
+        chat={chatSession({ messages: conversation })}
+        focus={focusOn("assistant-2", { dialogueIndex: 1 })}
+      />
+    );
+
+    expect(screen.queryByTestId("focus-ring", HIDDEN)).toBeNull();
+  });
+});

@@ -28,7 +28,9 @@ import {
   type ExpressionState,
   useCorrections,
 } from "@/features/episode/state/episode-corrections";
+import { useEpisodeFocus } from "@/features/episode/state/episode-focus";
 import { originalErrorMarks } from "@/shared/ui/expression-marks";
+import { FocusRing } from "@/shared/ui/focus-ring";
 import { Icon } from "@/shared/ui/icon";
 import { MarkedSentence } from "@/shared/ui/marked-text";
 import { StatusLine } from "@/shared/ui/status-line";
@@ -191,6 +193,23 @@ export function CorrectionNote({
     () => ({ kind: "learning" as const, messageId: correction.messageId }),
     [correction.messageId]
   );
+  const focus = useEpisodeFocus();
+  /*
+    표현 노트에서 이 표현을 찾아 들어왔을 때 잠깐 서는 테두리. 한 줄이든 펼친
+    카드든 지금 보이는 쪽의 가장자리 안쪽을 따라가고, 모서리는 그 모양과 같다.
+    원문 말풍선과 아래 아이콘 줄은 짚지 않는다.
+
+    테두리를 안의 버튼보다 먼저 그린다. Android는 버튼 위에 겹친 장식 View가 있으면
+    그 버튼을 접근성 트리에서 뺀다. 테두리는 안쪽 여백 위에 서므로 순서를 바꿔도
+    보이는 모양은 같다.
+  */
+  const ring =
+    focus?.messageId === correction.messageId && focus.isHighlighting ? (
+      <FocusRing
+        className="rounded-2xl rounded-tl-md"
+        onEnd={focus.onHighlightEnd}
+      />
+    ) : null;
 
   return (
     <Animated.View
@@ -206,6 +225,7 @@ export function CorrectionNote({
           exiting={isReduced ? undefined : conceal}
           testID="correction-card"
         >
+          {ring}
           <View className="mb-2 flex-row items-center justify-between gap-1">
             <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
               <Icon name="learn" size="sm" tone={appearance.tone} />
@@ -257,6 +277,7 @@ export function CorrectionNote({
             onPress={open}
             testID="correction-line"
           >
+            {ring}
             <View className="mt-1">
               <Icon name="learn" size="sm" tone={appearance.tone} />
             </View>

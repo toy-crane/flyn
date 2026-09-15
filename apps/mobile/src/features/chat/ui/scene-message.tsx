@@ -1,8 +1,16 @@
 import { Typography } from "heroui-native/text";
-import { type ComponentType, memo, type ReactNode } from "react";
-import { View } from "react-native";
+import {
+  type ComponentType,
+  memo,
+  type ReactNode,
+  useCallback,
+  useContext,
+} from "react";
+import { type LayoutChangeEvent, View } from "react-native";
 import { castTone } from "@/shared/ui/cast-tone";
+import { FocusRing } from "@/shared/ui/focus-ring";
 
+import { ChatFocusContext } from "./chat-focus";
 import { MarkdownAnswer } from "./markdown-answer";
 import { MessageActions } from "./message-actions";
 import type { SceneSegment } from "./scene";
@@ -79,16 +87,42 @@ const SceneSegmentBody = memo(function SceneSegmentBodyContent({
   messageId: string;
   UtteranceSlot: UtteranceAddon | undefined;
 }) {
+  const focus = useContext(ChatFocusContext);
+  const isFocused =
+    name !== null &&
+    focus?.messageId === messageId &&
+    focus.dialogueIndex === at;
+  const reportUtteranceTop = focus?.reportUtteranceTop;
+  const reportTop = useCallback(
+    (event: LayoutChangeEvent) => {
+      reportUtteranceTop?.(event.nativeEvent.layout.y);
+    },
+    [reportUtteranceTop]
+  );
+
   if (name === null) {
     return isOpening ? <SceneOpening text={text} /> : null;
   }
   const bubble = (
     <View className="max-w-[85%] shrink rounded-2xl bg-surface px-4 py-3">
+      {/*
+        표현 노트에서 이 대사를 찾아 들어왔을 때 잠깐 서는 테두리. 말풍선 안에
+        두어 그 둘레를 따라가고, 배치에는 끼어들지 않는다. 글보다 먼저 그려 글 속
+        링크 위에 겹치지 않게 한다. Android는 겹친 장식 아래의 누를 자리를 접근성
+        트리에서 뺀다.
+      */}
+      {isFocused && focus.isHighlighting ? (
+        <FocusRing className="rounded-2xl" onEnd={focus.onHighlightEnd} />
+      ) : null}
       <MarkdownAnswer markdown={text} />
     </View>
   );
   return (
-    <View className="w-full items-start" testID="chat-scene-utterance">
+    <View
+      className="w-full items-start"
+      onLayout={isFocused ? reportTop : undefined}
+      testID="chat-scene-utterance"
+    >
       <Typography.Paragraph
         className={`mb-1 px-1 ${castTone(castPosition)}`}
         type="body-xs"

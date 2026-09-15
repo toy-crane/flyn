@@ -63,12 +63,19 @@ jest.mock("expo-router", () => {
       },
       Toolbar,
     },
-    useLocalSearchParams: () => ({
-      episodeId: EPISODE_ID,
-      storyPlayId: STORY_PLAY_ID,
-    }),
+    useLocalSearchParams: () => mockParams,
   };
 });
+
+/** 경로가 받은 검색 매개변수. 노트에서 들어온 경우만 짚을 자리가 더해진다. */
+let mockParams: Record<string, string> = {
+  episodeId: EPISODE_ID,
+  storyPlayId: STORY_PLAY_ID,
+};
+
+jest.mock("@/shared/navigation/use-screen-arrival", () => ({
+  useScreenArrival: () => true,
+}));
 
 jest.mock("@/core/theme/app-theme-bridge", () => ({
   useAppTheme: () => ({ background: "#000000" }),
@@ -111,11 +118,14 @@ jest.mock("@/screens/episode/episode-screen", () => {
   return {
     EpisodeScreen: (props: {
       episodeId: string;
+      focus?: { dialogueIndex: number | null; messageId: string };
+      hasArrived?: boolean;
       readOnly: boolean;
       savedResults?: readonly unknown[];
       situation: string;
       onReview: (next: unknown) => void;
     }) => {
+      focused = { focus: props.focus, hasArrived: props.hasArrived };
       playing = {
         episodeId: props.episodeId,
         readOnly: props.readOnly,
@@ -174,8 +184,16 @@ let playing:
       situation: string;
     }
   | undefined;
+let focused:
+  | {
+      focus?: { dialogueIndex: number | null; messageId: string };
+      hasArrived?: boolean;
+    }
+  | undefined;
 
 beforeEach(() => {
+  mockParams = { episodeId: EPISODE_ID, storyPlayId: STORY_PLAY_ID };
+  focused = undefined;
   mockBack.mockClear();
   mockReplace.mockClear();
   mockRefresh.mockClear();
@@ -214,6 +232,46 @@ test("ID로 읽은 에피소드 이름을 헤더에 걸고 뒤로 가기로 나�
   await user.press(screen.getByRole("button", { name: "뒤로 가기" }));
 
   expect(mockBack).toHaveBeenCalledTimes(1);
+});
+
+test("노트에서 들어오지 않으면 짚을 자리를 넘기지 않는다", async () => {
+  await renderWithHeroUI(<EpisodeRoute />);
+
+  expect(focused?.focus).toBeUndefined();
+});
+
+test("표현 노트가 넘긴 인물 대사의 자리를 대화 화면에 넘기고 도착했는지 함께 알린다", async () => {
+  mockParams = {
+    episodeId: EPISODE_ID,
+    focusDialogueIndex: "1",
+    focusMessageId: "3e55a9e0-0000-4000-8000-000000000001",
+    storyPlayId: STORY_PLAY_ID,
+  };
+
+  await renderWithHeroUI(<EpisodeRoute />);
+
+  expect(focused).toEqual({
+    focus: {
+      dialogueIndex: 1,
+      messageId: "3e55a9e0-0000-4000-8000-000000000001",
+    },
+    hasArrived: true,
+  });
+});
+
+test("표현 노트가 넘긴 배울 표현은 대사 자리 없이 메시지만 넘긴다", async () => {
+  mockParams = {
+    episodeId: EPISODE_ID,
+    focusMessageId: "3e55a9e0-0000-4000-8000-000000000002",
+    storyPlayId: STORY_PLAY_ID,
+  };
+
+  await renderWithHeroUI(<EpisodeRoute />);
+
+  expect(focused?.focus).toEqual({
+    dialogueIndex: null,
+    messageId: "3e55a9e0-0000-4000-8000-000000000002",
+  });
 });
 
 test("끝난 화와 진행 중인 화 모두 저장된 완료 결과를 넘긴다", async () => {

@@ -12,6 +12,7 @@ import CloudOff from "lucide-react-native/icons/cloud-off";
 import Copy from "lucide-react-native/icons/copy";
 import Languages from "lucide-react-native/icons/languages";
 import Lock from "lucide-react-native/icons/lock";
+import MessageSquareText from "lucide-react-native/icons/message-square-text";
 import MessagesSquare from "lucide-react-native/icons/messages-square";
 import Pencil from "lucide-react-native/icons/pencil";
 import Plus from "lucide-react-native/icons/plus";
@@ -31,6 +32,8 @@ const icons = {
   check: Check,
   close: X,
   collapse: ChevronUp,
+  /** 저장한 표현이 나온 대화로 가는 자리. 아직 대화가 없다는 `noConversation`과 모양이 다르다. */
+  conversation: MessageSquareText,
   copy: Copy,
   edit: Pencil,
   expand: ChevronDown,

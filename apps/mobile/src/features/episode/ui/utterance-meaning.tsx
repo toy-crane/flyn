@@ -143,10 +143,14 @@ export function UtteranceMeaningFailure({ spot }: { spot: UtteranceSpot }) {
   );
 }
 
+/**
+ * 인물 대사를 두고 연 질문창의 맨 위 출처. 표현 노트에서 연 질문창도 같은 출처를
+ * 쓰므로 그리는 것만 받는다. 노트는 인물의 스토리 안 순서를 모르므로 첫 이름표 색이 된다.
+ */
 export function UtteranceMeaningSource({
   source,
 }: {
-  source: UtteranceSource;
+  source: Pick<UtteranceSource, "meaning" | "position" | "speaker" | "text">;
 }) {
   return (
     <View

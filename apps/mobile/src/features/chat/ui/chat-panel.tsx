@@ -15,6 +15,7 @@ import {
   type ReactNode,
   type Ref,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -53,6 +54,7 @@ import { Icon } from "@/shared/ui/icon";
 import { IconButton } from "@/shared/ui/icon-button";
 import { copyToClipboard } from "@/shared/ui/icon-row";
 import { AssistantMessage } from "./assistant-message";
+import { ChatFocusContext } from "./chat-focus";
 import { chatLabels } from "./chat-labels";
 import { ComposerBackdrop } from "./composer-backdrop";
 import { COMPOSER_BACKDROP_FADE_HEIGHT } from "./composer-backdrop-layout";
@@ -60,6 +62,7 @@ import { ComposerSurface } from "./composer-surface";
 import { LatestMessageButton } from "./latest-message-button";
 import { sceneCopyText, sceneOfMessage } from "./scene";
 import { SceneMessage, type UtteranceAddon } from "./scene-message";
+import { type ChatPanelFocus, useInitialFocus } from "./use-initial-focus";
 import { useLateAnswer } from "./use-late-answer";
 import { UserMessage } from "./user-message";
 import { WaitingAnswer } from "./waiting-answer";
@@ -111,6 +114,40 @@ function textOfMessage(message: UIMessage): string {
     .filter((part) => part.type === "text")
     .map((part) => part.text)
     .join("");
+}
+
+/**
+ * 짚는 메시지 아래 매달린 것이 행 안에서 선 높이를 패널에 알린다.
+ *
+ * 사용자 문장과 매달린 표현이 한 화면보다 길 때 패널이 매달린 표현의 위쪽에
+ * 자리를 잡는 데 쓴다. 짚지 않는 행은 감싸지 않아 목록이 하는 일이 그대로다.
+ * 감싸도 아무 모양을 주지 않으므로 매달린 것의 배치는 같다.
+ */
+function FocusAddonSlot({
+  children,
+  messageId,
+}: {
+  children: ReactNode;
+  messageId: string;
+}) {
+  const focus = useContext(ChatFocusContext);
+  const reportAddonTop = focus?.reportAddonTop;
+  const report = useCallback(
+    (event: LayoutChangeEvent) => {
+      reportAddonTop?.(event.nativeEvent.layout.y);
+    },
+    [reportAddonTop]
+  );
+
+  if (focus?.messageId !== messageId || focus.dialogueIndex !== undefined) {
+    return children;
+  }
+
+  return (
+    <View onLayout={report} testID="chat-focus-addon">
+      {children}
+    </View>
+  );
 }
 
 /** 메시지 본문과 동작. 이동은 목록에서만 처리한다. */
@@ -238,7 +275,11 @@ function PlainTextMessage({
         이 자리는 알지 못한다. 매달린 것은 자기 상태를 스스로 읽으므로, 그것이
         생기거나 바뀌어도 목록이 이 행을 다시 만들지 않는다.
       */}
-      {MessageAddon ? <MessageAddon message={message} /> : null}
+      {MessageAddon ? (
+        <FocusAddonSlot messageId={message.id}>
+          <MessageAddon message={message} />
+        </FocusAddonSlot>
+      ) : null}
     </Animated.View>
   );
 }
@@ -249,12 +290,16 @@ function messageKey(message: UIMessage) {
 
 /** 입력창 바로 위에서 최신 메시지로 돌아가는 버튼. */
 function ReturnControls({
-  isFollowingLatest,
+  isFollowingLatest: isFollowing,
+  isPlacingFocus,
   onMoveToLatest,
 }: {
   isFollowingLatest: boolean;
+  /** 저장한 표현의 자리를 잡는 중. 아직 어디를 보는지 모르므로 버튼을 띄우지 않는다. */
+  isPlacingFocus: boolean;
   onMoveToLatest: () => void;
 }) {
+  const isFollowingLatest = isFollowing || isPlacingFocus;
   const isReducedMotion = useReducedMotion();
   const progress = useSharedValue(isFollowingLatest ? 0 : 1);
   const [isRendered, setIsRendered] = useState(!isFollowingLatest);
@@ -470,6 +515,7 @@ export function ChatPanel({
   cast,
   chat,
   closing,
+  focus,
   hasMessageActions = true,
   inputRef,
   messageAddon,
@@ -512,6 +558,16 @@ export function ChatPanel({
    * conversation is over, so nothing there can be acted on any more.
    */
   closing?: ReactNode;
+  /**
+   * 목록 끝이 아니라 이 메시지에서 대화를 연다.
+   *
+   * 사용자 문장과 그 아래 매달린 표현이 한 화면에 들어가면 사용자 문장 위쪽을
+   * 맞춘다. 한 화면보다 길면 아래 끝을 맞춰 매달린 표현을 먼저 보여 주고, 위로
+   * 스크롤하면 사용자 문장을 읽는다. 인물 대사는 장면 안의 그 대사를 위쪽에
+   * 맞춘다. 자리를 잡는 동안과 그 뒤에 최신 내용 추적이 끝으로 끌어가지 않는다.
+   * 목록에 없는 메시지면 평소처럼 연다.
+   */
+  focus?: ChatPanelFocus;
   /**
    * Whether one message carries actions of its own: copy, edit and asking for
    * the answer again. Off leaves the messages to be read.
@@ -613,6 +669,17 @@ export function ChatPanel({
         2
     );
   }, []);
+
+  const { focusTarget, isPlacingFocus, listStart, onListLoad } =
+    useInitialFocus({
+      bottomOcclusion,
+      focus,
+      hasReachedEnd,
+      listRef,
+      messages: chat.messages,
+      onFollowingLatest: setIsFollowingLatest,
+      topSpacing: MESSAGE_TOP_SPACING,
+    });
 
   const announcedError = useRef<Error | undefined>(undefined);
 
@@ -928,21 +995,22 @@ export function ChatPanel({
   );
 
   return (
-    <View
-      className="flex-1 bg-background"
-      style={{ paddingTop: topInset }}
-      testID="chat-panel"
-    >
-      {hasBanner ? (
-        <View
-          onLayout={updateBannerHeight}
-          pointerEvents="none"
-          testID="chat-banner"
-        >
-          {banner}
-        </View>
-      ) : null}
-      {/*
+    <ChatFocusContext.Provider value={focusTarget}>
+      <View
+        className="flex-1 bg-background"
+        style={{ paddingTop: topInset }}
+        testID="chat-panel"
+      >
+        {hasBanner ? (
+          <View
+            onLayout={updateBannerHeight}
+            pointerEvents="none"
+            testID="chat-banner"
+          >
+            {banner}
+          </View>
+        ) : null}
+        {/*
         토스트가 사는 자리. 띠의 아래 끝에 맞춰 두면 알약이 띠 밑에서 나와 대화
         위에 뜨고, 헤더와 띠는 덮이지 않는다. 띠 높이는 글자 크기에 따라 달라져
         상수로 둘 수 없으므로 그린 뒤에 잰다.
@@ -950,124 +1018,130 @@ export function ChatPanel({
         `zIndex`를 주는 이유는 이 자리가 목록보다 먼저 그려지기 때문이다. 주지
         않으면 알약이 말풍선 뒤로 깔려 위쪽 테두리만 비어져 나온다.
       */}
-      {toast === undefined ? null : (
-        <View
+        {toast === undefined ? null : (
+          <View
+            pointerEvents="none"
+            style={{
+              elevation: TOAST_ELEVATION,
+              left: 0,
+              position: "absolute",
+              right: 0,
+              top: topInset + bannerHeight,
+              zIndex: TOAST_ELEVATION,
+            }}
+            testID="chat-toast"
+          >
+            {toast}
+          </View>
+        )}
+        <KeyboardAwareLegendList
+          anchoredEndSpace={
+            anchorIndex === undefined
+              ? undefined
+              : {
+                  anchorIndex,
+                  anchorOffset: MESSAGE_TOP_SPACING,
+                  onReady: anchorIndex === 0 ? undefined : positionQuestion,
+                  onSizeChanged: setAnchorSpace,
+                }
+          }
+          applyWorkaroundForContentInsetHitTestBug
+          contentContainerStyle={{
+            paddingBottom:
+              closing !== undefined && Platform.OS === "ios"
+                ? COMPOSER_BACKDROP_FADE_HEIGHT
+                : 0,
+            paddingHorizontal: 20,
+            paddingTop: MESSAGE_TOP_SPACING,
+          }}
+          contentInsetAdjustmentBehavior="never"
+          contentInsetEndAdjustment={contentInsetEndAdjustment}
+          data={listMessages}
+          extraData={rowState}
+          freeze={freeze}
+          initialScrollAtEnd={listStart.initialScrollAtEnd}
+          initialScrollIndex={listStart.initialScrollIndex}
+          keyboardDismissMode={
+            Platform.OS === "ios" ? "interactive" : "on-drag"
+          }
+          keyboardLiftBehavior={
+            isPositioningQuestion ? "persistent" : "whenAtEnd"
+          }
+          keyboardOffset={insets.bottom}
+          keyboardShouldPersistTaps="handled"
+          keyExtractor={messageKey}
+          ListHeaderComponent={source ?? undefined}
+          maintainScrollAtEnd={
+            isFollowingLatest &&
+            !isPlacingFocus &&
+            !isPositioningQuestion &&
+            !isMovingToLatest &&
+            anchorSpace <= bottomOcclusion
+              ? {
+                  animated: false,
+                  on: { dataChange: true, itemLayout: true, layout: true },
+                }
+              : false
+          }
+          // 추적 여부는 사용자 동작으로 정한다. 글자나 상황 줄이 커진 거리는
+          // 추적을 끄는 이유가 아니므로 목록 내부의 거리 기준은 제한하지 않는다.
+          maintainScrollAtEndThreshold={Number.POSITIVE_INFINITY}
+          maintainVisibleContentPosition={{ data: false, size: true }}
+          onEndVisible={handleEndVisible}
+          onLoad={onListLoad}
+          onMomentumScrollBegin={beginUserMomentum}
+          onMomentumScrollEnd={endUserScroll}
+          onScroll={updateScrollPosition}
+          onScrollBeginDrag={beginUserScroll}
+          onScrollEndDrag={endUserDrag}
+          recycleItems={false}
+          ref={listRef}
+          renderItem={renderMessage}
+          scrollEventThrottle={16}
+          style={{ flex: 1 }}
+          testID="chat-list"
+        />
+
+        {/* 흐림은 대화에만 적용하고 최신 메시지 버튼은 그 위에 그린다. */}
+        <KeyboardStickyView
+          offset={{
+            closed: 0,
+            opened: composerBottomPadding - KEYBOARD_INPUT_GAP,
+          }}
           pointerEvents="none"
+          style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
+        >
+          <ComposerBackdrop
+            height={composerHeight}
+            variant={closing === undefined ? "composer" : "closing"}
+          />
+        </KeyboardStickyView>
+
+        {/* 입력창보다 먼저 그려 버튼이 입력창 뒤로 내려간다. */}
+        <KeyboardStickyView
+          offset={{
+            closed: 0,
+            opened: composerBottomPadding - KEYBOARD_INPUT_GAP,
+          }}
+          pointerEvents="box-none"
           style={{
-            elevation: TOAST_ELEVATION,
+            bottom: composerHeight,
+            height: LATEST_OVERLAY_HEIGHT,
             left: 0,
+            overflow: "hidden",
             position: "absolute",
             right: 0,
-            top: topInset + bannerHeight,
-            zIndex: TOAST_ELEVATION,
           }}
-          testID="chat-toast"
+          testID="chat-latest-overlay"
         >
-          {toast}
-        </View>
-      )}
-      <KeyboardAwareLegendList
-        anchoredEndSpace={
-          anchorIndex === undefined
-            ? undefined
-            : {
-                anchorIndex,
-                anchorOffset: MESSAGE_TOP_SPACING,
-                onReady: anchorIndex === 0 ? undefined : positionQuestion,
-                onSizeChanged: setAnchorSpace,
-              }
-        }
-        applyWorkaroundForContentInsetHitTestBug
-        contentContainerStyle={{
-          paddingBottom:
-            closing !== undefined && Platform.OS === "ios"
-              ? COMPOSER_BACKDROP_FADE_HEIGHT
-              : 0,
-          paddingHorizontal: 20,
-          paddingTop: MESSAGE_TOP_SPACING,
-        }}
-        contentInsetAdjustmentBehavior="never"
-        contentInsetEndAdjustment={contentInsetEndAdjustment}
-        data={listMessages}
-        extraData={rowState}
-        freeze={freeze}
-        initialScrollAtEnd
-        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-        keyboardLiftBehavior={
-          isPositioningQuestion ? "persistent" : "whenAtEnd"
-        }
-        keyboardOffset={insets.bottom}
-        keyboardShouldPersistTaps="handled"
-        keyExtractor={messageKey}
-        ListHeaderComponent={source ?? undefined}
-        maintainScrollAtEnd={
-          isFollowingLatest &&
-          !isPositioningQuestion &&
-          !isMovingToLatest &&
-          anchorSpace <= bottomOcclusion
-            ? {
-                animated: false,
-                on: { dataChange: true, itemLayout: true, layout: true },
-              }
-            : false
-        }
-        // 추적 여부는 사용자 동작으로 정한다. 글자나 상황 줄이 커진 거리는
-        // 추적을 끄는 이유가 아니므로 목록 내부의 거리 기준은 제한하지 않는다.
-        maintainScrollAtEndThreshold={Number.POSITIVE_INFINITY}
-        maintainVisibleContentPosition={{ data: false, size: true }}
-        onEndVisible={handleEndVisible}
-        onMomentumScrollBegin={beginUserMomentum}
-        onMomentumScrollEnd={endUserScroll}
-        onScroll={updateScrollPosition}
-        onScrollBeginDrag={beginUserScroll}
-        onScrollEndDrag={endUserDrag}
-        recycleItems={false}
-        ref={listRef}
-        renderItem={renderMessage}
-        scrollEventThrottle={16}
-        style={{ flex: 1 }}
-        testID="chat-list"
-      />
+          <ReturnControls
+            isFollowingLatest={isFollowingLatest}
+            isPlacingFocus={isPlacingFocus}
+            onMoveToLatest={moveToLatest}
+          />
+        </KeyboardStickyView>
 
-      {/* 흐림은 대화에만 적용하고 최신 메시지 버튼은 그 위에 그린다. */}
-      <KeyboardStickyView
-        offset={{
-          closed: 0,
-          opened: composerBottomPadding - KEYBOARD_INPUT_GAP,
-        }}
-        pointerEvents="none"
-        style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
-      >
-        <ComposerBackdrop
-          height={composerHeight}
-          variant={closing === undefined ? "composer" : "closing"}
-        />
-      </KeyboardStickyView>
-
-      {/* 입력창보다 먼저 그려 버튼이 입력창 뒤로 내려간다. */}
-      <KeyboardStickyView
-        offset={{
-          closed: 0,
-          opened: composerBottomPadding - KEYBOARD_INPUT_GAP,
-        }}
-        pointerEvents="box-none"
-        style={{
-          bottom: composerHeight,
-          height: LATEST_OVERLAY_HEIGHT,
-          left: 0,
-          overflow: "hidden",
-          position: "absolute",
-          right: 0,
-        }}
-        testID="chat-latest-overlay"
-      >
-        <ReturnControls
-          isFollowingLatest={isFollowingLatest}
-          onMoveToLatest={moveToLatest}
-        />
-      </KeyboardStickyView>
-
-      {/*
+        {/*
         The composer floats over the list rather than taking a row of its own
         below it. Laid out as a sibling it would shorten the list, and the
         conversation would stop at a straight edge above the control instead of
@@ -1075,42 +1149,43 @@ export function ChatPanel({
         What keeps the messages clear of it is the end inset the list already
         reports from this composer's measured height.
       */}
-      <KeyboardStickyView
-        offset={{
-          closed: 0,
-          opened: composerBottomPadding - KEYBOARD_INPUT_GAP,
-        }}
-        style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
-      >
-        <View
-          className="gap-2 px-5 pt-2"
-          onLayout={updateComposerLayout}
-          ref={composerRef}
-          style={{ paddingBottom: composerBottomPadding }}
-          testID="chat-composer"
+        <KeyboardStickyView
+          offset={{
+            closed: 0,
+            opened: composerBottomPadding - KEYBOARD_INPUT_GAP,
+          }}
+          style={{ bottom: 0, left: 0, position: "absolute", right: 0 }}
         >
-          {/*
+          <View
+            className="gap-2 px-5 pt-2"
+            onLayout={updateComposerLayout}
+            ref={composerRef}
+            style={{ paddingBottom: composerBottomPadding }}
+            testID="chat-composer"
+          >
+            {/*
             사건이 끝난 대화는 쓸 자리를 남기지 않는다. 입력만 지우면 오류와
             수정 안내가 위에 뜬 채로 남으므로, 이 자리를 통째로 내준다.
           */}
-          {closing === undefined ? (
-            <Composer
-              canSend={canSend}
-              canStop={canStop}
-              chat={chat}
-              inputHeight={Math.max(minInputHeight, inputHeight)}
-              inputRef={inputRef}
-              maxInputHeight={maxInputHeight}
-              onResize={resizeInput}
-              onSend={send}
-              onStop={stopAnswer}
-              placeholder={placeholder}
-            />
-          ) : (
-            closing
-          )}
-        </View>
-      </KeyboardStickyView>
-    </View>
+            {closing === undefined ? (
+              <Composer
+                canSend={canSend}
+                canStop={canStop}
+                chat={chat}
+                inputHeight={Math.max(minInputHeight, inputHeight)}
+                inputRef={inputRef}
+                maxInputHeight={maxInputHeight}
+                onResize={resizeInput}
+                onSend={send}
+                onStop={stopAnswer}
+                placeholder={placeholder}
+              />
+            ) : (
+              closing
+            )}
+          </View>
+        </KeyboardStickyView>
+      </View>
+    </ChatFocusContext.Provider>
   );
 }
