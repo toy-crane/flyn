@@ -1,5 +1,6 @@
 import { lstatSync, readFileSync, symlinkSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
+import { parseEnv } from "node:util";
 
 import { readGitContext } from "../dev/adapters/git";
 
@@ -32,9 +33,6 @@ const ENVIRONMENT_FILES = [
   },
 ] as const;
 
-const ENV_LINE_PATTERN =
-  /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/;
-
 function pathExists(path: string): boolean {
   try {
     lstatSync(path);
@@ -49,7 +47,9 @@ function pathExists(path: string): boolean {
   }
 }
 
-function readEnvironmentValues(file: string): Record<string, string> {
+function readEnvironmentValues(
+  file: string
+): Record<string, string | undefined> {
   let contents: string;
 
   try {
@@ -58,26 +58,13 @@ function readEnvironmentValues(file: string): Record<string, string> {
     throw new Error(`${file}을 읽지 못했습니다.`, { cause: error });
   }
 
-  const values: Record<string, string> = {};
-
-  for (const line of contents.split("\n")) {
-    const match = ENV_LINE_PATTERN.exec(line);
-
-    if (!match?.[1]) {
-      continue;
-    }
-
-    const raw = (match[2] ?? "").trim();
-    const [quote] = raw;
-    const isQuoted =
-      (quote === '"' || quote === "'") && raw.length > 1 && raw.endsWith(quote);
-
-    values[match[1]] = isQuoted
-      ? raw.slice(1, -1).trim()
-      : (raw.split(" #")[0] ?? "").trim();
+  try {
+    return parseEnv(contents);
+  } catch (error) {
+    throw new Error(`${file}의 dotenv 형식을 확인해 주세요.`, {
+      cause: error,
+    });
   }
-
-  return values;
 }
 
 function validateEnvironmentFile(
@@ -97,6 +84,7 @@ function validateEnvironmentFile(
 
 export interface PrepareWorktreeEnvironmentOptions {
   cwd: string;
+  scope?: "all" | "supabase";
 }
 
 export interface WorktreeEnvironmentResult {
@@ -107,6 +95,7 @@ export interface WorktreeEnvironmentResult {
 
 export async function prepareWorktreeEnvironment({
   cwd,
+  scope = "all",
 }: PrepareWorktreeEnvironmentOptions): Promise<WorktreeEnvironmentResult> {
   const git = await readGitContext(cwd);
 
@@ -120,7 +109,12 @@ export async function prepareWorktreeEnvironment({
   const links: Array<{ source: string; target: string }> = [];
   const reused: string[] = [];
 
-  for (const file of ENVIRONMENT_FILES) {
+  const environmentFiles =
+    scope === "supabase"
+      ? ENVIRONMENT_FILES.filter((file) => file.path === "supabase/.env")
+      : ENVIRONMENT_FILES;
+
+  for (const file of environmentFiles) {
     const target = join(git.worktreePath, file.path);
     const source = join(primaryRoot, file.path);
     const targetExists = pathExists(target);

@@ -1,5 +1,6 @@
 import process, { argv, cwd, exit, stderr, stdout } from "node:process";
 
+import { prepareWorktreeEnvironment } from "../environment/setup";
 import { parseDevCommand } from "./options";
 import type { SessionIo } from "./session/context";
 import { startSession } from "./session/start";
@@ -33,6 +34,8 @@ async function main(): Promise<void> {
 
     return;
   }
+
+  await prepareWorktreeEnvironment({ cwd: directory });
 
   const result = await startSession({
     clear: command.clear,
