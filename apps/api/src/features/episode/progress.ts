@@ -438,7 +438,9 @@ export async function readPlaySavedExpressions(
  */
 export interface SavedExpressionCard {
   english: string;
-  entries: { fixed: string; original: string; why: string }[] | null;
+  entries:
+    | { fixed: string; isError?: boolean; original: string; why: string }[]
+    | null;
   episodeNumber: number;
   id: string;
   kind: SavedExpressionKind;
@@ -451,6 +453,7 @@ export interface SavedExpressionCard {
 /** 담긴 행의 `entries`가 실제로 담고 있는 모양. */
 interface StoredEntry {
   fixed: string;
+  isError?: boolean;
   original: string;
   why: string;
 }
@@ -466,7 +469,16 @@ function storedEntries(value: unknown): StoredEntry[] | null {
     return typeof row?.fixed === "string" &&
       typeof row.original === "string" &&
       typeof row.why === "string"
-      ? [{ fixed: row.fixed, original: row.original, why: row.why }]
+      ? [
+          {
+            fixed: row.fixed,
+            ...(typeof row.isError === "boolean"
+              ? { isError: row.isError }
+              : {}),
+            original: row.original,
+            why: row.why,
+          },
+        ]
       : [];
   });
 }

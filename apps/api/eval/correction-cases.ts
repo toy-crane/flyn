@@ -1,16 +1,198 @@
 import type { ModelMessage } from "ai";
-import type { CorrectionDraft } from "../src/features/episode/correction";
+import {
+  type CorrectionDraft,
+  readExpressionResult,
+} from "../src/features/episode/correction";
 
 export interface CorrectionCase {
   context?: ModelMessage[];
-  entries?: { original: string; fixed: string }[];
+  entries?: { fixed: string; isError?: boolean; original: string }[];
   fixed?: string;
+  forbiddenFixedTerms?: string[];
   korean?: boolean;
+  maximumErrorEntries?: number;
+  minimumErrorEntries?: number;
   name: string;
   original: string;
+  requiredErrorCorrections?: { original: string; fixed: string }[];
+  requiredExamplePattern?: string;
+  requiredFixedTerms?: string[];
+  requiresClassification?: boolean;
+  requiresSuggestion?: boolean;
+  status?: CorrectionDraft["status"];
 }
 
 export const CORRECTION_CASES: CorrectionCase[] = [
+  {
+    minimumErrorEntries: 2,
+    name: "독립된 두 오류를 모두 수정",
+    original: "She go to work every day. Yesterday I goed home early.",
+    requiredErrorCorrections: [
+      { fixed: "goes", original: "go" },
+      { fixed: "went", original: "goed" },
+    ],
+    requiredFixedTerms: [
+      "She goes to work every day",
+      "Yesterday I went home early",
+    ],
+    requiresClassification: true,
+    status: "corrected",
+  },
+  {
+    context: [
+      { content: "이동 시간이 다가와 커피를 포장하려 해요", role: "user" },
+      {
+        content: "Mia: Would you like a mug or a paper cup?",
+        role: "assistant",
+      },
+    ],
+    maximumErrorEntries: 0,
+    name: "문법은 맞지만 상황에 맞는 표현이 있음",
+    original: "Can I take this coffee with me?",
+    requiredFixedTerms: ["coffee", "to go"],
+    requiresClassification: true,
+    requiresSuggestion: true,
+    status: "corrected",
+  },
+  {
+    context: [
+      { content: "이동 시간이 다가와 커피를 포장하려 해요", role: "user" },
+      {
+        content: "Mia: Would you like a mug or a paper cup?",
+        role: "assistant",
+      },
+    ],
+    name: "이미 상황에 맞는 표현",
+    original: "Can I get this coffee to go?",
+    status: "natural",
+  },
+  {
+    context: [
+      { content: "이동 시간이 다가와 커피를 포장하려 해요", role: "user" },
+      {
+        content: "Mia: Would you like a mug or a paper cup?",
+        role: "assistant",
+      },
+    ],
+    maximumErrorEntries: 1,
+    minimumErrorEntries: 1,
+    name: "오류와 상황 표현을 함께 제안",
+    original: "I wants this coffee in a cup I can take away.",
+    requiredErrorCorrections: [{ fixed: "want", original: "wants" }],
+    requiredFixedTerms: ["want", "coffee", "to go"],
+    requiresClassification: true,
+    requiresSuggestion: true,
+    status: "corrected",
+  },
+  {
+    context: [
+      {
+        content: "Mia: I can make another one for you.",
+        role: "assistant",
+      },
+    ],
+    forbiddenFixedTerms: ["exchange", "sorry", "apolog"],
+    minimumErrorEntries: 1,
+    name: "직설적인 환불 요구와 태도 보존",
+    original: "I dont wants a replacement. I want my money back.",
+    requiredFixedTerms: ["replacement", "money back"],
+    requiresClassification: true,
+    status: "corrected",
+  },
+  {
+    context: [
+      {
+        content: "주문과 다른 음료를 받아 다시 만들어 달라고 해요",
+        role: "user",
+      },
+      { content: "Mia: Is something wrong with it?", role: "assistant" },
+    ],
+    forbiddenFixedTerms: ["allerg", "two drinks", "refund"],
+    minimumErrorEntries: 1,
+    name: "긴 문장의 뜻과 사실 보존",
+    original:
+      "I ordered an iced latte with oat milk, but you give me a hot one with regular milk, and I want you to make it again.",
+    requiredFixedTerms: ["iced", "oat milk", "hot", "regular milk"],
+    requiresClassification: true,
+    status: "corrected",
+  },
+  {
+    context: [
+      {
+        content: "주문한 아이스커피 대신 뜨거운 커피가 나왔어요",
+        role: "user",
+      },
+      { content: "Mia: Here you go. One hot latte!", role: "assistant" },
+    ],
+    maximumErrorEntries: 0,
+    name: "주문과 다른 음료 문맥의 표현 제안",
+    original: "This is not my coffee.",
+    requiredFixedTerms: ["order"],
+    requiresClassification: true,
+    requiresSuggestion: true,
+    status: "corrected",
+  },
+  {
+    context: [
+      { content: "두 잔 가운데 자기 커피를 찾고 있어요", role: "user" },
+      { content: "Mia: Which one is yours?", role: "assistant" },
+    ],
+    name: "같은 문장이 소유를 가르는 문맥에서는 그대로",
+    original: "This is not my coffee.",
+    status: "natural",
+  },
+  {
+    context: [
+      { content: "저녁이라 카페인 없는 커피를 주문하려 해요", role: "user" },
+      {
+        content: "Mia: What kind of coffee would you like?",
+        role: "assistant",
+      },
+    ],
+    korean: true,
+    maximumErrorEntries: 0,
+    name: "한국어와 영어 혼합 안내",
+    original: "Can I get this coffee 디카페인으로?",
+    requiredFixedTerms: ["coffee", "decaf"],
+    requiresClassification: true,
+    requiresSuggestion: true,
+    status: "corrected",
+  },
+  {
+    context: [
+      {
+        content: "주문한 아이스커피 대신 뜨거운 커피가 나왔어요",
+        role: "user",
+      },
+      { content: "Mia: Here you go. One hot latte!", role: "assistant" },
+    ],
+    name: "문맥으로도 뜻을 알 수 없음",
+    original: "Coffee before blue same because.",
+    status: "unclear",
+  },
+  {
+    context: [
+      { content: "주문 조건이 모두 다른 음료를 받았어요", role: "user" },
+      { content: "Mia: Did I get something wrong?", role: "assistant" },
+    ],
+    forbiddenFixedTerms: ["refund", "exchange"],
+    minimumErrorEntries: 1,
+    name: "수량과 알레르기 요구를 빠뜨리거나 더하지 않음",
+    original:
+      "I need two decaf lattes with oat milk because I am allergic to dairy, but you gives me one regular latte.",
+    requiredFixedTerms: [
+      "need",
+      "two",
+      "decaf",
+      "oat milk",
+      "allerg",
+      "dairy",
+      "one",
+      "regular",
+    ],
+    requiresClassification: true,
+    status: "corrected",
+  },
   {
     context: [
       {
@@ -65,9 +247,11 @@ export const CORRECTION_CASES: CorrectionCase[] = [
   },
   {
     entries: [{ fixed: "want", original: "wants" }],
-    fixed: "i dont want it",
+    fixed: "I dont want it",
     name: "표기를 보존하며 교정",
-    original: "i dont wants it",
+    original: "I dont wants it",
+    requiredExamplePattern:
+      "\\b(?:do not|does not|don['’]?t|doesn['’]?t)\\s+(?:want|need|like|know|have|go|work|eat|drink|think|understand|wait|use|play|agree)\\b",
   },
   {
     entries: [{ fixed: "tomorrow", original: "tommorow" }],
@@ -104,9 +288,9 @@ export const CORRECTION_CASES: CorrectionCase[] = [
   { name: "예시에 없는 축약", original: "I cant come tonight lol" },
   {
     entries: [{ fixed: "doesnt", original: "dont" }],
-    fixed: "she doesnt want coffee!!!",
+    fixed: "She doesnt want coffee!!!",
     name: "예시에 없는 문법과 부호",
-    original: "she dont want coffee!!!",
+    original: "She dont want coffee!!!",
   },
 ];
 
@@ -115,11 +299,11 @@ export function correctionViolations(
   sample: CorrectionCase,
   result: CorrectionDraft
 ): string[] {
-  const expected = sample.fixed || sample.korean ? "corrected" : "natural";
+  const expected =
+    sample.status ?? (sample.fixed || sample.korean ? "corrected" : "natural");
   if (result.status !== expected) {
     return [`판정: ${result.status}, 기대: ${expected}`];
   }
-  const errors: string[] = [];
   if (result.status === "natural") {
     return result.fixed === sample.original &&
       result.entries.length === 0 &&
@@ -127,9 +311,85 @@ export function correctionViolations(
       ? []
       : ["문제없음에 수정 내용이 있음"];
   }
+  if (result.status === "unclear") {
+    return result.fixed === "" &&
+      result.entries.length === 0 &&
+      result.review === null
+      ? []
+      : ["뜻을 알 수 없음에 수정 내용이 있음"];
+  }
+
+  const errors: string[] = [];
   if (sample.fixed && result.fixed !== sample.fixed) {
     errors.push(`고친 문장: ${result.fixed}`);
   }
+  errors.push(...classificationViolations(sample, result.entries));
+  errors.push(...entryViolations(sample, result));
+  errors.push(...meaningViolations(sample, result.fixed));
+  try {
+    readExpressionResult(result, "evaluation-message", sample.original.trim());
+  } catch (error) {
+    errors.push(
+      `서버 검사: ${error instanceof Error ? error.message : "Invalid expression result."}`
+    );
+  }
+  return errors;
+}
+
+function classificationViolations(
+  sample: CorrectionCase,
+  entries: CorrectionDraft["entries"]
+): string[] {
+  const errors: string[] = [];
+  if (
+    sample.requiresClassification &&
+    entries.some((entry) => typeof entry.isError !== "boolean")
+  ) {
+    errors.push("실제 오류와 표현 제안 구분이 없음");
+  }
+  const errorEntries = entries.filter((entry) => entry.isError !== false);
+  for (const expected of sample.requiredErrorCorrections ?? []) {
+    if (
+      !errorEntries.some(
+        (entry) =>
+          entry.isError === true &&
+          entry.original === expected.original &&
+          entry.fixed === expected.fixed
+      )
+    ) {
+      errors.push(
+        `실제 오류 수정이 없음: ${expected.original} → ${expected.fixed}`
+      );
+    }
+  }
+  if (
+    sample.minimumErrorEntries !== undefined &&
+    errorEntries.length < sample.minimumErrorEntries
+  ) {
+    errors.push(`실제 오류 항목: ${errorEntries.length}개`);
+  }
+  if (
+    sample.maximumErrorEntries !== undefined &&
+    errorEntries.length > sample.maximumErrorEntries
+  ) {
+    errors.push(
+      `실제 오류가 아닌 항목을 오류로 표시함: ${errorEntries.length}개`
+    );
+  }
+  if (
+    sample.requiresSuggestion &&
+    !entries.some((entry) => entry.isError === false)
+  ) {
+    errors.push("상황에 맞는 표현 제안이 없음");
+  }
+  return errors;
+}
+
+function entryViolations(
+  sample: CorrectionCase,
+  result: CorrectionDraft
+): string[] {
+  const errors: string[] = [];
   const { entries } = result;
   if (
     sample.entries &&
@@ -137,7 +397,9 @@ export function correctionViolations(
       entries.some(
         (entry, index) =>
           entry.original !== sample.entries?.[index]?.original ||
-          entry.fixed !== sample.entries?.[index]?.fixed
+          entry.fixed !== sample.entries?.[index]?.fixed ||
+          (sample.entries[index]?.isError !== undefined &&
+            entry.isError !== sample.entries[index]?.isError)
       ))
   ) {
     errors.push(`표현 항목: ${JSON.stringify(entries)}`);
@@ -161,6 +423,39 @@ export function correctionViolations(
     Object.values(result.review).some((value) => !value.trim())
   ) {
     errors.push("학습 내용이 없음");
+  }
+  if (result.review) {
+    if (
+      sample.requiredExamplePattern &&
+      !new RegExp(sample.requiredExamplePattern, "i").test(
+        result.review.example
+      )
+    ) {
+      errors.push("다른 예문에 연습할 문법 패턴이 없음");
+    }
+    const normalize = (text: string) =>
+      text.replace(/[\p{P}\p{S}\p{C}\s]/gu, "").toLowerCase();
+    if (normalize(result.review.example) === normalize(result.fixed)) {
+      errors.push("다른 예문이 제안문을 반복함");
+    }
+  }
+  return errors;
+}
+
+function meaningViolations(sample: CorrectionCase, fixed: string): string[] {
+  const errors: string[] = [];
+  const normalized = (value: string) =>
+    value.replace(/[\p{P}\p{S}\p{C}\s]/gu, "").toLocaleLowerCase("en-US");
+  const lowered = normalized(fixed);
+  for (const term of sample.requiredFixedTerms ?? []) {
+    if (!lowered.includes(normalized(term))) {
+      errors.push(`보존해야 할 뜻이 없음: ${term}`);
+    }
+  }
+  for (const term of sample.forbiddenFixedTerms ?? []) {
+    if (lowered.includes(normalized(term))) {
+      errors.push(`추가하면 안 되는 뜻이 있음: ${term}`);
+    }
   }
   return errors;
 }

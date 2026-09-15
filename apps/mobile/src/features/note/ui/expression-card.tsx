@@ -7,6 +7,7 @@ import {
   ExpressionCard,
   type ExpressionCardDetail,
 } from "@/shared/ui/expression-card";
+import { originalErrorMarks } from "@/shared/ui/expression-marks";
 import { Icon } from "@/shared/ui/icon";
 import {
   IconRow,
@@ -48,7 +49,11 @@ function cardDetail(
 
   return {
     original: expression.original,
-    originalMarks: entries.map((entry) => entry.original),
+    originalMarks: originalErrorMarks(
+      entries,
+      expression.original,
+      expression.english
+    ),
     whys: entries.map((entry) => entry.why),
   };
 }

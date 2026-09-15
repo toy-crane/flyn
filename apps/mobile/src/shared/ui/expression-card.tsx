@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { View } from "react-native";
 
 import { ExpandableCard } from "@/shared/ui/expandable-card";
-import { MarkedSentence } from "@/shared/ui/marked-text";
+import { MarkedSentence, type TextMark } from "@/shared/ui/marked-text";
 
 /** 펼쳤을 때 드러나는 두 섹션의 라벨. 카드가 서는 두 화면에서 같은 말을 쓴다. */
 const detailLabels = {
@@ -17,7 +17,7 @@ export interface ExpressionCardDetail {
   /** 사용자가 실제로 쓴 문장. 영어일 수도 한국어일 수도 있다. */
   original: string;
   /** 원문에서 어긋난 자리. 밑줄로만 짚는다. */
-  originalMarks: readonly string[];
+  originalMarks: readonly TextMark[];
   /** 왜 그렇게 쓰는지. 짚은 자리가 여럿이면 줄도 그만큼이다. */
   whys: readonly string[];
 }

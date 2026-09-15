@@ -5,6 +5,7 @@ const NOTE_PATH = "/ai/episode/saved-expressions";
 /** 담아 둔 표현 하나가 짚는 자리. 원문과 고친 문장에 하나씩 쓴다. */
 export interface SavedExpressionEntry {
   fixed: string;
+  isError?: boolean;
   original: string;
   why: string;
 }

@@ -6,7 +6,7 @@ import { withSupabase } from "@supabase/server/adapters/hono";
 import { MockLanguageModelV4, simulateReadableStream } from "ai/test";
 import { encode as encodePng } from "fast-png";
 import type { MiddlewareHandler } from "hono";
-import finalCorrectionEvaluation from "../eval/results/correction-candidate-1789228066622.json";
+import finalCorrectionEvaluation from "../eval/results/correction-candidate-1789475800984.json";
 
 import deployedApp, { createApp } from "./app";
 import type { EpisodeScene } from "./features/episode/scene";
@@ -243,7 +243,9 @@ interface SavedRow {
   created_at: string;
   dialogue_index: number | null;
   english: string;
-  entries: { fixed: string; original: string; why: string }[] | null;
+  entries:
+    | { fixed: string; isError?: boolean; original: string; why: string }[]
+    | null;
   episode_id: string;
   id: string;
   kind: string;
@@ -1029,6 +1031,7 @@ const deletedUserAuth: MiddlewareHandler = (c, next) => {
 interface CorrectionAnswer {
   entries: {
     fixed: string;
+    isError?: boolean;
     original: string;
     pattern: string;
     why: string;
@@ -2261,8 +2264,37 @@ test("장면 응답은 교정을 기다리지 않고 저장된 사용자 메시�
 });
 
 describe("메시지별 표현 확인 API", () => {
-  test("최종 모델 평가의 출력 63건을 서버 검사로 다시 확인한다", async () => {
-    expect(finalCorrectionEvaluation.records).toHaveLength(63);
+  test("문법 오류 없는 문장도 상황에 맞는 배울 표현으로 제안해 저장한다", async () => {
+    const state = createSeasonState();
+    state.messages.push(stored("Can I take this coffee with me?"));
+    const entry = {
+      fixed: "Can I get this coffee to go?",
+      isError: false,
+      original: "Can I take this coffee with me?",
+      pattern: "coffee-to-go",
+      why: "음료를 포장해서 가져갈 때는 to go라고 해요.",
+    };
+    const app = createApp({
+      authMiddleware: signedInWith(state),
+      model: createMockModel([], {
+        entries: [entry],
+        fixed: "Can I get this coffee to go?",
+        status: "corrected",
+      }),
+    });
+
+    const response = await app.request(request());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      correction: { entries: [entry], fixed: "Can I get this coffee to go?" },
+      status: "corrected",
+    });
+    expect(state.expressionResults).toHaveLength(1);
+  });
+
+  test("최종 모델 평가의 출력 96건을 서버 검사로 다시 확인한다", async () => {
+    expect(finalCorrectionEvaluation.records).toHaveLength(96);
     await Promise.all(
       finalCorrectionEvaluation.records.map(async (record) => {
         const state = createSeasonState();
@@ -2985,7 +3017,10 @@ describe("표현을 담아 두는 API", () => {
     const state = createSeasonState();
     state.messages.push(wrote("I think you gave me wrong coffee."));
     state.expressionResults.push({
-      entries: WRONG_COFFEE.entries,
+      entries: WRONG_COFFEE.entries.map((entry) => ({
+        ...entry,
+        isError: false,
+      })),
       example: "I ordered a tea.",
       example_meaning: "차를 주문했어요.",
       fixed: WRONG_COFFEE.fixed,
@@ -3012,6 +3047,7 @@ describe("표현을 담아 두는 API", () => {
         entries: [
           {
             fixed: "the wrong coffee",
+            isError: false,
             original: "wrong coffee",
             why: "잘못 나온 그 하나를 짚어 말할 때는 the를 붙여요.",
           },
@@ -3175,7 +3211,10 @@ describe("표현을 담아 두는 API", () => {
     state.messages.push(scene());
     state.messages.push(wrote("I think you gave me wrong coffee."));
     state.expressionResults.push({
-      entries: WRONG_COFFEE.entries,
+      entries: WRONG_COFFEE.entries.map((entry) => ({
+        ...entry,
+        isError: false,
+      })),
       example: "I ordered a tea.",
       example_meaning: "차를 주문했어요.",
       fixed: WRONG_COFFEE.fixed,
@@ -3200,6 +3239,7 @@ describe("표현을 담아 두는 API", () => {
         entries: [
           {
             fixed: "the wrong coffee",
+            isError: false,
             original: "wrong coffee",
             why: "잘못 나온 그 하나를 짚어 말할 때는 the를 붙여요.",
           },

@@ -3,6 +3,7 @@ import { useMemo } from "react";
 
 import type { EpisodeCorrection } from "@/features/episode/api/episode-correction";
 import { ExpressionCard } from "@/shared/ui/expression-card";
+import { originalErrorMarks } from "@/shared/ui/expression-marks";
 import { Icon } from "@/shared/ui/icon";
 import { correctionPresentation } from "./correction-presentation";
 import { fixedMarks } from "./correction-text";
@@ -44,7 +45,11 @@ export function ExpressionReviewCard({
       }
       detail={{
         original: correction.original,
-        originalMarks: correction.entries.map((entry) => entry.original),
+        originalMarks: originalErrorMarks(
+          correction.entries,
+          correction.original,
+          correction.fixed
+        ),
         whys: correction.entries.map((entry) => entry.why),
       }}
       english={correction.fixed}
