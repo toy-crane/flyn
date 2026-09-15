@@ -15,7 +15,6 @@ export interface EpisodeScene {
     choice: string;
     relationship: string;
     question: string;
-    level: string;
   } | null;
 }
 
@@ -64,7 +63,6 @@ function isEpisodeScene(
       "choice",
       "relationship",
       "question",
-      "level",
     ]) &&
       EPISODE_ENDINGS.some((kind) => kind === ending.kind) &&
       [
@@ -72,7 +70,6 @@ function isEpisodeScene(
         ending.choice,
         ending.relationship,
         ending.question,
-        ending.level,
       ].every((text) => typeof text === "string" && text.trim().length > 0))
   );
 }
@@ -107,7 +104,6 @@ export function episodeSceneOutput(script: EpisodeScript) {
                 properties: {
                   choice: { minLength: 1, type: "string" },
                   kind: { enum: [...EPISODE_ENDINGS], type: "string" },
-                  level: { minLength: 1, type: "string" },
                   outcome: { minLength: 1, type: "string" },
                   question: { minLength: 1, type: "string" },
                   relationship: { minLength: 1, type: "string" },
@@ -118,7 +114,6 @@ export function episodeSceneOutput(script: EpisodeScript) {
                   "choice",
                   "relationship",
                   "question",
-                  "level",
                 ],
                 type: "object",
               },
