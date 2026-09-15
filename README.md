@@ -571,6 +571,7 @@ iOS와 Android 모두 앱 전용 Development Build를 사용합니다.
 개발은 저장소 루트의 개발 세션 명령 하나로 시작합니다.
 이 명령이 API와 Metro를 이 폴더 전용 포트로 띄우고, 이 폴더에 배정한 Simulator나 Emulator에서 앱을 엽니다.
 앱이 Metro에 연결된 것을 확인한 뒤에 터미널을 돌려주고, 그다음부터는 백그라운드에서 계속 실행합니다.
+Simulator는 앞으로 가져오지 않고, Emulator는 창을 숨겨 시작합니다. 화면 조작과 캡처는 그대로 사용할 수 있습니다.
 
 ```bash
 bun run dev ios

@@ -216,9 +216,9 @@ export async function bootSimulator(udid: string): Promise<void> {
   await runOrThrow(["xcrun", "simctl", "bootstatus", udid]);
 }
 
-/** Brings the Simulator window up so the developer can watch the app. */
+/** 현재 사용 중인 앱의 포커스를 유지하며 Simulator를 연다. */
 export async function openSimulatorApp(): Promise<void> {
-  await run(["open", "-a", "Simulator"]);
+  await run(["open", "-g", "-a", "Simulator"]);
 }
 
 export async function installApp(udid: string, appPath: string): Promise<void> {

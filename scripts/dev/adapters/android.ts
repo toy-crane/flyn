@@ -256,6 +256,7 @@ export async function startEmulator({
       "-port",
       String(port),
       "-no-boot-anim",
+      "-qt-hide-window",
     ],
     cwd: sdk.root,
     env: androidEnv(sdk, process.env as Record<string, string>),
