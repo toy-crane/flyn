@@ -6,7 +6,7 @@ import { withSupabase } from "@supabase/server/adapters/hono";
 import { MockLanguageModelV4, simulateReadableStream } from "ai/test";
 import { encode as encodePng } from "fast-png";
 import type { MiddlewareHandler } from "hono";
-import finalCorrectionEvaluation from "../eval/results/correction-candidate-1789474249764.json";
+import finalCorrectionEvaluation from "../eval/results/correction-candidate-1789475800984.json";
 
 import deployedApp, { createApp } from "./app";
 import type { EpisodeScene } from "./features/episode/scene";
@@ -2293,8 +2293,8 @@ describe("메시지별 표현 확인 API", () => {
     expect(state.expressionResults).toHaveLength(1);
   });
 
-  test("보존한 모델 평가의 출력 93건을 서버 검사로 다시 확인한다", async () => {
-    expect(finalCorrectionEvaluation.records).toHaveLength(93);
+  test("최종 모델 평가의 출력 96건을 서버 검사로 다시 확인한다", async () => {
+    expect(finalCorrectionEvaluation.records).toHaveLength(96);
     await Promise.all(
       finalCorrectionEvaluation.records.map(async (record) => {
         const state = createSeasonState();

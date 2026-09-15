@@ -6,6 +6,7 @@ import {
 import { CORRECTION_CASES, correctionViolations } from "./correction-cases";
 import baseline from "./results/correction-baseline-1789226591539.json";
 import previousEvaluation from "./results/correction-candidate-1789471175086.json";
+import finalEvaluation from "./results/correction-candidate-1789475800984.json";
 
 test("변경 전 모델의 대소문자 교정 세 번을 모두 떨어뜨린다", () => {
   const answers = baseline.records.filter(
@@ -25,6 +26,21 @@ const review = {
   meaning: "집에 일찍 갔어요.",
   situation: "집에 간 일을 말할 때",
 };
+
+test("최종 실제 출력 96건은 현재 평가 기준을 모두 통과한다", () => {
+  expect(finalEvaluation.records).toHaveLength(CORRECTION_CASES.length * 3);
+  for (const record of finalEvaluation.records) {
+    const sample = CORRECTION_CASES.find(
+      (entry) => entry.name === record.sample.name
+    );
+    if (!sample) {
+      throw new Error(`Unknown evaluation case: ${record.sample.name}`);
+    }
+    expect(
+      correctionViolations(sample, record.output as CorrectionDraft)
+    ).toEqual([]);
+  }
+});
 
 test("현재 필요한 음료를 과거 주문으로 바꾼 이전 평가 출력을 떨어뜨린다", () => {
   const sample = CORRECTION_CASES.find(
