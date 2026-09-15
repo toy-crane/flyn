@@ -39,7 +39,7 @@
 
 ## 데이터베이스
 
-- [데이터베이스 공통 필드](database-common-fields.md) — 앱 테이블의 생성·수정 시각이나 순서 열 이름을 정할 때 읽는다.
+- [데이터베이스 공통 필드](database-common-fields.md) — 앱 테이블의 생성·수정 시각, 사건 시각 열을 따로 둘지 또는 순서 열 이름을 정할 때 읽는다.
 - [표현 저장 구조](expression-storage.md) — 번역·교정·표현 노트의 저장, 책갈피 상태나 원본 삭제 뒤 수명을 바꿀 때 읽는다.
 
 - [Supabase 스키마 작업 방식](supabase-schema-workflow.md) — Supabase 스키마 원본, 로컬 스택, 마이그레이션, 타입 생성 또는 seed의 ID·갱신 규칙을 변경할 때 읽는다.
