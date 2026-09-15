@@ -756,6 +756,20 @@ export type Database = {
         Returns: boolean
       }
       is_reserved_username: { Args: { candidate: string }; Returns: boolean }
+      learning_days: {
+        Args: { first_day: string; last_day: string; zone: string }
+        Returns: {
+          day: string
+          english_messages: number
+        }[]
+      }
+      learning_streak: {
+        Args: { today: string; zone: string }
+        Returns: {
+          first_day: string
+          streak: number
+        }[]
+      }
       save_expression_result: {
         Args: { p_content?: Json; p_message_id: string; p_status: string }
         Returns: string

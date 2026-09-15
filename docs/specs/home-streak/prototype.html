@@ -69,6 +69,11 @@
     --expression: #0f766e;
     --radius: 6px;
     --font: -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", sans-serif;
+    /* 영어로 말한 횟수의 네 단계: 앰버. 오늘이 비었을 때의 점선은 보조 글자색(muted). */
+    --spoken-1: oklch(0.93 0.06 85);
+    --spoken-2: oklch(0.86 0.11 75);
+    --spoken-3: oklch(0.77 0.15 62);
+    --spoken-4: oklch(0.69 0.17 50);
   }
   .sh-theme-dark {
     --background: #0b0b0d;
@@ -81,6 +86,10 @@
     --border: oklch(28% 0.006 286.033);
     --learn: oklch(0.78 0.15 300);
     --expression: #76d6c9;
+    --spoken-1: oklch(0.33 0.06 60);
+    --spoken-2: oklch(0.40 0.09 55);
+    --spoken-3: oklch(0.47 0.12 50);
+    --spoken-4: oklch(0.53 0.14 45);
   }
 
   /* ── review chrome (sh-*): keep; extend product styles elsewhere ── */
@@ -152,7 +161,6 @@
   .callout { position: absolute; z-index: 5; background: var(--foreground); color: var(--background); border-radius: 10px; padding: 7px 10px; font-size: 13px; line-height: 18px; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,.18); transform: translate(-50%, 8px); }
   .callout::after { content: ""; position: absolute; left: 50%; top: -5px; width: 10px; height: 10px; background: var(--foreground); transform: translateX(-50%) rotate(45deg); border-radius: 2px; }
   .cell.selected { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--foreground); }
-  .cell.today.selected { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--accent), 0 0 0 5px var(--surface), 0 0 0 6.5px var(--foreground); }
 
   .card { background: var(--surface); border-radius: 18px; padding: 16px 16px 14px; display: flex; flex-direction: column; gap: 12px; }
   .card-head { display: flex; align-items: center; justify-content: space-between; }
@@ -163,20 +171,16 @@
   .cell { position: relative; border-radius: 10px; background: var(--surface-secondary); aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; color: var(--foreground); border: 0; padding: 0; margin: 0; font-family: inherit; width: 100%; }
   .cell:disabled { color: var(--foreground); opacity: 1; cursor: default; }
   button.cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .cell.l1 { background: oklch(from var(--accent) 0.90 0.07 h); }
-  .cell.l2 { background: oklch(from var(--accent) 0.82 0.12 h); }
-  .cell.l3 { background: oklch(from var(--accent) 0.72 0.17 h); }
-  .cell.l4 { background: var(--accent); }
-  .sh-theme-dark .cell.l1 { background: oklch(from var(--accent) 0.34 0.08 h); }
-  .sh-theme-dark .cell.l2 { background: oklch(from var(--accent) 0.42 0.12 h); }
-  .sh-theme-dark .cell.l3 { background: oklch(from var(--accent) 0.50 0.16 h); }
-  .sh-theme-dark .cell.l4 { background: oklch(from var(--accent) 0.55 0.195 h); }
+  .cell.l1 { background: var(--spoken-1); }
+  .cell.l2 { background: var(--spoken-2); }
+  .cell.l3 { background: var(--spoken-3); }
+  .cell.l4 { background: var(--spoken-4); }
   .cell.future { background: transparent; box-shadow: inset 0 0 0 1px var(--border); font-weight: 400; }
   .cell.blank { background: transparent; }
   .cell:not(.future):not(.blank) { cursor: pointer; }
   .cell.blank { visibility: hidden; }
-  .cell.today { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--accent); }
-  .cell.today.future { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--accent); }
+  /* 오늘은 영어로 아직 말하지 않았을 때만 점선으로 표시한다. 말하면 다른 날과 같다. */
+  .cell.today-empty { background: transparent; border: 1.5px dashed var(--muted); }
 
   .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px 6px; position: relative; }
   .week .dow { font-size: 12px; color: var(--muted); text-align: center; line-height: 16px; }
@@ -207,7 +211,7 @@
 </header>
 
 <main class="sh-stage">
-  <section data-screen="home" data-title="홈" data-states="첫 사용">
+  <section data-screen="home" data-title="홈" data-states="오늘 기록 없음,첫 사용">
     <div class="screen">
       <div class="home-head"><h1 class="home-title">홈</h1><div class="avatar"></div></div>
       <div class="streak" data-component="new:StreakLine"><span class="streak-value"><span data-role="streak-now">12</span>일 연속</span></div>
@@ -218,7 +222,7 @@
     </div>
   </section>
 
-  <section data-screen="record" data-title="연속 기록" data-states="첫 사용">
+  <section data-screen="record" data-title="연속 기록" data-states="오늘 기록 없음,첫 사용">
     <div class="screen">
       <div class="nav-head"><a class="nav-back" href="#home" aria-label="뒤로 가기"><span class="chev">‹</span></a><span class="nav-title">연속 기록</span><span></span></div>
       <div class="streak" data-component="new:StreakLine"><span class="streak-value"><span data-role="streak-now">12</span>일 연속</span></div>
@@ -279,7 +283,11 @@
       if (info.done) el.classList.add('done');
       parts.push(info.words === 0 ? '기록 없음' : '영어로 ' + info.words + '번 말했어요');
     }
-    if (sameDay(d, TODAY)) { el.classList.add('today'); parts.push('오늘'); }
+    if (sameDay(d, TODAY)) {
+      el.classList.add('today');
+      if (info.words === 0) el.classList.add('today-empty');
+      parts.push('오늘');
+    }
     el.setAttribute('aria-label', parts.join(', '));
     if (!opts || opts.number !== false) el.textContent = d.getDate();
     if (past) el.addEventListener('click', e => { e.stopPropagation(); toggleCallout(el, d); });
@@ -366,12 +374,15 @@
   function renderAll() { closeCallout(); renderTiles(); renderWeek(); calYear = 2026; calMonth = 8; renderCal(); }
   renderAll();
 
-  // 상태 프리셋 "첫 사용"을 고르면 데이터를 비운다.
+  // 상태 프리셋 "첫 사용"을 고르면 데이터를 비운다. "오늘 기록 없음"은 오늘만 비운다.
+  // 오늘 화를 끝내지 않았으므로 연속 기록은 어제까지 이어진 11일이다.
+  const todayQuiet = { ...fullData, [key(TODAY)]: { words: 0, done: false } };
   const stateSelectEl = document.getElementById('sh-state');
   function syncState() {
     const empty = stateSelectEl.value === '첫 사용';
-    days = empty ? {} : fullData;
-    streakNow = empty ? 0 : 12; streakBest = empty ? 0 : 24;
+    const quiet = stateSelectEl.value === '오늘 기록 없음';
+    days = empty ? {} : quiet ? todayQuiet : fullData;
+    streakNow = empty ? 0 : quiet ? 11 : 12; streakBest = empty ? 0 : 24;
     firstMonth = empty ? new Date(2026, 8, 1) : new Date(2026, 2, 1);
     renderAll();
   }
