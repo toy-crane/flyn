@@ -93,7 +93,7 @@ async function run(
 ): Promise<RecordEntry[]> {
   const messages: ModelMessage[] = conversation.seed
     ? seedMessages(conversation.seed)
-    : [];
+    : [...(conversation.history ?? [])];
   const records: RecordEntry[] = [];
   let previous = conversation.seed;
   for (const turn of conversation.turns) {
@@ -168,6 +168,16 @@ await writeFile(
     "기계 검사는 카드 계약을 확인한다. 대화의 이해도, 답할 지점, 말투와 가독성은 아래 전문으로 따로 검토한다. 문장 수와 서식 유무는 합격 기준이 아니다. 사용자 재미 확인도 별도다.",
     "",
     ...errors,
+    ...CREATION_CASES.filter((conversation) => conversation.history).map(
+      (conversation) =>
+        [
+          `## 고정 앞 대화: ${conversation.name}`,
+          ...(conversation.history ?? []).map(
+            (message) => `${message.role}: ${message.content}`
+          ),
+          "",
+        ].join("\n")
+    ),
     ...records.map((record) =>
       [
         `## ${record.round}번째 ${record.name}`,

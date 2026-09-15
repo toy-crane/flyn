@@ -2,6 +2,7 @@ import type { StoryOutline } from "../src/features/episode/story-creation";
 import type { CreationExpectation } from "./story-creation-checks";
 
 export interface CreationCase {
+  history?: { content: string; role: "user" | "assistant" }[];
   name: string;
   seed?: StoryOutline;
   turns: ({ question: string } & CreationExpectation)[];
@@ -40,7 +41,59 @@ const second = {
   title: "사용법 묻기",
 };
 
+const FIRST_DAY =
+  "해외 회사 첫 팀 회의에서 경력과 맡을 일을 영어로 소개하고 싶어요. 경력직인데 영어가 서툴러서 긴장돼요.";
+const OFFER =
+  "이어서 회사 식당에서 동료와 점심을 먹으며 취미를 물어보는 상황도 해 볼까요? 자기소개 에피소드만 만들어도 좋아요.";
+const OFFER_HISTORY: NonNullable<CreationCase["history"]> = [
+  { content: FIRST_DAY, role: "user" },
+  { content: OFFER, role: "assistant" },
+];
+
 export const CREATION_CASES: CreationCase[] = [
+  {
+    name: "첫 출근의 제안 뒤 조건을 덧붙이기",
+    turns: [
+      { proposes: true, question: FIRST_DAY, unresolved: true },
+      {
+        episodes: 2,
+        question:
+          "회사 식당에서 동료에게 취미 이야기를 제가 먼저 꺼내고 싶어요. 업무 얘기는 피하고 싶어요.",
+      },
+    ],
+  },
+  {
+    history: OFFER_HISTORY,
+    name: "충분한 제안에 짧게 동의하면 바로 카드",
+    turns: [{ episodes: 2, question: "좋아요" }],
+  },
+  {
+    history: OFFER_HISTORY,
+    name: "제안 대신 다른 사건을 말하면 그 사건만 추가",
+    turns: [
+      {
+        episodes: 2,
+        question:
+          "점심 말고 사무실에서 동료에게 복사기 사용법을 묻고 싶어요. 양면 복사를 해야 해요.",
+      },
+    ],
+  },
+  {
+    history: OFFER_HISTORY,
+    name: "추가 의사만 있고 사건이 불분명하면 필요한 뜻 확인",
+    turns: [
+      { asks: true, question: "점심 말고 다른 일을 해보고 싶어요." },
+      {
+        episodes: 2,
+        question: "사무실에서 동료에게 복사기 양면 복사 방법을 물어볼래요.",
+      },
+    ],
+  },
+  {
+    history: OFFER_HISTORY,
+    name: "자연스러운 추가 거절은 이유를 묻지 않고 카드",
+    turns: [{ episodes: 1, question: "지금은 자기소개만 할게요" }],
+  },
   {
     name: "사고 정보 교환에서 사용자를 별도 인물로 만들지 않기",
     turns: [
@@ -48,7 +101,7 @@ export const CREATION_CASES: CreationCase[] = [
         characters: 1,
         episodes: 1,
         question:
-          "고속도로에서 사고가 났어요. 상대 운전자와 연락처와 보험 정보를 교환하는 상황을 연습하고 싶어요.",
+          "고속도로에서 사고가 났어요. 상대 운전자와 연락처와 보험 정보를 교환하는 상황을 한 에피소드만 연습하고 싶어요.",
       },
     ],
   },
@@ -73,13 +126,15 @@ export const CREATION_CASES: CreationCase[] = [
     ],
   },
   {
-    name: "충분한 한 사건",
+    name: "충분한 첫 사건 뒤 제안과 자연스러운 거절",
     turns: [
       {
-        episodes: 1,
+        proposes: true,
         question:
           "어제 산 커피 머신에서 물이 새요. 영수증과 누수 영상을 보여 주며 매장 직원에게 교환을 요청하는 상황을 연습하고 싶어요. 직원은 화내지 않아요.",
+        unresolved: true,
       },
+      { episodes: 1, question: "아니요, 일단 교환 요청만 연습할래요." },
     ],
   },
   {
@@ -98,10 +153,12 @@ export const CREATION_CASES: CreationCase[] = [
           "비행기에서 아기가 울음을 멈추지 않아서 곤란했던 상황을 연습하고 싶어요.",
       },
       {
-        episodes: 1,
+        proposes: true,
         question:
           "옆자리 사람이 한숨을 쉬며 계속 쳐다봐요. 화내지는 않아요. 저도 애쓰고 있으니 조금만 이해해 달라고 말하고 싶어요.",
+        unresolved: true,
       },
+      { episodes: 1, question: "그냥 만들어 줘." },
     ],
   },
   {
