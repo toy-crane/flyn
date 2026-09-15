@@ -118,6 +118,51 @@ describe("prepareWorktreeEnvironment", () => {
     });
   });
 
+  test("Bun이 빈 값으로 읽는 주석과 따옴표 표기도 거부한다", async () => {
+    await Promise.all(
+      ["# TODO", " # TODO", '"" # TODO'].map((emptyValue) =>
+        withLinkedWorktree(async ({ primary, worktree }) => {
+          writeFileSync(
+            join(primary, "apps/api/.env.local"),
+            ENV_FILES["apps/api/.env.local"].replace(
+              "AI_GATEWAY_MODEL=openai/test-model",
+              `AI_GATEWAY_MODEL=${emptyValue}`
+            )
+          );
+
+          await expect(
+            prepareWorktreeEnvironment({ cwd: worktree })
+          ).rejects.toThrow("AI_GATEWAY_MODEL");
+
+          for (const relativePath of Object.keys(ENV_FILES)) {
+            expect(existsSync(join(worktree, relativePath))).toBe(false);
+          }
+        })
+      )
+    );
+  });
+
+  test("Supabase 준비는 Supabase 파일만 연결하고 검사한다", async () => {
+    await withLinkedWorktree(async ({ primary, worktree }) => {
+      rmSync(join(primary, "apps/api/.env.local"));
+      rmSync(join(primary, "apps/mobile/.env.local"));
+
+      const result = await prepareWorktreeEnvironment({
+        cwd: worktree,
+        scope: "supabase",
+      });
+
+      expect(result.linked).toEqual([
+        join(realpathSync.native(worktree), "supabase/.env"),
+      ]);
+      expect(existsSync(join(worktree, "apps/api/.env.local"))).toBe(false);
+      expect(existsSync(join(worktree, "apps/mobile/.env.local"))).toBe(false);
+      expect(readlinkSync(join(worktree, "supabase/.env"))).toBe(
+        join(primary, "supabase/.env")
+      );
+    });
+  });
+
   test("끊어진 기존 symlink가 있으면 다른 파일도 먼저 연결하지 않는다", async () => {
     await withLinkedWorktree(async ({ worktree }) => {
       const brokenLink = join(worktree, "apps/mobile/.env.local");
@@ -194,13 +239,22 @@ describe("prepareWorktreeEnvironment", () => {
       join(repositoryRoot, ".codex/environments/environment.toml"),
       "utf8"
     );
+    const devCli = readFileSync(
+      join(repositoryRoot, "scripts/dev/cli.ts"),
+      "utf8"
+    );
 
-    expect(rootPackage.scripts.dev).toStartWith("bun run env:setup &&");
-    expect(rootPackage.scripts["db:start"]).toStartWith("bun run env:setup &&");
+    expect(rootPackage.scripts.dev).toBe("bun scripts/dev/cli.ts");
+    expect(rootPackage.scripts["db:start"]).toStartWith(
+      "bun run env:setup -- supabase &&"
+    );
     expect(rootPackage.scripts["auth:otp"]).toStartWith("bun run env:setup &&");
     expect(rootPackage.scripts["dev:status"]).not.toContain("env:setup");
     expect(rootPackage.scripts["dev:stop"]).not.toContain("env:setup");
     expect(rootPackage.scripts["dev:remove"]).not.toContain("env:setup");
+    expect(devCli).toContain(
+      "await prepareWorktreeEnvironment({ cwd: directory })"
+    );
 
     for (const [name, command] of Object.entries(apiPackage.scripts)) {
       if (name === "dev" || name.startsWith("eval:")) {
